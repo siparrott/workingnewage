@@ -88,11 +88,6 @@ initializeStripe();
 
 console.log('🚀 Starting PRODUCTION server with Neon database...');
 
-// Proactively ensure critical schemas (non-blocking) so first admin requests don't race
-(async () => {
-  try { await ensureLeadsSchema(); } catch (e) { console.warn('Leads schema ensure (startup) warning:', e.message); }
-})();
-
 // Cached invoice column detection to avoid per-request information_schema scans
 let __invoiceColsCache = { set: null, ts: 0 };
 async function getInvoiceColumnSet() {
@@ -334,6 +329,11 @@ async function ensureLeadsSchema() {
     console.warn('⚠️ ensureLeadsSchema failed:', e.message);
   }
 }
+
+// Proactively ensure critical schemas (non-blocking) AFTER definition
+(async () => {
+  try { await ensureLeadsSchema(); } catch (e) { console.warn('Leads schema ensure (startup) warning:', e.message); }
+})();
 
 // ===== Email settings schema and helpers =====
 let __emailSettingsEnsured = false;
@@ -2467,6 +2467,69 @@ const server = http.createServer(async (req, res) => {
   
   // API endpoints
   if (pathname.startsWith('/api/')) {
+    // --- Administrative DB audit endpoint (lightweight, read-only) ---
+    if (pathname === '/api/admin/db-audit' && req.method === 'GET') {
+      try {
+        if (!sql) {
+          res.writeHead(503, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: 'No SQL client (DATABASE_URL missing?)' }));
+          return;
+        }
+        const started = Date.now();
+        const tablesToCheck = [
+          'leads','crm_leads','crm_clients','invoices','invoice_items',
+          'vouchers','voucher_sales','discount_coupons','email_settings',
+          'admin_notifications_state','galleries','gallery_images',
+          'email_campaigns','email_templates','email_segments',
+          'blog_posts','messages'
+        ];
+        const existing = await sql`SELECT table_name FROM information_schema.tables WHERE table_schema='public'`;
+        const existingSet = new Set(existing.map(r => r.table_name));
+        const results = {};
+        async function safeCount(tbl) {
+          if (!existingSet.has(tbl)) return null;
+          try { const r = await sql(`SELECT COUNT(*) AS c FROM ${tbl}`); return Number(r[0].c || 0); } catch { return 'err'; }
+        }
+        for (const t of tablesToCheck) {
+          results[t] = { exists: existingSet.has(t), count: await safeCount(t) };
+        }
+        // Column presence checks (selected important tables)
+        if (results.leads?.exists) {
+          const cols = await sql`SELECT column_name FROM information_schema.columns WHERE table_name='leads'`;
+          const colSet = new Set(cols.map(c => c.column_name));
+          const expected = ['form_type','full_name','email','status','created_at'];
+          results.leads.missingColumns = expected.filter(c => !colSet.has(c));
+        }
+        if (results.invoices?.exists) {
+          const cols = await sql`SELECT column_name FROM information_schema.columns WHERE table_name='invoices'`;
+          const colSet = new Set(cols.map(c => c.column_name));
+          const expected = ['invoice_no','total','status','public_id','checkout_url','payment_status'];
+          results.invoices.missingColumns = expected.filter(c => !colSet.has(c));
+        }
+        // Mismatch hints
+        const mismatches = {};
+        if (results.crm_leads?.exists && results.leads?.exists) {
+          if ((results.crm_leads.count || 0) > 0 && results.leads.count === 0) {
+            mismatches.leadsSource = 'crm_leads_has_rows_but_leads_empty';
+          }
+        }
+        let connectivity = 'ok';
+        try { await sql`SELECT 1`; } catch (e) { connectivity = 'fail:' + e.message; }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          ok: true,
+          connectivity,
+          elapsed_ms: Date.now() - started,
+          db_url_present: !!process.env.DATABASE_URL,
+          tables: results,
+          mismatches
+        }, null, 2));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+      return;
+    }
     // Email AI helpers: subject lines
     if (pathname === '/api/email/ai/subject-lines' && req.method === 'POST') {
       try {
@@ -3026,20 +3089,33 @@ const server = http.createServer(async (req, res) => {
     // Simple clients search for admin typeahead
     if (pathname === '/api/admin/clients/search' && req.method === 'GET') {
       try {
-        const neon = require('@neondatabase/serverless');
-        const sql = neon.neon(process.env.DATABASE_URL);
-        const url = new URL(req.url, `http://${req.headers.host}`);
-        const q = (url.searchParams.get('q') || '').trim();
-        const limit = Math.min(parseInt(url.searchParams.get('limit') || '10'), 25);
+        if (!sql) { // global sql already initialized at top
+          res.writeHead(503, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ clients: [], error: 'Database unavailable' }));
+          return;
+        }
+        // Ensure schema (idempotent + cached)
+        await ensureCrmClientsSchema();
+        const urlObj = new URL(req.url, `http://${req.headers.host}`);
+        const q = (urlObj.searchParams.get('q') || '').trim();
+        const limit = Math.min(Math.max(parseInt(urlObj.searchParams.get('limit') || '10', 10) || 10, 1), 50);
         if (!q) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ clients: [] }));
           return;
         }
+        // Support searching by combined full name "first last" as well.
+        const like = `%${q.replace(/%/g,'').toLowerCase()}%`;
         const rows = await sql`
-          SELECT id::text as id, client_id, first_name, last_name, email
+          SELECT id::text as id, client_id, first_name, last_name, email, phone
           FROM crm_clients
-          WHERE (first_name ILIKE ${'%' + q + '%'} OR last_name ILIKE ${'%' + q + '%'} OR email ILIKE ${'%' + q + '%'} OR client_id ILIKE ${'%' + q + '%'})
+          WHERE (
+            LOWER(COALESCE(first_name,'')) LIKE ${like} OR
+            LOWER(COALESCE(last_name,'')) LIKE ${like} OR
+            LOWER(COALESCE(email,'')) LIKE ${like} OR
+            LOWER(COALESCE(client_id,'')) LIKE ${like} OR
+            LOWER(COALESCE(first_name,'') || ' ' || COALESCE(last_name,'')) LIKE ${like}
+          )
           ORDER BY last_name NULLS LAST, first_name NULLS LAST
           LIMIT ${limit}
         `;
@@ -3048,7 +3124,7 @@ const server = http.createServer(async (req, res) => {
       } catch (e) {
         console.error('clients search error:', e.message);
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'search failed' }));
+        res.end(JSON.stringify({ clients: [], error: 'Client search failed' }));
       }
       return;
     }

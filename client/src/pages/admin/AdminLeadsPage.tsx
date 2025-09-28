@@ -96,7 +96,8 @@ const AdminLeadsPage: React.FC = () => {
       setTotalCount(count);
     } catch (err) {
       // console.error removed
-      setError('Failed to load leads. Please ensure the database schema is deployed.');
+  // Simplified error message (schema auto-create now handled server-side)
+  setError('Failed to load leads. Please try again.');
       // Set empty array as fallback
       setLeads([]);
       setTotalCount(0);
