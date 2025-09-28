@@ -13,10 +13,10 @@ interface EmailSettings {
 
 const EmailSettingsPage: React.FC = () => {
   const [settings, setSettings] = useState<EmailSettings>({
-    notificationEmail: '',
-    smtpHost: '',
+    notificationEmail: 'hallo@newagefotografie.com',
+    smtpHost: 'smtp.easyname.com',
     smtpPort: 587,
-    smtpUser: '',
+    smtpUser: '30840mail10',
     smtpPassword: '',
     emailSignature: 'Best regards,\nNew Age Fotografie Team'
   });

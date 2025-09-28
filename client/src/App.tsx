@@ -26,7 +26,6 @@ import AdminDashboardPageDev from './pages/admin/AdminDashboardPageDev';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import NeonAdminLoginPage from './pages/admin/NeonAdminLoginPage';
 import AdminLeadsPage from './pages/admin/AdminLeadsPage';
-import NewLeadsSimplePage from './pages/admin/NewLeadsSimplePage';
 import AdminVoucherSalesPageV2 from './pages/admin/AdminVoucherSalesPageV2';
 import AdminClientsPage from './pages/admin/ClientsPage';
 import ClientDetailPage from './pages/admin/ClientDetailPage';
@@ -161,14 +160,6 @@ function App() {
                   }
                 />
                 <Route
-                  path="/admin/leads-simple"
-                  element={
-                    <NeonProtectedRoute>
-                      <NewLeadsSimplePage />
-                    </NeonProtectedRoute>
-                  }
-                />
-                <Route
                   path="/admin/voucher-sales"
                   element={
                     <NeonProtectedRoute>
@@ -236,7 +227,7 @@ function App() {
                   path="/admin/galleries"
                   element={
                     <NeonProtectedRoute>
-                      <GalleriesPage />
+                      <AdminGalleriesPage />
                     </NeonProtectedRoute>
                   }
                 />

@@ -33,6 +33,8 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
   const [appliedVoucherCode, setAppliedVoucherCode] = useState<string>();
   const [discount, setDiscount] = useState(0);
   const [showVoucherInput, setShowVoucherInput] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const deliveryAmount = voucherData?.deliveryOption.price || 0;
   const subtotal = baseAmount + deliveryAmount;
@@ -111,71 +113,79 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
   };
 
   const handleCheckout = async (selectedPaymentMethod?: string) => {
-    if (!email.trim() || !voucherData) return;
+    if (isProcessing) return; // guard against double clicks
+    setErrorMessage(null);
+    if (!email.trim() || !voucherData) {
+      setErrorMessage('Bitte E-Mail eingeben.');
+      return;
+    }
     if (needsShipping && !hasShippingAddress) {
-      // Prevent checkout if shipping required but address missing
-      alert('Bitte geben Sie die Lieferadresse ein, bevor Sie zur Kasse gehen.');
+      setErrorMessage('Lieferadresse fehlt. Bitte zurück und Adresse ausfüllen.');
       return;
     }
 
     const finalPaymentMethod = selectedPaymentMethod || paymentMethod;
+    setIsProcessing(true);
 
     try {
-      // Create Stripe checkout session for voucher
+      const payload = {
+        items: [
+          {
+            name: productNameFromSlug(productSlug) || `Fotoshooting Gutschein - ${voucherData.selectedDesign?.occasion || 'Personalisiert'}`,
+            price: Math.round(baseAmount * 100),
+            quantity: 1,
+            sku: productSlug,
+            description: 'Gutschein'
+          },
+          ...(deliveryAmount > 0 ? [{
+            name: `Gutschein Lieferung - ${voucherData.deliveryOption.name}`,
+            price: Math.round(deliveryAmount * 100),
+            quantity: 1,
+            sku: `delivery-${(voucherData.deliveryOption.name || 'standard').toLowerCase()}`,
+            description: 'Lieferkosten'
+          }] : [])
+        ],
+        customerEmail: email.trim(),
+        voucherData: {
+          ...voucherData,
+          customPhoto: voucherData.customPhoto ? 'uploaded' : null
+        },
+        appliedVoucherCode,
+        discount: Math.round(discount * 100),
+        mode: 'voucher',
+        paymentMethod: finalPaymentMethod
+      };
+
+      console.log('➡️ Creating checkout session with payload:', payload);
+
       const response = await fetch('/api/checkout/create-session', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          items: [
-            // Voucher item (eligible for discount)
-            {
-              name: productNameFromSlug(productSlug) || `Fotoshooting Gutschein - ${voucherData.selectedDesign?.occasion || 'Personalisiert'}`,
-              price: Math.round(baseAmount * 100),
-              quantity: 1,
-              sku: productSlug,
-              description: 'Gutschein'
-            },
-            // Delivery item (NOT eligible for discount)
-            ...(deliveryAmount > 0 ? [{
-              name: `Gutschein Lieferung - ${voucherData.deliveryOption.name}`,
-              price: Math.round(deliveryAmount * 100),
-              quantity: 1,
-              sku: `delivery-${(voucherData.deliveryOption.name || 'standard').toLowerCase()}`,
-              description: 'Lieferkosten'
-            }] : [])
-          ],
-          customerEmail: email.trim(),
-          voucherData: {
-            ...voucherData,
-            customPhoto: voucherData.customPhoto ? 'uploaded' : null // Don't send file object
-          },
-          appliedVoucherCode,
-          discount: Math.round(discount * 100),
-          mode: 'voucher',
-          paymentMethod: finalPaymentMethod
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
 
+      let result: any = {};
+      try { result = await response.json(); } catch {}
+
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Server responded with error:', errorData);
-        return; // Don't show error alerts since Stripe is working
+        console.error('❌ Checkout session creation failed:', result);
+        setErrorMessage(result?.error || 'Checkout konnte nicht gestartet werden.');
+        setIsProcessing(false);
+        return;
       }
 
-      const result = await response.json();
-      
-      if (result.url) {
-        // Redirect to checkout page (either Stripe or demo)
+      if (result?.url) {
+        console.log('✅ Redirecting to Stripe Checkout:', result.url);
         window.location.href = result.url;
       } else {
-        console.log('No URL returned from checkout API');
+        console.warn('⚠️ Kein URL Feld in Antwort. Result:', result);
+        setErrorMessage('Fehler: Keine Weiterleitungs-URL erhalten. Bitte später erneut versuchen.');
+        setIsProcessing(false);
       }
-      
     } catch (error) {
-      console.error('Checkout error:', error);
-      // Stripe checkout is working properly, so no need for error alerts
+      console.error('Unexpected checkout error:', error);
+      setErrorMessage('Unerwarteter Fehler beim Start des Checkouts.');
+      setIsProcessing(false);
     }
   };
 
@@ -250,11 +260,24 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
                   e.preventDefault();
                   handleCheckout();
                 }}
-                disabled={!email.trim() || !voucherData || (needsShipping && !hasShippingAddress)}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                disabled={isProcessing || !email.trim() || !voucherData || (needsShipping && !hasShippingAddress)}
+                className={`w-full ${isProcessing ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'} disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center space-x-2`}
               >
-                <span>Weiter</span>
+                {isProcessing ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5 mr-2 text-white" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                    </svg>
+                    Wird weitergeleitet...
+                  </>
+                ) : (
+                  <span>Weiter</span>
+                )}
               </button>
+              {errorMessage && (
+                <p className="text-sm text-red-600 mt-3">{errorMessage}</p>
+              )}
               {needsShipping && !hasShippingAddress && (
                 <p className="text-sm text-red-600 mt-2">Für die gewählte Versandart ist eine Lieferadresse erforderlich. Bitte gehen Sie zurück und füllen Sie die Adresse aus.</p>
               )}
