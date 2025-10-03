@@ -1103,6 +1103,46 @@ function buildSecureDownloadUrl(sessionId, ttlSeconds = 3600) {
   return `${base}/api/vouchers/secure-download?session_id=${encodeURIComponent(sessionId)}&expires=${expires}&sig=${sig}`;
 }
 
+// Integrate voucher PDF generation and payment confirmation
+async function handleVoucherCheckout(sessionId, personalization, paymentIntentId) {
+  try {
+    // Generate the voucher PDF
+    const pdfUrl = await generateVoucherPdf(sessionId, personalization);
+
+    // Save the voucher details in the database
+    await sql`
+      INSERT INTO vouchers (session_id, personalization, pdf_url, status, payment_intent_id)
+      VALUES (${sessionId}, ${JSON.stringify(personalization)}, ${pdfUrl}, 'pending', ${paymentIntentId})
+      ON CONFLICT (session_id) DO UPDATE SET
+        personalization = EXCLUDED.personalization,
+        pdf_url = EXCLUDED.pdf_url,
+        status = EXCLUDED.status,
+        payment_intent_id = EXCLUDED.payment_intent_id;
+    `;
+
+    console.log(`✅ Voucher created for session ${sessionId}`);
+  } catch (error) {
+    console.error(`❌ Failed to handle voucher checkout for session ${sessionId}:`, error);
+    throw error;
+  }
+}
+
+async function confirmVoucherPayment(paymentIntentId) {
+  try {
+    // Update the voucher status to 'paid' after payment confirmation
+    await sql`
+      UPDATE vouchers
+      SET status = 'paid'
+      WHERE payment_intent_id = ${paymentIntentId};
+    `;
+
+    console.log(`✅ Voucher payment confirmed for payment intent ${paymentIntentId}`);
+  } catch (error) {
+    console.error(`❌ Failed to confirm voucher payment for payment intent ${paymentIntentId}:`, error);
+    throw error;
+  }
+}
+
 // Files API handler function
 async function handleFilesAPI(req, res, pathname, query) {
   let neon, sql;
