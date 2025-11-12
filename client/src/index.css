@@ -269,3 +269,24 @@ textarea,
 .watermark-overlay:hover {
   opacity: 0.8;
 }
+
+/* Slideshow animations */
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.animate-fade-out {
+  animation: fadeOut 3s ease-in-out forwards;
+}
+
+/* Hide scrollbar for thumbnail strip */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

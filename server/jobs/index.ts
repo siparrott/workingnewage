@@ -28,11 +28,12 @@ cron.schedule("0 7 * * *", async () => {
 }, { timezone: process.env.TZ || "UTC" });
 
 /* flush email queue every minute */
-cron.schedule("*/1 * * * *", async () => {
-  // Email queue functionality will be implemented when needed
-  // For now, emails are sent immediately via the CRM agent
-  console.log('Email queue check - direct sending active');
-});
+// DISABLED - was flooding console and causing crashes
+// cron.schedule("*/1 * * * *", async () => {
+//   // Email queue functionality will be implemented when needed
+//   // For now, emails are sent immediately via the CRM agent
+//   console.log('Email queue check - direct sending active');
+// });
 
 /* hourly inbox sync (top of hour) */
 cron.schedule("0 * * * *", async () => {

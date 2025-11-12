@@ -421,23 +421,23 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
 
       // Prepare payload for our invoices API
       const payload = {
-        // Server requires client_name at minimum; try to resolve name/email
-        client_name: (clients.find(c => c.id === formData.client_id)?.name) || 'Client',
-        client_id: formData.client_id || null,
-        client_email: (clients.find(c => c.id === formData.client_id)?.email) || undefined,
-        issue_date: new Date().toISOString().split('T')[0],
-        due_date: formData.due_date,
-        currency: formData.currency,
+        clientId: formData.client_id || null,
+        issueDate: new Date().toISOString().split('T')[0],
+        dueDate: formData.due_date,
+        subtotal: subtotal.toString(),
+        taxAmount: taxAmount.toString(),
+        total: total.toString(),
+        status: markAsPaid ? 'paid' : 'draft',
         notes: formData.notes,
-        meta: { payment_terms: formData.payment_terms, discount_amount: formData.discount_amount },
         items: formData.items.map(item => ({
           description: item.description,
           quantity: item.quantity,
-          unit_price: item.unit_price
+          unitPrice: item.unit_price,
+          taxRate: item.tax_rate || 0
         }))
       };
 
-      const response = await fetch('/api/invoices/create', {
+      const response = await fetch('/api/crm/invoices', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

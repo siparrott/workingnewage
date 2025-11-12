@@ -24,8 +24,8 @@ class GoogleCalendarService {
     this.config = {
       calendarId: 'parrottsimon02@gmail.com',
       // These would need to be set up in Google Cloud Console for full integration
-      apiKey: process.env.REACT_APP_GOOGLE_CALENDAR_API_KEY || '',
-      clientId: process.env.REACT_APP_GOOGLE_CLIENT_ID || ''
+      apiKey: import.meta.env.VITE_GOOGLE_CALENDAR_API_KEY || '',
+      clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
     };
   }
 

@@ -1821,22 +1821,28 @@ if (!connectionString) {
     async createVoucherProduct(productData) {
       try {
         const {
-          name, description, price, original_price, category, type = 'voucher',
-          sku, is_active = true, features = [], terms_and_conditions,
-          validity_period = 365, display_order = 0, image_url, thumbnail_url, metadata = {}
+          name, description, detailedDescription, price, originalPrice, category, sessionType,
+          sessionDuration, isActive = true, validityPeriod = 1460,
+          displayOrder = 0, imageUrl, thumbnailUrl, promoImageUrl, featured = false, badge,
+          stockLimit, maxPerCustomer = 5, slug, metaTitle, metaDescription,
+          redemptionInstructions, termsAndConditions
         } = productData;
 
         const result = await pool.query(`
           INSERT INTO voucher_products (
-            name, description, price, original_price, category, type, sku,
-            is_active, features, terms_and_conditions, validity_period,
-            display_order, image_url, thumbnail_url, metadata
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            name, description, detailed_description, price, original_price, category, session_type,
+            session_duration, is_active, validity_period, display_order,
+            image_url, thumbnail_url, promo_image_url, featured, badge, stock_limit, max_per_customer,
+            slug, meta_title, meta_description, redemption_instructions,
+            terms_and_conditions
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
           RETURNING *
         `, [
-          name, description, price, original_price, category, type, sku,
-          is_active, JSON.stringify(features), terms_and_conditions, validity_period,
-          display_order, image_url, thumbnail_url, JSON.stringify(metadata)
+          name, description, detailedDescription, price, originalPrice, category, sessionType,
+          sessionDuration, isActive, validityPeriod, displayOrder,
+          imageUrl, thumbnailUrl, promoImageUrl, featured, badge, stockLimit, maxPerCustomer,
+          slug, metaTitle, metaDescription, redemptionInstructions,
+          termsAndConditions
         ]);
 
         return result.rows[0];
@@ -1849,38 +1855,40 @@ if (!connectionString) {
     async updateVoucherProduct(id, productData) {
       try {
         const {
-          name, description, price, original_price, category, type,
-          sku, is_active, features, terms_and_conditions,
-          validity_period, display_order, image_url, thumbnail_url, metadata
+          name, description, detailed_description, price, original_price, category, session_type,
+          is_active, terms_and_conditions, validity_period, display_order, 
+          image_url, thumbnail_url, promo_image_url, badge, featured, slug
         } = productData;
 
         const result = await pool.query(`
           UPDATE voucher_products SET
             name = COALESCE($2, name),
             description = COALESCE($3, description),
-            price = COALESCE($4, price),
-            original_price = COALESCE($5, original_price),
-            category = COALESCE($6, category),
-            type = COALESCE($7, type),
-            sku = COALESCE($8, sku),
+            detailed_description = COALESCE($4, detailed_description),
+            price = COALESCE($5, price),
+            original_price = COALESCE($6, original_price),
+            category = COALESCE($7, category),
+            session_type = COALESCE($8, session_type),
             is_active = COALESCE($9, is_active),
-            features = COALESCE($10, features),
-            terms_and_conditions = COALESCE($11, terms_and_conditions),
-            validity_period = COALESCE($12, validity_period),
-            display_order = COALESCE($13, display_order),
-            image_url = COALESCE($14, image_url),
-            thumbnail_url = COALESCE($15, thumbnail_url),
-            metadata = COALESCE($16, metadata),
+            terms_and_conditions = COALESCE($10, terms_and_conditions),
+            validity_period = COALESCE($11, validity_period),
+            display_order = COALESCE($12, display_order),
+            image_url = COALESCE($13, image_url),
+            thumbnail_url = COALESCE($14, thumbnail_url),
+            promo_image_url = COALESCE($15, promo_image_url),
+            badge = COALESCE($16, badge),
+            featured = COALESCE($17, featured),
+            slug = COALESCE($18, slug),
             updated_at = NOW()
           WHERE id = $1
           RETURNING *
         `, [
-          id, name, description, price, original_price, category, type, sku,
-          is_active, features ? JSON.stringify(features) : null, terms_and_conditions,
-          validity_period, display_order, image_url, thumbnail_url,
-          metadata ? JSON.stringify(metadata) : null
+          id, name, description, detailed_description, price, original_price, category, session_type,
+          is_active, terms_and_conditions, validity_period, display_order, image_url,
+          thumbnail_url, promo_image_url, badge, featured, slug
         ]);
 
+        console.log('✅ Voucher product updated successfully:', result.rows[0].name);
         return result.rows[0];
       } catch (error) {
         console.error('❌ Error updating voucher product:', error.message);
@@ -1894,6 +1902,101 @@ if (!connectionString) {
         return result.rows[0];
       } catch (error) {
         console.error('❌ Error deleting voucher product:', error.message);
+        throw error;
+      }
+    },
+
+    // ==================== VOUCHER SALES ====================
+    async createVoucherSale(saleData) {
+      try {
+        const {
+          product_id, purchaser_name, purchaser_email, purchaser_phone,
+          recipient_name, recipient_email, gift_message, voucher_code,
+          original_amount, discount_amount, final_amount, currency,
+          coupon_id, coupon_code, payment_intent_id, payment_status,
+          payment_method, is_redeemed, redeemed_at, redeemed_by,
+          session_id, valid_from, valid_until
+        } = saleData;
+
+        const result = await pool.query(`
+          INSERT INTO voucher_sales (
+            product_id, purchaser_name, purchaser_email, purchaser_phone,
+            recipient_name, recipient_email, gift_message, voucher_code,
+            original_amount, discount_amount, final_amount, currency,
+            coupon_id, coupon_code, payment_intent_id, payment_status,
+            payment_method, is_redeemed, redeemed_at, redeemed_by,
+            session_id, valid_from, valid_until, created_at, updated_at
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
+            $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, NOW(), NOW()
+          )
+          RETURNING *
+        `, [
+          product_id, purchaser_name, purchaser_email, purchaser_phone,
+          recipient_name, recipient_email, gift_message, voucher_code,
+          original_amount, discount_amount, final_amount, currency || 'EUR',
+          coupon_id, coupon_code, payment_intent_id, payment_status || 'pending',
+          payment_method, is_redeemed || false, redeemed_at, redeemed_by,
+          session_id, valid_from || new Date(), valid_until
+        ]);
+
+        console.log('✅ Voucher sale created:', voucher_code);
+        return result.rows[0];
+      } catch (error) {
+        console.error('❌ Error creating voucher sale:', error.message);
+        throw error;
+      }
+    },
+
+    async getVoucherSales() {
+      try {
+        const result = await pool.query(`
+          SELECT 
+            vs.*,
+            vp.name as product_name,
+            vp.description as product_description,
+            vp.sku as product_sku
+          FROM voucher_sales vs
+          LEFT JOIN voucher_products vp ON vs.product_id = vp.id
+          ORDER BY vs.created_at DESC
+        `);
+        return result.rows;
+      } catch (error) {
+        console.error('❌ Error getting voucher sales:', error.message);
+        throw error;
+      }
+    },
+
+    async getVoucherSale(id) {
+      try {
+        const result = await pool.query('SELECT * FROM voucher_sales WHERE id = $1', [id]);
+        return result.rows[0];
+      } catch (error) {
+        console.error('❌ Error getting voucher sale:', error.message);
+        throw error;
+      }
+    },
+
+    async updateVoucherSale(id, updateData) {
+      try {
+        const {
+          is_redeemed, redeemed_at, redeemed_by, payment_status
+        } = updateData;
+
+        const result = await pool.query(`
+          UPDATE voucher_sales SET
+            is_redeemed = COALESCE($2, is_redeemed),
+            redeemed_at = COALESCE($3, redeemed_at),
+            redeemed_by = COALESCE($4, redeemed_by),
+            payment_status = COALESCE($5, payment_status),
+            updated_at = NOW()
+          WHERE id = $1
+          RETURNING *
+        `, [id, is_redeemed, redeemed_at, redeemed_by, payment_status]);
+
+        return result.rows[0];
+      } catch (error) {
+        console.error('❌ Error updating voucher sale:', error.message);
         throw error;
       }
     },

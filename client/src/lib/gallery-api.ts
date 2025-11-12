@@ -11,7 +11,9 @@ import {
 // Get all galleries (admin only)
 export async function getGalleries(): Promise<Gallery[]> {
   try {
-    const response = await fetch('/api/galleries');
+    const response = await fetch('/api/galleries', {
+      credentials: 'include',
+    });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -115,6 +117,7 @@ export async function createGallery(galleryData: GalleryFormData): Promise<Galle
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify(apiData),
     });
 
@@ -214,7 +217,10 @@ export async function uploadGalleryImages(galleryId: string, files: File[]): Pro
 // Get images for a gallery (admin only)
 export async function getGalleryImages(galleryId: string): Promise<GalleryImage[]> {
   try {
-    const response = await fetch(`/api/galleries/${galleryId}/images`);
+    // Use admin endpoint which works with gallery ID (not slug) and uses session auth
+    const response = await fetch(`/api/admin/galleries/${galleryId}/images`, {
+      credentials: 'include',
+    });
     
     if (!response.ok) {
       const error = await response.json();
@@ -314,6 +320,27 @@ export async function setGalleryCoverImage(galleryId: string, imageId: string): 
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || 'Failed to set cover image');
+    }
+  } catch (error) {
+    // console.error removed
+    throw error;
+  }
+}
+
+// Set gallery featured image (admin only)
+export async function setGalleryFeaturedImage(galleryId: string, imageId: string): Promise<void> {
+  try {
+    const response = await fetch(`/api/galleries/${galleryId}/featured-image`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ imageId }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to set featured image');
     }
   } catch (error) {
     // console.error removed

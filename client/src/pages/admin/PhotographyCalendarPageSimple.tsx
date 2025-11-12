@@ -611,7 +611,7 @@ const PhotographyCalendarPage: React.FC = () => {
               </div>
               <div className="text-2xl font-bold text-purple-600">€{stats.totalRevenue.toLocaleString()}</div>
               <p className="text-xs text-gray-500 mt-1">
-                {analytics ? (
+                {analytics?.revenue?.delta !== undefined ? (
                   <span>
                     {analytics.revenue.delta >= 0 ? '↗' : '↘'} {Math.abs(Math.round(analytics.revenue.deltaPct))}% vs previous {period}
                   </span>
@@ -626,7 +626,7 @@ const PhotographyCalendarPage: React.FC = () => {
               </div>
               <div className="text-2xl font-bold text-blue-600">{newLeadsCount}</div>
               <p className="text-xs text-gray-500 mt-1">
-                {analytics ? (
+                {analytics?.leads?.delta !== undefined ? (
                   <span>
                     {analytics.leads.delta >= 0 ? '↗' : '↘'} {Math.abs(Math.round(analytics.leads.deltaPct))}% vs previous {period}
                   </span>
@@ -641,7 +641,7 @@ const PhotographyCalendarPage: React.FC = () => {
               </div>
               <div className="text-2xl font-bold text-green-600">{stats.upcomingSessions}</div>
               <p className="text-xs text-gray-500 mt-1">
-                {analytics ? (
+                {analytics?.sessionsBooked?.delta !== undefined ? (
                   <span>
                     {analytics.sessionsBooked.delta >= 0 ? '↗' : '↘'} {Math.abs(Math.round(analytics.sessionsBooked.deltaPct))}% booked vs previous {period}
                   </span>
@@ -655,7 +655,7 @@ const PhotographyCalendarPage: React.FC = () => {
                 <CheckCircle className="h-5 w-5 text-orange-500" />
               </div>
               <div className="text-2xl font-bold text-orange-600">{
-                analytics ? `${Math.round(analytics.conversion.currentPct)}%` : (() => {
+                analytics?.conversion?.currentPct !== undefined ? `${Math.round(analytics.conversion.currentPct)}%` : (() => {
                   const leads = stats.newLeads ?? newLeadsCount ?? 0;
                   const booked = stats.upcomingSessions + stats.completedSessions;
                   if (leads <= 0) return '—';
@@ -664,7 +664,7 @@ const PhotographyCalendarPage: React.FC = () => {
                 })()
               }</div>
               <p className="text-xs text-gray-500 mt-1">
-                {analytics ? (
+                {analytics?.conversion?.deltaPct !== undefined ? (
                   <span>
                     {analytics.conversion.deltaPct >= 0 ? '↗' : '↘'} {Math.abs(Math.round(analytics.conversion.deltaPct))}% vs previous {period}
                   </span>

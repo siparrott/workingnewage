@@ -49,14 +49,14 @@ export function EmailComposer({ recipient, subject = "", onSend, onCancel }: Ema
     return () => clearTimeout(timeoutId);
   }, [emailBody, emailSubject, draftKey]);
 
-  // Keep Replit tab awake by pinging every 4 minutes
-  useEffect(() => {
-    const keepAlive = setInterval(() => {
-      fetch('/api/health').catch(() => {}); // Silent ping
-    }, 240000); // 4 minutes
-
-    return () => clearInterval(keepAlive);
-  }, []);
+  // Keep alive ping DISABLED - not needed for local/production servers
+  // Originally for Replit hosting which would sleep idle instances
+  // useEffect(() => {
+  //   const keepAlive = setInterval(() => {
+  //     fetch('/api/health').catch(() => {}); // Silent ping
+  //   }, 240000); // 4 minutes
+  //   return () => clearInterval(keepAlive);
+  // }, []);
 
   const handleSend = async () => {
     if (!emailBody.trim()) return;

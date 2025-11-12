@@ -1,7 +1,6 @@
 import express from 'express';
 import { z } from 'zod';
 import { 
-  sessionConfig,
   loginUser,
   logoutUser,
   createAdminUser,
@@ -12,12 +11,12 @@ import {
 
 const router = express.Router();
 
-// Apply session middleware
-router.use(sessionConfig);
+// Note: Session middleware is applied globally in server/index.ts.
+// Avoid applying it here to prevent multiple stores conflicting on the same cookie.
 
-// Login schema
+// Login schema (relaxed email validation to allow local/dev domains like .local)
 const loginSchema = z.object({
-  email: z.string().email('Valid email is required'),
+  email: z.string().trim().min(1, 'Email is required'),
   password: z.string().min(1, 'Password is required')
 });
 
@@ -33,12 +32,14 @@ const registerSchema = z.object({
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = loginSchema.parse(req.body);
+    console.log('[AUTH] /login attempt', { email, hasPassword: typeof password === 'string' && password.length > 0 });
     
     const result = await loginUser(email, password);
     
     if (result.success && result.user) {
       // Set session
       req.session.userId = result.user.id;
+      console.log('[AUTH] /login success', { userId: result.user.id, email: result.user.email, sessionId: req.session.id });
       
       res.json({
         success: true,
@@ -52,6 +53,7 @@ router.post('/login', async (req, res) => {
         }
       });
     } else {
+      console.warn('[AUTH] /login failed', { email, reason: result.error || 'unknown' });
       res.status(401).json({
         success: false,
         error: result.error || 'Login failed'
@@ -59,6 +61,11 @@ router.post('/login', async (req, res) => {
     }
   } catch (error) {
     if (error instanceof z.ZodError) {
+      // Surface validation issues to server logs for easier debugging
+      console.warn('Login validation error:', {
+        issues: error.errors,
+        bodyKeys: Object.keys(req.body || {})
+      });
       res.status(400).json({
         success: false,
         error: 'Validation error',

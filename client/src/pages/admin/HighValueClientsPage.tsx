@@ -44,10 +44,15 @@ const HighValueClientsPage: React.FC = () => {
 
   const fetchTopClients = async () => {
     try {
-      const response = await fetch(`/api/crm/top-clients?orderBy=${orderBy}&limit=20`);
+      const response = await fetch(`/api/crm/top-clients?orderBy=${orderBy}&limit=20`, {
+        credentials: 'include'
+      });
       if (response.ok) {
         const data = await response.json();
+        console.log('Top clients data:', data);
         setTopClients(data || []);
+      } else {
+        console.error('Failed to fetch top clients:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Failed to fetch top clients:', error);
@@ -56,7 +61,9 @@ const HighValueClientsPage: React.FC = () => {
 
   const fetchSegments = async () => {
     try {
-      const response = await fetch(`/api/crm/client-segments?segmentBy=${segmentBy}`);
+      const response = await fetch(`/api/crm/client-segments?segmentBy=${segmentBy}`, {
+        credentials: 'include'
+      });
       if (response.ok) {
         const data = await response.json();
         setSegments(data.segments || []);
@@ -128,8 +135,21 @@ const HighValueClientsPage: React.FC = () => {
               </select>
             </div>
 
-            <div className="grid gap-4">
-              {topClients.map((client, index) => {
+            {loading ? (
+              <div className="text-center py-8 text-gray-500">Loading top clients...</div>
+            ) : topClients.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No clients found</h3>
+                  <p className="text-gray-600">
+                    No clients with invoices found in the system. Clients will appear here once they have paid invoices.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4">
+                {topClients.map((client, index) => {
                 const safeRevenue = Number(client.total_revenue || 0);
                 const safeInvoiceCount = Number(client.invoice_count || 0);
                 const safeSessionCount = Number(client.session_count || 0);
@@ -193,7 +213,8 @@ const HighValueClientsPage: React.FC = () => {
                   </Card>
                 );
               })}
-            </div>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="segments" className="space-y-4">

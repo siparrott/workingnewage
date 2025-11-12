@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import Layout from '../components/layout/Layout';
 import CategoryFilter from '../components/vouchers/CategoryFilter';
 import { useAppContext } from '../context/AppContext';
@@ -21,8 +22,18 @@ const VouchersPage: React.FC = () => {
            (language === 'en' ? 'Photoshoot Vouchers Vienna' : 'Fotoshooting Gutscheine Wien');
   }, [t, language]);
 
-  // Define the three vouchers from HomePage
-  const voucherProducts = [
+  // Fetch voucher products from API
+  const { data: apiProducts, isLoading } = useQuery({
+    queryKey: ['/api/vouchers/products'],
+    queryFn: async () => {
+      const res = await fetch('/api/vouchers/products');
+      if (!res.ok) throw new Error('Failed to fetch vouchers');
+      return res.json();
+    }
+  });
+
+  // Fallback to default vouchers if API returns empty or fails
+  const defaultVouchers = [
     {
       id: 'pregnancy-shooting',
       name: t('home.pregnancyShootingTitle'),
@@ -31,7 +42,9 @@ const VouchersPage: React.FC = () => {
       price: 95,
       image: 'https://i.imgur.com/Vd6xtPg.jpg',
       category: 'pregnancy',
-      route: '/gutschein/maternity'
+      route: '/gutschein/maternity',
+      validityMonths: 12,
+      isActive: true
     },
     {
       id: 'family-shooting',
@@ -41,7 +54,9 @@ const VouchersPage: React.FC = () => {
       price: 95,
       image: 'https://i.postimg.cc/bw7ZyvPK/Familienfotoshooting-im-Fotostudio-Wien-Krexner-2777.jpg',
       category: 'family',
-      route: '/gutschein/family'
+      route: '/gutschein/family',
+      validityMonths: 12,
+      isActive: true
     },
     {
       id: 'newborn-shooting',
@@ -51,9 +66,34 @@ const VouchersPage: React.FC = () => {
       price: 95,
       image: 'https://i.imgur.com/QWOgLqX.jpg',
       category: 'newborn',
-      route: '/gutschein/newborn'
+      route: '/gutschein/newborn',
+      validityMonths: 12,
+      isActive: true
     }
   ];
+
+  // Transform API products to match expected format
+  const voucherProducts = useMemo(() => {
+    if (apiProducts && Array.isArray(apiProducts) && apiProducts.length > 0) {
+      console.log('📦 API Products received:', apiProducts.length, apiProducts);
+      return apiProducts
+        .filter((p: any) => p.isActive !== false && p.is_active !== false) // Only show active products
+        .map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          description: p.description || '',
+          price: parseFloat(p.price) || 0,
+          originalPrice: p.original_price ? parseFloat(p.original_price) : parseFloat(p.price) * 1.3,
+          image: p.image_url || p.imageUrl || 'https://i.imgur.com/Vd6xtPg.jpg',
+          category: p.category || 'family',
+          route: `/vouchers/${p.id}`,
+          validityMonths: Math.floor((p.validity_period || 365) / 30),
+          isActive: p.is_active !== false && p.isActive !== false
+        }));
+    }
+    console.log('⚠️ No API products, using fallback');
+    return defaultVouchers;
+  }, [apiProducts, t]);
 
   // Prepare hero items mapping once
   const heroItems = voucherProducts.map(v => ({
@@ -123,7 +163,9 @@ const VouchersPage: React.FC = () => {
     : filteredByCategory;
 
   const handlePurchaseVoucher = (voucher: any) => {
-    navigate(voucher.route);
+    // Navigate to checkout page with the voucher ID
+    const voucherId = voucher.id || voucher.slug || voucher.name?.toLowerCase().replace(/\s+/g, '-');
+    navigate(`/vouchers/checkout/${voucherId}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

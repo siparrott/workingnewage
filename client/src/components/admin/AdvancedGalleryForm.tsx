@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
 import { Gallery, GalleryFormData } from '../../types/gallery';
-import { createGallery, updateGallery } from '../../lib/gallery-api';
+import { createGallery, updateGallery, uploadGalleryImages } from '../../lib/gallery-api';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -25,6 +24,7 @@ import {
 interface GalleryFormProps {
   gallery?: Gallery;
   isEditing?: boolean;
+  onSuccess?: () => void;
 }
 
 type Step = 'details' | 'upload' | 'settings' | 'preview';
@@ -36,9 +36,17 @@ interface FormState {
   downloadEnabled: boolean;
   status: 'ACTIVE' | 'ARCHIVED' | 'SHARED';
   expiresAt: string;
+  clientId?: string;
 }
 
-const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = false }) => {
+interface Client {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = false, onSuccess }) => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<Step>('details');
   const [formData, setFormData] = useState<FormState>({
@@ -47,7 +55,9 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
     downloadEnabled: true,
     status: 'ACTIVE',
     expiresAt: '',
+    clientId: '',
   });
+  const [clients, setClients] = useState<Client[]>([]);
   const [password, setPassword] = useState('');
   const [isPasswordProtected, setIsPasswordProtected] = useState(false);
   const [coverImage, setCoverImage] = useState<File | null>(null);
@@ -67,6 +77,10 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
   ];
 
   useEffect(() => {
+    fetchClients();
+  }, []);
+
+  useEffect(() => {
     if (gallery && isEditing) {
       setFormData({
         title: gallery.title || '',
@@ -74,8 +88,9 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
         downloadEnabled: gallery.downloadEnabled,
         status: 'ACTIVE', // Default status
         expiresAt: '', // Handle expiration separately
+        clientId: (gallery as any).clientId || '',
       });
-      setIsPasswordProtected(!!gallery.passwordHash);
+      setIsPasswordProtected(gallery.isPasswordProtected || false);
       setCoverImageUrl(gallery.coverImage || '');
       if (gallery.id) {
         fetchUploadedImages(gallery.id);
@@ -83,18 +98,28 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
     }
   }, [gallery, isEditing]);
 
+  const fetchClients = async () => {
+    try {
+      const response = await fetch('/api/crm/clients', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setClients(data);
+      }
+    } catch (error) {
+      console.error('Error fetching clients:', error);
+    }
+  };
+
   const fetchUploadedImages = async (galleryId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('gallery_images')
-        .select('*')
-        .eq('gallery_id', galleryId)
-        .order('order_index');
-      
-      if (error) throw error;
+      const response = await fetch(`/api/galleries/${galleryId}/images`);
+      if (!response.ok) throw new Error('Failed to fetch images');
+      const data = await response.json();
       setUploadedImages(data || []);
     } catch (err) {
-      // console.error removed
+      console.error('Error fetching images:', err);
     }
   };
 
@@ -137,23 +162,19 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
     try {
       setImageUploading(true);
       
-      const fileExt = file.name.split('.').pop();
-      const fileName = `galleries/covers/${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      // Convert to base64 data URL
+      const reader = new FileReader();
+      const dataUrlPromise = new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
       
-      const { error: uploadError } = await supabase.storage
-        .from('images')
-        .upload(fileName, file);
-      
-      if (uploadError) throw uploadError;
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('images')
-        .getPublicUrl(fileName);
-      
+      const publicUrl = await dataUrlPromise;
       setCoverImageUrl(publicUrl);
       setCoverImage(file);
     } catch (error) {
-      // console.error removed
+      console.error('Cover upload error:', error);
       setError('Failed to upload cover image. Please try again.');
     } finally {
       setImageUploading(false);
@@ -166,18 +187,15 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
       setUploadProgress(0);
       
       const uploadPromises = files.map(async (file, index) => {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `galleries/images/${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+        // Convert to base64 data URL
+        const reader = new FileReader();
+        const dataUrlPromise = new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
         
-        const { error: uploadError } = await supabase.storage
-          .from('images')
-          .upload(fileName, file);
-        
-        if (uploadError) throw uploadError;
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('images')
-          .getPublicUrl(fileName);
+        const publicUrl = await dataUrlPromise;
         
         // Update progress
         setUploadProgress(((index + 1) / files.length) * 100);
@@ -198,7 +216,7 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
       setSelectedImages([]);
       
     } catch (error) {
-      // console.error removed
+      console.error('Image upload error:', error);
       setError('Failed to upload images. Please try again.');
     } finally {
       setImageUploading(false);
@@ -215,66 +233,45 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
       setLoading(true);
       setError(null);
       
-      // console.log removed
-      // console.log removed
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      // console.log removed
-      
-      if (!user) {
-        throw new Error('You must be logged in to create or edit galleries');
-      }
-      
       // Prepare gallery data using GalleryFormData interface
       const galleryFormData: GalleryFormData = {
         title: formData.title,
+        description: formData.description,
         password: isPasswordProtected ? password : undefined,
+        isPasswordProtected: isPasswordProtected,
         downloadEnabled: formData.downloadEnabled,
         coverImage: coverImage,
+        isPublic: true,
       };
-      
-      // console.log removed
       
       let galleryId: string;
       
       if (isEditing && gallery?.id) {
-        // console.log removed
         const updatedGallery = await updateGallery(gallery.id, galleryFormData);
         galleryId = updatedGallery.id;
         setSuccessMessage('Gallery updated successfully!');
       } else {
-        // console.log removed
         const newGallery = await createGallery(galleryFormData);
-        // console.log removed
         galleryId = newGallery.id;
         setSuccessMessage('Gallery created successfully!');
-      }
-      
-      // Upload images if any
-      if (selectedImages.length > 0) {
-        await handleImageUpload(selectedImages);
         
-        // Insert image records into database
-        const imageRecords = uploadedImages.map(img => ({
-          ...img,
-          gallery_id: galleryId
-        }));
-        
-        const { error: imageError } = await supabase
-          .from('gallery_images')
-          .insert(imageRecords);
-        
-        if (imageError) throw imageError;
+        // Upload images if any were selected
+        if (selectedImages.length > 0) {
+          await uploadGalleryImages(galleryId, selectedImages);
+        }
       }
       
       setTimeout(() => {
-        navigate('/admin/galleries');
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          navigate('/admin/galleries');
+        }
       }, 1500);
         } catch (err) {
-      // console.error removed
-      // console.error removed);
+      console.error('Gallery save error:', err);
       
-      // Extract specific error message if it's a Supabase error
+      // Extract specific error message
       let errorMessage = 'An error occurred while saving the gallery';
       if (err && typeof err === 'object') {
         if ('message' in err) {
@@ -343,6 +340,27 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
           className="w-full px-4 py-3 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
           placeholder="Enter gallery title..."
         />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Client <span className="text-gray-400">(optional)</span>
+        </label>
+        <select
+          value={formData.clientId || ''}
+          onChange={(e) => handleChange('clientId', e.target.value)}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+        >
+          <option value="">Select a client...</option>
+          {clients.map(client => (
+            <option key={client.id} value={client.id}>
+              {client.firstName} {client.lastName} ({client.email})
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-sm text-gray-500">
+          Link this gallery to a specific client in your CRM
+        </p>
       </div>
       
       <div>

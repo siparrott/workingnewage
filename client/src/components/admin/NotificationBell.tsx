@@ -18,8 +18,8 @@ const NotificationBell: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    // Check for new notifications every 30 seconds
-    const interval = setInterval(checkForNewNotifications, 30000);
+    // Check for new notifications every 5 minutes (reduced from 30s to prevent server overload)
+    const interval = setInterval(checkForNewNotifications, 5 * 60 * 1000);
     checkForNewNotifications(); // Initial check
     return () => clearInterval(interval);
   }, []);

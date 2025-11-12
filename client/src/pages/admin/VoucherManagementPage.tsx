@@ -55,14 +55,14 @@ const VoucherManagementPage: React.FC = () => {
   const fetchData = async () => {
     try {
       // Fetch voucher products
-      const productsRes = await fetch('/api/crm/voucher-products');
+      const productsRes = await fetch('/api/vouchers/products');
       if (productsRes.ok) {
         const productsData = await productsRes.json();
         setProducts(productsData);
       }
 
       // Fetch voucher sales
-      const salesRes = await fetch('/api/crm/voucher-sales');
+      const salesRes = await fetch('/api/vouchers/sales');
       if (salesRes.ok) {
         const salesData = await salesRes.json();
         setSales(salesData);
@@ -77,7 +77,7 @@ const VoucherManagementPage: React.FC = () => {
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch('/api/crm/voucher-products', {
+      const response = await fetch('/api/vouchers/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -100,7 +100,7 @@ const VoucherManagementPage: React.FC = () => {
   const handleSellVoucher = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch('/api/crm/voucher-sales', {
+      const response = await fetch('/api/vouchers/sales', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSale)

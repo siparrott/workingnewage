@@ -1,32 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 // API status check removed - using Neon database with Express sessions
 import { Mail, Lock, AlertCircle, CheckCircle, XCircle, RefreshCw, ExternalLink } from 'lucide-react';
 
 const AdminLoginPage: React.FC = () => {
-  const [email, setEmail] = useState('matt@newagefotografie.com');
+  const [email, setEmail] = useState('admin@photography-crm.local');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [projectStatus, setProjectStatus] = useState<{ active: boolean; error?: string; statusCode?: number } | null>(null);
   const [checkingStatus, setCheckingStatus] = useState(true);
   const navigate = useNavigate();
-  const { signIn, user, isAdmin } = useAuth();
 
   useEffect(() => {
     // Check project status on component mount
     checkStatus();
+    
+    // Check if already logged in
+    checkAuth();
   }, []);
 
-  // Redirect if user is already logged in and is admin
-  useEffect(() => {
-    // Auth state check
-    if (user && isAdmin) {
-      // User is authenticated and admin, redirecting to dashboard
-      navigate('/admin/dashboard');
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/me', {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.user) {
+          // Already logged in, redirect to dashboard
+          navigate('/admin/dashboard');
+        }
+      }
+    } catch (err) {
+      // Not logged in, stay on login page
     }
-  }, [user, isAdmin, navigate]);
+  };
 
   const checkStatus = async () => {
     setCheckingStatus(true);
@@ -58,22 +68,39 @@ const AdminLoginPage: React.FC = () => {
     e.stopPropagation();
     
     if (loading) {
-      // console.log removed
       return;
     }
     
-    // Form submitted, starting sign in process
     setError('');
     setLoading(true);
 
     try {
-      // Calling signIn
-      await signIn(email, password);
-      // Sign in call completed successfully
-      // The redirect will be handled by the useEffect above once user and isAdmin are updated
+      // Use Neon backend API for authentication
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Important for session cookies
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+
+      if (data.success && data.user) {
+        // Store user in localStorage for persistence
+        localStorage.setItem('admin_user', JSON.stringify(data.user));
+        
+        // Redirect to admin dashboard
+        navigate('/admin/dashboard');
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (err) {
-      // console.error removed
-      
       let errorMessage = 'Login failed';
       
       if (err instanceof Error) {
@@ -83,13 +110,6 @@ const AdminLoginPage: React.FC = () => {
       }
       
       setError(errorMessage);
-      
-      // If it's a project paused error, refresh the status
-      if (errorMessage.toLowerCase().includes('project paused') || errorMessage.toLowerCase().includes('project_paused')) {
-        setTimeout(() => {
-          checkStatus();
-        }, 1000);
-      }
     } finally {
       setLoading(false);
     }

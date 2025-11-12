@@ -15,6 +15,7 @@ interface Client {
   email: string;
   phone: string;
   address: string;
+  address2?: string;
   city?: string;
   state?: string;
   zip?: string;
@@ -22,6 +23,9 @@ interface Client {
   company?: string;
   notes?: string;
   status: 'active' | 'inactive' | 'archived';
+  clientSince?: string;
+  lastSessionDate?: string;
+  lifetimeValue?: string;
   createdAt: string;
 }
 
@@ -394,6 +398,7 @@ const ClientDetailPage: React.FC = () => {
                     <MapPin size={16} className="text-gray-400 mr-3 mt-0.5" />
                     <div>
                       <p className="text-gray-900">{client.address}</p>
+                      {client.address2 && <p className="text-gray-900">{client.address2}</p>}
                       {client.city && (
                         <p className="text-gray-600">
                           {client.zip && `${client.zip} `}{client.city}
@@ -402,6 +407,12 @@ const ClientDetailPage: React.FC = () => {
                         </p>
                       )}
                     </div>
+                  </div>
+                )}
+                {client.company && (
+                  <div className="flex items-center">
+                    <Building size={16} className="text-gray-400 mr-3" />
+                    <p className="text-gray-900">{client.company}</p>
                   </div>
                 )}
               </div>
@@ -415,6 +426,24 @@ const ClientDetailPage: React.FC = () => {
                   <div>
                     <p className="text-sm text-gray-500">Client ID</p>
                     <p className="text-gray-900">{client.clientId}</p>
+                  </div>
+                )}
+                {client.clientSince && (
+                  <div>
+                    <p className="text-sm text-gray-500">Client Since</p>
+                    <p className="text-gray-900">{new Date(client.clientSince).toLocaleDateString()}</p>
+                  </div>
+                )}
+                {client.lastSessionDate && (
+                  <div>
+                    <p className="text-sm text-gray-500">Last Session Date</p>
+                    <p className="text-gray-900">{new Date(client.lastSessionDate).toLocaleDateString()}</p>
+                  </div>
+                )}
+                {client.lifetimeValue && (
+                  <div>
+                    <p className="text-sm text-gray-500">Lifetime Value</p>
+                    <p className="text-gray-900">€{parseFloat(client.lifetimeValue).toFixed(2)}</p>
                   </div>
                 )}
                 <div>

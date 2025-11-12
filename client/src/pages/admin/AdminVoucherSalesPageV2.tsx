@@ -125,6 +125,44 @@ export default function AdminVoucherSalesPageV2() {
     queryKey: ['/api/vouchers/products'],
   });
 
+  // Product mutations
+  const createProduct = useMutation({
+    mutationFn: async (payload: any) => {
+      const res = await fetch('/api/vouchers/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('Create failed');
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['/api/vouchers/products'] })
+  });
+
+  const updateProduct = useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: any }) => {
+      const res = await fetch(`/api/vouchers/products/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('Update failed');
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['/api/vouchers/products'] })
+  });
+
+  const deleteProduct = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/vouchers/products/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Delete failed');
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['/api/vouchers/products'] })
+  });
+
   const { data: discountCoupons, isLoading: isLoadingCoupons } = useQuery<DiscountCoupon[]>({
     queryKey: ['/api/admin/coupons', adminToken],
     queryFn: async () => {
@@ -824,9 +862,43 @@ export default function AdminVoucherSalesPageV2() {
             <Button variant="outline" onClick={() => setIsProductDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => {
-              toast({ title: "Success!", description: selectedProduct ? "Product updated successfully" : "Product created successfully" });
-              setIsProductDialogOpen(false);
+            <Button onClick={async () => {
+              const name = (document.getElementById('name') as HTMLInputElement)?.value?.trim();
+              const price = parseFloat((document.getElementById('price') as HTMLInputElement)?.value || '0');
+              const description = (document.getElementById('description') as HTMLTextAreaElement)?.value?.trim();
+              const validityMonths = parseInt((document.getElementById('validity') as HTMLInputElement)?.value || '12');
+              const isActive = (document.getElementById('active') as HTMLInputElement)?.checked;
+
+              if (!name) { 
+                toast({ title: 'Name required', description: 'Please enter a product name' }); 
+                return; 
+              }
+              if (price <= 0) { 
+                toast({ title: 'Invalid price', description: 'Price must be greater than 0' }); 
+                return; 
+              }
+
+              const payload: any = {
+                name,
+                description: description || '',
+                price,
+                validityMonths,
+                isActive: isActive !== undefined ? isActive : true,
+                displayOrder: selectedProduct?.displayOrder || 1
+              };
+
+              try {
+                if (selectedProduct) {
+                  await updateProduct.mutateAsync({ id: selectedProduct.id, payload });
+                  toast({ title: 'Success!', description: 'Product updated successfully' });
+                } else {
+                  await createProduct.mutateAsync(payload);
+                  toast({ title: 'Success!', description: 'Product created successfully' });
+                }
+                setIsProductDialogOpen(false);
+              } catch (e: any) {
+                toast({ title: 'Error', description: e.message || 'Operation failed', variant: 'destructive' });
+              }
             }}>
               {selectedProduct ? 'Update Product' : 'Create Product'}
             </Button>

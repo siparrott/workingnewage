@@ -1,2 +1,0 @@
-❌ Invalid Stripe key format. Key should start with sk_live_ or sk_test_
-💡 Check your Heroku Config Vars or local .env file

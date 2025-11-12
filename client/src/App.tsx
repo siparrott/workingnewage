@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
+import { HelmetProvider } from 'react-helmet-async';
 import { queryClient } from './lib/queryClient';
 import { AppProvider } from './context/AppContext';
 import { AuthProvider } from './context/AuthContext';
@@ -21,12 +22,16 @@ import CheckoutPage from './pages/CheckoutPage';
 import OrderCompletePage from './pages/OrderCompletePage';
 import AccountPage from './pages/AccountPage';
 import AccountProfilePage from './pages/AccountProfilePage';
+import MyArchivePage from './pages/MyArchivePage';
+import MySubscriptionPage from './pages/MySubscriptionPage';
+import StorageDemoPage from './pages/StorageDemoPage';
+import StorageDemoIndexPage from './pages/StorageDemoIndexPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminDashboardPageDev from './pages/admin/AdminDashboardPageDev';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import NeonAdminLoginPage from './pages/admin/NeonAdminLoginPage';
 import AdminLeadsPage from './pages/admin/AdminLeadsPage';
-import AdminVoucherSalesPageV2 from './pages/admin/AdminVoucherSalesPageV2';
+import AdminVoucherSalesPageV3 from './pages/admin/AdminVoucherSalesPageV3';
 import AdminClientsPage from './pages/admin/ClientsPage';
 import ClientDetailPage from './pages/admin/ClientDetailPage';
 import ClientProfilePage from './pages/admin/ClientProfilePage';
@@ -41,6 +46,8 @@ import AdminGalleryCreatePage from './pages/admin/GalleryCreatePage';
 import AdminGalleryEditPage from './pages/admin/GalleryEditPage';
 import AdminGalleryDetailPage from './pages/admin/GalleryDetailPage';
 import InvoicesPage from './pages/admin/InvoicesPage';
+import AdminPriceWizardPage from './pages/admin/AdminPriceWizardPage';
+import AccountingExportPage from './pages/admin/accounting/AccountingExportPage';
 import FilesPage from './pages/admin/FilesPage';
 import ProDigitalFilesPage from './pages/admin/ProDigitalFilesPage';
 import CampaignsPage from './pages/admin/CampaignsPage';
@@ -62,6 +69,8 @@ import AdminBlogNewPage from './pages/admin/AdminBlogNewPage';
 import AdminBlogEditPage from './pages/admin/AdminBlogEditPage';
 import KnowledgeBasePage from './pages/admin/KnowledgeBasePage';
 import CRMOperationsAssistant from './pages/admin/CRMOperationsAssistant';
+import AgentV2Page from './pages/admin/AgentV2Page';
+import AgentConsolePage from './pages/admin/AgentConsolePage';
 import WebsiteWizard from './pages/admin/WebsiteWizard';
 import PriceListSettingsPage from './pages/admin/settings/PriceListSettingsPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -74,6 +83,16 @@ import MaternityGutscheinPage from './pages/gutschein/MaternityGutscheinPage';
 import BusinessFotoshootingPage from './pages/fotoshootings/BusinessFotoshootingPage';
 import EventFotoshootingPage from './pages/fotoshootings/EventFotoshootingPage';
 import WeddingFotoshootingPage from './pages/fotoshootings/WeddingFotoshootingPage';
+import FamilienFotoshootingWienPage from './pages/fotoshootings/FamilienFotoshootingWienPage';
+import BabyFotografieWienPage from './pages/fotoshootings/BabyFotografieWienPage';
+import SchwangerschaftsfotosWienPage from './pages/fotoshootings/SchwangerschaftsfotosWienPage';
+import BusinessPortraitWienPage from './pages/fotoshootings/BusinessPortraitWienPage';
+import KinderFotografieWienPage from './pages/fotoshootings/KinderFotografieWienPage';
+import PortraitfotografieWienPage from './pages/fotoshootings/PortraitfotografieWienPage';
+import UeberUnsPage from './pages/support/UeberUnsPage';
+import PreisePage from './pages/support/PreisePage';
+import FAQPage from './pages/support/FAQPage';
+import KundenstimmenPage from './pages/support/KundenstimmenPage';
 import GalleryPage from './pages/GalleryPage';
 import PublicGalleriesPage from './pages/PublicGalleriesPage';
 import PublicInvoicePage from './pages/PublicInvoicePage';
@@ -87,6 +106,7 @@ import QuestionnaireFormPage from './pages/QuestionnaireFormPage';
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <HelmetProvider>
       <AuthProvider>
         <NeonAuthProvider>
           <AppProvider>
@@ -99,6 +119,23 @@ function App() {
                 <Route path="/fotoshootings/business" element={<BusinessFotoshootingPage />} />
                 <Route path="/fotoshootings/event" element={<EventFotoshootingPage />} />
                 <Route path="/fotoshootings/wedding" element={<WeddingFotoshootingPage />} />
+                
+                {/* SEO Cornerstone Pages */}
+                <Route path="/familien-fotoshooting-wien/" element={<FamilienFotoshootingWienPage />} />
+                <Route path="/baby-fotografie-wien/" element={<BabyFotografieWienPage />} />
+                <Route path="/schwangerschaftsfotos-wien/" element={<SchwangerschaftsfotosWienPage />} />
+                <Route path="/business-portrait-wien/" element={<BusinessPortraitWienPage />} />
+                
+                {/* SEO Pillar Pages */}
+                <Route path="/kinder-fotografie-wien/" element={<KinderFotografieWienPage />} />
+                <Route path="/portrait-fotografie-wien/" element={<PortraitfotografieWienPage />} />
+                
+                {/* Support Pages */}
+                <Route path="/ueber-uns/" element={<UeberUnsPage />} />
+                <Route path="/preise/" element={<PreisePage />} />
+                <Route path="/faq/" element={<FAQPage />} />
+                <Route path="/kundenstimmen/" element={<KundenstimmenPage />} />
+                
                 <Route path="/gutschein" element={<GutscheinPage />} />
                 <Route path="/gutschein/family" element={<FamilyGutscheinPage />} />
                 <Route path="/gutschein/newborn" element={<NewbornGutscheinPage />} />
@@ -120,6 +157,10 @@ function App() {
                 <Route path="/demo-success" element={<MockSuccessPage />} />
                 <Route path="/order-complete/:id" element={<OrderCompletePage />} />                <Route path="/account" element={<AccountPage />} />
                 <Route path="/account/profile" element={<AccountProfilePage />} />
+                <Route path="/my-archive" element={<MyArchivePage />} />
+                <Route path="/my-subscription" element={<MySubscriptionPage />} />
+                <Route path="/storage-demo-index" element={<StorageDemoIndexPage />} />
+                <Route path="/storage-demo" element={<StorageDemoPage />} />
                 <Route path="/cart" element={<CartPage />} />
                 <Route path="/galleries" element={<PublicGalleriesPage />} />
                 <Route path="/galerie" element={<PublicGalleriesPage />} />
@@ -163,7 +204,7 @@ function App() {
                   path="/admin/voucher-sales"
                   element={
                     <NeonProtectedRoute>
-                      <AdminVoucherSalesPageV2 />
+                      <AdminVoucherSalesPageV3 />
                     </NeonProtectedRoute>
                   }
                 />
@@ -273,6 +314,22 @@ function App() {
                   }
                 />
                 <Route
+                  path="/admin/price-wizard"
+                  element={
+                    <NeonProtectedRoute>
+                      <AdminPriceWizardPage />
+                    </NeonProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/accounting"
+                  element={
+                    <NeonProtectedRoute>
+                      <AccountingExportPage />
+                    </NeonProtectedRoute>
+                  }
+                />
+                <Route
                   path="/admin/files"
                   element={
                     <NeonProtectedRoute>
@@ -345,6 +402,22 @@ function App() {
                   }
                 />
                 <Route
+                  path="/admin/agent-v2"
+                  element={
+                    <NeonProtectedRoute>
+                      <AgentV2Page />
+                    </NeonProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/agent-console"
+                  element={
+                    <NeonProtectedRoute>
+                      <AgentConsolePage />
+                    </NeonProtectedRoute>
+                  }
+                />
+                <Route
                   path="/admin/knowledge-base"
                   element={
                     <NeonProtectedRoute>
@@ -408,6 +481,8 @@ function App() {
                     </NeonProtectedRoute>
                   }
                 />
+                {/* Public onboarding wizard entry */}
+                <Route path="/onboarding" element={<WebsiteWizard />} />
                 <Route
                   path="/"
                   element={<HomePage />}
@@ -485,6 +560,7 @@ function App() {
           </AppProvider>
         </NeonAuthProvider>
       </AuthProvider>
+      </HelmetProvider>
     </QueryClientProvider>
   );
 }

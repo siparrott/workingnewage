@@ -95,7 +95,7 @@ const InvoicesPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/invoices/list?status=any', { credentials: 'include' });
+      const response = await fetch('/api/crm/invoices', { credentials: 'include' });
       if (!response.ok) {
         throw new Error('Failed to fetch invoices');
       }
@@ -103,18 +103,18 @@ const InvoicesPage: React.FC = () => {
       const rows = data?.rows || data || [];
       const formatted = rows.map((r: any) => ({
         id: r.id,
-        public_id: r.public_id || r.publicId,
-        invoice_number: r.invoice_no || r.invoice_number || '',
-        client_id: r.client_id || '',
-        client_name: r.client_name || 'Unknown Client',
-        amount: Number(r.subtotal ?? 0),
-        tax_amount: Number(r.tax ?? 0),
-        total_amount: Number(r.total ?? 0),
+        public_id: r.publicId || r.public_id,
+        invoice_number: r.invoiceNumber || r.invoice_number || r.invoice_no || '',
+        client_id: r.clientId || r.client_id || '',
+        client_name: r.clientName || r.client_name || r.client?.name || 'Unknown Client',
+        amount: r.subtotal_amount || parseFloat(r.subtotal || r.subtotal_amount || '0') || 0,
+        tax_amount: r.tax_amount || parseFloat(r.taxAmount || r.tax || '0') || 0,
+        total_amount: r.total_amount || parseFloat(r.total || r.totalAmount || '0') || 0,
         status: (r.status || 'draft').toLowerCase(),
-        due_date: r.due_date,
-        paid_date: undefined,
+        due_date: r.dueDate || r.due_date,
+        paid_date: r.paidDate || r.paid_date,
         notes: r.notes || '',
-        created_at: r.created_at
+        created_at: r.createdAt || r.created_at
       }));
       setInvoices(formatted || []);
     } catch (err) {

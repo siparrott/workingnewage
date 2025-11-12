@@ -19,6 +19,9 @@ export const pool = new Pool({
   connectionTimeoutMillis: 2000,
 });
 
-export const db = drizzle(pool, { schema });
+export const db = drizzle(pool, { 
+  schema,
+  logger: true  // Enable SQL query logging for debugging
+});
 
 console.log(`📊 Database: Neon connection (Supabase-free architecture)`);

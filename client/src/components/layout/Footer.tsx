@@ -57,7 +57,9 @@ const Footer: React.FC = () => {
   return (
     <footer className="bg-gray-800 text-white mt-12">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">          <div className="md:col-span-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {/* Company Info */}
+          <div>
             <Link 
               to="/" 
               onClick={scrollToTop}
@@ -66,53 +68,140 @@ const Footer: React.FC = () => {
               New Age Fotografie
             </Link>
             <p className="text-gray-300 mb-4">
-              Professional photography and CRM solutions for modern businesses.
+              Professionelle Fotografie in Wien. Wir halten Ihre schönsten Momente fest.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-gray-300 hover:text-white transition-colors">
+              <a href="https://facebook.com/newagefotografie" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors">
                 <Facebook size={20} />
               </a>
-              <a href="#" className="text-gray-300 hover:text-white transition-colors">
+              <a href="https://instagram.com/newagefotografie" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors">
                 <Instagram size={20} />
-              </a>
-              <a href="#" className="text-gray-300 hover:text-white transition-colors">
-                <Twitter size={20} />
               </a>
             </div>
           </div>
           
+          {/* Photography Services */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">{t('footer.quickLinks')}</h3>
+            <h3 className="text-lg font-semibold mb-4">Fotoshootings</h3>
             <ul className="space-y-2">
               <li>
                 <Link 
-                  to="/" 
+                  to="/familien-fotoshooting-wien/" 
                   onClick={scrollToTop}
-                  className="text-gray-300 hover:text-white transition-colors"
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  {t('nav.home')}
+                  Familien-Fotoshooting
                 </Link>
               </li>
               <li>
                 <Link 
-                  to="/fotoshootings" 
+                  to="/baby-fotografie-wien/" 
                   onClick={scrollToTop}
-                  className="text-gray-300 hover:text-white transition-colors"
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  {t('nav.photoshoots')}
+                  Baby & Newborn
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/schwangerschaftsfotos-wien/" 
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Schwangerschaftsfotos
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/business-portrait-wien/" 
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Business Portrait
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/fotoshootings/wedding" 
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Hochzeitsfotografie
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/fotoshootings/event" 
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Eventfotografie
                 </Link>
               </li>
             </ul>
           </div>
           
+          {/* Support & Info */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">{t('footer.contact')}</h3>
-            <ul className="space-y-2 text-gray-300">
+            <h3 className="text-lg font-semibold mb-4">Support & Info</h3>
+            <ul className="space-y-2">
               <li>
-                <span className="text-sm">{t('contact.studioAddress')}</span>
+                <Link 
+                  to="/kontakt" 
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Kontakt
+                </Link>
               </li>
               <li>
-                <span className="text-sm">{t('contact.addressNote')}</span>
+                <Link 
+                  to="/vouchers" 
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Gutscheine
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/blog" 
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Blog & Tipps
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/warteliste" 
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Warteliste
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/galleries" 
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Portfolio
+                </Link>
+              </li>
+            </ul>
+          </div>
+          
+          {/* Contact Info */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Kontakt</h3>
+            <ul className="space-y-2 text-gray-300">
+              <li className="text-sm">
+                {t('contact.studioAddress')}
+              </li>
+              <li className="text-sm">
+                {t('contact.addressNote')}
               </li>
               <li>
                 <a 
@@ -125,113 +214,52 @@ const Footer: React.FC = () => {
                 </a>
               </li>
               <li>
-                <Link 
-                  to="/kontakt" 
-                  onClick={scrollToTop}
-                  className="text-purple-400 hover:text-purple-300 transition-colors text-sm"
-                >
-                  {t('footer.fullContactDetails')}
-                </Link>
-              </li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-semibold mb-4">{t('footer.categories')}</h3>
-            <ul className="space-y-2">
-              <li>
                 <a 
-                  href="https://www.newagefotografie.com/gutschein/family"
-                  className="text-gray-300 hover:text-white transition-colors"
+                  href="mailto:hallo@newagefotografie.com"
+                  className="text-sm hover:text-purple-300 transition-colors"
                 >
-                  {t('footer.family')}
+                  hallo@newagefotografie.com
                 </a>
               </li>
-              <li>
-                <a 
-                  href="https://www.newagefotografie.com/gutschein/newborn"
-                  className="text-gray-300 hover:text-white transition-colors"
-                >
-                  {t('footer.baby')}
-                </a>
-              </li>
-              <li>
-                <a 
-                  href="https://www.newagefotografie.com/fotoshootings/wedding"
-                  className="text-gray-300 hover:text-white transition-colors"
-                >
-                  {t('footer.wedding')}
-                </a>
-              </li>
-              <li>
-                <a 
-                  href="https://www.newagefotografie.com/fotoshootings/business"
-                  className="text-gray-300 hover:text-white transition-colors"
-                >
-                  {t('footer.business')}
-                </a>
-              </li>
-              <li>
-                <a 
-                  href="https://www.newagefotografie.com/fotoshootings/event"
-                  className="text-gray-300 hover:text-white transition-colors"
-                >
-                  {t('footer.event')}
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold mb-4">{t('footer.gallery')}</h3>
-            <ul className="space-y-2">
               {user ? (
                 <>
-                  <li>
+                  <li className="pt-2">
                     <Link 
                       to="/gallery" 
                       onClick={scrollToTop}
-                      className="text-gray-300 hover:text-white transition-colors flex items-center"
+                      className="text-purple-400 hover:text-purple-300 transition-colors flex items-center text-sm"
                     >
-                      <User size={18} className="mr-2" />
+                      <User size={16} className="mr-2" />
                       {t('nav.gallery')}
                     </Link>
                   </li>
                   <li>
                     <button 
                       onClick={() => signOut()}
-                      className="text-gray-300 hover:text-white transition-colors flex items-center"
+                      className="text-gray-300 hover:text-white transition-colors flex items-center text-sm"
                     >
-                      <LogIn size={18} className="mr-2" />
+                      <LogIn size={16} className="mr-2" />
                       {t('nav.logout')}
                     </button>
                   </li>
                 </>
               ) : (
-                <li>
+                <li className="pt-2">
                   <Link 
                     to="/gallery"
                     onClick={scrollToTop}
-                    className="text-gray-300 hover:text-white transition-colors flex items-center"
+                    className="text-purple-400 hover:text-purple-300 transition-colors flex items-center text-sm"
                   >
-                    <User size={18} className="mr-2" />
-                    {t('nav.login')}
+                    <User size={16} className="mr-2" />
+                    Client Login
                   </Link>
                 </li>
               )}
-              <li>
-                <Link 
-                  to="/admin/login"
-                  className="text-gray-300 hover:text-white transition-colors flex items-center"
-                >
-                  <User size={18} className="mr-2" />
-                  Admin Login
-                </Link>
-              </li>
             </ul>
           </div>
 
-          <div className="md:col-span-5 mt-8">
+          {/* Newsletter Signup */}
+          <div className="md:col-span-2 lg:col-span-4 mt-8">
             <div className="bg-gray-700 rounded-lg p-6">
               <h3 className="text-lg font-semibold mb-2">{t('newsletter.signup')}</h3>
               {subscribed ? (
@@ -240,7 +268,7 @@ const Footer: React.FC = () => {
                   {t('newsletter.thanks')}
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="flex gap-4">
+                <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4">
                   <input
                     type="email"
                     value={email}
@@ -259,13 +287,17 @@ const Footer: React.FC = () => {
                     {loading ? 'Wird gesendet...' : t('newsletter.button')}
                   </button>
                 </form>
-              )}              {error && (
+              )}
+              {error && (
                 <p className="mt-2 text-red-400 text-sm">{error}</p>
               )}
             </div>
           </div>
-        </div>        <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-300">
-          <p>&copy; 2025 New Age Fotografie. All Rights Reserved</p>
+        </div>
+        
+        {/* Copyright */}
+        <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-300">
+          <p>&copy; 2025 New Age Fotografie. Alle Rechte vorbehalten.</p>
           <p className="mt-2 text-sm">
             <a 
               href="https://www.togninja.com" 

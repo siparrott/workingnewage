@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -48,64 +48,103 @@ export default function WebsiteWizard() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [progress, setProgress] = useState(0);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [pages, setPages] = useState<Array<{ id: string; url: string; title?: string; http_status?: number }>>([]);
+  const [theme, setTheme] = useState<{ detected_stack?: string; primary_color?: string; secondary_color?: string; font_family?: string; palette?: string[] } | null>(null);
+  const [sitemapUrls, setSitemapUrls] = useState<string[]>([]);
+  const pollingRef = useRef<number | null>(null);
 
   const handleAnalyze = async () => {
     if (!url) return;
-    
     setLoading(true);
     setProgress(0);
-    
+    setResult(null);
+    setPages([]);
+    setTheme(null);
     try {
-      // Simulate progress updates
-      const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 10, 90));
-      }, 500);
+      // Create onboarding session
+      const startRes = await fetch('/api/onboarding/start', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ start_url: url })
+      });
+      const startJson = await startRes.json();
+      if (!startJson?.ok) throw new Error(startJson?.error || 'failed to start onboarding');
+      const sid = startJson.session_id as string;
+      setSessionId(sid);
 
-      const response = await fetch("/api/website-wizard/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: url
-        })
+      // Kick off crawl (lightweight)
+      void fetch('/api/onboarding/run-crawl', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sid, max_pages: 15 }) });
+
+      // Poll status
+      const startTs = Date.now();
+      await new Promise<void>((resolve, reject) => {
+        const tick = async () => {
+          try {
+            const sRes = await fetch(`/api/onboarding/status?session_id=${sid}`);
+            const s = await sRes.json();
+            const job = s?.job;
+            const crawled = Number(job?.pages_crawled || 0);
+            const discovered = Number(job?.pages_discovered || 0) || Math.max(1, crawled);
+            const pct = discovered ? Math.min(95, Math.round((crawled / discovered) * 100)) : 10;
+            setProgress(pct);
+            if (job?.status === 'completed') {
+              resolve();
+              return;
+            }
+            if (Date.now() - startTs > 45000) { // 45s timeout
+              resolve();
+              return;
+            }
+          } catch (e) {
+            // keep trying a bit
+          }
+          pollingRef.current = window.setTimeout(tick, 1000);
+        };
+        tick();
       });
 
-      clearInterval(progressInterval);
-      setProgress(100);
+      // Load pages
+      const pRes = await fetch(`/api/onboarding/pages?session_id=${sid}&limit=200`);
+      const pJson = await pRes.json();
+      const list = Array.isArray(pJson?.pages) ? pJson.pages : [];
+      setPages(list);
 
-      const data = await response.json();
-      
-      if (data.error) {
-        setResult({
-          status: "error",
-          error: data.error,
-          message: data.message || "Analysis failed"
-        });
-      } else if (data.status === "success") {
-        setResult({
-          status: "success",
-          url: data.url,
-          timestamp: data.timestamp,
-          lighthouse: data.lighthouse,
-          content: data.content,
-          profile: data.profile,
-          message: "Website analyzed successfully"
-        });
-      } else {
-        setResult({
-          status: "error",
-          error: "Unknown response format",
-          message: "Please try again"
+      // Analyze theme
+      const tRes = await fetch(`/api/onboarding/analyze-theme?session_id=${sid}`);
+      const tJson = await tRes.json();
+      if (tJson?.ok) {
+        setTheme({
+          detected_stack: tJson?.theme?.detected_stack,
+          primary_color: tJson?.theme?.primary_color,
+          secondary_color: tJson?.theme?.secondary_color,
+          font_family: tJson?.theme?.font_family,
+          palette: tJson?.palette || []
         });
       }
+
+      setProgress(100);
+      setResult({ status: 'success', url, profile: {
+        title: list?.[0]?.title,
+        description: undefined,
+        keywords: [],
+        colors: tJson?.palette || [],
+        images: [],
+        main_text: undefined
+      }, message: 'Website analyzed successfully' });
     } catch (error) {
-      setResult({
-        status: "error",
-        error: "Network error",
-        message: error instanceof Error ? error.message : "Unknown error"
-      });
+      setResult({ status: 'error', error: 'Analyze failed', message: error instanceof Error ? error.message : String(error) });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDiscoverSitemap = async () => {
+    try {
+      if (!url) return;
+      const r = await fetch(`/api/onboarding/discover-sitemap?url=${encodeURIComponent(url)}`);
+      const j = await r.json();
+      if (j?.ok) setSitemapUrls(j.urls || []);
+    } catch {}
   };
 
   const renderColorPalette = (colors?: string[]) => {
@@ -280,6 +319,16 @@ export default function WebsiteWizard() {
                       </div>
                     </div>
                   )}
+
+                  <div>
+                    <label className="text-sm font-medium">Crawled Pages</label>
+                    <p className="text-sm text-gray-600 bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                      {pages.length} pages
+                    </p>
+                    {pages.slice(0, 5).map((p) => (
+                      <div key={p.id} className="text-xs text-gray-500 truncate">{p.title || p.url}</div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -291,9 +340,17 @@ export default function WebsiteWizard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {renderColorPalette(result.profile.colors)}
+                  {renderColorPalette(theme?.palette || result.profile.colors)}
                   {(!result.profile.colors || result.profile.colors.length === 0) && (
                     <p className="text-sm text-gray-500">No brand colors detected</p>
+                  )}
+                  {theme && (
+                    <div className="mt-3 text-sm text-gray-600 space-y-1">
+                      <div><span className="font-medium">Primary:</span> {theme.primary_color || '-'}</div>
+                      <div><span className="font-medium">Secondary:</span> {theme.secondary_color || '-'}</div>
+                      <div><span className="font-medium">Fonts:</span> {theme.font_family || '-'}</div>
+                      <div><span className="font-medium">Detected Stack:</span> {theme.detected_stack || '-'}</div>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -317,6 +374,34 @@ export default function WebsiteWizard() {
                   </CardContent>
                 </Card>
               )}
+
+              <Card className="md:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Search className="w-5 h-5" />
+                    Sitemap Discovery
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-3 mb-3">
+                    <Button variant="secondary" onClick={handleDiscoverSitemap} disabled={!url}>Discover Sitemaps</Button>
+                    <span className="text-sm text-gray-500">Shows up to 20 URLs</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {(sitemapUrls || []).slice(0, 20).map((u, idx) => (
+                      <div key={idx} className="text-xs text-blue-700 truncate">
+                        <a href={u} target="_blank" rel="noreferrer" className="hover:underline flex items-center gap-1">
+                          <ExternalLink className="w-3 h-3" />
+                          {u}
+                        </a>
+                      </div>
+                    ))}
+                    {sitemapUrls.length === 0 && (
+                      <p className="text-sm text-gray-500">No sitemap URLs discovered yet.</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           ) : (
             <Card>

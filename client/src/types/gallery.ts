@@ -4,6 +4,7 @@ export interface Gallery {
   slug: string;
   description?: string;
   coverImage: string | null;
+  featuredImage?: GalleryImage | null;
   isPublic?: boolean;
   isPasswordProtected?: boolean;
   password?: string | null;
@@ -52,6 +53,8 @@ export interface GalleryImage {
   uploadedAt?: string;
   sharedToTogninja?: boolean;
   isFavorite?: boolean;
+  rating?: 'love' | 'maybe' | 'reject' | null;
+  slideshowSelected?: boolean;
 }
 
 export interface GalleryVisitor {

@@ -693,9 +693,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createVoucherProduct(product: InsertVoucherProduct): Promise<VoucherProduct> {
-  const results = await db.insert(voucherProducts).values(product as any).returning();
+  console.log('[STORAGE] Creating voucher product with data:', product);
+  console.log('[STORAGE] Product keys:', Object.keys(product));
+  
+  // Remove any undefined or null values
+  const cleanProduct = Object.fromEntries(
+    Object.entries(product).filter(([_, value]) => value !== undefined && value !== null)
+  );
+  console.log('[STORAGE] Clean product data:', cleanProduct);
+  console.log('[STORAGE] Clean product keys:', Object.keys(cleanProduct));
+  
+  try {
+    const results = await db.insert(voucherProducts).values(cleanProduct as any).returning();
+    console.log('[STORAGE] Insert successful:', results[0]);
     return results[0];
+  } catch (error) {
+    console.error('[STORAGE] Insert error:', error);
+    throw error;
   }
+}
 
   async updateVoucherProduct(id: string, updates: Partial<VoucherProduct>): Promise<VoucherProduct> {
     const results = await db.update(voucherProducts)

@@ -9,9 +9,15 @@ import "./jobs";
 import { setupVite, serveStatic, log } from "./vite";
 // Mount lightweight auth routes immediately (full routes registered later lazily)
 import authRoutes from './routes/auth';
+// Google Calendar 2-way sync: OAuth routes and scheduler
+import googleAuthRoutes from './routes/googleAuth';
+import { startSyncScheduler, triggerManualSync } from './services/syncScheduler';
+// Agent V2: Modern ToolBus architecture
+import agentV2Routes from './routes/agent-v2';
+import agentShadowRoutes from './routes/agent-shadow';
 
 // Import and configure session middleware
-import { sessionConfig } from './auth';
+import { sessionConfig, requireAuth } from './auth';
 
 // Import email service for initialization
 import { EnhancedEmailService } from './services/enhancedEmailService';
@@ -19,23 +25,47 @@ import { SMSService } from './services/smsService';
 import { sql } from 'drizzle-orm';
 import { db } from './db';
 
-// Override demo mode for production New Age Fotografie site
-// This is NOT a demo - it's the live business website
-process.env.DEMO_MODE = 'false';
-process.env.NODE_ENV = process.env.NODE_ENV || 'production';
+// Prevent process crashes from unhandled errors
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️ Unhandled Promise Rejection:', reason);
+  console.error('Promise:', promise);
+  // Don't exit the process
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('⚠️ Uncaught Exception:', error);
+  // Don't exit the process
+});
+
+// Environment defaults (don't force production locally)
+if (process.env.DEMO_MODE == null) {
+  process.env.DEMO_MODE = 'false';
+}
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'development';
+}
 
 const BOOT_MARK = Date.now();
 console.log('[BOOT] Starting minimal server bootstrap');
 const app = express();
+
+// MODULE-LEVEL server reference to prevent garbage collection
+let serverInstance: any = null;
+
+// Behind reverse proxies (Heroku/Render/etc.) trust the first proxy so secure cookies work when appropriate
+app.set('trust proxy', 1);
 // Increase body size limits to accommodate large ICS payloads
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: false, limit: '5mb' }));
 
 // Add CORS headers for API requests
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  // Echo back the request origin to support credentials; default to * if none
+  const origin = (req.headers.origin as string) || '*';
+  res.header('Access-Control-Allow-Origin', origin);
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
   
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
@@ -56,6 +86,18 @@ app.use(sessionConfig);
 // Early auth routes so backend login functions even before lazy route load
 app.use('/api/auth', authRoutes);
 app.use('/api/auth/*', (req, _res, next) => { console.log('[AUTH-EARLY]', req.method, req.originalUrl); next(); });
+// Google Calendar OAuth routes
+app.use('/api/auth', googleAuthRoutes);
+// Agent V2 routes (ToolBus architecture)
+app.use('/api/agent/v2', agentV2Routes);
+console.log('[AGENT-V2] Routes registered at /api/agent/v2');
+
+// Shadow mode routes (V1 vs V2 comparison)
+if (process.env.AGENT_V2_SHADOW === 'true') {
+  app.use('/api/agent/shadow', agentShadowRoutes);
+  console.log('[SHADOW MODE] Routes registered at /api/agent/shadow');
+  console.log('[SHADOW MODE] V1 and V2 will run in parallel for comparison');
+}
 
 // Serve uploaded files statically
 app.use('/uploads', express.static('public/uploads'));
@@ -111,16 +153,7 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    // Global error handlers to surface startup/runtime issues clearly
-    process.on('unhandledRejection', (reason, promise) => {
-      console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-    });
-
-    process.on('uncaughtException', (err) => {
-      console.error('Uncaught Exception thrown:', err);
-      // Give logs a moment before exiting in Heroku
-      setTimeout(() => process.exit(1), 1000);
-    });
+    // Note: global error handlers already set above and do NOT exit the process
 
     console.log('🚀 Starting New Age Fotografie CRM server...');
     
@@ -159,11 +192,69 @@ app.use((req, res, next) => {
       // Continue without routes - at least serve health endpoints
     }
     
-    // Start listening ASAP
-    const port = parseInt(process.env.PORT || '3000', 10);
+    // Setup Vite BEFORE starting the server
+    console.log('🔧 Setting up Vite frontend...');
+    let viteReady = false;
+    if (process.env.NODE_ENV === "production" && process.env.PORT) {
+      console.log('📦 Production mode - looking for dist folder');
+    } else {
+      // Development mode - setup Vite dev server
+      try {
+        await setupVite(app, null as any); // Pass null for server, will be set later
+        viteReady = true;
+        console.log('✅ Vite dev server setup complete');
+      } catch (e: any) {
+        console.error('❌ Vite setup failed (development). Continuing without Vite:', e?.message || e);
+      }
+    }
+    
+    // Start listening ASAP - SYNCHRONOUS direct call
+    const port = parseInt(process.env.PORT || '3001', 10);
     const host = process.env.HOST || (process.env.PORT ? '0.0.0.0' : '127.0.0.1');
-    const server = app.listen(port, host, () => {
-      console.log(`[BOOT] HTTP server listening on ${host}:${port} - Client database is now accessible`);
+    
+    console.log(`🎯 Creating HTTP server on ${host}:${port}...`);
+    
+    // Direct synchronous listen - no await, no promises
+    serverInstance = app.listen(port, host);
+    
+    // Event handlers
+    serverInstance.on('listening', () => {
+      const addr = serverInstance.address();
+      console.log(`✅ HTTP server LISTENING on ${host}:${port}`);
+      console.log(`🔍 Server address:`, addr);
+      console.log(`🔍 Server listening:`, serverInstance.listening);
+    });
+    
+    serverInstance.on('error', (err: any) => {
+      console.error('❌ HTTP server error:', err);
+      console.error('Error code:', err.code);
+      if (err.code === 'EADDRINUSE') {
+        console.error(`Port ${port} is already in use!`);
+      }
+    });
+    
+    serverInstance.on('close', () => {
+      console.warn('⚠️ Server "close" event fired - port released!');
+    });
+    
+    // Also keep in global for extra safety
+    (global as any).__server = serverInstance;
+    const server = serverInstance; // For compatibility with code below
+    
+    console.log(`🔧 Server object created, waiting for 'listening' event...`);
+
+
+    // Manual Google Calendar sync endpoint (per-user)
+    app.post('/api/calendar/manual-sync', requireAuth, async (req: Request, res: Response) => {
+      try {
+        const userId = (req as any).user?.id;
+        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+        const results = await triggerManualSync(userId);
+        res.json(results);
+      } catch (e: any) {
+        console.error('Manual sync error:', e?.message || e);
+        res.status(500).json({ success: false, errors: [e?.message || 'Manual sync failed'] });
+      }
     });
 
     // Status endpoint for diagnostics
@@ -192,50 +283,53 @@ app.use((req, res, next) => {
       res.status(status).json({ message });
     });
 
-    // For production on Heroku, serve static files differently
-  if (process.env.NODE_ENV === "production" && process.env.PORT) {
-      // Heroku production mode - serve built files
-      const path = await import('path');
-      const fs = await import('fs');
-      
-      const distPath = path.join(process.cwd(), 'dist');
-      
-      if (fs.existsSync(distPath)) {
-        app.use(express.static(distPath));
-        
-        // Defer wildcard registration slightly to let routes mount
-        setTimeout(() => {
-          app.get('*', (req, res) => {
-            if (req.path.startsWith('/api')) {
-              return res.status(404).json({ message: 'API endpoint not found' });
-            }
-            const indexPath = path.join(distPath, 'index.html');
-            if (fs.existsSync(indexPath)) {
-              res.sendFile(indexPath);
-            } else {
-              res.status(404).send('Frontend build not found');
-            }
-          });
-        }, 1500);
-      } else {
-        console.warn('⚠️ No dist folder found, falling back to development mode');
-        await setupVite(app, server);
-      }
-    } else {
-      // Development or local production
-      await setupVite(app, server);
-    }
-
-    // Heroku provides the PORT, use it exactly as provided
-  // Prefer 3000 for local development to match client expectations; platforms set PORT explicitly
-  // Additional runtime info after initial async init completes
+    // Additional runtime info after initial async init completes
   console.log(`✅ New Age Fotografie CRM post-init. Environment: ${process.env.NODE_ENV}`);
   console.log(`Working directory: ${process.cwd()}`);
   console.log(`Demo mode: ${process.env.DEMO_MODE}`);
   console.log(`Database URL configured: ${!!process.env.DATABASE_URL}`);
-  } catch (error) {
-    console.error('❌ Failed to start server:', error);
-    console.error('Stack trace:', error.stack);
-    process.exit(1);
+  
+  // Removed signal handlers to diagnose crash - server should stay alive
+  console.log('🟢 Server running and ready for connections');
+
+  // Start background Google Calendar sync scheduler if enabled via env
+  try {
+    if (process.env.GOOGLE_SYNC_ENABLED === 'true') {
+      startSyncScheduler();
+      console.log('📅 Google Calendar sync scheduler started');
+    } else {
+      console.log('📅 Google Calendar sync scheduler is disabled (GOOGLE_SYNC_ENABLED!=true)');
+    }
+  } catch (err: any) {
+    console.warn('⚠️ Failed to start Google sync scheduler:', err?.message || err);
   }
+  
+  } catch (error: any) {
+    console.error('❌ Failed to start server:', error?.message || error);
+    console.error('Stack trace:', error?.stack || 'no stack');
+    // Do not exit; leave process up so health/debug can be queried
+  }
+  
+  console.log('✅ Async IIFE completed - server should stay alive');
 })();
+
+console.log('📍 Module loaded - keepalive will be installed');
+
+// CRITICAL: Keep process alive AND monitor server - prevent tsx from exiting
+console.log('🔒 Installing process keepalive with server monitoring...');
+const keepalive = setInterval(() => {
+  // Monitor server health
+  if (serverInstance) {
+    const addr = serverInstance.address();
+    if (addr) {
+      console.log(`[KEEPALIVE] ✅ Server listening on ${typeof addr === 'string' ? addr : `${addr.address}:${addr.port}`}`);
+    } else {
+      console.warn('[KEEPALIVE] ⚠️ Server instance exists but NOT listening!');
+    }
+  }
+}, 15000); // Check every 15 seconds
+
+// Prevent garbage collection
+(global as any).__keepalive = keepalive;
+
+console.log('✅ Keepalive installed - process should never exit');

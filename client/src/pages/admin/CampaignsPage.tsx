@@ -16,6 +16,7 @@ import {
 import AdvancedCampaignBuilder from '../../components/admin/AdvancedCampaignBuilder';
 import EmailSequenceBuilder from '../../components/admin/EmailSequenceBuilder';
 import EmailAnalyticsDashboard from '../../components/admin/EmailAnalyticsDashboard';
+import CampaignAnalyticsDetail from '../../components/admin/CampaignAnalyticsDetail';
 import { EmailCampaign } from '../../types/email-marketing';
 import { getCampaigns } from '../../lib/email-marketing';
 
@@ -27,6 +28,7 @@ const AdvancedEmailMarketingHub: React.FC = () => {
   const [editingCampaign, setEditingCampaign] = useState<EmailCampaign | null>(null);
   const [campaigns, setCampaigns] = useState<EmailCampaign[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
 
   const loadCampaigns = async () => {
     try {
@@ -273,10 +275,18 @@ const AdvancedEmailMarketingHub: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
-                      <button className="text-blue-600 hover:text-blue-800">
+                      <button 
+                        onClick={() => setActiveTab('campaigns')}
+                        className="text-blue-600 hover:text-blue-800"
+                        title="View in Campaigns"
+                      >
                         <Eye size={16} />
                       </button>
-                      <button className="text-gray-600 hover:text-gray-800">
+                      <button 
+                        onClick={() => setActiveTab('campaigns')}
+                        className="text-gray-600 hover:text-gray-800"
+                        title="View in Campaigns"
+                      >
                         <Settings size={16} />
                       </button>
                     </div>
@@ -330,6 +340,7 @@ const AdvancedEmailMarketingHub: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Updated</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -346,6 +357,27 @@ const AdvancedEmailMarketingHub: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{c.subject}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(c.updated_at).toLocaleString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <button 
+                          onClick={() => setSelectedCampaignId(c.id)}
+                          className="text-blue-600 hover:text-blue-800"
+                          title="View Analytics"
+                        >
+                          <BarChart3 size={16} />
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setEditingCampaign(c);
+                            setShowCampaignBuilder(true);
+                          }}
+                          className="text-gray-600 hover:text-gray-800"
+                          title="Edit Campaign"
+                        >
+                          <Settings size={16} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -469,7 +501,16 @@ const AdvancedEmailMarketingHub: React.FC = () => {
         {activeTab === 'sequences' && <EmailSequenceBuilder />}
         {activeTab === 'analytics' && <EmailAnalyticsDashboard />}
         {activeTab === 'templates' && <TemplatesTab />}
-        {activeTab === 'subscribers' && <SubscribersTab />}      </div>
+        {activeTab === 'subscribers' && <SubscribersTab />}
+      </div>
+
+      {/* Campaign Analytics Modal */}
+      {selectedCampaignId && (
+        <CampaignAnalyticsDetail 
+          campaignId={selectedCampaignId} 
+          onClose={() => setSelectedCampaignId(null)} 
+        />
+      )}
     </AdminLayout>
   );
 };

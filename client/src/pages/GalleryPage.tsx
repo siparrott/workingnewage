@@ -3,9 +3,10 @@ import { useParams, Link, Navigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import GalleryAuthForm from '../components/galleries/GalleryAuthForm';
 import ImageGrid from '../components/galleries/ImageGrid';
+import Slideshow from '../components/galleries/Slideshow';
 import { getGalleryBySlug, getPublicGalleryImages } from '../lib/gallery-api';
 import { Gallery, GalleryImage } from '../types/gallery';
-import { ArrowLeft, Download, Share2, Heart, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Download, Share2, Heart, Loader2, AlertCircle, Play } from 'lucide-react';
 
 const GalleryPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -14,6 +15,11 @@ const GalleryPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authToken, setAuthToken] = useState<string>('');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [showSlideshow, setShowSlideshow] = useState(false);
+  const [slideshowIndex, setSlideshowIndex] = useState(0);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [selectedForSlideshow, setSelectedForSlideshow] = useState<Set<string>>(new Set());
+  const [ratingFilter, setRatingFilter] = useState<'all' | 'love' | 'maybe' | 'reject'>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -112,6 +118,70 @@ const GalleryPage: React.FC = () => {
     // console.log removed
   };
 
+  // Slideshow handlers
+  const openSlideshow = (index: number) => {
+    setSlideshowIndex(index);
+    setShowSlideshow(true);
+  };
+
+  const closeSlideshow = () => {
+    setShowSlideshow(false);
+  };
+
+  const toggleFavorite = (imageId: string) => {
+    setFavorites(prev => {
+      const newFavorites = new Set(prev);
+      if (newFavorites.has(imageId)) {
+        newFavorites.delete(imageId);
+      } else {
+        newFavorites.add(imageId);
+      }
+      // Persist to localStorage
+      localStorage.setItem(`gallery_favorites_${slug}`, JSON.stringify(Array.from(newFavorites)));
+      return newFavorites;
+    });
+  };
+
+  // Selection handlers for slideshow
+  const handleToggleSelection = (imageId: string) => {
+    setSelectedForSlideshow(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(imageId)) {
+        newSet.delete(imageId);
+      } else {
+        newSet.add(imageId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleRunSlideshow = () => {
+    if (selectedForSlideshow.size === 0) {
+      alert('Please select at least one image for the slideshow');
+      return;
+    }
+    setShowSlideshow(true);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedForSlideshow(new Set());
+  };
+
+  // Load favorites from localStorage
+  useEffect(() => {
+    if (slug) {
+      const savedFavorites = localStorage.getItem(`gallery_favorites_${slug}`);
+      if (savedFavorites) {
+        try {
+          const favArray = JSON.parse(savedFavorites);
+          setFavorites(new Set(favArray));
+        } catch (e) {
+          console.error('Error loading favorites:', e);
+        }
+      }
+    }
+  }, [slug]);
+
   const handleDownloadAll = () => {
     if (!gallery || !slug || !authToken) return;
     
@@ -179,9 +249,10 @@ const GalleryPage: React.FC = () => {
     }
   };
 
-  const filteredImages = showFavoritesOnly
-    ? images.filter(image => image.isFavorite)
-    : images;
+  // Apply filters: favorites and rating
+  const filteredImages = images
+    .filter(image => !showFavoritesOnly || image.isFavorite)
+    .filter(image => ratingFilter === 'all' || image.rating === ratingFilter);
 
   // If no slug is provided, redirect to galleries overview
   if (!slug) {
@@ -215,6 +286,18 @@ const GalleryPage: React.FC = () => {
                 <p className="text-lg text-gray-600 max-w-2xl mx-auto">{gallery.description}</p>
               )}
             </div>
+
+            {/* Cover Image Hero */}
+            {gallery.coverImage && (
+              <div className="mb-8 rounded-2xl overflow-hidden shadow-2xl max-w-5xl mx-auto">
+                <img 
+                  src={gallery.coverImage} 
+                  alt={gallery.title}
+                  className="w-full h-auto object-cover"
+                  style={{ maxHeight: '600px', objectFit: 'cover' }}
+                />
+              </div>
+            )}
             
             {/* Authentication Form or Gallery Content */}
             {!isAuthenticated ? (
@@ -239,6 +322,18 @@ const GalleryPage: React.FC = () => {
                       <Heart size={16} className={`mr-2 ${showFavoritesOnly ? 'fill-current' : ''}`} />
                       {showFavoritesOnly ? 'Alle anzeigen' : 'Favoriten anzeigen'}
                     </button>
+
+                    {/* Rating Filter */}
+                    <select
+                      value={ratingFilter}
+                      onChange={(e) => setRatingFilter(e.target.value as any)}
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors cursor-pointer"
+                    >
+                      <option value="all">All Ratings</option>
+                      <option value="love">😊 Love</option>
+                      <option value="maybe">😐 Maybe</option>
+                      <option value="reject">☹️ Reject</option>
+                    </select>
                     
                     {gallery.downloadEnabled && (
                       <button
@@ -251,13 +346,25 @@ const GalleryPage: React.FC = () => {
                     )}
                   </div>
                   
-                  <button
-                    onClick={handleShare}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
-                  >
-                    <Share2 size={16} className="mr-2" />
-                    Galerie teilen
-                  </button>
+                  <div className="flex items-center space-x-3">
+                    {selectedForSlideshow.size > 0 && (
+                      <button
+                        onClick={handleRunSlideshow}
+                        className="inline-flex items-center px-4 py-2 border-2 border-green-500 shadow-sm text-sm font-medium rounded-lg text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                      >
+                        <Play size={16} className="mr-2" />
+                        Run Slideshow ({selectedForSlideshow.size})
+                      </button>
+                    )}
+                    
+                    <button
+                      onClick={handleShare}
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+                    >
+                      <Share2 size={16} className="mr-2" />
+                      Galerie teilen
+                    </button>
+                  </div>
                 </div>
                 
                 {/* Image Grid */}
@@ -279,6 +386,10 @@ const GalleryPage: React.FC = () => {
                       isPublic={true}
                       authToken={authToken}
                       downloadEnabled={gallery.downloadEnabled}
+                      favorites={favorites}
+                      onToggleFavorite={toggleFavorite}
+                      selectedForSlideshow={selectedForSlideshow}
+                      onToggleSelection={handleToggleSelection}
                     />
                     
                     {showFavoritesOnly && filteredImages.length === 0 && (
@@ -333,6 +444,22 @@ const GalleryPage: React.FC = () => {
           </div>
         )}
       </div>
+      
+      {/* Slideshow Modal */}
+      {showSlideshow && gallery && (
+        <Slideshow
+          images={selectedForSlideshow.size > 0 
+            ? filteredImages.filter(img => selectedForSlideshow.has(img.id))
+            : filteredImages}
+          startIndex={0}
+          onClose={closeSlideshow}
+          onToggleFavorite={toggleFavorite}
+          favorites={favorites}
+          downloadEnabled={gallery.downloadEnabled}
+          authToken={authToken}
+          galleryId={gallery.id}
+        />
+      )}
     </Layout>
   );
 };

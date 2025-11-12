@@ -2,6 +2,10 @@
 // Load environment variables
 require('dotenv').config();
 
+// Global network config (single source of truth)
+const PORT = Number(process.env.PORT || 3001);
+const HOST = process.env.HOST || '127.0.0.1';
+
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -87,6 +91,18 @@ async function initializeStripe() {
 initializeStripe();
 
 console.log('🚀 Starting PRODUCTION server with Neon database...');
+// Optional diagnostic express server (disabled by default to avoid port conflicts)
+try {
+  if (String(process.env.DIAG_SERVER).toLowerCase() === 'true') {
+    const express = require('express');
+    const app = express();
+    const diagPort = Number(process.env.DIAG_PORT || (PORT + 1));
+    const diagHost = HOST;
+    app.get('/healthz', (_req, res) => res.json({ status: 'ok', ts: Date.now() }));
+    app.get('/api/auth/status', (_req, res) => res.json({ isAuthenticated: false }));
+    app.listen(diagPort, diagHost, () => console.log(`[diag] health server on http://${diagHost}:${diagPort}`));
+  }
+} catch {}
 
 // Cached invoice column detection to avoid per-request information_schema scans
 let __invoiceColsCache = { set: null, ts: 0 };
@@ -2507,6 +2523,628 @@ const server = http.createServer(async (req, res) => {
   
   // API endpoints
   if (pathname.startsWith('/api/')) {
+    // ===== Onboarding schema and minimal Website Analyzer endpoints =====
+    let __onboardingEnsured = false;
+    async function ensureOnboardingSchema() {
+      if (__onboardingEnsured || !sql) return;
+      try {
+        await sql`CREATE EXTENSION IF NOT EXISTS pgcrypto`;
+        await sql`
+          CREATE TABLE IF NOT EXISTS onboarding_sessions (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            customer_email TEXT,
+            stripe_session_id TEXT,
+            start_url TEXT,
+            status TEXT DEFAULT 'started',
+            crawl_status TEXT DEFAULT 'pending',
+            created_at TIMESTAMPTZ DEFAULT now(),
+            updated_at TIMESTAMPTZ DEFAULT now()
+          )`;
+        await sql`
+          CREATE TABLE IF NOT EXISTS crawl_jobs (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            onboarding_session_id UUID NOT NULL REFERENCES onboarding_sessions(id) ON DELETE CASCADE,
+            seed_url TEXT NOT NULL,
+            sitemap_url TEXT,
+            status TEXT DEFAULT 'pending',
+            pages_discovered INTEGER DEFAULT 0,
+            pages_crawled INTEGER DEFAULT 0,
+            error TEXT,
+            started_at TIMESTAMPTZ,
+            completed_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ DEFAULT now(),
+            updated_at TIMESTAMPTZ DEFAULT now()
+          )`;
+        await sql`
+          CREATE TABLE IF NOT EXISTS website_pages (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            crawl_job_id UUID NOT NULL REFERENCES crawl_jobs(id) ON DELETE CASCADE,
+            url TEXT NOT NULL,
+            status TEXT,
+            http_status INTEGER,
+            content_type TEXT,
+            title TEXT,
+            html TEXT,
+            text_content TEXT,
+            meta JSONB DEFAULT '{}'::jsonb,
+            links JSONB DEFAULT '[]'::jsonb,
+            assets JSONB DEFAULT '[]'::jsonb,
+            screenshot_url TEXT,
+            created_at TIMESTAMPTZ DEFAULT now(),
+            updated_at TIMESTAMPTZ DEFAULT now()
+          )`;
+        await sql`
+          CREATE TABLE IF NOT EXISTS theme_analysis (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            onboarding_session_id UUID NOT NULL REFERENCES onboarding_sessions(id) ON DELETE CASCADE,
+            theme_name TEXT,
+            detected_stack TEXT,
+            primary_color TEXT,
+            secondary_color TEXT,
+            font_family TEXT,
+            layout_meta JSONB DEFAULT '{}'::jsonb,
+            score NUMERIC,
+            created_at TIMESTAMPTZ DEFAULT now(),
+            updated_at TIMESTAMPTZ DEFAULT now()
+          )`;
+        await sql`
+          CREATE TABLE IF NOT EXISTS integration_credentials (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            onboarding_session_id UUID NOT NULL REFERENCES onboarding_sessions(id) ON DELETE CASCADE,
+            type TEXT NOT NULL,
+            data JSONB DEFAULT '{}'::jsonb,
+            created_at TIMESTAMPTZ DEFAULT now(),
+            updated_at TIMESTAMPTZ DEFAULT now()
+          )`;
+        await sql`
+          CREATE TABLE IF NOT EXISTS price_lists (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            onboarding_session_id UUID NOT NULL REFERENCES onboarding_sessions(id) ON DELETE CASCADE,
+            name TEXT,
+            currency TEXT DEFAULT 'EUR',
+            items JSONB DEFAULT '[]'::jsonb,
+            created_at TIMESTAMPTZ DEFAULT now(),
+            updated_at TIMESTAMPTZ DEFAULT now()
+          )`;
+        await sql`
+          CREATE TABLE IF NOT EXISTS client_imports (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            onboarding_session_id UUID NOT NULL REFERENCES onboarding_sessions(id) ON DELETE CASCADE,
+            source TEXT,
+            status TEXT DEFAULT 'pending',
+            total INTEGER DEFAULT 0,
+            imported INTEGER DEFAULT 0,
+            error TEXT,
+            created_at TIMESTAMPTZ DEFAULT now(),
+            updated_at TIMESTAMPTZ DEFAULT now()
+          )`;
+        await sql`CREATE INDEX IF NOT EXISTS idx_onboarding_sessions_status ON onboarding_sessions(status)`;
+        await sql`CREATE INDEX IF NOT EXISTS idx_crawl_jobs_session ON crawl_jobs(onboarding_session_id)`;
+        await sql`CREATE INDEX IF NOT EXISTS idx_website_pages_job ON website_pages(crawl_job_id)`;
+        await sql`CREATE INDEX IF NOT EXISTS idx_website_pages_url ON website_pages((lower(url)))`;
+        __onboardingEnsured = true;
+        console.log('✅ Onboarding schema ensured');
+      } catch (e) {
+        console.warn('⚠️ ensureOnboardingSchema failed:', e.message);
+      }
+    }
+
+    // Helpers for minimal crawl/extract
+    function normalizeUrl(u) {
+      try {
+        const parsed = new URL(u);
+        parsed.hash = '';
+        // drop trailing slash (except root)
+        const p = parsed.pathname.replace(/\/$/, '');
+        parsed.pathname = p || '/';
+        return parsed.toString();
+      } catch { return u; }
+    }
+    function sameHost(a, b) {
+      try { const ua = new URL(a); const ub = new URL(b); return ua.host === ub.host; } catch { return false; }
+    }
+    async function fetchWithTimeout(u, ms = 12000) {
+      const ac = new AbortController();
+      const t = setTimeout(() => ac.abort(), ms);
+      try { return await fetch(u, { signal: ac.signal, redirect: 'follow' }); }
+      finally { clearTimeout(t); }
+    }
+    function extractTitleAndLinks(html, baseUrl) {
+      const out = { title: null, links: [], assets: [], meta: {} };
+      try {
+        const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+        out.title = titleMatch ? titleMatch[1].trim().replace(/\s+/g,' ') : null;
+      } catch {}
+      // very simple link and asset discovery
+      const hrefRe = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>/ig;
+      const srcRe = /<img\s+[^>]*src=["']([^"']+)["'][^>]*>/ig;
+      const linkCssRe = /<link\s+[^>]*rel=["'][^"']*stylesheet[^"']*["'][^>]*href=["']([^"']+)["'][^>]*>/ig;
+      // common meta tags
+      try {
+        const metaRe = /<meta\s+([^>]*?)>/ig;
+        let m;
+        while ((m = metaRe.exec(html))) {
+          const tag = m[1] || '';
+          const nameMatch = tag.match(/\bname=["']([^"']+)["']/i);
+          const propMatch = tag.match(/\bproperty=["']([^"']+)["']/i);
+          const contentMatch = tag.match(/\bcontent=["']([^"']+)["']/i);
+          const key = (nameMatch?.[1] || propMatch?.[1] || '').toLowerCase();
+          const val = contentMatch?.[1] || '';
+          if (key && val) {
+            out.meta[key] = val;
+          }
+        }
+      } catch {}
+      const urls = new Set();
+      let m;
+      while ((m = hrefRe.exec(html))) { urls.add(m[1]); }
+      while ((m = linkCssRe.exec(html))) { out.assets.push(m[1]); }
+      while ((m = srcRe.exec(html))) { out.assets.push(m[1]); }
+      const resolved = [];
+      for (const raw of urls) {
+        try {
+          const abs = new URL(raw, baseUrl).toString();
+          resolved.push(abs);
+        } catch {}
+      }
+      out.links = resolved;
+      return out;
+    }
+
+    // POST /api/onboarding/start – create session and initial crawl job
+    if (pathname === '/api/onboarding/start' && req.method === 'POST') {
+      try {
+        if (!sql) throw new Error('Database not available');
+        await ensureOnboardingSchema();
+        let raw = ''; req.on('data', c => raw += c); await new Promise(r => req.on('end', r));
+        const b = raw ? JSON.parse(raw) : {};
+        const start_url = String(b.start_url || b.url || '').trim();
+        const customer_email = b.email || b.customer_email || null;
+        const stripe_session_id = b.stripe_session_id || null;
+        if (!start_url) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'start_url required' })); return; }
+        const ins = await sql`
+          INSERT INTO onboarding_sessions(customer_email, stripe_session_id, start_url, status, crawl_status)
+          VALUES (${customer_email}, ${stripe_session_id}, ${start_url}, 'started', 'pending')
+          RETURNING id`;
+        const session_id = ins[0].id;
+        const job = await sql`
+          INSERT INTO crawl_jobs(onboarding_session_id, seed_url, status)
+          VALUES (${session_id}, ${start_url}, 'pending') RETURNING id`;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, session_id, job_id: job[0].id }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+      return;
+    }
+
+    // POST /api/onboarding/run-crawl – synchronous lightweight crawl (small limit)
+    if (pathname === '/api/onboarding/run-crawl' && req.method === 'POST') {
+      try {
+        if (!sql) throw new Error('Database not available');
+        await ensureOnboardingSchema();
+        let raw = ''; req.on('data', c => raw += c); await new Promise(r => req.on('end', r));
+        const b = raw ? JSON.parse(raw) : {};
+        const session_id = b.session_id || b.onboarding_session_id;
+        const maxPages = Math.min(25, Math.max(1, Number(b.max_pages || 10)));
+        if (!session_id) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'session_id required' })); return; }
+        const rows = await sql`SELECT id, start_url FROM onboarding_sessions WHERE id = ${session_id} LIMIT 1`;
+        if (!rows.length) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'session not found' })); return; }
+        const startUrl = rows[0].start_url;
+        const jobRows = await sql`SELECT id, status FROM crawl_jobs WHERE onboarding_session_id = ${session_id} ORDER BY created_at DESC LIMIT 1`;
+        if (!jobRows.length) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'crawl job not found' })); return; }
+        const jobId = jobRows[0].id;
+        await sql`UPDATE crawl_jobs SET status = 'running', started_at = now(), error = NULL WHERE id = ${jobId}`;
+
+        const queue = [normalizeUrl(startUrl)];
+        const visited = new Set();
+        let crawled = 0;
+        let discovered = 1;
+        const origin = new URL(startUrl).toString();
+        const originHost = new URL(startUrl).host;
+        while (queue.length && crawled < maxPages) {
+          const current = queue.shift();
+          if (!current || visited.has(current)) continue;
+          visited.add(current);
+          try {
+            const resp = await fetchWithTimeout(current, 12000);
+            const ct = String(resp.headers.get('content-type') || '');
+            const http_status = resp.status;
+            let html = '';
+            if (ct.includes('text/html')) {
+              html = await resp.text();
+            }
+            const { title, links, assets, meta } = html ? extractTitleAndLinks(html, current) : { title: null, links: [], assets: [], meta: {} };
+            const text_content = html ? html.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 20000) : null;
+            const trimmedHtml = html ? html.slice(0, 200000) : null;
+            await sql`
+              INSERT INTO website_pages(crawl_job_id, url, status, http_status, content_type, title, html, text_content, links, assets, meta)
+              VALUES (${jobId}, ${current}, ${http_status >= 200 && http_status < 400 ? 'ok' : 'error'}, ${http_status}, ${ct}, ${title}, ${trimmedHtml}, ${text_content}, ${JSON.stringify(links)}, ${JSON.stringify(assets)}, ${JSON.stringify(meta)})
+            `;
+            crawled++;
+            // enqueue same-host HTML links only
+            for (const link of links) {
+              if (!sameHost(link, origin)) continue;
+              const n = normalizeUrl(link);
+              if (!visited.has(n) && queue.length + crawled < maxPages * 2) { queue.push(n); discovered++; }
+            }
+          } catch (err) {
+            await sql`INSERT INTO website_pages(crawl_job_id, url, status, http_status, content_type, title, html, text_content, links, assets) VALUES (${jobId}, ${current}, 'error', ${null}, ${null}, ${null}, ${null}, ${null}, '[]'::jsonb, '[]'::jsonb)`;
+          }
+        }
+        await sql`UPDATE crawl_jobs SET status = 'completed', pages_discovered = ${discovered}, pages_crawled = ${crawled}, completed_at = now(), updated_at = now() WHERE id = ${jobId}`;
+        await sql`UPDATE onboarding_sessions SET crawl_status = 'completed', updated_at = now() WHERE id = ${session_id}`;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, session_id, job_id: jobId, crawled, discovered }));
+      } catch (e) {
+        try { await sql`UPDATE crawl_jobs SET status = 'failed', error = ${e.message}, updated_at = now() WHERE onboarding_session_id = ${String((parsedUrl.query||{}).session_id || '')}`; } catch {}
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+      return;
+    }
+
+    // GET /api/onboarding/status?session_id=...
+    if (pathname === '/api/onboarding/status' && req.method === 'GET') {
+      try {
+        if (!sql) throw new Error('Database not available');
+        await ensureOnboardingSchema();
+        const session_id = String(parsedUrl.query?.session_id || '').trim();
+        if (!session_id) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'session_id required' })); return; }
+        const s = await sql`SELECT id, customer_email, stripe_session_id, start_url, status, crawl_status, created_at, updated_at FROM onboarding_sessions WHERE id = ${session_id} LIMIT 1`;
+        if (!s.length) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'not found' })); return; }
+        const j = await sql`SELECT id, status, pages_discovered, pages_crawled, error, started_at, completed_at FROM crawl_jobs WHERE onboarding_session_id = ${session_id} ORDER BY created_at DESC LIMIT 1`;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, session: s[0], job: j[0] || null }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+      return;
+    }
+
+    // GET /api/onboarding/pages?session_id=...&limit=...
+    if (pathname === '/api/onboarding/pages' && req.method === 'GET') {
+      try {
+        if (!sql) throw new Error('Database not available');
+        await ensureOnboardingSchema();
+        const session_id = String(parsedUrl.query?.session_id || '').trim();
+        const limit = Math.min(200, Math.max(1, parseInt(String(parsedUrl.query?.limit || '50'), 10)));
+        if (!session_id) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'session_id required' })); return; }
+        const j = await sql`SELECT id FROM crawl_jobs WHERE onboarding_session_id = ${session_id} ORDER BY created_at DESC LIMIT 1`;
+        if (!j.length) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: true, pages: [] })); return; }
+        const pages = await sql`SELECT id, url, status, http_status, title, content_type, created_at FROM website_pages WHERE crawl_job_id = ${j[0].id} ORDER BY created_at ASC LIMIT ${limit}`;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, pages }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+      return;
+    }
+
+    // GET /api/onboarding/page-detail?session_id=...&url=...
+    if (pathname === '/api/onboarding/page-detail' && req.method === 'GET') {
+      try {
+        if (!sql) throw new Error('Database not available');
+        await ensureOnboardingSchema();
+        const session_id = String(parsedUrl.query?.session_id || '').trim();
+        const pageUrl = String(parsedUrl.query?.url || '').trim();
+        if (!session_id || !pageUrl) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'session_id and url required' })); return; }
+        const j = await sql`SELECT id FROM crawl_jobs WHERE onboarding_session_id = ${session_id} ORDER BY created_at DESC LIMIT 1`;
+        if (!j.length) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'job not found' })); return; }
+        const rows = await sql`SELECT id, url, status, http_status, content_type, title, html, text_content, meta, links, assets, created_at FROM website_pages WHERE crawl_job_id = ${j[0].id} AND lower(url) = lower(${pageUrl}) LIMIT 1`;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, page: rows[0] || null }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+      return;
+    }
+
+    // GET /api/onboarding/discover-sitemap?url=...
+    if (pathname === '/api/onboarding/discover-sitemap' && req.method === 'GET') {
+      try {
+        const base = String(parsedUrl.query?.url || '').trim();
+        if (!base) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'url required' })); return; }
+        async function findSitemaps(siteUrl) {
+          const sites = new Set();
+          try {
+            const robotsUrl = new URL('/robots.txt', siteUrl).toString();
+            const r = await fetchWithTimeout(robotsUrl, 6000);
+            if (r.ok) {
+              const txt = await r.text();
+              const lines = txt.split(/\r?\n/);
+              for (const line of lines) {
+                const m = line.match(/sitemap:\s*(.+)/i);
+                if (m && m[1]) {
+                  try { sites.add(new URL(m[1].trim(), robotsUrl).toString()); } catch {}
+                }
+              }
+            }
+          } catch {}
+          // common fallbacks
+          try { sites.add(new URL('/sitemap.xml', base).toString()); } catch {}
+          try { sites.add(new URL('/sitemap_index.xml', base).toString()); } catch {}
+          return [...sites];
+        }
+        async function parseSitemapXml(u) {
+          try {
+            const r = await fetchWithTimeout(u, 8000);
+            if (!r.ok) return [];
+            const xml = await r.text();
+            const urls = [];
+            const locRe = /<loc>([\s\S]*?)<\/loc>/gi;
+            let m; while ((m = locRe.exec(xml))) { urls.push(m[1].trim()); }
+            return urls;
+          } catch { return []; }
+        }
+        const sitemapUrls = await findSitemaps(base);
+        let discovered = [];
+        for (const s of sitemapUrls) {
+          const urls = await parseSitemapXml(s);
+          discovered.push(...urls.filter(u => sameHost(u, base)));
+        }
+        // de-dup and cap
+        const set = Array.from(new Set(discovered)).slice(0, 500);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, sitemaps: sitemapUrls, urls: set }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+      return;
+    }
+
+    // GET /api/onboarding/robots?url=...
+    if (pathname === '/api/onboarding/robots' && req.method === 'GET') {
+      try {
+        const base = String(parsedUrl.query?.url || '').trim();
+        if (!base) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'url required' })); return; }
+        const robotsUrl = new URL('/robots.txt', base).toString();
+        const r = await fetchWithTimeout(robotsUrl, 6000);
+        const text = r.ok ? await r.text() : '';
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, url: robotsUrl, content: text }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+      return;
+    }
+
+    // GET /api/onboarding/analyze-theme?session_id=...
+    if (pathname === '/api/onboarding/analyze-theme' && req.method === 'GET') {
+      try {
+        if (!sql) throw new Error('Database not available');
+        await ensureOnboardingSchema();
+        const session_id = String(parsedUrl.query?.session_id || '').trim();
+        if (!session_id) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'session_id required' })); return; }
+        const j = await sql`SELECT id FROM crawl_jobs WHERE onboarding_session_id = ${session_id} ORDER BY created_at DESC LIMIT 1`;
+        if (!j.length) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'job not found' })); return; }
+        const pages = await sql`SELECT id, url, title, assets, meta FROM website_pages WHERE crawl_job_id = ${j[0].id} ORDER BY created_at ASC LIMIT 20`;
+        if (!pages.length) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: true, analysis: null })); return; }
+        // Heuristic: fetch up to 3 CSS assets and extract colors/fonts
+        const cssUrls = [];
+        for (const p of pages) {
+          const arr = Array.isArray(p.assets) ? p.assets : [];
+          for (const a of arr) {
+            try { const abs = new URL(a, p.url).toString(); if (/\.css(\?|$)/i.test(abs)) cssUrls.push(abs); } catch {}
+          }
+        }
+        const uniqueCss = Array.from(new Set(cssUrls)).slice(0, 3);
+        const colorCounts = new Map();
+        const fonts = new Set();
+        for (const cu of uniqueCss) {
+          try {
+            const r = await fetchWithTimeout(cu, 6000);
+            if (!r.ok) continue;
+            const css = await r.text();
+            const colorRe = /#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g;
+            let m; while ((m = colorRe.exec(css))) {
+              const c = '#' + m[1].toLowerCase();
+              colorCounts.set(c, (colorCounts.get(c) || 0) + 1);
+            }
+            const fontRe = /font-family\s*:\s*([^;}{]+)/gi;
+            let f; while ((f = fontRe.exec(css))) {
+              const families = String(f[1]).split(',').map(s => s.trim().replace(/^['"]|['"]$/g, ''));
+              for (const fam of families) { if (fam) fonts.add(fam); }
+            }
+          } catch {}
+        }
+        const colors = Array.from(colorCounts.entries()).sort((a,b) => b[1]-a[1]).map(([k]) => k).slice(0, 8);
+        const font_family = Array.from(fonts).slice(0, 3).join(', ');
+        const detected_stack = (() => {
+          try {
+            const htmlHints = pages.map(p => JSON.stringify(p.meta || {})).join(' ').toLowerCase();
+            if (htmlHints.includes('wp-content') || htmlHints.includes('wordpress')) return 'WordPress';
+            if (htmlHints.includes('wix')) return 'Wix';
+            if (htmlHints.includes('shopify')) return 'Shopify';
+            if (htmlHints.includes('squarespace')) return 'Squarespace';
+          } catch {}
+          return 'Custom/Unknown';
+        })();
+        const primary_color = colors[0] || null;
+        const secondary_color = colors[1] || null;
+        const theme = await sql`INSERT INTO theme_analysis(onboarding_session_id, detected_stack, primary_color, secondary_color, font_family, layout_meta, score) VALUES (${session_id}, ${detected_stack}, ${primary_color}, ${secondary_color}, ${font_family}, ${JSON.stringify({ css_count: uniqueCss.length })}::jsonb, 0.8) RETURNING *`;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, theme: theme[0], palette: colors }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+      return;
+    }
+
+    // POST /api/onboarding/integrations – store integration credentials (JSON)
+    if (pathname === '/api/onboarding/integrations' && req.method === 'POST') {
+      try {
+        if (!sql) throw new Error('Database not available');
+        await ensureOnboardingSchema();
+        let raw = ''; req.on('data', c => raw += c); await new Promise(r => req.on('end', r));
+        const b = raw ? JSON.parse(raw) : {};
+        const session_id = b.session_id;
+        const type = String(b.type || '').trim();
+        const data = b.data || {};
+        if (!session_id || !type) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'session_id and type required' })); return; }
+        const ins = await sql`INSERT INTO integration_credentials(onboarding_session_id, type, data) VALUES (${session_id}, ${type}, ${JSON.stringify(data)}::jsonb) RETURNING id`;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, id: ins[0].id }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+      return;
+    }
+
+    // GET /api/onboarding/discover-sitemap?url=...
+    if (pathname === '/api/onboarding/discover-sitemap' && req.method === 'GET') {
+      try {
+        const base = String(parsedUrl.query?.url || '').trim();
+        if (!base) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: 'url required' })); return; }
+        const u = new URL(base);
+        const baseOrigin = `${u.protocol}//${u.host}`;
+        const candidates = [
+          `${baseOrigin}/sitemap.xml`,
+          `${baseOrigin}/sitemap_index.xml`,
+          `${baseOrigin}/sitemap-index.xml`,
+          `${baseOrigin}/sitemap1.xml`,
+          `${baseOrigin}/sitemap/sitemap.xml`,
+        ];
+        // try robots.txt to discover sitemap
+        try {
+          const r = await fetchWithTimeout(`${baseOrigin}/robots.txt`, 6000);
+          if (r.ok) {
+            const txt = await r.text();
+            const lines = txt.split(/\r?\n/);
+            for (const line of lines) {
+              const m = line.match(/^sitemap:\s*(.+)$/i);
+              if (m && m[1]) { candidates.push(m[1].trim()); }
+            }
+          }
+        } catch {}
+        // de-dup and validate reachability
+        const seen = new Set();
+        const found = [];
+        for (const c of candidates) {
+          const abs = (() => { try { return new URL(c, baseOrigin).toString(); } catch { return null; } })();
+          if (!abs || seen.has(abs)) continue;
+          seen.add(abs);
+          try {
+            const resp = await fetchWithTimeout(abs, 6000);
+            if (resp.ok) { found.push(abs); }
+          } catch {}
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, urls: found }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+      return;
+    }
+
+    // GET /api/onboarding/analyze-theme?session_id=...
+    if (pathname === '/api/onboarding/analyze-theme' && req.method === 'GET') {
+      try {
+        if (!sql) throw new Error('Database not available');
+        await ensureOnboardingSchema();
+        const session_id = String(parsedUrl.query?.session_id || '').trim();
+        if (!session_id) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: 'session_id required' })); return; }
+        const jobRows = await sql`SELECT id FROM crawl_jobs WHERE onboarding_session_id = ${session_id} ORDER BY created_at DESC LIMIT 1`;
+        if (!jobRows.length) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: 'crawl job not found' })); return; }
+        const jobId = jobRows[0].id;
+        const pages = await sql`SELECT id, url, title, links, assets, html FROM website_pages WHERE crawl_job_id = ${jobId} ORDER BY created_at ASC LIMIT 10`;
+        const cssUrls = new Set();
+        const imgUrls = new Set();
+        const colors = new Map(); // color -> count
+        const detectStackHints = [];
+        // collect assets and simple CMS hints
+        for (const p of pages) {
+          const links = Array.isArray(p.links) ? p.links : [];
+          const assets = Array.isArray(p.assets) ? p.assets : [];
+          for (const a of assets) { try { const abs = new URL(a, p.url).toString(); if (/\.css(\?|$)/i.test(abs)) cssUrls.add(abs); if (/\.(png|jpe?g|webp|gif)(\?|$)/i.test(abs)) imgUrls.add(abs); } catch {} }
+          const html = String(p.html || '');
+          if (/wp-content|wordpress/i.test(html)) detectStackHints.push('wordpress');
+          if (/squarespace|static1\.squarespace/i.test(html)) detectStackHints.push('squarespace');
+          if (/wixstatic|wix\.com/i.test(html)) detectStackHints.push('wix');
+          const inlineColors = html.match(/#[0-9a-fA-F]{6}\b/g) || [];
+          for (const c of inlineColors) colors.set(c.toLowerCase(), (colors.get(c.toLowerCase()) || 0) + 1);
+        }
+        // fetch a couple CSS files and extract colors
+        const cssList = Array.from(cssUrls).slice(0, 3);
+        for (const cssUrl of cssList) {
+          try {
+            const r = await fetchWithTimeout(cssUrl, 7000);
+            if (!r.ok) continue;
+            const txt = await r.text();
+            const cssColors = txt.match(/#[0-9a-fA-F]{6}\b/g) || [];
+            for (const c of cssColors) colors.set(c.toLowerCase(), (colors.get(c.toLowerCase()) || 0) + 1);
+            if (/wp-content|wordpress/i.test(txt)) detectStackHints.push('wordpress');
+            if (/squarespace/i.test(txt)) detectStackHints.push('squarespace');
+            if (/wixstatic|wix\.com/i.test(txt)) detectStackHints.push('wix');
+            const fontMatch = txt.match(/font-family:\s*([^;}{]+)/i);
+            if (fontMatch && fontMatch[1]) {
+              // store in theme record later
+            }
+          } catch {}
+        }
+        const palette = Array.from(colors.entries())
+          .sort((a,b) => b[1]-a[1])
+          .slice(0, 8)
+          .map(([c]) => c);
+        const detected_stack = detectStackHints.includes('wordpress') ? 'wordpress'
+          : detectStackHints.includes('squarespace') ? 'squarespace'
+          : detectStackHints.includes('wix') ? 'wix' : 'custom';
+        const primary_color = palette[0] || null;
+        const secondary_color = palette[1] || null;
+        const font_family = null; // basic pass; can be extended later
+        // persist theme analysis (upsert latest)
+        await sql`INSERT INTO theme_analysis(onboarding_session_id, theme_name, detected_stack, primary_color, secondary_color, font_family, layout_meta, score)
+                  VALUES (${session_id}, ${null}, ${detected_stack}, ${primary_color}, ${secondary_color}, ${font_family}, '{}'::jsonb, NULL)`;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, theme: { detected_stack, primary_color, secondary_color, font_family }, palette }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+      return;
+    }
+
+    // GET /api/onboarding/entry – Stripe redirect entry point, creates or resumes session
+    if (pathname === '/api/onboarding/entry' && req.method === 'GET') {
+      try {
+        if (!sql) throw new Error('Database not available');
+        await ensureOnboardingSchema();
+        const sid = String(parsedUrl.query?.session_id || parsedUrl.query?.stripe_session_id || '').trim();
+        const start_url = String(parsedUrl.query?.url || parsedUrl.query?.start_url || '').trim();
+        let customer_email = null;
+        if (stripe && sid) {
+          try {
+            const s = await stripe.checkout.sessions.retrieve(sid);
+            customer_email = s?.customer_details?.email || s?.customer_email || null;
+          } catch {}
+        }
+        let sessionRow = null;
+        if (sid) {
+          const r = await sql`SELECT * FROM onboarding_sessions WHERE stripe_session_id = ${sid} LIMIT 1`;
+          sessionRow = r[0] || null;
+        }
+        if (!sessionRow) {
+          const ins = await sql`INSERT INTO onboarding_sessions(customer_email, stripe_session_id, start_url, status, crawl_status) VALUES (${customer_email}, ${sid || null}, ${start_url || null}, 'started', 'pending') RETURNING id`;
+          const job = await sql`INSERT INTO crawl_jobs(onboarding_session_id, seed_url, status) VALUES (${ins[0].id}, ${start_url || ''}, 'pending') RETURNING id`;
+          sessionRow = { id: ins[0].id, job_id: job[0].id };
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, session_id: sessionRow.id }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+      return;
+    }
     // --- Administrative DB audit endpoint (lightweight, read-only) ---
     if (pathname === '/api/admin/db-audit' && req.method === 'GET') {
       try {
@@ -8643,18 +9281,52 @@ New Age Fotografie Team`;
   });
 });
 
-console.log('ℹ️ Reaching server.listen with port =', port);
-server.listen(port, '0.0.0.0', () => {
-  console.log(`✅ PRODUCTION server with database support running on port ${port}`);
-  console.log(`🌐 Website: http://localhost:${port}`);
-  console.log(`🔌 API: http://localhost:${port}/api/status`);
-  console.log(`📊 Health: http://localhost:${port}/healthz`);
+console.log('ℹ️ Reaching server.listen with port =', PORT);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ PRODUCTION server with database support running on port ${PORT}`);
+  console.log(`🌐 Website: http://localhost:${PORT}`);
+  console.log(`🔌 API: http://localhost:${PORT}/api/status`);
+  console.log(`📊 Health: http://localhost:${PORT}/healthz`);
 });
 
 server.on('error', (err) => {
   console.error('❌ Server error:', err);
 });
 
+// Keep process alive when run directly
+if (require.main === module) {
+  console.log('🔒 Server started directly - FORCING process to stay alive');
+  
+  // Immediate keepalive - run before anything async
+  const keepaliveId = setInterval(() => {
+    try {
+      const addr = server.address();
+      console.log(`[KEEPALIVE] Process alive - server listening: ${server.listening}, address:`, addr);
+    } catch (e) {
+      console.log(`[KEEPALIVE] Process alive but error checking server:`, e.message);
+    }
+  }, 5000);
+  
+  // Prevent accidental clear
+  keepaliveId.unref = () => keepaliveId;
+  
+  // Catch any unhandled errors
+  process.on('uncaughtException', (err) => {
+    console.error('🚨 UNCAUGHT EXCEPTION:', err);
+    console.error('Stack:', err.stack);
+    // DON'T exit - keep server alive
+  });
+  
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('🚨 UNHANDLED REJECTION:', reason);
+    console.error('Promise:', promise);
+    // DON'T exit - keep server alive
+  });
+  
+  console.log('✅ Keepalive and error handlers installed');
+}
+
 module.exports = server;
+
 
 

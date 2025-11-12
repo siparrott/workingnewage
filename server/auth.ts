@@ -1,6 +1,7 @@
 import express from 'express';
 import session from 'express-session';
-import bcrypt from 'bcrypt';
+// Use bcryptjs for compatibility (pure JS) to avoid native binding issues
+import bcrypt from 'bcryptjs';
 import { storage } from './storage';
 
 // Session configuration with better settings
@@ -92,17 +93,20 @@ export const loginUser = async (email: string, password: string) => {
     // Get admin user by email
     const user = await storage.getAdminUserByEmail(email);
     if (!user) {
+      console.warn('[auth] login: user not found for email', email);
       return { success: false, error: 'Invalid email or password' };
     }
 
     // Verify password
     const isValidPassword = await verifyPassword(password, user.passwordHash || '');
     if (!isValidPassword) {
+      console.warn('[auth] login: invalid password for user', user.id);
       return { success: false, error: 'Invalid email or password' };
     }
 
     // Check if user is active
     if (user.status !== 'active') {
+      console.warn('[auth] login: user inactive', { id: user.id, status: user.status });
       return { success: false, error: 'Account is deactivated. Please contact administrator.' };
     }
 

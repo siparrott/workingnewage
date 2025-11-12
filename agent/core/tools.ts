@@ -1,7 +1,7 @@
 // Tool registration and management
 import { createOpenAITool } from "../util/json-schema";
 import { updateMemoryTool } from "../tools/update-memory";
-import { logInteractionTool } from "../tools/log-interaction";
+// import { logInteractionTool } from "../tools/log-interaction"; // TODO: File missing
 import { convertLeadTool } from "../tools/convert-lead";
 import { reportLeadsTool } from "../tools/report-leads";
 
@@ -39,7 +39,7 @@ import { readCrmMessages, createCrmMessages, updateCrmMessages } from "../tools/
 import { readCrmLeads as readCrmLeadsEnhanced } from "../tools/read-crm-leads";
 import { findLeadTool } from "../tools/find-lead";
 import { enumerateLeadsTool } from "../tools/enumerate-leads";
-import { listLeadsTool } from "../tools/list-leads";
+// import { listLeadsTool } from "../tools/list-leads"; // TODO: File missing
 
 export interface AgentTool {
   name: string;
@@ -74,10 +74,10 @@ export class ToolRegistry {
 
 export const toolRegistry = new ToolRegistry();
 
-// Import required tools
-import { emailSendTool } from "../tools/email-send";
-import { draftEmailTool } from "../tools/draft-email";
-import { emailAnalysisTool, monitorEmailsTool, autoReplyTool } from "../tools/email-monitoring";
+// Import required tools - commenting out missing files
+// import { emailSendTool } from "../tools/email-send"; // TODO: File missing
+// import { draftEmailTool } from "../tools/draft-email"; // TODO: File missing
+// import { emailAnalysisTool, monitorEmailsTool, autoReplyTool } from "../tools/email-monitoring"; // TODO: File missing
 import { websiteScraperTool } from "../tools/website-scraper";
 import { globalSearchTool } from "../tools/global-search";
 import { findEntityTool } from "../tools/find-entity";
@@ -97,28 +97,28 @@ import { automationManagementTools } from "../tools/automation-management";
 import { customerPortalManagementTools } from "../tools/customer-portal-management";
 
 // Register essential core tools only
-toolRegistry.register(emailSendTool);
-toolRegistry.register(draftEmailTool);
+// toolRegistry.register(emailSendTool); // TODO: File missing
+// toolRegistry.register(draftEmailTool); // TODO: File missing
 
 // Register email monitoring and intelligence tools
-toolRegistry.register({
-  name: emailAnalysisTool.name,
-  description: emailAnalysisTool.description,
-  parameters: emailAnalysisTool.parameters,
-  handler: async (params) => emailAnalysisTool.execute(params)
-});
-toolRegistry.register({
-  name: monitorEmailsTool.name,
-  description: monitorEmailsTool.description,
-  parameters: monitorEmailsTool.parameters,
-  handler: async (params) => monitorEmailsTool.execute(params)
-});
-toolRegistry.register({
-  name: autoReplyTool.name,
-  description: autoReplyTool.description,
-  parameters: autoReplyTool.parameters,
-  handler: async (params) => autoReplyTool.execute(params)
-});
+// toolRegistry.register({
+//   name: emailAnalysisTool.name,
+//   description: emailAnalysisTool.description,
+//   parameters: emailAnalysisTool.parameters,
+//   handler: async (params) => emailAnalysisTool.execute(params)
+// });
+// toolRegistry.register({
+//   name: monitorEmailsTool.name,
+//   description: monitorEmailsTool.description,
+//   parameters: monitorEmailsTool.parameters,
+//   handler: async (params) => monitorEmailsTool.execute(params)
+// });
+// toolRegistry.register({
+//   name: autoReplyTool.name,
+//   description: autoReplyTool.description,
+//   parameters: autoReplyTool.parameters,
+//   handler: async (params) => autoReplyTool.execute(params)
+// });
 
 // Register website analysis tool
 toolRegistry.register({
@@ -261,10 +261,10 @@ toolRegistry.register(listTopClientsTool);
 toolRegistry.register(getClientSegmentsTool);
 
 // Add log interaction tool
-toolRegistry.register(logInteractionTool);
+// toolRegistry.register(logInteractionTool); // TODO: File missing
 
 // Add user-friendly list leads tool
-toolRegistry.register(listLeadsTool);
+// toolRegistry.register(listLeadsTool); // TODO: File missing
 
 // Add gallery management tools - temporarily disabled due to import issues
 // galleryTools.forEach(tool => {

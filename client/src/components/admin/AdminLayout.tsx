@@ -33,7 +33,9 @@ import {
   Bot,
   Search,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Calculator,
+  Activity
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -87,8 +89,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
     fetchCounts();
 
-    // Refresh counts every 30 seconds
-    const interval = setInterval(fetchCounts, 30000);
+    // Refresh counts every 5 minutes (reduced from 30s to prevent server overload)
+    const interval = setInterval(fetchCounts, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -100,6 +102,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { icon: Crown, label: t('nav.topClients'), path: '/admin/high-value-clients' },
     { icon: Image, label: t('nav.galleriesAdmin'), path: '/admin/galleries' },
     { icon: FileText, label: t('nav.invoices'), path: '/admin/invoices' },
+    { icon: Calculator, label: 'Accounting Export', path: '/admin/accounting' },
     { icon: Calendar, label: t('nav.calendar'), path: '/admin/calendar' },
     { icon: FolderOpen, label: t('nav.digitalFiles'), path: '/admin/digital-files' },
     { icon: PenTool, label: t('nav.blogAdmin'), path: '/admin/blog' },
@@ -109,6 +112,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { icon: ClipboardList, label: t('nav.questionnaires'), path: '/admin/questionnaires' },
     { icon: BarChart3, label: t('nav.reports'), path: '/admin/reports' },
     { icon: Bot, label: t('nav.crmAssistant'), path: '/admin/crm-assistant' },
+    { icon: Wand2, label: 'Agent V2 (Enhanced)', path: '/admin/agent-v2', badge: 'NEW' },
+    { icon: Activity, label: 'Agent Console', path: '/admin/agent-console' },
     { 
       icon: Palette, 
       label: t('nav.customization'), 
@@ -179,10 +184,20 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   return (
     <div className="h-screen bg-gray-50 flex overflow-hidden">
-      {/* Sidebar */}
-      <div className={`bg-gray-900 text-white transition-all duration-300 ${
-        sidebarCollapsed ? 'w-16' : 'w-64'
-      } flex flex-col max-h-screen`}>        {/* Logo */}
+      {/* Sidebar Navigation */}
+      <div 
+        className={`bg-gray-900 text-white transition-all duration-300 flex flex-col max-h-screen z-50 ${
+          sidebarCollapsed ? 'w-16' : 'w-64'
+        }`}
+        style={{ 
+          minWidth: sidebarCollapsed ? '64px' : '256px',
+          maxWidth: sidebarCollapsed ? '64px' : '256px',
+          width: sidebarCollapsed ? '64px' : '256px',
+          display: 'flex',
+          flexShrink: 0,
+          backgroundColor: '#1F2937'
+        }}
+      >        {/* Logo */}
         <div className="p-4 border-b border-gray-700">
           <div className="flex items-center">
             {!sidebarCollapsed ? (
@@ -401,29 +416,40 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         {/* Top Bar */}
         <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-gray-900">
-              {(() => {
-                // First check main items
-                const mainItem = sidebarItems.find(item => 
-                  item.path === location.pathname || 
-                  (item.path === '/admin/blog' && location.pathname.startsWith('/admin/blog/'))
-                );
-                if (mainItem) return mainItem.label;
+            <div className="flex items-center space-x-4">
+              {/* Mobile/Toggle Menu Button */}
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                <Menu size={24} className="text-gray-600" />
+              </button>
+              
+              <h1 className="text-2xl font-semibold text-gray-900">
+                {(() => {
+                  // First check main items
+                  const mainItem = sidebarItems.find(item => 
+                    item.path === location.pathname || 
+                    (item.path === '/admin/blog' && location.pathname.startsWith('/admin/blog/'))
+                  );
+                  if (mainItem) return mainItem.label;
 
-                // Then check sub items
-                for (const item of sidebarItems) {
-                  if (item.subItems) {
-                    const subItem = item.subItems.find(subItem => 
-                      subItem.path === location.pathname || 
-                      (subItem.path === '/admin/blog' && location.pathname.startsWith('/admin/blog/'))
-                    );
-                    if (subItem) return subItem.label;
+                  // Then check sub items
+                  for (const item of sidebarItems) {
+                    if (item.subItems) {
+                      const subItem = item.subItems.find(subItem => 
+                        subItem.path === location.pathname || 
+                        (subItem.path === '/admin/blog' && location.pathname.startsWith('/admin/blog/'))
+                      );
+                      if (subItem) return subItem.label;
+                    }
                   }
-                }
 
-                return 'Admin';
-              })()}
-            </h1>
+                  return 'Admin';
+                })()}
+              </h1>
+            </div>
 
             <div className="flex items-center space-x-4">
               {/* Notification Bell */}

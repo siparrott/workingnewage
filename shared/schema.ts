@@ -64,7 +64,7 @@ export const studioConfigs = pgTable("studio_configs", {
   openingHours: jsonb("opening_hours"),
   
   // Features
-  enabledFeatures: text("enabled_features").array().default(["gallery", "booking", "blog", "crm"]),
+  enabledFeatures: text("enabled_features").array(),
   
   // SEO
   metaTitle: text("meta_title"),
@@ -137,6 +137,7 @@ export const crmClients = pgTable("crm_clients", {
   email: text("email").notNull(),
   phone: text("phone"),
   address: text("address"),
+  address2: text("address2"),
   city: text("city"),
   state: text("state"),
   zip: text("zip"),
@@ -144,6 +145,9 @@ export const crmClients = pgTable("crm_clients", {
   company: text("company"),
   notes: text("notes"),
   status: text("status").default("active"),
+  clientSince: timestamp("client_since"),
+  lastSessionDate: timestamp("last_session_date"),
+  lifetimeValue: decimal("lifetime_value", { precision: 10, scale: 2 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -238,7 +242,10 @@ export const voucherProducts = pgTable("voucher_products", {
   termsAndConditions: text("terms_and_conditions"),
   
   // Display settings
-  imageUrl: text("image_url"),
+  imageUrl: text("image_url"), // Main hero image
+  thumbnailUrl: text("thumbnail_url"), // Small thumbnail for cards/listings
+  promoImageUrl: text("promo_image_url"), // Promotional graphic for upsell/conversion
+  detailedDescription: text("detailed_description"), // Extensive product description
   displayOrder: integer("display_order").default(0),
   featured: boolean("featured").default(false),
   badge: text("badge"), // "30% OFF", "BESTSELLER", etc.
@@ -333,6 +340,11 @@ export const voucherSales = pgTable("voucher_sales", {
   recipientName: text("recipient_name"),
   recipientEmail: text("recipient_email"),
   giftMessage: text("gift_message"),
+  
+  // Personalization - customer selected/uploaded images
+  customImage: text("custom_image"), // Customer uploaded image URL
+  designImage: text("design_image"), // Selected from library template image URL
+  personalizationData: jsonb("personalization_data"), // Additional customization options
   
   // Voucher details
   voucherCode: text("voucher_code").unique().notNull(),
@@ -777,6 +789,28 @@ export const onlineBookings = pgTable("online_bookings", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
+// Questionnaires table
+export const questionnaires = pgTable("questionnaires", {
+  id: serial("id").primaryKey(),
+  slug: text("slug").unique().notNull(),
+  title: text("title").notNull(),
+  description: text("description").default(""),
+  fields: jsonb("fields").notNull(), // Array of field definitions
+  notifyEmail: text("notify_email"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+// Questionnaire responses table
+export const questionnaireResponses = pgTable("questionnaire_responses", {
+  id: serial("id").primaryKey(),
+  questionnaireId: integer("questionnaire_id").notNull().references(() => questionnaires.id),
+  slug: text("slug").notNull(), // The questionnaire slug
+  responses: jsonb("responses").notNull(), // The actual responses data
+  submittedAt: timestamp("submitted_at", { withTimezone: true }).defaultNow(),
+});
+
 // Insert schemas
 export const insertPhotographySessionSchema = z.object({
   title: z.string(),
@@ -840,15 +874,21 @@ export const insertBlogPostSchema = createInsertSchema(blogPosts).pick({
 export const insertCrmClientSchema = createInsertSchema(crmClients).pick({
   firstName: true,
   lastName: true,
+  clientId: true,
   email: true,
   phone: true,
   address: true,
+  address2: true,
   city: true,
   state: true,
   zip: true,
   country: true,
   company: true,
   notes: true,
+  status: true,
+  clientSince: true,
+  lastSessionDate: true,
+  lifetimeValue: true,
 });
 
 export const insertCrmLeadSchema = createInsertSchema(crmLeads).pick({
@@ -887,7 +927,7 @@ export const insertCrmInvoiceSchema = createInsertSchema(crmInvoices).pick({
   notes: true,
   termsAndConditions: true,
   createdBy: true,
-}).partial({ invoiceNumber: true }); // Make invoiceNumber optional for automatic generation
+}).partial({ invoiceNumber: true, createdBy: true }); // Make invoiceNumber and createdBy optional
 
 export const insertCrmInvoiceItemSchema = createInsertSchema(crmInvoiceItems).pick({
   invoiceId: true,
@@ -963,14 +1003,28 @@ export type BusinessInsight = typeof businessInsights.$inferSelect;
 export type StudioConfig = typeof studioConfigs.$inferSelect;
 export type TemplateDefinition = typeof templateDefinitions.$inferSelect;
 
-// Voucher Product schemas
-export const insertVoucherProductSchema = createInsertSchema(voucherProducts, {
+// Voucher Product schemas - Using manual schema instead of createInsertSchema to avoid field name conflicts
+export const insertVoucherProductSchema = z.object({
   name: z.string().min(1, "Product name is required"),
-  price: z.string().min(1, "Price is required"),
-}).omit({ 
-  id: true, 
-  createdAt: true, 
-  updatedAt: true 
+  description: z.string().optional(),
+  price: z.union([z.string(), z.number()]).transform(val => String(val)),
+  originalPrice: z.union([z.string(), z.number()]).optional().transform(val => val ? String(val) : undefined),
+  category: z.string().optional(),
+  sessionDuration: z.number().optional(),
+  sessionType: z.string().optional(),
+  validityPeriod: z.number().optional(),
+  redemptionInstructions: z.string().optional(),
+  termsAndConditions: z.string().optional(),
+  imageUrl: z.string().optional(),
+  displayOrder: z.number().optional(),
+  featured: z.boolean().optional(),
+  badge: z.string().optional(),
+  isActive: z.boolean().optional(),
+  stockLimit: z.number().optional(),
+  maxPerCustomer: z.number().optional(),
+  slug: z.string().optional(),
+  metaTitle: z.string().optional(),
+  metaDescription: z.string().optional(),
 });
 
 export type InsertVoucherProduct = z.infer<typeof insertVoucherProductSchema>;
@@ -1026,7 +1080,7 @@ export const knowledgeBase = pgTable("knowledge_base", {
   title: text("title").notNull(),
   content: text("content").notNull(),
   category: text("category").notNull(),
-  tags: text("tags").array().default([]),
+  tags: text("tags").array(),
   isActive: boolean("is_active").default(true),
   createdBy: uuid("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
@@ -1042,7 +1096,7 @@ export const openaiAssistants = pgTable("openai_assistants", {
   model: text("model").default("gpt-4o"),
   instructions: text("instructions").notNull(),
   isActive: boolean("is_active").default(true),
-  knowledgeBaseIds: text("knowledge_base_ids").array().default([]),
+  knowledgeBaseIds: text("knowledge_base_ids").array(),
   createdBy: uuid("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -1141,7 +1195,7 @@ export const aiPolicies = pgTable("ai_policies", {
   mode: text("mode").notNull().default("read_only"), // "read_only", "propose", "auto_safe", "auto_all"
   
   // Specific authorities/permissions
-  authorities: text("authorities").array().default([]), // ["READ_CLIENTS", "READ_LEADS", "DRAFT_EMAIL", etc.]
+  authorities: text("authorities").array(), // ["READ_CLIENTS", "READ_LEADS", "DRAFT_EMAIL", etc.]
   
   // Limits and restrictions
   invoice_auto_limit: decimal("invoice_auto_limit", { precision: 10, scale: 2 }).default("0"),
@@ -1155,7 +1209,7 @@ export const aiPolicies = pgTable("ai_policies", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Agent Action Log (audit trail)
+// Agent Action Log (audit trail) - V1 Legacy
 export const agentActionLog = pgTable("agent_action_log", {
   id: uuid("id").primaryKey().defaultRandom(),
   studioId: uuid("studio_id").references(() => studios.id, { onDelete: "cascade" }).notNull(),
@@ -1177,6 +1231,56 @@ export const agentActionLog = pgTable("agent_action_log", {
   ip_address: text("ip_address"),
   user_agent: text("user_agent"),
   
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Agent V2 Tables (ToolBus Architecture)
+
+// Agent Session - tracks conversation sessions
+export const agentSession = pgTable("agent_session", {
+  id: text("id").primaryKey(), // sess_xxx
+  studioId: text("studio_id").notNull(),
+  userId: text("user_id").notNull(),
+  mode: text("mode").notNull(), // read_only | auto_safe | auto_full
+  scopes: text("scopes").array(), // User's permission scopes
+  metadata: jsonb("metadata"), // Additional context (e.g., client_id if in context)
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Agent Message - conversation history
+export const agentMessage = pgTable("agent_message", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull().references(() => agentSession.id, { onDelete: "cascade" }),
+  role: text("role").notNull(), // user | assistant | system
+  content: text("content").notNull(),
+  metadata: jsonb("metadata"), // Tool calls, token usage, etc.
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Agent Audit - tool execution log
+export const agentAudit = pgTable("agent_audit", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull().references(() => agentSession.id, { onDelete: "cascade" }),
+  tool: text("tool").notNull(),
+  argsJson: text("args_json").notNull(),
+  resultJson: text("result_json"),
+  ok: boolean("ok").notNull(),
+  error: text("error"),
+  duration: integer("duration"), // milliseconds
+  simulated: boolean("simulated").default(false), // true for shadow mode
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Agent Audit Diff - shadow mode comparison (v1 vs v2)
+export const agentAuditDiff = pgTable("agent_audit_diff", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull().references(() => agentSession.id, { onDelete: "cascade" }),
+  v1Text: text("v1_text"), // V1 response
+  v2PlanJson: text("v2_plan_json"), // V2 plan
+  v2ResultsJson: text("v2_results_json"), // V2 execution results
+  match: boolean("match"), // Did v1 and v2 produce same outcome?
+  notes: text("notes"), // Analysis notes
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -1218,6 +1322,43 @@ export const insertAgentActionLogSchema = createInsertSchema(agentActionLog, {
   createdAt: true 
 });
 
+// Agent V2 schemas
+export const insertAgentSessionSchema = createInsertSchema(agentSession, {
+  id: z.string().min(1, "Session ID is required"),
+  studioId: z.string().min(1, "Studio ID is required"),
+  userId: z.string().min(1, "User ID is required"),
+  mode: z.enum(["read_only", "auto_safe", "auto_full"]),
+}).omit({ 
+  createdAt: true, 
+  updatedAt: true 
+});
+
+export const insertAgentMessageSchema = createInsertSchema(agentMessage, {
+  sessionId: z.string().min(1, "Session ID is required"),
+  role: z.enum(["user", "assistant", "system"]),
+  content: z.string().min(1, "Message content is required"),
+}).omit({ 
+  id: true, 
+  createdAt: true 
+});
+
+export const insertAgentAuditSchema = createInsertSchema(agentAudit, {
+  sessionId: z.string().min(1, "Session ID is required"),
+  tool: z.string().min(1, "Tool name is required"),
+  argsJson: z.string().min(1),
+  ok: z.boolean(),
+}).omit({ 
+  id: true, 
+  createdAt: true 
+});
+
+export const insertAgentAuditDiffSchema = createInsertSchema(agentAuditDiff, {
+  sessionId: z.string().min(1, "Session ID is required"),
+}).omit({ 
+  id: true, 
+  createdAt: true 
+});
+
 export const insertPriceListItemSchema = createInsertSchema(priceListItems, {
   name: z.string().min(1, "Item name is required"),
   category: z.string().min(1, "Category is required"),
@@ -1227,6 +1368,384 @@ export const insertPriceListItemSchema = createInsertSchema(priceListItems, {
   createdAt: true, 
   updatedAt: true 
 });
+
+// Digital Storage Subscription System
+export const storageSubscriptionTier = pgEnum("storage_subscription_tier", [
+  "starter",
+  "professional", 
+  "enterprise"
+]);
+
+export const storageSubscriptionStatus = pgEnum("storage_subscription_status", [
+  "active",
+  "canceled",
+  "past_due",
+  "trialing",
+  "incomplete"
+]);
+
+// Storage Subscriptions (linked to Stripe)
+export const storageSubscriptions = pgTable("storage_subscriptions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+  clientId: uuid("client_id").references(() => crmClients.id, { onDelete: "cascade" }),
+  
+  // Stripe integration
+  stripeSubscriptionId: text("stripe_subscription_id").unique(),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripePriceId: text("stripe_price_id"),
+  
+  // Subscription details
+  tier: storageSubscriptionTier("tier").notNull(),
+  status: storageSubscriptionStatus("status").notNull().default("trialing"),
+  
+  // Storage limits (in bytes)
+  storageLimit: integer("storage_limit").notNull(), // 50GB, 200GB, 1TB
+  
+  // Billing
+  currentPeriodStart: timestamp("current_period_start"),
+  currentPeriodEnd: timestamp("current_period_end"),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
+  
+  // Metadata
+  metadata: jsonb("metadata"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Storage Usage Tracking
+export const storageUsage = pgTable("storage_usage", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  subscriptionId: uuid("subscription_id").references(() => storageSubscriptions.id, { onDelete: "cascade" }).notNull(),
+  
+  // Usage metrics (in bytes)
+  currentStorageBytes: integer("current_storage_bytes").default(0).notNull(),
+  fileCount: integer("file_count").default(0),
+  
+  // Calculated fields
+  lastCalculatedAt: timestamp("last_calculated_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Archived Folders (for organizing files)
+export const archivedFolders = pgTable("archived_folders", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  subscriptionId: uuid("subscription_id").references(() => storageSubscriptions.id, { onDelete: "cascade" }).notNull(),
+  parentFolderId: uuid("parent_folder_id"),
+  
+  name: text("name").notNull(),
+  description: text("description"),
+  color: text("color"), // for UI organization
+  icon: text("icon"), // icon name for UI
+  
+  // Metadata
+  filesCount: integer("files_count").default(0),
+  totalSize: integer("total_size").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Archived Files (user's personal cloud storage)
+export const archivedFiles = pgTable("archived_files", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  subscriptionId: uuid("subscription_id").references(() => storageSubscriptions.id, { onDelete: "cascade" }).notNull(),
+  folderId: uuid("folder_id").references(() => archivedFolders.id),
+  
+  // File metadata
+  fileName: text("file_name").notNull(),
+  originalName: text("original_name").notNull(),
+  fileType: text("file_type").notNull(), // image/jpeg, video/mp4, etc.
+  mimeType: text("mime_type").notNull(),
+  fileSize: integer("file_size").notNull(), // in bytes
+  
+  // Storage location
+  storageKey: text("storage_key").notNull().unique(), // Neon blob storage key
+  storageUrl: text("storage_url"), // CDN URL if applicable
+  
+  // File organization
+  tags: text("tags").array(),
+  description: text("description"),
+  
+  // Source tracking
+  sourceType: text("source_type"), // 'upload', 'gallery_transfer', 'admin_send'
+  sourceId: text("source_id"), // gallery_id or session_id if transferred
+  
+  // Thumbnails for images/videos
+  thumbnailKey: text("thumbnail_key"),
+  thumbnailUrl: text("thumbnail_url"),
+  
+  // Metadata
+  metadata: jsonb("metadata"), // EXIF data, video duration, etc.
+  
+  // Status
+  isDeleted: boolean("is_deleted").default(false),
+  deletedAt: timestamp("deleted_at"),
+  
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Gallery Transfer Log (track when admin sends galleries to client archive)
+export const galleryTransferLog = pgTable("gallery_transfer_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  galleryId: uuid("gallery_id").references(() => galleries.id),
+  subscriptionId: uuid("subscription_id").references(() => storageSubscriptions.id, { onDelete: "cascade" }).notNull(),
+  adminUserId: uuid("admin_user_id").references(() => adminUsers.id),
+  
+  filesTransferred: integer("files_transferred").default(0),
+  totalSize: integer("total_size").default(0),
+  status: text("status").default("pending"), // pending, completed, failed
+  errorMessage: text("error_message"),
+  
+  transferredAt: timestamp("transferred_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+// Insert schemas
+export const insertStorageSubscriptionSchema = createInsertSchema(storageSubscriptions, {
+  tier: z.enum(["starter", "professional", "enterprise"]),
+  status: z.enum(["active", "canceled", "past_due", "trialing", "incomplete"]).optional(),
+  storageLimit: z.number().positive(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStorageUsageSchema = createInsertSchema(storageUsage, {
+  subscriptionId: z.string().uuid(),
+  totalUsed: z.number().nonnegative().optional(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertArchivedFileSchema = createInsertSchema(archivedFiles, {
+  subscriptionId: z.string().uuid(),
+  fileName: z.string().min(1),
+  originalName: z.string().min(1),
+  fileType: z.string().min(1),
+  mimeType: z.string().min(1),
+  fileSize: z.number().positive(),
+  storageKey: z.string().min(1),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  uploadedAt: true,
+});
+
+export const insertArchivedFolderSchema = createInsertSchema(archivedFolders, {
+  subscriptionId: z.string().uuid(),
+  name: z.string().min(1, "Folder name is required"),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertGalleryTransferLogSchema = createInsertSchema(galleryTransferLog, {
+  galleryId: z.string().uuid(),
+  subscriptionId: z.string().uuid(),
+}).omit({
+  id: true,
+  transferredAt: true,
+});
+
+// ==================== EMAIL CAMPAIGNS ====================
+export const emailCampaigns = pgTable("email_campaigns", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+  
+  name: text("name").notNull(),
+  type: text("type").notNull().default("broadcast"), // broadcast, drip, transactional
+  status: text("status").notNull().default("draft"), // draft, scheduled, sending, sent, paused, archived
+  
+  subject: text("subject").notNull(),
+  previewText: text("preview_text"),
+  content: text("content").notNull(),
+  
+  senderName: text("sender_name").default("New Age Fotografie"),
+  senderEmail: text("sender_email").default("info@newagefotografie.com"),
+  replyTo: text("reply_to").default("info@newagefotografie.com"),
+  
+  // Scheduling
+  scheduledAt: timestamp("scheduled_at"),
+  sentAt: timestamp("sent_at"),
+  
+  // Targeting
+  segments: text("segments").array(),
+  tagsInclude: text("tags_include").array(),
+  tagsExclude: text("tags_exclude").array(),
+  
+  // Stats
+  recipientCount: integer("recipient_count").default(0),
+  sentCount: integer("sent_count").default(0),
+  deliveredCount: integer("delivered_count").default(0),
+  openedCount: integer("opened_count").default(0),
+  clickedCount: integer("clicked_count").default(0),
+  bouncedCount: integer("bounced_count").default(0),
+  unsubscribedCount: integer("unsubscribed_count").default(0),
+  
+  // Settings (stored as JSON)
+  settings: jsonb("settings"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertEmailCampaignSchema = createInsertSchema(emailCampaigns, {
+  userId: z.string().uuid().optional(),
+  name: z.string().min(1, "Campaign name is required"),
+  subject: z.string().min(1, "Subject is required"),
+  content: z.string().min(1, "Content is required"),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Email Templates
+export const emailTemplates = pgTable("email_templates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+  
+  name: text("name").notNull(),
+  category: text("category").notNull().default("general"), // general, welcome, booking, payment, gallery
+  description: text("description"),
+  
+  subject: text("subject").notNull(),
+  previewText: text("preview_text"),
+  htmlContent: text("html_content").notNull(),
+  textContent: text("text_content"),
+  
+  thumbnail: text("thumbnail"),
+  variables: jsonb("variables"), // Array of available variables
+  
+  isPublic: boolean("is_public").default(false),
+  usageCount: integer("usage_count").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates, {
+  name: z.string().min(1, "Template name is required"),
+  subject: z.string().min(1, "Subject is required"),
+  htmlContent: z.string().min(1, "HTML content is required"),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Email Subscribers
+export const emailSubscribers = pgTable("email_subscribers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+  
+  email: text("email").notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  phone: text("phone"),
+  
+  status: text("status").notNull().default("active"), // active, unsubscribed, bounced, complained
+  source: text("source").default("manual"), // manual, import, form, booking
+  
+  tags: text("tags").array(),
+  customFields: jsonb("custom_fields"),
+  
+  subscribedAt: timestamp("subscribed_at").defaultNow(),
+  unsubscribedAt: timestamp("unsubscribed_at"),
+  
+  // Engagement
+  lastOpenedAt: timestamp("last_opened_at"),
+  lastClickedAt: timestamp("last_clicked_at"),
+  emailsSentCount: integer("emails_sent_count").default(0),
+  emailsOpenedCount: integer("emails_opened_count").default(0),
+  emailsClickedCount: integer("emails_clicked_count").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertEmailSubscriberSchema = createInsertSchema(emailSubscribers, {
+  email: z.string().email("Invalid email address"),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Email Segments
+export const emailSegments = pgTable("email_segments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+  
+  name: text("name").notNull(),
+  description: text("description"),
+  
+  conditions: jsonb("conditions").notNull(), // Filter conditions
+  subscriberCount: integer("subscriber_count").default(0),
+  
+  isActive: boolean("is_active").default(true),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertEmailSegmentSchema = createInsertSchema(emailSegments, {
+  name: z.string().min(1, "Segment name is required"),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Email Events for tracking opens, clicks, etc.
+export const emailEvents = pgTable("email_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  campaignId: uuid("campaign_id").references(() => emailCampaigns.id, { onDelete: "cascade" }),
+  subscriberEmail: text("subscriber_email").notNull(),
+  eventType: text("event_type").notNull(), // sent, delivered, opened, clicked, bounced, unsubscribed, complained
+  linkUrl: text("link_url"),
+  userAgent: text("user_agent"),
+  ipAddress: text("ip_address"),
+  country: text("country"),
+  city: text("city"),
+  deviceType: text("device_type"), // desktop, mobile, tablet, unknown
+  browser: text("browser"),
+  os: text("os"),
+  createdAt: timestamp("created_at").defaultNow(),
+  metadata: jsonb("metadata"),
+});
+
+export const emailLinks = pgTable("email_links", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  campaignId: uuid("campaign_id").references(() => emailCampaigns.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  label: text("label"),
+  clickCount: integer("click_count").default(0),
+  uniqueClicks: integer("unique_clicks").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Type exports for new tables
+export type EmailCampaign = typeof emailCampaigns.$inferSelect;
+export type InsertEmailCampaign = z.infer<typeof insertEmailCampaignSchema>;
+export type EmailTemplate = typeof emailTemplates.$inferSelect;
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+export type EmailSubscriber = typeof emailSubscribers.$inferSelect;
+export type InsertEmailSubscriber = z.infer<typeof insertEmailSubscriberSchema>;
+export type EmailSegment = typeof emailSegments.$inferSelect;
+export type InsertEmailSegment = z.infer<typeof insertEmailSegmentSchema>;
+export type EmailEvent = typeof emailEvents.$inferSelect;
+export type EmailLink = typeof emailLinks.$inferSelect;
 
 // Type exports for new tables
 export type Studio = typeof studios.$inferSelect;
@@ -1239,6 +1758,28 @@ export type AgentActionLog = typeof agentActionLog.$inferSelect;
 export type InsertAgentActionLog = z.infer<typeof insertAgentActionLogSchema>;
 export type PriceListItem = typeof priceListItems.$inferSelect;
 export type InsertPriceListItem = z.infer<typeof insertPriceListItemSchema>;
+
+// Storage subscription types
+export type StorageSubscription = typeof storageSubscriptions.$inferSelect;
+export type InsertStorageSubscription = z.infer<typeof insertStorageSubscriptionSchema>;
+export type StorageUsage = typeof storageUsage.$inferSelect;
+export type InsertStorageUsage = z.infer<typeof insertStorageUsageSchema>;
+export type ArchivedFile = typeof archivedFiles.$inferSelect;
+export type InsertArchivedFile = z.infer<typeof insertArchivedFileSchema>;
+export type ArchivedFolder = typeof archivedFolders.$inferSelect;
+export type InsertArchivedFolder = z.infer<typeof insertArchivedFolderSchema>;
+export type GalleryTransferLog = typeof galleryTransferLog.$inferSelect;
+export type InsertGalleryTransferLog = z.infer<typeof insertGalleryTransferLogSchema>;
+
+// Agent V2 types
+export type AgentSession = typeof agentSession.$inferSelect;
+export type InsertAgentSession = z.infer<typeof insertAgentSessionSchema>;
+export type AgentMessage = typeof agentMessage.$inferSelect;
+export type InsertAgentMessage = z.infer<typeof insertAgentMessageSchema>;
+export type AgentAudit = typeof agentAudit.$inferSelect;
+export type InsertAgentAudit = z.infer<typeof insertAgentAuditSchema>;
+export type AgentAuditDiff = typeof agentAuditDiff.$inferSelect;
+export type InsertAgentAuditDiff = z.infer<typeof insertAgentAuditDiffSchema>;
 
 // Communication types
 export type MessageCampaign = typeof messageCampaigns.$inferSelect;

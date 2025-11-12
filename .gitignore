@@ -26,6 +26,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+server.err
+server.out
+*.log
 
 # Runtime data
 pids
@@ -74,8 +77,8 @@ jspm_packages/
 
 # Nuxt.js build / generate output
 .nuxt
-# TEMPORARY: Allow dist for Railway deployment  
-# dist
+# Production build output (built by Vite)
+dist/
 
 # Storybook build outputs
 .out

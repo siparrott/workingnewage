@@ -103,6 +103,8 @@ export default function AdminVoucherSalesPageV3() {
       validityPeriod: "",
       isActive: true,
       displayOrder: "0",
+      category: "",
+      sessionType: "",
     },
   });
 
@@ -123,13 +125,12 @@ export default function AdminVoucherSalesPageV3() {
   const { data: voucherProducts, isLoading: isLoadingProducts, error: productsError } = useQuery<VoucherProduct[]>({
     queryKey: ['/api/vouchers/products'],
     queryFn: async () => {
-      // console.log removed
       const response = await fetch('/api/vouchers/products');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      // console.log removed
+      console.log('📦 [ADMIN] Fetched products:', data.length, data);
       return data;
     },
     refetchOnMount: true,
@@ -138,10 +139,13 @@ export default function AdminVoucherSalesPageV3() {
     gcTime: 0, // Don't cache (updated from cacheTime)
   });
   
-  // Debug log
-  // console.log removed
-  // console.log removed
-  // console.log removed
+  // Debug log for products
+  console.log('📊 [ADMIN] Voucher products state:', {
+    count: voucherProducts?.length,
+    products: voucherProducts,
+    isLoading: isLoadingProducts,
+    error: productsError
+  });
 
   const { data: discountCoupons, isLoading: isLoadingCoupons } = useQuery<DiscountCoupon[]>({
     queryKey: ['/api/vouchers/coupons'],
@@ -165,27 +169,39 @@ export default function AdminVoucherSalesPageV3() {
   const stats = {
     totalRevenue: voucherSales?.reduce((sum, sale) => sum + Number(sale.finalAmount), 0) || 0,
     totalSales: voucherSales?.length || 0,
-    activeProducts: voucherProducts?.filter(p => p.isActive).length || 0,
-    activeCoupons: discountCoupons?.filter(c => c.isActive).length || 0,
+    activeProducts: voucherProducts?.filter(p => p.isActive || p.is_active).length || 0,
+    activeCoupons: discountCoupons?.filter(c => c.isActive || c.is_active).length || 0,
     avgOrderValue: voucherSales?.length ? (voucherSales.reduce((sum, sale) => sum + Number(sale.finalAmount), 0) / voucherSales.length) : 0,
     totalDiscountGiven: voucherSales?.reduce((sum, sale) => sum + Number(sale.discountAmount), 0) || 0
   };
 
+  console.log('📊 [STATS] Calculated stats:', stats, 'from products:', voucherProducts?.map(p => ({ name: p.name, isActive: p.isActive, is_active: (p as any).is_active })));
+
   // Mutations
   const createProductMutation = useMutation({
     mutationFn: async (data: VoucherProductFormData) => {
+      const payload = {
+        name: data.name,
+        description: data.description,
+        price: data.price, // Keep as string - backend will handle conversion
+        validityPeriod: parseInt(data.validityPeriod),
+        displayOrder: parseInt(data.displayOrder || "0"),
+        isActive: data.isActive !== undefined ? data.isActive : true,
+        category: data.category,
+        sessionType: data.sessionType,
+        imageUrl: uploadedImage || null,
+      };
+      console.log('[CREATE PRODUCT] Sending payload:', payload);
       const response = await fetch("/api/vouchers/products", {
         method: "POST",
         headers: withAdminJsonHeaders(),
-        body: JSON.stringify({
-          ...data,
-          price: data.price,
-          validityPeriod: parseInt(data.validityPeriod),
-          displayOrder: parseInt(data.displayOrder || "0"),
-          imageUrl: uploadedImage,
-        }),
+        body: JSON.stringify(payload),
       });
-      if (!response.ok) throw new Error("Failed to create product");
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to create product:", errorText);
+        throw new Error(errorText || `HTTP error ${response.status}`);
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -201,33 +217,50 @@ export default function AdminVoucherSalesPageV3() {
       window.location.reload();
     },
     onError: (error) => {
-      // console.error removed
-      alert("Failed to create voucher product");
+      console.error("Failed to create voucher product:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      alert(`Failed to create voucher product: ${errorMessage}`);
     },
   });
 
   const updateProductMutation = useMutation({
     mutationFn: async (data: VoucherProductFormData & { id: string }) => {
+      const payload = {
+        name: data.name,
+        description: data.description,
+        price: data.price, // Keep as string - backend will handle conversion
+        validityPeriod: parseInt(data.validityPeriod),
+        displayOrder: parseInt(data.displayOrder || "0"),
+        isActive: data.isActive,
+        category: data.category,
+        sessionType: data.sessionType,
+        imageUrl: uploadedImage || data.imageUrl || null,
+      };
+      console.log('[UPDATE PRODUCT] Sending payload:', payload);
       const response = await fetch(`/api/vouchers/products/${data.id}`, {
         method: "PUT",
         headers: withAdminJsonHeaders(),
-        body: JSON.stringify({
-          ...data,
-          price: data.price,
-          validityPeriod: parseInt(data.validityPeriod),
-          displayOrder: parseInt(data.displayOrder || "0"),
-          imageUrl: uploadedImage,
-        }),
+        body: JSON.stringify(payload),
       });
-      if (!response.ok) throw new Error("Failed to update product");
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to update product:", errorText);
+        throw new Error(errorText || `HTTP error ${response.status}`);
+      }
       return response.json();
     },
     onSuccess: () => {
+      // Force refresh all voucher-related queries
       queryClient.invalidateQueries({ queryKey: ["/api/vouchers/products"] });
+      queryClient.refetchQueries({ queryKey: ["/api/vouchers/products"] });
+      queryClient.removeQueries({ queryKey: ["/api/vouchers/products"] });
       setIsProductDialogOpen(false);
       setSelectedProduct(null);
+      setUploadedImage(null);
       productForm.reset();
       alert("Voucher product updated successfully!");
+      // Force page refresh to ensure data is loaded
+      window.location.reload();
     },
     onError: (error) => {
       // console.error removed
@@ -325,9 +358,21 @@ export default function AdminVoucherSalesPageV3() {
   // Handlers
   const handleCreateProduct = () => {
     setSelectedProduct(null);
-    productForm.reset();
     setUploadedImage(null);
-    setIsProductDialogOpen(true);
+    setIsProductDialogOpen(false); // Close first
+    setTimeout(() => {
+      productForm.reset({
+        name: "",
+        description: "",
+        price: "0",
+        validityPeriod: "0",
+        isActive: true,
+        displayOrder: "0",
+        category: "",
+        sessionType: "",
+      });
+      setIsProductDialogOpen(true); // Then open
+    }, 50);
   };
 
   const handleEditProduct = (product: VoucherProduct) => {
@@ -340,6 +385,8 @@ export default function AdminVoucherSalesPageV3() {
       validityPeriod: product.validityPeriod?.toString() || "365",
       isActive: product.isActive,
       displayOrder: product.displayOrder?.toString() || "0",
+      category: product.category || "",
+      sessionType: product.sessionType || "",
     });
     setIsProductDialogOpen(true);
   };
@@ -526,6 +573,7 @@ export default function AdminVoucherSalesPageV3() {
 
       {/* Dialogs */}
       <ProductDialog 
+        key={selectedProduct?.id || 'new'}
         open={isProductDialogOpen}
         onOpenChange={setIsProductDialogOpen}
         product={selectedProduct}
@@ -732,11 +780,11 @@ const ProductsView: React.FC<{
                   <div className="flex-1">
                     <CardTitle className="text-lg">{product.name}</CardTitle>
                     <div className="flex items-center space-x-2 mt-2">
-                      <Badge variant={product.isActive ? "default" : "secondary"}>
-                        {product.isActive ? "Active" : "Inactive"}
+                      <Badge variant={(product.isActive || (product as any).is_active) ? "default" : "secondary"}>
+                        {(product.isActive || (product as any).is_active) ? "Active" : "Inactive"}
                       </Badge>
                       <Badge variant="outline">
-                        {product.validityPeriod || 12} months
+                        {product.validityPeriod || (product as any).validity_period ? Math.floor(((product.validityPeriod || (product as any).validity_period) / 30)) : 12} months
                       </Badge>
                     </div>
                   </div>
@@ -767,7 +815,11 @@ const ProductsView: React.FC<{
                       Delete
                     </Button>
                   </div>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => window.open(`/vouchers/${product.id}`, '_blank')}
+                  >
                     <Eye className="h-4 w-4 mr-1" />
                     Preview
                   </Button>
@@ -929,6 +981,135 @@ const SalesView: React.FC<{
   sales: VoucherSale[];
   isLoading: boolean;
 }> = ({ sales, isLoading }) => {
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  const exportToCSV = () => {
+    if (sales.length === 0) return;
+    
+    // Create CSV content
+    const headers = ['Voucher Code', 'Product', 'Purchaser Name', 'Purchaser Email', 'Recipient Name', 'Recipient Email', 'Gift Message', 'Original Amount', 'Discount', 'Final Amount', 'Status', 'Date'];
+    const rows = sales.map((sale: any) => [
+      sale.voucherCode || '',
+      sale.product_name || 'Unknown Product',
+      sale.purchaserName || '',
+      sale.purchaserEmail || '',
+      sale.recipientName || '',
+      sale.recipientEmail || '',
+      sale.giftMessage || '',
+      Number(sale.originalAmount || 0).toFixed(2),
+      Number(sale.discountAmount || 0).toFixed(2),
+      Number(sale.finalAmount || 0).toFixed(2),
+      sale.paymentStatus || 'pending',
+      new Date(sale.createdAt).toLocaleDateString()
+    ]);
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+    
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `voucher-sales-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    setShowExportMenu(false);
+  };
+
+  const exportToPDF = () => {
+    if (sales.length === 0) return;
+    
+    // Create a printable HTML report
+    const reportContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Voucher Sales Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          h1 { color: #333; border-bottom: 2px solid #666; padding-bottom: 10px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px; }
+          th { background-color: #f4f4f4; font-weight: bold; }
+          tr:nth-child(even) { background-color: #f9f9f9; }
+          .summary { margin: 20px 0; padding: 15px; background: #f0f0f0; border-radius: 5px; }
+          .summary-item { display: inline-block; margin-right: 30px; }
+          .footer { margin-top: 30px; text-align: center; font-size: 10px; color: #666; }
+        </style>
+      </head>
+      <body>
+        <h1>Voucher Sales Report</h1>
+        <p>Generated: ${new Date().toLocaleString()}</p>
+        
+        <div class="summary">
+          <div class="summary-item"><strong>Total Sales:</strong> ${sales.length}</div>
+          <div class="summary-item"><strong>Total Revenue:</strong> €${sales.reduce((sum: number, s: any) => sum + Number(s.finalAmount || 0), 0).toFixed(2)}</div>
+          <div class="summary-item"><strong>Paid:</strong> ${sales.filter((s: any) => s.paymentStatus === 'paid' || s.paymentStatus === 'completed').length}</div>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Voucher Code</th>
+              <th>Product</th>
+              <th>Purchaser</th>
+              <th>Recipient</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sales.map((sale: any) => `
+              <tr>
+                <td>${sale.voucherCode || ''}</td>
+                <td>${sale.product_name || 'Unknown Product'}</td>
+                <td>${sale.purchaserName || ''}<br/><small>${sale.purchaserEmail || ''}</small></td>
+                <td>${sale.recipientName || 'Self-purchase'}<br/><small>${sale.recipientEmail || ''}</small></td>
+                <td>€${Number(sale.finalAmount || 0).toFixed(2)}</td>
+                <td>${sale.paymentStatus || 'pending'}</td>
+                <td>${new Date(sale.createdAt).toLocaleDateString()}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        
+        <div class="footer">
+          New Age Fotografie - Voucher Sales Report<br/>
+          www.newagefotografie.com
+        </div>
+      </body>
+      </html>
+    `;
+    
+    // Open in new window for printing/PDF
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(reportContent);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+      }, 250);
+    }
+    setShowExportMenu(false);
+  };
+
+  // Close export menu when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showExportMenu) {
+        setShowExportMenu(false);
+      }
+    };
+    
+    if (showExportMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showExportMenu]);
+
   if (isLoading) {
     return (
       <Card>
@@ -950,10 +1131,48 @@ const SalesView: React.FC<{
           <h2 className="text-xl font-semibold">Sales History</h2>
           <p className="text-gray-600">Track all voucher sales and customer orders</p>
         </div>
-        <Button variant="outline">
-          <Download className="h-4 w-4 mr-2" />
-          Export Sales
-        </Button>
+        <div className="relative">
+          <Button 
+            variant="outline"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowExportMenu(!showExportMenu);
+            }}
+            disabled={sales.length === 0}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export Sales
+          </Button>
+          {showExportMenu && (
+            <div 
+              className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="py-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    exportToCSV();
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  <FileText className="h-4 w-4 inline mr-2" />
+                  Export as CSV
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    exportToPDF();
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  <Download className="h-4 w-4 inline mr-2" />
+                  Export as PDF
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {sales.length > 0 ? (
@@ -967,13 +1186,16 @@ const SalesView: React.FC<{
                       Voucher Code
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Customer
+                      Product
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Original Price
+                      Purchaser
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Discount
+                      Recipient
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Gift Message
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Final Price
@@ -984,41 +1206,97 @@ const SalesView: React.FC<{
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {sales.map((sale) => (
-                    <tr key={sale.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <code className="bg-gray-100 px-2 py-1 rounded font-mono text-sm">
-                          {sale.voucherCode}
-                        </code>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="font-medium text-gray-900">{sale.purchaserName}</div>
-                          <div className="text-sm text-gray-500">{sale.purchaserEmail}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        €{Number(sale.originalAmount).toFixed(2)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600">
-                        -€{Number(sale.discountAmount).toFixed(2)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        €{Number(sale.finalAmount).toFixed(2)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={sale.paymentStatus === 'completed' ? 'default' : 'secondary'}>
-                          {sale.paymentStatus || 'pending'}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(sale.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
+                  {sales.map((sale) => {
+                    // Type assertion to access extended properties from the JOIN
+                    const saleWithProduct = sale as any;
+                    const productName = saleWithProduct.product_name || 'Unknown Product';
+                    const productSku = saleWithProduct.product_sku || 'demo';
+                    
+                    // Build PDF download URL
+                    const pdfUrl = `/voucher/pdf/preview?` +
+                      `sku=${encodeURIComponent(productSku)}&` +
+                      `name=${encodeURIComponent(sale.recipientName || sale.purchaserName)}&` +
+                      `from=${encodeURIComponent(sale.purchaserName)}&` +
+                      `message=${encodeURIComponent(sale.giftMessage || 'Thank you for your purchase!')}&` +
+                      `amount=${sale.finalAmount}&` +
+                      `voucher_id=${encodeURIComponent(sale.voucherCode)}`;
+
+                    return (
+                      <tr key={sale.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <code className="bg-gray-100 px-2 py-1 rounded font-mono text-sm">
+                            {sale.voucherCode}
+                          </code>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="font-medium text-gray-900">{productName}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="font-medium text-gray-900">{sale.purchaserName}</div>
+                            <div className="text-sm text-gray-500">{sale.purchaserEmail}</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {sale.recipientName ? (
+                            <div>
+                              <div className="font-medium text-gray-900">{sale.recipientName}</div>
+                              {sale.recipientEmail && (
+                                <div className="text-sm text-gray-500">{sale.recipientEmail}</div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 italic">Self-purchase</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 max-w-xs">
+                          {sale.giftMessage ? (
+                            <div className="text-sm text-gray-900 truncate" title={sale.giftMessage}>
+                              "{sale.giftMessage}"
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 italic">No message</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="font-medium text-gray-900">
+                            €{Number(sale.finalAmount).toFixed(2)}
+                          </div>
+                          {sale.discountAmount && Number(sale.discountAmount) > 0 && (
+                            <div className="text-xs text-gray-500">
+                              (€{Number(sale.originalAmount).toFixed(2)} - €{Number(sale.discountAmount).toFixed(2)})
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge variant={sale.paymentStatus === 'paid' || sale.paymentStatus === 'completed' ? 'default' : 'secondary'}>
+                            {sale.paymentStatus || 'pending'}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(sale.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.open(pdfUrl, '_blank')}
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              PDF
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -1173,6 +1451,7 @@ const ProductDialog: React.FC<{
                 step="0.01"
                 placeholder="199.00"
                 className="bg-white"
+                onFocus={(e) => e.target.select()}
               />
               {form.formState.errors.price && (
                 <p className="text-sm text-red-600">{form.formState.errors.price.message}</p>
@@ -1199,6 +1478,7 @@ const ProductDialog: React.FC<{
                 type="number" 
                 placeholder="365"
                 className="bg-white"
+                onFocus={(e) => e.target.select()}
               />
               {form.formState.errors.validityPeriod && (
                 <p className="text-sm text-red-600">{form.formState.errors.validityPeriod.message}</p>

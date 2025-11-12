@@ -58,7 +58,7 @@ export const NeonAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       // Verify session with server only if no localStorage
-      const response = await fetch('/api/auth/verify', {
+      const response = await fetch('/api/auth/me', {
         method: 'GET',
         credentials: 'include'
       });

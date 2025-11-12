@@ -48,10 +48,18 @@ const SmartCSVImporter: React.FC = () => {
     { key: 'name', label: 'Full Name (auto-split)', required: false },
     { key: 'email', label: 'Email', required: true },
     { key: 'phone', label: 'Phone', required: false },
-    { key: 'address', label: 'Address', required: false },
+    { key: 'address', label: 'Address Line 1', required: false },
+    { key: 'address2', label: 'Address Line 2', required: false },
+    { key: 'city', label: 'City', required: false },
+    { key: 'state', label: 'State/Province', required: false },
+    { key: 'postalCode', label: 'Postal/Zip Code', required: false },
+    { key: 'country', label: 'Country', required: false },
     { key: 'company', label: 'Company', required: false },
     { key: 'notes', label: 'Notes', required: false },
     { key: 'clientId', label: 'Client ID', required: false },
+    { key: 'clientSince', label: 'Client Since Date', required: false },
+    { key: 'lastSessionDate', label: 'Last Session Date', required: false },
+    { key: 'lifetimeValue', label: 'Lifetime Sales Value', required: false },
   ];  // Smart column matching - suggests mappings based on column names
   const suggestColumnMapping = (headers: string[]): ColumnMappingState => {
     const suggestions: ColumnMappingState = {};
@@ -71,23 +79,71 @@ const SmartCSVImporter: React.FC = () => {
     headers.forEach(header => {
       const lowerHeader = header.toLowerCase().trim();
       
-      // Smart matching patterns
-      if (lowerHeader.includes('first') && lowerHeader.includes('name')) {
+      // Smart matching patterns - order matters!
+      // Check specific patterns first, then general ones
+      
+      // Client ID / Client Number
+      if (lowerHeader.includes('client') && (lowerHeader.includes('number') || lowerHeader.includes('id'))) {
+        suggestions[header] = 'clientId';
+      }
+      // Email
+      else if (lowerHeader.includes('email') || lowerHeader.includes('e-mail')) {
+        suggestions[header] = 'email';
+      }
+      // Phone
+      else if (lowerHeader.includes('phone') || lowerHeader.includes('mobile') || lowerHeader.includes('tel')) {
+        suggestions[header] = 'phone';
+      }
+      // Names
+      else if (lowerHeader.includes('first') && lowerHeader.includes('name')) {
         suggestions[header] = 'firstName';
       } else if (lowerHeader.includes('last') && lowerHeader.includes('name')) {
         suggestions[header] = 'lastName';
-      } else if (lowerHeader.includes('name') && !hasFirstName && !hasLastName) {
-        // Full name field when no separate first/last name
+      } else if (lowerHeader.includes('name') && !hasFirstName && !hasLastName && !lowerHeader.includes('company')) {
         suggestions[header] = 'name';
-      } else if (lowerHeader.includes('email') || lowerHeader.includes('e-mail')) {
-        suggestions[header] = 'email';
-      } else if (lowerHeader.includes('phone') || lowerHeader.includes('mobile') || lowerHeader.includes('tel')) {
-        suggestions[header] = 'phone';
-      } else if (lowerHeader.includes('address') || lowerHeader.includes('street') || lowerHeader.includes('location')) {
-        suggestions[header] = 'address';
-      } else if (lowerHeader.includes('company') || lowerHeader.includes('business') || lowerHeader.includes('organization')) {
+      }
+      // Company
+      else if (lowerHeader.includes('company') || lowerHeader.includes('business') || lowerHeader.includes('organization')) {
         suggestions[header] = 'company';
-      } else if (lowerHeader.includes('note') || lowerHeader.includes('comment') || lowerHeader.includes('description')) {
+      }
+      // Address-related fields - most specific first
+      else if (lowerHeader.includes('postal') || lowerHeader.includes('zip') || (lowerHeader.includes('address') && lowerHeader.includes('postalcode'))) {
+        suggestions[header] = 'postalCode';
+      }
+      else if (lowerHeader.includes('city') || (lowerHeader.includes('address') && lowerHeader.includes('city'))) {
+        suggestions[header] = 'city';
+      }
+      else if (lowerHeader.includes('state') || lowerHeader.includes('province') || (lowerHeader.includes('address') && lowerHeader.includes('state'))) {
+        suggestions[header] = 'state';
+      }
+      else if (lowerHeader.includes('country') || (lowerHeader.includes('address') && lowerHeader.includes('country'))) {
+        suggestions[header] = 'country';
+      }
+      else if ((lowerHeader.includes('address') && lowerHeader.includes('line') && lowerHeader.includes('2')) || 
+               (lowerHeader.includes('address') && lowerHeader.endsWith('line2'))) {
+        suggestions[header] = 'address2';
+      }
+      else if ((lowerHeader.includes('address') && lowerHeader.includes('line') && (lowerHeader.includes('1') || !lowerHeader.includes('2'))) ||
+               (lowerHeader.includes('address') && (lowerHeader.endsWith('name1') || lowerHeader.includes('street')))) {
+        suggestions[header] = 'address';
+      }
+      else if (lowerHeader.includes('address') && !lowerHeader.includes('email') && !lowerHeader.includes('city') && 
+               !lowerHeader.includes('state') && !lowerHeader.includes('country') && !lowerHeader.includes('postal')) {
+        suggestions[header] = 'address';
+      }
+      // Dates
+      else if (lowerHeader.includes('client') && lowerHeader.includes('since')) {
+        suggestions[header] = 'clientSince';
+      }
+      else if (lowerHeader.includes('last') && lowerHeader.includes('session')) {
+        suggestions[header] = 'lastSessionDate';
+      }
+      // Lifetime value
+      else if (lowerHeader.includes('lifetime') && (lowerHeader.includes('sales') || lowerHeader.includes('value'))) {
+        suggestions[header] = 'lifetimeValue';
+      }
+      // Notes
+      else if (lowerHeader.includes('note') || lowerHeader.includes('comment') || lowerHeader.includes('description')) {
         suggestions[header] = 'notes';
       }
     });
@@ -218,6 +274,21 @@ const SmartCSVImporter: React.FC = () => {
                   } else if (clientField === 'lastName') {
                     tempLastName = value;
                     clientData.lastName = value;
+                  } else if (clientField === 'postalCode') {
+                    // Map postalCode to zip (database field name)
+                    clientData.zip = value;
+                  } else if (clientField === 'clientSince' || clientField === 'lastSessionDate') {
+                    // Parse date fields - handle various formats
+                    const parsedDate = new Date(value);
+                    if (!isNaN(parsedDate.getTime())) {
+                      clientData[clientField] = parsedDate.toISOString();
+                    }
+                  } else if (clientField === 'lifetimeValue') {
+                    // Parse numeric value, remove any currency symbols
+                    const numericValue = parseFloat(value.replace(/[^0-9.-]/g, ''));
+                    if (!isNaN(numericValue)) {
+                      clientData[clientField] = numericValue.toString();
+                    }
                   } else {
                     clientData[clientField] = value;
                   }
@@ -256,7 +327,11 @@ const SmartCSVImporter: React.FC = () => {
 
               // Insert into database using API
               try {
-                await apiRequest('POST', '/api/crm/clients', clientData);
+                await apiRequest('/api/crm/clients', {
+                  method: 'POST',
+                  body: JSON.stringify(clientData),
+                  credentials: 'include' // Important for session cookies
+                });
                 successful++;
               } catch (insertError: any) {
                 errors.push(`Row ${i + 2}: ${insertError.message || 'Failed to create client'}`);

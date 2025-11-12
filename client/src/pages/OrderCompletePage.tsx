@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { useAppContext } from '../context/AppContext';
-import { CheckCircle, AlertCircle, Copy, Home, ShoppingBag } from 'lucide-react';
+import { CheckCircle, AlertCircle, Copy, Home, ShoppingBag, Download, User } from 'lucide-react';
 
 const OrderCompletePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,6 +27,21 @@ const OrderCompletePage: React.FC = () => {
       navigator.clipboard.writeText(order.voucherCode);
       alert('Voucher code copied to clipboard!');
     }
+  };
+
+  // Download voucher PDF
+  const downloadVoucherPDF = () => {
+    if (!order) return;
+    
+    const pdfUrl = `/voucher/pdf/preview?` +
+      `voucher_id=${encodeURIComponent(order.voucherCode)}&` +
+      `sku=${encodeURIComponent(order.voucher.sku || 'voucher')}&` +
+      `name=${encodeURIComponent(order.recipientName || order.purchaserName || 'Customer')}&` +
+      `from=${encodeURIComponent(order.purchaserName || 'Gift Giver')}&` +
+      `message=${encodeURIComponent(order.giftMessage || 'Enjoy your voucher!')}&` +
+      `amount=${order.totalPrice}`;
+    
+    window.open(pdfUrl, '_blank');
   };
   
   if (!order) {
@@ -115,6 +130,14 @@ const OrderCompletePage: React.FC = () => {
             <p className="text-sm text-gray-600 text-left">
               This is your voucher code. Please save it as you will need it to redeem your voucher.
             </p>
+
+            <button
+              onClick={downloadVoucherPDF}
+              className="mt-4 w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
+            >
+              <Download size={18} className="mr-2" />
+              Download Voucher PDF
+            </button>
           </div>
           
           <div className="flex flex-col md:flex-row gap-4">

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
-import { Plus, Search, Filter, Eye, Edit, Trash2, Upload, Download, Share2, Calendar } from 'lucide-react';
+import { Plus, Search, Filter, Eye, Edit, Trash2, Upload, Download, Share2, Calendar, X } from 'lucide-react';
+import { getGalleries, deleteGallery } from '../../lib/gallery-api';
+import AdvancedGalleryForm from '../../components/admin/AdvancedGalleryForm';
 
 interface Gallery {
   id: string;
@@ -16,6 +19,7 @@ interface Gallery {
 }
 
 const AdminGalleriesPage: React.FC = () => {
+  const navigate = useNavigate();
   const [galleries, setGalleries] = useState<Gallery[]>([]);
   const [filteredGalleries, setFilteredGalleries] = useState<Gallery[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -33,61 +37,40 @@ const AdminGalleriesPage: React.FC = () => {
 
   const fetchGalleries = async () => {
     try {
-      // Simulate API call - replace with actual endpoint
-      const mockGalleries: Gallery[] = [
-        {
-          id: '1',
-          title: 'Mueller Family Session',
-          description: 'Outdoor family photoshoot in Stadtpark',
-          clientName: 'Sarah Mueller',
-          clientId: '1',
-          photoCount: 45,
-          coverImage: 'https://images.pexels.com/photos/1668928/pexels-photo-1668928.jpeg',
-          status: 'active',
-          createdAt: '2025-01-20T10:30:00Z',
-          expiresAt: '2025-07-20T10:30:00Z'
-        },
-        {
-          id: '2',
-          title: 'Schmidt Wedding',
-          description: 'Wedding ceremony and reception photos',
-          clientName: 'Michael Schmidt',
-          clientId: '2',
-          photoCount: 120,
-          coverImage: 'https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg',
-          status: 'shared',
-          createdAt: '2025-01-18T09:15:00Z',
-          expiresAt: '2025-12-18T09:15:00Z'
-        },
-        {
-          id: '3',
-          title: 'Weber Newborn Session',
-          description: 'Newborn and family portraits',
-          clientName: 'Anna Weber',
-          clientId: '3',
-          photoCount: 30,
-          coverImage: 'https://images.pexels.com/photos/3875080/pexels-photo-3875080.jpeg',
-          status: 'active',
-          createdAt: '2025-01-15T16:45:00Z',
-          expiresAt: '2025-06-15T16:45:00Z'
-        },
-        {
-          id: '4',
-          title: 'Huber Corporate Headshots',
-          description: 'Professional business portraits',
-          clientName: 'Thomas Huber',
-          clientId: '4',
-          photoCount: 15,
-          coverImage: 'https://images.pexels.com/photos/3760263/pexels-photo-3760263.jpeg',
-          status: 'archived',
-          createdAt: '2025-01-10T14:20:00Z'
-        }
-      ];
-      setGalleries(mockGalleries);
+      setLoading(true);
+      const data = await getGalleries();
+      
+      // Transform API data to match Gallery interface
+      const transformedGalleries: Gallery[] = data.map((g: any) => ({
+        id: g.id,
+        title: g.title,
+        description: g.description || '',
+        clientName: g.client_name || 'No client assigned',
+        clientId: g.client_id || '',
+        photoCount: 0, // Will be updated when we fetch images
+        coverImage: g.cover_image || g.coverImage || '',
+        status: g.is_public ? 'active' : 'archived',
+        createdAt: g.created_at || g.createdAt,
+        expiresAt: g.expires_at || g.expiresAt
+      }));
+      
+      setGalleries(transformedGalleries);
     } catch (error) {
-      // console.error removed
+      console.error('Error fetching galleries:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteGallery = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this gallery?')) return;
+    
+    try {
+      await deleteGallery(id);
+      setGalleries(galleries.filter(g => g.id !== id));
+    } catch (error) {
+      console.error('Error deleting gallery:', error);
+      alert('Failed to delete gallery');
     }
   };
 
@@ -236,24 +219,52 @@ const AdminGalleriesPage: React.FC = () => {
 
                 <div className="flex justify-between items-center pt-4 border-t border-gray-200">
                   <div className="flex space-x-2">
-                    <button className="text-blue-600 hover:text-blue-900" title="View Gallery">
+                    <button 
+                      onClick={() => navigate(`/gallery/${gallery.id}`)}
+                      className="text-blue-600 hover:text-blue-900" 
+                      title="View Gallery"
+                    >
                       <Eye size={16} />
                     </button>
-                    <button className="text-green-600 hover:text-green-900" title="Edit Gallery">
+                    <button 
+                      onClick={() => navigate(`/admin/galleries/${gallery.id}/edit`)}
+                      className="text-green-600 hover:text-green-900" 
+                      title="Edit Gallery"
+                    >
                       <Edit size={16} />
                     </button>
-                    <button className="text-purple-600 hover:text-purple-900" title="Upload Photos">
+                    <button 
+                      onClick={() => navigate(`/admin/galleries/${gallery.id}/upload`)}
+                      className="text-purple-600 hover:text-purple-900" 
+                      title="Upload Photos"
+                    >
                       <Upload size={16} />
                     </button>
                   </div>
                   <div className="flex space-x-2">
-                    <button className="text-gray-600 hover:text-gray-900" title="Download">
+                    <button 
+                      onClick={() => window.open(`/api/galleries/${gallery.id}/download`, '_blank')}
+                      className="text-gray-600 hover:text-gray-900" 
+                      title="Download"
+                    >
                       <Download size={16} />
                     </button>
-                    <button className="text-indigo-600 hover:text-indigo-900" title="Share">
+                    <button 
+                      onClick={() => {
+                        const shareUrl = `${window.location.origin}/gallery/${gallery.id}`;
+                        navigator.clipboard.writeText(shareUrl);
+                        alert('Gallery link copied to clipboard!');
+                      }}
+                      className="text-indigo-600 hover:text-indigo-900" 
+                      title="Share"
+                    >
                       <Share2 size={16} />
                     </button>
-                    <button className="text-red-600 hover:text-red-900" title="Delete">
+                    <button 
+                      onClick={() => handleDeleteGallery(gallery.id)}
+                      className="text-red-600 hover:text-red-900" 
+                      title="Delete"
+                    >
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -266,6 +277,32 @@ const AdminGalleriesPage: React.FC = () => {
         {filteredGalleries.length === 0 && (
           <div className="text-center py-12">
             <p className="text-gray-500">No galleries found matching your criteria.</p>
+          </div>
+        )}
+
+        {/* Create Gallery Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-900">Create New Gallery</h2>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              <div className="p-6">
+                <AdvancedGalleryForm 
+                  isEditing={false}
+                  onSuccess={() => {
+                    setShowCreateModal(false);
+                    fetchGalleries();
+                  }}
+                />
+              </div>
+            </div>
           </div>
         )}
       </div>

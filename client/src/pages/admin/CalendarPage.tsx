@@ -35,6 +35,7 @@ const CalendarPage: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('');
@@ -58,39 +59,56 @@ const CalendarPage: React.FC = () => {
     'EVENT', 'PORTRAIT', 'HEADSHOT', 'COUPLE', 'ENGAGEMENT'
   ];
 
+  // Fetch clients once on mount (don't re-fetch on filter changes)
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  // Fetch sessions when filters change
   useEffect(() => {
     fetchSessions();
-    fetchClients();
   }, [selectedStatusFilter, selectedTypeFilter]);
+
+  const fetchClients = async () => {
+    try {
+      const response = await fetch('/api/crm/clients');
+      
+      if (!response.ok) {
+        console.warn(`Failed to fetch clients: ${response.status}`);
+        setClients([]); // Calendar can work without full client list
+        return;
+      }
+      
+      const data = await response.json();
+      setClients(data);
+    } catch (error) {
+      console.error('Failed to fetch clients:', error);
+      setClients([]); // Don't crash calendar if clients fail to load
+    }
+  };
 
   const fetchSessions = async () => {
     try {
       setLoading(true);
+      setError(null); // Clear previous errors
+      
       const params = new URLSearchParams();
       if (selectedStatusFilter) params.append('status', selectedStatusFilter);
       if (selectedTypeFilter) params.append('session_type', selectedTypeFilter);
       
       const response = await fetch(`/api/calendar/sessions?${params.toString()}`);
-      if (response.ok) {
-        const data = await response.json();
-        setSessions(data);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to load sessions: ${response.status} ${response.statusText}`);
       }
+      
+      const data = await response.json();
+      setSessions(data);
     } catch (error) {
       console.error('Failed to fetch sessions:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load sessions');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchClients = async () => {
-    try {
-      const response = await fetch('/api/crm/clients');
-      if (response.ok) {
-        const data = await response.json();
-        setClients(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch clients:', error);
     }
   };
 
@@ -171,7 +189,7 @@ const CalendarPage: React.FC = () => {
   };
 
   const formatSessionType = (type: string) => {
-    return type.toLowerCase().replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase().replace('_', ' ');
   };
 
   if (loading) {
@@ -180,6 +198,31 @@ const CalendarPage: React.FC = () => {
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
           <span className="ml-2 text-gray-600">Loading calendar...</span>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="p-8 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <h2 className="text-xl font-semibold text-yellow-800 mb-2">
+            ⚠️ Calendar Temporarily Unavailable
+          </h2>
+          <p className="text-yellow-700 mb-4">{error}</p>
+          <div className="space-x-2">
+            <Button onClick={() => {
+              setError(null);
+              fetchSessions();
+              fetchClients();
+            }}>
+              Try Again
+            </Button>
+            <Button onClick={() => window.location.reload()} className="bg-gray-500 hover:bg-gray-600">
+              Reload Page
+            </Button>
+          </div>
         </div>
       </AdminLayout>
     );
