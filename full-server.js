@@ -2303,6 +2303,145 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   
+  // --- Agent V2 minimal endpoints (ToolBus architecture via dist-server) ---
+  // GET /api/agent/v2/stats
+  if (pathname === '/api/agent/v2/stats' && req.method === 'GET') {
+    try {
+      const baseDir = process.cwd();
+      // Load ToolBus and ensure tools are registered
+      const toolBus = require(path.join(baseDir, 'dist-server', 'agent', 'v2', 'core', 'ToolBus.js'));
+      try { require(path.join(baseDir, 'dist-server', 'agent', 'v2', 'tools', 'index.js')); } catch (_) {}
+      const stats = toolBus.getStats ? toolBus.getStats() : { totalTools: 0 };
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(stats));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Agent V2 not available', detail: e?.message, hint: 'Ensure dist-server is built (npm run build:server:prod) and OPENAI_API_KEY/DATABASE_URL are set' }));
+    }
+    return;
+  }
+
+  // POST /api/agent/v2/chat
+  if (pathname === '/api/agent/v2/chat' && req.method === 'POST') {
+    try {
+      // Parse body
+      let raw = '';
+      req.on('data', c => raw += c.toString());
+      await new Promise(r => req.on('end', r));
+      const body = raw ? JSON.parse(raw) : {};
+      const message = body.message;
+      const sessionIdInput = body.sessionId;
+      const mode = body.mode || process.env.AGENT_V2_MODE || 'auto_safe';
+
+      if (!message || typeof message !== 'string') {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Message is required' }));
+        return;
+      }
+
+      if (!process.env.OPENAI_API_KEY) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'OpenAI API key not configured', hint: 'Set OPENAI_API_KEY in your environment (Heroku Config Vars)' }));
+        return;
+      }
+
+      // Lazy-load ToolBus and register tools
+      const baseDir = process.cwd();
+      const { listOpenAITools, executeTool } = require(path.join(baseDir, 'dist-server', 'agent', 'v2', 'core', 'ToolBus.js'));
+      try { require(path.join(baseDir, 'dist-server', 'agent', 'v2', 'tools', 'index.js')); } catch (_) {}
+
+      // Build user context (basic defaults; scoped auth is enforced by tools)
+      const userId = 'demo_user';
+      const studioId = 'demo_studio';
+      const userRole = 'owner';
+      const scopes = ['CRM_READ','CRM_WRITE','INV_READ','INV_WRITE','EMAIL_SEND','CALENDAR_WRITE','ADMIN'];
+      const executionMode = mode;
+      let currentSessionId = sessionIdInput || `sess_${crypto.randomBytes(8).toString('hex')}`;
+      const ctx = { studioId, userId, sessionId: currentSessionId, scopes, mode: executionMode, dryRun: String(process.env.AGENT_V2_SHADOW).toLowerCase() === 'true' };
+
+      // OpenAI client
+      let OpenAI;
+      try { OpenAI = require('openai'); } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'OpenAI SDK not installed', detail: e?.message }));
+        return;
+      }
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+      // Prepare tool definitions for function calling
+      const availableTools = typeof listOpenAITools === 'function' ? listOpenAITools(scopes) : [];
+      const model = process.env.AGENT_MODEL || 'gpt-4-turbo-preview';
+
+      // Initial completion
+      const completion = await openai.chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: 'You are a helpful CRM assistant for a photography studio. Use the provided tools when needed to answer questions or take actions. Be concise and professional.' },
+          { role: 'user', content: message }
+        ],
+        tools: availableTools.length > 0 ? availableTools : undefined,
+        tool_choice: 'auto'
+      });
+
+      const choice = completion.choices?.[0] || {};
+      const assistantMessage = choice.message || {};
+
+      // If LLM decided to call tools
+      if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0 && typeof executeTool === 'function') {
+        const toolResults = [];
+        for (const toolCall of assistantMessage.tool_calls) {
+          const toolName = toolCall.function?.name || toolCall.type;
+          let toolArgs = {};
+          try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch {}
+          try {
+            const result = await executeTool(ctx, toolName, toolArgs);
+            // If Guardrails requested confirmation, return explicit signal to UI
+            if (result && result.ok === false && String(result.error || '').includes('CONFIRM_REQUIRED')) {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                sessionId: currentSessionId,
+                confirmRequired: true,
+                tool: toolName,
+                args: toolArgs,
+                reason: 'This action is risky and requires confirmation',
+                message: 'This action requires your confirmation.'
+              }));
+              return;
+            }
+            toolResults.push({ tool: toolName, args: toolArgs, result: result.data, ok: result.ok, error: result.error });
+          } catch (err) {
+            toolResults.push({ tool: toolName, args: toolArgs, ok: false, error: (err && err.message) ? err.message : 'Tool execution failed' });
+          }
+        }
+
+        // Generate final response using tool results
+        const finalResponse = await openai.chat.completions.create({
+          model,
+          messages: [
+            { role: 'system', content: 'You are a helpful CRM assistant for a photography studio.' },
+            { role: 'user', content: message },
+            assistantMessage,
+            { role: 'tool', content: JSON.stringify(toolResults), tool_call_id: assistantMessage.tool_calls[0]?.id || 'tools_1' }
+          ]
+        });
+        const finalMessage = finalResponse.choices?.[0]?.message?.content || 'I executed the requested actions.';
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ sessionId: currentSessionId, message: finalMessage, toolCalls: toolResults, mode: executionMode }));
+        return;
+      }
+
+      // No tools needed; return assistant text
+      const responseText = assistantMessage.content || "I'm not sure how to help with that.";
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ sessionId: currentSessionId, message: responseText, mode: executionMode }));
+    } catch (e) {
+      console.error('[Agent V2] Chat error:', e);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e?.message || 'Internal server error' }));
+    }
+    return;
+  }
+
   // Health check (enhanced with DB + SMTP)
   if (pathname === '/healthz') {
     try {
