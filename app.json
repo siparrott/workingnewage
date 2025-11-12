@@ -2,8 +2,8 @@
   "name": "Clean CRM Photography Platform",
   "description": "Full-stack photography CRM with client management and booking system",
   "keywords": ["node", "express", "react", "vite", "photography", "crm"],
-  "website": "https://github.com/siparrott/clean-crm",
-  "repository": "https://github.com/siparrott/clean-crm",
+  "website": "https://workingnewage-2eecd723a444.herokuapp.com/",
+  "repository": "https://github.com/siparrott/workingnewage",
   "stack": "heroku-22",
   "buildpacks": [
     {
