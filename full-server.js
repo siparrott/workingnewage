@@ -2226,6 +2226,7 @@ const mockApiResponses = {
 };
 
 // Handle login authentication
+const AUTH_LOG = String(process.env.AUTH_LOG || 'false').toLowerCase() === 'true' || String(process.env.AUTH_LOG) === '1';
 function handleLogin(req, res) {
   let body = '';
   req.on('data', chunk => {
@@ -2235,9 +2236,14 @@ function handleLogin(req, res) {
   req.on('end', () => {
     try {
       const { email, password } = JSON.parse(body);
+      if (AUTH_LOG) {
+        const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown-ip';
+        console.log(`[AUTH] Attempt`, { email, ip });
+      }
       
       // Admin credentials check
       if ((email === 'admin@newagefotografie.com' || email === 'matt@newagefotografie.com') && password === 'admin123') {
+        if (AUTH_LOG) console.log('[AUTH] Success', { email });
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           success: true,
@@ -2249,6 +2255,7 @@ function handleLogin(req, res) {
           token: 'admin-session-token'
         }));
       } else {
+        if (AUTH_LOG) console.warn('[AUTH] Failed', { email });
         res.writeHead(401, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           success: false,
@@ -2256,6 +2263,7 @@ function handleLogin(req, res) {
         }));
       }
     } catch (error) {
+      if (AUTH_LOG) console.error('[AUTH] Error parsing login request', { message: error?.message });
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         success: false,
