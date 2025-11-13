@@ -6,7 +6,7 @@ node_modules/
 # Production builds
 client/dist/
 build/
-dist-server/
+# dist-server/ - INCLUDED for Heroku deployment (TypeScript won't compile cleanly)
 
 # Local tooling / analysis caches
 .config/
