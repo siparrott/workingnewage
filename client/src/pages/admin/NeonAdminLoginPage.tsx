@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,32 +16,27 @@ import { Badge } from '@/components/ui/badge';
 
 export default function NeonAdminLoginPage() {
   const [email, setEmail] = useState('admin@newagefotografie.com');
-  const [password, setPassword] = useState('');
+  // Prefill a sensible dev default. Server accepts admin@newagefotografie.com/admin123 in dev.
+  const [password, setPassword] = useState('admin123');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const doLogin = async () => {
     setIsLoading(true);
     setError('');
 
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ email, password })
       });
 
       const result = await response.json();
-      
       if (result.success) {
-        // Store user info in localStorage for persistence
         localStorage.setItem('admin_user', JSON.stringify(result.user));
-        // Force reload to update auth context
         window.location.href = '/admin/dashboard';
       } else {
         setError(result.error || 'Login failed');
@@ -52,6 +47,24 @@ export default function NeonAdminLoginPage() {
       setIsLoading(false);
     }
   };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await doLogin();
+  };
+
+  // Optional auto-login for smoke tests: /admin/login?auto=1
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const auto = params.get('auto');
+      if (auto === '1') {
+        // Defer one tick to allow inputs to render
+        setTimeout(() => { void doLogin(); }, 50);
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleRegister = async () => {
     if (!email || !password) {
@@ -178,6 +191,17 @@ export default function NeonAdminLoginPage() {
                   ) : (
                     'Sign In'
                   )}
+                </Button>
+
+                {/* Dev helper: quick login trigger without manual typing */}
+                <Button 
+                  type="button" 
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => doLogin()}
+                  disabled={isLoading}
+                >
+                  Quick Dev Login
                 </Button>
 
                 <Button 

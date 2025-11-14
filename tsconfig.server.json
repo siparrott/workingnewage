@@ -14,6 +14,6 @@
     "skipLibCheck": true,
     "sourceMap": false
   },
-  "include": ["server/**/*", "shared/**/*"],
+  "include": ["server/**/*", "shared/**/*", "agent/**/*"],
   "exclude": ["node_modules", "dist", "dist-server", "client", "**/*.test.ts"]
 }
