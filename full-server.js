@@ -2391,15 +2391,21 @@ const server = http.createServer(async (req, res) => {
       const model = process.env.AGENT_MODEL || 'gpt-4-turbo-preview';
 
       // Initial completion
-      const completion = await openai.chat.completions.create({
+      const completionOptions = {
         model,
         messages: [
           { role: 'system', content: 'You are a helpful CRM assistant for a photography studio. Use the provided tools when needed to answer questions or take actions. Be concise and professional.' },
           { role: 'user', content: message }
-        ],
-        tools: availableTools.length > 0 ? availableTools : undefined,
-        tool_choice: 'auto'
-      });
+        ]
+      };
+      
+      // Only add tools and tool_choice if tools are available
+      if (availableTools.length > 0) {
+        completionOptions.tools = availableTools;
+        completionOptions.tool_choice = 'auto';
+      }
+      
+      const completion = await openai.chat.completions.create(completionOptions);
 
       const choice = completion.choices?.[0] || {};
       const assistantMessage = choice.message || {};
