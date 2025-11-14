@@ -2466,6 +2466,243 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // --- Price Wizard API Routes ---
+  // POST /api/price-wizard/start
+  if (pathname === '/api/price-wizard/start' && req.method === 'POST') {
+    try {
+      let raw = '';
+      req.on('data', c => raw += c.toString());
+      await new Promise(r => req.on('end', r));
+      const { location, services, userId } = JSON.parse(raw);
+      
+      if (!location || !services || !Array.isArray(services)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing required fields: location, services (array)' }));
+        return;
+      }
+      
+      const result = await sql`
+        INSERT INTO price_wizard_sessions (user_id, location, services, status)
+        VALUES (${userId || null}, ${location}, ${JSON.stringify(services)}, 'discovering')
+        RETURNING id, created_at`;
+      
+      const session = result[0];
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        sessionId: session.id,
+        location,
+        services,
+        status: 'discovering',
+        createdAt: session.created_at
+      }));
+    } catch (e) {
+      console.error('Error starting price wizard session:', e);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e?.message || 'Internal error' }));
+    }
+    return;
+  }
+  
+  // POST /api/price-wizard/discover (stub - requires external services)
+  if (pathname === '/api/price-wizard/discover' && req.method === 'POST') {
+    try {
+      let raw = '';
+      req.on('data', c => raw += c.toString());
+      await new Promise(r => req.on('end', r));
+      const { sessionId, maxResults = 10 } = JSON.parse(raw);
+      
+      if (!sessionId) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing sessionId' }));
+        return;
+      }
+      
+      // NOTE: This is a simplified stub - full implementation requires CompetitorDiscoveryService
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        sessionId,
+        competitorsFound: 0,
+        message: 'Competitor discovery requires additional services. Contact support to enable.'
+      }));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e?.message }));
+    }
+    return;
+  }
+  
+  // POST /api/price-wizard/scrape (stub)
+  if (pathname === '/api/price-wizard/scrape' && req.method === 'POST') {
+    try {
+      let raw = '';
+      req.on('data', c => raw += c.toString());
+      await new Promise(r => req.on('end', r));
+      const { sessionId } = JSON.parse(raw);
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        sessionId,
+        scrapedCount: 0,
+        pricesExtracted: 0,
+        message: 'Price scraping requires additional services. Contact support to enable.'
+      }));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e?.message }));
+    }
+    return;
+  }
+  
+  // POST /api/price-wizard/analyze
+  if (pathname === '/api/price-wizard/analyze' && req.method === 'POST') {
+    try {
+      let raw = '';
+      req.on('data', c => raw += c.toString());
+      await new Promise(r => req.on('end', r));
+      const { sessionId } = JSON.parse(raw);
+      
+      if (!sessionId) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing sessionId' }));
+        return;
+      }
+      
+      const prices = await sql`
+        SELECT 
+          cp.service_type,
+          cp.price_amount,
+          cp.currency,
+          cp.confidence_score
+        FROM competitor_prices cp
+        JOIN competitor_research cr ON cr.id = cp.competitor_id
+        WHERE cr.session_id = ${sessionId} AND cp.confidence_score >= 0.5`;
+      
+      if (prices.length === 0) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'No prices found to analyze' }));
+        return;
+      }
+      
+      const serviceStats = {};
+      prices.forEach(price => {
+        if (!serviceStats[price.service_type]) serviceStats[price.service_type] = [];
+        serviceStats[price.service_type].push(price.price_amount);
+      });
+      
+      const suggestions = [];
+      for (const [serviceType, amounts] of Object.entries(serviceStats)) {
+        amounts.sort((a, b) => a - b);
+        const min = amounts[0];
+        const max = amounts[amounts.length - 1];
+        const median = amounts[Math.floor(amounts.length / 2)];
+        
+        const tiers = [
+          { tier: 'basic', suggestedPrice: Math.round(min * 1.1), reasoning: `Entry pricing. Market min: €${min}` },
+          { tier: 'standard', suggestedPrice: Math.round(median), reasoning: `Market median: €${median}` },
+          { tier: 'premium', suggestedPrice: Math.round(max * 0.9), reasoning: `Premium below max: €${max}` }
+        ];
+        
+        for (const tier of tiers) {
+          const result = await sql`
+            INSERT INTO price_list_suggestions (
+              session_id, service_type, tier, suggested_price,
+              market_min, market_median, market_max, reasoning, status
+            ) VALUES (
+              ${sessionId}, ${serviceType}, ${tier.tier}, ${tier.suggestedPrice},
+              ${min}, ${median}, ${max}, ${tier.reasoning}, 'pending_review'
+            ) RETURNING id`;
+          
+          suggestions.push({ id: result[0].id, serviceType, ...tier, marketMin: min, marketMedian: median, marketMax: max });
+        }
+      }
+      
+      await sql`
+        UPDATE price_wizard_sessions
+        SET status = 'completed', suggestions_generated = ${suggestions.length}, updated_at = NOW()
+        WHERE id = ${sessionId}`;
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, sessionId, suggestionsCount: suggestions.length, suggestions }));
+    } catch (e) {
+      console.error('Error analyzing prices:', e);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e?.message }));
+    }
+    return;
+  }
+  
+  // GET /api/price-wizard/suggestions/:sessionId
+  if (pathname.startsWith('/api/price-wizard/suggestions/') && req.method === 'GET') {
+    try {
+      const sessionId = pathname.split('/').pop();
+      const result = await sql`
+        SELECT * FROM price_list_suggestions
+        WHERE session_id = ${sessionId}
+        ORDER BY service_type, tier`;
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e?.message }));
+    }
+    return;
+  }
+  
+  // GET /api/price-wizard/prices/:sessionId
+  if (pathname.startsWith('/api/price-wizard/prices/') && req.method === 'GET') {
+    try {
+      const sessionId = pathname.split('/').pop();
+      const result = await sql`
+        SELECT 
+          cp.*,
+          cr.competitor_name,
+          cr.website_url
+        FROM competitor_prices cp
+        JOIN competitor_research cr ON cr.id = cp.competitor_id
+        WHERE cr.session_id = ${sessionId}
+        ORDER BY cp.service_type, cp.price_amount`;
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e?.message }));
+    }
+    return;
+  }
+  
+  // GET /api/price-wizard/competitors/:sessionId
+  if (pathname.startsWith('/api/price-wizard/competitors/') && req.method === 'GET') {
+    try {
+      const sessionId = pathname.split('/').pop();
+      const result = await sql`
+        SELECT 
+          cr.id,
+          cr.competitor_name,
+          cr.website_url,
+          cr.location,
+          cr.status,
+          cr.scraped_at,
+          COUNT(cp.id)::int as price_count
+        FROM competitor_research cr
+        LEFT JOIN competitor_prices cp ON cp.competitor_id = cr.id
+        WHERE cr.session_id = ${sessionId}
+        GROUP BY cr.id
+        ORDER BY cr.created_at`;
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e?.message }));
+    }
+    return;
+  }
+
   // Health check (enhanced with DB + SMTP)
   if (pathname === '/healthz') {
     try {
