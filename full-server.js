@@ -1560,13 +1560,13 @@ async function handleGalleryAPI(req, res, pathname, query) {
         WHERE slug = ${gallerySlug}
       `;
       if (!gallery || gallery.length === 0) {
-        // Fallback: try by id
+        // Fallback: try by id (cast to uuid explicitly)
         gallery = await sql`
           SELECT id, title, slug, description, cover_image, is_public, 
                  is_password_protected, password, client_id, created_by, 
                  sort_order, download_enabled, created_at, updated_at
           FROM galleries
-          WHERE id = ${gallerySlug}
+          WHERE id::text = ${gallerySlug}
         `;
       }
       if (!gallery || gallery.length === 0) {
