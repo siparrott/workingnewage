@@ -1867,21 +1867,40 @@ async function handleGalleryAPI(req, res, pathname, query) {
       return;
     }
 
-    // GET /api/galleries/[slug]/download - Download gallery as ZIP (requires auth)
+    // GET /api/galleries/[slug]/download - Download gallery as ZIP
     if (req.method === 'GET' && action === 'download') {
-      const authToken = req.headers.authorization?.replace('Bearer ', '');
-
-      if (!authToken) {
-        res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Authentication token required' }));
+      // Resolve slug to gallery first to check if it's public
+      const gRows = await sql`SELECT id, title, download_enabled, is_public, is_password_protected FROM galleries WHERE slug = ${gallerySlug} LIMIT 1`;
+      if (!gRows || gRows.length === 0) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Gallery not found' }));
+        return;
+      }
+      const gallery = gRows[0];
+      
+      // Check if downloads are enabled
+      if (gallery.download_enabled === false) {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Downloads are disabled for this gallery' }));
         return;
       }
 
-      const tokenData = verifyGalleryToken(authToken);
-      if (!tokenData) {
-        res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid token' }));
-        return;
+      // For non-public or password-protected galleries, require authentication
+      if (!gallery.is_public || gallery.is_password_protected) {
+        const authToken = req.headers.authorization?.replace('Bearer ', '');
+
+        if (!authToken) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Authentication token required' }));
+          return;
+        }
+
+        const tokenData = verifyGalleryToken(authToken);
+        if (!tokenData) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid token' }));
+          return;
+        }
       }
 
       // Lazy-load archiver to avoid requiring it during cold start if unused
@@ -1891,20 +1910,6 @@ async function handleGalleryAPI(req, res, pathname, query) {
       } catch (e) {
         res.writeHead(501, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'ZIP support not installed on server', detail: 'Install the "archiver" package' }));
-        return;
-      }
-
-      // Resolve slug to gallery and ensure downloads are enabled
-      const gRows = await sql`SELECT id, title, download_enabled FROM galleries WHERE slug = ${gallerySlug} LIMIT 1`;
-      if (!gRows || gRows.length === 0) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Gallery not found' }));
-        return;
-      }
-      const gallery = gRows[0];
-      if (gallery.download_enabled === false) {
-        res.writeHead(403, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Downloads are disabled for this gallery' }));
         return;
       }
 
