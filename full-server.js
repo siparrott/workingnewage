@@ -1298,6 +1298,8 @@ async function handleGalleryAPI(req, res, pathname, query) {
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
       )`;
+    // Ensure non-breaking column additions on older databases
+    await sql`ALTER TABLE galleries ADD COLUMN IF NOT EXISTS download_enabled BOOLEAN DEFAULT true`;
     await sql`
       CREATE TABLE IF NOT EXISTS gallery_images (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
