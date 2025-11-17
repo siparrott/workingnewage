@@ -149,6 +149,15 @@ const Footer: React.FC = () => {
               </li>
               <li>
                 <Link 
+                  to="/eventfotografie-wien/" 
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Eventfotografie
+                </Link>
+              </li>
+              <li>
+                <Link 
                   to="/fotoshootings/wedding" 
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
@@ -162,7 +171,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Eventfotografie
+                  Event-Coverage (alt)
                 </Link>
               </li>
             </ul>
