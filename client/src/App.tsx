@@ -85,6 +85,7 @@ import EventFotoshootingPage from './pages/fotoshootings/EventFotoshootingPage';
 import WeddingFotoshootingPage from './pages/fotoshootings/WeddingFotoshootingPage';
 import FamilienFotoshootingWienPage from './pages/fotoshootings/FamilienFotoshootingWienPage';
 import FamilienfotosWienPage from './pages/fotoshootings/FamilienfotosWienPage';
+import NeugeborenenfotosWienPage from './pages/fotoshootings/NeugeborenenfotosWienPage';
 import BabyFotografieWienPage from './pages/fotoshootings/BabyFotografieWienPage';
 import SchwangerschaftsfotosWienPage from './pages/fotoshootings/SchwangerschaftsfotosWienPage';
 import BusinessPortraitWienPage from './pages/fotoshootings/BusinessPortraitWienPage';
@@ -123,6 +124,7 @@ function App() {
                 
                 {/* SEO Cornerstone Pages */}
                 <Route path="/familienfotos-wien/" element={<FamilienfotosWienPage />} />
+                <Route path="/neugeborenenfotos-wien/" element={<NeugeborenenfotosWienPage />} />
                 <Route path="/familien-fotoshooting-wien/" element={<FamilienFotoshootingWienPage />} />
                 <Route path="/baby-fotografie-wien/" element={<BabyFotografieWienPage />} />
                 <Route path="/schwangerschaftsfotos-wien/" element={<SchwangerschaftsfotosWienPage />} />
