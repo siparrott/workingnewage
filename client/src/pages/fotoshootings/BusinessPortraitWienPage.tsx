@@ -1,16 +1,17 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
+import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link } from 'react-router-dom';
-import { Briefcase, Users, Star, TrendingUp, ArrowRight, Check, Linkedin } from 'lucide-react';
+import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Briefcase, Linkedin, TrendingUp, Palette, Shield } from 'lucide-react';
 
 export default function BusinessPortraitWienPage() {
   return (
     <Layout>
     <div className="min-h-screen bg-white">
       <SEOHead
-        title="Business-Portraits & Corporate-Fotografie in Wien"
-        description="Professionelle Bewerbungs- und Branding-Portraits für Unternehmen und Selbständige."
-        keywords="business portrait wien, corporate fotografie wien, bewerbungsfotos wien, mitarbeiterfotos, linkedin foto"
+        title="Business Portrait Wien – LinkedIn, CEO & Personal-Branding | New Age Fotografie"
+        description="Business-Portraits im Studio in Wien: LinkedIn, CEO & Personal-Branding. Voll retuschiert, High-Res, kommerzielle Rechte inklusive. Pakete ab €95."
+        keywords="business portrait wien, corporate fotografie wien, linkedin foto wien, ceo portrait wien"
         canonical="/business-portrait-wien/"
         ogImage="https://www.newagefotografie.com/images/business-hero.jpg"
         hreflang={[
@@ -24,83 +25,75 @@ export default function BusinessPortraitWienPage() {
         <div className="absolute inset-0 bg-gradient-to-r from-purple-900/20 to-pink-900/20"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Left: Text Content */}
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-6">
+              <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
                 Business-Portraits & Corporate-Fotografie in Wien
               </h1>
-              <p className="text-xl text-gray-300 mb-8">
-                Professionelle Bewerbungsfotos, LinkedIn-Portraits und Mitarbeiter-Fotografie. 
-                Präsentieren Sie sich und Ihr Team von der besten Seite.
+              <p className="text-xl text-gray-300 mb-4 leading-relaxed font-semibold">
+                Starkes Bild. Klare Botschaft.
+              </p>
+              <p className="text-lg text-gray-400 mb-8 leading-relaxed">
+                Ihre <strong>Business-Portraits</strong> entstehen bei New Age Fotografie im Studio in Wien – perfekt für LinkedIn, 
+                CEO-Porträts und Personal-Branding. Wir führen Sie entspannt durchs Shooting, coachen Ausdruck & Haltung und liefern 
+                vollständig retuschierte Dateien in High-Res – kommerzielle Nutzungsrechte inklusive.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
-                  to="/termin-planen"
-                  className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+                  to="/warteliste"
+                  className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg"
                 >
-                  Termin buchen
+                  Termin auf der Warteliste sichern
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
                 <Link
-                  to="/preise"
-                  className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white rounded-lg hover:bg-white/10 transition-colors font-semibold"
+                  to="/gutschein/business"
+                  className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white rounded-lg hover:bg-white/10 transition-colors font-semibold text-lg"
                 >
-                  Preise ansehen
+                  Business-Gutschein verschenken
                 </Link>
               </div>
             </div>
+
+            {/* Right: Hero Image */}
             <div className="relative">
               <img
                 src="/images/business-hero.jpg"
-                alt="Professionelles Business Portrait in Wien"
-                className="rounded-2xl shadow-2xl"
+                alt="Business Portrait Wien Studio"
+                className="rounded-2xl shadow-2xl w-full h-96 object-cover"
+                loading="eager"
               />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Use Cases Section */}
-      <section className="py-16 bg-white">
+      {/* Google Reviews Section */}
+      <GoogleReviews />
+
+      {/* Introduction Section */}
+      <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Perfekt für
-          </h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            <div className="text-center p-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
-                <Briefcase className="h-8 w-8 text-purple-600" />
-              </div>
-              <h3 className="font-semibold mb-2">Bewerbungsfotos</h3>
-              <p className="text-gray-600 text-sm">
-                Seriös und sympathisch für Ihre Karriere
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div className="prose prose-lg max-w-none">
+              <p className="text-lg text-gray-700 leading-relaxed">
+                Willkommen bei New Age Fotografie – Ihrem Partner für professionelle Business-Portraits in Wien! 
+                Unser Studio bietet die perfekte Umgebung für LinkedIn-Headshots, CEO-Porträts und Personal-Branding-Fotografie. 
+                Mit präzisem Licht, variablen Hintergründen und professionellem Ausdrucks-Coaching entstehen Portraits, 
+                die auf LinkedIn performen und im Geschäftsbericht bestehen.
+              </p>
+              <p className="text-lg text-gray-700 leading-relaxed mt-4">
+                Sie kommen mit Outfits – wir liefern starke, markenkonforme Portraits in High-Res, vollständig retuschiert 
+                und mit kommerziellen Nutzungsrechten für Web, Social Media, Presse und Print.
               </p>
             </div>
-            <div className="text-center p-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
-                <Linkedin className="h-8 w-8 text-purple-600" />
-              </div>
-              <h3 className="font-semibold mb-2">Social Media</h3>
-              <p className="text-gray-600 text-sm">
-                LinkedIn, XING, Website-Profile
-              </p>
-            </div>
-            <div className="text-center p-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
-                <Users className="h-8 w-8 text-purple-600" />
-              </div>
-              <h3 className="font-semibold mb-2">Team-Fotos</h3>
-              <p className="text-gray-600 text-sm">
-                Einheitlicher Look fürs ganze Team
-              </p>
-            </div>
-            <div className="text-center p-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
-                <TrendingUp className="h-8 w-8 text-purple-600" />
-              </div>
-              <h3 className="font-semibold mb-2">Personal Branding</h3>
-              <p className="text-gray-600 text-sm">
-                Authentische Markenbildung
-              </p>
+            <div>
+              <img
+                src="https://i.postimg.cc/V6TFF8rC/00508749.jpg"
+                alt="Professionelles Business Portrait im Studio"
+                className="rounded-2xl shadow-lg w-full h-full object-cover"
+                loading="lazy"
+              />
             </div>
           </div>
         </div>
@@ -109,254 +102,423 @@ export default function BusinessPortraitWienPage() {
       {/* Packages Section */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">Business-Fotografie Pakete</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Individual Package */}
-            <div className="bg-white rounded-xl shadow-lg p-8">
-              <h3 className="text-2xl font-bold mb-4">Individual</h3>
-              <div className="text-3xl font-bold text-purple-600 mb-6">
-                €149
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Pakete & Preise (Studio)
+            </h2>
+            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+              Preise richten sich nach Anzahl der Looks/Outfits und der gewünschten Bildmenge. 
+              Jede Option inkl. High-Res + Web-Größen, Retusche & kommerzieller Lizenz.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 mb-12">
+            {/* Express Headshot Package */}
+            <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow">
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Express Headshot</h3>
+                <p className="text-purple-600 font-medium">Schnell & effizient</p>
               </div>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>15 Minuten Shooting</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>5 bearbeitete Bilder</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Neutraler Hintergrund</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Ideal für Bewerbungen</span>
-                </li>
-              </ul>
+              
+              <div className="mb-6">
+                <div className="flex items-baseline">
+                  <span className="text-4xl font-bold text-purple-600">€95</span>
+                </div>
+              </div>
+
+              <div className="space-y-4 mb-8">
+                <div className="flex items-start">
+                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-700">20–30 Min.</span>
+                </div>
+                <div className="flex items-start">
+                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-700">1 Look/Outfit</span>
+                </div>
+                <div className="flex items-start">
+                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-700">1 retuschiertes Bild (High-Res + Web)</span>
+                </div>
+                <div className="flex items-start">
+                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-700 text-sm">Jedes weitere Bild €30</span>
+                </div>
+              </div>
+
               <Link
-                to="/termin-planen"
-                className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                to="/warteliste"
+                className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
               >
                 Jetzt buchen
               </Link>
             </div>
 
-            {/* Professional Package */}
-            <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-xl shadow-2xl p-8 transform scale-105">
-              <div className="bg-yellow-400 text-gray-900 text-sm font-bold px-3 py-1 rounded-full inline-block mb-4">
-                EMPFOHLEN
+            {/* Solo Pro Package */}
+            <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 transform scale-105 relative">
+              <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-bl-lg rounded-tr-2xl">
+                BELIEBT
               </div>
-              <h3 className="text-2xl font-bold mb-4">Professional</h3>
-              <div className="text-3xl font-bold mb-6">
-                €299
+              
+              <div className="mb-6 mt-4">
+                <h3 className="text-2xl font-bold mb-2">Solo Pro</h3>
+                <p className="text-purple-100 font-medium">Für Professionals</p>
               </div>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>30 Minuten Shooting</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>15 bearbeitete Bilder</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>2 verschiedene Outfits</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Mehrere Hintergründe</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Perfekt für LinkedIn</span>
-                </li>
-              </ul>
+              
+              <div className="mb-6">
+                <div className="flex items-baseline">
+                  <span className="text-4xl font-bold">€195</span>
+                </div>
+              </div>
+
+              <div className="space-y-4 mb-8">
+                <div className="flex items-start">
+                  <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
+                  <span>45–60 Min.</span>
+                </div>
+                <div className="flex items-start">
+                  <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
+                  <span>Bis zu 2 Looks/Outfits</span>
+                </div>
+                <div className="flex items-start">
+                  <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
+                  <span>5 retuschierte Bilder (High-Res + Web)</span>
+                </div>
+                <div className="flex items-start">
+                  <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
+                  <span>Variable Hintergründe & Licht-Setups</span>
+                </div>
+              </div>
+
               <Link
-                to="/termin-planen"
+                to="/warteliste"
                 className="block text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
               >
                 Jetzt buchen
               </Link>
             </div>
 
-            {/* Team Package */}
-            <div className="bg-white rounded-xl shadow-lg p-8">
-              <h3 className="text-2xl font-bold mb-4">Team</h3>
-              <div className="text-3xl font-bold text-purple-600 mb-2">
-                ab €99
+            {/* Brand Upgrade Package */}
+            <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow">
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Brand Upgrade</h3>
+                <p className="text-purple-600 font-medium">Maximale Vielfalt</p>
               </div>
-              <p className="text-sm text-gray-600 mb-6">pro Person</p>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Vor Ort oder im Studio</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Einheitlicher Look</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>10 Bilder pro Person</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Ab 5 Personen</span>
-                </li>
-              </ul>
+              
+              <div className="mb-6">
+                <div className="flex items-baseline">
+                  <span className="text-4xl font-bold text-purple-600">€295</span>
+                </div>
+              </div>
+
+              <div className="space-y-4 mb-8">
+                <div className="flex items-start">
+                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-700">75–90 Min.</span>
+                </div>
+                <div className="flex items-start">
+                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-700">Bis zu 3 Looks/Outfits</span>
+                </div>
+                <div className="flex items-start">
+                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-700">10 retuschierte Bilder (High-Res + Web)</span>
+                </div>
+                <div className="flex items-start">
+                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-700">Mehrere Hintergründe & Licht-Variationen</span>
+                </div>
+              </div>
+
               <Link
-                to="/kontakt"
-                className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                to="/warteliste"
+                className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
               >
-                Angebot anfragen
+                Jetzt buchen
+              </Link>
+            </div>
+          </div>
+
+          {/* Team Photos Note */}
+          <div className="bg-white rounded-xl p-6 mb-8 border-2 border-purple-100">
+            <div className="flex items-start">
+              <Users className="h-6 w-6 text-purple-600 mr-3 flex-shrink-0 mt-1" />
+              <div>
+                <p className="font-semibold text-gray-900 mb-1">Team- & Mitarbeiterfotos:</p>
+                <p className="text-gray-600">
+                  ab €95 p. P. (ab 5 Personen, 2 Looks, 2 retuschierte Bilder p. P.). Einheitlicher Look + Gruppenbild möglich.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA Buttons after packages */}
+          <div className="mt-12 text-center bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-8">
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">Keine Zeit?</h3>
+            <p className="text-gray-700 mb-6">
+              Setzen Sie sich auf unsere Warteliste – wir melden freie Slots sofort.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                to="/warteliste"
+                className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+              >
+                Termin auf der Warteliste sichern
+                <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Tips Section */}
+      {/* Style Options Section */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Tipps für perfekte Business-Portraits
-          </h2>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-gray-50 rounded-xl p-8">
-              <h3 className="font-semibold text-xl mb-4">👔 Outfit-Empfehlungen</h3>
-              <ul className="space-y-3 text-gray-700">
-                <li>• Einfarbige Kleidung in dunklen oder neutralen Tönen</li>
-                <li>• Hemd/Bluse gebügelt und sauber</li>
-                <li>• Jackett oder Blazer für formelleren Look</li>
-                <li>• Vermeiden Sie auffällige Muster oder Logos</li>
-                <li>• Business Casual oder Business Formal je nach Branche</li>
-              </ul>
+          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Style-Optionen (Sie wählen – wir führen)</h2>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="bg-gray-50 rounded-xl p-6">
+              <h3 className="font-semibold text-lg text-gray-900 mb-3 flex items-center">
+                <Palette className="h-5 w-5 text-purple-600 mr-2" />
+                Hintergründe
+              </h3>
+              <p className="text-gray-700 text-sm">
+                Hell (clean), Dunkel (dramatisch), Farbverlauf, Firmenfarbe.
+              </p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-8">
-              <h3 className="font-semibold text-xl mb-4">💡 Vorbereitung</h3>
-              <ul className="space-y-3 text-gray-700">
-                <li>• Haare frisch geschnitten/gestylt</li>
-                <li>• Bei Bedarf: professionelles Make-up</li>
-                <li>• Brille putzen (falls vorhanden)</li>
-                <li>• Entspannt ankommen - wir haben keine Eile</li>
-                <li>• Bringen Sie 2-3 Outfits zur Auswahl mit</li>
-              </ul>
+
+            <div className="bg-gray-50 rounded-xl p-6">
+              <h3 className="font-semibold text-lg text-gray-900 mb-3 flex items-center">
+                <Camera className="h-5 w-5 text-purple-600 mr-2" />
+                Licht-Setups
+              </h3>
+              <p className="text-gray-700 text-sm">
+                Beauty/Clamshell (glatt & modern), Rembrandt (prägnant), Edge/Profil (kantig).
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-xl p-6">
+              <h3 className="font-semibold text-lg text-gray-900 mb-3 flex items-center">
+                <TrendingUp className="h-5 w-5 text-purple-600 mr-2" />
+                Bildsprache
+              </h3>
+              <p className="text-gray-700 text-sm">
+                Headshot, Halbportrait, Querformate für Website-Header.
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-xl p-6">
+              <h3 className="font-semibold text-lg text-gray-900 mb-3 flex items-center">
+                <Briefcase className="h-5 w-5 text-purple-600 mr-2" />
+                Look & Feel
+              </h3>
+              <p className="text-gray-700 text-sm">
+                Business-formal, Smart-Casual, Kreativ – gern mit Accessoires (Laptop, Notizbuch).
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-xl p-6">
+              <h3 className="font-semibold text-lg text-gray-900 mb-3 flex items-center">
+                <Star className="h-5 w-5 text-purple-600 mr-2" />
+                Farbwelt
+              </h3>
+              <p className="text-gray-700 text-sm">
+                Farblook oder Schwarzweiß-Serie passend zur Marke.
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-xl p-6">
+              <h3 className="font-semibold text-lg text-gray-900 mb-3 flex items-center">
+                <Shield className="h-5 w-5 text-purple-600 mr-2" />
+                Kommerzielle Rechte
+              </h3>
+              <p className="text-gray-700 text-sm">
+                Volle Nutzungsrechte für Web, Social, PR & Print inklusive.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Corporate Services */}
-      <section className="py-16 bg-purple-50">
+      {/* Process Section */}
+      <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Corporate Fotografie Services
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white rounded-xl p-6 shadow-lg">
-              <h3 className="font-semibold text-xl mb-3">Firmen-Events</h3>
-              <p className="text-gray-600 mb-4">
-                Professionelle Dokumentation Ihrer Firmenveranstaltungen, 
-                Konferenzen und Networking-Events.
-              </p>
-              <Link
-                to="/eventfotografie-wien/"
-                className="text-purple-600 font-semibold flex items-center"
-              >
-                Mehr erfahren <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
+          <div className="mb-12">
+            <img
+              src="https://i.imgur.com/3gctBYO.jpg"
+              alt="Business Portrait Shooting Ablauf"
+              className="rounded-2xl shadow-lg w-full h-96 object-cover"
+              loading="lazy"
+            />
+          </div>
+
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Ablauf – schnell & professionell</h2>
+          <div className="grid md:grid-cols-5 gap-6">
+            <div className="text-center">
+              <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-purple-600">1</span>
+              </div>
+              <h3 className="font-semibold mb-2 text-gray-900">Briefing</h3>
+              <p className="text-gray-600 text-sm">Ziel, Verwendungsorte, Dresscode, Stil</p>
             </div>
-            <div className="bg-white rounded-xl p-6 shadow-lg">
-              <h3 className="font-semibold text-xl mb-3">Imagefotos</h3>
-              <p className="text-gray-600 mb-4">
-                Authentische Bilder aus Ihrem Arbeitsalltag für Website, 
-                Broschüren und Social Media.
-              </p>
-              <Link
-                to="/kontakt"
-                className="text-purple-600 font-semibold flex items-center"
-              >
-                Anfrage senden <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
+            <div className="text-center">
+              <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-purple-600">2</span>
+              </div>
+              <h3 className="font-semibold mb-2 text-gray-900">Shooting</h3>
+              <p className="text-gray-600 text-sm">Mit Ausdrucks-Coaching, Wechsel von Licht & Hintergründen je Look</p>
             </div>
-            <div className="bg-white rounded-xl p-6 shadow-lg">
-              <h3 className="font-semibold text-xl mb-3">Produktfotos</h3>
-              <p className="text-gray-600 mb-4">
-                Hochwertige Produktfotografie für Ihren Online-Shop 
-                oder Katalog.
+            <div className="text-center">
+              <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-purple-600">3</span>
+              </div>
+              <h3 className="font-semibold mb-2 text-gray-900">Auswahl</h3>
+              <p className="text-gray-600 text-sm">Auswahlgalerie online – Favoriten markieren</p>
+            </div>
+            <div className="text-center">
+              <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-purple-600">4</span>
+              </div>
+              <h3 className="font-semibold mb-2 text-gray-900">Retusche</h3>
+              <p className="text-gray-600 text-sm">Natürliche Haut, Staub/Fussel, Brille/Glanz, Kontur</p>
+            </div>
+            <div className="text-center">
+              <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-purple-600">5</span>
+              </div>
+              <h3 className="font-semibold mb-2 text-gray-900">Lieferung</h3>
+              <p className="text-gray-600 text-sm">High-Res + Web inkl. kommerzielle Lizenz</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* What to Bring Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Vorbereitung – was mitbringen?</h2>
+          
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="bg-purple-50 rounded-xl p-6">
+              <h3 className="font-semibold text-lg text-gray-900 mb-3">Outfits</h3>
+              <p className="text-gray-700 text-sm">
+                2–3 Outfits (Blazer/Jackett, Hemd/Bluse, optional Casual).
               </p>
-              <Link
-                to="/kontakt"
-                className="text-purple-600 font-semibold flex items-center"
-              >
-                Anfrage senden <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
+            </div>
+
+            <div className="bg-purple-50 rounded-xl p-6">
+              <h3 className="font-semibold text-lg text-gray-900 mb-3">Details</h3>
+              <p className="text-gray-700 text-sm">
+                Saubere Brille, gebügelte Stoffe, dezentes Make-up.
+              </p>
+            </div>
+
+            <div className="bg-purple-50 rounded-xl p-6">
+              <h3 className="font-semibold text-lg text-gray-900 mb-3">Finishing</h3>
+              <p className="text-gray-700 text-sm">
+                Haare: Bürste/Stylingprodukt, Lippenpflege; Rasur am Shooting-Tag.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">Häufige Fragen</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">FAQ</h2>
           <div className="space-y-6">
-            <div className="border-b pb-6">
-              <h3 className="font-semibold text-lg mb-2">
-                Wie lange dauert ein Business-Portrait Shooting?
-              </h3>
+            <div className="bg-white rounded-xl p-6 shadow-sm">
+              <h3 className="font-bold text-lg text-gray-900 mb-2">Bekomme ich alle Dateien in druckfähiger Qualität?</h3>
               <p className="text-gray-600">
-                Ein Individual-Shooting dauert ca. 15-20 Minuten, das Professional-Paket 
-                etwa 30-40 Minuten inkl. Outfit-Wechsel und verschiedenen Perspektiven.
+                Ja. Sie erhalten High-Res (Print) und Web-Größen – beide vollständig retuschiert.
               </p>
             </div>
-            <div className="border-b pb-6">
-              <h3 className="font-semibold text-lg mb-2">
-                Wann erhalte ich meine Bilder?
-              </h3>
+            <div className="bg-white rounded-xl p-6 shadow-sm">
+              <h3 className="font-bold text-lg text-gray-900 mb-2">Sind kommerzielle Rechte inkludiert?</h3>
               <p className="text-gray-600">
-                Sie erhalten eine Online-Galerie zur Bildauswahl innerhalb von 3 Werktagen. 
-                Die finalen, bearbeiteten Bilder werden innerhalb von 7 Werktagen geliefert.
+                Ja. Nutzung für Website, Social Media, Presse & Print ist im Paket enthalten.
               </p>
             </div>
-            <div className="border-b pb-6">
-              <h3 className="font-semibold text-lg mb-2">
-                Können wir das Shooting bei uns im Büro machen?
-              </h3>
+            <div className="bg-white rounded-xl p-6 shadow-sm">
+              <h3 className="font-bold text-lg text-gray-900 mb-2">Wie schnell sind die Bilder da?</h3>
               <p className="text-gray-600">
-                Ja! Für Team-Shootings kommen wir gerne zu Ihnen ins Büro. 
-                Wir bringen mobile Beleuchtung und Hintergrund-Systeme mit.
+                Preview i. d. R. 48–72 h, finale Retuschen 3–5 Werktage (Express möglich).
+              </p>
+            </div>
+            <div className="bg-white rounded-xl p-6 shadow-sm">
+              <h3 className="font-bold text-lg text-gray-900 mb-2">Können wir mehrere Looks/CI-Farben testen?</h3>
+              <p className="text-gray-600">
+                Gern – wählen Sie im Paket 2–3 Looks. Wir matchen Hintergründe & Licht an Ihre Marke.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-gray-900 to-purple-900 text-white">
+      {/* Internal Linking - Related Services */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl font-bold text-center mb-8">Weitere Fotografie-Services</h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            <Link
+              to="/familienfotos-wien/"
+              className="block bg-purple-50 rounded-xl p-6 hover:shadow-lg transition-shadow"
+            >
+              <Users className="h-10 w-10 text-purple-600 mb-4" />
+              <h3 className="font-semibold text-lg mb-2 text-gray-900">Familienfotografie</h3>
+              <p className="text-gray-600 text-sm mb-4">
+                Authentische Familienfotos im Studio mit bis zu 12 Personen
+              </p>
+              <span className="text-purple-600 font-semibold flex items-center">
+                Mehr erfahren <ArrowRight className="ml-1 h-4 w-4" />
+              </span>
+            </Link>
+            <Link
+              to="/schwangerschaftsfotos-wien/"
+              className="block bg-purple-50 rounded-xl p-6 hover:shadow-lg transition-shadow"
+            >
+              <Heart className="h-10 w-10 text-purple-600 mb-4" />
+              <h3 className="font-semibold text-lg mb-2 text-gray-900">Schwangerschafts-Fotos</h3>
+              <p className="text-gray-600 text-sm mb-4">
+                Emotionale Babybauch-Portraits im Studio oder Outdoor
+              </p>
+              <span className="text-purple-600 font-semibold flex items-center">
+                Mehr erfahren <ArrowRight className="ml-1 h-4 w-4" />
+              </span>
+            </Link>
+            <Link
+              to="/neugeborenenfotos-wien/"
+              className="block bg-purple-50 rounded-xl p-6 hover:shadow-lg transition-shadow"
+            >
+              <Camera className="h-10 w-10 text-purple-600 mb-4" />
+              <h3 className="font-semibold text-lg mb-2 text-gray-900">Neugeborenenfotos</h3>
+              <p className="text-gray-600 text-sm mb-4">
+                Warmes Studio, sichere Posen, Tag 5-14 nach der Geburt
+              </p>
+              <span className="text-purple-600 font-semibold flex items-center">
+                Mehr erfahren <ArrowRight className="ml-1 h-4 w-4" />
+              </span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA Section */}
+      <section className="py-16 bg-gradient-to-r from-gray-900 to-gray-800 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Bereit für Ihr professionelles Business-Portrait?
+            Bereit für professionelle Business-Portraits?
           </h2>
           <p className="text-xl mb-8 opacity-90">
-            Buchen Sie jetzt Ihren Termin oder fordern Sie ein individuelles Angebot für Ihr Team an
+            Sichern Sie sich jetzt Ihren Termin – Warteliste verfügbar
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              to="/termin-planen"
+              to="/warteliste"
               className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg"
             >
-              Termin buchen
+              Termin auf der Warteliste sichern
               <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-            <Link
-              to="/kontakt"
-              className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white rounded-lg hover:bg-white/10 transition-colors font-semibold text-lg"
-            >
-              Team-Angebot anfragen
             </Link>
           </div>
         </div>
