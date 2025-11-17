@@ -90,17 +90,27 @@ export default function FamilienfotosWienPage() {
 
       {/* Introduction Section */}
       <section className="py-12 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="prose prose-lg max-w-none">
-            <p className="text-lg text-gray-700 leading-relaxed">
-              Willkommen bei New Age Fotografie – Ihrem Familienfotografen in Wien! Unser ruhiges Studio bietet den perfekten 
-              Rahmen für authentische Familienfotos. Ob kleine Familie oder Großfamilie mit bis zu 12 Personen – wir nehmen uns 
-              Zeit für echte Momente und natürliche Emotionen.
-            </p>
-            <p className="text-lg text-gray-700 leading-relaxed mt-4">
-              Bringt gerne eure Persönlichkeit mit: Lieblingsspielzeug der Kinder, Musikinstrumente, Sportgeräte oder das 
-              Familienmaskottchen. Diese persönlichen Details machen eure Fotos einzigartig und erzählen eure Geschichte.
-            </p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div className="prose prose-lg max-w-none">
+              <p className="text-lg text-gray-700 leading-relaxed">
+                Willkommen bei New Age Fotografie – Ihrem Familienfotografen in Wien! Unser ruhiges Studio bietet den perfekten 
+                Rahmen für authentische Familienfotos. Ob kleine Familie oder Großfamilie mit bis zu 12 Personen – wir nehmen uns 
+                Zeit für echte Momente und natürliche Emotionen.
+              </p>
+              <p className="text-lg text-gray-700 leading-relaxed mt-4">
+                Bringt gerne eure Persönlichkeit mit: Lieblingsspielzeug der Kinder, Musikinstrumente, Sportgeräte oder das 
+                Familienmaskottchen. Diese persönlichen Details machen eure Fotos einzigartig und erzählen eure Geschichte.
+              </p>
+            </div>
+            <div>
+              <img
+                src="https://i.postimg.cc/V6TFF8rC/00508749.jpg"
+                alt="Familie im Studio Wien"
+                className="rounded-2xl shadow-lg w-full h-full object-cover"
+                loading="lazy"
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -258,7 +268,7 @@ export default function FamilienfotosWienPage() {
                 <Smile className="h-6 w-6 text-purple-600 mr-3 flex-shrink-0 mt-1" />
                 <div>
                   <p className="font-semibold text-gray-900 mb-1">Outfitwechsel erwünscht</p>
-                  <p className="text-gray-600 text-sm">Wir empfehlen 2 Looks pro Person. <Link to="/was-anziehen/" className="text-purple-600 hover:text-purple-700 underline">Was sollen wir anziehen?</Link></p>
+                  <p className="text-gray-600 text-sm">Wir empfehlen 2 Looks pro Person.</p>
                 </div>
               </div>
               <div className="flex items-start">
@@ -292,11 +302,11 @@ export default function FamilienfotosWienPage() {
               </div>
               <div className="flex items-center">
                 <Check className="h-4 w-4 text-purple-600 mr-2" />
-                <span><Link to="/alben/" className="text-purple-600 hover:text-purple-700 underline">Fine-Art-Album</Link> ab <strong>€195</strong></span>
+                <span>Fine-Art-Album ab <strong>€195</strong></span>
               </div>
               <div className="flex items-center">
                 <Check className="h-4 w-4 text-purple-600 mr-2" />
-                <span><Link to="/drucke/" className="text-purple-600 hover:text-purple-700 underline">Duplikat-Leinwand</Link> 40×30 <strong>€59</strong> / 60×40 <strong>€89</strong></span>
+                <span>Duplikat-Leinwand 40×30 <strong>€59</strong> / 60×40 <strong>€89</strong></span>
               </div>
             </div>
           </div>
@@ -329,6 +339,14 @@ export default function FamilienfotosWienPage() {
       {/* Shooting-Ablauf Section */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-12">
+            <img
+              src="https://i.imgur.com/3gctBYO.jpg"
+              alt="Familienfotografie Studio Ablauf"
+              className="rounded-2xl shadow-lg w-full h-96 object-cover"
+              loading="lazy"
+            />
+          </div>
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Shooting-Ablauf (Studio)</h2>
           <div className="grid md:grid-cols-5 gap-6">
             <div className="text-center">
@@ -367,11 +385,6 @@ export default function FamilienfotosWienPage() {
               <p className="text-gray-600 text-sm">Favoriten markieren → Retusche → Download & Leinwand</p>
             </div>
           </div>
-          <div className="mt-8 text-center">
-            <Link to="/session-prep/" className="text-purple-600 hover:text-purple-700 font-medium underline">
-              Session-Vorbereitung für Familien →
-            </Link>
-          </div>
         </div>
       </section>
 
@@ -392,11 +405,6 @@ export default function FamilienfotosWienPage() {
               <h3 className="font-bold text-lg text-gray-900 mb-2">Wie schnell bekommen wir die Bilder?</h3>
               <p className="text-gray-600">Auswahl in 3–5 Tagen, finale Retusche in 10–14 Tagen (Express möglich).</p>
             </div>
-          </div>
-          <div className="mt-8 text-center">
-            <Link to="/faq/" className="text-purple-600 hover:text-purple-700 font-semibold underline text-lg">
-              Mehr Fragen? Zur kompletten FAQ →
-            </Link>
           </div>
         </div>
       </section>
@@ -446,11 +454,6 @@ export default function FamilienfotosWienPage() {
               </span>
             </Link>
           </div>
-          <div className="mt-8 text-center">
-            <Link to="/testimonials/" className="text-purple-600 hover:text-purple-700 font-medium underline">
-              Erfahrungen unserer Familien lesen →
-            </Link>
-          </div>
         </div>
       </section>
 
@@ -471,16 +474,7 @@ export default function FamilienfotosWienPage() {
               Termin auf der Warteliste sichern
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
-            <Link
-              to="/preise/"
-              className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg"
-            >
-              Alle Preise & Add-ons
-            </Link>
           </div>
-          <p className="mt-6 text-sm opacity-75">
-            Mehr über uns: <Link to="/about/" className="underline hover:opacity-100">Über New Age Fotografie</Link>
-          </p>
         </div>
       </section>
 
