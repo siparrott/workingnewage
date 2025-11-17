@@ -86,20 +86,29 @@ const Footer: React.FC = () => {
             <ul className="space-y-2">
               <li>
                 <Link 
-                  to="/familien-fotoshooting-wien/" 
+                  to="/familienfotos-wien/" 
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Familien-Fotoshooting
+                  Familienfotos
                 </Link>
               </li>
               <li>
                 <Link 
-                  to="/baby-fotografie-wien/" 
+                  to="/neugeborenenfotos-wien/" 
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Baby & Newborn
+                  Neugeborenenfotos
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/babyfotos-wien/" 
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Babyfotos (3-12 Monate)
                 </Link>
               </li>
               <li>
@@ -117,7 +126,25 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Business Portrait
+                  Business-Portraits
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/teamfotos-wien/" 
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Team- & Mitarbeiterfotos
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/bewerbungsfotos-wien/" 
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Bewerbungsfotos & LinkedIn
                 </Link>
               </li>
               <li>
