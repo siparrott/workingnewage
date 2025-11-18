@@ -2,15 +2,18 @@ import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
 import { Link } from 'react-router-dom';
 import { Heart, Sparkles, Camera, ArrowRight, Check } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function SchwangerschaftsfotosWienPage() {
+  const { t } = useLanguage();
+  
   return (
     <Layout>
     <div className="min-h-screen bg-white">
       <SEOHead
-        title="Schwangerschafts-Fotos in Wien – Babybauch-Shooting mit Stil"
-        description="Emotionale Babybauch-Portraits im Studio oder Outdoor mit Partner und Lichtzauber."
-        keywords="schwangerschaftsfotografie wien, babybauch fotoshooting, schwangerschaft fotos wien, maternity shooting"
+        title={t('maternity.seo.title')}
+        description={t('maternity.seo.description')}
+        keywords={t('maternity.seo.keywords')}
         canonical="/schwangerschaftsfotos-wien/"
         ogImage="https://www.newagefotografie.com/images/maternity-hero.jpg"
         hreflang={[
@@ -25,26 +28,24 @@ export default function SchwangerschaftsfotosWienPage() {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-                Schwangerschafts-Fotos in Wien
+                {t('maternity.hero.title')}
               </h1>
               <p className="text-xl text-gray-600 mb-8">
-                Emotionale Babybauch-Portraits im Studio oder Outdoor. 
-                Feiern Sie die Schönheit der Schwangerschaft mit professionellen, 
-                stilvollen Fotos, die diese besondere Zeit für immer festhalten.
+                {t('maternity.hero.description')}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   to="/termin-planen"
                   className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
                 >
-                  Termin buchen
+                  {t('maternity.hero.bookButton')}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
                 <Link
                   to="/gutschein/maternity"
                   className="inline-flex items-center justify-center px-8 py-4 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors font-semibold"
                 >
-                  Gutschein verschenken
+                  {t('maternity.hero.voucherButton')}
                 </Link>
               </div>
             </div>
@@ -63,37 +64,34 @@ export default function SchwangerschaftsfotosWienPage() {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-center mb-12">
-            Warum Schwangerschaftsfotos?
+            {t('maternity.features.title')}
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
                 <Heart className="h-8 w-8 text-purple-600" />
               </div>
-              <h3 className="text-xl font-semibold mb-3">Einzigartige Zeit</h3>
+              <h3 className="text-xl font-semibold mb-3">{t('maternity.features.unique.title')}</h3>
               <p className="text-gray-600">
-                Die Schwangerschaft ist eine kurze, kostbare Phase - 
-                bewahren Sie diese Erinnerungen
+                {t('maternity.features.unique.description')}
               </p>
             </div>
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
                 <Sparkles className="h-8 w-8 text-purple-600" />
               </div>
-              <h3 className="text-xl font-semibold mb-3">Natürliche Schönheit</h3>
+              <h3 className="text-xl font-semibold mb-3">{t('maternity.features.natural.title')}</h3>
               <p className="text-gray-600">
-                Sanftes Licht und geschmackvolle Posen, die Ihre 
-                Weiblichkeit unterstreichen
+                {t('maternity.features.natural.description')}
               </p>
             </div>
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
                 <Camera className="h-8 w-8 text-purple-600" />
               </div>
-              <h3 className="text-xl font-semibold mb-3">Flexible Locations</h3>
+              <h3 className="text-xl font-semibold mb-3">{t('maternity.features.flexible.title')}</h3>
               <p className="text-gray-600">
-                Gemütliches Studio mit Umkleidekabine oder draußen 
-                an Ihrer Lieblingslocation
+                {t('maternity.features.flexible.description')}
               </p>
             </div>
           </div>
@@ -104,18 +102,15 @@ export default function SchwangerschaftsfotosWienPage() {
       <section className="py-16 bg-purple-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold mb-6">
-            Wann ist der beste Zeitpunkt?
+            {t('maternity.timing.title')}
           </h2>
           <p className="text-lg text-gray-700 mb-8">
-            Ideal ist das <strong>3. Trimester zwischen der 28. und 34. Schwangerschaftswoche</strong>.
-            Der Babybauch ist schön sichtbar, aber Sie fühlen sich noch beweglich und wohl.
+            {t('maternity.timing.description')}
           </p>
           <div className="bg-white rounded-xl p-8 shadow-lg">
-            <h3 className="font-semibold text-xl mb-4">Tipp vom Profi</h3>
+            <h3 className="font-semibold text-xl mb-4">{t('maternity.timing.proTipTitle')}</h3>
             <p className="text-gray-600">
-              Buchen Sie Ihren Termin bereits früher, damit wir gemeinsam den perfekten 
-              Zeitpunkt finden können. Bei Mehrlingsschwangerschaften empfehlen wir 
-              eine etwas frühere Terminfestlegung (26.-30. SSW).
+              {t('maternity.timing.proTip')}
             </p>
           </div>
         </div>
@@ -125,109 +120,109 @@ export default function SchwangerschaftsfotosWienPage() {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-center mb-12">
-            Schwangerschafts-Fotografie Pakete
+            {t('maternity.packages.title')}
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             {/* Studio Package */}
             <div className="bg-white rounded-xl shadow-lg p-8 border-2 border-gray-200">
-              <h3 className="text-2xl font-bold mb-4">Studio</h3>
+              <h3 className="text-2xl font-bold mb-4">{t('maternity.packages.studio.title')}</h3>
               <div className="text-3xl font-bold text-purple-600 mb-6">
-                €249
+                {t('maternity.packages.studio.price')}
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>45 Minuten Shooting</span>
+                  <span>{t('maternity.packages.studio.feature1')}</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>15 bearbeitete Bilder</span>
+                  <span>{t('maternity.packages.studio.feature2')}</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Umkleidekabine & Kleiderauswahl</span>
+                  <span>{t('maternity.packages.studio.feature3')}</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Solo oder mit Partner</span>
+                  <span>{t('maternity.packages.studio.feature4')}</span>
                 </li>
               </ul>
               <Link
                 to="/termin-planen"
                 className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
               >
-                Jetzt buchen
+                {t('maternity.packages.studio.button')}
               </Link>
             </div>
 
             {/* Premium Package */}
             <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-xl shadow-2xl p-8 transform scale-105">
               <div className="bg-yellow-400 text-gray-900 text-sm font-bold px-3 py-1 rounded-full inline-block mb-4">
-                BELIEBT
+                {t('maternity.packages.premium.badge')}
               </div>
-              <h3 className="text-2xl font-bold mb-4">Premium</h3>
+              <h3 className="text-2xl font-bold mb-4">{t('maternity.packages.premium.title')}</h3>
               <div className="text-3xl font-bold mb-6">
-                €399
+                {t('maternity.packages.premium.price')}
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>90 Minuten Shooting</span>
+                  <span>{t('maternity.packages.premium.feature1')}</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>25 bearbeitete Bilder</span>
+                  <span>{t('maternity.packages.premium.feature2')}</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Studio + Outdoor Mix</span>
+                  <span>{t('maternity.packages.premium.feature3')}</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Geschwisterkinder willkommen</span>
+                  <span>{t('maternity.packages.premium.feature4')}</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Hochauflösende Dateien</span>
+                  <span>{t('maternity.packages.premium.feature5')}</span>
                 </li>
               </ul>
               <Link
                 to="/termin-planen"
                 className="block text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
               >
-                Jetzt buchen
+                {t('maternity.packages.premium.button')}
               </Link>
             </div>
 
             {/* Outdoor Package */}
             <div className="bg-white rounded-xl shadow-lg p-8 border-2 border-gray-200">
-              <h3 className="text-2xl font-bold mb-4">Outdoor</h3>
+              <h3 className="text-2xl font-bold mb-4">{t('maternity.packages.outdoor.title')}</h3>
               <div className="text-3xl font-bold text-purple-600 mb-6">
-                €349
+                {t('maternity.packages.outdoor.price')}
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>60 Minuten Shooting</span>
+                  <span>{t('maternity.packages.outdoor.feature1')}</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>20 bearbeitete Bilder</span>
+                  <span>{t('maternity.packages.outdoor.feature2')}</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Location Ihrer Wahl in Wien</span>
+                  <span>{t('maternity.packages.outdoor.feature3')}</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Natürliches Licht</span>
+                  <span>{t('maternity.packages.outdoor.feature4')}</span>
                 </li>
               </ul>
               <Link
                 to="/termin-planen"
                 className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
               >
-                Jetzt buchen
+                {t('maternity.packages.outdoor.button')}
               </Link>
             </div>
           </div>
@@ -237,24 +232,24 @@ export default function SchwangerschaftsfotosWienPage() {
       {/* What to Wear Section */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">Was soll ich anziehen?</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">{t('maternity.clothing.title')}</h2>
           <div className="grid md:grid-cols-2 gap-8">
             <div className="bg-white rounded-lg p-6">
-              <h3 className="font-semibold text-lg mb-3">👗 Für Sie</h3>
+              <h3 className="font-semibold text-lg mb-3">{t('maternity.clothing.forYou.title')}</h3>
               <ul className="space-y-2 text-gray-700">
-                <li>• Lange, fließende Kleider in Nude, Weiß oder Pastelltönen</li>
-                <li>• Spitzen-Bodies oder BH + lockere Hose</li>
-                <li>• Figurbetonte Kleider, die den Bauch zeigen</li>
-                <li>• Wir haben auch einige Kleider im Studio zum Ausleihen!</li>
+                <li>• {t('maternity.clothing.forYou.item1')}</li>
+                <li>• {t('maternity.clothing.forYou.item2')}</li>
+                <li>• {t('maternity.clothing.forYou.item3')}</li>
+                <li>• {t('maternity.clothing.forYou.item4')}</li>
               </ul>
             </div>
             <div className="bg-white rounded-lg p-6">
-              <h3 className="font-semibold text-lg mb-3">👕 Für Ihren Partner</h3>
+              <h3 className="font-semibold text-lg mb-3">{t('maternity.clothing.forPartner.title')}</h3>
               <ul className="space-y-2 text-gray-700">
-                <li>• Einfarbige Hemden oder T-Shirts</li>
-                <li>• Neutrale Farben (Schwarz, Weiß, Grau, Beige)</li>
-                <li>• Vermeiden Sie auffällige Muster oder Logos</li>
-                <li>• Barfuß oder dunkle Socken</li>
+                <li>• {t('maternity.clothing.forPartner.item1')}</li>
+                <li>• {t('maternity.clothing.forPartner.item2')}</li>
+                <li>• {t('maternity.clothing.forPartner.item3')}</li>
+                <li>• {t('maternity.clothing.forPartner.item4')}</li>
               </ul>
             </div>
           </div>
@@ -264,42 +259,42 @@ export default function SchwangerschaftsfotosWienPage() {
       {/* Related Services */}
       <section className="py-16 bg-purple-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-center mb-8">Die perfekte Ergänzung</h2>
+          <h2 className="text-2xl font-bold text-center mb-8">{t('maternity.related.title')}</h2>
           <div className="grid md:grid-cols-3 gap-6">
             <Link
               to="/baby-fotografie-wien/"
               className="block bg-white rounded-xl p-6 hover:shadow-lg transition-shadow"
             >
-              <h3 className="font-semibold text-lg mb-2">Newborn-Fotografie</h3>
+              <h3 className="font-semibold text-lg mb-2">{t('maternity.related.newborn.title')}</h3>
               <p className="text-gray-600 text-sm mb-4">
-                Buchen Sie schon jetzt Ihr Neugeborenen-Shooting
+                {t('maternity.related.newborn.description')}
               </p>
               <span className="text-purple-600 font-semibold flex items-center">
-                Mehr erfahren <ArrowRight className="ml-1 h-4 w-4" />
+                {t('maternity.related.newborn.link')} <ArrowRight className="ml-1 h-4 w-4" />
               </span>
             </Link>
             <Link
               to="/familien-fotoshooting-wien/"
               className="block bg-white rounded-xl p-6 hover:shadow-lg transition-shadow"
             >
-              <h3 className="font-semibold text-lg mb-2">Familien-Shooting</h3>
+              <h3 className="font-semibold text-lg mb-2">{t('maternity.related.family.title')}</h3>
               <p className="text-gray-600 text-sm mb-4">
-                Die komplette Familie gemeinsam vor der Kamera
+                {t('maternity.related.family.description')}
               </p>
               <span className="text-purple-600 font-semibold flex items-center">
-                Mehr erfahren <ArrowRight className="ml-1 h-4 w-4" />
+                {t('maternity.related.family.link')} <ArrowRight className="ml-1 h-4 w-4" />
               </span>
             </Link>
             <Link
               to="/paar-fotoshooting-wien/"
               className="block bg-white rounded-xl p-6 hover:shadow-lg transition-shadow"
             >
-              <h3 className="font-semibold text-lg mb-2">Paar-Shooting</h3>
+              <h3 className="font-semibold text-lg mb-2">{t('maternity.related.couple.title')}</h3>
               <p className="text-gray-600 text-sm mb-4">
-                Romantische Aufnahmen zu zweit
+                {t('maternity.related.couple.description')}
               </p>
               <span className="text-purple-600 font-semibold flex items-center">
-                Mehr erfahren <ArrowRight className="ml-1 h-4 w-4" />
+                {t('maternity.related.couple.link')} <ArrowRight className="ml-1 h-4 w-4" />
               </span>
             </Link>
           </div>
@@ -310,16 +305,16 @@ export default function SchwangerschaftsfotosWienPage() {
       <section className="py-16 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Feiern Sie diese besondere Zeit
+            {t('maternity.cta.title')}
           </h2>
           <p className="text-xl mb-8 opacity-90">
-            Buchen Sie jetzt Ihr Schwangerschafts-Fotoshooting in Wien
+            {t('maternity.cta.description')}
           </p>
           <Link
             to="/termin-planen"
             className="inline-flex items-center px-8 py-4 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-lg"
           >
-            Termin vereinbaren
+            {t('maternity.cta.button')}
             <ArrowRight className="ml-2 h-5 w-5" />
           </Link>
         </div>
