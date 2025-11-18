@@ -2,7 +2,7 @@ import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { Camera, Check, ArrowRight, Building2, Sparkles, Home } from 'lucide-react';
-import GoogleReviews from '../components/GoogleReviews';
+import GoogleReviews from '../../components/layout/GoogleReviews';
 
 interface SEOHeadProps {
   title: string;
