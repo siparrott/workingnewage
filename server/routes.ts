@@ -4934,7 +4934,7 @@ New Age Fotografie Team`;
 
           // Create minimal photography session (only required fields to avoid array serialization issues)
           const session:  any = {
-            id: `imported-${(event.uid || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`).replace(/[^a-zA-Z0-9_-]/g,'')}`,
+            id: `cal-import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             title: event.summary || 'Imported Event',
             sessionType: 'imported',
             startTime: start,
