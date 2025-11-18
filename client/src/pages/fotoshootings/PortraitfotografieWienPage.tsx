@@ -1,369 +1,393 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
+import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link } from 'react-router-dom';
-import { Camera, User, Star, Sparkles, ArrowRight, Check, Heart } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
+import { Camera, Sparkles, ArrowRight, Check, MapPin } from 'lucide-react';
 
 export default function PortraitfotografieWienPage() {
   return (
     <Layout>
-    <div className="min-h-screen bg-white">
-      <SEOHead
-        title="Portraitfotografie Wien – Professionelle Portraits | New Age Fotografie"
-        description="Professionelle Portraitfotografie in Wien. Individuelle Portraits für private oder berufliche Zwecke. Natürlich, modern & professionell. Jetzt Termin buchen!"
-        keywords="portraitfotografie wien, portrait wien, portraitfotograf wien, portraitshooting wien, fotograf portraits wien"
-        canonical="/portrait-fotografie-wien/"
-        hreflang={[
-          { lang: 'de', url: '/portrait-fotografie-wien/' },
-          { lang: 'en', url: '/en/portrait-photography-vienna/' }
-        ]}
-      />
+      <div className="min-h-screen bg-white">
+        <SEOHead
+          title="Portraitfotograf Wien – Editorial, Klassisch & Kreativ | New Age Fotografie"
+          description="Portraitfotograf Wien gesucht? Editorial, klassisch & kreative Portraits – Studio-Sets, Licht-Setups, Pakete & FAQs. Jetzt Termin sichern!"
+          keywords="portraitfotograf wien, portraitfotografie wien, editorial portrait wien, studio portrait wien"
+          canonical="/portrait-fotografie-wien/"
+          hreflang={[
+            { lang: 'de', url: '/portrait-fotografie-wien/' },
+            { lang: 'en', url: '/en/portrait-photography-vienna/' }
+          ]}
+        />
 
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 pt-24 pb-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-                Portraitfotografie in Wien
-              </h1>
-              <p className="text-xl text-gray-600 mb-8">
-                Ausdrucksstarke Portraits, die Ihre Persönlichkeit einfangen. 
-                Ob für private Erinnerungen oder professionelle Zwecke – wir setzen Sie perfekt in Szene.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link
-                  to="/kontakt"
-                  className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
-                >
-                  Termin buchen
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-                <Link
-                  to="/vouchers"
-                  className="inline-flex items-center justify-center px-8 py-4 bg-white text-purple-600 border-2 border-purple-500 rounded-lg hover:bg-purple-50 transition-colors font-semibold"
-                >
-                  Gutschein kaufen
-                </Link>
+        {/* JSON-LD Structured Data */}
+        <Helmet>
+          <script type="application/ld+json">
+            {JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Service',
+              name: 'Portraitfotografie Wien',
+              serviceType: 'Portrait Photography',
+              areaServed: { '@type': 'City', name: 'Wien' },
+              provider: { '@type': 'LocalBusiness', name: 'New Age Fotografie' },
+              offers: { '@type': 'AggregateOffer', lowPrice: '190', highPrice: '480', priceCurrency: 'EUR' }
+            })}
+          </script>
+        </Helmet>
+
+        {/* Hero */}
+        <section className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white pt-24 pb-16">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-900/20 to-pink-900/20"></div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <div>
+                <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
+                  Portraitfotografie in Wien
+                </h1>
+                <p className="text-xl text-gray-300 mb-3 leading-relaxed font-semibold">
+                  Echte Ausstrahlung. Saubere Lichtführung. Bilder, die bleiben.
+                </p>
+                <p className="text-lg text-gray-300/90 mb-8 leading-relaxed">
+                  Als <strong>portraitfotograf wien</strong> inszenieren wir dich so, wie du gesehen werden willst –
+                  editorial, klassisch oder kreativ. Im Studio oder on location. Ohne steife Posen, mit klarer Richtung und Tempo.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Link to="/warteliste" className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg">
+                    Termin sichern
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Link>
+                  <Link to="/kontakt" className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white rounded-lg hover:bg-white/10 transition-colors font-semibold text-lg">
+                    Beratung & Verfügbarkeit
+                  </Link>
+                </div>
+              </div>
+              <div className="relative">
+                <img
+                  src="/images/portrait-hero.jpg"
+                  alt="portraitfotograf wien – Editorial-Look mit Kantenlicht auf schwarzem Hintergrund"
+                  className="rounded-2xl shadow-2xl w-full h-96 object-cover"
+                  loading="eager"
+                />
               </div>
             </div>
-            <div className="relative">
-              <div className="aspect-square rounded-2xl bg-gradient-to-br from-purple-200 to-pink-200 flex items-center justify-center">
-                <Camera className="w-32 h-32 text-white" />
+          </div>
+        </section>
+
+        <GoogleReviews />
+
+        {/* Portrait-Stile */}
+        <section className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Portrait-Stile auf einen Blick</h2>
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="bg-gray-50 rounded-xl p-6">
+                <Sparkles className="h-10 w-10 text-purple-600 mb-4" />
+                <h3 className="font-semibold text-lg mb-2 text-gray-900">Editorial</h3>
+                <p className="text-gray-600 text-sm">Magazin-Look, markante Lichtkante, klare Posen.</p>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-6">
+                <Camera className="h-10 w-10 text-purple-600 mb-4" />
+                <h3 className="font-semibold text-lg mb-2 text-gray-900">Klassisch</h3>
+                <p className="text-gray-600 text-sm">Zeitlos, weiche Übergänge, dezente Retusche.</p>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-6">
+                <Sparkles className="h-10 w-10 text-purple-600 mb-4" />
+                <h3 className="font-semibold text-lg mb-2 text-gray-900">Kreativ</h3>
+                <p className="text-gray-600 text-sm">Farben, Texturen, Bewegung – gerne auch Experimente.</p>
+              </div>
+            </div>
+            <div className="mt-8 text-center text-gray-700 text-sm">
+              Ergebnis: Ein Set Bilder, das auf Website, LinkedIn & Profil gleichermaßen funktioniert.
+            </div>
+          </div>
+        </section>
+
+        {/* Studio-Sets & Licht */}
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-3xl font-bold text-center mb-8">Studio-Sets & Licht (Best-of)</h2>
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-purple-600 text-white">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-sm font-semibold">Set</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold">Look</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold">Licht-Setup</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold">Ideal für</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">Charcoal Grey</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">Zeitlos, Business-Ready</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">2-Licht Clamshell + Haarlicht</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">Headshots, Team</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">White High-Key</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">Hell, clean, modern</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">Großes Softbox-Key + Aufheller</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">Web, PR</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">Black Low-Key</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">Dramatisch, kantig</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">Streifenlicht + Edge</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">Editorial, Künstler</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">Color Pop</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">Mutig, Trend</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">Farbgel + Key/Fill</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">Kampagnen, Social</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">Textured Backdrop</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">Warm, organisch</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">Soft Key + Grid</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">Autoren, Personal Brand</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-4 bg-purple-50 rounded-xl p-4 text-sm text-gray-700">
+              Technik-Kurznotiz: Hauttöne zuerst. Dual-Card-Backup. Kalibrierte Monitore. Retusche dezent – Poren bleiben Poren.
+            </div>
+          </div>
+        </section>
+
+        {/* Pakete & Preise */}
+        <section className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Pakete & Preise</h2>
+            </div>
+            <div className="grid md:grid-cols-3 gap-8 mb-12">
+              {/* Headshot Mini */}
+              <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow border border-gray-200">
+                <div className="mb-6">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Headshot Mini</h3>
+                  <p className="text-purple-600 font-medium">30 Min</p>
+                </div>
+                <div className="mb-6">
+                  <div className="flex items-baseline">
+                    <span className="text-4xl font-bold text-purple-600">€190</span>
+                  </div>
+                </div>
+                <div className="space-y-3 mb-8 text-sm">
+                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>2 Looks, 6 Retuschen, Online-Galerie</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>Ideal: LinkedIn, Signatur</span></div>
+                </div>
+                <Link to="/warteliste" className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold">Termin sichern</Link>
+              </div>
+
+              {/* Portrait Classic (beliebt) */}
+              <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 transform scale-105 relative">
+                <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-bl-lg rounded-tr-2xl">BELIEBT</div>
+                <div className="mb-6 mt-4">
+                  <h3 className="text-2xl font-bold mb-2">Portrait Classic</h3>
+                  <p className="text-purple-100 font-medium">60–75 Min</p>
+                </div>
+                <div className="mb-6">
+                  <div className="flex items-baseline">
+                    <span className="text-4xl font-bold">€320</span>
+                  </div>
+                </div>
+                <div className="space-y-3 mb-8 text-sm">
+                  <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>3 Looks, 12 Retuschen</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>Outfit-Check & Posing-Guidance</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>Ideal: Website, PR</span></div>
+                </div>
+                <Link to="/warteliste" className="block text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold">Termin sichern</Link>
+              </div>
+
+              {/* Editorial Session */}
+              <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow border border-gray-200">
+                <div className="mb-6">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Editorial Session</h3>
+                  <p className="text-purple-600 font-medium">90–120 Min</p>
+                </div>
+                <div className="mb-6">
+                  <div className="flex items-baseline">
+                    <span className="text-4xl font-bold text-purple-600">€480</span>
+                  </div>
+                </div>
+                <div className="space-y-3 mb-8 text-sm">
+                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>4–5 Looks, 18 Retuschen</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>Creative Set, Farbgel-Option</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>Ideal: Kampagnen, Artists</span></div>
+                </div>
+                <Link to="/warteliste" className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold">Termin sichern</Link>
+              </div>
+            </div>
+
+            {/* Add-ons */}
+            <div className="bg-gray-50 rounded-xl p-6 text-sm">
+              <h4 className="font-bold text-gray-900 mb-3">Add-ons:</h4>
+              <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="flex items-center"><Check className="h-4 w-4 text-purple-600 mr-2" />Extra Look <strong>€40</strong></div>
+                <div className="flex items-center"><Check className="h-4 w-4 text-purple-600 mr-2" />Express-Delivery <strong>48h €60</strong></div>
+                <div className="flex items-center"><Check className="h-4 w-4 text-purple-600 mr-2" />Visagistik/Haare ab <strong>€120</strong></div>
+                <div className="flex items-center"><Check className="h-4 w-4 text-purple-600 mr-2" />Lizenzpakete für Presse/Ads (auf Anfrage)</div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Portrait Types Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Verschiedene Portrait-Stile</h2>
-            <p className="text-lg text-gray-600">Von klassisch bis modern – wir finden den perfekten Stil für Sie</p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-indigo-50 rounded-xl p-6">
-              <User className="w-12 h-12 text-purple-600 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Klassische Portraits</h3>
-              <ul className="space-y-2 text-gray-600">
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Zeitlose Eleganz</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Studio-Setting mit professionellem Licht</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Perfekt für formelle Anlässe</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="bg-purple-50 rounded-xl p-6">
-              <Sparkles className="w-12 h-12 text-purple-600 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Kreative Portraits</h3>
-              <ul className="space-y-2 text-gray-600">
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Künstlerischer Ausdruck</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Besondere Lichteffekte</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Einzigartige Kompositionen</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="bg-pink-50 rounded-xl p-6">
-              <Heart className="w-12 h-12 text-purple-600 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Outdoor Portraits</h3>
-              <ul className="space-y-2 text-gray-600">
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Natürliches Licht</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Wunderschöne Wiener Locations</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Entspannte Atmosphäre</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Unsere Portrait-Pakete</h2>
-            <p className="text-lg text-gray-600">Professionelle Portraitfotografie zu fairen Preisen</p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Basic Package */}
-            <div className="bg-white rounded-xl shadow-lg p-8 border-2 border-gray-200">
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Basis Portrait</h3>
-              <div className="mb-6">
-                <span className="text-4xl font-bold text-purple-600">€149</span>
+        {/* Vorbereitung */}
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-3xl font-bold text-center mb-10">Vorbereitung: Kleidung & Ausdruck</h2>
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <h3 className="font-semibold text-gray-900 mb-3">Kleidung (quick wins)</h3>
+                <ul className="text-sm text-gray-700 space-y-2">
+                  <li>• 2–3 Outfits: neutral + Statement</li>
+                  <li>• Feine Texturen &gt; große Logos</li>
+                  <li>• Kragen & Schultern glatt (Steamer vor Ort)</li>
+                </ul>
               </div>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>30 Minuten Shooting</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>8 bearbeitete Bilder digital</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Studio oder Outdoor</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>1 Outfit</span>
-                </li>
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <h3 className="font-semibold text-gray-900 mb-3">Ausdruck</h3>
+                <ul className="text-sm text-gray-700 space-y-2">
+                  <li>• „Soft Smile“, „Focused“, „Approachable“ – Mikro-Coaching</li>
+                  <li>• 5-Sekunden-Regel: Mini-Reset zwischen Serien</li>
+                </ul>
+              </div>
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <h3 className="font-semibold text-gray-900 mb-3">Accessoires</h3>
+                <ul className="text-sm text-gray-700 space-y-2">
+                  <li>• Brillen entspiegeln? Super – sonst kurzer Winkel-Check</li>
+                  <li>• Schmuck: 1 Fokus-Piece statt alles gleichzeitig</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* On Location Wien */}
+        <section className="py-16 bg-white">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-3xl font-bold text-center mb-6">On Location in Wien</h2>
+            <p className="text-gray-700 text-center max-w-3xl mx-auto mb-4">
+              Lieber urban statt Studio? Wir haben Spots mit Platz & Lichtfenstern. Tipp: Unter der Woche am Vormittag ist es ruhiger –
+              per ÖPNV kommt man entspannt hin.
+            </p>
+            <p className="text-center text-sm text-gray-600">
+              Externer Hinweis:{' '}
+              <a href="https://www.wienerlinien.at/" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-700 underline">
+                Wiener Linien Routenplaner – Anfahrt & Umstieg
+              </a>
+            </p>
+          </div>
+        </section>
+
+        {/* Ablauf & SLAs */}
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-3xl font-bold text-center mb-8">Ablauf & Lieferzeiten (SLAs)</h2>
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-purple-600 text-white">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-sm font-semibold">Schritt</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold">Was passiert</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold">Zeit</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">Briefing</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">Ziel, Look, Nutzung (Web/Print/PR)</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">10 Min</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">Shooting</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">Lichtcheck → Serien → Review</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">30–120 Min</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">Auswahl</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">Favoriten in Galerie markieren</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">am Tag</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">Retusche</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">Natürlich, sauber, markenschonend</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">2–4 Werktage</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">Delivery</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">Hi-Res + Web-Optimiert, Namensschema</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">Download-Link</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div className="bg-purple-100 rounded-xl p-4 text-center mt-4">
+              <p className="text-sm text-gray-700">Express möglich, wenn’s brennt.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Beispiele */}
+        <section className="py-16 bg-white">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-3xl font-bold text-center mb-8">Beispiele: Editorial • Klassisch • Kreativ</h2>
+            <div className="bg-purple-50 rounded-xl p-8">
+              <ul className="grid md:grid-cols-3 gap-4 text-sm text-gray-700">
+                <li>• Editorial: Dunkler Backdrop, Edge-Light, markanter Kiefer – Magazin-ready.</li>
+                <li>• Klassisch: Grey, weiches Key, Catchlights sauber – zeitlos.</li>
+                <li>• Kreativ: Farbgel-Gradient, leichte Motion – Social Hook.</li>
               </ul>
-              <Link
-                to="/kontakt"
-                className="block w-full text-center px-6 py-3 bg-gray-100 text-gray-900 rounded-lg hover:bg-gray-200 transition-colors font-semibold"
-              >
-                Jetzt buchen
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-3xl font-bold text-center mb-12">FAQ – kurz & klar</h2>
+            <div className="space-y-6">
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <h3 className="font-bold text-lg text-gray-900 mb-2">Wie viele finale Bilder?</h3>
+                <p className="text-gray-600">Je nach Paket 6–18 retuschierte Motive, plus Grundauswahl.</p>
+              </div>
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <h3 className="font-bold text-lg text-gray-900 mb-2">Darf ich die RAWs bekommen?</h3>
+                <p className="text-gray-600">Nein – wir liefern finale, farbverbindliche Bilder (JPG/PNG, auf Wunsch TIFF).</p>
+              </div>
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <h3 className="font-bold text-lg text-gray-900 mb-2">Make-up nötig?</h3>
+                <p className="text-gray-600">Empfehlung: Mattierung/Teint-Ausgleich. Gerne buchen wir Make-up Artist.</p>
+              </div>
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <h3 className="font-bold text-lg text-gray-900 mb-2">Retusche-Level?</h3>
+                <p className="text-gray-600">Natürlich – Hautstruktur bleibt, temporäre Unreinheiten gehen.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Final CTA */}
+        <section className="py-16 bg-gradient-to-r from-gray-900 to-gray-800 text-white">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">Nächster Schritt</h2>
+            <p className="text-xl mb-8 opacity-90">
+              Erzähl uns kurz Zweck, Deadline und gewünschten Stil. Wir empfehlen Paket, Set & Licht – und blocken dir einen Slot.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link to="/warteliste" className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg">
+                Jetzt Wartelisten-Platz sichern
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+              <Link to="/kontakt" className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white rounded-lg hover:bg-white/10 transition-colors font-semibold text-lg">
+                Verfügbarkeit prüfen
               </Link>
             </div>
-
-            {/* Premium Package */}
-            <div className="bg-white rounded-xl shadow-xl p-8 border-2 border-purple-500 relative transform scale-105">
-              <div className="absolute top-0 right-0 bg-purple-500 text-white px-4 py-1 rounded-bl-lg rounded-tr-lg text-sm font-semibold">
-                EMPFOHLEN
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Premium Portrait</h3>
-              <div className="mb-6">
-                <span className="text-4xl font-bold text-purple-600">€249</span>
-              </div>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>60 Minuten Shooting</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>15 bearbeitete Bilder digital</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Studio & Outdoor kombiniert</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>2-3 Outfits</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Styling-Beratung</span>
-                </li>
-              </ul>
-              <Link
-                to="/kontakt"
-                className="block w-full text-center px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
-              >
-                Jetzt buchen
-              </Link>
-            </div>
-
-            {/* Deluxe Package */}
-            <div className="bg-white rounded-xl shadow-lg p-8 border-2 border-gray-200">
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Deluxe Portrait</h3>
-              <div className="mb-6">
-                <span className="text-4xl font-bold text-purple-600">€399</span>
-              </div>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>90 Minuten Shooting</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>25 bearbeitete Bilder digital</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Mehrere Locations</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Unbegrenzte Outfits</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Professionelles Make-up & Styling</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Premium Fotoalbum</span>
-                </li>
-              </ul>
-              <Link
-                to="/kontakt"
-                className="block w-full text-center px-6 py-3 bg-gray-100 text-gray-900 rounded-lg hover:bg-gray-200 transition-colors font-semibold"
-              >
-                Jetzt buchen
-              </Link>
-            </div>
           </div>
-        </div>
-      </section>
-
-      {/* Use Cases Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-12 text-center">Wofür Sie Portraits verwenden können</h2>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-purple-50 rounded-lg p-6 text-center">
-              <Star className="w-10 h-10 text-purple-600 mx-auto mb-3" />
-              <h3 className="font-semibold text-gray-900 mb-2">Social Media</h3>
-              <p className="text-sm text-gray-600">Professionelle Profilbilder für Instagram, Facebook & Co</p>
-            </div>
-
-            <div className="bg-indigo-50 rounded-lg p-6 text-center">
-              <User className="w-10 h-10 text-purple-600 mx-auto mb-3" />
-              <h3 className="font-semibold text-gray-900 mb-2">Persönliche Erinnerungen</h3>
-              <p className="text-sm text-gray-600">Meilensteine & besondere Momente festhalten</p>
-            </div>
-
-            <div className="bg-pink-50 rounded-lg p-6 text-center">
-              <Heart className="w-10 h-10 text-purple-600 mx-auto mb-3" />
-              <h3 className="font-semibold text-gray-900 mb-2">Geschenke</h3>
-              <p className="text-sm text-gray-600">Einzigartige Geschenkidee für Ihre Liebsten</p>
-            </div>
-
-            <div className="bg-purple-50 rounded-lg p-6 text-center">
-              <Camera className="w-10 h-10 text-purple-600 mx-auto mb-3" />
-              <h3 className="font-semibold text-gray-900 mb-2">Künstlerportfolios</h3>
-              <p className="text-sm text-gray-600">Für Schauspieler, Models & Künstler</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Tips Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Tipps für Ihr Portrait-Shooting</h2>
-          
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Kleidung & Styling</h3>
-              <p className="text-gray-600">
-                Wählen Sie Kleidung, in der Sie sich wohlfühlen. Einfarbige Outfits ohne große Muster 
-                funktionieren oft am besten. Bringen Sie gerne mehrere Optionen mit – wir helfen Ihnen bei der Auswahl.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Entspannung ist der Schlüssel</h3>
-              <p className="text-gray-600">
-                Nervosität vor der Kamera ist völlig normal! Wir nehmen uns Zeit, damit Sie sich entspannen können. 
-                Die besten Portraits entstehen, wenn Sie authentisch sind und sich wohlfühlen.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Location-Wahl</h3>
-              <p className="text-gray-600">
-                Studio-Portraits bieten kontrollierbares Licht und klassische Eleganz. Outdoor-Portraits 
-                haben einen natürlicheren Look. Wir beraten Sie gerne, welcher Stil am besten zu Ihnen passt.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Related Services */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Weitere Fotografie-Services</h2>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            <Link to="/business-portrait-wien/" className="bg-gray-50 rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-              <User className="w-12 h-12 text-purple-600 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Business Portraits</h3>
-              <p className="text-gray-600">
-                Professionelle Business-Portraits für LinkedIn, Website und Bewerbungen.
-              </p>
-            </Link>
-
-            <Link to="/familien-fotoshooting-wien/" className="bg-gray-50 rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-              <Heart className="w-12 h-12 text-purple-600 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Familien-Fotoshooting</h3>
-              <p className="text-gray-600">
-                Die ganze Familie gemeinsam – unvergessliche Erinnerungen für die Ewigkeit.
-              </p>
-            </Link>
-
-            <Link to="/kinder-fotografie-wien/" className="bg-gray-50 rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-              <Sparkles className="w-12 h-12 text-purple-600 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Kinder-Fotografie</h3>
-              <p className="text-gray-600">
-                Lebendige, natürliche Kinderfotos die die Persönlichkeit einfangen.
-              </p>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-br from-purple-600 to-pink-500 text-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">Bereit für Ihr professionelles Portrait?</h2>
-          <p className="text-xl mb-8 text-purple-50">
-            Buchen Sie jetzt Ihr Portraitshooting in Wien und lassen Sie sich perfekt in Szene setzen!
-          </p>
-          <Link
-            to="/kontakt"
-            className="inline-flex items-center px-8 py-4 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-lg"
-          >
-            Jetzt Termin vereinbaren
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Link>
-        </div>
-      </section>
-
-    </div>
+        </section>
+      </div>
     </Layout>
   );
 }
