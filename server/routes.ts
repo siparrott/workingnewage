@@ -4932,45 +4932,13 @@ New Age Fotografie Team`;
             continue; // skip invalid entries instead of assigning "now"
           }
 
-          // Create photography session from calendar event
-          const session = {
+          // Create minimal photography session (only required fields to avoid array serialization issues)
+          const session:  any = {
             id: `imported-${(event.uid || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`).replace(/[^a-zA-Z0-9_-]/g,'')}`,
-            icalUid: event.uid || undefined,
             title: event.summary || 'Imported Event',
-            description: event.description || '',
             sessionType: 'imported',
-            status: 'confirmed',
-            // Ensure timestamps are valid Date objects for Drizzle/pg driver
             startTime: start,
             endTime: end,
-            locationName: event.location || '',
-            locationAddress: event.location || '',
-            clientName: extractClientFromDescription(event.description || event.summary || ''),
-            clientEmail: '',
-            clientPhone: '',
-            // omit optional pricing fields to avoid decimal coercion issues
-            paymentStatus: 'pending',
-            conflictDetected: false,
-            weatherDependent: false,
-            goldenHourOptimized: false,
-            portfolioWorthy: false,
-            editingStatus: 'pending',
-            deliveryStatus: 'pending',
-            isRecurring: false,
-            reminderSent: false,
-            confirmationSent: false,
-            followUpSent: false,
-            isOnlineBookable: false,
-            availabilityStatus: 'booked',
-            priority: 'medium',
-            isPublic: false,
-            photographerId: 'imported',
-            // Set array fields to empty arrays (not null, not omitted, not string "[]")
-            equipmentList: [],
-            crewMembers: [],
-            tags: [],
-            createdAt: new Date(),
-            updatedAt: new Date()
           };
 
           // Synchronous debug snapshot to capture payload exactly before DB insert (write to OS temp dir)
