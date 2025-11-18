@@ -38,6 +38,7 @@ const Header: React.FC = () => {
     { path: '/teamfotos-wien/', label: 'Team- & Mitarbeiterfotos' },
     { path: '/bewerbungsfotos-wien/', label: 'Bewerbungsfotos & LinkedIn' },
     { path: '/portrait-fotografie-wien/', label: 'Portraitfotografie' },
+    { path: '/produkt-fotografie-wien/', label: 'Produktfotografie' },
     { path: '/hochzeitsfotografie-wien/', label: 'Hochzeitsfotografie' },
     { path: '/eventfotografie-wien/', label: 'Eventfotografie' },
   ];
