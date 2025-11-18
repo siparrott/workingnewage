@@ -4890,10 +4890,25 @@ New Age Fotografie Team`;
       const importedEvents = parseICalContent(icsContent);
       const cutoff = getImportCutoffUtc(req);
       const upper = getImportUpperBoundUtc(req);
+      
+      console.error(`ICS_URL_IMPORT | total_parsed=${importedEvents.length} | cutoff=${cutoff.toISOString()} | upper=${upper ? upper.toISOString() : 'none'}`);
+      
+      // Log first few parsed events for debugging
+      importedEvents.slice(0, 3).forEach((ev, idx) => {
+        console.error(`  Event ${idx + 1}: ${ev.summary} | dtstart=${ev.dtstart} | parsed_date=${ev.dtstart ? new Date(ev.dtstart).toISOString() : 'INVALID'}`);
+      });
+      
       const eventsToImport = importedEvents.filter(ev => {
         const ds = ev?.dtstart ? new Date(ev.dtstart) : null;
-        return !!(ds && !isNaN(ds.getTime()) && ds >= cutoff && (!upper || ds <= upper));
+        const passes = !!(ds && !isNaN(ds.getTime()) && ds >= cutoff && (!upper || ds <= upper));
+        if (!passes && ev.dtstart) {
+          console.error(`  FILTERED OUT: ${ev.summary} | dtstart=${ev.dtstart} | date=${ds?.toISOString()} | reason=${!ds ? 'no_date' : isNaN(ds.getTime()) ? 'invalid_date' : ds < cutoff ? 'before_cutoff' : 'after_upper'}`);
+        }
+        return passes;
       });
+      
+      console.error(`ICS_URL_IMPORT | events_to_import=${eventsToImport.length}`);
+      
       const dryRun = String(req.query.dryRun || req.query.dryrun || '').toLowerCase() === 'true';
       if (dryRun) {
         console.error(`ICS_URL_DRY_RUN | events=${importedEvents.length} | filtered=${eventsToImport.length} | cutoff=${cutoff.toISOString()} | upper=${upper ? upper.toISOString() : 'none'} | url=${icsUrl}`);
