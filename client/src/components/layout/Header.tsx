@@ -40,6 +40,7 @@ const Header: React.FC = () => {
     { path: '/portrait-fotografie-wien/', label: 'Portraitfotografie' },
     { path: '/produkt-fotografie-wien/', label: 'Produktfotografie' },
     { path: '/immobilien-fotografie-wien/', label: 'Immobilienfotografie' },
+    { path: '/studio-fotografie-wien/', label: 'Studio-Fotografie' },
     { path: '/hochzeitsfotografie-wien/', label: 'Hochzeitsfotografie' },
     { path: '/eventfotografie-wien/', label: 'Eventfotografie' },
   ];
