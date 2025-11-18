@@ -393,9 +393,12 @@ export class DatabaseStorage implements IStorage {
                                  !(session as any).description && 
                                  !(session as any).clientEmail;
       
+      console.error(`STORAGE_DEBUG | isImportedSession=${isImportedSession} | sessionType=${(session as any).sessionType} | id=${(session as any).id}`);
+      
       let row: PhotographySession | undefined;
       
       if (isImportedSession) {
+        console.error(`STORAGE_DEBUG | Using raw SQL for imported session`);
         // Use raw SQL INSERT to completely bypass Drizzle's array handling
         const s = session as any;
         await db.execute(sql`
@@ -403,6 +406,7 @@ export class DatabaseStorage implements IStorage {
           VALUES (${s.id}, ${s.title}, ${s.sessionType}, ${s.startTime}, ${s.endTime})
           ON CONFLICT (id) DO NOTHING
         `);
+        console.error(`STORAGE_DEBUG | Raw SQL executed successfully`);
         // Fetch the inserted row
         const result = await db
           .select()
