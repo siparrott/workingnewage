@@ -116,7 +116,10 @@ const Header: React.FC = () => {
             onMouseEnter={() => setAboutOpen(true)}
             onMouseLeave={() => setAboutOpen(false)}
           >
-            <button className="text-gray-700 hover:text-purple-600 transition-colors flex items-center">
+            <button 
+              onClick={() => setAboutOpen(!aboutOpen)}
+              className="text-gray-700 hover:text-purple-600 transition-colors flex items-center"
+            >
               Über Uns
               <ChevronDown size={16} className="ml-1" />
             </button>
@@ -126,7 +129,10 @@ const Header: React.FC = () => {
                   <Link
                     key={item.path}
                     to={item.path}
-                    onClick={() => handleNavClick(item.path)}
+                    onClick={() => {
+                      handleNavClick(item.path);
+                      setAboutOpen(false);
+                    }}
                     className={`block px-4 py-2 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors ${
                       isActive(item.path) ? 'text-purple-600 font-semibold bg-purple-50' : ''
                     }`}
