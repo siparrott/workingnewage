@@ -28,15 +28,18 @@ const Header: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Unified Fotoshootings navigation matching footer (SEO cornerstone pages)
   const fotoshootingItems = [
-    { path: '/familien-fotoshooting-wien/', label: 'Familie' },
-    { path: '/baby-fotografie-wien/', label: 'Baby & Newborn' },
-    { path: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaft' },
-    { path: '/kinder-fotografie-wien/', label: 'Kinder' },
-    { path: '/portrait-fotografie-wien/', label: 'Portrait' },
-    { path: '/business-portrait-wien/', label: 'Business Portrait' },
-    { path: '/fotoshootings/wedding', label: 'Hochzeit' },
-    { path: '/fotoshootings/event', label: 'Event' },
+    { path: '/familienfotos-wien/', label: 'Familienfotos' },
+    { path: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos' },
+    { path: '/babyfotos-wien/', label: 'Babyfotos (3-12 Monate)' },
+    { path: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaftsfotos' },
+    { path: '/business-portrait-wien/', label: 'Business-Portraits' },
+    { path: '/teamfotos-wien/', label: 'Team- & Mitarbeiterfotos' },
+    { path: '/bewerbungsfotos-wien/', label: 'Bewerbungsfotos & LinkedIn' },
+    { path: '/portrait-fotografie-wien/', label: 'Portraitfotografie' },
+    { path: '/hochzeitsfotografie-wien/', label: 'Hochzeitsfotografie' },
+    { path: '/eventfotografie-wien/', label: 'Eventfotografie' },
   ];
 
   const aboutItems = [
