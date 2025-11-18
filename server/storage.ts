@@ -387,28 +387,45 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
-      // Upsert by ID; update key fields (enables correcting times after parser fixes)
-      const upserted = await db
-        .insert(photographySessions)
-        .values(session as any)
-        // @ts-ignore drizzle typing for onConflictDoUpdate target inference
-        .onConflictDoUpdate({
-          target: photographySessions.id,
-          set: {
-            title: (session as any).title,
-            description: (session as any).description,
-            startTime: (session as any).startTime,
-            endTime: (session as any).endTime,
-            locationName: (session as any).locationName,
-            locationAddress: (session as any).locationAddress,
-            clientName: (session as any).clientName,
-            icalUid: (session as any).icalUid,
-            updatedAt: new Date(),
-          },
-        })
-        .returning();
-
-      let row = upserted[0] as unknown as PhotographySession | undefined;
+      // For imported sessions (with minimal fields), use simple insert to avoid array field issues
+      // For regular sessions, use upsert to enable updates
+      const isImportedSession = (session as any).sessionType === 'imported' && 
+                                 !(session as any).description && 
+                                 !(session as any).clientEmail;
+      
+      let row: PhotographySession | undefined;
+      
+      if (isImportedSession) {
+        // Simple insert with onConflictDoNothing to avoid array serialization issues
+        const inserted = await db
+          .insert(photographySessions)
+          .values(session as any)
+          .onConflictDoNothing()
+          .returning();
+        row = inserted[0] as unknown as PhotographySession | undefined;
+      } else {
+        // Regular upsert for non-imported sessions
+        const upserted = await db
+          .insert(photographySessions)
+          .values(session as any)
+          // @ts-ignore drizzle typing for onConflictDoUpdate target inference
+          .onConflictDoUpdate({
+            target: photographySessions.id,
+            set: {
+              title: (session as any).title,
+              description: (session as any).description,
+              startTime: (session as any).startTime,
+              endTime: (session as any).endTime,
+              locationName: (session as any).locationName,
+              locationAddress: (session as any).locationAddress,
+              clientName: (session as any).clientName,
+              icalUid: (session as any).icalUid,
+              updatedAt: new Date(),
+            },
+          })
+          .returning();
+        row = upserted[0] as unknown as PhotographySession | undefined;
+      }
 
   // Secondary reconciliation: if we somehow didn't get a row back, try by icalUid
       if (!row && (session as any).icalUid) {
