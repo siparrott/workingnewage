@@ -4965,7 +4965,10 @@ New Age Fotografie Team`;
             priority: 'medium',
             isPublic: false,
             photographerId: 'imported',
-            // Do NOT set array fields (equipmentList, crewMembers, tags) - let database use defaults
+            // Set array fields to empty arrays (not null, not omitted, not string "[]")
+            equipmentList: [],
+            crewMembers: [],
+            tags: [],
             createdAt: new Date(),
             updatedAt: new Date()
           };
