@@ -169,8 +169,8 @@ export default function AdminVoucherSalesPageV3() {
   const stats = {
     totalRevenue: voucherSales?.reduce((sum, sale) => sum + Number(sale.finalAmount), 0) || 0,
     totalSales: voucherSales?.length || 0,
-    activeProducts: voucherProducts?.filter(p => p.isActive || p.is_active).length || 0,
-    activeCoupons: discountCoupons?.filter(c => c.isActive || c.is_active).length || 0,
+    activeProducts: voucherProducts?.filter(p => p.isActive).length || 0,
+    activeCoupons: discountCoupons?.filter(c => c.isActive).length || 0,
     avgOrderValue: voucherSales?.length ? (voucherSales.reduce((sum, sale) => sum + Number(sale.finalAmount), 0) / voucherSales.length) : 0,
     totalDiscountGiven: voucherSales?.reduce((sum, sale) => sum + Number(sale.discountAmount), 0) || 0
   };
@@ -211,10 +211,10 @@ export default function AdminVoucherSalesPageV3() {
       // Reset query cache entirely for voucher products
       queryClient.removeQueries({ queryKey: ["/api/vouchers/products"] });
       setIsProductDialogOpen(false);
+      setUploadedImage(null);
       productForm.reset();
       alert("Voucher product created successfully!");
-      // Force page refresh to ensure data is loaded
-      window.location.reload();
+      // Stay on products tab - no page reload
     },
     onError: (error) => {
       console.error("Failed to create voucher product:", error);
@@ -259,8 +259,7 @@ export default function AdminVoucherSalesPageV3() {
       setUploadedImage(null);
       productForm.reset();
       alert("Voucher product updated successfully!");
-      // Force page refresh to ensure data is loaded
-      window.location.reload();
+      // Stay on products tab - no page reload
     },
     onError: (error) => {
       // console.error removed
@@ -818,7 +817,7 @@ const ProductsView: React.FC<{
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => window.open(`/vouchers/${product.id}`, '_blank')}
+                    onClick={() => window.open(`/gutschein/${product.slug || product.id}`, '_blank')}
                   >
                     <Eye className="h-4 w-4 mr-1" />
                     Preview
@@ -1330,12 +1329,15 @@ const ProductDialog: React.FC<{
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
+    // Initialize image preview from either uploaded image or existing product image
     if (uploadedImage) {
       setImagePreview(uploadedImage);
+    } else if (product?.imageUrl) {
+      setImagePreview(product.imageUrl);
     } else {
       setImagePreview(null);
     }
-  }, [uploadedImage]);
+  }, [uploadedImage, product]);
 
   const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
