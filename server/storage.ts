@@ -387,7 +387,7 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
-      // For imported sessions (with minimal fields), use simple insert to avoid array field issues
+      // For imported sessions (with minimal fields), use raw SQL to avoid Drizzle array serialization bugs
       // For regular sessions, use upsert to enable updates
       const isImportedSession = (session as any).sessionType === 'imported' && 
                                  !(session as any).description && 
@@ -396,13 +396,20 @@ export class DatabaseStorage implements IStorage {
       let row: PhotographySession | undefined;
       
       if (isImportedSession) {
-        // Simple insert with onConflictDoNothing to avoid array serialization issues
-        const inserted = await db
-          .insert(photographySessions)
-          .values(session as any)
-          .onConflictDoNothing()
-          .returning();
-        row = inserted[0] as unknown as PhotographySession | undefined;
+        // Use raw SQL INSERT to completely bypass Drizzle's array handling
+        const s = session as any;
+        await db.execute(sql`
+          INSERT INTO photography_sessions (id, title, session_type, start_time, end_time)
+          VALUES (${s.id}, ${s.title}, ${s.sessionType}, ${s.startTime}, ${s.endTime})
+          ON CONFLICT (id) DO NOTHING
+        `);
+        // Fetch the inserted row
+        const result = await db
+          .select()
+          .from(photographySessions)
+          .where(eq(photographySessions.id, s.id))
+          .limit(1);
+        row = result[0] as unknown as PhotographySession | undefined;
       } else {
         // Regular upsert for non-imported sessions
         const upserted = await db

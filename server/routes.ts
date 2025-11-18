@@ -4933,12 +4933,16 @@ New Age Fotografie Team`;
           }
 
           // Create minimal photography session (only required fields to avoid array serialization issues)
+          // Use explicit null for array fields to prevent Drizzle from serializing them as "[]" string
           const session:  any = {
             id: `cal-import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             title: event.summary || 'Imported Event',
             sessionType: 'imported',
             startTime: start,
             endTime: end,
+            equipmentList: null,
+            crewMembers: null,
+            tags: null,
           };
 
           // Synchronous debug snapshot to capture payload exactly before DB insert (write to OS temp dir)
