@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import Layout from '../components/layout/Layout';
 import ZoomableImage from '../components/ui/ZoomableImage';
 import Typewriter from 'typewriter-effect';
@@ -16,6 +17,70 @@ const HomePage: React.FC = () => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Fetch voucher products from API
+  const { data: apiProducts } = useQuery({
+    queryKey: ['/api/vouchers/products'],
+    queryFn: async () => {
+      const res = await fetch('/api/vouchers/products');
+      if (!res.ok) throw new Error('Failed to fetch vouchers');
+      return res.json();
+    }
+  });
+
+  // Fallback voucher products
+  const defaultVouchers = [
+    {
+      id: 'pregnancy-shooting',
+      name: t('home.pregnancyShootingTitle'),
+      description: t('home.pregnancyShootingDescription'),
+      originalPrice: 195,
+      price: 95,
+      image: 'https://i.imgur.com/Vd6xtPg.jpg',
+      category: 'pregnancy',
+      route: '/gutschein/maternity'
+    },
+    {
+      id: 'family-shooting',
+      name: t('home.familyShootingTitle'),
+      description: t('home.familyShootingDescription'),
+      originalPrice: 295,
+      price: 95,
+      image: 'https://i.postimg.cc/bw7ZyvPK/Familienfotoshooting-im-Fotostudio-Wien-Krexner-2777.jpg',
+      category: 'family',
+      route: '/gutschein/family'
+    },
+    {
+      id: 'newborn-shooting',
+      name: t('home.newbornShootingTitle'),
+      description: t('home.newbornShootingDescription'),
+      originalPrice: 395,
+      price: 95,
+      image: 'https://i.imgur.com/QWOgLqX.jpg',
+      category: 'newborn',
+      route: '/gutschein/newborn'
+    }
+  ];
+
+  // Transform API products or use fallback
+  const voucherProducts = useMemo(() => {
+    if (apiProducts && Array.isArray(apiProducts) && apiProducts.length > 0) {
+      return apiProducts
+        .filter((p: any) => p.isActive !== false && p.is_active !== false)
+        .slice(0, 3) // Show only 3 vouchers on home page
+        .map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          description: p.description || '',
+          price: parseFloat(p.price) || 0,
+          originalPrice: p.original_price ? parseFloat(p.original_price) : parseFloat(p.price) * 1.3,
+          image: p.image_url || p.imageUrl || 'https://i.imgur.com/Vd6xtPg.jpg',
+          category: p.category || 'family',
+          route: `/gutschein/${p.slug || p.id}`
+        }));
+    }
+    return defaultVouchers;
+  }, [apiProducts, t]);
 
   const testimonials = [
     {
@@ -509,47 +574,57 @@ const HomePage: React.FC = () => {
       {/* Gift Voucher Section */}
       <section className="py-16 bg-purple-50">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-purple-900">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 text-purple-900">
             Geschenkgutscheine
           </h2>
+          <p className="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
+            Schenken Sie unvergessliche Momente! Unsere personalisierbaren Fotoshooting-Gutscheine sind das perfekte Geschenk für jeden Anlass.
+          </p>
           
-          <div className="flex justify-center">
-            <div className="max-w-md w-full">
-              {/* Flexible Voucher */}
-              <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="bg-gradient-to-br from-purple-500 to-purple-700 p-6 text-white">
-                  <h3 className="text-2xl font-bold mb-2">Flexibler Gutschein</h3>
-                  <p className="text-purple-100">Wunschbetrag</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto mb-12">
+            {voucherProducts.map((voucher) => (
+              <div key={voucher.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                <div className="relative h-48 overflow-hidden">
+                  <img 
+                    src={voucher.image} 
+                    alt={voucher.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                    -{Math.round((1 - voucher.price / voucher.originalPrice) * 100)}% OFF
+                  </div>
                 </div>
                 <div className="p-6">
-                  <div className="text-3xl font-bold text-purple-600 mb-4">€100</div>
-                  <ul className="text-gray-600 mb-6 space-y-2">
-                    <li>• Freie Betragsauswahl</li>
-                    <li>• Anrechenbar auf alle Services</li>
-                    <li>• 2 Jahre gültig</li>
-                    <li>• Individuell gestaltbar</li>
-                  </ul>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{voucher.name}</h3>
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{voucher.description}</p>
+                  <div className="flex items-baseline gap-2 mb-4">
+                    <span className="text-3xl font-bold text-purple-600">€{voucher.price}</span>
+                    <span className="text-lg text-gray-400 line-through">€{voucher.originalPrice}</span>
+                  </div>
                   <button
                     onClick={() => {
-                      addToCart({
-                        title: 'Flexibler Wertgutschein',
-                        packageType: 'Flexibler Geschenkgutschein',
-                        price: 100,
-                        quantity: 1,
-                        type: 'voucher'
-                      });
-                      // Show success feedback and scroll to top
+                      navigate(voucher.route);
                       window.scrollTo({ top: 0, behavior: 'smooth' });
-                      // Navigate to cart after a brief delay
-                      setTimeout(() => navigate('/cart'), 500);
                     }}
                     className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
                   >
-                    In den Warenkorb
+                    Jetzt Buchen
                   </button>
                 </div>
               </div>
-            </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <button
+              onClick={() => {
+                navigate('/vouchers');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="inline-block bg-white text-purple-600 border-2 border-purple-600 hover:bg-purple-600 hover:text-white font-semibold py-3 px-8 rounded-lg transition-colors"
+            >
+              Alle Gutscheine ansehen →
+            </button>
           </div>
 
           <div className="text-center mt-12">
