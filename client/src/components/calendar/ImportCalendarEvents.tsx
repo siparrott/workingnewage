@@ -99,7 +99,7 @@ const ImportCalendarEvents: React.FC<ImportCalendarEventsProps> = ({ onImportCom
     setImportResult(null);
 
     try {
-      const response = await fetch('/api/calendar/import/ics-url', {
+      const response = await fetch('/api/calendar/import/ics-url?includePast=true', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
