@@ -32,13 +32,7 @@ const ProDigitalFilesPage: React.FC = () => {
     },
   });
 
-  // Auto-redirect if user has active subscription
-  useEffect(() => {
-    if (subscription?.hasSubscription && subscription.status === 'active') {
-      // User already has active subscription, redirect to archive
-      navigate('/my-archive');
-    }
-  }, [subscription, navigate]);
+  // Note: Removed auto-redirect so users can view pricing page even with free plan to upgrade
 
   const handleDemoMode = async () => {
     setCreatingDemo(true);
