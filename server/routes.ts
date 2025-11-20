@@ -15,7 +15,9 @@ import { eq } from "drizzle-orm";
 import { priceListItems, emailCampaigns, emailTemplates, emailSegments, emailEvents, emailLinks, emailSubscribers } from "../shared/schema";
 import path from 'path';
 import os from 'os';
+import fs from 'fs';
 import multer from 'multer';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 // Using require for 'imap' to satisfy commonjs typings within ESM context
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const Imap = require('imap');
@@ -734,6 +736,17 @@ function generateInvoiceHTML(invoice: any, client: any): string {
     </html>
   `;
 }
+
+// Initialize S3 Client for Backblaze B2
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'eu-central-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+  },
+  endpoint: process.env.AWS_S3_ENDPOINT || undefined,
+  forcePathStyle: process.env.AWS_S3_ENDPOINT ? true : false,
+});
 
 // Configure multer for image uploads to local storage
 const upload = multer({
@@ -7413,19 +7426,52 @@ New Age Fotografie CRM System
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      // Return the local file URL
-      const fileUrl = `/uploads/vouchers/${req.file.filename}`;
-      
-      console.log("Image uploaded successfully:", {
+      console.log("[VOUCHER IMAGE] Uploading to B2:", {
         filename: req.file.filename,
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      });
+
+      // Upload to B2 cloud storage instead of local disk
+      const fileBuffer = req.file.buffer || fs.readFileSync(req.file.path);
+      const fileExtension = path.extname(req.file.originalname);
+      const fileName = `voucher-${Date.now()}-${Math.random().toString(36).substring(2, 15)}${fileExtension}`;
+      const s3Key = `vouchers/${fileName}`;
+
+      const uploadCommand = new PutObjectCommand({
+        Bucket: process.env.AWS_S3_BUCKET || '',
+        Key: s3Key,
+        Body: fileBuffer,
+        ContentType: req.file.mimetype,
+        ACL: 'public-read', // Make voucher images publicly accessible
+        Metadata: {
+          originalName: req.file.originalname,
+          uploadedBy: 'voucher-system',
+        },
+      });
+
+      await s3Client.send(uploadCommand);
+
+      // Construct public URL
+      const fileUrl = process.env.AWS_S3_ENDPOINT 
+        ? `${process.env.AWS_S3_ENDPOINT}/${process.env.AWS_S3_BUCKET}/${s3Key}`
+        : `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION || 'eu-central-1'}.amazonaws.com/${s3Key}`;
+
+      console.log("[VOUCHER IMAGE] Upload successful:", {
+        s3Key,
         url: fileUrl,
         size: req.file.size
       });
 
+      // Clean up local file if it exists
+      if (req.file.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+
       res.json({ url: fileUrl });
     } catch (error) {
-      console.error("Error uploading image:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("[VOUCHER IMAGE] Upload error:", error);
+      res.status(500).json({ error: "Failed to upload image to cloud storage" });
     }
   });
 
