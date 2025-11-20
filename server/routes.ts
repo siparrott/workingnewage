@@ -7413,6 +7413,14 @@ New Age Fotografie CRM System
         return res.status(400).json({ error: "No file uploaded" });
       }
 
+      // Validate essential env vars early
+      if (!process.env.AWS_S3_BUCKET) {
+        return res.status(500).json({ error: 'Cloud storage bucket not configured (AWS_S3_BUCKET missing)' });
+      }
+      if (!process.env.AWS_S3_ENDPOINT) {
+        console.warn('[VOUCHER IMAGE] AWS_S3_ENDPOINT missing; falling back to standard S3 URL format');
+      }
+
       console.log("[VOUCHER IMAGE] Uploading to B2:", {
         originalname: req.file.originalname,
         size: req.file.size,
@@ -7434,12 +7442,19 @@ New Age Fotografie CRM System
 
       try {
         // Resize & convert to webp for efficiency (max width 1600)
-        const main = sharp(originalBuffer).rotate().resize({ width: 1600, withoutEnlargement: true }).webp({ quality: 78 });
+        const main = sharp(originalBuffer)
+          .rotate()
+          .resize({ width: 1400, withoutEnlargement: true })
+          .webp({ quality: 72 });
         processedBuffer = await main.toBuffer();
         processedMime = 'image/webp';
         didTransform = true;
         // Create thumbnail (square crop)
-        thumbnailBuffer = await sharp(originalBuffer).rotate().resize({ width: 400, height: 400, fit: 'cover' }).webp({ quality: 70 }).toBuffer();
+        thumbnailBuffer = await sharp(originalBuffer)
+          .rotate()
+          .resize({ width: 360, height: 360, fit: 'cover' })
+          .webp({ quality: 70 })
+          .toBuffer();
       } catch (imgErr) {
         console.warn("[VOUCHER IMAGE] Sharp processing failed, falling back to original:", imgErr);
         thumbnailBuffer = null; // Will skip thumbnail upload
@@ -7531,6 +7546,18 @@ New Age Fotografie CRM System
       return res.status(400).json({ error: 'Upload error', code: err.code, message: err.message });
     }
     return next(err);
+  });
+
+  // Diagnostics endpoint for upload environment
+  app.get('/api/upload/debug/env', (req: Request, res: Response) => {
+    res.json({
+      bucketSet: !!process.env.AWS_S3_BUCKET,
+      endpointSet: !!process.env.AWS_S3_ENDPOINT,
+      region: process.env.AWS_REGION || 'eu-central-1',
+      forcePathStyle: !!process.env.AWS_S3_ENDPOINT,
+      maxFileSizeMB: 20,
+      sharpVersion: require('sharp').version,
+    });
   });
 
   // ==================== VOUCHER ROUTES ====================

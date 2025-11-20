@@ -345,13 +345,17 @@ export default function AdminVoucherSalesPageV3() {
         body: formData,
       });
       
+      let data: any = null;
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[IMAGE UPLOAD] Upload failed:', response.status, errorText);
-        throw new Error(`Image upload failed: ${response.status}`);
+        const raw = await response.text();
+        try { data = JSON.parse(raw); } catch { /* ignore */ }
+        console.error('[IMAGE UPLOAD] Upload failed:', response.status, raw, data);
+        const detailMsg = data?.details || data?.error || raw || `HTTP ${response.status}`;
+        throw new Error(`Image upload failed: ${detailMsg}`);
+      } else {
+        data = await response.json();
       }
       
-      const data = await response.json();
       console.log('[IMAGE UPLOAD] Upload successful! URL:', data.url, 'Thumbnail:', data.thumbnailUrl);
       setUploadedImage(data.url);
       setUploadedThumbnail(data.thumbnailUrl || null);
