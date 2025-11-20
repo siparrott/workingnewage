@@ -53,8 +53,10 @@ const ProDigitalFilesPage: React.FC = () => {
       if (response.ok) {
         alert('✅ Demo subscription created! You can now test uploads.');
         // Invalidate cache to refresh subscription status
-        queryClient.invalidateQueries({ queryKey: ['storage-subscription'] });
-        queryClient.invalidateQueries({ queryKey: ['storage-usage'] });
+        await queryClient.invalidateQueries({ queryKey: ['storage-subscription'] });
+        await queryClient.invalidateQueries({ queryKey: ['storage-usage'] });
+        // Small delay to ensure queries refetch
+        await new Promise(resolve => setTimeout(resolve, 500));
         // Redirect to the archive page where users can upload
         navigate('/my-archive');
       } else {
@@ -88,8 +90,10 @@ const ProDigitalFilesPage: React.FC = () => {
         if (response.ok) {
           alert('✅ Free tier activated! You now have 5GB of storage.');
           // Invalidate cache to refresh subscription status
-          queryClient.invalidateQueries({ queryKey: ['storage-subscription'] });
-          queryClient.invalidateQueries({ queryKey: ['storage-usage'] });
+          await queryClient.invalidateQueries({ queryKey: ['storage-subscription'] });
+          await queryClient.invalidateQueries({ queryKey: ['storage-usage'] });
+          // Small delay to ensure queries refetch
+          await new Promise(resolve => setTimeout(resolve, 500));
           navigate('/my-archive');
         } else {
           const error = await response.json();
