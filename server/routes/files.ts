@@ -10,6 +10,11 @@ import fs from 'fs';
 
 const router = Router();
 
+// Debug route to test router is mounted
+router.get('/test', (req, res) => {
+  res.json({ message: 'Files router is working!' });
+});
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {

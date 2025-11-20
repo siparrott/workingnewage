@@ -1004,7 +1004,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // to ensure auth works before lazy loading other routes. Avoid duplicating here.
 
   // Digital files API - Using filesRouter (routes/files.ts) - file-routes.ts has schema mismatches
+  console.log('🔧 Registering /api/files router...');
   app.use('/api/files', filesRouter);
+  console.log('✅ /api/files router registered');
 
   // Questionnaire module (public + admin APIs)
   app.use(questionnairesRouter);
