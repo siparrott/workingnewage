@@ -901,7 +901,7 @@ const ProductsView: React.FC<{
               {/* Product Image */}
               {(() => {
                 const thumb = (product as any).thumbnailUrl || (product as any).thumbnail_url;
-                const imageSrc = thumb || product.imageUrl;
+                const imageSrc = thumb || product.imageUrl || (product as any).image_url;
                 if (imageSrc) {
                   return (
                     <div className="w-full h-48 overflow-hidden bg-gray-100">
