@@ -73,8 +73,8 @@ const HomePage: React.FC = () => {
           name: p.name,
           description: p.description || '',
           price: parseFloat(p.price) || 0,
-          originalPrice: p.original_price ? parseFloat(p.original_price) : parseFloat(p.price) * 1.3,
-          image: p.image_url || p.imageUrl || 'https://i.imgur.com/Vd6xtPg.jpg',
+          originalPrice: p.originalPrice ? parseFloat(p.originalPrice) : parseFloat(p.price) * 1.3,
+          image: p.thumbnailUrl || p.imageUrl || 'https://i.imgur.com/Vd6xtPg.jpg',
           category: p.category || 'family',
           route: `/gutschein/${p.slug || p.id}`
         }));

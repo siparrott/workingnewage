@@ -15,9 +15,9 @@ import { eq } from "drizzle-orm";
 import { priceListItems, emailCampaigns, emailTemplates, emailSegments, emailEvents, emailLinks, emailSubscribers } from "../shared/schema";
 import path from 'path';
 import os from 'os';
-import fs from 'fs';
+// Removed duplicate fs import (already imported earlier)
 import multer from 'multer';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import sharp from 'sharp';
 // Using require for 'imap' to satisfy commonjs typings within ESM context
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -7482,6 +7482,22 @@ New Age Fotografie CRM System
         },
       }));
 
+      // Helper to build public URL (supports Backblaze B2 S3 & download endpoints)
+      const buildPublicUrl = (key: string): string => {
+        const bucket = process.env.AWS_S3_BUCKET || '';
+        const endpoint = process.env.AWS_S3_ENDPOINT || '';
+        if (endpoint.includes('backblazeb2.com')) {
+          return `https://${bucket}.${endpoint.replace('https://', '').replace(/\/$/, '')}/${key}`;
+        }
+        if (endpoint) {
+          if (endpoint.includes('/file/')) {
+            return `${endpoint.replace(/\/$/, '')}/${key}`;
+          }
+          return `${endpoint.replace(/\/$/, '')}/${bucket}/${key}`;
+        }
+        return `https://${bucket}.s3.${process.env.AWS_REGION || 'eu-central-1'}.amazonaws.com/${key}`;
+      };
+
       // Upload thumbnail if created
       let thumbUrl: string | null = null;
       if (thumbnailBuffer) {
@@ -7503,26 +7519,7 @@ New Age Fotografie CRM System
         }
       }
 
-      // Helper to build public URL (supports Backblaze B2 S3 & download endpoints)
-      function buildPublicUrl(key: string): string {
-        const bucket = process.env.AWS_S3_BUCKET || '';
-        const endpoint = process.env.AWS_S3_ENDPOINT || '';
-        // If endpoint contains 'backblazeb2.com' and includes 's3.' we prefer standard virtual-host style
-        if (endpoint.includes('backblazeb2.com')) {
-          // Virtual host style
-          return `https://${bucket}.${endpoint.replace('https://', '').replace(/\/$/, '')}/${key}`;
-        }
-        // Fallback AWS style
-        if (endpoint) {
-          // If user actually passed a download endpoint (with /file/), try that pattern
-          if (endpoint.includes('/file/')) {
-            return `${endpoint.replace(/\/$/, '')}/${key}`;
-          }
-          // Generic path-style fallback
-          return `${endpoint.replace(/\/$/, '')}/${bucket}/${key}`;
-        }
-        return `https://${bucket}.s3.${process.env.AWS_REGION || 'eu-central-1'}.amazonaws.com/${key}`;
-      }
+      
 
       const mainUrl = buildPublicUrl(mainKey);
 
@@ -7988,7 +7985,35 @@ New Age Fotografie CRM System
       if (normalized.metaTitle && !normalized.meta_title) normalized.meta_title = normalized.metaTitle;
       if (normalized.metaDescription && !normalized.meta_description) normalized.meta_description = normalized.metaDescription;
 
-      console.log('[VOUCHER] Normalized for validation:', normalized);
+      // Generate slug if missing
+      const slugify = (text: string) => {
+        return text
+          .toString()
+          .normalize('NFKD')
+          .replace(/[\u0300-\u036f]/g, '') // remove diacritics
+          .toLowerCase()
+          .replace(/ß/g, 'ss')
+          .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .replace(/--+/g, '-');
+      };
+      if (!normalized.slug && normalized.name) {
+        const base = slugify(normalized.name);
+        let candidate = base;
+        try {
+          const existingProducts = await neonDb.getVoucherProducts();
+          let i = 1;
+          while (existingProducts.find((p: any) => p.slug === candidate)) {
+            candidate = `${base}-${i++}`;
+          }
+        } catch (e) {
+          console.warn('[VOUCHER] Could not check existing slugs:', e);
+        }
+        normalized.slug = candidate;
+      }
+
+      console.log('[VOUCHER] Normalized for validation (with slug):', normalized);
       const validatedData = insertVoucherProductSchema.parse(normalized);
       console.log('[VOUCHER] Validated data:', validatedData);
       const product = await neonDb.createVoucherProduct(validatedData);
@@ -8084,6 +8109,13 @@ New Age Fotografie CRM System
   app.put("/api/vouchers/products/:id", async (req: Request, res: Response) => {
     try {
       console.log('[VOUCHER UPDATE] Updating product:', req.params.id, 'with data:', req.body);
+      // Fetch existing product to determine if old images need deletion
+      let existing: any = null;
+      try {
+        existing = await neonDb.getVoucherProduct(req.params.id);
+      } catch (fetchErr) {
+        console.warn('[VOUCHER UPDATE] Failed to fetch existing product for image cleanup:', fetchErr);
+      }
       
       // Transform camelCase to snake_case for database
       const updates: any = {};
@@ -8107,13 +8139,86 @@ New Age Fotografie CRM System
       if (req.body.isActive !== undefined) updates.is_active = req.body.isActive;
       if (req.body.stockLimit !== undefined) updates.stock_limit = req.body.stockLimit;
       if (req.body.maxPerCustomer !== undefined) updates.max_per_customer = req.body.maxPerCustomer;
-      if (req.body.slug !== undefined) updates.slug = req.body.slug;
+      // Slug logic: if explicit slug provided, use it; else if name changed, regenerate
+      const slugify = (text: string) => {
+        return text
+          .toString()
+          .normalize('NFKD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .replace(/ß/g, 'ss')
+          .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .replace(/--+/g, '-');
+      };
+      if (req.body.slug !== undefined && req.body.slug !== '') {
+        updates.slug = req.body.slug;
+      } else if (req.body.name && existing && req.body.name !== existing.name) {
+        const base = slugify(req.body.name);
+        let candidate = base;
+        try {
+          const all = await neonDb.getVoucherProducts();
+          let i = 1;
+          while (all.find((p: any) => p.slug === candidate && p.id !== existing.id)) {
+            candidate = `${base}-${i++}`;
+          }
+        } catch (e) {
+          console.warn('[VOUCHER UPDATE] Could not ensure slug uniqueness:', e);
+        }
+        updates.slug = candidate;
+      }
       if (req.body.metaTitle !== undefined) updates.meta_title = req.body.metaTitle;
       if (req.body.metaDescription !== undefined) updates.meta_description = req.body.metaDescription;
       
       console.log('[VOUCHER UPDATE] Transformed updates:', updates);
       
       const product = await neonDb.updateVoucherProduct(req.params.id, updates);
+
+      // Helper to parse S3/B2 key from a stored public URL
+      const parseKey = (urlStr: string): string | null => {
+        if (!urlStr) return null;
+        try {
+          const u = new URL(urlStr);
+          let p = u.pathname.replace(/^\//, '');
+          const bucket = process.env.AWS_S3_BUCKET || '';
+          if (p.startsWith(bucket + '/')) {
+            p = p.slice(bucket.length + 1);
+          }
+          return p || null;
+        } catch {
+          return null;
+        }
+      };
+
+      // Delete old image objects if image/thumbnail changed
+      const bucketName = process.env.AWS_S3_BUCKET || '';
+      if (existing && bucketName) {
+        const newImageUrl = req.body.imageUrl;
+        const newThumbUrl = req.body.thumbnailUrl;
+        if (existing.image_url && newImageUrl && existing.image_url !== newImageUrl) {
+          const oldKey = parseKey(existing.image_url);
+          if (oldKey) {
+            try {
+              await s3Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: oldKey }));
+              console.log('[VOUCHER UPDATE] Deleted old image object:', oldKey);
+            } catch (delErr) {
+              console.warn('[VOUCHER UPDATE] Failed to delete old image object:', oldKey, delErr);
+            }
+          }
+        }
+        if (existing.thumbnail_url && newThumbUrl && existing.thumbnail_url !== newThumbUrl) {
+          const oldThumbKey = parseKey(existing.thumbnail_url);
+          if (oldThumbKey) {
+            try {
+              await s3Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: oldThumbKey }));
+              console.log('[VOUCHER UPDATE] Deleted old thumbnail object:', oldThumbKey);
+            } catch (delErr) {
+              console.warn('[VOUCHER UPDATE] Failed to delete old thumbnail object:', oldThumbKey, delErr);
+            }
+          }
+        }
+      }
       
       // Transform response back to camelCase
       const response = {

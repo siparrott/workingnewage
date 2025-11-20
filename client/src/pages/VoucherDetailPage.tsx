@@ -1,27 +1,73 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
-import { useAppContext } from '../context/AppContext';
-import { Calendar, Clock, Tag, AlertCircle, Info, ShoppingCart, ArrowLeft } from 'lucide-react';
+import { Calendar, Tag, AlertCircle, Info, ShoppingCart, ArrowLeft } from 'lucide-react';
+
+interface VoucherProductDetail {
+  id: string;
+  name: string;
+  description?: string | null;
+  detailedDescription?: string | null;
+  price: number;
+  originalPrice?: number | null;
+  category?: string | null;
+  validityPeriod?: number | null;
+  imageUrl?: string | null;
+  thumbnailUrl?: string | null;
+  termsAndConditions?: string | null;
+  slug?: string | null;
+}
 
 const VoucherDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { getVoucherBySlug } = useAppContext();
   const [quantity, setQuantity] = useState(1);
-  
-  const voucher = getVoucherBySlug(slug || '');
-  
-  if (!voucher) {
+  const [product, setProduct] = useState<VoucherProductDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    async function fetchProduct() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/vouchers/products/${slug}`);
+        if (!res.ok) {
+          throw new Error(`Fetch failed: ${res.status}`);
+        }
+        const data = await res.json();
+        if (active) setProduct(data);
+      } catch (e: any) {
+        if (active) setError(e.message);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    if (slug) fetchProduct();
+    return () => { active = false; };
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-16 text-center">
+          <p className="text-gray-600">Lade Gutschein…</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error || !product) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-16 text-center">
           <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold mb-4 text-gray-800">Gutschein nicht gefunden</h1>
           <p className="text-gray-600 mb-8">
-            Der gesuchte Gutschein konnte nicht gefunden werden.
+            {error ? `Fehler: ${error}` : 'Der gesuchte Gutschein konnte nicht gefunden werden.'}
           </p>
-          <button 
+          <button
             onClick={() => navigate('/vouchers')}
             className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
           >
@@ -32,10 +78,9 @@ const VoucherDetailPage: React.FC = () => {
     );
   }
   
-  const isAvailable = voucher.stock > 0;
-  const today = new Date();
-  const validUntilDate = new Date(voucher.validUntil);
-  const isValid = validUntilDate > today;
+  // Placeholder availability logic (extend when DB has these fields)
+  const isAvailable = true;
+  const isValid = true;
   
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
@@ -45,7 +90,7 @@ const VoucherDetailPage: React.FC = () => {
   };
   
   const handleCheckout = () => {
-    navigate(`/checkout/${voucher.id}`, { state: { quantity } });
+    navigate(`/checkout/voucher/${product.id}?quantity=${quantity}`);
   };
 
   return (
@@ -63,9 +108,9 @@ const VoucherDetailPage: React.FC = () => {
           <div className="md:grid md:grid-cols-2">
             {/* Voucher image */}
             <div className="md:col-span-1">
-              <img 
-                src={voucher.image} 
-                alt={voucher.title}
+              <img
+                src={product.imageUrl || product.thumbnailUrl || 'https://via.placeholder.com/800x600?text=Voucher'}
+                alt={product.name}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -77,7 +122,7 @@ const VoucherDetailPage: React.FC = () => {
                 <span className="text-sm font-semibold text-purple-600 uppercase">{voucher.category}</span>
               </div>
               
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4">{voucher.title}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4">{product.name}</h1>
               
               <div className="flex items-center mb-6">
                 <div className="mr-6 flex items-center">
@@ -96,11 +141,11 @@ const VoucherDetailPage: React.FC = () => {
               </div>
               
               <div className="mb-6">
-                <span className="text-gray-500 line-through text-lg">€{voucher.price.toFixed(2)}</span>
-                <span className="text-purple-600 font-bold text-3xl ml-2">€{voucher.discountPrice.toFixed(2)}</span>
+                <span className="text-gray-500 line-through text-lg">€{(product.originalPrice || product.price).toFixed(2)}</span>
+                <span className="text-purple-600 font-bold text-3xl ml-2">€{product.price.toFixed(2)}</span>
               </div>
               
-              <p className="text-gray-700 mb-6">{voucher.description}</p>
+              <p className="text-gray-700 mb-6">{product.description}</p>
               
               <div className="mb-6">
                 <p className="text-gray-700 mb-2">
@@ -118,7 +163,7 @@ const VoucherDetailPage: React.FC = () => {
                     <input
                       type="number"
                       min="1"
-                      max={voucher.stock}
+                      max={99}
                       value={quantity}
                       onChange={handleQuantityChange}
                       className="w-20 px-3 py-2 border border-gray-300 rounded-lg mr-4 focus:ring-2 focus:ring-purple-600 focus:border-purple-600"
@@ -138,7 +183,7 @@ const VoucherDetailPage: React.FC = () => {
                       <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002 2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
-                      Personalisieren - €{(voucher.discountPrice * quantity).toFixed(2)}
+                      Personalisieren - €{(product.price * quantity).toFixed(2)}
                     </button>
                     
                     {/* Quick Checkout Button - Direct purchase without personalization */}
@@ -147,7 +192,7 @@ const VoucherDetailPage: React.FC = () => {
                       className="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
                     >
                       <ShoppingCart size={18} className="mr-2" />
-                      Schnellkauf - €{(voucher.discountPrice * quantity).toFixed(2)}
+                      Schnellkauf - €{(product.price * quantity).toFixed(2)}
                     </button>
                   </div>
                   
@@ -176,7 +221,7 @@ const VoucherDetailPage: React.FC = () => {
                   <Info size={20} className="text-gray-500 mr-2 mt-0.5" />
                   <div>
                     <h3 className="font-semibold text-gray-800 mb-2">Geschäftsbedingungen</h3>
-                    <p className="text-gray-700 text-sm">{voucher.terms}</p>
+                    <p className="text-gray-700 text-sm">{product.termsAndConditions || 'Keine zusätzlichen Bedingungen.'}</p>
                   </div>
                 </div>
               </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "../../components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
+import ImageCropper from "../../components/ImageCropper";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogOverlay, DialogPortal } from "@/components/ui/dialog";
@@ -791,25 +792,31 @@ const ProductsView: React.FC<{
           {products.map((product) => (
             <Card key={product.id} className="hover:shadow-lg transition-shadow overflow-hidden">
               {/* Product Image */}
-              {product.imageUrl ? (
-                <div className="w-full h-48 overflow-hidden bg-gray-100">
-                  <img 
-                    src={product.imageUrl} 
-                    alt={product.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      console.error('[PRODUCT IMAGE] Failed to load:', product.imageUrl);
-                      (e.target as HTMLImageElement).style.display = 'none';
-                      (e.target as HTMLImageElement).parentElement!.innerHTML = 
-                        '<div class="w-full h-full flex items-center justify-center text-gray-400"><Package class="h-16 w-16" /><span class="ml-2">No Image</span></div>';
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="w-full h-48 bg-gray-100 flex items-center justify-center text-gray-400">
-                  <Package className="h-16 w-16" />
-                </div>
-              )}
+              {(() => {
+                const thumb = (product as any).thumbnailUrl || (product as any).thumbnail_url;
+                const imageSrc = thumb || product.imageUrl;
+                if (imageSrc) {
+                  return (
+                    <div className="w-full h-48 overflow-hidden bg-gray-100">
+                      <img
+                        src={imageSrc}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.error('[PRODUCT IMAGE] Failed to load:', imageSrc);
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-gray-400"><Package class="h-16 w-16" /><span class="ml-2">No Image</span></div>';
+                        }}
+                      />
+                    </div>
+                  );
+                }
+                return (
+                  <div className="w-full h-48 bg-gray-100 flex items-center justify-center text-gray-400">
+                    <Package className="h-16 w-16" />
+                  </div>
+                );
+              })()}
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
@@ -1363,10 +1370,9 @@ const ProductDialog: React.FC<{
 }> = ({ open, onOpenChange, product, onSubmit, form, uploadedImage, onImageUpload, isUploading }) => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [showCropper, setShowCropper] = useState(false);
 
   useEffect(() => {
-    // Initialize image preview from either uploaded image or existing product image
-    // Priority: uploadedImage (just uploaded) > product.imageUrl (existing) > null
     if (uploadedImage) {
       setImagePreview(uploadedImage);
     } else if (product?.imageUrl) {
@@ -1374,22 +1380,25 @@ const ProductDialog: React.FC<{
     } else {
       setImagePreview(null);
     }
-  }, [uploadedImage, product, open]); // Added 'open' to re-sync when dialog opens
+  }, [uploadedImage, product, open]);
 
-  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
       setSelectedImage(file);
-      // Create local preview
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
+      reader.onload = (ev) => setImagePreview(ev.target?.result as string);
       reader.readAsDataURL(file);
-      
-      // Upload to server
-      await onImageUpload(file);
+      setShowCropper(true);
     }
+  };
+
+  const handleCropped = async (blob: Blob, previewUrl: string) => {
+    setImagePreview(previewUrl);
+    setShowCropper(false);
+    const file = new File([blob], selectedImage?.name || 'cropped.jpg', { type: 'image/jpeg' });
+    setSelectedImage(file);
+    await onImageUpload(file);
   };
 
   return (
@@ -1398,187 +1407,121 @@ const ProductDialog: React.FC<{
         <DialogOverlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto bg-white border-2 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>
-              {product ? 'Edit Voucher Product' : 'Create New Voucher Product'}
-            </DialogTitle>
-          <DialogDescription>
-            {product 
-              ? 'Update the details of this voucher product including promotional images'
-              : 'Create a new voucher product that customers can purchase with promotional imagery'
-            }
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-6">
-          {/* Product Image Upload */}
-          <div className="space-y-3">
-            <Label htmlFor="product-image" className="text-base font-medium">Product Image</Label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
-              {imagePreview ? (
-                <div className="space-y-4">
-                  <div className="relative">
-                    <img 
-                      src={imagePreview} 
-                      alt="Product preview" 
-                      className="w-full h-48 object-cover rounded-lg"
-                    />
-                    <button
-                      onClick={() => {
-                        setSelectedImage(null);
-                        setImagePreview(null);
-                      }}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+            <DialogTitle>{product ? 'Edit Voucher Product' : 'Create New Voucher Product'}</DialogTitle>
+            <DialogDescription>
+              {product ? 'Update the details of this voucher product including promotional images' : 'Create a new voucher product that customers can purchase with promotional imagery'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Image section with cropper */}
+            <div className="space-y-3">
+              <Label htmlFor="product-image" className="text-base font-medium">Product Image</Label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors">
+                {showCropper && selectedImage ? (
+                  <ImageCropper
+                    file={selectedImage}
+                    onCancel={() => { setShowCropper(false); setSelectedImage(null); }}
+                    onCropped={handleCropped}
+                    aspect={4/3}
+                  />
+                ) : imagePreview ? (
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <img src={imagePreview} alt="Product preview" className="w-full h-48 object-cover rounded-lg" />
+                      <button
+                        onClick={() => { setSelectedImage(null); setImagePreview(null); }}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                      >×</button>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => document.getElementById('product-image')?.click()}
+                      className="w-full"
+                      disabled={isUploading}
                     >
-                      ×
-                    </button>
+                      <Camera className="h-4 w-4 mr-2" />{isUploading ? 'Uploading...' : 'Change Image'}
+                    </Button>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => document.getElementById('product-image')?.click()}
-                    className="w-full"
-                    disabled={isUploading}
-                  >
-                    <Camera className="h-4 w-4 mr-2" />
-                    {isUploading ? 'Uploading...' : 'Change Image'}
-                  </Button>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-600">Upload a promotional image for this voucher</p>
-                    <p className="text-xs text-gray-500">Recommended: 400x300px, JPG or PNG, max 2MB</p>
+                ) : (
+                  <div className="text-center">
+                    <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-600">Upload a promotional image for this voucher</p>
+                      <p className="text-xs text-gray-500">Recommended: 1400px wide. You can crop after selection.</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => document.getElementById('product-image')?.click()}
+                      className="mt-4"
+                      disabled={isUploading}
+                    >
+                      <Camera className="h-4 w-4 mr-2" />{isUploading ? 'Uploading...' : 'Upload Image'}
+                    </Button>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => document.getElementById('product-image')?.click()}
-                    className="mt-4"
-                    disabled={isUploading}
-                  >
-                    <Camera className="h-4 w-4 mr-2" />
-                    {isUploading ? 'Uploading...' : 'Upload Image'}
-                  </Button>
-                </div>
-              )}
-              <input
-                id="product-image"
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-              />
+                )}
+                <input id="product-image" type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+              </div>
             </div>
-          </div>
 
-          {/* Product Details */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Product Name</Label>
-              <Input 
-                {...form.register("name")}
-                placeholder="e.g., Family Photo Session Voucher"
-                className="bg-white"
-              />
-              {form.formState.errors.name && (
-                <p className="text-sm text-red-600">{form.formState.errors.name.message}</p>
-              )}
+            {/* Product Fields */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Product Name</Label>
+                <Input {...form.register('name')} placeholder="e.g., Family Photo Session Voucher" className="bg-white" />
+                {form.formState.errors.name && <p className="text-sm text-red-600">{form.formState.errors.name.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="price">Price (€)</Label>
+                <Input {...form.register('price')} type="number" step="0.01" placeholder="199.00" className="bg-white" onFocus={(e) => e.target.select()} />
+                {form.formState.errors.price && <p className="text-sm text-red-600">{form.formState.errors.price.message}</p>}
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="price">Price (€)</Label>
-              <Input 
-                {...form.register("price")}
-                type="number" 
-                step="0.01"
-                placeholder="199.00"
-                className="bg-white"
-                onFocus={(e) => e.target.select()}
-              />
-              {form.formState.errors.price && (
-                <p className="text-sm text-red-600">{form.formState.errors.price.message}</p>
-              )}
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea 
-              {...form.register("description")}
-              placeholder="Describe what's included in this voucher package..."
-              rows={4}
-              className="bg-white resize-none"
-            />
-          </div>
 
-          {/* Additional Settings */}
-          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="validityPeriod">Validity (Days)</Label>
-              <Input 
-                {...form.register("validityPeriod")}
-                type="number" 
-                placeholder="365"
-                className="bg-white"
-                onFocus={(e) => e.target.select()}
-              />
-              {form.formState.errors.validityPeriod && (
-                <p className="text-sm text-red-600">{form.formState.errors.validityPeriod.message}</p>
-              )}
+              <Label htmlFor="description">Description</Label>
+              <Textarea {...form.register('description')} placeholder="Describe what's included in this voucher package..." rows={4} className="bg-white resize-none" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="displayOrder">Display Order</Label>
-              <Input 
-                {...form.register("displayOrder")}
-                type="number" 
-                placeholder="1"
-                className="bg-white"
-              />
-            </div>
-            <div className="space-y-2 flex items-center space-x-2 pt-6">
-              <Switch 
-                checked={form.watch("isActive")}
-                onCheckedChange={(checked) => form.setValue("isActive", checked)}
-              />
-              <Label className="font-medium">Active for sale</Label>
-            </div>
-          </div>
 
-          {/* Category and Target Audience */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Select 
-                onValueChange={(value) => form.setValue("category", value)} 
-                defaultValue={form.watch("category") || "familie"}
-              >
-                <SelectTrigger className="bg-white">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="familie">Familie</SelectItem>
-                  <SelectItem value="baby">Baby & Newborn</SelectItem>
-                  <SelectItem value="hochzeit">Hochzeit</SelectItem>
-                  <SelectItem value="business">Business</SelectItem>
-                  <SelectItem value="event">Event</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="validityPeriod">Validity (Days)</Label>
+                <Input {...form.register('validityPeriod')} type="number" placeholder="365" className="bg-white" onFocus={(e) => e.target.select()} />
+                {form.formState.errors.validityPeriod && <p className="text-sm text-red-600">{form.formState.errors.validityPeriod.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="displayOrder">Display Order</Label>
+                <Input {...form.register('displayOrder')} type="number" placeholder="1" className="bg-white" />
+              </div>
+              <div className="space-y-2 flex items-center space-x-2 pt-6">
+                <Switch checked={form.watch('isActive')} onCheckedChange={(checked) => form.setValue('isActive', checked)} />
+                <Label className="font-medium">Active for sale</Label>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="sessionType">Session Type</Label>
-              <Input 
-                {...form.register("sessionType")}
-                placeholder="e.g., Familie Portrait, Business Headshots"
-                className="bg-white"
-              />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Select onValueChange={(value) => form.setValue('category', value)} defaultValue={form.watch('category') || 'familie'}>
+                  <SelectTrigger className="bg-white"><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="familie">Familie</SelectItem>
+                    <SelectItem value="baby">Baby & Newborn</SelectItem>
+                    <SelectItem value="hochzeit">Hochzeit</SelectItem>
+                    <SelectItem value="business">Business</SelectItem>
+                    <SelectItem value="event">Event</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sessionType">Session Type</Label>
+                <Input {...form.register('sessionType')} placeholder="e.g., Familie Portrait, Business Headshots" className="bg-white" />
+              </div>
             </div>
           </div>
-        </div>
-        <DialogFooter className="pt-6">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={form.handleSubmit(onSubmit)} disabled={form.formState.isSubmitting}>
-            {product ? 'Update Product' : 'Create Product'}
-          </Button>
-        </DialogFooter>
+          <DialogFooter className="pt-6">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button onClick={form.handleSubmit(onSubmit)} disabled={form.formState.isSubmitting}>{product ? 'Update Product' : 'Create Product'}</Button>
+          </DialogFooter>
         </DialogContent>
       </DialogPortal>
     </Dialog>
@@ -1684,14 +1627,14 @@ const CouponDialog: React.FC<{
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">All products</SelectItem>
-                {products?.map((p) => (
-                  <SelectItem key={p.id} value={(p as any).slug || (p as any).productSlug || p.name.toLowerCase().replace(/\s+/g,'-')}>
-                    {p.name}
+                {products?.map((prod) => (
+                  <SelectItem
+                    key={prod.id}
+                    value={(prod as any).slug || (prod as any).productSlug || prod.id}
+                  >
+                    {prod.name}
                   </SelectItem>
                 ))}
-                <SelectItem value="family-basic">Family Basic</SelectItem>
-                <SelectItem value="newborn-basic">Newborn Basic</SelectItem>
-                <SelectItem value="maternity-basic">Maternity Basic</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-gray-500">Leave empty for all products. Select one to restrict the coupon.</p>
