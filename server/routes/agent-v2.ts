@@ -21,7 +21,8 @@ import { getRecommendedMode } from "../../agent/v2/core/Guardrails";
 import OpenAI from "openai";
 
 // Import tools to register them
-import "../../agent/v2/tools/index.ts";
+// Temporarily commented out to fix Heroku crash - tools will be lazy loaded
+// import "../../agent/v2/tools/index.ts";
 
 const router = express.Router();
 
