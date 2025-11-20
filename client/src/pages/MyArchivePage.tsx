@@ -80,10 +80,14 @@ export default function MyArchivePage() {
       const res = await fetch('/api/storage-stats/usage', {
         credentials: 'include',
       });
-      if (!res.ok) throw new Error('Failed to fetch storage recommendations');
+      if (!res.ok) {
+        console.warn('Failed to fetch storage recommendations:', res.status);
+        return null; // Return null on error
+      }
       return res.json();
     },
     enabled: !!usage?.hasSubscription,
+    retry: false, // Don't retry on failure
   });
 
   // Fetch folders
@@ -93,11 +97,16 @@ export default function MyArchivePage() {
       const res = await fetch('/api/files/folders', {
         credentials: 'include',
       });
-      if (!res.ok) throw new Error('Failed to fetch folders');
+      if (!res.ok) {
+        console.warn('Failed to fetch folders:', res.status);
+        return []; // Return empty array on error
+      }
       const data = await res.json();
       // Ensure we always return an array
       return Array.isArray(data) ? data : (data.folders || []);
     },
+    enabled: !!usage?.hasSubscription,
+    retry: false, // Don't retry on failure
   });
 
   // Fetch files in current folder
@@ -110,9 +119,14 @@ export default function MyArchivePage() {
       const res = await fetch(url, {
         credentials: 'include',
       });
-      if (!res.ok) throw new Error('Failed to fetch files');
+      if (!res.ok) {
+        console.warn('Failed to fetch files:', res.status);
+        return []; // Return empty array on error
+      }
       return res.json();
     },
+    enabled: !!usage?.hasSubscription,
+    retry: false, // Don't retry on failure
   });
 
   // Create folder mutation
