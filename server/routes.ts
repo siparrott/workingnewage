@@ -748,23 +748,9 @@ const s3Client = new S3Client({
   forcePathStyle: process.env.AWS_S3_ENDPOINT ? true : false,
 });
 
-// Configure multer for image uploads to local storage
+// Configure multer for image uploads - use memory storage for B2 upload
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      const uploadPath = path.join(process.cwd(), 'public', 'uploads', 'vouchers');
-      // Create directory if it doesn't exist
-      if (!fs.existsSync(uploadPath)) {
-        fs.mkdirSync(uploadPath, { recursive: true });
-      }
-      cb(null, uploadPath);
-    },
-    filename: (req, file, cb) => {
-      const fileExt = path.extname(file.originalname);
-      const fileName = `voucher-${Date.now()}-${Math.random().toString(36).substring(2, 15)}${fileExt}`;
-      cb(null, fileName);
-    }
-  }),
+  storage: multer.memoryStorage(), // Changed to memory storage for direct B2 upload
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
@@ -7427,16 +7413,23 @@ New Age Fotografie CRM System
       }
 
       console.log("[VOUCHER IMAGE] Uploading to B2:", {
-        filename: req.file.filename,
+        originalname: req.file.originalname,
         size: req.file.size,
         mimetype: req.file.mimetype
       });
 
-      // Upload to B2 cloud storage instead of local disk
-      const fileBuffer = req.file.buffer || fs.readFileSync(req.file.path);
+      // Upload to B2 cloud storage
+      const fileBuffer = req.file.buffer;
+      if (!fileBuffer) {
+        console.error("[VOUCHER IMAGE] No buffer available");
+        return res.status(500).json({ error: "File buffer not available" });
+      }
+
       const fileExtension = path.extname(req.file.originalname);
       const fileName = `voucher-${Date.now()}-${Math.random().toString(36).substring(2, 15)}${fileExtension}`;
       const s3Key = `vouchers/${fileName}`;
+
+      console.log("[VOUCHER IMAGE] Uploading to B2 with key:", s3Key);
 
       const uploadCommand = new PutObjectCommand({
         Bucket: process.env.AWS_S3_BUCKET || '',
@@ -7452,21 +7445,17 @@ New Age Fotografie CRM System
 
       await s3Client.send(uploadCommand);
 
-      // Construct public URL
+      // Construct public URL - for Backblaze B2, use the file-friendly URL format
       const fileUrl = process.env.AWS_S3_ENDPOINT 
-        ? `${process.env.AWS_S3_ENDPOINT}/${process.env.AWS_S3_BUCKET}/${s3Key}`
+        ? `${process.env.AWS_S3_ENDPOINT}/file/${process.env.AWS_S3_BUCKET}/${s3Key}`
         : `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION || 'eu-central-1'}.amazonaws.com/${s3Key}`;
 
       console.log("[VOUCHER IMAGE] Upload successful:", {
         s3Key,
         url: fileUrl,
-        size: req.file.size
+        size: req.file.size,
+        bucket: process.env.AWS_S3_BUCKET
       });
-
-      // Clean up local file if it exists
-      if (req.file.path && fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
-      }
 
       res.json({ url: fileUrl });
     } catch (error) {
