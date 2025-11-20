@@ -334,6 +334,8 @@ export default function AdminVoucherSalesPageV3() {
       const formData = new FormData();
       formData.append('file', file);
       
+      console.log('[IMAGE UPLOAD] Uploading file:', file.name, file.size, 'bytes');
+      
       const response = await fetch('/api/upload/image', {
         method: 'POST',
         headers: withAdminHeaders(),
@@ -341,14 +343,18 @@ export default function AdminVoucherSalesPageV3() {
       });
       
       if (!response.ok) {
-        throw new Error('Image upload failed');
+        const errorText = await response.text();
+        console.error('[IMAGE UPLOAD] Upload failed:', response.status, errorText);
+        throw new Error(`Image upload failed: ${response.status}`);
       }
       
       const data = await response.json();
+      console.log('[IMAGE UPLOAD] Upload successful! URL:', data.url);
       setUploadedImage(data.url);
+      console.log('[IMAGE UPLOAD] State updated with URL:', data.url);
     } catch (error) {
-      // console.error removed
-      alert('Failed to upload image');
+      console.error('[IMAGE UPLOAD] Error:', error);
+      alert(`Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsUploading(false);
     }
@@ -773,7 +779,27 @@ const ProductsView: React.FC<{
       {products.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {products.map((product) => (
-            <Card key={product.id} className="hover:shadow-lg transition-shadow">
+            <Card key={product.id} className="hover:shadow-lg transition-shadow overflow-hidden">
+              {/* Product Image */}
+              {product.imageUrl ? (
+                <div className="w-full h-48 overflow-hidden bg-gray-100">
+                  <img 
+                    src={product.imageUrl} 
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('[PRODUCT IMAGE] Failed to load:', product.imageUrl);
+                      (e.target as HTMLImageElement).style.display = 'none';
+                      (e.target as HTMLImageElement).parentElement!.innerHTML = 
+                        '<div class="w-full h-full flex items-center justify-center text-gray-400"><Package class="h-16 w-16" /><span class="ml-2">No Image</span></div>';
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="w-full h-48 bg-gray-100 flex items-center justify-center text-gray-400">
+                  <Package className="h-16 w-16" />
+                </div>
+              )}
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
@@ -1330,6 +1356,7 @@ const ProductDialog: React.FC<{
 
   useEffect(() => {
     // Initialize image preview from either uploaded image or existing product image
+    // Priority: uploadedImage (just uploaded) > product.imageUrl (existing) > null
     if (uploadedImage) {
       setImagePreview(uploadedImage);
     } else if (product?.imageUrl) {
@@ -1337,7 +1364,7 @@ const ProductDialog: React.FC<{
     } else {
       setImagePreview(null);
     }
-  }, [uploadedImage, product]);
+  }, [uploadedImage, product, open]); // Added 'open' to re-sync when dialog opens
 
   const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
