@@ -21,7 +21,7 @@ import { getRecommendedMode } from "../../agent/v2/core/Guardrails";
 import OpenAI from "openai";
 
 // Import tools to register them
-import "../../agent/v2/tools";
+import "../../agent/v2/tools/index.js";
 
 const router = express.Router();
 
