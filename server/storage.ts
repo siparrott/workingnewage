@@ -402,8 +402,8 @@ export class DatabaseStorage implements IStorage {
         // Use raw SQL INSERT to completely bypass Drizzle's array handling
         const s = session as any;
         await db.execute(sql`
-          INSERT INTO photography_sessions (id, title, session_type, start_time, end_time)
-          VALUES (${s.id}, ${s.title}, ${s.sessionType}, ${s.startTime}, ${s.endTime})
+          INSERT INTO photography_sessions (id, title, session_type, start_time, end_time, ical_uid)
+          VALUES (${s.id}, ${s.title}, ${s.sessionType}, ${s.startTime}, ${s.endTime}, ${s.icalUid})
           ON CONFLICT (id) DO NOTHING
         `);
         console.error(`STORAGE_DEBUG | Raw SQL executed successfully`);

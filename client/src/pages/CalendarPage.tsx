@@ -18,6 +18,15 @@ interface Appointment {
   clientPhone?: string;
 }
 
+interface GoogleEvent {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  description?: string;
+  location?: string;
+}
+
 interface Client {
   id: string;
   firstName: string;
@@ -28,11 +37,13 @@ interface Client {
 
 const CalendarPage: React.FC = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -53,7 +64,36 @@ const CalendarPage: React.FC = () => {
   useEffect(() => {
     loadAppointments();
     loadClients();
+    loadGoogleEvents();
+    
+    // Auto-sync every 5 minutes
+    const syncInterval = setInterval(() => {
+      loadGoogleEvents();
+    }, 5 * 60 * 1000);
+    
+    return () => clearInterval(syncInterval);
   }, [selectedDate]);
+
+  const loadGoogleEvents = async () => {
+    try {
+      const response = await fetch('/api/calendar/google-events');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Filter events for selected date
+          const selectedDateObj = new Date(selectedDate);
+          const filteredEvents = data.events.filter((event: GoogleEvent) => {
+            const eventDate = new Date(event.start);
+            return eventDate.toDateString() === selectedDateObj.toDateString();
+          });
+          setGoogleEvents(filteredEvents);
+          setLastSync(new Date());
+        }
+      }
+    } catch (error) {
+      console.error('Error loading Google events:', error);
+    }
+  };
 
   const loadAppointments = async () => {
     try {
@@ -240,6 +280,74 @@ const CalendarPage: React.FC = () => {
             + New Appointment
           </button>
         </div>
+
+        {/* Embedded Google Calendar */}
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-900">Google Calendar View</h2>
+            <div className="flex items-center space-x-4">
+              {lastSync && (
+                <span className="text-sm text-gray-500">
+                  Last synced: {lastSync.toLocaleTimeString()}
+                </span>
+              )}
+              <button
+                onClick={loadGoogleEvents}
+                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+              >
+                🔄 Sync Now
+              </button>
+            </div>
+          </div>
+          <div className="relative w-full" style={{ paddingBottom: '75%' }}>
+            <iframe
+              src="https://calendar.google.com/calendar/embed?src=newagefotografen%40gmail.com&ctz=Europe%2FVienna&mode=WEEK"
+              className="absolute top-0 left-0 w-full h-full border-0 rounded-lg"
+              frameBorder="0"
+              scrolling="no"
+            />
+          </div>
+        </div>
+
+        {/* Google Calendar Events */}
+        {googleEvents.length > 0 && (
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              Google Calendar Events ({googleEvents.length})
+            </h2>
+            <div className="space-y-3">
+              {googleEvents.map((event) => (
+                <div key={event.id} className="border border-purple-200 rounded-lg p-4 bg-purple-50">
+                  <div className="flex items-start">
+                    <span className="text-lg mr-3">📅</span>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900">{event.title}</h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        <strong>Time:</strong> {new Date(event.start).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })} - {new Date(event.end).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                      {event.location && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          <strong>Location:</strong> {event.location}
+                        </p>
+                      )}
+                      {event.description && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          <strong>Description:</strong> {event.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Date selector */}
         <div className="mb-6">

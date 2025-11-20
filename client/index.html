@@ -81,23 +81,33 @@
   </head>
   <body>
     <script>
-      // COMPLETE CONSOLE SILENCE - Must be first script to run
+      // Keep console active in development for debugging.
+      // Silence console and disable DevTools only in production.
       (function() {
-        const noop = function() {};
-        window.console = {
-          log: noop, warn: noop, error: noop, info: noop, debug: noop,
-          trace: noop, table: noop, group: noop, groupEnd: noop,
-          time: noop, timeEnd: noop, clear: noop, count: noop,
-          assert: noop, dir: noop, dirxml: noop
-        };
-        Object.defineProperty(window, 'console', {
-          value: window.console, writable: false, configurable: false
-        });
-        // Disable React DevTools
-        window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
-          isDisabled: true, supportsFiber: true, inject: noop,
-          onCommitFiberRoot: noop, onCommitFiberUnmount: noop
-        };
+        var isLocal = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+        var debugParam = /[?&]debug=1(&|$)/.test(location.search);
+        if (isLocal || debugParam) {
+          return; // Do NOT silence console in dev or when ?debug=1 is set
+        }
+        var noop = function(){};
+        try {
+          window.console = {
+            log: noop, warn: noop, error: noop, info: noop, debug: noop,
+            trace: noop, table: noop, group: noop, groupEnd: noop,
+            time: noop, timeEnd: noop, clear: noop, count: noop,
+            assert: noop, dir: noop, dirxml: noop
+          };
+          Object.defineProperty(window, 'console', {
+            value: window.console, writable: false, configurable: false
+          });
+          // Disable React DevTools in production
+          window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
+            isDisabled: true, supportsFiber: true, inject: noop,
+            onCommitFiberRoot: noop, onCommitFiberUnmount: noop
+          };
+        } catch (e) {
+          // If anything goes wrong, fail open (leave console enabled)
+        }
       })();
     </script>
     <div id="root"></div>

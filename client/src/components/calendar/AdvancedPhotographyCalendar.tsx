@@ -118,6 +118,33 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
   const [filterMonth, setFilterMonth] = useState<string>('');
   const [filterYear, setFilterYear] = useState<string>('');
 
+  // Quick navigation helpers to jump between events
+  const sortedEventDates = React.useMemo(() => {
+    return (sessions || [])
+      .map(s => {
+        try {
+          return s.startTime ? parseISO(s.startTime) : (s.endTime ? parseISO(s.endTime) : null);
+        } catch { return null; }
+      })
+      .filter((d: Date | null): d is Date => !!d && !isNaN(d.getTime()))
+      .sort((a, b) => a.getTime() - b.getTime());
+  }, [sessions]);
+
+  const jumpToNextEvent = () => {
+    if (!sortedEventDates.length) return;
+    const now = currentDate;
+    const next = sortedEventDates.find(d => d.getTime() >= now.getTime());
+    setCurrentDate(next || sortedEventDates[sortedEventDates.length - 1]);
+  };
+
+  const jumpToPrevEvent = () => {
+    if (!sortedEventDates.length) return;
+    const nowTs = currentDate.getTime();
+    const prevList = sortedEventDates.filter(d => d.getTime() <= nowTs);
+    const prev = prevList.length ? prevList[prevList.length - 1] : sortedEventDates[0];
+    setCurrentDate(prev);
+  };
+
   // Build a quick index of clients by id for display fallbacks
   const clientById = React.useMemo(() => {
     const map = new Map<string, { name: string; email?: string }>();
@@ -878,6 +905,17 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
+              {/* Quick jump between events */}
+              <button
+                onClick={jumpToPrevEvent}
+                className="px-2 py-1 text-xs border rounded hover:bg-gray-100"
+                title="Jump to previous event"
+              >Prev event</button>
+              <button
+                onClick={jumpToNextEvent}
+                className="px-2 py-1 text-xs border rounded hover:bg-gray-100"
+                title="Jump to next or upcoming event"
+              >Next event</button>
             </div>
             <div className="text-lg font-medium">
               {format(currentDate, 'MMMM yyyy')}

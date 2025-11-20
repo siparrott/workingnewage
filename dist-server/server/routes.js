@@ -4355,7 +4355,8 @@ New Age Fotografie Team`;
     });
     app.post("/api/calendar/import/ics-url", async (req, res) => {
         try {
-            const { icsUrl } = req.body;
+                const { icsUrl } = req.body;
+                let debugStage = 'init';
             if (!icsUrl) {
                 return res.status(400).json({ error: 'No iCal URL provided' });
             }
@@ -4413,17 +4414,41 @@ New Age Fotografie Team`;
                 console.error('Failed to write ICS content snapshot:', e);
             }
             // Parse iCal content and convert to photography sessions
-            const importedEvents = parseICalContent(icsContent);
+            debugStage = 'parseICalContent';
+            let importedEvents = [];
+            try {
+                importedEvents = parseICalContent(icsContent);
+            } catch (parseErr) {
+                console.error('ICS_URL_PARSE_ERROR', parseErr);
+                return res.status(500).json({ error: 'Failed to parse iCal content', details: parseErr?.message || String(parseErr), stage: debugStage });
+            }
             const cutoff = getImportCutoffUtc(req);
             const upper = getImportUpperBoundUtc(req);
-            const eventsToImport = importedEvents.filter(ev => {
-                const ds = ev?.dtstart ? new Date(ev.dtstart) : null;
-                return !!(ds && !isNaN(ds.getTime()) && ds >= cutoff && (!upper || ds <= upper));
-            });
+            debugStage = 'filterEvents';
+            let eventsToImport = [];
+            try {
+                eventsToImport = importedEvents.filter(ev => {
+                    const ds = ev?.dtstart ? new Date(ev.dtstart) : null;
+                    const valid = !!(ds && !isNaN(ds.getTime()));
+                    const passes = !!(valid && ds >= cutoff && (!upper || ds <= upper));
+                    if (!passes && ev.dtstart) {
+                        let safeIso = 'INVALID';
+                        try { if (valid) safeIso = ds.toISOString(); } catch {}
+                        console.error(`  FILTERED OUT: ${ev.summary} | dtstart=${ev.dtstart} | date=${safeIso}`);
+                    }
+                    return passes;
+                });
+            } catch (filterErr) {
+                console.error('ICS_URL_FILTER_ERROR', filterErr);
+                return res.status(500).json({ error: 'Failed during event filtering', details: filterErr?.message || String(filterErr), stage: debugStage });
+            }
             const dryRun = String(req.query.dryRun || req.query.dryrun || '').toLowerCase() === 'true';
             if (dryRun) {
-                console.error(`ICS_URL_DRY_RUN | events=${importedEvents.length} | filtered=${eventsToImport.length} | cutoff=${cutoff.toISOString()} | upper=${upper ? upper.toISOString() : 'none'} | url=${icsUrl}`);
-                return res.json({ success: true, dryRun: true, parsed: importedEvents.length, filtered: eventsToImport.length, cutoff: cutoff.toISOString(), upper: upper ? upper.toISOString() : null });
+                let cutoffIso = null; let upperIso = null;
+                try { if (cutoff instanceof Date && !isNaN(cutoff.getTime())) cutoffIso = cutoff.toISOString(); } catch (e) { console.error('CUT_OFF_TO_ISO_ERROR', e); }
+                try { if (upper instanceof Date && !isNaN(upper.getTime())) upperIso = upper.toISOString(); } catch (e) { console.error('UPPER_TO_ISO_ERROR', e); }
+                console.error(`ICS_URL_DRY_RUN | events=${importedEvents.length} | filtered=${eventsToImport.length} | cutoff=${cutoffIso} | upper=${upperIso} | url=${icsUrl}`);
+                return res.json({ success: true, dryRun: true, parsed: importedEvents.length, filtered: eventsToImport.length, cutoff: cutoffIso, upper: upperIso, stage: debugStage });
             }
             let importedCount = 0;
             for (const event of eventsToImport) {
@@ -4513,17 +4538,20 @@ New Age Fotografie Team`;
                     console.error('Error importing event:', event.summary, error);
                 }
             }
+            let cutoffIso2 = null; let upperIso2 = null;
+            try { if (cutoff instanceof Date && !isNaN(cutoff.getTime())) cutoffIso2 = cutoff.toISOString(); } catch {}
+            try { if (upper instanceof Date && !isNaN(upper.getTime())) upperIso2 = upper.toISOString(); } catch {}
             res.json({
                 success: true,
                 imported: importedCount,
-                cutoff: cutoff.toISOString(),
-                upper: upper ? upper.toISOString() : null,
+                cutoff: cutoffIso2,
+                upper: upperIso2,
                 message: `Successfully imported ${importedCount} events from calendar URL`
             });
         }
         catch (error) {
             console.error("Error importing from iCal URL:", error);
-            res.status(500).json({ error: "Failed to fetch or parse iCal URL", details: error?.message });
+            res.status(500).json({ error: "Failed to fetch or parse iCal URL", details: error?.message, stage: typeof debugStage !== 'undefined' ? debugStage : 'unknown' });
         }
     });
     // Helper function to parse iCal content
@@ -4673,7 +4701,14 @@ New Age Fotografie Team`;
             const tzLib = requireFn('date-fns-tz');
             if (tzLib && typeof tzLib.zonedTimeToUtc === 'function') {
                 const d = tzLib.zonedTimeToUtc(localIso, tzid);
-                return new Date(d).toISOString();
+                let converted;
+                try { converted = (d instanceof Date) ? d : new Date(d); } catch { converted = new Date(NaN); }
+                if (!converted || isNaN(converted.getTime())) {
+                    const fallbackIso = /Z$/.test(localIso) ? localIso : `${localIso}.000Z`;
+                    const fb = new Date(fallbackIso);
+                    return isNaN(fb.getTime()) ? new Date(0).toISOString() : fb.toISOString();
+                }
+                return converted.toISOString();
             }
         }
         catch (e) {
@@ -4690,13 +4725,14 @@ New Age Fotografie Team`;
                 const mm = +m[5];
                 const ss = +m[6];
                 const epoch = toUtcFromTz(y, mo, d, hh, mm, ss, tzid);
-                return new Date(epoch).toISOString();
+                const dt = new Date(epoch);
+                return isNaN(dt.getTime()) ? new Date(0).toISOString() : dt.toISOString();
             }
         }
         catch { }
         // Last resort
         const d2 = new Date(localIso);
-        return isNaN(d2.getTime()) ? new Date().toISOString() : d2.toISOString();
+        return isNaN(d2.getTime()) ? new Date(0).toISOString() : d2.toISOString();
     }
     // Compute UTC epoch from local date/time in a given IANA time zone
     function toUtcFromTz(y, m, d, hh, mm, ss, timeZone) {

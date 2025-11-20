@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Cloud, CreditCard, HardDrive, Users, Zap, PlayCircle, ArrowRight, CheckCircle } from 'lucide-react';
 
@@ -16,6 +16,7 @@ interface StorageSubscription {
 
 const ProDigitalFilesPage: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [creatingDemo, setCreatingDemo] = useState(false);
   const [subscribing, setSubscribing] = useState<string | null>(null);
 
@@ -51,6 +52,9 @@ const ProDigitalFilesPage: React.FC = () => {
 
       if (response.ok) {
         alert('✅ Demo subscription created! You can now test uploads.');
+        // Invalidate cache to refresh subscription status
+        queryClient.invalidateQueries({ queryKey: ['storage-subscription'] });
+        queryClient.invalidateQueries({ queryKey: ['storage-usage'] });
         // Redirect to the archive page where users can upload
         navigate('/my-archive');
       } else {
@@ -83,6 +87,9 @@ const ProDigitalFilesPage: React.FC = () => {
 
         if (response.ok) {
           alert('✅ Free tier activated! You now have 5GB of storage.');
+          // Invalidate cache to refresh subscription status
+          queryClient.invalidateQueries({ queryKey: ['storage-subscription'] });
+          queryClient.invalidateQueries({ queryKey: ['storage-usage'] });
           navigate('/my-archive');
         } else {
           const error = await response.json();
