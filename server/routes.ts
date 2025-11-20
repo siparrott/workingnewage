@@ -18,6 +18,7 @@ import os from 'os';
 import fs from 'fs';
 import multer from 'multer';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import sharp from 'sharp';
 // Using require for 'imap' to satisfy commonjs typings within ESM context
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const Imap = require('imap');
@@ -7418,46 +7419,94 @@ New Age Fotografie CRM System
         mimetype: req.file.mimetype
       });
 
-      // Upload to B2 cloud storage
-      const fileBuffer = req.file.buffer;
-      if (!fileBuffer) {
+      // Prepare buffers
+      const originalBuffer = req.file.buffer;
+      if (!originalBuffer) {
         console.error("[VOUCHER IMAGE] No buffer available");
         return res.status(500).json({ error: "File buffer not available" });
       }
 
-      const fileExtension = path.extname(req.file.originalname);
-      const fileName = `voucher-${Date.now()}-${Math.random().toString(36).substring(2, 15)}${fileExtension}`;
-      const s3Key = `vouchers/${fileName}`;
+      let processedBuffer = originalBuffer;
+      let processedMime = req.file.mimetype;
+      let thumbnailBuffer: Buffer | null = null;
+      let thumbnailMime = 'image/webp';
+      let didTransform = false;
 
-      console.log("[VOUCHER IMAGE] Uploading to B2 with key:", s3Key);
+      try {
+        // Resize & convert to webp for efficiency (max width 1600)
+        const main = sharp(originalBuffer).resize({ width: 1600, withoutEnlargement: true }).webp({ quality: 80 });
+        processedBuffer = await main.toBuffer();
+        processedMime = 'image/webp';
+        didTransform = true;
+        // Create thumbnail (square crop)
+        thumbnailBuffer = await sharp(originalBuffer).resize({ width: 400, height: 400, fit: 'cover' }).webp({ quality: 70 }).toBuffer();
+      } catch (imgErr) {
+        console.warn("[VOUCHER IMAGE] Sharp processing failed, falling back to original:", imgErr);
+        thumbnailBuffer = null; // Will skip thumbnail upload
+      }
 
-      const uploadCommand = new PutObjectCommand({
+      const baseName = `voucher-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+      const mainFileName = `${baseName}${processedMime === 'image/webp' ? '.webp' : path.extname(req.file.originalname)}`;
+      const thumbFileName = `thumb-${baseName}.webp`;
+      const mainKey = `vouchers/${mainFileName}`;
+      const thumbKey = `vouchers/${thumbFileName}`;
+
+      console.log("[VOUCHER IMAGE] Uploading to B2 with keys:", { mainKey, thumbKey, transformed: didTransform });
+
+      // Upload main image
+      await s3Client.send(new PutObjectCommand({
         Bucket: process.env.AWS_S3_BUCKET || '',
-        Key: s3Key,
-        Body: fileBuffer,
-        ContentType: req.file.mimetype,
-        ACL: 'public-read', // Make voucher images publicly accessible
+        Key: mainKey,
+        Body: processedBuffer,
+        ContentType: processedMime,
+        ACL: 'public-read',
         Metadata: {
           originalName: req.file.originalname,
           uploadedBy: 'voucher-system',
+          transformed: didTransform ? 'true' : 'false',
         },
-      });
+      }));
 
-      await s3Client.send(uploadCommand);
+      // Upload thumbnail if created
+      let thumbUrl: string | null = null;
+      if (thumbnailBuffer) {
+        try {
+          await s3Client.send(new PutObjectCommand({
+            Bucket: process.env.AWS_S3_BUCKET || '',
+            Key: thumbKey,
+            Body: thumbnailBuffer,
+            ContentType: thumbnailMime,
+            ACL: 'public-read',
+            Metadata: {
+              originalName: req.file.originalname,
+              uploadedBy: 'voucher-system',
+              type: 'thumbnail'
+            }
+          }));
+          thumbUrl = process.env.AWS_S3_ENDPOINT
+            ? `${process.env.AWS_S3_ENDPOINT}/file/${process.env.AWS_S3_BUCKET}/${thumbKey}`
+            : `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION || 'eu-central-1'}.amazonaws.com/${thumbKey}`;
+        } catch (thumbErr) {
+          console.warn("[VOUCHER IMAGE] Thumbnail upload failed:", thumbErr);
+        }
+      }
 
-      // Construct public URL - for Backblaze B2, use the file-friendly URL format
-      const fileUrl = process.env.AWS_S3_ENDPOINT 
-        ? `${process.env.AWS_S3_ENDPOINT}/file/${process.env.AWS_S3_BUCKET}/${s3Key}`
-        : `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION || 'eu-central-1'}.amazonaws.com/${s3Key}`;
+      // Construct public URLs
+      const mainUrl = process.env.AWS_S3_ENDPOINT
+        ? `${process.env.AWS_S3_ENDPOINT}/file/${process.env.AWS_S3_BUCKET}/${mainKey}`
+        : `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION || 'eu-central-1'}.amazonaws.com/${mainKey}`;
 
       console.log("[VOUCHER IMAGE] Upload successful:", {
-        s3Key,
-        url: fileUrl,
-        size: req.file.size,
+        mainKey,
+        thumbKey: thumbnailBuffer ? thumbKey : null,
+        url: mainUrl,
+        thumbUrl,
+        originalSize: req.file.size,
+        processedSize: processedBuffer.length,
         bucket: process.env.AWS_S3_BUCKET
       });
 
-      res.json({ url: fileUrl });
+      res.json({ url: mainUrl, thumbnailUrl: thumbUrl, originalSize: req.file.size, processedSize: processedBuffer.length });
     } catch (error) {
       console.error("[VOUCHER IMAGE] Upload error:", error);
       res.status(500).json({ error: "Failed to upload image to cloud storage" });

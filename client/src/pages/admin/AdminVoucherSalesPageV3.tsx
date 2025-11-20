@@ -349,8 +349,9 @@ export default function AdminVoucherSalesPageV3() {
       }
       
       const data = await response.json();
-      console.log('[IMAGE UPLOAD] Upload successful! URL:', data.url);
+      console.log('[IMAGE UPLOAD] Upload successful! URL:', data.url, 'Thumbnail:', data.thumbnailUrl);
       setUploadedImage(data.url);
+      // Optionally could store thumbnail for later use
       console.log('[IMAGE UPLOAD] State updated with URL:', data.url);
     } catch (error) {
       console.error('[IMAGE UPLOAD] Error:', error);

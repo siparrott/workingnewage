@@ -447,99 +447,44 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Voucher Grid Section */}
+      {/* Voucher Grid Section (Dynamic) */}
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Pregnancy Photoshoot */}
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-              <div className="aspect-[4/3] overflow-hidden">
-                <img 
-                  src="https://i.imgur.com/Vd6xtPg.jpg"
-                  alt="Pregnancy photoshoot"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-purple-900 mb-2">{t('home.pregnancyShootingTitle')}</h3>
-                <p className="text-gray-600 mb-4">{t('home.pregnancyShootingDescription')}</p>
-                <div className="flex justify-between items-center">
-                  <div className="flex flex-col">
-                    <span className="text-sm text-gray-500 uppercase tracking-wide">{language === 'de' ? 'AB' : 'FROM'}</span>
-                    <span className="text-2xl font-bold text-purple-600">€95</span>
-                  </div>
-                  <button 
-                    onClick={() => {
-                      navigate('/gutschein/maternity');
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
+            {voucherProducts.map(v => (
+              <div key={v.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
+                <div className="aspect-[4/3] overflow-hidden bg-gray-100">
+                  <img
+                    src={v.image}
+                    alt={v.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                      (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="flex items-center justify-center w-full h-full text-gray-400">No Image</div>';
                     }}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-full transition-colors"
-                  >
-                    {t('home.bookNowButton')}
-                  </button>
+                  />
+                </div>
+                <div className="p-6">
+                  <h3 className="text-xl font-bold text-purple-900 mb-2">{v.name}</h3>
+                  <p className="text-gray-600 mb-4">{v.description}</p>
+                  <div className="flex justify-between items-center">
+                    <div className="flex flex-col">
+                      <span className="text-sm text-gray-500 uppercase tracking-wide">{language === 'de' ? 'AB' : 'FROM'}</span>
+                      <span className="text-2xl font-bold text-purple-600">€{v.price}</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigate(v.route);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-full transition-colors"
+                    >
+                      {t('home.bookNowButton')}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            {/* Family Photoshoot */}
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-              <div className="aspect-[4/3] overflow-hidden">
-                <img 
-                  src="https://i.postimg.cc/tJ4kNYW7/Familienfotoshooting-im-Fotostudio-Wien-Krexner-2777.jpg"
-                  alt="Family photoshoot"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-purple-900 mb-2">{t('home.familyShootingTitle')}</h3>
-                <p className="text-gray-600 mb-4">{t('home.familyShootingDescription')}</p>
-                <div className="flex justify-between items-center">
-                  <div className="flex flex-col">
-                    <span className="text-sm text-gray-500 uppercase tracking-wide">{language === 'de' ? 'AB' : 'FROM'}</span>
-                    <span className="text-2xl font-bold text-purple-600">€95</span>
-                  </div>
-                  <button 
-                    onClick={() => {
-                      navigate('/gutschein/family');
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-full transition-colors"
-                  >
-                    {t('home.bookNowButton')}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Newborn Photoshoot */}
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-              <div className="aspect-[4/3] overflow-hidden">
-                <img 
-                  src="https://i.imgur.com/QWOgLqX.jpg"
-                  alt="Newborn photoshoot"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-purple-900 mb-2">{t('home.newbornShootingTitle')}</h3>
-                <p className="text-gray-600 mb-4">{t('home.newbornShootingDescription')}</p>
-                <div className="flex justify-between items-center">
-                  <div className="flex flex-col">
-                    <span className="text-sm text-gray-500 uppercase tracking-wide">{language === 'de' ? 'AB' : 'FROM'}</span>
-                    <span className="text-2xl font-bold text-purple-600">€95</span>
-                  </div>
-                  <button 
-                    onClick={() => {
-                      navigate('/gutschein/newborn');
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-full transition-colors"
-                  >
-                    {t('home.bookNowButton')}
-                  </button>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
