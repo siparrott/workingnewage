@@ -535,7 +535,12 @@ router.post('/activate-free-tier', async (req: Request, res: Response) => {
       VALUES (${newSub.id}, 0, 0)
     `);
 
-    console.log('✅ Storage usage record created for subscription:', newSub.id);
+    console.log('✅ Free tier activated:', { 
+      userId, 
+      subscriptionId: newSub.id,
+      tier: 'free',
+      storageLimit: newSub.storageLimit 
+    });
 
     res.json({
       success: true,
