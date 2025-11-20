@@ -52,13 +52,8 @@ const ProDigitalFilesPage: React.FC = () => {
 
       if (response.ok) {
         alert('✅ Demo subscription created! You can now test uploads.');
-        // Invalidate cache to refresh subscription status
-        await queryClient.invalidateQueries({ queryKey: ['storage-subscription'] });
-        await queryClient.invalidateQueries({ queryKey: ['storage-usage'] });
-        // Small delay to ensure queries refetch
-        await new Promise(resolve => setTimeout(resolve, 500));
-        // Redirect to the archive page where users can upload
-        navigate('/my-archive');
+        // Use full page reload to ensure fresh subscription data
+        window.location.href = '/my-archive';
       } else {
         alert('❌ Failed to create demo subscription. Check console for details.');
       }
@@ -89,12 +84,8 @@ const ProDigitalFilesPage: React.FC = () => {
 
         if (response.ok) {
           alert('✅ Free tier activated! You now have 5GB of storage.');
-          // Invalidate cache to refresh subscription status
-          await queryClient.invalidateQueries({ queryKey: ['storage-subscription'] });
-          await queryClient.invalidateQueries({ queryKey: ['storage-usage'] });
-          // Small delay to ensure queries refetch
-          await new Promise(resolve => setTimeout(resolve, 500));
-          navigate('/my-archive');
+          // Use full page reload to ensure fresh subscription data
+          window.location.href = '/my-archive';
         } else {
           const error = await response.json();
           alert(`❌ ${error.error || 'Failed to activate free tier'}`);
