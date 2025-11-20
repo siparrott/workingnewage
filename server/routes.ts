@@ -7615,15 +7615,23 @@ New Age Fotografie CRM System
     }
   });
 
-  // Get single voucher product by ID (public endpoint)
+  // Get single voucher product by ID or slug (public endpoint)
   app.get("/api/vouchers/products/:id", async (req: Request, res: Response) => {
     try {
-      const product = await neonDb.getVoucherProduct(req.params.id);
+      const idOrSlug = req.params.id;
+      let product = await neonDb.getVoucherProduct(idOrSlug);
+      if (!product) {
+        // Fallback: attempt slug lookup
+        try {
+          const all = await neonDb.getVoucherProducts();
+          product = all.find((p: any) => p.slug === idOrSlug);
+        } catch (e) {
+          console.warn('[VOUCHER] Slug fallback failed:', e);
+        }
+      }
       if (!product) {
         return res.status(404).json({ error: "Voucher product not found" });
       }
-      
-      // Transform snake_case to camelCase
       const transformedProduct = {
         id: product.id,
         name: product.name,
@@ -7652,7 +7660,6 @@ New Age Fotografie CRM System
         createdAt: product.created_at,
         updatedAt: product.updated_at,
       };
-      
       res.json(transformedProduct);
     } catch (error) {
       console.error("Error fetching voucher product:", error);
@@ -8549,6 +8556,109 @@ New Age Fotografie CRM System
     } catch (error) {
       console.error("Error validating coupon:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Coupon analytics (admin)
+  app.get('/api/vouchers/coupons/analytics', authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const coupons = await storage.getDiscountCoupons();
+      const sales = await storage.getVoucherSales();
+      const analytics = coupons.map(c => {
+        const related = sales.filter(s => (s.couponId && s.couponId === c.id) || (s.couponCode && s.couponCode.toUpperCase() === c.code.toUpperCase()));
+        const usageCount = related.length;
+        const totalDiscount = related.reduce((sum, s) => sum + Number(s.discountAmount || 0), 0);
+        const totalRevenue = related.reduce((sum, s) => sum + Number(s.finalAmount || 0), 0);
+        const lastUsedAt = related.reduce((latest: Date | null, s) => {
+          const d = s.createdAt as any;
+          const dt = d instanceof Date ? d : (d ? new Date(d) : null);
+          if (!dt) return latest;
+            return !latest || dt > latest ? dt : latest;
+        }, null);
+        return {
+          id: c.id,
+          code: c.code,
+          name: c.name,
+          discountType: c.discountType,
+          discountValue: c.discountValue,
+          isActive: c.isActive,
+          usageCount,
+          totalDiscountAmount: Number(totalDiscount.toFixed(2)),
+          totalRevenueInfluenced: Number(totalRevenue.toFixed(2)),
+          lastUsedAt,
+        };
+      });
+      res.json(analytics);
+    } catch (error) {
+      console.error('Error generating coupon analytics:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Voucher settings (ephemeral in-memory for now)
+  let voucherSettings: any = {
+    defaultValidityDays: 365,
+    defaultAspectRatio: '4:3',
+    imageQuality: 0.9,
+    updatedAt: new Date(),
+  };
+  app.get('/api/vouchers/settings', authenticateUser, async (req: Request, res: Response) => {
+    res.json(voucherSettings);
+  });
+  app.put('/api/vouchers/settings', authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { defaultValidityDays, defaultAspectRatio, imageQuality } = req.body || {};
+      if (defaultValidityDays !== undefined) voucherSettings.defaultValidityDays = parseInt(defaultValidityDays);
+      if (defaultAspectRatio !== undefined) voucherSettings.defaultAspectRatio = String(defaultAspectRatio);
+      if (imageQuality !== undefined) voucherSettings.imageQuality = Math.min(1, Math.max(0.4, Number(imageQuality)));
+      voucherSettings.updatedAt = new Date();
+      res.json(voucherSettings);
+    } catch (e) {
+      res.status(400).json({ error: 'Invalid settings payload' });
+    }
+  });
+
+  // CSV export endpoints
+  app.get('/api/vouchers/products.csv', authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const products = await neonDb.getVoucherProducts();
+      const header = 'id,name,price,originalPrice,slug,isActive\n';
+      const rows = products.map((p: any) => [
+        p.id,
+        '"' + String(p.name || '').replace(/"/g, '""') + '"',
+        p.price,
+        p.original_price || '',
+        p.slug || '',
+        p.is_active,
+      ].join(','));
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="voucher-products.csv"');
+      res.send(header + rows.join('\n'));
+    } catch (error) {
+      console.error('Error exporting products CSV:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  app.get('/api/vouchers/sales.csv', authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const sales = await storage.getVoucherSales();
+      const header = 'id,productId,voucherCode,purchaserEmail,finalAmount,discountAmount,couponCode,createdAt\n';
+      const rows = sales.map((s: any) => [
+        s.id,
+        s.productId,
+        s.voucherCode,
+        s.purchaserEmail,
+        s.finalAmount,
+        s.discountAmount,
+        s.couponCode || '',
+        s.createdAt instanceof Date ? s.createdAt.toISOString() : s.createdAt,
+      ].join(','));
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="voucher-sales.csv"');
+      res.send(header + rows.join('\n'));
+    } catch (error) {
+      console.error('Error exporting sales CSV:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 

@@ -82,6 +82,8 @@ export default function AdminVoucherSalesPageV3() {
   const [selectedCoupon, setSelectedCoupon] = useState<DiscountCoupon | null>(null);
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
   const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
+  const [isAnalyticsDialogOpen, setIsAnalyticsDialogOpen] = useState(false);
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -165,6 +167,46 @@ export default function AdminVoucherSalesPageV3() {
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return response.json();
     },
+  });
+
+  // Coupon analytics (fetch only when dialog opened)
+  const { data: couponAnalytics, refetch: refetchCouponAnalytics } = useQuery<any[]>({
+    queryKey: ['/api/vouchers/coupons/analytics'],
+    enabled: isAnalyticsDialogOpen,
+    queryFn: async () => {
+      const res = await fetch('/api/vouchers/coupons/analytics', { headers: withAdminHeaders() });
+      if (!res.ok) throw new Error('Failed to fetch coupon analytics');
+      return res.json();
+    }
+  });
+
+  // Voucher settings
+  const { data: voucherSettings, refetch: refetchVoucherSettings } = useQuery<any>({
+    queryKey: ['/api/vouchers/settings'],
+    enabled: isSettingsDialogOpen,
+    queryFn: async () => {
+      const res = await fetch('/api/vouchers/settings', { headers: withAdminHeaders() });
+      if (!res.ok) throw new Error('Failed to fetch voucher settings');
+      return res.json();
+    }
+  });
+
+  const saveSettingsMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const res = await fetch('/api/vouchers/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...withAdminHeaders() },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('Failed to save settings');
+      return res.json();
+    },
+    onSuccess: () => {
+      refetchVoucherSettings();
+      alert('Settings saved');
+      setIsSettingsDialogOpen(false);
+    },
+    onError: (e) => alert('Failed to save settings: ' + (e as any).message)
   });
 
   // Calculate statistics
@@ -468,6 +510,21 @@ export default function AdminVoucherSalesPageV3() {
     }
   };
 
+  // Header actions
+  const handleExportProducts = () => {
+    window.open('/api/vouchers/products.csv', '_blank');
+  };
+  const handleExportSales = () => {
+    window.open('/api/vouchers/sales.csv', '_blank');
+  };
+  const handleOpenSettings = () => {
+    setIsSettingsDialogOpen(true);
+  };
+  const handleShowAnalytics = () => {
+    setIsAnalyticsDialogOpen(true);
+    setTimeout(() => refetchCouponAnalytics(), 50);
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -479,11 +536,19 @@ export default function AdminVoucherSalesPageV3() {
               <p className="text-gray-600 mt-1">Manage voucher products, discount codes, and track sales performance</p>
             </div>
             <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleExportProducts} title="Export products CSV">
                 <Download className="h-4 w-4 mr-2" />
-                Export
+                Export Products
               </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleExportSales} title="Export sales CSV">
+                <Download className="h-4 w-4 mr-2" />
+                Export Sales
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleShowAnalytics} title="Coupon usage analytics">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Analytics
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleOpenSettings} title="Voucher defaults & image settings">
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
               </Button>
@@ -558,6 +623,8 @@ export default function AdminVoucherSalesPageV3() {
                 onCreateProduct={handleCreateProduct}
                 onCreateCoupon={handleCreateCoupon}
                 recentSales={voucherSales?.slice(0, 5) || []}
+                onShowAnalytics={handleShowAnalytics}
+                onShowSettings={handleOpenSettings}
               />
             )}
             {activeView === "products" && (
@@ -606,6 +673,18 @@ export default function AdminVoucherSalesPageV3() {
         onSubmit={handleCouponSubmit}
         form={couponForm}
       />
+      <AnalyticsDialog
+        open={isAnalyticsDialogOpen}
+        onOpenChange={(o) => { setIsAnalyticsDialogOpen(o); if (o) refetchCouponAnalytics(); }}
+        analytics={couponAnalytics || []}
+      />
+      <SettingsDialog
+        open={isSettingsDialogOpen}
+        onOpenChange={(o) => { setIsSettingsDialogOpen(o); if (o) refetchVoucherSettings(); }}
+        settings={voucherSettings}
+        onSave={(payload) => saveSettingsMutation.mutate(payload)}
+        saving={saveSettingsMutation.isPending}
+      />
     </AdminLayout>
   );
 }
@@ -616,7 +695,9 @@ const DashboardView: React.FC<{
   onCreateProduct: () => void;
   onCreateCoupon: () => void;
   recentSales: VoucherSale[];
-}> = ({ stats, onCreateProduct, onCreateCoupon, recentSales }) => {
+  onShowAnalytics?: () => void;
+  onShowSettings?: () => void;
+}> = ({ stats, onCreateProduct, onCreateCoupon, recentSales, onShowAnalytics, onShowSettings }) => {
   return (
     <div className="space-y-8">
       {/* Key Metrics */}
@@ -663,6 +744,32 @@ const DashboardView: React.FC<{
             <div className="text-2xl font-bold text-gray-900">€{stats.avgOrderValue.toFixed(2)}</div>
             <p className="text-xs text-gray-600">Per voucher sale</p>
           </CardContent>
+        </Card>
+      </div>
+
+      {/* Additional Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="border border-purple-200 hover:border-purple-400 transition-colors">
+          <CardHeader>
+            <CardTitle>Coupon Analytics</CardTitle>
+            <CardDescription>Usage & performance metrics</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={onShowAnalytics} className="bg-purple-600 hover:bg-purple-700 text-white w-full">
+              View Analytics
+            </Button>
+          </CardContent>
+        </Card>
+        <Card className="border border-gray-200 hover:border-gray-400 transition-colors">
+          <CardHeader>
+            <CardTitle>Voucher Settings</CardTitle>
+            <CardDescription>Defaults & image options</CardDescription>
+          </CardHeader>
+            <CardContent>
+              <Button onClick={onShowSettings} variant="outline" className="w-full">
+                Open Settings
+              </Button>
+            </CardContent>
         </Card>
       </div>
 
@@ -1667,6 +1774,119 @@ const CouponDialog: React.FC<{
             {coupon ? 'Update Coupon' : 'Create Coupon'}
           </Button>
         </DialogFooter>
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
+  );
+};
+
+// Analytics Dialog
+const AnalyticsDialog: React.FC<{ open: boolean; onOpenChange: (o: boolean) => void; analytics: any[] }> = ({ open, onOpenChange, analytics }) => {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogPortal>
+        <DialogOverlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" />
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto bg-white border-2 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle>Coupon Analytics</DialogTitle>
+            <DialogDescription>Aggregated usage metrics for discount coupons</DialogDescription>
+          </DialogHeader>
+          <div className="overflow-x-auto mt-4">
+            {analytics.length > 0 ? (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="p-2 text-left">Code</th>
+                    <th className="p-2 text-left">Name</th>
+                    <th className="p-2 text-left">Type</th>
+                    <th className="p-2 text-right">Value</th>
+                    <th className="p-2 text-right">Usage</th>
+                    <th className="p-2 text-right">Total Discount (€)</th>
+                    <th className="p-2 text-right">Revenue Influenced (€)</th>
+                    <th className="p-2 text-left">Last Used</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {analytics.map(a => (
+                    <tr key={a.id} className="hover:bg-gray-50">
+                      <td className="p-2 font-mono text-xs">{a.code}</td>
+                      <td className="p-2">{a.name}</td>
+                      <td className="p-2">{a.discountType}</td>
+                      <td className="p-2 text-right">{a.discountType === 'percentage' ? `${a.discountValue}%` : `€${a.discountValue}`}</td>
+                      <td className="p-2 text-right">{a.usageCount}</td>
+                      <td className="p-2 text-right">{a.totalDiscountAmount.toFixed ? a.totalDiscountAmount.toFixed(2) : a.totalDiscountAmount}</td>
+                      <td className="p-2 text-right">{a.totalRevenueInfluenced.toFixed ? a.totalRevenueInfluenced.toFixed(2) : a.totalRevenueInfluenced}</td>
+                      <td className="p-2 text-xs">{a.lastUsedAt ? new Date(a.lastUsedAt).toLocaleDateString() : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-gray-500 text-sm">No analytics data yet.</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
+  );
+};
+
+// Settings Dialog
+const SettingsDialog: React.FC<{ open: boolean; onOpenChange: (o: boolean) => void; settings: any; onSave: (p: any) => void; saving: boolean }> = ({ open, onOpenChange, settings, onSave, saving }) => {
+  const [localValidity, setLocalValidity] = useState<string>('');
+  const [localAspect, setLocalAspect] = useState<string>('');
+  const [localQuality, setLocalQuality] = useState<string>('');
+
+  useEffect(() => {
+    if (open && settings) {
+      setLocalValidity(String(settings.defaultValidityDays ?? 365));
+      setLocalAspect(String(settings.defaultAspectRatio ?? '4:3'));
+      setLocalQuality(String(settings.imageQuality ?? 0.9));
+    }
+  }, [open, settings]);
+
+  const handleSave = () => {
+    onSave({
+      defaultValidityDays: parseInt(localValidity) || 365,
+      defaultAspectRatio: localAspect || '4:3',
+      imageQuality: parseFloat(localQuality) || 0.9,
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogPortal>
+        <DialogOverlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" />
+        <DialogContent className="sm:max-w-[500px] bg-white border-2 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle>Voucher Settings</DialogTitle>
+            <DialogDescription>Configure default voucher behavior & image processing options</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="space-y-2">
+              <Label htmlFor="validity">Default Validity (days)</Label>
+              <Input id="validity" type="number" value={localValidity} onChange={e => setLocalValidity(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="aspect">Default Aspect Ratio</Label>
+              <Input id="aspect" placeholder="4:3" value={localAspect} onChange={e => setLocalAspect(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="quality">Image Quality (0.4 - 1)</Label>
+              <Input id="quality" type="number" step="0.05" min="0.4" max="1" value={localQuality} onChange={e => setLocalQuality(e.target.value)} />
+              <p className="text-xs text-gray-500">Affects JPEG compression when processing images.</p>
+            </div>
+            {settings && (
+              <p className="text-xs text-gray-400">Last updated: {settings.updatedAt ? new Date(settings.updatedAt).toLocaleString() : '—'}</p>
+            )}
+          </div>
+          <DialogFooter className="pt-4">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save Settings'}</Button>
+          </DialogFooter>
         </DialogContent>
       </DialogPortal>
     </Dialog>
