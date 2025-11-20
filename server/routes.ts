@@ -752,7 +752,7 @@ const s3Client = new S3Client({
 const upload = multer({
   storage: multer.memoryStorage(), // Changed to memory storage for direct B2 upload
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 10 * 1024 * 1024, // 10MB limit (increased for high-res photos)
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
