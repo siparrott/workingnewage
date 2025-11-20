@@ -325,6 +325,8 @@ export default function AdminVoucherSalesPageV3() {
           maxDiscountAmount: data.maxDiscountAmount || undefined,
           usageLimit: data.usageLimit ? parseInt(data.usageLimit) : undefined,
           applicableProductSlug: data.applicableProductSlug || undefined,
+          startDate: data.startDate || undefined,
+          endDate: data.endDate || undefined,
         }),
       });
       if (!response.ok) throw new Error("Failed to create coupon");
@@ -354,6 +356,8 @@ export default function AdminVoucherSalesPageV3() {
           maxDiscountAmount: payload.maxDiscountAmount || undefined,
           usageLimit: payload.usageLimit ? parseInt(payload.usageLimit) : undefined,
           applicableProductSlug: payload.applicableProductSlug || undefined,
+          startDate: payload.startDate || undefined,
+          endDate: payload.endDate || undefined,
         }),
       });
       if (!response.ok) throw new Error('Failed to update coupon');
@@ -1061,7 +1065,7 @@ const CouponsView: React.FC<{
                       {coupon.isActive ? "Active" : "Inactive"}
                     </Badge>
                     <div className="text-sm text-gray-600">
-                      Used: {coupon.usageCount} / {coupon.usageLimit || "∞"}
+                      Used: {(coupon as any).usageCount || 0} / {coupon.usageLimit || "∞"}
                     </div>
                   </div>
                 </div>
@@ -1720,6 +1724,26 @@ const CouponDialog: React.FC<{
                 type="number" 
                 placeholder="100"
                 {...form.register('minOrderAmount')}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="start-date">Start Date</Label>
+              <Input
+                id="start-date"
+                type="date"
+                value={form.watch('startDate') || ''}
+                onChange={(e) => form.setValue('startDate', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="end-date">End Date</Label>
+              <Input
+                id="end-date"
+                type="date"
+                value={form.watch('endDate') || ''}
+                onChange={(e) => form.setValue('endDate', e.target.value)}
               />
             </div>
           </div>
