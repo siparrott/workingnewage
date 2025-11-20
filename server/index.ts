@@ -197,7 +197,13 @@ app.use((req, res, next) => {
     console.log('🔧 Setting up Vite frontend...');
     let viteReady = false;
     if (process.env.NODE_ENV === "production" && process.env.PORT) {
-      console.log('📦 Production mode - looking for dist folder');
+      console.log('📦 Production mode - serving static files from dist');
+      try {
+        serveStatic(app);
+        console.log('✅ Static file serving configured');
+      } catch (e: any) {
+        console.error('❌ Failed to setup static serving:', e?.message || e);
+      }
     } else {
       // Development mode - setup Vite dev server
       try {
