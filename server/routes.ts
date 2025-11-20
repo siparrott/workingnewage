@@ -7474,7 +7474,7 @@ New Age Fotografie CRM System
         Key: mainKey,
         Body: processedBuffer,
         ContentType: processedMime,
-        ACL: 'public-read',
+        // Backblaze B2 S3 API: omit ACL; bucket policy controls public access
         Metadata: {
           originalName: req.file.originalname,
           uploadedBy: 'voucher-system',
@@ -7491,25 +7491,40 @@ New Age Fotografie CRM System
             Key: thumbKey,
             Body: thumbnailBuffer,
             ContentType: thumbnailMime,
-            ACL: 'public-read',
             Metadata: {
               originalName: req.file.originalname,
               uploadedBy: 'voucher-system',
               type: 'thumbnail'
             }
           }));
-          thumbUrl = process.env.AWS_S3_ENDPOINT
-            ? `${process.env.AWS_S3_ENDPOINT}/file/${process.env.AWS_S3_BUCKET}/${thumbKey}`
-            : `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION || 'eu-central-1'}.amazonaws.com/${thumbKey}`;
+          thumbUrl = buildPublicUrl(thumbKey);
         } catch (thumbErr) {
           console.warn("[VOUCHER IMAGE] Thumbnail upload failed:", thumbErr);
         }
       }
 
-      // Construct public URLs
-      const mainUrl = process.env.AWS_S3_ENDPOINT
-        ? `${process.env.AWS_S3_ENDPOINT}/file/${process.env.AWS_S3_BUCKET}/${mainKey}`
-        : `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION || 'eu-central-1'}.amazonaws.com/${mainKey}`;
+      // Helper to build public URL (supports Backblaze B2 S3 & download endpoints)
+      function buildPublicUrl(key: string): string {
+        const bucket = process.env.AWS_S3_BUCKET || '';
+        const endpoint = process.env.AWS_S3_ENDPOINT || '';
+        // If endpoint contains 'backblazeb2.com' and includes 's3.' we prefer standard virtual-host style
+        if (endpoint.includes('backblazeb2.com')) {
+          // Virtual host style
+          return `https://${bucket}.${endpoint.replace('https://', '').replace(/\/$/, '')}/${key}`;
+        }
+        // Fallback AWS style
+        if (endpoint) {
+          // If user actually passed a download endpoint (with /file/), try that pattern
+          if (endpoint.includes('/file/')) {
+            return `${endpoint.replace(/\/$/, '')}/${key}`;
+          }
+          // Generic path-style fallback
+          return `${endpoint.replace(/\/$/, '')}/${bucket}/${key}`;
+        }
+        return `https://${bucket}.s3.${process.env.AWS_REGION || 'eu-central-1'}.amazonaws.com/${key}`;
+      }
+
+      const mainUrl = buildPublicUrl(mainKey);
 
       console.log("[VOUCHER IMAGE] Upload successful:", {
         mainKey,
