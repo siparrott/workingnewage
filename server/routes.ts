@@ -753,7 +753,7 @@ const s3Client = new S3Client({
 const upload = multer({
   storage: multer.memoryStorage(), // Changed to memory storage for direct B2 upload
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit (increased for high-res photos)
+    fileSize: 20 * 1024 * 1024, // 20MB limit to reduce Multer edge rejections
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -7508,9 +7508,29 @@ New Age Fotografie CRM System
 
       res.json({ url: mainUrl, thumbnailUrl: thumbUrl, originalSize: req.file.size, processedSize: processedBuffer.length });
     } catch (error) {
-      console.error("[VOUCHER IMAGE] Upload error:", error);
-      res.status(500).json({ error: "Failed to upload image to cloud storage" });
+      const e: any = error;
+      console.error("[VOUCHER IMAGE] Upload error:", {
+        name: e?.name,
+        message: e?.message,
+        code: e?.code,
+        $metadata: e?.$metadata,
+        stack: e?.stack,
+      });
+      res.status(500).json({ error: "Failed to upload image to cloud storage", details: e?.message || String(e) });
     }
+  });
+
+  // Central error handler for Multer (file too large, invalid type)
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    // Multer errors surface here when using upload.single()
+    if (err && err.name === 'MulterError') {
+      console.error('[UPLOAD] MulterError:', { code: err.code, message: err.message });
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ error: 'File too large', limit: '20MB' });
+      }
+      return res.status(400).json({ error: 'Upload error', code: err.code, message: err.message });
+    }
+    return next(err);
   });
 
   // ==================== VOUCHER ROUTES ====================
