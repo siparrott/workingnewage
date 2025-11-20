@@ -91,6 +91,7 @@ export default function AdminVoucherSalesPageV3() {
 
   // State for image upload
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedThumbnail, setUploadedThumbnail] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   // Forms
@@ -190,6 +191,7 @@ export default function AdminVoucherSalesPageV3() {
         category: data.category,
         sessionType: data.sessionType,
         imageUrl: uploadedImage || null,
+        thumbnailUrl: uploadedThumbnail || null,
       };
       console.log('[CREATE PRODUCT] Sending payload:', payload);
       const response = await fetch("/api/vouchers/products", {
@@ -235,6 +237,7 @@ export default function AdminVoucherSalesPageV3() {
         category: data.category,
         sessionType: data.sessionType,
         imageUrl: uploadedImage || data.imageUrl || null,
+        thumbnailUrl: uploadedThumbnail || (data as any).thumbnailUrl || null,
       };
       console.log('[UPDATE PRODUCT] Sending payload:', payload);
       const response = await fetch(`/api/vouchers/products/${data.id}`, {
@@ -351,8 +354,8 @@ export default function AdminVoucherSalesPageV3() {
       const data = await response.json();
       console.log('[IMAGE UPLOAD] Upload successful! URL:', data.url, 'Thumbnail:', data.thumbnailUrl);
       setUploadedImage(data.url);
-      // Optionally could store thumbnail for later use
-      console.log('[IMAGE UPLOAD] State updated with URL:', data.url);
+      setUploadedThumbnail(data.thumbnailUrl || null);
+      console.log('[IMAGE UPLOAD] State updated with URL:', data.url, 'and thumbnail:', data.thumbnailUrl);
     } catch (error) {
       console.error('[IMAGE UPLOAD] Error:', error);
       alert(`Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -365,6 +368,7 @@ export default function AdminVoucherSalesPageV3() {
   const handleCreateProduct = () => {
     setSelectedProduct(null);
     setUploadedImage(null);
+    setUploadedThumbnail(null);
     setIsProductDialogOpen(false); // Close first
     setTimeout(() => {
       productForm.reset({
@@ -384,6 +388,7 @@ export default function AdminVoucherSalesPageV3() {
   const handleEditProduct = (product: VoucherProduct) => {
     setSelectedProduct(product);
     setUploadedImage(product.imageUrl);
+    setUploadedThumbnail((product as any).thumbnailUrl || (product as any).thumbnail_url || null);
     productForm.reset({
       name: product.name,
       description: product.description || "",

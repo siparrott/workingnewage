@@ -7434,12 +7434,12 @@ New Age Fotografie CRM System
 
       try {
         // Resize & convert to webp for efficiency (max width 1600)
-        const main = sharp(originalBuffer).resize({ width: 1600, withoutEnlargement: true }).webp({ quality: 80 });
+        const main = sharp(originalBuffer).rotate().resize({ width: 1600, withoutEnlargement: true }).webp({ quality: 78 });
         processedBuffer = await main.toBuffer();
         processedMime = 'image/webp';
         didTransform = true;
         // Create thumbnail (square crop)
-        thumbnailBuffer = await sharp(originalBuffer).resize({ width: 400, height: 400, fit: 'cover' }).webp({ quality: 70 }).toBuffer();
+        thumbnailBuffer = await sharp(originalBuffer).rotate().resize({ width: 400, height: 400, fit: 'cover' }).webp({ quality: 70 }).toBuffer();
       } catch (imgErr) {
         console.warn("[VOUCHER IMAGE] Sharp processing failed, falling back to original:", imgErr);
         thumbnailBuffer = null; // Will skip thumbnail upload
@@ -7907,19 +7907,115 @@ New Age Fotografie CRM System
 
   app.post("/api/vouchers/products", async (req: Request, res: Response) => {
     try {
-      console.log('[VOUCHER] Creating product with data:', req.body);
-      const validatedData = insertVoucherProductSchema.parse(req.body);
+      console.log('[VOUCHER] Creating product with raw body:', req.body);
+      // Accept both camelCase and snake_case incoming fields
+      const normalized: any = { ...req.body };
+      if (normalized.detailedDescription && !normalized.detailed_description) normalized.detailed_description = normalized.detailedDescription;
+      if (normalized.originalPrice && !normalized.original_price) normalized.original_price = normalized.originalPrice;
+      if (normalized.sessionDuration && !normalized.session_duration) normalized.session_duration = normalized.sessionDuration;
+      if (normalized.sessionType && !normalized.session_type) normalized.session_type = normalized.sessionType;
+      if (normalized.validityPeriod && !normalized.validity_period) normalized.validity_period = normalized.validityPeriod;
+      if (normalized.redemptionInstructions && !normalized.redemption_instructions) normalized.redemption_instructions = normalized.redemptionInstructions;
+      if (normalized.termsAndConditions && !normalized.terms_and_conditions) normalized.terms_and_conditions = normalized.termsAndConditions;
+      if (normalized.imageUrl && !normalized.image_url) normalized.image_url = normalized.imageUrl;
+      if (normalized.thumbnailUrl && !normalized.thumbnail_url) normalized.thumbnail_url = normalized.thumbnailUrl;
+      if (normalized.promoImageUrl && !normalized.promo_image_url) normalized.promo_image_url = normalized.promoImageUrl;
+      if (normalized.displayOrder && !normalized.display_order) normalized.display_order = normalized.displayOrder;
+      if (normalized.isActive !== undefined && !normalized.is_active) normalized.is_active = normalized.isActive;
+      if (normalized.maxPerCustomer && !normalized.max_per_customer) normalized.max_per_customer = normalized.maxPerCustomer;
+      if (normalized.metaTitle && !normalized.meta_title) normalized.meta_title = normalized.metaTitle;
+      if (normalized.metaDescription && !normalized.meta_description) normalized.meta_description = normalized.metaDescription;
+
+      console.log('[VOUCHER] Normalized for validation:', normalized);
+      const validatedData = insertVoucherProductSchema.parse(normalized);
       console.log('[VOUCHER] Validated data:', validatedData);
       const product = await neonDb.createVoucherProduct(validatedData);
       console.log('[VOUCHER] Product created:', product);
-      res.status(201).json(product);
+      // Respond in camelCase for frontend
+      res.status(201).json({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        detailedDescription: product.detailed_description,
+        price: product.price,
+        originalPrice: product.original_price,
+        category: product.category,
+        sessionDuration: product.session_duration,
+        sessionType: product.session_type,
+        validityPeriod: product.validity_period,
+        redemptionInstructions: product.redemption_instructions,
+        termsAndConditions: product.terms_and_conditions,
+        imageUrl: product.image_url,
+        thumbnailUrl: product.thumbnail_url,
+        promoImageUrl: product.promo_image_url,
+        displayOrder: product.display_order,
+        featured: product.featured,
+        badge: product.badge,
+        isActive: product.is_active,
+        stockLimit: product.stock_limit,
+        maxPerCustomer: product.max_per_customer,
+        slug: product.slug,
+        metaTitle: product.meta_title,
+        metaDescription: product.meta_description,
+        createdAt: product.created_at,
+        updatedAt: product.updated_at,
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         console.error('[VOUCHER] Validation error:', error.errors);
         return res.status(400).json({ error: "Validation error", details: error.errors });
       }
-      console.error("[VOUCHER] Error creating voucher product:", error);
-      res.status(500).json({ error: "Internal server error", message: (error as any).message });
+      console.error('[VOUCHER] Error creating voucher product:', error);
+      res.status(500).json({ error: 'Internal server error', message: (error as any).message });
+    }
+  });
+
+  // Public single voucher product fetch by id or slug
+  app.get('/api/vouchers/products/:idOrSlug', async (req: Request, res: Response) => {
+    try {
+      const idOrSlug = req.params.idOrSlug;
+      let product: any = null;
+      // Try direct ID lookup first
+      try { product = await neonDb.getVoucherProduct(idOrSlug); } catch (_) { /* ignore */ }
+      if (!product) {
+        // Fallback: iterate over all and match slug
+        const all = await neonDb.getVoucherProducts();
+        product = all.find((p: any) => p.slug === idOrSlug);
+      }
+      if (!product) {
+        return res.status(404).json({ error: 'Voucher product not found' });
+      }
+      return res.json({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        detailedDescription: product.detailed_description,
+        price: product.price,
+        originalPrice: product.original_price,
+        category: product.category,
+        sessionDuration: product.session_duration,
+        sessionType: product.session_type,
+        validityPeriod: product.validity_period,
+        redemptionInstructions: product.redemption_instructions,
+        termsAndConditions: product.terms_and_conditions,
+        imageUrl: product.image_url,
+        thumbnailUrl: product.thumbnail_url,
+        promoImageUrl: product.promo_image_url,
+        displayOrder: product.display_order,
+        featured: product.featured,
+        badge: product.badge,
+        isActive: product.is_active,
+        stockLimit: product.stock_limit,
+        maxPerCustomer: product.max_per_customer,
+        slug: product.slug,
+        metaTitle: product.meta_title,
+        metaDescription: product.meta_description,
+        createdAt: product.created_at,
+        updatedAt: product.updated_at,
+      });
+    } catch (err) {
+      console.error('[VOUCHER] Error fetching single product:', err);
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 

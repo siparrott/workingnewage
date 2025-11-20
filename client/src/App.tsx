@@ -167,6 +167,7 @@ function App() {
                 <Route path="/kontakt" element={<KontaktPage />} />
                 <Route path="/vouchers" element={<VouchersPage />} />
                 <Route path="/voucher/:slug" element={<VoucherDetailPage />} />
+                <Route path="/gutschein/:slug" element={<VoucherDetailPage />} />
                 <Route path="/vouchers/checkout/:id" element={<VoucherCheckoutPage />} />
                 <Route path="/vouchers/success" element={<VoucherSuccessPage />} />
                 <Route path="/checkout" element={<CheckoutPage />} />
