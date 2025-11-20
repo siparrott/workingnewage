@@ -427,7 +427,14 @@ router.get('/usage', async (req, res) => {
   try {
     const userId = req.session?.userId;
     
+    console.log('📊 Usage check request:', { 
+      userId, 
+      hasSession: !!req.session,
+      sessionKeys: req.session ? Object.keys(req.session) : []
+    });
+    
     if (!userId) {
+      console.log('⚠️ No userId in session, returning no subscription');
       return res.json({
         hasSubscription: false,
         currentUsage: 0,
@@ -451,7 +458,14 @@ router.get('/usage', async (req, res) => {
       LIMIT 1
     `;
     
+    console.log('📊 Subscription query result:', { 
+      userId, 
+      count: subscriptions.length,
+      subscription: subscriptions.length > 0 ? subscriptions[0] : null 
+    });
+    
     if (subscriptions.length === 0) {
+      console.log('⚠️ No active subscription found for user:', userId);
       return res.json({
         hasSubscription: false,
         currentUsage: 0,

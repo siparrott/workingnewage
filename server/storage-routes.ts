@@ -475,6 +475,12 @@ router.post('/activate-free-tier', async (req: Request, res: Response) => {
     // Check if user is authenticated
     const userId = req.session?.userId;
     
+    console.log('🔍 Free tier activation request:', { 
+      userId, 
+      hasSession: !!req.session,
+      sessionKeys: req.session ? Object.keys(req.session) : []
+    });
+    
     if (!userId) {
       return res.status(401).json({ 
         error: 'Please log in to activate free storage' 
@@ -487,9 +493,18 @@ router.post('/activate-free-tier', async (req: Request, res: Response) => {
       .where(eq(storageSubscriptions.userId, userId))
       .limit(1);
 
+    console.log('🔍 Existing subscription check:', { 
+      userId, 
+      hasExisting: existingSub && existingSub.length > 0,
+      existingStatus: existingSub?.[0]?.status 
+    });
+
     if (existingSub && existingSub.length > 0) {
-      return res.status(400).json({ 
-        error: 'You already have a subscription. Please cancel it first to switch to free tier.' 
+      console.log('⚠️ User already has subscription:', existingSub[0]);
+      return res.json({ 
+        success: true,
+        message: 'You already have an active subscription!',
+        subscription: existingSub[0],
       });
     }
 
@@ -507,13 +522,20 @@ router.post('/activate-free-tier', async (req: Request, res: Response) => {
       })
       .returning();
 
+    console.log('✅ Free tier subscription created:', { 
+      subscriptionId: newSub.id, 
+      userId,
+      tier: newSub.tier,
+      status: newSub.status 
+    });
+
     // Create initial usage record using raw SQL (schema mismatch workaround)
     await db.execute(sqlOperator`
       INSERT INTO storage_usage (subscription_id, current_storage_bytes, file_count)
       VALUES (${newSub.id}, 0, 0)
     `);
 
-    console.log('✅ Free tier activated:', { userId });
+    console.log('✅ Storage usage record created for subscription:', newSub.id);
 
     res.json({
       success: true,
@@ -521,7 +543,7 @@ router.post('/activate-free-tier', async (req: Request, res: Response) => {
       subscription: newSub,
     });
   } catch (error) {
-    console.error('Error activating free tier:', error);
+    console.error('❌ Error activating free tier:', error);
     res.status(500).json({ error: 'Failed to activate free tier' });
   }
 });
