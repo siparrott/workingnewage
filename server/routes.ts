@@ -59,6 +59,18 @@ import OpenAI from 'openai';
 import websiteWizardRoutes from './routes/website-wizard';
 import onboardingRoutes from './routes/onboarding';
 import priceWizardRoutes from './routes/price-wizard';
+// Simple in-memory status for last calendar import
+let lastCalendarImportStatus: {
+  when?: string,
+  url?: string,
+  parsed?: number,
+  filtered?: number,
+  imported?: number,
+  from?: string | null,
+  to?: string | null,
+  includePast?: boolean,
+  stage?: string,
+} = {};
 import workflowWizardRoutes from './routes/workflow-wizard';
 import questionnairesRouter from './routes/questionnaires';
 import galleryShopRouter from './routes/gallery-shop';
@@ -77,6 +89,28 @@ import { findCoupon, isCouponActive, allowsSku, forceRefreshCoupons } from './se
 // Synchronous fallback (for non-async template helpers)
 function getEnvContactEmailSync(): string {
   return process.env.SMTP_FROM || process.env.STUDIO_NOTIFY_EMAIL || process.env.SMTP_USER || '';
+}
+
+// Parse ICS date format (YYYYMMDDTHHMMSS or YYYYMMDD)
+function parseICSDate(dateStr: string): string {
+  if (!dateStr) return new Date().toISOString();
+  
+  // Remove timezone info if present
+  dateStr = dateStr.split('Z')[0].split('T')[0] + (dateStr.includes('T') ? 'T' + dateStr.split('T')[1].split('Z')[0] : '');
+  
+  // Format: YYYYMMDDTHHMMSS or YYYYMMDD
+  const year = parseInt(dateStr.substring(0, 4));
+  const month = parseInt(dateStr.substring(4, 6)) - 1; // JS months are 0-indexed
+  const day = parseInt(dateStr.substring(6, 8));
+  
+  if (dateStr.length > 8) {
+    const hour = parseInt(dateStr.substring(9, 11));
+    const minute = parseInt(dateStr.substring(11, 13));
+    const second = parseInt(dateStr.substring(13, 15) || '0');
+    return new Date(Date.UTC(year, month, day, hour, minute, second)).toISOString();
+  } else {
+    return new Date(Date.UTC(year, month, day)).toISOString();
+  }
 }
 
 async function resolveContactEmail(): Promise<string> {
@@ -1051,6 +1085,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Calendar routes (Studio Appointments)
+  
+  // Fetch Google Calendar ICS data
+  app.get("/api/calendar/google-events", async (req: Request, res: Response) => {
+    try {
+      const https = require('https');
+      const icsUrl = 'https://calendar.google.com/calendar/ical/newagefotografen%40gmail.com/private-08da3063a40ffdd19da69b7f3264baf6/basic.ics';
+      
+      https.get(icsUrl, (icsRes: any) => {
+        let data = '';
+        icsRes.on('data', (chunk: any) => data += chunk);
+        icsRes.on('end', () => {
+          // Parse ICS data into events
+          const events: any[] = [];
+          const lines = data.split('\n');
+          let currentEvent: any = null;
+          
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            
+            if (line === 'BEGIN:VEVENT') {
+              currentEvent = {};
+            } else if (line === 'END:VEVENT' && currentEvent) {
+              events.push(currentEvent);
+              currentEvent = null;
+            } else if (currentEvent) {
+              if (line.startsWith('SUMMARY:')) {
+                currentEvent.title = line.substring(8);
+              } else if (line.startsWith('DTSTART')) {
+                const dateStr = line.split(':')[1];
+                currentEvent.start = parseICSDate(dateStr);
+              } else if (line.startsWith('DTEND')) {
+                const dateStr = line.split(':')[1];
+                currentEvent.end = parseICSDate(dateStr);
+              } else if (line.startsWith('DESCRIPTION:')) {
+                currentEvent.description = line.substring(12);
+              } else if (line.startsWith('LOCATION:')) {
+                currentEvent.location = line.substring(9);
+              } else if (line.startsWith('UID:')) {
+                currentEvent.id = line.substring(4);
+              }
+            }
+          }
+          
+          res.json({ success: true, events });
+        });
+      }).on('error', (e: any) => {
+        console.error('Error fetching Google Calendar:', e);
+        res.status(500).json({ error: 'Failed to fetch calendar data' });
+      });
+    } catch (error) {
+      console.error('Google Calendar sync error:', error);
+      res.status(500).json({ error: 'Calendar sync unavailable' });
+    }
+  });
+  
   app.post("/api/calendar/appointments", async (req: Request, res: Response) => {
     try {
       const { createAppointment } = await import("./controllers/calendarController");
@@ -1212,14 +1301,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Import and register CRM agent router - DISABLED due to missing tools
-  // try {
-  //   const { crmAgentRouter } = await import("./routes/crm-agent");
-  //   app.use(crmAgentRouter);
-  // } catch (error) {
-  //   console.warn("CRM agent router not available:", error instanceof Error ? error.message : 'Unknown error');
-  // }
-  console.log("⚠️ CRM agent router disabled - missing tool dependencies");
+  // Import and register CRM agent router (legacy V1) only when explicitly enabled
+  if (process.env.ENABLE_CRM_AGENT_V1 === 'true') {
+    try {
+      const { crmAgentRouter } = await import("./routes/crm-agent");
+      app.use(crmAgentRouter);
+      console.log("✅ CRM agent router enabled (ENABLE_CRM_AGENT_V1=true)");
+    } catch (error: any) {
+      console.warn("⚠️ CRM agent router not available:", error?.message || error);
+    }
+  } else {
+    console.log('ℹ️ Skipping CRM agent router (ENABLE_CRM_AGENT_V1!=true)');
+  }
 
 
   // Audio transcription endpoint using OpenAI Whisper
@@ -1361,6 +1454,99 @@ Bitte versuchen Sie es später noch einmal.`;
         },
         timestamp: new Date().toISOString()
       });
+    }
+  });
+
+  // ==================== AGENT DATA INTELLIGENCE ENDPOINTS ====================
+  // Sales analytics for last 6 months (for agent intelligence)
+  app.get("/api/agent/sales-last6", authenticateUser, async (_req: Request, res: Response) => {
+    try {
+      const now = new Date();
+      const anchor = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+      const periods: Array<{ month: string; total: number }> = [];
+      
+      for (let i = 5; i >= 0; i--) {
+        const start = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() - i, 1));
+        const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
+        const rows = await runSql(
+          `SELECT COALESCE(SUM(CASE WHEN status='paid' THEN total ELSE 0 END),0)::double precision AS total
+           FROM crm_invoices
+           WHERE created_at >= $1 AND created_at < $2`,
+          [start.toISOString(), end.toISOString()]
+        );
+        periods.push({
+          month: `${start.getUTCFullYear()}-${String(start.getUTCMonth()+1).padStart(2,'0')}`,
+          total: Number(rows[0]?.total || 0)
+        });
+      }
+      
+      const overall = periods.reduce((s, p) => s + p.total, 0);
+      res.json({ success: true, periods, overall });
+    } catch (e: any) {
+      console.error('Error fetching sales last 6 months:', e);
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // Upcoming photography sessions (for agent intelligence)
+  app.get("/api/agent/upcoming-sessions", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const limit = Math.max(1, Math.min(50, Number(req.query.limit ?? 10)));
+      const rows = await runSql(
+        `SELECT id, title, start_time, end_time, client_id
+         FROM photography_sessions
+         WHERE start_time > NOW()
+         ORDER BY start_time ASC
+         LIMIT $1`,
+        [limit]
+      );
+      res.json({ success: true, count: rows.length, sessions: rows });
+    } catch (e: any) {
+      console.error('Error fetching upcoming sessions:', e);
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // Annual sales total (for agent intelligence)
+  app.get("/api/agent/sales-year", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const year = parseInt(String(req.query.year || new Date().getFullYear()), 10);
+      const rows = await runSql(
+        `SELECT COALESCE(SUM(CASE WHEN status='paid' THEN total ELSE 0 END),0)::double precision AS total
+         FROM crm_invoices
+         WHERE EXTRACT(YEAR FROM created_at) = $1`,
+        [year]
+      );
+      res.json({ success: true, year, total: Number(rows[0]?.total || 0) });
+    } catch (e: any) {
+      console.error('Error fetching sales for year:', e);
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // Extended diagnostics with tool availability (for agent intelligence verification)
+  app.get("/api/agent/diagnostics-extended", authenticateUser, async (_req: Request, res: Response) => {
+    try {
+      const [invRows, sessRows] = await Promise.all([
+        runSql(`SELECT COUNT(*)::int AS c, MIN(created_at) AS first, MAX(created_at) AS last FROM crm_invoices`),
+        runSql(`SELECT COUNT(*)::int AS c, MIN(start_time) AS first, MAX(start_time) AS last FROM photography_sessions`)
+      ]);
+      
+      res.json({
+        success: true,
+        invoices: invRows[0],
+        sessions: sessRows[0],
+        tools: {
+          salesYear: true,
+          salesLast6: true,
+          upcomingSessions: true
+        },
+        dbUrlSet: !!process.env.DATABASE_URL,
+        openaiKeySet: !!process.env.OPENAI_API_KEY
+      });
+    } catch (e: any) {
+      console.error('Error fetching extended diagnostics:', e);
+      res.status(500).json({ success: false, error: e.message });
     }
   });
   
@@ -4825,8 +5011,11 @@ New Age Fotografie Team`;
   });
 
   app.post("/api/calendar/import/ics-url", async (req: Request, res: Response) => {
+    let debugStage: string = 'init';
     try {
       const { icsUrl } = req.body;
+      debugStage = 'init';
+      const debugMode = String(req.query.debug || req.query.verbose || '').toLowerCase() === 'true' || String(req.query.debug) === '1';
       
       if (!icsUrl) {
         return res.status(400).json({ error: 'No iCal URL provided' });
@@ -4887,32 +5076,247 @@ New Age Fotografie Team`;
       }
 
       // Parse iCal content and convert to photography sessions
-      const importedEvents = parseICalContent(icsContent);
+      debugStage = 'parseICalContent';
+      let importedEvents: any[] = [];
+      try {
+        importedEvents = parseICalContent(icsContent);
+      } catch (parseErr: any) {
+        console.error('ICS_URL_PARSE_ERROR', parseErr);
+        return res.status(500).json({ error: 'Failed to parse iCal content', details: parseErr?.message || String(parseErr), stage: debugStage });
+      }
       const cutoff = getImportCutoffUtc(req);
       const upper = getImportUpperBoundUtc(req);
+      // Also keep original query strings to enable day-level fallback comparisons
+      const parsedQ = require('url').parse(req.url || '', true).query || {};
+      const qFrom: string | undefined = (parsedQ.from as string) || (parsedQ.since as string) || undefined;
+      const qTo: string | undefined = (parsedQ.to as string) || (parsedQ.until as string) || undefined;
+      const includePast = String((req.query.includePast || req.query.includepast) ?? '').toLowerCase() === 'true' || String(req.query.includePast) === '1';
+      debugStage = 'filterEvents';
+
+      const safeCutoff = cutoff instanceof Date && !isNaN(cutoff.getTime()) ? cutoff.toISOString() : 'INVALID';
+      const safeUpper = upper instanceof Date && !isNaN(upper.getTime()) ? upper.toISOString() : 'none';
+      console.error(`ICS_URL_IMPORT | total_parsed=${importedEvents.length} | cutoff=${safeCutoff} | upper=${safeUpper}`);
       
-      console.error(`ICS_URL_IMPORT | total_parsed=${importedEvents.length} | cutoff=${cutoff.toISOString()} | upper=${upper ? upper.toISOString() : 'none'}`);
-      
-      // Log first few parsed events for debugging
+      // Log first few parsed events for debugging (avoid throwing on invalid dates)
       importedEvents.slice(0, 3).forEach((ev, idx) => {
-        console.error(`  Event ${idx + 1}: ${ev.summary} | dtstart=${ev.dtstart} | parsed_date=${ev.dtstart ? new Date(ev.dtstart).toISOString() : 'INVALID'}`);
+        let parsed = 'INVALID';
+        try {
+          if (ev?.dtstart) {
+            const d = new Date(ev.dtstart);
+            parsed = isNaN(d.getTime()) ? 'INVALID' : d.toISOString();
+          }
+        } catch { /* ignore */ }
+        console.error(`  Event ${idx + 1}: ${ev.summary} | dtstart=${ev.dtstart} | parsed_date=${parsed}`);
       });
       
-      const eventsToImport = importedEvents.filter(ev => {
-        const ds = ev?.dtstart ? new Date(ev.dtstart) : null;
-        const passes = !!(ds && !isNaN(ds.getTime()) && ds >= cutoff && (!upper || ds <= upper));
-        if (!passes && ev.dtstart) {
-          console.error(`  FILTERED OUT: ${ev.summary} | dtstart=${ev.dtstart} | date=${ds?.toISOString()} | reason=${!ds ? 'no_date' : isNaN(ds.getTime()) ? 'invalid_date' : ds < cutoff ? 'before_cutoff' : 'after_upper'}`);
-        }
-        return passes;
-      });
+      let eventsToImport: any[] = [];
+      const debugSamples: any[] = [];
+      const reasonCounts: Record<string, number> = { no_date: 0, invalid_date: 0, outside_time_range: 0, outside_day_range: 0 };
+      // Helper: extract local day string (Europe/Vienna) from a UTC ISO string safely
+      const toLocalDay = (iso: string, tz = 'Europe/Vienna'): string | null => {
+        try {
+          const d = new Date(iso);
+          if (isNaN(d.getTime())) return null;
+          const dtf = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
+          const parts = dtf.formatToParts(d).reduce((m: any, p: any) => { if (p.type !== 'literal') m[p.type] = p.value; return m; }, {} as any);
+          return `${parts.year}-${parts.month}-${parts.day}`; // YYYY-MM-DD
+        } catch { return null; }
+      };
+      try {
+        eventsToImport = importedEvents.filter(ev => {
+          // Build a robust Date instance from event.dtstart
+          let ds: Date | null = null;
+          let parseMode: 'iso' | 'ics' | 'raw-iso' | 'raw-ics' | 'failed' = 'failed';
+          if (ev?.dtstart) {
+            let d = new Date(ev.dtstart);
+            if (isNaN(d.getTime())) {
+              let s = String(ev.dtstart).trim();
+              s = s.replace(/[^0-9TZ]/g, '');
+              // Allow canonical ICS (with or without Z) and optional milliseconds
+              const m = s.match(/^(\d{8})T(\d{6})(?:\d{0,3})?Z?$/);
+              if (m) {
+                const datePart = m[1];
+                const timePart = m[2];
+                const y = datePart.substring(0, 4);
+                const mo = datePart.substring(4, 6);
+                const da = datePart.substring(6, 8);
+                const hh = timePart.substring(0, 2);
+                const mm = timePart.substring(2, 4);
+                const ss = timePart.substring(4, 6);
+                const iso = `${y}-${mo}-${da}T${hh}:${mm}:${ss}.000Z`;
+                const d2 = new Date(iso);
+                if (!isNaN(d2.getTime())) { d = d2; parseMode = 'ics'; }
+              } else if (ev._raw_dtstart) {
+                // Try from raw value if present
+                const raw = String(ev._raw_dtstart).trim();
+                const dIso = new Date(raw);
+                if (!isNaN(dIso.getTime())) { d = dIso; parseMode = 'raw-iso'; }
+                else {
+                  const s2 = raw.replace(/[^0-9TZ]/g, '');
+                  const m2 = s2.match(/^(\d{8})T(\d{6})(?:\d{0,3})?Z?$/);
+                  if (m2) {
+                    const y = m2[1].substring(0, 4);
+                    const mo = m2[1].substring(4, 6);
+                    const da = m2[1].substring(6, 8);
+                    const hh = m2[2].substring(0, 2);
+                    const mm = m2[2].substring(2, 4);
+                    const ss = m2[2].substring(4, 6);
+                    const iso = `${y}-${mo}-${da}T${hh}:${mm}:${ss}.000Z`;
+                    const d3 = new Date(iso);
+                    if (!isNaN(d3.getTime())) { d = d3; parseMode = 'raw-ics'; }
+                  }
+                }
+              }
+            }
+            ds = isNaN(d.getTime()) ? null : d;
+            if (parseMode === 'failed' && ds) parseMode = 'iso';
+          } else if (ev?._raw_dtstart) {
+            const raw = String(ev._raw_dtstart).trim();
+            const dIso = new Date(raw);
+            if (!isNaN(dIso.getTime())) { ds = dIso; parseMode = 'raw-iso'; }
+            else {
+              const s2 = raw.replace(/[^0-9TZ]/g, '');
+              const m2 = s2.match(/^(\d{8})T(\d{6})(?:\d{0,3})?Z?$/);
+              if (m2) {
+                const y = m2[1].substring(0, 4);
+                const mo = m2[1].substring(4, 6);
+                const da = m2[1].substring(6, 8);
+                const hh = m2[2].substring(0, 2);
+                const mm = m2[2].substring(2, 4);
+                const ss = m2[2].substring(4, 6);
+                const iso = `${y}-${mo}-${da}T${hh}:${mm}:${ss}.000Z`;
+                const d3 = new Date(iso);
+                if (!isNaN(d3.getTime())) { ds = d3; parseMode = 'raw-ics'; }
+              }
+            }
+          }
+          const valid = !!(ds && !isNaN(ds.getTime()));
+          const passTime = !!(valid && ds! >= cutoff && (!upper || ds! <= upper));
+
+          // Day-level fallback in Europe/Vienna, only when from/to provided
+          let passDay = false;
+          if (!passTime && valid && (qFrom || qTo)) {
+            const localDay = toLocalDay((ds as Date).toISOString(), 'Europe/Vienna');
+            const fromDay = typeof qFrom === 'string' && /\d{4}-\d{2}-\d{2}/.test(qFrom) ? qFrom : null;
+            const toDay = typeof qTo === 'string' && /\d{4}-\d{2}-\d{2}/.test(qTo) ? qTo : null;
+            if (localDay) {
+              const geFrom = !fromDay || localDay >= fromDay;
+              const leTo = !toDay || localDay <= toDay;
+              passDay = geFrom && leTo;
+            }
+          }
+
+          const passes = passTime || passDay;
+          if (!passes) {
+            const reason = !ds ? 'no_date' : !valid ? 'invalid_date' : (!passTime ? 'outside_time_range' : 'outside_day_range');
+            reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
+          }
+
+          // Prefer sampling December 2025 entries to aid current debugging
+          const preferDec2025 = (() => {
+            const raw = String(ev._raw_dtstart || ev.dtstart || '');
+            return /(^|[^0-9])202512/.test(raw);
+          })();
+
+          if (debugMode && (debugSamples.length < 40 || (preferDec2025 && debugSamples.length < 60))) {
+            let safeIso = 'INVALID';
+            let localDayDbg: string | null = null;
+            try {
+              if (valid) {
+                safeIso = (ds as Date).toISOString();
+                localDayDbg = toLocalDay(safeIso, 'Europe/Vienna');
+              } else if (ev?.dtstart) {
+                let s = String(ev.dtstart).trim();
+                s = s.replace(/[^0-9TZ]/g, '');
+                const m = s.match(/^(\d{8})T(\d{6})(?:\d{0,3})?Z?$/);
+                if (m) {
+                  const datePart = m[1];
+                  const timePart = m[2];
+                  const y = datePart.substring(0, 4);
+                  const mo = datePart.substring(4, 6);
+                  const da = datePart.substring(6, 8);
+                  const hh = timePart.substring(0, 2);
+                  const mm = timePart.substring(2, 4);
+                  const ss = timePart.substring(4, 6);
+                  const iso = `${y}-${mo}-${da}T${hh}:${mm}:${ss}.000Z`;
+                  safeIso = iso;
+                  localDayDbg = toLocalDay(iso, 'Europe/Vienna');
+                }
+                if (safeIso === 'INVALID' && ev._raw_dtstart) {
+                  const raw = String(ev._raw_dtstart).trim().replace(/[^0-9TZ]/g, '');
+                  const m2 = raw.match(/^(\d{8})T(\d{6})(?:\d{0,3})?Z?$/);
+                  if (m2) {
+                    const y = m2[1].substring(0, 4);
+                    const mo = m2[1].substring(4, 6);
+                    const da = m2[1].substring(6, 8);
+                    const hh = m2[2].substring(0, 2);
+                    const mm = m2[2].substring(2, 4);
+                    const ss = m2[2].substring(4, 6);
+                    const iso = `${y}-${mo}-${da}T${hh}:${mm}:${ss}.000Z`;
+                    safeIso = iso;
+                    localDayDbg = toLocalDay(iso, 'Europe/Vienna');
+                  }
+                }
+              }
+            } catch {}
+            debugSamples.push({
+              summary: ev.summary,
+              raw: { dtstart: ev.dtstart, raw_dtstart: ev._raw_dtstart, dtend: ev.dtend, raw_dtend: ev._raw_dtend },
+              parsed: {
+                utc: safeIso,
+                viennaDay: localDayDbg,
+                passTime,
+                passDay,
+                mode: parseMode,
+              },
+              keys: Object.keys(ev || {}).slice(0, 20)
+            });
+          }
+
+          if (!passes && ev.dtstart) {
+            let safeIso2 = 'INVALID';
+            try { if (valid) safeIso2 = (ds as Date).toISOString(); } catch {}
+            const localDay = valid ? toLocalDay((ds as Date).toISOString(), 'Europe/Vienna') : 'null';
+            console.error(`  FILTERED OUT: ${ev.summary} | dtstart=${ev.dtstart} | date=${safeIso2} | localDay=${localDay} | reason=${!ds ? 'no_date' : !valid ? 'invalid_date' : (!passTime ? 'outside_time_range' : 'outside_day_range')}`);
+          }
+          return passes;
+        });
+      } catch (filterErr: any) {
+        console.error('ICS_URL_FILTER_ERROR', filterErr);
+        return res.status(500).json({ error: 'Failed during event filtering', details: filterErr?.message || String(filterErr), stage: debugStage });
+      }
       
       console.error(`ICS_URL_IMPORT | events_to_import=${eventsToImport.length}`);
       
       const dryRun = String(req.query.dryRun || req.query.dryrun || '').toLowerCase() === 'true';
       if (dryRun) {
-        console.error(`ICS_URL_DRY_RUN | events=${importedEvents.length} | filtered=${eventsToImport.length} | cutoff=${cutoff.toISOString()} | upper=${upper ? upper.toISOString() : 'none'} | url=${icsUrl}`);
-        return res.json({ success: true, dryRun: true, parsed: importedEvents.length, filtered: eventsToImport.length, cutoff: cutoff.toISOString(), upper: upper ? upper.toISOString() : null });
+        console.error(`ICS_URL_DRY_RUN | events=${importedEvents.length} | filtered=${eventsToImport.length} | cutoff=${safeCutoff} | upper=${safeUpper} | url=${icsUrl}`);
+        let safeCutoffIso: string | null = null;
+        let safeUpperIso: string | null = null;
+        try { if (cutoff instanceof Date && !isNaN(cutoff.getTime())) safeCutoffIso = cutoff.toISOString(); } catch (e) { console.error('CUT_OFF_TO_ISO_ERROR', e); }
+        try { if (upper instanceof Date && !isNaN(upper.getTime())) safeUpperIso = upper.toISOString(); } catch (e) { console.error('UPPER_TO_ISO_ERROR', e); }
+        const base = { success: true, dryRun: true, parsed: importedEvents.length, filtered: eventsToImport.length, cutoff: safeCutoffIso, upper: safeUpperIso, stage: debugStage } as any;
+        // Update last status for monitoring
+        lastCalendarImportStatus = {
+          when: new Date().toISOString(),
+          url: icsUrl,
+          parsed: importedEvents.length,
+          filtered: eventsToImport.length,
+          imported: 0,
+          from: qFrom || null,
+          to: qTo || null,
+          includePast,
+          stage: debugStage,
+        };
+        if (debugMode) {
+          base.debug = {
+            qFrom,
+            qTo,
+            reasonCounts,
+            sample: debugSamples,
+          };
+        }
+        return res.json(base);
       }
       let importedCount = 0;
 
@@ -4974,6 +5378,10 @@ New Age Fotografie Team`;
             console.error('Failed to write debug snapshot:', dbgErr);
           }
 
+          // Attach icalUid if present for duplicate prevention
+          if (event.uid) {
+            (session as any).icalUid = String(event.uid);
+          }
           await storage.createPhotographySession(session);
           importedCount++;
         } catch (error) {
@@ -4988,10 +5396,26 @@ New Age Fotografie Team`;
   upper: upper ? upper.toISOString() : null,
         message: `Successfully imported ${importedCount} events from calendar URL`
       });
+      // Update last status for monitoring
+      try {
+        lastCalendarImportStatus = {
+          when: new Date().toISOString(),
+          url: icsUrl,
+          parsed: importedEvents.length,
+          filtered: eventsToImport.length,
+          imported: importedCount,
+          from: qFrom || null,
+          to: qTo || null,
+          includePast,
+          stage: 'completed',
+        };
+      } catch {}
 
     } catch (error) {
   console.error("Error importing from iCal URL:", error);
-  res.status(500).json({ error: "Failed to fetch or parse iCal URL", details: (error as Error)?.message });
+  // Expose debugStage if available for diagnostics
+  const stage = (error as any)?.stage || (typeof debugStage !== 'undefined' ? debugStage : 'unknown');
+  res.status(500).json({ error: "Failed to fetch or parse iCal URL", details: (error as Error)?.message, stage });
     }
   });
 
@@ -5008,18 +5432,16 @@ New Age Fotografie Team`;
       
       // Handle line continuation (lines starting with space or tab)
       if (line.startsWith(' ') || line.startsWith('\t')) {
-        multiLineValue += line.substring(1);
+        // Ignore folded continuation for import logic; not needed for dtstart/dtend
+        // multiLineValue += line.substring(1);
         continue;
       }
       
       // Process the previous multi-line property if any
-      if (multiLineProperty && multiLineValue) {
-        if (currentEvent) {
-          currentEvent[multiLineProperty.toLowerCase()] = decodeICalValue(multiLineValue);
-        }
-        multiLineProperty = '';
-        multiLineValue = '';
-      }
+      // Commit previously accumulated property is intentionally disabled
+      // to avoid overwriting canonical dtstart/dtend values.
+      multiLineProperty = '';
+      multiLineValue = '';
 
       if (line === 'BEGIN:VEVENT') {
         currentEvent = {};
@@ -5031,9 +5453,9 @@ New Age Fotografie Team`;
         const property = line.substring(0, colonIndex);
         const value = line.substring(colonIndex + 1);
 
-        // Handle multi-line values
-        multiLineProperty = property;
-        multiLineValue = value;
+        // Skip multi-line accumulation for simplicity in import context
+        multiLineProperty = '';
+        multiLineValue = '';
 
         // Extract base property and any parameters (e.g., TZID)
         const [baseProp, ...paramParts] = property.split(';');
@@ -5052,9 +5474,14 @@ New Age Fotografie Team`;
           try {
       const defaultTz = process.env.DEFAULT_CAL_TZ || 'Europe/Vienna';
       const parsed = parseICalDate(value, params['tzid'] || defaultTz);
+      // Preserve raw value for diagnostics
+      const rawKey = propName === 'dtstart' ? '_raw_dtstart' : '_raw_dtend';
+      (currentEvent as any)[rawKey] = value;
       currentEvent[propName] = parsed; // may be undefined on failure
           } catch (error) {
             console.error(`Error parsing ${propName}: ${value}`, error);
+            const rawKey = propName === 'dtstart' ? '_raw_dtstart' : '_raw_dtend';
+            (currentEvent as any)[rawKey] = value;
             currentEvent[propName] = undefined; // don't default to now
           }
         } else {
@@ -5072,34 +5499,31 @@ New Age Fotografie Team`;
       // Quiet parser; callers decide how to handle undefined
       
       // Handle various iCal date formats
-      let cleanDate = dateString.trim();
-      
-      // Google Calendar format: 20131013T100000Z
-      if (cleanDate.includes('T') && cleanDate.endsWith('Z')) {
-        // Remove Z suffix
-        cleanDate = cleanDate.replace('Z', '');
-        
-        const datePart = cleanDate.split('T')[0];
-        const timePart = cleanDate.split('T')[1];
-        
-        if (datePart.length === 8 && timePart.length === 6) {
-          const year = datePart.substring(0, 4);
-          const month = datePart.substring(4, 6);
-          const day = datePart.substring(6, 8);
-          const hour = timePart.substring(0, 2);
-          const minute = timePart.substring(2, 4);
-          const second = timePart.substring(4, 6);
-          
-          // Create ISO string manually to avoid invalid date issues
-          const isoString = `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
-          console.log(`Created ISO string: ${isoString}`);
-          
-          const dateObj = new Date(isoString);
-          if (!isNaN(dateObj.getTime())) {
-            return dateObj.toISOString();
-          }
-        }
+      let cleanDate = (dateString || '').trim();
+      // Normalize: remove stray characters and normalize Z
+      cleanDate = cleanDate.replace(/\s+/g, '').replace(/[\u0000-\u001f\u007f]/g, '');
+      // Some providers fold lines; remove hard breaks within value
+      cleanDate = cleanDate.replace(/\\n/gi, '');
+      // Uppercase trailing z
+      if (cleanDate.endsWith('z')) cleanDate = cleanDate.slice(0, -1) + 'Z';
+
+      // Strict Zulu with or without final Z
+      const zMatch = cleanDate.match(/^(\d{8})T(\d{6})(Z)?$/);
+      if (zMatch) {
+        const datePart = zMatch[1];
+        const timePart = zMatch[2];
+        const year = datePart.substring(0, 4);
+        const month = datePart.substring(4, 6);
+        const day = datePart.substring(6, 8);
+        const hour = timePart.substring(0, 2);
+        const minute = timePart.substring(2, 4);
+        const second = timePart.substring(4, 6);
+        const isoString = `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
+        const dateObj = new Date(isoString);
+        if (!isNaN(dateObj.getTime())) return dateObj.toISOString();
       }
+      
+      // Google Calendar format: treat like Zulu if present above; otherwise continue
       
       // Handle YYYYMMDD format (all-day events)
       if (cleanDate.length === 8 && !cleanDate.includes('T')) {
@@ -5160,7 +5584,20 @@ New Age Fotografie Team`;
       const tzLib = requireFn('date-fns-tz');
       if (tzLib && typeof tzLib.zonedTimeToUtc === 'function') {
         const d = tzLib.zonedTimeToUtc(localIso, tzid);
-        return new Date(d).toISOString();
+        // Guard against invalid Date objects producing "Invalid time value"
+        let converted: Date;
+        try {
+          converted = (d instanceof Date) ? d : new Date(d);
+        } catch {
+          converted = new Date(NaN);
+        }
+        if (!converted || isNaN(converted.getTime())) {
+          // Fallback: append Z if missing and try again; else return a safe epoch
+          const fallbackIso = /Z$/.test(localIso) ? localIso : `${localIso}.000Z`;
+          const fb = new Date(fallbackIso);
+          return isNaN(fb.getTime()) ? new Date(0).toISOString() : fb.toISOString();
+        }
+        return converted.toISOString();
       }
     } catch (e) {
       console.error('convertLocalToUtcIso failed to load date-fns-tz:', e);
@@ -5176,12 +5613,13 @@ New Age Fotografie Team`;
         const mm = +m[5];
         const ss = +m[6];
         const epoch = toUtcFromTz(y, mo, d, hh, mm, ss, tzid);
-        return new Date(epoch).toISOString();
+        const dt = new Date(epoch);
+        return isNaN(dt.getTime()) ? new Date(0).toISOString() : dt.toISOString();
       }
     } catch {}
     // Last resort
     const d2 = new Date(localIso);
-    return isNaN(d2.getTime()) ? new Date().toISOString() : d2.toISOString();
+    return isNaN(d2.getTime()) ? new Date(0).toISOString() : d2.toISOString();
   }
 
   // Compute UTC epoch from local date/time in a given IANA time zone
@@ -5237,6 +5675,59 @@ New Age Fotografie Team`;
   }
 
   // ==================== ICAL CALENDAR FEED ====================
+  // Admin: ensure ical_uid column + unique index for duplicate prevention
+  app.post("/api/admin/calendar/install-dedupe", async (req: Request, res: Response) => {
+    try {
+      await runSql(`ALTER TABLE photography_sessions ADD COLUMN IF NOT EXISTS ical_uid text`);
+      await runSql(`
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_photography_sessions_ical_uid
+        ON photography_sessions(ical_uid)
+        WHERE ical_uid IS NOT NULL AND ical_uid <> ''
+      `);
+      res.json({ success: true, message: 'ical_uid column ensured and unique index installed' });
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e?.message || String(e) });
+    }
+  });
+
+  // Diagnostics: quick aggregates to verify agent data connectivity
+  app.get("/api/agent/diagnostics", async (_req: Request, res: Response) => {
+    try {
+      const invoices = await runSql(`
+        SELECT 
+          COALESCE(SUM(CASE WHEN status='paid' THEN total ELSE 0 END),0)::double precision AS paid_revenue,
+          MIN(created_at) AS first_invoice,
+          MAX(created_at) AS last_invoice,
+          COUNT(*)::int AS invoice_count
+        FROM crm_invoices
+      `);
+      const sessions = await runSql(`
+        SELECT 
+          MIN(start_time) AS first_session,
+          MAX(start_time) AS last_session,
+          COUNT(*)::int AS session_count
+        FROM photography_sessions
+      `);
+      res.json({
+        success: true,
+        invoices: invoices?.[0] || {},
+        sessions: sessions?.[0] || {},
+        dbUrlSet: !!process.env.DATABASE_URL,
+      });
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e?.message || String(e) });
+    }
+  });
+
+  // Simple status endpoint to inspect the last ICS import operation
+  app.get("/api/calendar/import/status", async (req: Request, res: Response) => {
+    try {
+      res.json({ success: true, status: lastCalendarImportStatus });
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e?.message || String(e) });
+    }
+  });
+
   app.get("/api/calendar/photography-sessions.ics", async (req: Request, res: Response) => {
     try {
       // Fetch all photography sessions
