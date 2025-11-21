@@ -7117,6 +7117,7 @@ Due: ${esc(i.due_date)}</div>
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true, deleted: deleted?.id || id }));
         } catch (error) {
+          console.error('❌ Delete voucher product error:', error.message);
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: false, error: error.message }));
         }

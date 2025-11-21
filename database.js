@@ -1938,6 +1938,9 @@ if (!connectionString) {
     async deleteVoucherProduct(id) {
       try {
         const result = await pool.query('DELETE FROM voucher_products WHERE id = $1 RETURNING *', [id]);
+        if (!result.rows[0]) {
+          console.warn('⚠️ deleteVoucherProduct: No product found with id:', id);
+        }
         return result.rows[0];
       } catch (error) {
         console.error('❌ Error deleting voucher product:', error.message);

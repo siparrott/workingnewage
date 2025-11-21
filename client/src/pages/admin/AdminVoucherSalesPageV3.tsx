@@ -1011,8 +1011,12 @@ const ProductsView: React.FC<{
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {products.map((product) => {
             const thumb = (product as any).thumbnailUrl || (product as any).thumbnail_url;
-            const imageSrc = thumb || product.imageUrl || (product as any).image_url;
-            console.log('[PRODUCT CARD]', product.name, '- imageUrl:', product.imageUrl, 'thumbnailUrl:', (product as any).thumbnailUrl, 'image_url:', (product as any).image_url, 'thumbnail_url:', (product as any).thumbnail_url, 'final imageSrc:', imageSrc);
+            const imgUrl = product.imageUrl || (product as any).image_url;
+            const imageSrc = thumb || imgUrl;
+            console.log('[PRODUCT CARD]', product.name, '- RAW product object keys:', Object.keys(product));
+            console.log('[PRODUCT CARD]', product.name, '- imageUrl:', product.imageUrl, 'image_url:', (product as any).image_url);
+            console.log('[PRODUCT CARD]', product.name, '- thumbnailUrl:', (product as any).thumbnailUrl, 'thumbnail_url:', (product as any).thumbnail_url);
+            console.log('[PRODUCT CARD]', product.name, '- FINAL imageSrc:', imageSrc);
             return (
             <Card key={product.id} className="hover:shadow-lg transition-shadow overflow-hidden">
               {/* Product Image */}
@@ -1021,13 +1025,19 @@ const ProductsView: React.FC<{
                   return (
                     <div className="w-full h-48 overflow-hidden bg-gray-100">
                       <img
-                        src={imageSrc}
+                        src={imageSrc + (imageSrc.includes('?') ? '&' : '?') + 't=' + Date.now()}
                         alt={product.name}
+                        crossOrigin="anonymous"
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           console.error('[PRODUCT IMAGE] Failed to load:', imageSrc);
-                          (e.target as HTMLImageElement).style.display = 'none';
-                          (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-gray-400"><Package class="h-16 w-16" /><span class="ml-2">No Image</span></div>';
+                          const imgEl = e.target as HTMLImageElement;
+                          imgEl.style.display = 'none';
+                          // Insert graceful fallback element without nuking parent innerHTML
+                          const fallback = document.createElement('div');
+                          fallback.className = 'w-full h-full flex items-center justify-center text-gray-400';
+                          fallback.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-16 w-16"><path d="M21 15V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9"/><path d="M3 15l4-4a2 2 0 0 1 3 0l5 5"/><path d="M14 13l4-4a2 2 0 0 1 3 0"/><path d="M2 20h20"/></svg><span class="ml-2">No Image</span>';
+                          imgEl.parentElement?.appendChild(fallback);
                         }}
                       />
                     </div>
