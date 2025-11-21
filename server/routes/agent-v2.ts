@@ -20,9 +20,8 @@ import { listOpenAITools, executeTool, getStats } from "../../agent/v2/core/Tool
 import { getRecommendedMode } from "../../agent/v2/core/Guardrails";
 import OpenAI from "openai";
 
-// Import tools to register them
-// Temporarily commented out to fix Heroku crash - tools will be lazy loaded
-// import "../../agent/v2/tools/index.ts";
+// Import tools to register them with ToolBus
+import "../../agent/v2/tools/index";
 
 const router = express.Router();
 
@@ -114,7 +113,7 @@ router.post("/chat", async (req: Request, res: Response) => {
         }
       ],
       tools: availableTools.length > 0 ? availableTools : undefined,
-      tool_choice: "auto"
+      tool_choice: availableTools.length > 0 ? "auto" : undefined
     });
     
     const choice = completion.choices[0];
