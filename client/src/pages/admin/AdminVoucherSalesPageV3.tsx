@@ -236,7 +236,9 @@ export default function AdminVoucherSalesPageV3() {
         imageUrl: uploadedImage || null,
         thumbnailUrl: uploadedThumbnail || null,
       };
-      console.log('[CREATE PRODUCT] Sending payload:', payload);
+      console.log('[CREATE PRODUCT] Current uploadedImage state:', uploadedImage);
+      console.log('[CREATE PRODUCT] Current uploadedThumbnail state:', uploadedThumbnail);
+      console.log('[CREATE PRODUCT] Full payload being sent:', JSON.stringify(payload, null, 2));
       const response = await fetch("/api/vouchers/products", {
         method: "POST",
         headers: withAdminJsonHeaders(),
@@ -247,9 +249,12 @@ export default function AdminVoucherSalesPageV3() {
         console.error("Failed to create product:", errorText);
         throw new Error(errorText || `HTTP error ${response.status}`);
       }
-      return response.json();
+      const result = await response.json();
+      console.log('[CREATE PRODUCT] ✅ Server response:', result);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('[CREATE PRODUCT] Success callback - created product:', data);
       // Force refresh all voucher-related queries
       queryClient.invalidateQueries({ queryKey: ["/api/vouchers/products"] });
       queryClient.refetchQueries({ queryKey: ["/api/vouchers/products"] });
@@ -257,6 +262,7 @@ export default function AdminVoucherSalesPageV3() {
       queryClient.removeQueries({ queryKey: ["/api/vouchers/products"] });
       setIsProductDialogOpen(false);
       setUploadedImage(null);
+      setUploadedThumbnail(null);
       productForm.reset();
       alert("Voucher product created successfully!");
       // Stay on products tab - no page reload
@@ -282,7 +288,9 @@ export default function AdminVoucherSalesPageV3() {
         imageUrl: uploadedImage || data.imageUrl || null,
         thumbnailUrl: uploadedThumbnail || (data as any).thumbnailUrl || null,
       };
-      console.log('[UPDATE PRODUCT] Sending payload:', payload);
+      console.log('[UPDATE PRODUCT] Current uploadedImage state:', uploadedImage);
+      console.log('[UPDATE PRODUCT] Current uploadedThumbnail state:', uploadedThumbnail);
+      console.log('[UPDATE PRODUCT] Full payload being sent:', JSON.stringify(payload, null, 2));
       const response = await fetch(`/api/vouchers/products/${data.id}`, {
         method: "PUT",
         headers: withAdminJsonHeaders(),
@@ -293,9 +301,12 @@ export default function AdminVoucherSalesPageV3() {
         console.error("Failed to update product:", errorText);
         throw new Error(errorText || `HTTP error ${response.status}`);
       }
-      return response.json();
+      const result = await response.json();
+      console.log('[UPDATE PRODUCT] ✅ Server response:', result);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('[UPDATE PRODUCT] Success callback - updated product:', data);
       // Force refresh all voucher-related queries
       queryClient.invalidateQueries({ queryKey: ["/api/vouchers/products"] });
       queryClient.refetchQueries({ queryKey: ["/api/vouchers/products"] });
@@ -303,6 +314,7 @@ export default function AdminVoucherSalesPageV3() {
       setIsProductDialogOpen(false);
       setSelectedProduct(null);
       setUploadedImage(null);
+      setUploadedThumbnail(null);
       productForm.reset();
       alert("Voucher product updated successfully!");
       // Stay on products tab - no page reload
@@ -403,10 +415,14 @@ export default function AdminVoucherSalesPageV3() {
         data = await response.json();
       }
       
-      console.log('[IMAGE UPLOAD] Upload successful! URL:', data.url, 'Thumbnail:', data.thumbnailUrl);
+      console.log('[IMAGE UPLOAD] ✅ Upload successful!');
+      console.log('[IMAGE UPLOAD] Full URL:', data.url);
+      console.log('[IMAGE UPLOAD] Thumbnail URL:', data.thumbnailUrl);
       setUploadedImage(data.url);
       setUploadedThumbnail(data.thumbnailUrl || null);
-      console.log('[IMAGE UPLOAD] State updated with URL:', data.url, 'and thumbnail:', data.thumbnailUrl);
+      console.log('[IMAGE UPLOAD] State set - uploadedImage:', data.url);
+      console.log('[IMAGE UPLOAD] State set - uploadedThumbnail:', data.thumbnailUrl);
+      alert('Image uploaded successfully! URL: ' + data.url);
     } catch (error) {
       console.error('[IMAGE UPLOAD] Error:', error);
       alert(`Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -900,12 +916,14 @@ const ProductsView: React.FC<{
 
       {products.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map((product) => (
+          {products.map((product) => {
+            const thumb = (product as any).thumbnailUrl || (product as any).thumbnail_url;
+            const imageSrc = thumb || product.imageUrl || (product as any).image_url;
+            console.log('[PRODUCT CARD]', product.name, '- imageUrl:', product.imageUrl, 'thumbnailUrl:', (product as any).thumbnailUrl, 'image_url:', (product as any).image_url, 'thumbnail_url:', (product as any).thumbnail_url, 'final imageSrc:', imageSrc);
+            return (
             <Card key={product.id} className="hover:shadow-lg transition-shadow overflow-hidden">
               {/* Product Image */}
               {(() => {
-                const thumb = (product as any).thumbnailUrl || (product as any).thumbnail_url;
-                const imageSrc = thumb || product.imageUrl || (product as any).image_url;
                 if (imageSrc) {
                   return (
                     <div className="w-full h-48 overflow-hidden bg-gray-100">
@@ -979,7 +997,7 @@ const ProductsView: React.FC<{
                 </div>
               </CardContent>
             </Card>
-          ))}
+          )})}
         </div>
       ) : (
         <Card className="text-center py-12">
