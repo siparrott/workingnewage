@@ -3,10 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { Calendar, Tag, AlertCircle, Info, ShoppingCart, ArrowLeft } from 'lucide-react';
 
-interface VoucherProductDetail {
+interface ApiVoucher {
   id: string;
   name: string;
-  description?: string | null;
+  description: string | null;
   detailedDescription?: string | null;
   price: number;
   originalPrice?: number | null;
@@ -16,35 +16,52 @@ interface VoucherProductDetail {
   thumbnailUrl?: string | null;
   termsAndConditions?: string | null;
   slug?: string | null;
+  isActive?: boolean;
 }
 
 const VoucherDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
-  const [product, setProduct] = useState<VoucherProductDetail | null>(null);
+  const [voucher, setVoucher] = useState<ApiVoucher | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    async function fetchProduct() {
+    async function fetchVoucher() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/vouchers/products/${slug}`);
+        if (!slug) throw new Error('Kein Gutschein Slug');
+        const res = await fetch(`/api/vouchers/products/${encodeURIComponent(slug)}`);
         if (!res.ok) {
           throw new Error(`Fetch failed: ${res.status}`);
         }
         const data = await res.json();
-        if (active) setProduct(data);
+        const mapped: ApiVoucher = {
+          id: data.id,
+          name: data.name,
+          description: data.description ?? null,
+          detailedDescription: data.detailedDescription ?? data.detailed_description ?? null,
+          price: typeof data.price === 'string' ? parseFloat(data.price) : data.price,
+          originalPrice: typeof (data.originalPrice ?? data.original_price) === 'string' ? parseFloat(data.originalPrice ?? data.original_price) : (data.originalPrice ?? data.original_price),
+          category: data.category ?? null,
+          validityPeriod: data.validityPeriod ?? data.validity_period ?? null,
+          imageUrl: data.imageUrl ?? data.image_url ?? null,
+          thumbnailUrl: data.thumbnailUrl ?? data.thumbnail_url ?? null,
+          termsAndConditions: data.termsAndConditions ?? data.terms_and_conditions ?? null,
+          slug: data.slug ?? slug,
+          isActive: data.isActive ?? data.is_active ?? true,
+        };
+        if (active) setVoucher(mapped);
       } catch (e: any) {
         if (active) setError(e.message);
       } finally {
         if (active) setLoading(false);
       }
     }
-    if (slug) fetchProduct();
+    fetchVoucher();
     return () => { active = false; };
   }, [slug]);
 
@@ -58,7 +75,7 @@ const VoucherDetailPage: React.FC = () => {
     );
   }
 
-  if (error || !product) {
+  if (error || !voucher) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-16 text-center">
@@ -80,17 +97,15 @@ const VoucherDetailPage: React.FC = () => {
   
   // Placeholder availability logic (extend when DB has these fields)
   const isAvailable = true;
-  const isValid = true;
+  const isValid = voucher.isActive !== false;
   
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
-    if (value >= 1 && value <= voucher.stock) {
-      setQuantity(value);
-    }
+    if (!isNaN(value) && value >= 1 && value <= 99) setQuantity(value);
   };
   
   const handleCheckout = () => {
-    navigate(`/checkout/voucher/${product.id}?quantity=${quantity}`);
+    navigate(`/checkout/voucher/${voucher.id}?quantity=${quantity}`);
   };
 
   return (
@@ -109,8 +124,8 @@ const VoucherDetailPage: React.FC = () => {
             {/* Voucher image */}
             <div className="md:col-span-1">
               <img
-                src={product.imageUrl || product.thumbnailUrl || 'https://via.placeholder.com/800x600?text=Voucher'}
-                alt={product.name}
+                src={voucher.imageUrl || voucher.thumbnailUrl || 'https://via.placeholder.com/800x600?text=Voucher'}
+                alt={voucher.name}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -122,7 +137,7 @@ const VoucherDetailPage: React.FC = () => {
                 <span className="text-sm font-semibold text-purple-600 uppercase">{voucher.category}</span>
               </div>
               
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4">{product.name}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4">{voucher.name}</h1>
               
               <div className="flex items-center mb-6">
                 <div className="mr-6 flex items-center">
@@ -141,18 +156,20 @@ const VoucherDetailPage: React.FC = () => {
               </div>
               
               <div className="mb-6">
-                <span className="text-gray-500 line-through text-lg">€{(product.originalPrice || product.price).toFixed(2)}</span>
-                <span className="text-purple-600 font-bold text-3xl ml-2">€{product.price.toFixed(2)}</span>
+                {voucher.originalPrice && voucher.originalPrice > voucher.price && (
+                  <span className="text-gray-500 line-through text-lg">€{voucher.originalPrice.toFixed(2)}</span>
+                )}
+                <span className="text-purple-600 font-bold text-3xl ml-2">€{voucher.price.toFixed(2)}</span>
               </div>
               
-              <p className="text-gray-700 mb-6">{product.description}</p>
+              <p className="text-gray-700 mb-6">{voucher.description}</p>
               
               <div className="mb-6">
                 <p className="text-gray-700 mb-2">
-                  <span className="font-semibold">Anbieter:</span> {voucher.partner.title}
+                  <span className="font-semibold">Gutschein-ID:</span> {voucher.id}
                 </p>
                 <p className="text-gray-700">
-                  <span className="font-semibold">Verfügbar:</span> Noch {voucher.stock} Gutscheine
+                  <span className="font-semibold">Status:</span> {voucher.isActive ? 'Aktiv' : 'Inaktiv'}
                 </p>
               </div>
               
@@ -183,7 +200,7 @@ const VoucherDetailPage: React.FC = () => {
                       <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002 2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
-                      Personalisieren - €{(product.price * quantity).toFixed(2)}
+                      Personalisieren - €{(voucher.price * quantity).toFixed(2)}
                     </button>
                     
                     {/* Quick Checkout Button - Direct purchase without personalization */}
@@ -192,7 +209,7 @@ const VoucherDetailPage: React.FC = () => {
                       className="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
                     >
                       <ShoppingCart size={18} className="mr-2" />
-                      Schnellkauf - €{(product.price * quantity).toFixed(2)}
+                      Schnellkauf - €{(voucher.price * quantity).toFixed(2)}
                     </button>
                   </div>
                   
@@ -221,7 +238,7 @@ const VoucherDetailPage: React.FC = () => {
                   <Info size={20} className="text-gray-500 mr-2 mt-0.5" />
                   <div>
                     <h3 className="font-semibold text-gray-800 mb-2">Geschäftsbedingungen</h3>
-                    <p className="text-gray-700 text-sm">{product.termsAndConditions || 'Keine zusätzlichen Bedingungen.'}</p>
+                    <p className="text-gray-700 text-sm">{voucher.termsAndConditions || 'Keine zusätzlichen Bedingungen.'}</p>
                   </div>
                 </div>
               </div>

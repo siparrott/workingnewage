@@ -514,8 +514,10 @@ export default function AdminVoucherSalesPageV3() {
       let body: any = null;
       try { body = await response.json(); } catch { /* ignore */ }
       if (!response.ok) {
-        const msg = body?.error || `HTTP ${response.status}`;
-        throw new Error(msg);
+        const status = response.status;
+        if (status === 401) throw new Error('401 Unauthorized – admin token missing/invalid');
+        if (status === 409) throw new Error(`Cannot delete – product has ${body?.references ?? 'existing'} sales`);
+        throw new Error(body?.error || `HTTP ${status}`);
       }
       return body;
     },
@@ -963,6 +965,14 @@ const ProductsView: React.FC<{
         </Button>
       </div>
 
+      {/* Admin token diagnostic banner */}
+      {typeof window !== 'undefined' && !localStorage.getItem('ADMIN_TOKEN') && (
+        <div className="mb-4 p-3 rounded bg-yellow-50 border border-yellow-200 text-sm text-yellow-800">
+          <strong>Admin Token Missing:</strong> Set it in the browser console:
+          <code className="ml-1 px-1 py-0.5 bg-yellow-100 rounded">localStorage.setItem('ADMIN_TOKEN', 'YOUR_TOKEN')</code>
+          , then refresh.
+        </div>
+      )}
       {products.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {products.map((product) => {
