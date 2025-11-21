@@ -541,12 +541,15 @@ export default function AdminVoucherSalesPageV3() {
 
   const deleteProductMutation = useMutation({
     mutationFn: async (id: string) => {
+      console.log('[DELETE PRODUCT] Starting delete for ID:', id);
       const response = await fetch(`/api/vouchers/products/${id}`, {
         method: 'DELETE',
         headers: withAdminHeaders(),
       });
+      console.log('[DELETE PRODUCT] Response status:', response.status);
       let body: any = null;
       try { body = await response.json(); } catch { /* ignore */ }
+      console.log('[DELETE PRODUCT] Response body:', body);
       if (!response.ok) {
         const status = response.status;
         if (status === 401) throw new Error('401 Unauthorized – admin token missing/invalid');
@@ -556,10 +559,13 @@ export default function AdminVoucherSalesPageV3() {
       return body;
     },
     onSuccess: () => {
+      console.log('[DELETE PRODUCT] Success - invalidating queries');
       queryClient.invalidateQueries({ queryKey: ['/api/vouchers/products'] });
-      alert('Product deleted');
+      queryClient.refetchQueries({ queryKey: ['/api/vouchers/products'] });
+      alert('Product deleted successfully!');
     },
     onError: (e: any) => {
+      console.error('[DELETE PRODUCT] Error:', e);
       alert('Failed to delete product: ' + e.message);
     }
   });
@@ -1025,7 +1031,7 @@ const ProductsView: React.FC<{
                   return (
                     <div className="w-full h-48 overflow-hidden bg-gray-100">
                       <img
-                        src={imageSrc + (imageSrc.includes('?') ? '&' : '?') + 't=' + Date.now()}
+                        src={imageSrc}
                         alt={product.name}
                         crossOrigin="anonymous"
                         className="w-full h-full object-cover"
