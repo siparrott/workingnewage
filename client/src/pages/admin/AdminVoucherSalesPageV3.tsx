@@ -87,6 +87,40 @@ export default function AdminVoucherSalesPageV3() {
 
   const queryClient = useQueryClient();
 
+  // Ensure admin token exists and auto-attach to all /api requests
+  useEffect(() => {
+    // Prompt once if missing
+    const existing = getAdminToken();
+    if (!existing) {
+      const token = typeof window !== 'undefined' ? window.prompt('Enter ADMIN TOKEN to enable admin APIs:') : '';
+      if (token) {
+        try { localStorage.setItem('ADMIN_TOKEN', token); } catch {}
+      }
+    }
+    // Monkey patch fetch to auto-inject header for /api/* if missing
+    const w: any = window as any;
+    if (typeof w !== 'undefined' && !w.__fetchWithAdminToken) {
+      w.__fetchWithAdminToken = true;
+      const origFetch = w.fetch.bind(w);
+      w.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+        try {
+          const urlStr = typeof input === 'string' ? input : (input as URL).toString();
+          const isApi = urlStr.startsWith('/api/');
+          if (isApi) {
+            const tokenNow = (localStorage.getItem('ADMIN_TOKEN') || '');
+            const headers = new Headers((init && init.headers) as any);
+            if (tokenNow && !headers.has('x-admin-token')) {
+              headers.set('x-admin-token', tokenNow);
+              init = { ...(init || {}), headers };
+            }
+          }
+        } catch {}
+        return origFetch(input as any, init as any);
+      };
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Admin token helper (read fresh from localStorage each call)
   const getAdminToken = () => (typeof window !== 'undefined' ? (localStorage.getItem('ADMIN_TOKEN') || '') : '');
   const withAdminJsonHeaders = () => ({ 'Content-Type': 'application/json', 'x-admin-token': getAdminToken() });
