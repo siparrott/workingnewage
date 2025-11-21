@@ -7593,34 +7593,36 @@ New Age Fotografie CRM System
   app.get("/api/vouchers/products", async (req: Request, res: Response) => {
     try {
           const language = (req.query.language as string) || 'de';
-          const products = (await neonDb.getVoucherProducts()).map(p => ({
+          const toCamel = (p: any) => ({
             id: p.id,
             name: language === 'en' ? translateVoucherToEnglish(p.name) : p.name,
             description: p.description ? (language === 'en' ? translateVoucherToEnglish(p.description) : p.description) : null,
-            detailedDescription: p.detailedDescription ? (language === 'en' ? translateVoucherToEnglish(p.detailedDescription) : p.detailedDescription) : null,
+            detailedDescription: (p.detailedDescription ?? p.detailed_description) ? (language === 'en' ? translateVoucherToEnglish(p.detailedDescription ?? p.detailed_description) : (p.detailedDescription ?? p.detailed_description)) : null,
             price: p.price,
-            originalPrice: p.originalPrice,
+            originalPrice: p.originalPrice ?? p.original_price,
             category: p.category,
-            sessionDuration: p.sessionDuration,
-            sessionType: p.sessionType,
-            validityPeriod: p.validityPeriod,
-            redemptionInstructions: p.redemptionInstructions,
-            termsAndConditions: p.termsAndConditions ? (language === 'en' ? translateVoucherToEnglish(p.termsAndConditions) : p.termsAndConditions) : null,
-            imageUrl: p.imageUrl,
-            thumbnailUrl: p.thumbnailUrl,
-            promoImageUrl: p.promoImageUrl,
-            displayOrder: p.displayOrder,
+            sessionDuration: p.sessionDuration ?? p.session_duration,
+            sessionType: p.sessionType ?? p.session_type,
+            validityPeriod: p.validityPeriod ?? p.validity_period,
+            redemptionInstructions: p.redemptionInstructions ?? p.redemption_instructions,
+            termsAndConditions: (p.termsAndConditions ?? p.terms_and_conditions) ? (language === 'en' ? translateVoucherToEnglish(p.termsAndConditions ?? p.terms_and_conditions) : (p.termsAndConditions ?? p.terms_and_conditions)) : null,
+            imageUrl: p.imageUrl ?? p.image_url,
+            thumbnailUrl: p.thumbnailUrl ?? p.thumbnail_url,
+            promoImageUrl: p.promoImageUrl ?? p.promo_image_url,
+            displayOrder: p.displayOrder ?? p.display_order,
             featured: p.featured,
             badge: p.badge,
-            isActive: p.isActive,
-            stockLimit: p.stockLimit,
-            maxPerCustomer: p.maxPerCustomer,
+            isActive: p.isActive ?? p.is_active,
+            stockLimit: p.stockLimit ?? p.stock_limit,
+            maxPerCustomer: p.maxPerCustomer ?? p.max_per_customer,
             slug: p.slug,
-            metaTitle: p.metaTitle,
-            metaDescription: p.metaDescription,
-            createdAt: p.createdAt,
-            updatedAt: p.updatedAt,
-          }));
+            metaTitle: p.metaTitle ?? p.meta_title,
+            metaDescription: p.metaDescription ?? p.meta_description,
+            createdAt: p.createdAt ?? p.created_at,
+            updatedAt: p.updatedAt ?? p.updated_at,
+          });
+          const raw = await neonDb.getVoucherProducts();
+          const products = raw.map(toCamel);
           res.json(products);
     } catch (error) {
       console.error("Error fetching voucher products:", error);
@@ -7645,33 +7647,34 @@ New Age Fotografie CRM System
       if (!product) {
         return res.status(404).json({ error: "Voucher product not found" });
       }
+      const p = product as any;
       const transformedProduct = {
-        id: product.id,
-        name: product.name,
-        description: product.description,
-        detailedDescription: product.detailedDescription,
-        price: product.price,
-        originalPrice: product.originalPrice,
-        category: product.category,
-        sessionDuration: product.sessionDuration,
-        sessionType: product.sessionType,
-        validityPeriod: product.validityPeriod,
-        redemptionInstructions: product.redemptionInstructions,
-        termsAndConditions: product.termsAndConditions,
-        imageUrl: product.imageUrl,
-        thumbnailUrl: product.thumbnailUrl,
-        promoImageUrl: product.promoImageUrl,
-        displayOrder: product.displayOrder,
-        featured: product.featured,
-        badge: product.badge,
-        isActive: product.isActive,
-        stockLimit: product.stockLimit,
-        maxPerCustomer: product.maxPerCustomer,
-        slug: product.slug,
-        metaTitle: product.metaTitle,
-        metaDescription: product.metaDescription,
-        createdAt: product.createdAt,
-        updatedAt: product.updatedAt,
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        detailedDescription: p.detailedDescription ?? p.detailed_description,
+        price: p.price,
+        originalPrice: p.originalPrice ?? p.original_price,
+        category: p.category,
+        sessionDuration: p.sessionDuration ?? p.session_duration,
+        sessionType: p.sessionType ?? p.session_type,
+        validityPeriod: p.validityPeriod ?? p.validity_period,
+        redemptionInstructions: p.redemptionInstructions ?? p.redemption_instructions,
+        termsAndConditions: p.termsAndConditions ?? p.terms_and_conditions,
+        imageUrl: p.imageUrl ?? p.image_url,
+        thumbnailUrl: p.thumbnailUrl ?? p.thumbnail_url,
+        promoImageUrl: p.promoImageUrl ?? p.promo_image_url,
+        displayOrder: p.displayOrder ?? p.display_order,
+        featured: p.featured,
+        badge: p.badge,
+        isActive: p.isActive ?? p.is_active,
+        stockLimit: p.stockLimit ?? p.stock_limit,
+        maxPerCustomer: p.maxPerCustomer ?? p.max_per_customer,
+        slug: p.slug,
+        metaTitle: p.metaTitle ?? p.meta_title,
+        metaDescription: p.metaDescription ?? p.meta_description,
+        createdAt: p.createdAt ?? p.created_at,
+        updatedAt: p.updatedAt ?? p.updated_at,
       };
       res.json(transformedProduct);
     } catch (error) {
@@ -8030,33 +8033,34 @@ New Age Fotografie CRM System
       if (!product) {
         return res.status(404).json({ error: 'Voucher product not found' });
       }
+      const p = product as any;
       return res.json({
-        id: product.id,
-        name: product.name,
-        description: product.description,
-        detailedDescription: product.detailedDescription,
-        price: product.price,
-        originalPrice: product.originalPrice,
-        category: product.category,
-        sessionDuration: product.sessionDuration,
-        sessionType: product.sessionType,
-        validityPeriod: product.validityPeriod,
-        redemptionInstructions: product.redemptionInstructions,
-        termsAndConditions: product.termsAndConditions,
-        imageUrl: product.imageUrl,
-        thumbnailUrl: product.thumbnailUrl,
-        promoImageUrl: product.promoImageUrl,
-        displayOrder: product.displayOrder,
-        featured: product.featured,
-        badge: product.badge,
-        isActive: product.isActive,
-        stockLimit: product.stockLimit,
-        maxPerCustomer: product.maxPerCustomer,
-        slug: product.slug,
-        metaTitle: product.metaTitle,
-        metaDescription: product.metaDescription,
-        createdAt: product.createdAt,
-        updatedAt: product.updatedAt,
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        detailedDescription: p.detailedDescription ?? p.detailed_description,
+        price: p.price,
+        originalPrice: p.originalPrice ?? p.original_price,
+        category: p.category,
+        sessionDuration: p.sessionDuration ?? p.session_duration,
+        sessionType: p.sessionType ?? p.session_type,
+        validityPeriod: p.validityPeriod ?? p.validity_period,
+        redemptionInstructions: p.redemptionInstructions ?? p.redemption_instructions,
+        termsAndConditions: p.termsAndConditions ?? p.terms_and_conditions,
+        imageUrl: p.imageUrl ?? p.image_url,
+        thumbnailUrl: p.thumbnailUrl ?? p.thumbnail_url,
+        promoImageUrl: p.promoImageUrl ?? p.promo_image_url,
+        displayOrder: p.displayOrder ?? p.display_order,
+        featured: p.featured,
+        badge: p.badge,
+        isActive: p.isActive ?? p.is_active,
+        stockLimit: p.stockLimit ?? p.stock_limit,
+        maxPerCustomer: p.maxPerCustomer ?? p.max_per_customer,
+        slug: p.slug,
+        metaTitle: p.metaTitle ?? p.meta_title,
+        metaDescription: p.metaDescription ?? p.meta_description,
+        createdAt: p.createdAt ?? p.created_at,
+        updatedAt: p.updatedAt ?? p.updated_at,
       });
     } catch (err) {
       console.error('[VOUCHER] Error fetching single product:', err);
@@ -8151,21 +8155,40 @@ New Age Fotografie CRM System
 
   app.delete("/api/vouchers/products/:id", authenticateUser, async (req: Request, res: Response) => {
     try {
-      const existing = await neonDb.getVoucherProduct(req.params.id);
+      const id = req.params.id;
+      console.log('[VOUCHER DELETE] Request to delete product:', id);
+      // Check references to avoid FK constraint failures
+      try {
+        const ref = await runSql('SELECT COUNT(1)::int AS c FROM voucher_sales WHERE product_id = $1', [id]);
+        if (ref?.[0]?.c > 0) {
+          return res.status(409).json({ success: false, error: 'Product has sales and cannot be deleted', references: ref[0].c });
+        }
+      } catch (e) {
+        console.warn('[VOUCHER DELETE] Reference check failed (continuing):', e);
+      }
+
+      const existing = await neonDb.getVoucherProduct(id);
       const bucketName = process.env.AWS_S3_BUCKET || '';
       const parseKey = (urlStr: string): string | null => { if (!urlStr) return null; try { const u = new URL(urlStr); let p = u.pathname.replace(/^\//,''); const b = process.env.AWS_S3_BUCKET||''; if (p.startsWith(b + '/')) p = p.slice(b.length+1); return p||null; } catch { return null; } };
       if (existing && bucketName) {
-        for (const url of [existing.imageUrl, existing.thumbnailUrl]) {
-          const key = parseKey(url as string);
+        const imgUrl = (existing.imageUrl ?? existing.image_url) as string | undefined;
+        const thumbUrl = (existing.thumbnailUrl ?? existing.thumbnail_url) as string | undefined;
+        for (const url of [imgUrl, thumbUrl]) {
+          const key = url ? parseKey(url) : null;
           if (key) {
             try { await s3Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: key })); console.log('[VOUCHER DELETE] Deleted object:', key); } catch (e) { console.warn('[VOUCHER DELETE] Failed to delete object:', key, e); }
           }
         }
       }
-      await neonDb.deleteVoucherProduct(req.params.id);
-      res.json({ success: true, id: req.params.id });
-    } catch (error) {
+      await neonDb.deleteVoucherProduct(id);
+      console.log('[VOUCHER DELETE] Deleted product row:', id);
+      res.json({ success: true, id });
+    } catch (error: any) {
+      const code = error?.code || error?.detail || '';
       console.error('Error deleting voucher product:', error);
+      if (String(code).includes('foreign key') || error?.code === '23503') {
+        return res.status(409).json({ success: false, error: 'Product cannot be deleted due to existing references' });
+      }
       res.status(500).json({ error: 'Internal server error' });
     }
   });
