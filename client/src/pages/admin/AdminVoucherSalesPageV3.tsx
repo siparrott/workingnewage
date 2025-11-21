@@ -276,6 +276,10 @@ export default function AdminVoucherSalesPageV3() {
 
   const updateProductMutation = useMutation({
     mutationFn: async (data: VoucherProductFormData & { id: string }) => {
+      // CRITICAL: Use uploadedImage state first, then fall back to existing product's imageUrl
+      const finalImageUrl = uploadedImage || (selectedProduct?.imageUrl) || null;
+      const finalThumbnailUrl = uploadedThumbnail || ((selectedProduct as any)?.thumbnailUrl) || null;
+      
       const payload = {
         name: data.name,
         description: data.description,
@@ -285,11 +289,14 @@ export default function AdminVoucherSalesPageV3() {
         isActive: data.isActive,
         category: data.category,
         sessionType: data.sessionType,
-        imageUrl: uploadedImage || data.imageUrl || null,
-        thumbnailUrl: uploadedThumbnail || (data as any).thumbnailUrl || null,
+        imageUrl: finalImageUrl,
+        thumbnailUrl: finalThumbnailUrl,
       };
-      console.log('[UPDATE PRODUCT] Current uploadedImage state:', uploadedImage);
-      console.log('[UPDATE PRODUCT] Current uploadedThumbnail state:', uploadedThumbnail);
+      console.log('[UPDATE PRODUCT] selectedProduct:', selectedProduct);
+      console.log('[UPDATE PRODUCT] uploadedImage state:', uploadedImage);
+      console.log('[UPDATE PRODUCT] uploadedThumbnail state:', uploadedThumbnail);
+      console.log('[UPDATE PRODUCT] finalImageUrl:', finalImageUrl);
+      console.log('[UPDATE PRODUCT] finalThumbnailUrl:', finalThumbnailUrl);
       console.log('[UPDATE PRODUCT] Full payload being sent:', JSON.stringify(payload, null, 2));
       const response = await fetch(`/api/vouchers/products/${data.id}`, {
         method: "PUT",
