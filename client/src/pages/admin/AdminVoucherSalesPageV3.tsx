@@ -129,13 +129,42 @@ export default function AdminVoucherSalesPageV3() {
   const { data: voucherProducts, isLoading: isLoadingProducts, error: productsError } = useQuery<VoucherProduct[]>({
     queryKey: ['/api/vouchers/products'],
     queryFn: async () => {
-      const response = await fetch('/api/vouchers/products');
+      const response = await fetch('/api/vouchers/products', { headers: { 'Cache-Control': 'no-cache' } });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data = await response.json();
-      console.log('📦 [ADMIN] Fetched products:', data.length, data);
-      return data;
+      const raw = await response.json();
+      // Normalize camelCase even if server sent snake_case
+      const normalized = raw.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description ?? null,
+        detailedDescription: p.detailedDescription ?? p.detailed_description ?? null,
+        price: typeof p.price === 'string' ? parseFloat(p.price) : p.price,
+        originalPrice: typeof (p.originalPrice ?? p.original_price) === 'string' ? parseFloat(p.originalPrice ?? p.original_price) : (p.originalPrice ?? p.original_price),
+        category: p.category ?? '',
+        sessionDuration: p.sessionDuration ?? p.session_duration ?? null,
+        sessionType: p.sessionType ?? p.session_type ?? '',
+        validityPeriod: p.validityPeriod ?? p.validity_period ?? 365,
+        redemptionInstructions: p.redemptionInstructions ?? p.redemption_instructions ?? null,
+        termsAndConditions: p.termsAndConditions ?? p.terms_and_conditions ?? null,
+        imageUrl: p.imageUrl ?? p.image_url ?? null,
+        thumbnailUrl: p.thumbnailUrl ?? p.thumbnail_url ?? null,
+        promoImageUrl: p.promoImageUrl ?? p.promo_image_url ?? null,
+        displayOrder: p.displayOrder ?? p.display_order ?? 0,
+        featured: p.featured ?? false,
+        badge: p.badge ?? null,
+        isActive: p.isActive ?? p.is_active ?? true,
+        stockLimit: p.stockLimit ?? p.stock_limit ?? null,
+        maxPerCustomer: p.maxPerCustomer ?? p.max_per_customer ?? null,
+        slug: p.slug ?? p.id,
+        metaTitle: p.metaTitle ?? p.meta_title ?? null,
+        metaDescription: p.metaDescription ?? p.meta_description ?? null,
+        createdAt: p.createdAt ?? p.created_at ?? null,
+        updatedAt: p.updatedAt ?? p.updated_at ?? null,
+      }));
+      console.log('📦 [ADMIN] Fetched products (normalized):', normalized.length, normalized);
+      return normalized;
     },
     refetchOnMount: true,
     refetchOnWindowFocus: true,
@@ -479,18 +508,31 @@ export default function AdminVoucherSalesPageV3() {
   const deleteProductMutation = useMutation({
     mutationFn: async (id: string) => {
       const response = await fetch(`/api/vouchers/products/${id}`, {
-        method: "DELETE",
+        method: 'DELETE',
         headers: withAdminHeaders(),
       });
-      if (!response.ok) throw new Error("Failed to delete product");
-      return response.json();
+      let body: any = null;
+      try { body = await response.json(); } catch { /* ignore */ }
+      if (!response.ok) {
+        const msg = body?.error || `HTTP ${response.status}`;
+        throw new Error(msg);
+      }
+      return body;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/vouchers/products"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/vouchers/products'] });
+      alert('Product deleted');
     },
+    onError: (e: any) => {
+      alert('Failed to delete product: ' + e.message);
+    }
   });
 
   const handleDeleteProduct = (product: VoucherProduct) => {
+    if (!getAdminToken()) {
+      alert('Admin token missing. Please set window.localStorage.ADMIN_TOKEN first.');
+      return;
+    }
     if (confirm(`Are you sure you want to delete "${product.name}"? This action cannot be undone.`)) {
       deleteProductMutation.mutate(product.id);
     }
