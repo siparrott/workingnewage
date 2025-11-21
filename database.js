@@ -1854,11 +1854,38 @@ if (!connectionString) {
 
     async updateVoucherProduct(id, productData) {
       try {
-        const {
+        // Accept both snake_case and camelCase input keys
+        const name = productData.name ?? null;
+        const description = productData.description ?? null;
+        const detailed_description = (productData.detailed_description ?? productData.detailedDescription) ?? null;
+        const price = productData.price ?? null;
+        const original_price = (productData.original_price ?? productData.originalPrice) ?? null;
+        const category = productData.category ?? null;
+        const session_type = (productData.session_type ?? productData.sessionType) ?? null;
+        const session_duration = (productData.session_duration ?? productData.sessionDuration) ?? null;
+        const is_active = (productData.is_active ?? productData.isActive) ?? null;
+        const validity_period = (productData.validity_period ?? productData.validityPeriod) ?? null;
+        const display_order = (productData.display_order ?? productData.displayOrder) ?? null;
+        const image_url = (productData.image_url ?? productData.imageUrl) ?? null;
+        const thumbnail_url = (productData.thumbnail_url ?? productData.thumbnailUrl) ?? null;
+        const promo_image_url = (productData.promo_image_url ?? productData.promoImageUrl) ?? null;
+        const featured = productData.featured ?? null;
+        const badge = productData.badge ?? null;
+        const stock_limit = (productData.stock_limit ?? productData.stockLimit) ?? null;
+        const max_per_customer = (productData.max_per_customer ?? productData.maxPerCustomer) ?? null;
+        const slug = productData.slug ?? null;
+        const meta_title = (productData.meta_title ?? productData.metaTitle) ?? null;
+        const meta_description = (productData.meta_description ?? productData.metaDescription) ?? null;
+        const redemption_instructions = (productData.redemption_instructions ?? productData.redemptionInstructions) ?? null;
+        const terms_and_conditions = (productData.terms_and_conditions ?? productData.termsAndConditions) ?? null;
+
+        console.log('[DB] updateVoucherProduct incoming mapped data:', {
+          id,
           name, description, detailed_description, price, original_price, category, session_type,
-          is_active, terms_and_conditions, validity_period, display_order, 
-          image_url, thumbnail_url, promo_image_url, badge, featured, slug
-        } = productData;
+          session_duration, is_active, validity_period, display_order, image_url, thumbnail_url,
+          promo_image_url, featured, badge, stock_limit, max_per_customer, slug, meta_title,
+          meta_description, redemption_instructions, terms_and_conditions
+        });
 
         const result = await pool.query(`
           UPDATE voucher_products SET
@@ -1869,25 +1896,37 @@ if (!connectionString) {
             original_price = COALESCE($6, original_price),
             category = COALESCE($7, category),
             session_type = COALESCE($8, session_type),
-            is_active = COALESCE($9, is_active),
-            terms_and_conditions = COALESCE($10, terms_and_conditions),
+            session_duration = COALESCE($9, session_duration),
+            is_active = COALESCE($10, is_active),
             validity_period = COALESCE($11, validity_period),
             display_order = COALESCE($12, display_order),
             image_url = COALESCE($13, image_url),
             thumbnail_url = COALESCE($14, thumbnail_url),
             promo_image_url = COALESCE($15, promo_image_url),
-            badge = COALESCE($16, badge),
-            featured = COALESCE($17, featured),
-            slug = COALESCE($18, slug),
+            featured = COALESCE($16, featured),
+            badge = COALESCE($17, badge),
+            stock_limit = COALESCE($18, stock_limit),
+            max_per_customer = COALESCE($19, max_per_customer),
+            slug = COALESCE($20, slug),
+            meta_title = COALESCE($21, meta_title),
+            meta_description = COALESCE($22, meta_description),
+            redemption_instructions = COALESCE($23, redemption_instructions),
+            terms_and_conditions = COALESCE($24, terms_and_conditions),
             updated_at = NOW()
           WHERE id = $1
           RETURNING *
         `, [
-          id, name, description, detailed_description, price, original_price, category, session_type,
-          is_active, terms_and_conditions, validity_period, display_order, image_url,
-          thumbnail_url, promo_image_url, badge, featured, slug
+          id,
+          name, description, detailed_description, price, original_price, category, session_type,
+          session_duration, is_active, validity_period, display_order, image_url, thumbnail_url,
+          promo_image_url, featured, badge, stock_limit, max_per_customer, slug, meta_title,
+          meta_description, redemption_instructions, terms_and_conditions
         ]);
 
+        if (!result.rows[0]) {
+          console.warn('⚠️ updateVoucherProduct returned no row for id:', id);
+          return null;
+        }
         console.log('✅ Voucher product updated successfully:', result.rows[0].name);
         return result.rows[0];
       } catch (error) {
