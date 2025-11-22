@@ -9742,10 +9742,21 @@ New Age Fotografie Team`;
   }
   
   // Serve static files
-  let filePath = path.join(__dirname, 'dist', pathname === '/' ? 'index.html' : pathname);
+  let filePath;
+  
+  // Handle uploaded files from /my-archive/ or /public/
+  if (pathname.startsWith('/my-archive/')) {
+    filePath = path.join(__dirname, 'public', pathname);
+  } else if (pathname.startsWith('/public/')) {
+    filePath = path.join(__dirname, pathname);
+  } else {
+    filePath = path.join(__dirname, 'dist', pathname === '/' ? 'index.html' : pathname);
+  }
   
   // Security check
-  if (!filePath.startsWith(path.join(__dirname, 'dist'))) {
+  const distPath = path.join(__dirname, 'dist');
+  const publicPath = path.join(__dirname, 'public');
+  if (!filePath.startsWith(distPath) && !filePath.startsWith(publicPath)) {
     filePath = path.join(__dirname, 'dist', 'index.html');
   }
   
