@@ -58,7 +58,8 @@ const Header: React.FC = () => {
   ];
 
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-50">      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+    <header className="bg-white shadow-sm sticky top-0 z-50 relative">
+      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <Link to="/" className="flex items-center">
           <img 
             src="/frontend-logo.jpg" 
@@ -84,21 +85,24 @@ const Header: React.FC = () => {
 
           {/* Fotoshootings Dropdown */}
           <div 
-            className="relative"
+            className="relative group"
             onMouseEnter={() => setFotoshootingsOpen(true)}
             onMouseLeave={() => setFotoshootingsOpen(false)}
           >
-            <button className="text-gray-700 hover:text-purple-600 transition-colors flex items-center">
+            <button className="text-gray-700 hover:text-purple-600 transition-colors flex items-center pointer-events-auto">
               {t('nav.photoshoots')}
               <ChevronDown size={16} className="ml-1" />
             </button>
             {fotoshootingsOpen && (
-              <div className="absolute top-full left-0 mt-2 w-56 bg-white shadow-lg rounded-lg py-2 z-50">
+              <div className="absolute top-full left-0 mt-2 w-56 bg-white shadow-xl rounded-lg py-2 z-[100] border border-gray-200">
                 {fotoshootingItems.map(item => (
                   <Link
                     key={item.path}
                     to={item.path}
-                    onClick={() => handleNavClick(item.path)}
+                    onClick={() => {
+                      handleNavClick(item.path);
+                      setFotoshootingsOpen(false);
+                    }}
                     className={`block px-4 py-2 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors ${
                       isActive(item.path) ? 'text-purple-600 font-semibold bg-purple-50' : ''
                     }`}
@@ -112,19 +116,19 @@ const Header: React.FC = () => {
 
           {/* About Dropdown */}
           <div 
-            className="relative"
+            className="relative group"
             onMouseEnter={() => setAboutOpen(true)}
             onMouseLeave={() => setAboutOpen(false)}
           >
             <button 
               onClick={() => setAboutOpen(!aboutOpen)}
-              className="text-gray-700 hover:text-purple-600 transition-colors flex items-center"
+              className="text-gray-700 hover:text-purple-600 transition-colors flex items-center pointer-events-auto"
             >
               Über Uns
               <ChevronDown size={16} className="ml-1" />
             </button>
             {aboutOpen && (
-              <div className="absolute top-full left-0 mt-2 w-48 bg-white shadow-lg rounded-lg py-2 z-50">
+              <div className="absolute top-full left-0 mt-2 w-48 bg-white shadow-xl rounded-lg py-2 z-[100] border border-gray-200">
                 {aboutItems.map(item => (
                   <Link
                     key={item.path}
