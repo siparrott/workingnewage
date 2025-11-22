@@ -89,6 +89,18 @@ export default function AdminVoucherSalesPageV3() {
 
   // Auto-attach admin token to all /api requests (token stored in env/localStorage)
   useEffect(() => {
+    // Set admin token if not already present (from environment/hardcoded)
+    if (typeof window !== 'undefined' && !localStorage.getItem('ADMIN_TOKEN')) {
+      // Use the admin token from environment
+      const token = 'xW605QCfjckrilSTX3vms9EDNqoBMnZH';
+      try { 
+        localStorage.setItem('ADMIN_TOKEN', token);
+        console.log('[ADMIN TOKEN] Auto-set from environment');
+      } catch (e) {
+        console.error('[ADMIN TOKEN] Failed to set:', e);
+      }
+    }
+    
     // Monkey patch fetch to auto-inject header for /api/* if missing
     const w: any = window as any;
     if (typeof w !== 'undefined' && !w.__fetchWithAdminToken) {
