@@ -94,22 +94,24 @@ const Header: React.FC = () => {
               <ChevronDown size={16} className="ml-1" />
             </button>
             {fotoshootingsOpen && (
-              <div className="absolute top-full left-0 mt-2 w-56 bg-white shadow-xl rounded-lg py-2 z-[100] border border-gray-200">
-                {fotoshootingItems.map(item => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => {
-                      handleNavClick(item.path);
-                      setFotoshootingsOpen(false);
-                    }}
-                    className={`block px-4 py-2 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors ${
-                      isActive(item.path) ? 'text-purple-600 font-semibold bg-purple-50' : ''
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+              <div className="absolute top-full left-0 pt-2 w-56 z-[100]">
+                <div className="bg-white shadow-xl rounded-lg py-2 border border-gray-200">
+                  {fotoshootingItems.map(item => (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => {
+                        handleNavClick(item.path);
+                        setFotoshootingsOpen(false);
+                      }}
+                      className={`block px-4 py-2 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors ${
+                        isActive(item.path) ? 'text-purple-600 font-semibold bg-purple-50' : ''
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -128,22 +130,24 @@ const Header: React.FC = () => {
               <ChevronDown size={16} className="ml-1" />
             </button>
             {aboutOpen && (
-              <div className="absolute top-full left-0 mt-2 w-48 bg-white shadow-xl rounded-lg py-2 z-[100] border border-gray-200">
-                {aboutItems.map(item => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => {
-                      handleNavClick(item.path);
-                      setAboutOpen(false);
-                    }}
-                    className={`block px-4 py-2 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors ${
-                      isActive(item.path) ? 'text-purple-600 font-semibold bg-purple-50' : ''
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+              <div className="absolute top-full left-0 pt-2 w-48 z-[100]">
+                <div className="bg-white shadow-xl rounded-lg py-2 border border-gray-200">
+                  {aboutItems.map(item => (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => {
+                        handleNavClick(item.path);
+                        setAboutOpen(false);
+                      }}
+                      className={`block px-4 py-2 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors ${
+                        isActive(item.path) ? 'text-purple-600 font-semibold bg-purple-50' : ''
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
               </div>
             )}
           </div>
