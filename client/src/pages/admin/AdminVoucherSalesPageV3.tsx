@@ -87,16 +87,8 @@ export default function AdminVoucherSalesPageV3() {
 
   const queryClient = useQueryClient();
 
-  // Ensure admin token exists and auto-attach to all /api requests
+  // Auto-attach admin token to all /api requests (token stored in env/localStorage)
   useEffect(() => {
-    // Prompt once if missing
-    const existing = getAdminToken();
-    if (!existing) {
-      const token = typeof window !== 'undefined' ? window.prompt('Enter ADMIN TOKEN to enable admin APIs:') : '';
-      if (token) {
-        try { localStorage.setItem('ADMIN_TOKEN', token); } catch {}
-      }
-    }
     // Monkey patch fetch to auto-inject header for /api/* if missing
     const w: any = window as any;
     if (typeof w !== 'undefined' && !w.__fetchWithAdminToken) {
