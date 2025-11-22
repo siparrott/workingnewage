@@ -14,6 +14,18 @@ const crypto = require('crypto');
 const os = require('os');
 const PDFDocument = require('pdfkit');
 
+// AWS SDK S3 Client for Backblaze B2
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'eu-central-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+  },
+  endpoint: process.env.AWS_S3_ENDPOINT || undefined,
+  forcePathStyle: process.env.AWS_S3_ENDPOINT ? true : false,
+});
+
 // Import database functions - with error handling
 let database = null;
 try {
@@ -4012,30 +4024,47 @@ const server = http.createServer(async (req, res) => {
           const timestamp = Date.now();
           const random = crypto.randomBytes(4).toString('hex');
           const uniqueFilename = `voucher-${timestamp}-${random}.${ext}`;
+          const s3Key = `vouchers/${uniqueFilename}`;
           
-          // Save to public/my-archive/ (Digital Files folder)
-          const uploadDir = path.join(__dirname, 'public', 'my-archive');
-          if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
+          console.log(`📤 Uploading to Backblaze B2: ${s3Key} (${fileData.length} bytes)`);
+          
+          // Upload to Backblaze B2
+          await s3Client.send(new PutObjectCommand({
+            Bucket: process.env.AWS_S3_BUCKET || '',
+            Key: s3Key,
+            Body: fileData,
+            ContentType: contentType || 'image/jpeg',
+            Metadata: {
+              originalName: filename,
+              uploadedBy: 'voucher-system',
+            },
+          }));
+          
+          // Build public URL for Backblaze B2
+          const bucket = process.env.AWS_S3_BUCKET || '';
+          const endpoint = process.env.AWS_S3_ENDPOINT || '';
+          let url;
+          
+          if (endpoint.includes('backblazeb2.com')) {
+            // Backblaze B2 format: https://BUCKET.s3.REGION.backblazeb2.com/KEY
+            url = `https://${bucket}.${endpoint.replace('https://', '').replace(/\/$/, '')}/${s3Key}`;
+          } else {
+            url = `${endpoint.replace(/\/$/, '')}/${bucket}/${s3Key}`;
           }
           
-          const filepath = path.join(uploadDir, uniqueFilename);
-          fs.writeFileSync(filepath, fileData);
-          
-          const url = `/my-archive/${uniqueFilename}`;
-          console.log(`✅ Image uploaded successfully: ${url} (${fileData.length} bytes)`);
+          console.log(`✅ Image uploaded successfully to B2: ${url}`);
           
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ 
             url, 
-            thumbnailUrl: url, // Can be the same for now
+            thumbnailUrl: url, // Same URL for now (can add thumbnail generation later)
             filename: uniqueFilename,
             size: fileData.length 
           }));
         } catch (e) {
-          console.error('❌ Image upload error:', e);
+          console.error('❌ B2 upload error:', e);
           res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Image upload failed: ' + e.message }));
+          res.end(JSON.stringify({ error: 'Failed to upload to cloud storage: ' + e.message }));
         }
       });
       return;
