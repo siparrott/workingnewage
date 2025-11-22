@@ -4046,8 +4046,12 @@ const server = http.createServer(async (req, res) => {
           let url;
           
           if (endpoint.includes('backblazeb2.com')) {
-            // Backblaze B2 format: https://BUCKET.s3.REGION.backblazeb2.com/KEY
-            url = `https://${bucket}.${endpoint.replace('https://', '').replace(/\/$/, '')}/${s3Key}`;
+            // Backblaze B2 uses friendly URL format when bucket is public
+            // Format: https://f003.backblazeb2.com/file/BUCKET/KEY
+            const region = endpoint.match(/s3\.([\w-]+)\.backblazeb2\.com/)?.[1] || 'eu-central-003';
+            const friendlyEndpoint = `https://f003.backblazeb2.com/file/${bucket}/${s3Key}`;
+            url = friendlyEndpoint;
+            console.log(`🔗 Using B2 friendly URL: ${url}`);
           } else {
             url = `${endpoint.replace(/\/$/, '')}/${bucket}/${s3Key}`;
           }
