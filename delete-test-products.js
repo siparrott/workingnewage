@@ -30,14 +30,31 @@ async function deleteTestProducts() {
       console.log(`  ${idx + 1}. "${product.name}" (ID: ${product.id}, Price: €${product.price})`);
     });
     
-    console.log('\n🗑️  Deleting test products...');
+    console.log('\n🗑️  Deleting test products (including related sales)...');
     
     for (const product of result.rows) {
+      // First check if there are any sales
+      const salesCheck = await pool.query(
+        'SELECT COUNT(*) as count FROM voucher_sales WHERE product_id = $1',
+        [product.id]
+      );
+      
+      const salesCount = parseInt(salesCheck.rows[0].count);
+      
+      if (salesCount > 0) {
+        console.log(`  📋 Found ${salesCount} sales record(s) for "${product.name}"`);
+        
+        // Delete sales records first
+        await pool.query('DELETE FROM voucher_sales WHERE product_id = $1', [product.id]);
+        console.log(`  ✅ Deleted ${salesCount} sales record(s)`);
+      }
+      
+      // Now delete the product
       const deleteQuery = 'DELETE FROM voucher_products WHERE id = $1 RETURNING name';
       const deleteResult = await pool.query(deleteQuery, [product.id]);
       
       if (deleteResult.rows[0]) {
-        console.log(`  ✅ Deleted: "${deleteResult.rows[0].name}"`);
+        console.log(`  ✅ Deleted product: "${deleteResult.rows[0].name}"`);
       }
     }
     
