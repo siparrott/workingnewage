@@ -219,4 +219,4 @@ deployment_response.html
 # Jest and testing
 jest.config.cjs
 tests/
-tools/
+# tools/ - REMOVED: was blocking agent/v2/tools/ from being tracked!
