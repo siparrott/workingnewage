@@ -3962,18 +3962,82 @@ const server = http.createServer(async (req, res) => {
       }
       return;
     }
-    // Simple image upload stub for admin UI (returns placeholder URL)
+    // Image upload for voucher products - saves to Digital Files (my-archive)
     if (pathname === '/api/upload/image' && req.method === 'POST') {
       if (!requireAdminToken(req, res)) return;
-      try {
-        const seed = crypto.randomBytes(6).toString('hex');
-        const url = `https://picsum.photos/seed/${seed}/640/480`;
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ url }));
-      } catch (e) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Image upload failed' }));
-      }
+      
+      const chunks = [];
+      req.on('data', chunk => chunks.push(chunk));
+      req.on('end', async () => {
+        try {
+          const buffer = Buffer.concat(chunks);
+          const boundary = req.headers['content-type']?.split('boundary=')[1];
+          
+          if (!boundary) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'No boundary found in multipart request' }));
+            return;
+          }
+          
+          // Parse multipart form data manually
+          const parts = buffer.toString('binary').split('--' + boundary);
+          let fileData = null;
+          let filename = null;
+          let contentType = null;
+          
+          for (const part of parts) {
+            if (part.includes('Content-Disposition: form-data; name="file"')) {
+              const filenameMatch = part.match(/filename="([^"]+)"/);
+              if (filenameMatch) filename = filenameMatch[1];
+              
+              const ctMatch = part.match(/Content-Type: (.+)/);
+              if (ctMatch) contentType = ctMatch[1].trim();
+              
+              const dataStart = part.indexOf('\r\n\r\n') + 4;
+              const dataEnd = part.lastIndexOf('\r\n');
+              if (dataStart > 3 && dataEnd > dataStart) {
+                fileData = Buffer.from(part.substring(dataStart, dataEnd), 'binary');
+              }
+            }
+          }
+          
+          if (!fileData || !filename) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'No file data found' }));
+            return;
+          }
+          
+          // Generate unique filename
+          const ext = filename.split('.').pop();
+          const timestamp = Date.now();
+          const random = crypto.randomBytes(4).toString('hex');
+          const uniqueFilename = `voucher-${timestamp}-${random}.${ext}`;
+          
+          // Save to public/my-archive/ (Digital Files folder)
+          const uploadDir = path.join(__dirname, 'public', 'my-archive');
+          if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+          }
+          
+          const filepath = path.join(uploadDir, uniqueFilename);
+          fs.writeFileSync(filepath, fileData);
+          
+          const url = `/my-archive/${uniqueFilename}`;
+          console.log(`✅ Image uploaded successfully: ${url} (${fileData.length} bytes)`);
+          
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ 
+            url, 
+            thumbnailUrl: url, // Can be the same for now
+            filename: uniqueFilename,
+            size: fileData.length 
+          }));
+        } catch (e) {
+          console.error('❌ Image upload error:', e);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Image upload failed: ' + e.message }));
+        }
+      });
       return;
     }
 
