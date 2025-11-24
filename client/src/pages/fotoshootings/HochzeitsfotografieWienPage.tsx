@@ -1,11 +1,26 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, MapPin, Gift, Calendar, Sparkles, Shield } from 'lucide-react';
+import { useCart } from '../../context/CartContext';
 
 export default function HochzeitsfotografieWienPage() {
+  const navigate = useNavigate();
+  const { addItem } = useCart();
+
+  const handleBookPackage = (packageName: string, price: number, description: string) => {
+    addItem({
+      title: packageName,
+      price: price,
+      quantity: 1,
+      packageType: 'Hochzeit',
+      type: 'voucher'
+    });
+    navigate('/cart');
+  };
+
   return (
     <Layout>
       <div className="min-h-screen bg-white">
@@ -193,7 +208,12 @@ export default function HochzeitsfotografieWienPage() {
                   <div className="flex items-start"><Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" /><span className="text-gray-700">150+ Bilder, Retusche Basis</span></div>
                   <div className="flex items-start"><Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" /><span className="text-gray-700">Sneak Peek 24–48 h</span></div>
                 </div>
-                <Link to="/warteliste" className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold">Anfragen</Link>
+                <button
+                  onClick={() => handleBookPackage('Standesamt Mini Hochzeit', 690, 'Standesamt Mini (bis 2 Std.) - Zeremonie + Gruppen & Paarfotos, 150+ Bilder')}
+                  className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
+                >
+                  Anfragen
+                </button>
               </div>
 
               {/* Classic (Beliebt) */}
@@ -213,7 +233,12 @@ export default function HochzeitsfotografieWienPage() {
                   <div className="flex items-start"><Check className="h-5 w-5 text-yellow-300 mr-3 mt-0.5" /><span>350+ Bilder, fein kuratiert</span></div>
                   <div className="flex items-start"><Check className="h-5 w-5 text-yellow-300 mr-3 mt-0.5" /><span>Sneak Peek 24 h</span></div>
                 </div>
-                <Link to="/warteliste" className="block text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold">Anfragen</Link>
+                <button
+                  onClick={() => handleBookPackage('Classic Hochzeit', 1590, 'Classic (bis 6 Std.) - Getting Ready bis Agape, 350+ Bilder, Sneak Peek 24 h')}
+                  className="block w-full text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+                >
+                  Anfragen
+                </button>
               </div>
 
               {/* Premium Day */}
@@ -232,7 +257,12 @@ export default function HochzeitsfotografieWienPage() {
                   <div className="flex items-start"><Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" /><span className="text-gray-700">600+ Bilder, Storytelling</span></div>
                   <div className="flex items-start"><Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" /><span className="text-gray-700">Paarshoot in goldenem Licht</span></div>
                 </div>
-                <Link to="/warteliste" className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold">Anfragen</Link>
+                <button
+                  onClick={() => handleBookPackage('Premium Day Hochzeit', 2450, 'Premium Day (bis 10 Std.) - Ganztagsreportage inkl. Abend, 600+ Bilder, Paarshoot')}
+                  className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
+                >
+                  Anfragen
+                </button>
               </div>
             </div>
 

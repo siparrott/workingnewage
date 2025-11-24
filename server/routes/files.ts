@@ -294,7 +294,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     
     const [newFile] = await db.insert(digitalFiles).values({
       id: fileId,
-      folderName: req.body.folderId || 'Home',
+      folderName: req.body.folderId || req.body.folderName || 'Home',
       fileName: req.file.originalname,
       fileType: fileType,
       fileSize: req.file.size,
@@ -517,84 +517,65 @@ router.get('/usage', async (req, res) => {
   }
 });
 
-// GET /api/files/folders - Get folder organization and statistics
+// GET /api/files/folders - Get folders from photo_folders table
 router.get('/folders', async (req, res) => {
   try {
-    const { folder_name } = req.query;
-
-    // Get folder statistics
-    let folderStatsQuery = `
-      SELECT 
-        folder_name,
-        COUNT(*) as file_count,
-        SUM(file_size) as total_size,
-        COUNT(CASE WHEN file_type = 'image' THEN 1 END) as image_count,
-        COUNT(CASE WHEN file_type = 'document' THEN 1 END) as document_count,
-        COUNT(CASE WHEN file_type = 'video' THEN 1 END) as video_count,
-        MAX(uploaded_at) as last_uploaded
-      FROM digital_files
-    `;
-
-    const values = [];
-    if (folder_name) {
-      folderStatsQuery += ` WHERE folder_name = $1`;
-      values.push(folder_name);
-    }
-
-    folderStatsQuery += ` GROUP BY folder_name ORDER BY file_count DESC`;
-
     const { neon } = await import('@neondatabase/serverless');
     const sql = neon(process.env.DATABASE_URL!);
     
-    const folders = await sql(folderStatsQuery, values);
-
-    // Get recent files
-    const recentFiles = await sql`
-      SELECT folder_name, file_name, file_type, uploaded_at
-      FROM digital_files
-      ORDER BY uploaded_at DESC
-      LIMIT 10
+    // Get all folders from photo_folders table
+    const folders = await sql`
+      SELECT id, name, parent_id, created_at, updated_at
+      FROM photo_folders
+      ORDER BY name ASC
     `;
 
-    res.json({
-      total_folders: folders.length,
-      folders: folders.map((folder: any) => ({
-        name: folder.folder_name,
-        file_count: folder.file_count,
-        total_size: `${(folder.total_size / 1024 / 1024).toFixed(2)} MB`,
-        breakdown: {
-          images: folder.image_count,
-          documents: folder.document_count,
-          videos: folder.video_count
-        },
-        last_uploaded: folder.last_uploaded
-      })),
-      recent_files: recentFiles.map((file: any) => ({
-        folder: file.folder_name,
-        name: file.file_name,
-        type: file.file_type,
-        uploaded: file.uploaded_at
-      }))
-    });
+    // Return in format expected by frontend
+    res.json(folders.map((folder: any) => ({
+      id: String(folder.id),
+      name: folder.name,
+      parentId: folder.parent_id ? String(folder.parent_id) : null,
+      createdAt: folder.created_at,
+      updatedAt: folder.updated_at
+    })));
   } catch (error) {
-    console.error('Failed to get folder organization:', error);
+    console.error('Failed to get folders:', error);
     res.status(500).json({ error: 'Failed to get folder organization' });
   }
 });
 
-// POST /api/files/folders - Create a new folder (stub for compatibility)
+// POST /api/files/folders - Create a new folder
 router.post('/folders', async (req, res) => {
   try {
-    // For now, return a simple response since the old system doesn't use folders
-    // TODO: Implement proper folder creation with archived_folders table
+    const { name, parentId } = req.body;
+    
+    if (!name || typeof name !== 'string' || name.trim() === '') {
+      return res.status(400).json({ error: 'Folder name is required' });
+    }
+
+    const { neon } = await import('@neondatabase/serverless');
+    const sql = neon(process.env.DATABASE_URL!);
+    
+    // Create folder ID from name
+    const folderId = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    
+    // Insert into photo_folders table
+    const [folder] = await sql`
+      INSERT INTO photo_folders (id, name, parent_id)
+      VALUES (${folderId}, ${name.trim()}, ${parentId || null})
+      ON CONFLICT (name) DO UPDATE SET updated_at = NOW()
+      RETURNING id, name, parent_id, created_at, updated_at
+    `;
+
     res.json({
       success: true,
-      message: 'Folder creation is not yet implemented in this version',
+      message: 'Folder created successfully',
       folder: {
-        id: Math.random().toString(36).substr(2, 9),
-        name: req.body.name,
-        parentId: req.body.parentId || null,
-        createdAt: new Date().toISOString()
+        id: String(folder.id),
+        name: folder.name,
+        parentId: folder.parent_id ? String(folder.parent_id) : null,
+        createdAt: folder.created_at,
+        updatedAt: folder.updated_at
       }
     });
   } catch (error) {

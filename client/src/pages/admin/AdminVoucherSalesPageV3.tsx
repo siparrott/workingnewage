@@ -45,6 +45,7 @@ import {
   UserPlus,
   Mail,
   Camera,
+  Baby,
   FileText,
   Folder,
   Image,
@@ -134,6 +135,14 @@ export default function AdminVoucherSalesPageV3() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedThumbnail, setUploadedThumbnail] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isImportingPackages, setIsImportingPackages] = useState(false);
+  const [isImportingNewborn, setIsImportingNewborn] = useState(false);
+  const [isImportingAll, setIsImportingAll] = useState(false);
+  // Temporary in-memory map for uploaded images per-product (shows immediately on product cards)
+  const [tempImageMap, setTempImageMap] = useState<Record<string, string>>({});
+  // Preview state for showing unsaved product preview
+  const [previewProductData, setPreviewProductData] = useState<any>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // Forms
   const productForm = useForm<VoucherProductFormData>({
@@ -494,6 +503,17 @@ export default function AdminVoucherSalesPageV3() {
       console.log('[IMAGE UPLOAD] Thumbnail URL:', data.thumbnailUrl);
       setUploadedImage(data.url);
       setUploadedThumbnail(data.thumbnailUrl || null);
+      // If editing an existing product, store temp image to show immediately on product card
+      try {
+        if (selectedProduct && selectedProduct.id) {
+          setTempImageMap((m) => ({ ...m, [selectedProduct.id]: data.url }));
+        } else {
+          // mark as new product preview
+          setTempImageMap((m) => ({ ...m, new: data.url }));
+        }
+      } catch (e) {
+        // ignore
+      }
       console.log('[IMAGE UPLOAD] State set - uploadedImage:', data.url);
       console.log('[IMAGE UPLOAD] State set - uploadedThumbnail:', data.thumbnailUrl);
       alert('Image uploaded successfully! URL: ' + data.url);
@@ -640,6 +660,258 @@ export default function AdminVoucherSalesPageV3() {
     setTimeout(() => refetchCouponAnalytics(), 50);
   };
 
+  // Import family packages (create or update products based on familien page packages)
+  const handleImportFamilyPackages = async () => {
+    if (isImportingPackages) return;
+    if (!confirm('Import Family packages into voucher products? This will create or update three products. Continue?')) return;
+    setIsImportingPackages(true);
+    try {
+      const familyPackages = [
+        {
+          slug: 'family-basic',
+          name: 'Family Basic',
+          description: '60 Min Shooting; 1 retuschiertes Portrait digital + Leinwand 40×30 cm; Auswahlgalerie online; Nutzungsrechte privat',
+          price: '95',
+          validityPeriod: '365',
+          category: 'familie',
+          sessionType: 'family'
+        },
+        {
+          slug: 'family-premium',
+          name: 'Family Premium',
+          description: '90 Min Shooting; 5 retuschierte Fotos digital; Leinwand 40×30 cm; Auswahlgalerie & Nutzungsrechte privat',
+          price: '195',
+          validityPeriod: '365',
+          category: 'familie',
+          sessionType: 'family'
+        },
+        {
+          slug: 'family-deluxe',
+          name: 'Family Deluxe',
+          description: '90–120 Min Shooting; 10 retuschierte Fotos digital; Leinwand 60×40 cm; Auswahlgalerie & Nutzungsrechte privat',
+          price: '295',
+          validityPeriod: '365',
+          category: 'familie',
+          sessionType: 'family'
+        }
+      ];
+
+      for (const pkg of familyPackages) {
+        // check existing by slug
+        const existing = (voucherProducts || []).find(p => (p as any).slug === pkg.slug || (p as any).slug === pkg.name.toLowerCase().replace(/\s+/g, '-'));
+        const payload: any = {
+          name: pkg.name,
+          description: pkg.description,
+          price: pkg.price,
+          validityPeriod: parseInt(pkg.validityPeriod, 10) || 365,
+          displayOrder: 0,
+          isActive: true,
+          category: pkg.category,
+          sessionType: pkg.sessionType,
+          slug: pkg.slug
+        };
+
+        if (existing) {
+          console.log('[IMPORT] Updating existing product', existing.id, pkg.slug);
+          const res = await fetch(`/api/vouchers/products/${existing.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', ...withAdminHeaders() },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) {
+            const txt = await res.text();
+            throw new Error(`Failed to update ${pkg.slug}: ${res.status} ${txt}`);
+          }
+        } else {
+          console.log('[IMPORT] Creating product', pkg.slug);
+          const res = await fetch('/api/vouchers/products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...withAdminHeaders() },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) {
+            const txt = await res.text();
+            throw new Error(`Failed to create ${pkg.slug}: ${res.status} ${txt}`);
+          }
+        }
+      }
+
+      // Refresh products
+      queryClient.invalidateQueries({ queryKey: ['/api/vouchers/products'] });
+      alert('Family packages imported/updated successfully.');
+    } catch (err: any) {
+      console.error('[IMPORT] Error importing family packages', err);
+      alert('Import failed: ' + (err?.message || String(err)));
+    } finally {
+      setIsImportingPackages(false);
+    }
+  };
+
+  // Import newborn packages (create or update products based on newborn page packages)
+  const handleImportNewbornPackages = async () => {
+    if (isImportingNewborn) return;
+    if (!confirm('Import Newborn packages into voucher products? This will create or update three products. Continue?')) return;
+    setIsImportingNewborn(true);
+    try {
+      const newbornPackages = [
+        {
+          slug: 'newborn-basic',
+          name: 'Newborn Basic',
+          description: 'ca. 60 Minuten im Studio; 1 retuschiertes Lieblingsfoto digital; Leinwand 40×30 cm mit demselben Motiv; 1–2 simple Sets',
+          price: '95',
+          validityPeriod: '365',
+          category: 'baby',
+          sessionType: 'newborn'
+        },
+        {
+          slug: 'newborn-premium',
+          name: 'Newborn Premium',
+          description: 'ca. 90 Minuten im Studio; 5 retuschierte Lieblingsfotos digital; Leinwand 40×30 cm; 2–3 Sets (Wraps + Detail-Makros)',
+          price: '195',
+          validityPeriod: '365',
+          category: 'baby',
+          sessionType: 'newborn'
+        },
+        {
+          slug: 'newborn-deluxe',
+          name: 'Newborn Deluxe',
+          description: 'ca. 120 Minuten im Studio; 10 retuschierte Lieblingsfotos digital; Leinwand 60×40 cm; 3–4 Sets inkl. Makro-Details',
+          price: '295',
+          validityPeriod: '365',
+          category: 'baby',
+          sessionType: 'newborn'
+        }
+      ];
+
+      for (const pkg of newbornPackages) {
+        const existing = (voucherProducts || []).find(p => (p as any).slug === pkg.slug || (p as any).slug === pkg.name.toLowerCase().replace(/\s+/g, '-'));
+        const payload: any = {
+          name: pkg.name,
+          description: pkg.description,
+          price: pkg.price,
+          validityPeriod: parseInt(pkg.validityPeriod, 10) || 365,
+          displayOrder: 0,
+          isActive: true,
+          category: pkg.category,
+          sessionType: pkg.sessionType,
+          slug: pkg.slug
+        };
+
+        if (existing) {
+          console.log('[IMPORT NEWBORN] Updating existing product', existing.id, pkg.slug);
+          const res = await fetch(`/api/vouchers/products/${existing.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', ...withAdminHeaders() },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) {
+            const txt = await res.text();
+            throw new Error(`Failed to update ${pkg.slug}: ${res.status} ${txt}`);
+          }
+        } else {
+          console.log('[IMPORT NEWBORN] Creating product', pkg.slug);
+          const res = await fetch('/api/vouchers/products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...withAdminHeaders() },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) {
+            const txt = await res.text();
+            throw new Error(`Failed to create ${pkg.slug}: ${res.status} ${txt}`);
+          }
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['/api/vouchers/products'] });
+      alert('Newborn packages imported/updated successfully.');
+    } catch (err: any) {
+      console.error('[IMPORT NEWBORN] Error importing newborn packages', err);
+      alert('Import failed: ' + (err?.message || String(err)));
+    } finally {
+      setIsImportingNewborn(false);
+    }
+  };
+
+  // Import all known service packages (creates/updates many categories so admin lists match frontend pages)
+  const handleImportAllPackages = async () => {
+    if (isImportingAll) return;
+    if (!confirm('Import all service packages into voucher products? This will create or update many products. Continue?')) return;
+    setIsImportingAll(true);
+    try {
+      const allPackages = [
+        // Familien
+        { slug: 'family-basic', name: 'Family Basic', description: '60 Min Shooting; 1 retuschiertes Portrait digital + Leinwand 40×30 cm; Auswahlgalerie online; Nutzungsrechte privat', price: '95', validityPeriod: '365', category: 'familie', sessionType: 'family' },
+        { slug: 'family-premium', name: 'Family Premium', description: '90 Min Shooting; 5 retuschierte Fotos digital; Leinwand 40×30 cm; Auswahlgalerie & Nutzungsrechte privat', price: '195', validityPeriod: '365', category: 'familie', sessionType: 'family' },
+        { slug: 'family-deluxe', name: 'Family Deluxe', description: '90–120 Min Shooting; 10 retuschierte Fotos digital; Leinwand 60×40 cm; Auswahlgalerie & Nutzungsrechte privat', price: '295', validityPeriod: '365', category: 'familie', sessionType: 'family' },
+        // Newborn / Baby
+        { slug: 'newborn-basic', name: 'Newborn Basic', description: 'ca. 60 Minuten im Studio; 1 retuschiertes Lieblingsfoto digital; Leinwand 40×30 cm', price: '95', validityPeriod: '365', category: 'baby', sessionType: 'newborn' },
+        { slug: 'newborn-premium', name: 'Newborn Premium', description: 'ca. 90 Minuten im Studio; 5 retuschierte Lieblingsfotos digital; Leinwand 40×30 cm', price: '195', validityPeriod: '365', category: 'baby', sessionType: 'newborn' },
+        { slug: 'newborn-deluxe', name: 'Newborn Deluxe', description: 'ca. 120 Minuten im Studio; 10 retuschierte Lieblingsfotos digital; Leinwand 60×40 cm', price: '295', validityPeriod: '365', category: 'baby', sessionType: 'newborn' },
+        { slug: 'baby-3-12-basic', name: 'Baby 3-12 Months Basic', description: 'Süße Babyfotos (3-12 Monate); 30 Minuten; 1 retuschiertes Foto', price: '75', validityPeriod: '365', category: 'baby', sessionType: 'baby-3-12' },
+        // Schwangerschaft
+        { slug: 'maternity-basic', name: 'Schwangerschaft Basic', description: 'Maternity Fotoshooting; 60 Minuten; 1 retuschiertes Foto', price: '95', validityPeriod: '365', category: 'schwangerschaft', sessionType: 'maternity' },
+        // Business & Team
+        { slug: 'business-portrait-basic', name: 'Business Portrait Basic', description: 'Business-Headshot; 30 Minuten; 1 retuschiertes Foto suitable for LinkedIn', price: '69', validityPeriod: '365', category: 'business', sessionType: 'business' },
+        { slug: 'business-team-basic', name: 'Team & Mitarbeiterfotos', description: 'Team- & Mitarbeiterfotos; Paketpreise by headcount; In-Studio or Onsite options', price: '299', validityPeriod: '365', category: 'business', sessionType: 'team' },
+        { slug: 'bewerbung-linkedin', name: 'Bewerbungsfotos & LinkedIn', description: 'Bewerbungsfotos Paket inkl. 2 retuschierte Bilder für Bewerbungen & LinkedIn', price: '129', validityPeriod: '365', category: 'business', sessionType: 'bewerbung' },
+        // Portrait & Studio
+        { slug: 'portrait-basic', name: 'Portraitfotografie Basic', description: 'Portraitsession im Studio; 30-45 Minuten; 1 retuschiertes Foto', price: '89', validityPeriod: '365', category: 'portrait', sessionType: 'portrait' },
+        { slug: 'studio-basic', name: 'Studio-Fotografie Basic', description: 'Studio-Miete inkl. Fotosession; perfekte Option für Produkt- oder Portraitaufnahmen', price: '149', validityPeriod: '365', category: 'studio', sessionType: 'studio' },
+        // Produkt & Immobilien
+        { slug: 'product-photography', name: 'Produktfotografie', description: 'Produktfotografie Basic — 5 retuschierte Bilder, ideal für Shops & Social', price: '199', validityPeriod: '365', category: 'product', sessionType: 'product' },
+        { slug: 'real-estate-photography', name: 'Immobilienfotografie', description: 'Immobilienfotos Paket für Wohnungen & Häuser — Innen und Exterieur', price: '249', validityPeriod: '365', category: 'real-estate', sessionType: 'realestate' },
+        // Hochzeit & Event
+        { slug: 'wedding-basic', name: 'Hochzeitsfotografie Basic', description: 'Hochzeitsbegleitung (Auszug) inkl. 30 bearbeiteter Fotos', price: '599', validityPeriod: '365', category: 'hochzeit', sessionType: 'hochzeit' },
+        { slug: 'event-basic', name: 'Eventfotografie', description: 'Eventfotografie Paket — Kurzauftrag inkl. 30 bearbeiteter Fotos', price: '449', validityPeriod: '365', category: 'event', sessionType: 'event' }
+      ];
+
+      for (const pkg of allPackages) {
+        const existing = (voucherProducts || []).find(p => (p as any).slug === pkg.slug || (p as any).slug === pkg.name.toLowerCase().replace(/\s+/g, '-'));
+        const payload: any = {
+          name: pkg.name,
+          description: pkg.description,
+          price: pkg.price,
+          validityPeriod: parseInt(pkg.validityPeriod, 10) || 365,
+          displayOrder: 0,
+          isActive: true,
+          category: pkg.category,
+          sessionType: pkg.sessionType,
+          slug: pkg.slug
+        };
+
+        if (existing) {
+          const res = await fetch(`/api/vouchers/products/${existing.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', ...withAdminHeaders() },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) {
+            const txt = await res.text();
+            throw new Error(`Failed to update ${pkg.slug}: ${res.status} ${txt}`);
+          }
+        } else {
+          const res = await fetch('/api/vouchers/products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...withAdminHeaders() },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) {
+            const txt = await res.text();
+            throw new Error(`Failed to create ${pkg.slug}: ${res.status} ${txt}`);
+          }
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['/api/vouchers/products'] });
+      alert('All service packages imported/updated successfully.');
+    } catch (err: any) {
+      console.error('[IMPORT ALL] Error importing packages', err);
+      alert('Import failed: ' + (err?.message || String(err)));
+    } finally {
+      setIsImportingAll(false);
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -658,6 +930,18 @@ export default function AdminVoucherSalesPageV3() {
               <Button variant="outline" size="sm" onClick={handleExportSales} title="Export sales CSV">
                 <Download className="h-4 w-4 mr-2" />
                 Export Sales
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleImportFamilyPackages} disabled={isImportingPackages} title="Import Family Packages">
+                <Users className="h-4 w-4 mr-2" />
+                {isImportingPackages ? 'Importing...' : 'Import Family Packages'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleImportNewbornPackages} disabled={isImportingNewborn} title="Import Newborn Packages">
+                <Baby className="h-4 w-4 mr-2" />
+                {isImportingNewborn ? 'Importing...' : 'Import Newborn Packages'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleImportAllPackages()} title="Import All Service Packages">
+                <Package className="h-4 w-4 mr-2" />
+                Import All Packages
               </Button>
               <Button variant="outline" size="sm" onClick={handleShowAnalytics} title="Coupon usage analytics">
                 <BarChart3 className="h-4 w-4 mr-2" />
@@ -749,6 +1033,8 @@ export default function AdminVoucherSalesPageV3() {
                 onCreateProduct={handleCreateProduct}
                 onEditProduct={handleEditProduct}
                 onDeleteProduct={handleDeleteProduct}
+                tempImageMap={tempImageMap}
+                onPreviewProduct={(p: any) => { setPreviewProductData(p); setIsPreviewOpen(true); }}
               />
             )}
             {activeView === "coupons" && (
@@ -780,6 +1066,7 @@ export default function AdminVoucherSalesPageV3() {
         uploadedImage={uploadedImage}
         onImageUpload={handleImageUpload}
         isUploading={isUploading}
+        onPreview={(p: any) => { setPreviewProductData(p); setIsPreviewOpen(true); }}
       />
       <CouponDialog 
         open={isCouponDialogOpen}
@@ -800,9 +1087,48 @@ export default function AdminVoucherSalesPageV3() {
         onSave={(payload) => saveSettingsMutation.mutate(payload)}
         saving={saveSettingsMutation.isPending}
       />
+      <PreviewDialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen} product={previewProductData} />
     </AdminLayout>
   );
 }
+
+// Preview Dialog - read-only preview of product (unsaved or saved)
+const PreviewDialog: React.FC<{ open: boolean; onOpenChange: (b: boolean) => void; product: any; }> = ({ open, onOpenChange, product }) => {
+  if (!product) return null;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogPortal>
+        <DialogOverlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" />
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto bg-white border-2 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle>Product Preview</DialogTitle>
+            <DialogDescription>Preview how the voucher will appear to customers</DialogDescription>
+          </DialogHeader>
+          <div className="p-4">
+            {product.imageUrl ? (
+              <div className="w-full h-64 overflow-hidden mb-4">
+                <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div className="w-full h-64 bg-gray-100 flex items-center justify-center mb-4 text-gray-400">No Image</div>
+            )}
+            <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
+            <div className="text-green-600 font-bold mb-4">€{product.price}</div>
+            <p className="text-gray-700 whitespace-pre-wrap mb-4">{product.description}</p>
+            <div className="flex justify-end space-x-3">
+              {product.slug && typeof product.slug === 'string' ? (
+                <Button onClick={() => window.open(`/gutschein/${product.slug}`, '_blank')}>Open Public Page</Button>
+              ) : (
+                <Button disabled>Open Public Page</Button>
+              )}
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
+  );
+};
 
 // Dashboard View Component
 const DashboardView: React.FC<{
@@ -977,7 +1303,9 @@ const ProductsView: React.FC<{
   onCreateProduct: () => void;
   onEditProduct: (product: VoucherProduct) => void;
   onDeleteProduct: (product: VoucherProduct) => void;
-}> = ({ products, isLoading, onCreateProduct, onEditProduct, onDeleteProduct }) => {
+  tempImageMap?: Record<string, string>;
+  onPreviewProduct?: (product: any) => void;
+}> = ({ products, isLoading, onCreateProduct, onEditProduct, onDeleteProduct, tempImageMap, onPreviewProduct }) => {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1011,10 +1339,11 @@ const ProductsView: React.FC<{
 
       {products.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map((product) => {
+            {products.map((product) => {
             const thumb = (product as any).thumbnailUrl || (product as any).thumbnail_url;
             const imgUrl = product.imageUrl || (product as any).image_url;
-            const imageSrc = thumb || imgUrl;
+            const overrideImage = tempImageMap ? (tempImageMap[product.id] || tempImageMap['new']) : undefined;
+            const imageSrc = overrideImage || thumb || imgUrl;
             console.log('[PRODUCT CARD]', product.name, '- RAW product object keys:', Object.keys(product));
             console.log('[PRODUCT CARD]', product.name, '- imageUrl:', product.imageUrl, 'image_url:', (product as any).image_url);
             console.log('[PRODUCT CARD]', product.name, '- thumbnailUrl:', (product as any).thumbnailUrl, 'thumbnail_url:', (product as any).thumbnail_url);
@@ -1094,7 +1423,15 @@ const ProductsView: React.FC<{
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => window.open(`/gutschein/${product.slug || product.id}`, '_blank')}
+                    onClick={() => {
+                      // If there's an unsaved temp image for this product, open admin preview modal
+                      const hasTemp = tempImageMap && (tempImageMap[product.id] || tempImageMap['new']);
+                      if (hasTemp && onPreviewProduct) {
+                        onPreviewProduct({ ...product, imageUrl: hasTemp });
+                        return;
+                      }
+                      window.open(`/gutschein/${product.slug || product.id}`, '_blank');
+                    }}
                   >
                     <Eye className="h-4 w-4 mr-1" />
                     Preview
@@ -1601,7 +1938,8 @@ const ProductDialog: React.FC<{
   uploadedImage: string | null;
   onImageUpload: (file: File) => void;
   isUploading: boolean;
-}> = ({ open, onOpenChange, product, onSubmit, form, uploadedImage, onImageUpload, isUploading }) => {
+  onPreview?: (productPreview: any) => void;
+}> = ({ open, onOpenChange, product, onSubmit, form, uploadedImage, onImageUpload, isUploading, onPreview }) => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [showCropper, setShowCropper] = useState(false);
@@ -1754,6 +2092,33 @@ const ProductDialog: React.FC<{
           </div>
           <DialogFooter className="pt-6">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                try {
+                  const vals = form.getValues();
+                  const preview = {
+                    id: product?.id || 'new',
+                    name: vals.name,
+                    description: vals.description,
+                    price: vals.price,
+                    validityPeriod: vals.validityPeriod,
+                    displayOrder: vals.displayOrder,
+                    isActive: vals.isActive,
+                    category: vals.category,
+                    sessionType: vals.sessionType,
+                    imageUrl: imagePreview || uploadedImage || product?.imageUrl || null,
+                    slug: product?.slug || (vals.name ? String(vals.name).toLowerCase().replace(/\s+/g, '-') : undefined),
+                  };
+                  if (onPreview) onPreview(preview);
+                } catch (e) {
+                  console.error('Preview error', e);
+                  alert('Failed to generate preview');
+                }
+              }}
+            >
+              Preview
+            </Button>
             <Button onClick={form.handleSubmit(onSubmit)} disabled={form.formState.isSubmitting}>{product ? 'Update Product' : 'Create Product'}</Button>
           </DialogFooter>
         </DialogContent>
@@ -1770,7 +2135,12 @@ const CouponDialog: React.FC<{
   onSubmit: (data: DiscountCouponFormData) => void;
   form: any;
 }> = ({ open, onOpenChange, coupon, onSubmit, form }) => {
-  const { data: products } = useQuery<VoucherProduct[]>({ queryKey: ['/api/vouchers/products'] });
+  const queryClient = useQueryClient();
+  const products = queryClient.getQueryData<VoucherProduct[]>(['/api/vouchers/products']) || [];
+  // Use a non-empty sentinel value for the "All products" Select item because Radix Select
+  // does not accept an empty string as a SelectItem value. We map the sentinel back to
+  // an empty string when writing into the form value.
+  const selectedApplicable = form.watch('applicableProductSlug') || '__all__';
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogPortal>
@@ -1835,7 +2205,7 @@ const CouponDialog: React.FC<{
               <Label htmlFor="discount-value">Discount Value</Label>
               <Input 
                 id="discount-value" 
-                type="number" 
+                type="text" 
                 placeholder="15"
                 {...form.register('discountValue')}
               />
@@ -1844,7 +2214,7 @@ const CouponDialog: React.FC<{
               <Label htmlFor="min-order">Min Order (€)</Label>
               <Input 
                 id="min-order" 
-                type="number" 
+                type="text" 
                 placeholder="100"
                 {...form.register('minOrderAmount')}
               />
@@ -1873,14 +2243,14 @@ const CouponDialog: React.FC<{
           <div className="space-y-2">
             <Label>Applicable Product (optional)</Label>
             <Select
-              value={form.watch('applicableProductSlug') || ''}
-              onValueChange={(val) => form.setValue('applicableProductSlug', val)}
+              value={selectedApplicable}
+              onValueChange={(val) => form.setValue('applicableProductSlug', val === '__all__' ? '' : val)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All products" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All products</SelectItem>
+                <SelectItem value="__all__">All products</SelectItem>
                 {products?.map((prod) => (
                   <SelectItem
                     key={prod.id}

@@ -1,10 +1,25 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Baby, Music, Smile } from 'lucide-react';
+import { useCart } from '../../context/CartContext';
 
 export default function FamilienfotosWienPage() {
+  const navigate = useNavigate();
+  const { addItem } = useCart();
+
+  const handleBookPackage = (packageName: string, price: number, description: string) => {
+    addItem({
+      title: packageName,
+      price: price,
+      quantity: 1,
+      packageType: 'Familienfotografie',
+      type: 'voucher'
+    });
+    navigate('/cart');
+  };
+
   return (
     <Layout>
     <div className="min-h-screen bg-white">
@@ -58,24 +73,28 @@ export default function FamilienfotosWienPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
                 <img
-                  src="/images/family-hero.jpg"
-                  alt="Glückliche Familie beim Fotoshooting in Wien"
+                  src="/api/files/serve/a43d553a-813a-4693-957e-44d986a0a7d4.JPG"
+                  alt="Familienfotografie in Wien - Glückliche Großfamilie beim professionellen Fotoshooting im Studio"
+                  title="Professionelle Familienfotografie Wien - Studio Shooting mit bis zu 12 Personen"
                   className="rounded-2xl shadow-2xl w-full h-80 object-cover"
+                  style={{ objectPosition: 'center 35%' }}
                   loading="eager"
                 />
               </div>
               <div>
                 <img
-                  src="https://i.postimg.cc/V6TFF8rC/00508749.jpg"
-                  alt="Familien Portrait Studio Wien"
+                  src="/api/files/serve/7f922d67-5bb7-4d54-8e8b-6d3b1db252cb.jpg"
+                  alt="Familienportrait Wien - Natürliche Familienfotos im modernen Studio"
+                  title="Familienfotos Wien - Authentische Momente und echte Emotionen"
                   className="rounded-xl shadow-lg w-full h-48 object-cover"
                   loading="eager"
                 />
               </div>
               <div>
                 <img
-                  src="https://i.imgur.com/3gctBYO.jpg"
-                  alt="Familienfotos Outdoor Wien"
+                  src="/api/files/serve/dfb0c6e2-0208-4d1e-aa49-fb94b99695bb.jpg"
+                  alt="Familie Fotoshooting Wien - Professionelle Familienportraits mit Kindern und Eltern"
+                  title="Familienfotograf Wien - Erinnerungen für die Ewigkeit festhalten"
                   className="rounded-xl shadow-lg w-full h-48 object-cover"
                   loading="eager"
                 />
@@ -105,8 +124,9 @@ export default function FamilienfotosWienPage() {
             </div>
             <div>
               <img
-                src="https://i.postimg.cc/V6TFF8rC/00508749.jpg"
-                alt="Familie im Studio Wien"
+                src="/api/files/serve/2e03bbf1-d6dc-4dd3-a5b3-3186cb5984bf.jpg"
+                alt="Familienfotos Wien - Großfamilie professionell fotografiert mit persönlichen Details"
+                title="Familienfotografie Wien - Bis zu 12 Personen mit Haustieren und Requisiten"
                 className="rounded-2xl shadow-lg w-full h-full object-cover"
                 loading="lazy"
               />
@@ -160,12 +180,12 @@ export default function FamilienfotosWienPage() {
                 </div>
               </div>
 
-              <Link
-                to="/warteliste"
-                className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
+              <button
+                onClick={() => handleBookPackage('Family Basic', 95, 'Familienfotografie - 60 Min Shooting')}
+                className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
               >
                 Jetzt buchen
-              </Link>
+              </button>
             </div>
 
             {/* Family Premium Package - BESTSELLER */}
@@ -204,12 +224,12 @@ export default function FamilienfotosWienPage() {
                 </div>
               </div>
 
-              <Link
-                to="/warteliste"
-                className="block text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+              <button
+                onClick={() => handleBookPackage('Family Premium', 195, 'Familienfotografie - 90 Min Shooting')}
+                className="block w-full text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
               >
                 Jetzt buchen
-              </Link>
+              </button>
             </div>
 
             {/* Family Deluxe Package */}
@@ -244,12 +264,12 @@ export default function FamilienfotosWienPage() {
                 </div>
               </div>
 
-              <Link
-                to="/warteliste"
-                className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
+              <button
+                onClick={() => handleBookPackage('Family Deluxe', 295, 'Familienfotografie - 90-120 Min Shooting')}
+                className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
               >
                 Jetzt buchen
-              </Link>
+              </button>
             </div>
           </div>
 
@@ -341,9 +361,10 @@ export default function FamilienfotosWienPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-12">
             <img
-              src="https://i.imgur.com/3gctBYO.jpg"
-              alt="Familienfotografie Studio Ablauf"
-              className="rounded-2xl shadow-lg w-full h-96 object-cover"
+              src="/api/files/serve/67441075-d682-4cdf-8c83-a087bca8d2f5.jpg"
+              alt="Familienfotografie Wien Ablauf - Professionelles Studio-Shooting für diverse Familien"
+              title="Familienfotograf Wien - Shooting-Ablauf im modernen Fotostudio"
+              className="rounded-xl shadow-lg w-full h-64 object-cover"
               loading="lazy"
             />
           </div>

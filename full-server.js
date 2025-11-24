@@ -1173,6 +1173,8 @@ async function confirmVoucherPayment(paymentIntentId) {
 
 // Files API handler function
 async function handleFilesAPI(req, res, pathname, query) {
+  console.log('🔧 handleFilesAPI - Method:', req.method, 'Path:', pathname);
+  
   let neon, sql;
   try {
     const neonModule = require('@neondatabase/serverless');
@@ -1189,21 +1191,55 @@ async function handleFilesAPI(req, res, pathname, query) {
   const pathParts = pathname.split('/');
   const fileEndpoint = pathParts.slice(3).join('/'); // Remove '/api/files'
   
+  console.log('🔧 fileEndpoint:', JSON.stringify(fileEndpoint), '| Method:', req.method);
+  
     if (req.method === 'GET' && fileEndpoint === '') {
     // GET /api/files - Retrieve digital files with filters
     try {
       const { 
-        folder_name, 
+        folder_name,
+        folderId,
         client_id, 
         session_id,
         search_term,
         is_public,
-        limit = '20'
+        limit = '100'
       } = query || {};
+
+      console.log('📂 GET /api/files - folderId:', folderId, 'folder_name:', folder_name);
 
       let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
       if (Array.isArray(ip)) ip = ip[0] || '';
       if (typeof ip === 'string' && ip.includes(',')) ip = ip.split(',')[0].trim();
+
+      // If folderId is provided, look up the folder name
+      let targetFolderName = folder_name;
+      let showOnlyUnfiled = false;
+      
+      if (folderId && folderId !== 'null' && folderId !== 'undefined') {
+        try {
+          const folders = await sql`SELECT name FROM digital_folders WHERE id = ${parseInt(folderId)}`;
+          if (folders && folders.length > 0) {
+            targetFolderName = folders[0].name;
+            console.log('📂 Found folder:', targetFolderName);
+          } else {
+            console.log('⚠️ Folder not found for folderId:', folderId);
+            // Folder not found - return empty array
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify([]));
+            return;
+          }
+        } catch (error) {
+          console.error('❌ Error looking up folder:', error);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Failed to lookup folder' }));
+          return;
+        }
+      } else if (!folderId && !folder_name) {
+        // No folder specified - show only unfiled items (folder_name IS NULL)
+        showOnlyUnfiled = true;
+        console.log('📂 Showing unfiled files only (folder_name IS NULL)');
+      }
 
       let queryStr = `
         SELECT id, folder_name, file_name, file_type, file_size, 
@@ -1216,10 +1252,13 @@ async function handleFilesAPI(req, res, pathname, query) {
       const values = [];
       let paramIndex = 1;
       
-      if (folder_name) {
-        conditions.push(`folder_name ILIKE $${paramIndex}`);
-        values.push(`%${folder_name}%`);
+      if (targetFolderName) {
+        console.log('📂 Filtering by folder_name =', targetFolderName);
+        conditions.push(`LOWER(folder_name) = LOWER($${paramIndex})`);
+        values.push(targetFolderName);
         paramIndex++;
+      } else if (showOnlyUnfiled) {
+        conditions.push(`folder_name IS NULL`);
       }
       
       if (file_type) {
@@ -1259,7 +1298,12 @@ async function handleFilesAPI(req, res, pathname, query) {
       queryStr += ` ORDER BY uploaded_at DESC LIMIT $${paramIndex}`;
       values.push(parseInt(limit));
       
+      console.log('📊 SQL Query:', queryStr);
+      console.log('📊 SQL Values:', values);
+      
       const files = await sql(queryStr, values);
+      
+      console.log(`✅ Returning ${files.length} files for folder:`, targetFolderName || '(unfiled)');
       
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(files));
@@ -1269,6 +1313,152 @@ async function handleFilesAPI(req, res, pathname, query) {
       res.end(JSON.stringify({ error: 'Files API error' }));
       return;
 }
+  }
+
+  // GET /api/files/folders - Get all folders
+  if (req.method === 'GET' && fileEndpoint === 'folders') {
+    try {
+      const folders = await sql`
+        SELECT id, name, description, created_at, updated_at
+        FROM digital_folders
+        ORDER BY name ASC
+      `;
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(folders));
+    } catch (error) {
+      console.error('Failed to fetch folders:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to fetch folders' }));
+      return;
+    }
+  }
+
+  // POST /api/files/upload - Upload file to a folder
+  if (req.method === 'POST' && fileEndpoint === 'upload') {
+    try {
+      const busboy = require('busboy');
+      const { v4: uuidv4 } = require('uuid');
+      const fs = require('fs');
+      const path = require('path');
+      
+      const bb = busboy({ headers: req.headers });
+      let folderId = null;
+      let folderName = null;
+      let uploadedFile = null;
+      
+      bb.on('field', (fieldname, val) => {
+        if (fieldname === 'folderId') {
+          folderId = val;
+          console.log('📤 Upload - Received folderId:', folderId);
+        }
+      });
+      
+      bb.on('file', async (fieldname, file, info) => {
+        const { filename, mimeType } = info;
+        const fileId = uuidv4();
+        const uploadDir = path.join(__dirname, 'uploads');
+        
+        // Ensure upload directory exists
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        
+        const filePath = path.join(uploadDir, `${fileId}-${filename}`);
+        const writeStream = fs.createWriteStream(filePath);
+        
+        file.pipe(writeStream);
+        
+        writeStream.on('finish', async () => {
+          const stats = fs.statSync(filePath);
+          
+          // Get folder name if folderId was provided
+          if (folderId) {
+            try {
+              console.log('📤 Looking up folder for folderId:', folderId);
+              const folders = await sql`SELECT name FROM digital_folders WHERE id = ${parseInt(folderId)}`;
+              if (folders && folders.length > 0) {
+                folderName = folders[0].name;
+                console.log('📤 Found folder name:', folderName);
+              }
+            } catch (error) {
+              console.error('Error looking up folder:', error);
+            }
+          }
+          
+          // Insert file record into database
+          uploadedFile = await sql`
+            INSERT INTO digital_files (
+              id, file_name, file_type, file_size, folder_name,
+              uploaded_at, created_at, updated_at
+            ) VALUES (
+              ${fileId}, ${filename}, ${mimeType}, ${stats.size}, ${folderName},
+              NOW(), NOW(), NOW()
+            )
+            RETURNING *
+          `;
+        });
+      });
+      
+      bb.on('finish', () => {
+        if (uploadedFile && uploadedFile.length > 0) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(uploadedFile[0]));
+        } else {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Upload failed' }));
+        }
+      });
+      
+      req.pipe(bb);
+      return;
+    } catch (error) {
+      console.error('Failed to upload file:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to upload file' }));
+      return;
+    }
+  }
+
+  // PATCH /api/files/:id/move - Move file to a folder
+  if (req.method === 'PATCH' && fileEndpoint.match(/^\d+\/move$/)) {
+    try {
+      const fileId = parseInt(fileEndpoint.split('/')[0]);
+      
+      // Parse request body
+      let body = '';
+      for await (const chunk of req) {
+        body += chunk.toString();
+      }
+      const { folderId } = JSON.parse(body);
+
+      // Get the folder name if folderId is provided
+      let folderName = null;
+      if (folderId) {
+        const folders = await sql(`SELECT name FROM digital_folders WHERE id = $1`, [parseInt(folderId)]);
+        if (folders && folders.length > 0) {
+          folderName = folders[0].name;
+        } else {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Folder not found' }));
+          return;
+        }
+      }
+
+      // Update the file's folder_name
+      await sql(
+        `UPDATE digital_files SET folder_name = $1, updated_at = NOW() WHERE id = $2`,
+        [folderName, fileId]
+      );
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, folderId, folderName }));
+    } catch (error) {
+      console.error('Failed to move file:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to move file' }));
+      return;
+    }
   }
 
   // If no matching endpoint found

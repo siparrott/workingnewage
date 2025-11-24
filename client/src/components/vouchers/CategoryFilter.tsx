@@ -15,6 +15,7 @@ const CategoryFilter: React.FC = () => {
     switch (category) {
       case 'Familie': return t('categories.family');
       case 'Baby': return t('categories.baby');
+      case 'Schwangerschaft': return 'Schwangerschaft';
       case 'Hochzeit': return t('categories.wedding');
       case 'Business': return t('categories.business');
       case 'Event': return t('categories.event');
@@ -24,13 +25,13 @@ const CategoryFilter: React.FC = () => {
 
   return (
     <div className="mb-8">
-      <h2 className="text-lg font-semibold mb-4 text-gray-800">{t('vouchers.filterByCategory')}</h2>
-      <div className="flex flex-wrap gap-2">
+      <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">{t('vouchers.filterByCategory')}</h2>
+      <div className="flex flex-wrap justify-center gap-3">
         <button
           onClick={() => handleCategoryChange(null)}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+          className={`px-6 py-3 rounded-full text-base font-semibold transition-all transform hover:scale-105 ${
             selectedCategory === null
-              ? 'bg-purple-600 text-white'
+              ? 'bg-purple-600 text-white shadow-lg'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
@@ -41,9 +42,9 @@ const CategoryFilter: React.FC = () => {
           <button
             key={category}
             onClick={() => handleCategoryChange(category)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+            className={`px-6 py-3 rounded-full text-base font-semibold transition-all transform hover:scale-105 ${
               selectedCategory === category
-                ? 'bg-purple-600 text-white'
+                ? 'bg-purple-600 text-white shadow-lg'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >

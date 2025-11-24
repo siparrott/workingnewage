@@ -1,10 +1,25 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Briefcase, Linkedin, TrendingUp, Palette, Shield } from 'lucide-react';
+import { useCart } from '../../context/CartContext';
 
 export default function BusinessPortraitWienPage() {
+  const navigate = useNavigate();
+  const { addItem } = useCart();
+
+  const handleBookPackage = (packageName: string, price: number, description: string) => {
+    addItem({
+      title: packageName,
+      price: price,
+      quantity: 1,
+      packageType: 'Business Portrait',
+      type: 'voucher'
+    });
+    navigate('/cart');
+  };
+
   return (
     <Layout>
     <div className="min-h-screen bg-white">
@@ -145,12 +160,12 @@ export default function BusinessPortraitWienPage() {
                 </div>
               </div>
 
-              <Link
-                to="/warteliste"
-                className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
+              <button
+                onClick={() => handleBookPackage('Express Headshot', 95, 'Business Portrait - 20-30 Min, 1 Foto')}
+                className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
               >
                 Jetzt buchen
-              </Link>
+              </button>
             </div>
 
             {/* Solo Pro Package */}
@@ -189,12 +204,12 @@ export default function BusinessPortraitWienPage() {
                 </div>
               </div>
 
-              <Link
-                to="/warteliste"
-                className="block text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+              <button
+                onClick={() => handleBookPackage('Solo Pro', 195, 'Business Portrait - 45-60 Min, 5 Fotos')}
+                className="block w-full text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
               >
                 Jetzt buchen
-              </Link>
+              </button>
             </div>
 
             {/* Brand Upgrade Package */}
@@ -229,12 +244,12 @@ export default function BusinessPortraitWienPage() {
                 </div>
               </div>
 
-              <Link
-                to="/warteliste"
-                className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
+              <button
+                onClick={() => handleBookPackage('Brand Upgrade', 295, 'Business Portrait - 75-90 Min, 10 Fotos')}
+                className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
               >
                 Jetzt buchen
-              </Link>
+              </button>
             </div>
           </div>
 

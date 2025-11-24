@@ -1,8 +1,10 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Camera, Check, ArrowRight, Building2, Sparkles, Home } from 'lucide-react';
+import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
+import { useCart } from '../../context/CartContext';
 
 interface SEOHeadProps {
   title: string;
@@ -33,7 +35,22 @@ const SEOHead: React.FC<SEOHeadProps> = ({ title, description, keywords, canonic
 };
 
 const ImmobilienfotografieWienPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { addItem } = useCart();
+
+  const handleBookPackage = (packageName: string, price: number, description: string) => {
+    addItem({
+      title: packageName,
+      price: price,
+      quantity: 1,
+      packageType: 'Immobilien',
+      type: 'voucher'
+    });
+    navigate('/cart');
+  };
+
   return (
+    <Layout>
     <div className="min-h-screen bg-gray-50">
       <SEOHead
         title="Immobilienfotograf Wien – Architektur, Interieur, Grundrisse | New Age Fotografie"
@@ -257,12 +274,12 @@ const ImmobilienfotografieWienPage: React.FC = () => {
                   <span className="text-gray-700">Formate für Online-Portale & PDF-Exposé</span>
                 </li>
               </ul>
-              <Link
-                to="/warteliste/"
+              <button
+                onClick={() => handleBookPackage('Basic Immobilien', 190, 'Basic (bis 60m²) - 15-20 Bilder, Window-Pull HDR & vertikale Korrektur')}
                 className="block w-full text-center bg-gray-900 text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition-all"
               >
                 Paket wählen
-              </Link>
+              </button>
             </div>
 
             {/* Classic - BELIEBT */}
@@ -297,12 +314,12 @@ const ImmobilienfotografieWienPage: React.FC = () => {
                   <span className="text-gray-700">Alle Formate (Online, PDF, Print, Social)</span>
                 </li>
               </ul>
-              <Link
-                to="/warteliste/"
+              <button
+                onClick={() => handleBookPackage('Classic Immobilien', 290, 'Classic (bis 120m²) - 25-35 Bilder, Window-Pull HDR, Styling Light')}
                 className="block w-full text-center bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all"
               >
                 Paket wählen
-              </Link>
+              </button>
             </div>
 
             {/* Premium */}
@@ -338,12 +355,12 @@ const ImmobilienfotografieWienPage: React.FC = () => {
                   <span className="text-gray-700">Alle Formate, Premium-Support</span>
                 </li>
               </ul>
-              <Link
-                to="/warteliste/"
+              <button
+                onClick={() => handleBookPackage('Premium Immobilien', 420, 'Premium (ab 120m²) - 35-50 Bilder, Styling Light & Detailshots, Optional Twilight')}
                 className="block w-full text-center bg-gray-900 text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition-all"
               >
                 Paket wählen
-              </Link>
+              </button>
             </div>
           </div>
 
@@ -712,6 +729,7 @@ const ImmobilienfotografieWienPage: React.FC = () => {
         </div>
       </section>
     </div>
+    </Layout>
   );
 };
 

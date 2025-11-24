@@ -2,6 +2,7 @@ import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { Camera, Check, ArrowRight, Lightbulb, Users, Sparkles } from 'lucide-react';
+import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 
 interface SEOHeadProps {
@@ -34,6 +35,7 @@ const SEOHead: React.FC<SEOHeadProps> = ({ title, description, keywords, canonic
 
 const StudioFotografieWienPage: React.FC = () => {
   return (
+    <Layout>
     <div className="min-h-screen bg-gray-50">
       <SEOHead
         title="Studio Fotografie Wien – Backdrops, Licht, Sets & Kapazitäten | New Age Fotografie"
@@ -831,6 +833,7 @@ const StudioFotografieWienPage: React.FC = () => {
         </div>
       </section>
     </div>
+    </Layout>
   );
 };
 

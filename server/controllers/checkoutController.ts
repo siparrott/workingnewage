@@ -5,10 +5,11 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
   try {
     const checkoutData: CheckoutSessionData = req.body;
     
-    console.log('Creating checkout session with data:', checkoutData);
+    console.log('✅ Creating checkout session with data:', JSON.stringify(checkoutData, null, 2));
     
     // Validate required fields
     if (!checkoutData.items || checkoutData.items.length === 0) {
+      console.error('❌ No items provided in checkout data');
       return res.status(400).json({ error: 'No items provided' });
     }
 
@@ -18,10 +19,14 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
       const desc = (i.description || '').toLowerCase();
       return sku.startsWith('delivery-') || desc.includes('liefer');
     });
+    
+    console.log('📦 Delivery check:', { hasDelivery, items: checkoutData.items.length });
+    
     if (hasDelivery) {
       const addr = (checkoutData as any)?.voucherData?.shippingAddress || {};
       const missing = !addr.address1 || !addr.city || !addr.zip || !addr.country;
       if (missing) {
+        console.error('❌ Shipping address required but not provided:', addr);
         return res.status(400).json({ error: 'Shipping address required for postal delivery' });
       }
     }
@@ -31,14 +36,15 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
     checkoutData.successUrl = `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
     checkoutData.cancelUrl = `${baseUrl}/cart`;
 
-    console.log('Using URLs:', { 
+    console.log('🔗 Using URLs:', { 
       successUrl: checkoutData.successUrl, 
-      cancelUrl: checkoutData.cancelUrl 
+      cancelUrl: checkoutData.cancelUrl,
+      mode: checkoutData.mode 
     });
 
     const session = await StripeVoucherService.createCheckoutSession(checkoutData);
 
-    console.log('Checkout session created:', { 
+    console.log('✅ Checkout session created successfully:', { 
       sessionId: session.id, 
       url: session.url 
     });
@@ -49,10 +55,11 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
       success: true 
     });
   } catch (error) {
-    console.error('Checkout creation failed:', error);
+    console.error('❌ Checkout creation failed with error:', error);
     res.status(500).json({ 
       error: 'Checkout creation failed',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: error instanceof Error ? error.message : 'Unknown error',
+      details: error instanceof Error ? error.stack : undefined
     });
   }
 };

@@ -47,19 +47,21 @@ interface FileItem {
 }
 
 interface FolderItem {
-  id: number;
+  id: string;
   name: string;
-  parentId?: number;
+  parentId?: string | null;
   createdAt: string;
 }
 
 export default function MyArchivePage() {
   const queryClient = useQueryClient();
-  const [currentFolderId, setCurrentFolderId] = useState<number | null>(null);
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [folderPath, setFolderPath] = useState<FolderItem[]>([]);
   const [showNewFolderForm, setShowNewFolderForm] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+  const [draggingFileId, setDraggingFileId] = useState<number | null>(null);
+  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
 
   // Fetch storage usage
   const { data: usage, isLoading: usageLoading } = useQuery<StorageUsage>({
@@ -111,7 +113,9 @@ export default function MyArchivePage() {
 
   // Fetch files in current folder
   const { data: files = [], isLoading: filesLoading } = useQuery<FileItem[]>({
-    queryKey: ['files', currentFolderId],
+    queryKey: ['files', currentFolderId, String(currentFolderId)],
+    staleTime: 0,
+    cacheTime: 0,
     queryFn: async () => {
       const url = currentFolderId
         ? `/api/files?folderId=${currentFolderId}`
@@ -157,7 +161,7 @@ export default function MyArchivePage() {
       const formData = new FormData();
       formData.append('file', file);
       if (currentFolderId) {
-        formData.append('folderId', currentFolderId.toString());
+        formData.append('folderId', currentFolderId);
       }
 
       const res = await fetch('/api/files/upload', {
@@ -192,6 +196,26 @@ export default function MyArchivePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['files', currentFolderId] });
       queryClient.invalidateQueries({ queryKey: ['storage-usage'] });
+    },
+  });
+
+  // Move file mutation
+  const moveFileMutation = useMutation({
+    mutationFn: async ({ fileId, folderId }: { fileId: number; folderId: string | null }) => {
+      const res = await fetch(`/api/files/${fileId}/move`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ folderId }),
+      });
+      if (!res.ok) throw new Error('Failed to move file');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
+      setDraggingFileId(null);
+      setDragOverFolderId(null);
     },
   });
 
@@ -444,7 +468,35 @@ export default function MyArchivePage() {
         </div>
 
         {/* Breadcrumb Navigation */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+        <div 
+          className={`bg-white rounded-lg shadow-sm border-2 p-4 mb-4 transition-colors ${
+            dragOverFolderId === 'home' && currentFolderId
+              ? 'border-blue-500 bg-blue-50'
+              : 'border-gray-200'
+          }`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            if (draggingFileId && currentFolderId) {
+              setDragOverFolderId('home');
+            }
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            if (dragOverFolderId === 'home') {
+              setDragOverFolderId(null);
+            }
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            if (draggingFileId && currentFolderId) {
+              moveFileMutation.mutate({
+                fileId: draggingFileId,
+                folderId: null,
+              });
+            }
+            setDragOverFolderId(null);
+          }}
+        >
           <div className="flex items-center gap-2 text-sm">
             <button
               onClick={() => {
@@ -552,6 +604,11 @@ export default function MyArchivePage() {
                 Drag & drop files here, or click to select
               </p>
               <p className="text-sm text-gray-500">Maximum file size: 500MB</p>
+              {currentFolderId && folderPath.length > 0 && (
+                <p className="text-sm text-blue-600 font-medium mt-2">
+                  📁 Uploading to: {folderPath[folderPath.length - 1]?.name || 'Home'}
+                </p>
+              )}
             </>
           )}
         </div>
@@ -562,16 +619,50 @@ export default function MyArchivePage() {
             <h3 className="text-lg font-semibold text-gray-900 mb-3">Folders</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {currentFolders.map((folder) => (
-                <button
+                <div
                   key={folder.id}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (draggingFileId) {
+                      console.log('📂 Drag over folder:', folder.name, folder.id);
+                      setDragOverFolderId(folder.id);
+                    }
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDragOverFolderId(null);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('💾 Dropping file', draggingFileId, 'into folder', folder.id, folder.name);
+                    if (draggingFileId) {
+                      moveFileMutation.mutate({
+                        fileId: draggingFileId,
+                        folderId: folder.id,
+                      });
+                    }
+                    setDragOverFolderId(null);
+                  }}
                   onClick={() => navigateToFolder(folder)}
-                  className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow text-left"
+                  className={`bg-white rounded-lg shadow-sm border-2 p-4 hover:shadow-md transition-all text-left cursor-pointer ${
+                    dragOverFolderId === folder.id
+                      ? 'border-blue-500 bg-blue-50 scale-105'
+                      : 'border-gray-200'
+                  }`}
                 >
-                  <Folder className="w-10 h-10 text-blue-500 mb-2" />
+                  <Folder className={`w-10 h-10 mb-2 ${
+                    dragOverFolderId === folder.id ? 'text-blue-600' : 'text-blue-500'
+                  }`} />
                   <p className="text-sm font-medium text-gray-900 truncate">
                     {folder.name}
                   </p>
-                </button>
+                  {dragOverFolderId === folder.id && (
+                    <p className="text-xs text-blue-600 mt-1">Drop to move here</p>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -591,7 +682,22 @@ export default function MyArchivePage() {
               {files.map((file) => (
                 <div
                   key={file.id}
-                  className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+                  draggable="true"
+                  onDragStart={(e) => {
+                    console.log('🚀 Drag started for file:', file.id, file.fileName);
+                    setDraggingFileId(file.id);
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', file.id.toString());
+                  }}
+                  onDragEnd={() => {
+                    console.log('✅ Drag ended');
+                    setDraggingFileId(null);
+                    setDragOverFolderId(null);
+                  }}
+                  className={`bg-white rounded-lg shadow-sm border-2 overflow-hidden hover:shadow-lg transition-all cursor-grab active:cursor-grabbing ${
+                    draggingFileId === file.id ? 'opacity-50 border-blue-500' : 'border-gray-200 hover:border-blue-300'
+                  }`}
+                  title="Drag to move to folder"
                 >
                   {/* Thumbnail or Icon */}
                   <div className="aspect-square bg-gray-100 flex items-center justify-center">

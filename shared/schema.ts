@@ -547,6 +547,15 @@ export const digitalFiles = pgTable("digital_files", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
+// Photo Folders for organizing digital files
+export const photoFolders = pgTable("photo_folders", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  parentId: text("parent_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
 // Photography Session Management System  
 export const photographySessions = pgTable("photography_sessions", {
   id: text("id").primaryKey(),

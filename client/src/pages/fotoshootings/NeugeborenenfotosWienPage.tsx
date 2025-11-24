@@ -1,10 +1,25 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Baby, Music, Smile, Shield, Thermometer } from 'lucide-react';
+import { useCart } from '../../context/CartContext';
 
 export default function NeugeborenenfotosWienPage() {
+  const navigate = useNavigate();
+  const { addItem } = useCart();
+
+  const handleBookPackage = (packageName: string, price: number, description: string) => {
+    addItem({
+      title: packageName,
+      price: price,
+      quantity: 1,
+      packageType: 'Neugeborenen-Fotografie',
+      type: 'voucher'
+    });
+    navigate('/cart');
+  };
+
   return (
     <Layout>
     <div className="min-h-screen bg-white">
@@ -164,12 +179,12 @@ export default function NeugeborenenfotosWienPage() {
                 </div>
               </div>
 
-              <Link
-                to="/warteliste"
-                className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
+              <button
+                onClick={() => handleBookPackage('Newborn Basic', 95, 'Neugeborenen-Fotografie - 60 Min, 1 Foto + Leinwand')}
+                className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
               >
                 Jetzt buchen
-              </Link>
+              </button>
             </div>
 
             {/* Premium Package - BESTSELLER */}
@@ -212,12 +227,12 @@ export default function NeugeborenenfotosWienPage() {
                 </div>
               </div>
 
-              <Link
-                to="/warteliste"
-                className="block text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+              <button
+                onClick={() => handleBookPackage('Newborn Premium', 195, 'Neugeborenen-Fotografie - 90 Min, 5 Fotos + Leinwand')}
+                className="block w-full text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
               >
                 Jetzt buchen
-              </Link>
+              </button>
             </div>
 
             {/* Deluxe Package */}
@@ -256,12 +271,12 @@ export default function NeugeborenenfotosWienPage() {
                 </div>
               </div>
 
-              <Link
-                to="/warteliste"
-                className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
+              <button
+                onClick={() => handleBookPackage('Newborn Deluxe', 295, 'Neugeborenen-Fotografie - 120 Min, 10 Fotos + Leinwand')}
+                className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
               >
                 Jetzt buchen
-              </Link>
+              </button>
             </div>
           </div>
 

@@ -7,6 +7,7 @@ import { useAppContext } from '../context/AppContext';
 import { Search, Gift } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import HeroDealsAuto from '@/components/HeroDealsAuto';
+import { useCart } from '../context/CartContext';
 
 const VouchersPage: React.FC = () => {
   const { selectedCategory } = useAppContext();
@@ -32,41 +33,166 @@ const VouchersPage: React.FC = () => {
     }
   });
 
-  // Fallback to default vouchers if API returns empty or fails
+  // Fallback to default vouchers if API returns empty or fails - ALL CATEGORIES
   const defaultVouchers = [
+    // Family Category
     {
-      id: 'pregnancy-shooting',
-      name: t('home.pregnancyShootingTitle'),
-      description: t('home.pregnancyShootingDescription'),
+      id: 'family-basic',
+      name: 'Family Basic',
+      description: 'Perfect for Small Families - 60 Min Shooting, 1 Foto A3 Leinwand',
       originalPrice: 195,
       price: 95,
-      image: 'https://i.imgur.com/Vd6xtPg.jpg',
-      category: 'pregnancy',
-      route: '/gutschein/maternity',
-      validityMonths: 12,
-      isActive: true
-    },
-    {
-      id: 'family-shooting',
-      name: t('home.familyShootingTitle'),
-      description: t('home.familyShootingDescription'),
-      originalPrice: 295,
-      price: 95,
-      image: 'https://i.postimg.cc/bw7ZyvPK/Familienfotoshooting-im-Fotostudio-Wien-Krexner-2777.jpg',
-      category: 'family',
+      image: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=800&h=600&fit=crop',
+      category: 'Familie',
       route: '/gutschein/family',
       validityMonths: 12,
       isActive: true
     },
     {
-      id: 'newborn-shooting',
-      name: t('home.newbornShootingTitle'),
-      description: t('home.newbornShootingDescription'),
+      id: 'family-premium',
+      name: 'Family Premium',
+      description: 'Ideal für größere Familien - 5 bearbeitete Fotos digital, A3 Leinwand',
+      originalPrice: 295,
+      price: 195,
+      image: 'https://images.unsplash.com/photo-1609220136736-443140cffec6?w=800&h=600&fit=crop',
+      category: 'Familie',
+      route: '/gutschein/family',
+      validityMonths: 12,
+      isActive: true
+    },
+    {
+      id: 'family-deluxe',
+      name: 'Family Deluxe',
+      description: 'Das komplette Familienerlebnis - A2 Leinwand, 10 bearbeitete Fotos',
       originalPrice: 395,
+      price: 295,
+      image: 'https://images.unsplash.com/photo-1604881991720-f91add269bed?w=800&h=600&fit=crop',
+      category: 'Familie',
+      route: '/gutschein/family',
+      validityMonths: 12,
+      isActive: true
+    },
+    // Newborn/Baby Category
+    {
+      id: 'newborn-basic',
+      name: 'Newborn Basic',
+      description: 'Erste Erinnerungen - 60 Min Shooting, 1 Foto A3 Leinwand',
+      originalPrice: 195,
       price: 95,
-      image: 'https://i.imgur.com/QWOgLqX.jpg',
-      category: 'newborn',
+      image: 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=800&h=600&fit=crop',
+      category: 'Baby',
       route: '/gutschein/newborn',
+      validityMonths: 12,
+      isActive: true
+    },
+    {
+      id: 'newborn-premium',
+      name: 'Newborn Premium',
+      description: 'Umfangreiche Erinnerungen - 90 Min Shooting, 5 Fotos digital',
+      originalPrice: 295,
+      price: 195,
+      image: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?w=800&h=600&fit=crop',
+      category: 'Baby',
+      route: '/gutschein/newborn',
+      validityMonths: 12,
+      isActive: true
+    },
+    {
+      id: 'newborn-deluxe',
+      name: 'Newborn Deluxe',
+      description: 'Das komplette Erlebnis - 90-120 Min, 10 Fotos digital, A2 Leinwand',
+      originalPrice: 395,
+      price: 295,
+      image: 'https://images.unsplash.com/photo-1555252333-9f8e92e65df9?w=800&h=600&fit=crop',
+      category: 'Baby',
+      route: '/gutschein/newborn',
+      validityMonths: 12,
+      isActive: true
+    },
+    // Maternity/Pregnancy Category
+    {
+      id: 'maternity-basic',
+      name: 'Schwangerschaft Basic',
+      description: 'Magische Momente - 60 Min Shooting, 1 Foto A3 Leinwand',
+      originalPrice: 195,
+      price: 95,
+      image: 'https://images.unsplash.com/photo-1493894473891-10fc1e5dbd22?w=800&h=600&fit=crop',
+      category: 'Schwangerschaft',
+      route: '/gutschein/maternity',
+      validityMonths: 12,
+      isActive: true
+    },
+    {
+      id: 'maternity-premium',
+      name: 'Schwangerschaft Premium',
+      description: 'Umfangreiche Erinnerung - 90 Min Shooting, 5 Fotos digital',
+      originalPrice: 295,
+      price: 195,
+      image: 'https://images.unsplash.com/photo-1551884831-bbf3cdc6469e?w=800&h=600&fit=crop',
+      category: 'Schwangerschaft',
+      route: '/gutschein/maternity',
+      validityMonths: 12,
+      isActive: true
+    },
+    {
+      id: 'maternity-deluxe',
+      name: 'Schwangerschaft Deluxe',
+      description: 'Komplettes Erlebnis - 90-120 Min, 10 Fotos, A2 Leinwand',
+      originalPrice: 395,
+      price: 295,
+      image: 'https://images.unsplash.com/photo-1576856497337-686e89b98cdc?w=800&h=600&fit=crop',
+      category: 'Schwangerschaft',
+      route: '/gutschein/maternity',
+      validityMonths: 12,
+      isActive: true
+    },
+    // Business Category
+    {
+      id: 'business-headshot',
+      name: 'Business Headshot',
+      description: 'Professionelles Businessportrait - 30 Min, 3 bearbeitete Fotos',
+      originalPrice: 195,
+      price: 149,
+      image: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=800&h=600&fit=crop',
+      category: 'Business',
+      route: '/fotoshootings/business',
+      validityMonths: 12,
+      isActive: true
+    },
+    {
+      id: 'business-corporate',
+      name: 'Corporate Team Shooting',
+      description: 'Teamfotos für Ihr Unternehmen - 60 Min, 10+ Fotos',
+      originalPrice: 495,
+      price: 349,
+      image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&h=600&fit=crop',
+      category: 'Business',
+      route: '/fotoshootings/business',
+      validityMonths: 12,
+      isActive: true
+    },
+    // Event Category
+    {
+      id: 'event-basic',
+      name: 'Eventfotografie Basic',
+      description: 'Ihr Event professionell festgehalten - 2 Stunden, 50+ Fotos',
+      originalPrice: 599,
+      price: 449,
+      image: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&h=600&fit=crop',
+      category: 'Event',
+      route: '/fotoshootings/event',
+      validityMonths: 12,
+      isActive: true
+    },
+    {
+      id: 'event-premium',
+      name: 'Eventfotografie Premium',
+      description: 'Ganztägige Event-Coverage - 6+ Stunden, 200+ Fotos',
+      originalPrice: 1299,
+      price: 999,
+      image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&h=600&fit=crop',
+      category: 'Event',
+      route: '/fotoshootings/event',
       validityMonths: 12,
       isActive: true
     }
@@ -84,7 +210,7 @@ const VouchersPage: React.FC = () => {
           description: p.description || '',
           price: parseFloat(p.price) || 0,
           originalPrice: p.original_price ? parseFloat(p.original_price) : parseFloat(p.price) * 1.3,
-          image: p.image_url || p.imageUrl || 'https://i.imgur.com/Vd6xtPg.jpg',
+          image: p.image_url || p.imageUrl || 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=800&h=600&fit=crop',
           category: p.category || 'family',
           route: `/vouchers/${p.id}`,
           validityMonths: Math.floor((p.validity_period || 365) / 30),
@@ -107,8 +233,8 @@ const VouchersPage: React.FC = () => {
     url: v.route,
   }));
 
-  // Cosmetic requirement: show only three offers in Groupon-style hero
-  const showThreeOnly = true;
+  // Show both hero AND full catalog with category filtering
+  const showThreeOnly = false;
   if (showThreeOnly) {
     return (
       <Layout>
@@ -140,18 +266,24 @@ const VouchersPage: React.FC = () => {
   // Filter vouchers based on search term and category
   const filteredByCategory = selectedCategory && selectedCategory !== 'Alle' as any
     ? voucherProducts.filter(voucher => {
-        const name = voucher.name.toLowerCase();
-        const category = voucher.category.toLowerCase();
-        switch(selectedCategory.toLowerCase()) {
-          case 'familie':
-            return category.includes('family') || name.includes('famil');
-          case 'baby':
-            return category.includes('newborn') || name.includes('neugeboren') || name.includes('baby');
-          case 'schwangerschaft':
-            return category.includes('pregnancy') || name.includes('schwanger');
-          default:
-            return true;
-        }
+        const voucherCategory = (voucher.category || '').toLowerCase();
+        const selectedCat = (selectedCategory || '').toLowerCase();
+        
+        // Direct match
+        if (voucherCategory === selectedCat) return true;
+        
+        // Category mapping for compatibility
+        const categoryMap: Record<string, string[]> = {
+          'familie': ['family', 'familie'],
+          'baby': ['newborn', 'baby'],
+          'schwangerschaft': ['pregnancy', 'maternity', 'schwangerschaft'],
+          'business': ['business'],
+          'event': ['event'],
+          'hochzeit': ['wedding', 'hochzeit']
+        };
+        
+        const matchTerms = categoryMap[selectedCat] || [selectedCat];
+        return matchTerms.some(term => voucherCategory.includes(term));
       })
     : voucherProducts;
   
@@ -162,72 +294,64 @@ const VouchersPage: React.FC = () => {
       )
     : filteredByCategory;
 
+  const { addItem } = useCart();
+
   const handlePurchaseVoucher = (voucher: any) => {
-    // Navigate to checkout page with the voucher ID
-    const voucherId = voucher.id || voucher.slug || voucher.name?.toLowerCase().replace(/\s+/g, '-');
-    navigate(`/vouchers/checkout/${voucherId}`);
+    // Add voucher to cart
+    addItem({
+      title: voucher.name,
+      price: voucher.price,
+      quantity: 1,
+      packageType: voucher.category || 'Voucher',
+      type: 'voucher',
+      productId: voucher.id,
+      productSlug: voucher.slug
+    });
+    // Navigate to cart page
+    navigate('/cart');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
     <Layout>
-      {/* Groupon-style hero for top vouchers */}
-      <HeroDealsAuto items={heroItems} />
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-16">
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            {vouchersTitle}
+          </h1>
+          <p className="text-xl md:text-2xl mb-2">
+            Fotoshooting Gutscheine für jeden Anlass
+          </p>
+          <p className="text-lg opacity-90">
+            Wählen Sie aus unseren Kategorien: Familie, Baby, Schwangerschaft, Business & Event
+          </p>
+        </div>
+      </div>
+      
       <div className="container mx-auto px-4 py-8">
-        {/* Company Logo and Header */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="text-center">
-            <div className="flex items-center justify-center mb-4">
-              <img 
-                src="/company-logo.svg" 
-                alt="New Age Fotografie Logo" 
-                className="h-16 w-auto mr-4"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = "/logo.png"; // Fallback to PNG version
-                }}
-              />
-              <div className="text-left">
-                <h1 className="text-3xl font-bold text-gray-800 leading-tight">
-                  NEW AGE FOTOGRAFIE
-                </h1>
-                <p className="text-lg text-purple-600 font-medium">
-                  {vouchersTitle}
-                </p>
-                <p className="text-sm mt-1 font-semibold text-red-600">
-                  click Jetzt Buchen for options available
-                </p>
-              </div>
-            </div>
+        {/* Category Filter - Prominent at top */}
+        <div className="mb-8 text-center">
+          <CategoryFilter />
+        </div>
+        
+        {/* Search Bar - Centered */}
+        <div className="max-w-2xl mx-auto mb-8">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder={t('vouchers.searchPlaceholder')}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-4 py-3 pl-12 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-purple-600 transition-colors text-lg"
+            />
+            <Search size={20} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
           </div>
         </div>
         
-        <div className="lg:grid lg:grid-cols-4 lg:gap-8">
-          {/* Sidebar with filters */}
-          <div className="lg:col-span-1">
-            {/* Search */}
-            <div className="mb-8">
-              <h2 className="text-lg font-semibold mb-4 text-gray-800">{t('common.search')}</h2>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder={t('vouchers.searchPlaceholder')}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-colors"
-                />
-                <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              </div>
-            </div>
-            
-            {/* Category Filter */}
-            <CategoryFilter />
-          </div>
-          
-          {/* Main content with vouchers */}
-          <div className="lg:col-span-3">
-            {displayedVouchers.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* Main content with vouchers */}
+        <div>
+          {displayedVouchers.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {displayedVouchers.map(voucher => (
                   <div key={voucher.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
                     {/* Image */}
@@ -287,14 +411,13 @@ const VouchersPage: React.FC = () => {
                     onClick={() => {
                       setSearchTerm('');
                     }}
-                    className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                    className="text-purple-600 hover:text-purple-800 font-medium transition-colors"
                   >
                     {t('vouchers.resetFilters')}
                   </button>
                 )}
               </div>
             )}
-          </div>
         </div>
       </div>
     </Layout>

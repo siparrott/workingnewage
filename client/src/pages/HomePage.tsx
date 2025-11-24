@@ -5,6 +5,7 @@ import Layout from '../components/layout/Layout';
 import ZoomableImage from '../components/ui/ZoomableImage';
 import Typewriter from 'typewriter-effect';
 import CountUp from 'react-countup';
+import { Check } from 'lucide-react';
 import photoGridImage from '../assets/photo-grid.jpg';
 import { useLanguage } from '../context/LanguageContext';
 import { useCart } from '../context/CartContext';
@@ -65,9 +66,9 @@ const HomePage: React.FC = () => {
   // Transform API products or use fallback
   const voucherProducts = useMemo(() => {
     if (apiProducts && Array.isArray(apiProducts) && apiProducts.length > 0) {
-      return apiProducts
+      // Map API products, then exclude newborn/baby products from homepage
+      const mapped = apiProducts
         .filter((p: any) => p.isActive !== false && p.is_active !== false)
-        .slice(0, 3) // Show only 3 vouchers on home page
         .map((p: any) => ({
           id: p.id,
           name: p.name,
@@ -77,7 +78,36 @@ const HomePage: React.FC = () => {
           image: p.thumbnailUrl || p.imageUrl || 'https://i.imgur.com/Vd6xtPg.jpg',
           category: p.category || 'family',
           route: `/gutschein/${p.slug || p.id}`
-        }));
+        }))
+        .filter((p: any) => {
+          const s = `${p.category} ${p.id} ${p.name}`.toString().toLowerCase();
+          // exclude newborn/baby related items (English + German terms)
+          return !(/newborn|neugeboren|neugeborenen|neugeborenes|baby/i.test(s));
+        });
+
+      // If we have fewer than 3 after filtering, fill from defaults (also excluding newborns)
+      let final = mapped.slice(0, 3);
+      if (final.length < 3) {
+        const defaultsFiltered = defaultVouchers.filter((d) => {
+          const s = `${d.category} ${d.id} ${d.name}`.toString().toLowerCase();
+          return !(/newborn|neugeboren|neugeborenen|neugeborenes|baby/i.test(s));
+        });
+        final = [...final, ...defaultsFiltered].slice(0, 3);
+      }
+
+      // Ensure the family package is featured in the middle (index 1) when present
+      if (final.length >= 2) {
+        const familyIdx = final.findIndex((p: any) => {
+          const s = `${p.category} ${p.id} ${p.name}`.toString().toLowerCase();
+          return /family|familien|familie/.test(s);
+        });
+        if (familyIdx > -1 && familyIdx !== 1) {
+          const [fam] = final.splice(familyIdx, 1);
+          final.splice(1, 0, fam);
+        }
+      }
+
+      return final;
     }
     return defaultVouchers;
   }, [apiProducts, t]);
@@ -447,47 +477,7 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Voucher Grid Section (Dynamic) */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {voucherProducts.map(v => (
-              <div key={v.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
-                <div className="aspect-[4/3] overflow-hidden bg-gray-100">
-                  <img
-                    src={v.image}
-                    alt={v.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                      (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="flex items-center justify-center w-full h-full text-gray-400">No Image</div>';
-                    }}
-                  />
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-purple-900 mb-2">{v.name}</h3>
-                  <p className="text-gray-600 mb-4">{v.description}</p>
-                  <div className="flex justify-between items-center">
-                    <div className="flex flex-col">
-                      <span className="text-sm text-gray-500 uppercase tracking-wide">{language === 'de' ? 'AB' : 'FROM'}</span>
-                      <span className="text-2xl font-bold text-purple-600">€{v.price}</span>
-                    </div>
-                    <button
-                      onClick={() => {
-                        navigate(v.route);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-full transition-colors"
-                    >
-                      {t('home.bookNowButton')}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Voucher section removed per request (keeps Gift Voucher section below) */}
 
       {/* Testimonials Section */}
       <section className="py-16 bg-white">
@@ -527,35 +517,56 @@ const HomePage: React.FC = () => {
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto mb-12">
-            {voucherProducts.map((voucher) => (
-              <div key={voucher.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="relative h-48 overflow-hidden">
-                  <img 
-                    src={voucher.image} 
-                    alt={voucher.name}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                    -{Math.round((1 - voucher.price / voucher.originalPrice) * 100)}% OFF
+            {voucherProducts.map((voucher, idx) => (
+              <div
+                key={voucher.id}
+                className={idx === 1 ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-xl shadow-2xl p-8 transform scale-105' : 'bg-white rounded-xl shadow-lg p-8'}
+              >
+                {idx === 1 && (
+                  <div className="bg-yellow-400 text-gray-900 text-sm font-bold px-3 py-1 rounded-full inline-block mb-4 ml-auto">
+                    BESTSELLER
                   </div>
+                )}
+
+                <h3 className={idx === 1 ? 'text-2xl font-bold mb-4' : 'text-2xl font-bold mb-4 text-purple-900'}>{voucher.name}</h3>
+
+                <div className={idx === 1 ? 'text-3xl font-bold mb-6' : 'text-3xl font-bold text-purple-600 mb-6'}>
+                  €{voucher.price}
                 </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{voucher.name}</h3>
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{voucher.description}</p>
-                  <div className="flex items-baseline gap-2 mb-4">
-                    <span className="text-3xl font-bold text-purple-600">€{voucher.price}</span>
-                    <span className="text-lg text-gray-400 line-through">€{voucher.originalPrice}</span>
-                  </div>
-                  <button
-                    onClick={() => {
-                      navigate(voucher.route);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-                  >
-                    Jetzt Buchen
-                  </button>
-                </div>
+
+                <ul className={idx === 1 ? 'space-y-3 mb-8 text-white/90' : 'space-y-3 mb-8 text-gray-700'}>
+                  <li className="flex items-start">
+                    <Check className={idx === 1 ? 'h-5 w-5 text-white mr-2 flex-shrink-0 mt-0.5' : 'h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5'} />
+                    <span>{voucher.description || 'Auswahlgalerie online'}</span>
+                  </li>
+                  <li className="flex items-start">
+                    <Check className={idx === 1 ? 'h-5 w-5 text-white mr-2 flex-shrink-0 mt-0.5' : 'h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5'} />
+                    <span>Nutzungsrechte privat</span>
+                  </li>
+                  <li className="flex items-start">
+                    <Check className={idx === 1 ? 'h-5 w-5 text-white mr-2 flex-shrink-0 mt-0.5' : 'h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5'} />
+                    <span>Flexible Zustellung</span>
+                  </li>
+                </ul>
+
+                <button
+                  onClick={() => {
+                    addToCart({
+                      title: voucher.name,
+                      productId: voucher.id,
+                      productSlug: voucher.route || voucher.id,
+                      price: Number(voucher.price) || 0,
+                      quantity: 1,
+                      packageType: 'Fotoshooting Gutschein',
+                      type: 'voucher'
+                    });
+                    navigate('/cart');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className={idx === 1 ? 'block w-full bg-white text-purple-700 font-semibold py-3 px-6 rounded-lg' : 'block w-full bg-gray-900 text-white font-semibold py-3 px-6 rounded-lg'}
+                >
+                  Jetzt Buchen
+                </button>
               </div>
             ))}
           </div>

@@ -1,7 +1,9 @@
+import React from 'react';
 import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
 import { Link } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check } from 'lucide-react';
+import VoucherPackagesList from '../../components/vouchers/VoucherPackagesList';
 
 export default function FamilienFotoshootingWienPage() {
   return (
@@ -96,105 +98,16 @@ export default function FamilienFotoshootingWienPage() {
         </div>
       </section>
 
-      {/* Packages Section */}
+      {/* Packages Section - dynamic from vouchers API */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-center mb-12">Unsere Familien-Pakete</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Basic Package */}
-            <div className="bg-white rounded-xl shadow-lg p-8">
-              <h3 className="text-2xl font-bold mb-4">Basis</h3>
-              <div className="text-3xl font-bold text-purple-600 mb-6">
-                €199
-              </div>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>30 Minuten Shooting</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>10 bearbeitete Bilder</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Online-Galerie</span>
-                </li>
-              </ul>
-              <Link
-                to="/termin-planen"
-                className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
-              >
-                Jetzt buchen
-              </Link>
-            </div>
-
-            {/* Premium Package */}
-            <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-xl shadow-2xl p-8 transform scale-105">
-              <div className="bg-yellow-400 text-gray-900 text-sm font-bold px-3 py-1 rounded-full inline-block mb-4">
-                BELIEBT
-              </div>
-              <h3 className="text-2xl font-bold mb-4">Premium</h3>
-              <div className="text-3xl font-bold mb-6">
-                €399
-              </div>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>60 Minuten Shooting</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>25 bearbeitete Bilder</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Studio + Outdoor möglich</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Alle Bilder in Druckqualität</span>
-                </li>
-              </ul>
-              <Link
-                to="/termin-planen"
-                className="block text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
-              >
-                Jetzt buchen
-              </Link>
-            </div>
-
-            {/* Deluxe Package */}
-            <div className="bg-white rounded-xl shadow-lg p-8">
-              <h3 className="text-2xl font-bold mb-4">Deluxe</h3>
-              <div className="text-3xl font-bold text-purple-600 mb-6">
-                €599
-              </div>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>90 Minuten Shooting</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>40 bearbeitete Bilder</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Location Ihrer Wahl</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Premium Fotoalbum</span>
-                </li>
-              </ul>
-              <Link
-                to="/termin-planen"
-                className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
-              >
-                Jetzt buchen
-              </Link>
-            </div>
+          <div className="max-w-4xl mx-auto">
+            {/* VoucherPackagesList will fetch and render vouchers for this category */}
+            <React.Suspense fallback={<div className="text-center">Loading packages...</div>}>
+              {/* @ts-ignore */}
+              <VoucherPackagesList category="family" />
+            </React.Suspense>
           </div>
         </div>
       </section>

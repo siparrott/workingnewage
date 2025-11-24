@@ -1,11 +1,26 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Baby, Shield, Music, Smile, Package, Sun, Home, Eye, Hand } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
+import { useCart } from '../../context/CartContext';
 
 export default function BabyfotosWienPage() {
+  const navigate = useNavigate();
+  const { addItem } = useCart();
+
+  const handleBookPackage = (packageName: string, price: number, description: string) => {
+    addItem({
+      title: packageName,
+      price: price,
+      quantity: 1,
+      packageType: 'Babyfotografie',
+      type: 'voucher'
+    });
+    navigate('/cart');
+  };
+
   return (
     <Layout>
     <div className="min-h-screen bg-white">
@@ -308,12 +323,12 @@ export default function BabyfotosWienPage() {
                 </div>
               </div>
 
-              <Link
-                to="/warteliste"
-                className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
+              <button
+                onClick={() => handleBookPackage('Mini Baby', 170, 'Babyfotografie - 1 Set, 8 Retuschen')}
+                className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
               >
                 Jetzt buchen
-              </Link>
+              </button>
             </div>
 
             {/* Klassik Baby Package - BELIEBT */}
@@ -348,12 +363,12 @@ export default function BabyfotosWienPage() {
                 </div>
               </div>
 
-              <Link
-                to="/warteliste"
-                className="block text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+              <button
+                onClick={() => handleBookPackage('Klassik Baby', 290, 'Babyfotografie - 2-3 Sets, 18 Retuschen')}
+                className="block w-full text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
               >
                 Jetzt buchen
-              </Link>
+              </button>
             </div>
 
             {/* Family & Baby Plus Package */}
@@ -384,12 +399,12 @@ export default function BabyfotosWienPage() {
                 </div>
               </div>
 
-              <Link
-                to="/warteliste"
-                className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
+              <button
+                onClick={() => handleBookPackage('Family & Baby Plus', 420, 'Babyfotografie - Baby + Familie, 28 Retuschen')}
+                className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
               >
                 Jetzt buchen
-              </Link>
+              </button>
             </div>
           </div>
 

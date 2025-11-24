@@ -8222,6 +8222,87 @@ New Age Fotografie CRM System
     }
   });
 
+  // ====== VOUCHER COUPONS MANAGEMENT (CRUD) ======
+  
+  // Get all discount coupons
+  app.get("/api/vouchers/coupons", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const coupons = await storage.getDiscountCoupons();
+      res.json(coupons);
+    } catch (error) {
+      console.error("Error fetching discount coupons:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create new discount coupon
+  app.post("/api/vouchers/coupons", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { applicableProductId, applicableProducts, ...rest } = req.body as any;
+      const couponData: any = { ...rest };
+      
+      // Handle applicableProducts field conversion
+      if (Array.isArray(applicableProducts)) {
+        couponData.applicableProducts = applicableProducts;
+      } else if (applicableProductId) {
+        couponData.applicableProducts = [applicableProductId];
+      }
+      
+      // Convert date strings to Date objects if present
+      if (couponData.startDate && typeof couponData.startDate === 'string') {
+        couponData.startDate = new Date(couponData.startDate);
+      }
+      if (couponData.endDate && typeof couponData.endDate === 'string') {
+        couponData.endDate = new Date(couponData.endDate);
+      }
+      
+      const coupon = await storage.createDiscountCoupon(couponData);
+      res.json(coupon);
+    } catch (error) {
+      console.error("Error creating discount coupon:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Update discount coupon
+  app.put("/api/vouchers/coupons/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { applicableProductId, applicableProducts, ...rest } = req.body as any;
+      const updates: any = { ...rest };
+      
+      if (Array.isArray(applicableProducts)) {
+        updates.applicableProducts = applicableProducts;
+      } else if (applicableProductId) {
+        updates.applicableProducts = [applicableProductId];
+      }
+      
+      // Convert date strings to Date objects if present
+      if (updates.startDate && typeof updates.startDate === 'string') {
+        updates.startDate = new Date(updates.startDate);
+      }
+      if (updates.endDate && typeof updates.endDate === 'string') {
+        updates.endDate = new Date(updates.endDate);
+      }
+      
+      const coupon = await storage.updateDiscountCoupon(req.params.id, updates);
+      res.json(coupon);
+    } catch (error) {
+      console.error("Error updating discount coupon:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete discount coupon
+  app.delete("/api/vouchers/coupons/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteDiscountCoupon(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting discount coupon:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Validate coupon code (public endpoint for frontend)
   app.post("/api/vouchers/coupons/validate", async (req: Request, res: Response) => {
     try {

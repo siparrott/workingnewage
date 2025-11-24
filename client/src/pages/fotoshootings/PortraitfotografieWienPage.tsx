@@ -1,11 +1,26 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Camera, Sparkles, ArrowRight, Check, MapPin } from 'lucide-react';
+import { useCart } from '../../context/CartContext';
 
 export default function PortraitfotografieWienPage() {
+  const navigate = useNavigate();
+  const { addItem } = useCart();
+
+  const handleBookPackage = (packageName: string, price: number, description: string) => {
+    addItem({
+      title: packageName,
+      price: price,
+      quantity: 1,
+      packageType: 'Portrait',
+      type: 'voucher'
+    });
+    navigate('/cart');
+  };
+
   return (
     <Layout>
       <div className="min-h-screen bg-white">
@@ -178,7 +193,12 @@ export default function PortraitfotografieWienPage() {
                   <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>2 Looks, 6 Retuschen, Online-Galerie</span></div>
                   <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>Ideal: LinkedIn, Signatur</span></div>
                 </div>
-                <Link to="/warteliste" className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold">Termin sichern</Link>
+                <button
+                  onClick={() => handleBookPackage('Headshot Mini Portrait', 190, 'Headshot Mini (30 Min) - 2 Looks, 6 Retuschen, Online-Galerie')}
+                  className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
+                >
+                  Termin sichern
+                </button>
               </div>
 
               {/* Portrait Classic (beliebt) */}
@@ -198,7 +218,12 @@ export default function PortraitfotografieWienPage() {
                   <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>Outfit-Check & Posing-Guidance</span></div>
                   <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>Ideal: Website, PR</span></div>
                 </div>
-                <Link to="/warteliste" className="block text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold">Termin sichern</Link>
+                <button
+                  onClick={() => handleBookPackage('Portrait Classic', 320, 'Portrait Classic (60-75 Min) - 3 Looks, 12 Retuschen, Outfit-Check & Posing-Guidance')}
+                  className="block w-full text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+                >
+                  Termin sichern
+                </button>
               </div>
 
               {/* Editorial Session */}
@@ -217,7 +242,12 @@ export default function PortraitfotografieWienPage() {
                   <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>Creative Set, Farbgel-Option</span></div>
                   <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>Ideal: Kampagnen, Artists</span></div>
                 </div>
-                <Link to="/warteliste" className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold">Termin sichern</Link>
+                <button
+                  onClick={() => handleBookPackage('Editorial Session Portrait', 480, 'Editorial Session (90-120 Min) - 4-5 Looks, 18 Retuschen, Creative Set')}
+                  className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
+                >
+                  Termin sichern
+                </button>
               </div>
             </div>
 

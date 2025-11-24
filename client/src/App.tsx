@@ -112,6 +112,8 @@ import DownloadDataPage from './pages/DownloadDataPage';
 import MockSuccessPage from './pages/MockSuccessPage';
 import CommunicationsPage from './pages/CommunicationsPage';
 import QuestionnaireFormPage from './pages/QuestionnaireFormPage';
+import ImageTestPage from './pages/ImageTestPage';
+import ScrollToTop from './components/ScrollToTop';
 
 function App() {
   return (
@@ -123,6 +125,7 @@ function App() {
             <CartProvider>
               <LanguageProvider>
               <Router>
+              <ScrollToTop />
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/fotoshootings" element={<FotoshootingsPage />} />
@@ -192,6 +195,7 @@ function App() {
                 <Route path="/q/:token" element={<QuestionnaireFormPage />} />
                 <Route path="/invoice/:invoiceId" element={<PublicInvoicePage />} />
                 <Route path="/download-data" element={<DownloadDataPage />} />
+                <Route path="/image-test" element={<ImageTestPage />} />
 
                 {/* Admin routes */}
                 <Route path="/admin/login" element={<NeonAdminLoginPage />} />

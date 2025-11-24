@@ -26,6 +26,7 @@ export const partners: Partner[] = [
 export const categories: Category[] = [
   'Familie',
   'Baby',
+  'Schwangerschaft',
   'Hochzeit',
   'Business',
   'Event'
