@@ -47,21 +47,21 @@ interface FileItem {
 }
 
 interface FolderItem {
-  id: string;
+  id: number;
   name: string;
-  parentId?: string | null;
+  parentId?: number | null;
   createdAt: string;
 }
 
 export default function MyArchivePage() {
   const queryClient = useQueryClient();
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [currentFolderId, setCurrentFolderId] = useState<number | null>(null);
   const [folderPath, setFolderPath] = useState<FolderItem[]>([]);
   const [showNewFolderForm, setShowNewFolderForm] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [draggingFileId, setDraggingFileId] = useState<number | null>(null);
-  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
+  const [dragOverFolderId, setDragOverFolderId] = useState<number | null>(null);
 
   // Fetch storage usage
   const { data: usage, isLoading: usageLoading } = useQuery<StorageUsage>({
@@ -113,13 +113,15 @@ export default function MyArchivePage() {
 
   // Fetch files in current folder
   const { data: files = [], isLoading: filesLoading } = useQuery<FileItem[]>({
-    queryKey: ['files', currentFolderId, String(currentFolderId)],
+    queryKey: ['files', currentFolderId, String(currentFolderId), Date.now()],
     staleTime: 0,
     cacheTime: 0,
+    refetchOnMount: 'always',
     queryFn: async () => {
       const url = currentFolderId
         ? `/api/files?folderId=${currentFolderId}`
         : '/api/files';
+      console.log('🔍 Fetching files for folder:', currentFolderId, 'URL:', url);
       const res = await fetch(url, {
         credentials: 'include',
       });
@@ -127,7 +129,9 @@ export default function MyArchivePage() {
         console.warn('Failed to fetch files:', res.status);
         return []; // Return empty array on error
       }
-      return res.json();
+      const data = await res.json();
+      console.log(`📂 Received ${data.length} files for folder ${currentFolderId}`);
+      return data;
     },
     enabled: !!usage?.hasSubscription,
     retry: false, // Don't retry on failure
