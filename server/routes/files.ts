@@ -44,9 +44,6 @@ const upload = multer({
   storage,
   limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
 });
-  storage,
-  limits: { fileSize: 500 * 1024 * 1024 } // 500MB limit
-});
 
 // Serve uploaded files
 router.get('/serve/:filename', (req, res) => {
