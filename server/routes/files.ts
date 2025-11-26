@@ -6,31 +6,44 @@ import multer from 'multer';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import crypto from 'crypto';
 // removed unused imports
 
 const router = Router();
+
+// Initialize S3 client for Backblaze B2
+const s3Client = new S3Client({
+  endpoint: process.env.AWS_S3_ENDPOINT || 'https://s3.eu-central-003.backblazeb2.com',
+  region: process.env.AWS_REGION || 'eu-central-003',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+  },
+});
+
+// Helper to build public B2 URL
+const buildB2Url = (key: string): string => {
+  const bucket = process.env.AWS_S3_BUCKET || '';
+  const endpoint = process.env.AWS_S3_ENDPOINT || '';
+  if (endpoint.includes('backblazeb2.com')) {
+    return `https://${bucket}.${endpoint.replace('https://', '').replace(/\/$/, '')}/${key}`;
+  }
+  return `${endpoint.replace(/\/$/, '')}/${bucket}/${key}`;
+};
 
 // Debug route to test router is mounted
 router.get('/test', (req, res) => {
   res.json({ message: 'Files router is working!' });
 });
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    const uploadDir = path.join(process.cwd(), 'uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (_req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Configure multer for file uploads (memory storage for B2 upload)
+const storage = multer.memoryStorage();
 
 const upload = multer({ 
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+});
   storage,
   limits: { fileSize: 500 * 1024 * 1024 } // 500MB limit
 });
@@ -210,50 +223,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
     const userId = req.session?.userId;
     if (!userId) {
-      // Clean up uploaded file
-      fs.unlinkSync(req.file.path);
       return res.status(401).json({ error: 'Not authenticated' });
-    }
-
-    // Check user's storage subscription and limits
-    const { neon } = await import('@neondatabase/serverless');
-    const sql = neon(process.env.DATABASE_URL!);
-    
-    const subscriptions = await sql`
-      SELECT id, tier, storage_limit, status
-      FROM storage_subscriptions
-      WHERE user_id = ${userId}
-      AND status = 'active'
-      LIMIT 1
-    `;
-    
-    if (subscriptions.length === 0) {
-      fs.unlinkSync(req.file.path);
-      return res.status(403).json({ error: 'No active storage subscription' });
-    }
-    
-    const subscription = subscriptions[0];
-    
-    // Check current usage
-    const usage = await sql`
-      SELECT current_storage_bytes
-      FROM storage_usage
-      WHERE subscription_id = ${subscription.id}
-      LIMIT 1
-    `;
-    
-    const currentBytes = usage.length > 0 ? Number(usage[0].current_storage_bytes) : 0;
-    const limitBytes = Number(subscription.storage_limit);
-    const fileSize = req.file.size;
-    
-    if (currentBytes + fileSize > limitBytes) {
-      fs.unlinkSync(req.file.path);
-      return res.status(413).json({ 
-        error: 'Storage limit exceeded',
-        current: currentBytes,
-        limit: limitBytes,
-        fileSize
-      });
     }
 
     // Store file metadata in database
@@ -262,39 +232,72 @@ router.post('/upload', upload.single('file'), async (req, res) => {
                      req.file.mimetype.startsWith('video/') ? 'video' :
                      req.file.mimetype === 'application/pdf' ? 'document' : 'other';
     
-    // Rename original file to use the fileId for easier retrieval
     const fileExt = path.extname(req.file.originalname);
-    const newFilename = `${fileId}${fileExt}`;
-    const newPath = path.join(path.dirname(req.file.path), newFilename);
-    fs.renameSync(req.file.path, newPath);
+    const folderName = req.body.folderName || 'Manual Website Images';
+    const fileName = `${folderName}/${fileId}${fileExt}`;
     
-    // Generate compressed thumbnail for images (300x300, quality 80)
+    // Upload to Backblaze B2
+    let processedBuffer = req.file.buffer;
+    let processedMime = req.file.mimetype;
+    
+    // Optimize images
+    if (req.file.mimetype.startsWith('image/')) {
+      try {
+        processedBuffer = await sharp(req.file.buffer)
+          .rotate()
+          .resize({ width: 1400, withoutEnlargement: true })
+          .webp({ quality: 75 })
+          .toBuffer();
+        processedMime = 'image/webp';
+      } catch (error) {
+        console.warn('[FILE UPLOAD] Image optimization failed, using original:', error);
+      }
+    }
+    
+    // Upload to B2
+    await s3Client.send(new PutObjectCommand({
+      Bucket: process.env.AWS_S3_BUCKET || '',
+      Key: fileName,
+      Body: processedBuffer,
+      ContentType: processedMime,
+      Metadata: {
+        originalName: req.file.originalname,
+        uploadedBy: userId,
+        folder: folderName,
+      },
+    }));
+    
+    const fileUrl = buildB2Url(fileName);
+    
+    // Generate thumbnail for images
     let thumbnailUrl: string | undefined;
     if (req.file.mimetype.startsWith('image/')) {
       try {
-        const thumbnailFilename = `${fileId}_thumb.webp`;
-        const thumbnailPath = path.join(path.dirname(newPath), thumbnailFilename);
-        
-        await sharp(newPath)
-          .resize(300, 300, {
-            fit: 'cover',
-            position: 'center'
-          })
+        const thumbBuffer = await sharp(req.file.buffer)
+          .resize(300, 300, { fit: 'cover', position: 'center' })
           .webp({ quality: 80 })
-          .toFile(thumbnailPath);
+          .toBuffer();
         
-        thumbnailUrl = `/api/files/serve/${thumbnailFilename}`;
+        const thumbFileName = `${folderName}/${fileId}_thumb.webp`;
+        
+        await s3Client.send(new PutObjectCommand({
+          Bucket: process.env.AWS_S3_BUCKET || '',
+          Key: thumbFileName,
+          Body: thumbBuffer,
+          ContentType: 'image/webp',
+        }));
+        
+        thumbnailUrl = buildB2Url(thumbFileName);
         console.log(`✅ Generated thumbnail for ${req.file.originalname}`);
       } catch (error) {
         console.error('Failed to generate thumbnail:', error);
-        // Fallback to original image if thumbnail generation fails
-        thumbnailUrl = `/api/files/serve/${newFilename}`;
+        thumbnailUrl = fileUrl;
       }
     }
     
     const [newFile] = await db.insert(digitalFiles).values({
       id: fileId,
-      folderName: req.body.folderId || req.body.folderName || 'Home',
+      folderName: folderName,
       fileName: req.file.originalname,
       fileType: fileType,
       fileSize: req.file.size,
@@ -302,42 +305,21 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       sessionId: null,
       description: '',
       tags: JSON.stringify([]),
-      isPublic: false,
+      isPublic: true,
       uploadedAt: new Date(),
       createdAt: new Date(),
       updatedAt: new Date()
     }).returning();
 
-    // Update storage usage
-    if (usage.length > 0) {
-      await sql`
-        UPDATE storage_usage
-        SET current_storage_bytes = current_storage_bytes + ${fileSize},
-            file_count = file_count + 1
-        WHERE subscription_id = ${subscription.id}
-      `;
-    } else {
-      await sql`
-        INSERT INTO storage_usage (subscription_id, current_storage_bytes, file_count)
-        VALUES (${subscription.id}, ${fileSize}, 1)
-      `;
-    }
-
     res.status(201).json({
       ...newFile,
-      thumbnailUrl, // Include thumbnail URL for frontend
-      mimeType: req.file.mimetype, // Include mimeType for icon selection
-      message: 'File uploaded successfully'
+      url: fileUrl,
+      thumbnailUrl,
+      mimeType: processedMime,
+      message: 'File uploaded successfully to Backblaze B2'
     });
   } catch (error) {
     console.error('Failed to upload file:', error);
-    if (req.file) {
-      try {
-        fs.unlinkSync(req.file.path);
-      } catch (e) {
-        // File already deleted or moved
-      }
-    }
     res.status(500).json({ error: 'Failed to upload file' });
   }
 });

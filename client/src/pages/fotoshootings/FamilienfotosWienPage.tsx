@@ -3,11 +3,46 @@ import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link, useNavigate } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Baby, Music, Smile } from 'lucide-react';
+import { useManualPageContent } from '../../hooks/useManualPageContent';
 import { useCart } from '../../context/CartContext';
 
 export default function FamilienfotosWienPage() {
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const t = useManualPageContent('familienfotos');
+
+  const fromManual = (key: string, fallback: string) => {
+    const value = t(key);
+    if (!value || value === key) {
+      return fallback;
+    }
+    return value;
+  };
+
+  const heroTitle = fromManual('manual.familienfotos.heroTitle', 'Familienfotografie in Wien');
+  const heroSubtitle = fromManual('manual.familienfotos.heroTagline', 'Familienfotos – Studio-Pakete (bis 12 Personen)');
+  const heroDescription = fromManual(
+    'manual.familienfotos.heroDescription',
+    'Kurzversprechen: Ruhiges Studio, freundliche Anleitung, echte Momente. Max. 12 Personen pro Termin – Kinder, Großeltern & Haustiere sind herzlich willkommen. Outfitwechsel? Sehr gern. Bringt gern Spielzeug & Hobby-Requisiten (Ball, Geige, Lieblingsbuch …) mit.'
+  );
+  const primaryCta = fromManual('manual.familienfotos.primaryCta', 'Termin auf der Warteliste sichern');
+  const secondaryCta = fromManual('manual.familienfotos.secondaryCta', 'Familien-Gutschein verschenken');
+  const heroImage1 = fromManual('manual.familienfotos.heroImage1', '');
+  const heroImage2 = fromManual('manual.familienfotos.heroImage2', '');
+  const heroImage3 = fromManual('manual.familienfotos.heroImage3', '');
+  const heroImage4 = fromManual('manual.familienfotos.heroImage4', '');
+  const heroImage5 = fromManual('manual.familienfotos.heroImage5', '');
+  const heroDescriptionContent = (() => {
+    if (!heroDescription) return null;
+    const [firstSegment, ...rest] = heroDescription.split(':');
+    if (rest.length === 0) return heroDescription;
+    return (
+      <>
+        <strong>{firstSegment}:</strong>
+        {rest.join(':')}
+      </>
+    );
+  })();
 
   const handleBookPackage = (packageName: string, price: number, description: string) => {
     addItem({
@@ -42,29 +77,27 @@ export default function FamilienfotosWienPage() {
             {/* Left: Text Content */}
             <div>
               <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
-                Familienfotografie in Wien
+                {heroTitle}
               </h1>
               <p className="text-xl text-gray-700 mb-4 leading-relaxed font-semibold">
-                Familienfotos – Studio-Pakete (bis 12 Personen)
+                {heroSubtitle}
               </p>
               <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                <strong>Kurzversprechen:</strong> Ruhiges Studio, freundliche Anleitung, echte Momente. Max. 12 Personen pro Termin – 
-                Kinder, Großeltern & Haustiere sind herzlich willkommen. Outfitwechsel? Sehr gern. 
-                Bringt gern Spielzeug & Hobby-Requisiten (Ball, Geige, Lieblingsbuch …) mit.
+                {heroDescriptionContent}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   to="/warteliste"
                   className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg"
                 >
-                  Termin auf der Warteliste sichern
+                  {primaryCta}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
                 <Link
                   to="/gutschein/family"
                   className="inline-flex items-center justify-center px-8 py-4 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors font-semibold text-lg"
                 >
-                  Familien-Gutschein verschenken
+                  {secondaryCta}
                 </Link>
               </div>
             </div>
@@ -73,29 +106,28 @@ export default function FamilienfotosWienPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
                 <img
-                  src="/api/files/serve/a43d553a-813a-4693-957e-44d986a0a7d4.JPG"
+                  src={heroImage1}
                   alt="Familienfotografie in Wien - Glückliche Großfamilie beim professionellen Fotoshooting im Studio"
                   title="Professionelle Familienfotografie Wien - Studio Shooting mit bis zu 12 Personen"
-                  className="rounded-2xl shadow-2xl w-full h-80 object-cover"
-                  style={{ objectPosition: 'center 35%' }}
+                  className="rounded-2xl shadow-2xl w-full h-auto object-contain"
                   loading="eager"
                 />
               </div>
               <div>
                 <img
-                  src="/api/files/serve/7f922d67-5bb7-4d54-8e8b-6d3b1db252cb.jpg"
+                  src={heroImage2}
                   alt="Familienportrait Wien - Natürliche Familienfotos im modernen Studio"
                   title="Familienfotos Wien - Authentische Momente und echte Emotionen"
-                  className="rounded-xl shadow-lg w-full h-48 object-cover"
+                  className="rounded-xl shadow-lg w-full h-auto object-contain"
                   loading="eager"
                 />
               </div>
               <div>
                 <img
-                  src="/api/files/serve/dfb0c6e2-0208-4d1e-aa49-fb94b99695bb.jpg"
+                  src={heroImage3}
                   alt="Familie Fotoshooting Wien - Professionelle Familienportraits mit Kindern und Eltern"
                   title="Familienfotograf Wien - Erinnerungen für die Ewigkeit festhalten"
-                  className="rounded-xl shadow-lg w-full h-48 object-cover"
+                  className="rounded-xl shadow-lg w-full h-auto object-contain"
                   loading="eager"
                 />
               </div>
@@ -124,10 +156,10 @@ export default function FamilienfotosWienPage() {
             </div>
             <div>
               <img
-                src="/api/files/serve/2e03bbf1-d6dc-4dd3-a5b3-3186cb5984bf.jpg"
+                src={heroImage4}
                 alt="Familienfotos Wien - Großfamilie professionell fotografiert mit persönlichen Details"
                 title="Familienfotografie Wien - Bis zu 12 Personen mit Haustieren und Requisiten"
-                className="rounded-2xl shadow-lg w-full h-full object-cover"
+                className="rounded-2xl shadow-lg w-full h-auto object-contain"
                 loading="lazy"
               />
             </div>
@@ -361,10 +393,10 @@ export default function FamilienfotosWienPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-12">
             <img
-              src="/api/files/serve/67441075-d682-4cdf-8c83-a087bca8d2f5.jpg"
+              src={heroImage5}
               alt="Familienfotografie Wien Ablauf - Professionelles Studio-Shooting für diverse Familien"
               title="Familienfotograf Wien - Shooting-Ablauf im modernen Fotostudio"
-              className="rounded-xl shadow-lg w-full h-64 object-cover"
+              className="rounded-xl shadow-lg w-full h-auto object-contain"
               loading="lazy"
             />
           </div>

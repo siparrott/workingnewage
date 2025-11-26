@@ -4,8 +4,30 @@ import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Package, Check, ArrowRight, Sparkles, Camera, Layers, SlidersHorizontal } from 'lucide-react';
+import { useManualPageContent } from '../../hooks/useManualPageContent';
 
 export default function ProduktfotografieWienPage() {
+  const t = useManualPageContent('produktfotografie');
+
+  const fromManual = (key: string, fallback: string) => {
+    const value = t(key);
+    if (!value || value === key) {
+      return fallback;
+    }
+    return value;
+  };
+
+  const heroTitle = fromManual('manual.produktfotografie.heroTitle', 'Produkt- & E-Commerce-Fotografie in Wien');
+  const heroSubtitle = fromManual('manual.produktfotografie.heroTagline', 'Scharf. Farbtreu. Verkaufsstark.');
+  const heroDescription = fromManual('manual.produktfotografie.heroDescription', 'Als produktfotograf wien liefern wir Bilder, die konvertieren – von technisch sauberen Freistellern über edle Spiegelungen bis zu Lifestyle-Sets, die Story und Nutzen zeigen. Für Amazon, Shopify, B2B-Kataloge, PR & Social.');
+  const primaryCta = fromManual('manual.produktfotografie.primaryCta', 'Slot sichern');
+  const secondaryCta = fromManual('manual.produktfotografie.secondaryCta', 'Anfrage & Specs');
+  const heroImage1 = fromManual('manual.produktfotografie.heroImage1', '/images/product-hero.jpg');
+  const heroImage2 = fromManual('manual.produktfotografie.heroImage2', '/images/product-2.jpg');
+  const heroImage3 = fromManual('manual.produktfotografie.heroImage3', '/images/product-3.jpg');
+  const heroImage4 = fromManual('manual.produktfotografie.heroImage4', '/images/product-4.jpg');
+  const heroImage5 = fromManual('manual.produktfotografie.heroImage5', '/images/product-5.jpg');
+
   return (
     <Layout>
       <div className="min-h-screen bg-white">
@@ -42,30 +64,38 @@ export default function ProduktfotografieWienPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div>
-                <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">Produkt- & E-Commerce-Fotografie in Wien</h1>
-                <p className="text-xl text-gray-300 mb-3 leading-relaxed font-semibold">Scharf. Farbtreu. Verkaufsstark.</p>
+                <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">{heroTitle}</h1>
+                <p className="text-xl text-gray-300 mb-3 leading-relaxed font-semibold">{heroSubtitle}</p>
                 <p className="text-lg text-gray-300/90 mb-8 leading-relaxed">
-                  Als <strong>produktfotograf wien</strong> liefern wir Bilder, die konvertieren – von technisch sauberen
-                  Freistellern über edle Spiegelungen bis zu Lifestyle-Sets, die Story und Nutzen zeigen. Für Amazon,
-                  Shopify, B2B-Kataloge, PR & Social.
+                  {heroDescription}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link to="/warteliste" className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg">
-                    Slot sichern
+                    {primaryCta}
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                   <Link to="/kontakt" className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white rounded-lg hover:bg-white/10 transition-colors font-semibold text-lg">
-                    Anfrage & Specs
+                    {secondaryCta}
                   </Link>
                 </div>
               </div>
-              <div className="relative">
-                <img
-                  src="/images/product-hero.jpg"
-                  alt="produktfotograf wien – Freisteller auf Weiß mit Soft-Shadow, Kosmetikflakon"
-                  className="rounded-2xl shadow-2xl w-full h-96 object-cover"
-                  loading="eager"
-                />
+              {/* Right: Hero Images Grid (5 images total) */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <img src={heroImage1} alt="produktfotograf wien – Freisteller auf Weiß mit Soft-Shadow, Kosmetikflakon" className="rounded-2xl shadow-2xl w-full h-auto object-contain" loading="eager" />
+                </div>
+                <div className="col-span-2">
+                  <img src={heroImage2} alt="E-Commerce Fotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+                </div>
+                <div className="col-span-2">
+                  <img src={heroImage3} alt="Amazon Produktfoto Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+                </div>
+                <div className="col-span-2">
+                  <img src={heroImage4} alt="Lifestyle Produktfotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+                </div>
+                <div className="col-span-2">
+                  <img src={heroImage5} alt="Studio Produktfotos Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+                </div>
               </div>
             </div>
           </div>

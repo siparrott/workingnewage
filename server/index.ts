@@ -16,6 +16,8 @@ import { startSyncScheduler, triggerManualSync } from './services/syncScheduler'
 // Agent V2: Modern ToolBus architecture
 import agentV2Routes from './routes/agent-v2';
 import agentShadowRoutes from './routes/agent-shadow';
+// Manual Pages: Squarespace-style CMS for public pages
+import manualPagesRoutes from './routes/manual-pages';
 
 // Import and configure session middleware
 import { sessionConfig, requireAuth } from './auth';
@@ -92,6 +94,10 @@ app.use('/api/auth', googleAuthRoutes);
 // Agent V2 routes (ToolBus architecture)
 app.use('/api/agent/v2', agentV2Routes);
 console.log('[AGENT-V2] Routes registered at /api/agent/v2');
+
+// Manual Pages CMS routes
+app.use('/api/manual-pages', manualPagesRoutes);
+console.log('[MANUAL-PAGES] Routes registered at /api/manual-pages');
 
 // Shadow mode routes (V1 vs V2 comparison)
 if (process.env.AGENT_V2_SHADOW === 'true') {

@@ -5,6 +5,7 @@ import { Camera, Check, ArrowRight, Building2, Sparkles, Home } from 'lucide-rea
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import { useCart } from '../../context/CartContext';
+import { useManualPageContent } from '../../hooks/useManualPageContent';
 
 interface SEOHeadProps {
   title: string;
@@ -37,6 +38,26 @@ const SEOHead: React.FC<SEOHeadProps> = ({ title, description, keywords, canonic
 const ImmobilienfotografieWienPage: React.FC = () => {
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const t = useManualPageContent('immobilienfotografie');
+
+  const fromManual = (key: string, fallback: string) => {
+    const value = t(key);
+    if (!value || value === key) {
+      return fallback;
+    }
+    return value;
+  };
+
+  const heroTitle = fromManual('manual.immobilienfotografie.heroTitle', 'Immobilienfotograf Wien – Architektur, Interieur, Grundrisse');
+  const heroSubtitle = fromManual('manual.immobilienfotografie.heroTagline', 'Raum. Licht. Perspektive.');
+  const heroDescription = fromManual('manual.immobilienfotografie.heroDescription', 'Professionelle Immobilienfotografie in Wien: Window-Pull HDR, vertikale Korrektur, 2D/3D Grundrisse. Ab €190. Für Makler, Eigentümer & Verwalter.');
+  const primaryCta = fromManual('manual.immobilienfotografie.primaryCta', 'Termin buchen');
+  const secondaryCta = fromManual('manual.immobilienfotografie.secondaryCta', 'Pakete & Preise');
+  const heroImage1 = fromManual('manual.immobilienfotografie.heroImage1', '/images/immobilien-hero.jpg');
+  const heroImage2 = fromManual('manual.immobilienfotografie.heroImage2', '/images/immobilien-2.jpg');
+  const heroImage3 = fromManual('manual.immobilienfotografie.heroImage3', '/images/immobilien-3.jpg');
+  const heroImage4 = fromManual('manual.immobilienfotografie.heroImage4', '/images/immobilien-4.jpg');
+  const heroImage5 = fromManual('manual.immobilienfotografie.heroImage5', '/images/immobilien-5.jpg');
 
   const handleBookPackage = (packageName: string, price: number, description: string) => {
     addItem({
@@ -89,34 +110,58 @@ const ImmobilienfotografieWienPage: React.FC = () => {
       </Helmet>
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white py-24">
+      <section className="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white pt-24 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
-              <Building2 className="w-4 h-4" />
-              <span className="text-sm font-medium">Immobilienfotograf Wien</span>
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Left: Text Content */}
+            <div>
+              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
+                <Building2 className="w-4 h-4" />
+                <span className="text-sm font-medium">Immobilienfotograf Wien</span>
+              </div>
+              <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
+                {heroTitle}
+              </h1>
+              {heroSubtitle && (
+                <p className="text-xl text-blue-200 mb-4 font-semibold">{heroSubtitle}</p>
+              )}
+              <p className="text-lg text-blue-100 mb-8 leading-relaxed">
+                {heroDescription}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link
+                  to="/warteliste/"
+                  className="inline-flex items-center justify-center gap-2 bg-blue-500 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-600 transition-all transform hover:scale-105"
+                >
+                  {primaryCta}
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+                <a
+                  href="#pakete"
+                  className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-lg font-semibold hover:bg-white/20 transition-all border border-white/20"
+                >
+                  {secondaryCta}
+                </a>
+              </div>
             </div>
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-              Architektur & Interieur<br />
-              <span className="text-blue-300">professionell inszeniert</span>
-            </h1>
-            <p className="text-xl text-blue-100 mb-8 leading-relaxed">
-              Ihre Immobilie bestmöglich präsentiert: Window-Pull HDR, vertikale Korrektur, 2D/3D Grundrisse. Für Makler, Eigentümer & Verwalter in Wien.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                to="/warteliste/"
-                className="inline-flex items-center justify-center gap-2 bg-blue-500 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-600 transition-all transform hover:scale-105"
-              >
-                Jetzt Termin anfragen
-                <ArrowRight className="w-5 h-5" />
-              </Link>
-              <a
-                href="#pakete"
-                className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-lg font-semibold hover:bg-white/20 transition-all border border-white/20"
-              >
-                Pakete & Preise
-              </a>
+
+            {/* Right: Hero Images Grid (5 images total) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <img src={heroImage1} alt="Immobilienfotograf Wien – Luxusapartment" className="rounded-2xl shadow-2xl w-full h-auto object-contain" loading="eager" />
+              </div>
+              <div className="col-span-2">
+                <img src={heroImage2} alt="Architekturfotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              </div>
+              <div className="col-span-2">
+                <img src={heroImage3} alt="Interieur Fotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              </div>
+              <div className="col-span-2">
+                <img src={heroImage4} alt="Real Estate Fotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              </div>
+              <div className="col-span-2">
+                <img src={heroImage5} alt="Immobilien HDR Fotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              </div>
             </div>
           </div>
         </div>

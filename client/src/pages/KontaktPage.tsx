@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
 import { Mail, Phone, Clock, MapPin, Train, Car, MessageCircle } from 'lucide-react';
 import { submitContactForm } from '../lib/forms';
-import { useLanguage } from '../context/LanguageContext';
+import { useManualPageContent } from '../hooks/useManualPageContent';
 
 const KontaktPage: React.FC = () => {
-  const { t } = useLanguage();
+  // Use manual page content hook - allows admin to override any content
+  const t = useManualPageContent('contact');
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',

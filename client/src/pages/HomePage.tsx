@@ -9,11 +9,15 @@ import { Check } from 'lucide-react';
 import photoGridImage from '../assets/photo-grid.jpg';
 import { useLanguage } from '../context/LanguageContext';
 import { useCart } from '../context/CartContext';
+import { useManualPageContent } from '../hooks/useManualPageContent';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const { addToCart } = useCart();
+  
+  // Use manual page content hook - allows admin to override any content
+  const t = useManualPageContent('home');
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });

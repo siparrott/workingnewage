@@ -73,6 +73,7 @@ import AgentV2Page from './pages/admin/AgentV2Page';
 import AgentConsolePage from './pages/admin/AgentConsolePage';
 import WebsiteWizard from './pages/admin/WebsiteWizard';
 import PriceListSettingsPage from './pages/admin/settings/PriceListSettingsPage';
+import ManualWebsiteUpdatePage from './pages/admin/ManualWebsiteUpdatePage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import NeonProtectedRoute from './components/auth/NeonProtectedRoute';
 import VoucherThankYouPage from './pages/VoucherThankYouPage';
@@ -503,6 +504,14 @@ function App() {
                   element={
                     <NeonProtectedRoute>
                       <WebsiteWizard />
+                    </NeonProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/manual-website-update"
+                  element={
+                    <NeonProtectedRoute>
+                      <ManualWebsiteUpdatePage />
                     </NeonProtectedRoute>
                   }
                 />

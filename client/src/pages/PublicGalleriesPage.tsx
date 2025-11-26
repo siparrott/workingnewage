@@ -4,10 +4,10 @@ import Layout from '../components/layout/Layout';
 import { getPublicGalleries } from '../lib/gallery-api';
 import { Gallery } from '../types/gallery';
 import { Search, Calendar, Eye, Loader2, AlertCircle, Camera } from 'lucide-react';
-import { useLanguage } from '../context/LanguageContext';
+import { useManualPageContent } from '../hooks/useManualPageContent';
 
 const PublicGalleriesPage: React.FC = () => {
-  const { t } = useLanguage();
+  const t = useManualPageContent('galleries');
   const [galleries, setGalleries] = useState<Gallery[]>([]);
   const [filteredGalleries, setFilteredGalleries] = useState<Gallery[]>([]);
   const [searchTerm, setSearchTerm] = useState('');

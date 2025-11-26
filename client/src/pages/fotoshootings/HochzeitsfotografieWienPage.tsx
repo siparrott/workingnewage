@@ -5,10 +5,31 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, MapPin, Gift, Calendar, Sparkles, Shield } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
+import { useManualPageContent } from '../../hooks/useManualPageContent';
 
 export default function HochzeitsfotografieWienPage() {
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const t = useManualPageContent('hochzeitsfotografie');
+
+  const fromManual = (key: string, fallback: string) => {
+    const value = t(key);
+    if (!value || value === key) {
+      return fallback;
+    }
+    return value;
+  };
+
+  const heroTitle = fromManual('manual.hochzeitsfotografie.heroTitle', 'Hochzeitsfotografie in Wien');
+  const heroSubtitle = fromManual('manual.hochzeitsfotografie.heroTagline', 'Echt. Stilvoll. Unaufdringlich.');
+  const heroDescription = fromManual('manual.hochzeitsfotografie.heroDescription', 'Wir begleiten eure Geschichte – vom ersten Blick bis zum letzten Tanz. Moderne Hochzeitsreportagen mit viel Gefühl, klarer Bildsprache und schnellen Sneak Peeks.');
+  const primaryCta = fromManual('manual.hochzeitsfotografie.primaryCta', 'Termin unverbindlich anfragen');
+  const secondaryCta = fromManual('manual.hochzeitsfotografie.secondaryCta', 'Verfügbarkeit prüfen');
+  const heroImage1 = fromManual('manual.hochzeitsfotografie.heroImage1', '/images/wedding-hero.jpg');
+  const heroImage2 = fromManual('manual.hochzeitsfotografie.heroImage2', '/images/wedding-2.jpg');
+  const heroImage3 = fromManual('manual.hochzeitsfotografie.heroImage3', '/images/wedding-3.jpg');
+  const heroImage4 = fromManual('manual.hochzeitsfotografie.heroImage4', '/images/wedding-4.jpg');
+  const heroImage5 = fromManual('manual.hochzeitsfotografie.heroImage5', '/images/wedding-5.jpg');
 
   const handleBookPackage = (packageName: string, price: number, description: string) => {
     addItem({
@@ -72,31 +93,41 @@ export default function HochzeitsfotografieWienPage() {
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div>
                 <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-                  Hochzeitsfotografie in Wien
+                  {heroTitle}
                 </h1>
                 <p className="text-xl text-gray-300 mb-4 leading-relaxed font-semibold">
-                  Echt. Stilvoll. Unaufdringlich.
+                  {heroSubtitle}
                 </p>
                 <p className="text-lg text-gray-300/90 mb-8 leading-relaxed">
-                  Wir begleiten eure Geschichte – vom ersten Blick bis zum letzten Tanz. Moderne Hochzeitsreportagen mit viel Gefühl, klarer Bildsprache und schnellen Sneak Peeks.
+                  {heroDescription}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link to="/warteliste" className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg">
-                    Termin unverbindlich anfragen
+                    {primaryCta}
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                   <Link to="/kontakt" className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white rounded-lg hover:bg-white/10 transition-colors font-semibold text-lg">
-                    Verfügbarkeit prüfen
+                    {secondaryCta}
                   </Link>
                 </div>
               </div>
-              <div className="relative">
-                <img
-                  src="/images/wedding-hero.jpg"
-                  alt="hochzeitsfotograf wien – Brautpaar im Palais Coburg, Abendlicht"
-                  className="rounded-2xl shadow-2xl w-full h-96 object-cover"
-                  loading="eager"
-                />
+              {/* Right: Hero Images Grid (5 images total) */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <img src={heroImage1} alt="hochzeitsfotograf wien – Brautpaar im Palais Coburg, Abendlicht" className="rounded-2xl shadow-2xl w-full h-auto object-contain" loading="eager" />
+                </div>
+                <div className="col-span-2">
+                  <img src={heroImage2} alt="Hochzeitsfotografie Wien Standesamt" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+                </div>
+                <div className="col-span-2">
+                  <img src={heroImage3} alt="Brautpaar Shooting Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+                </div>
+                <div className="col-span-2">
+                  <img src={heroImage4} alt="Hochzeit Fotograf Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+                </div>
+                <div className="col-span-2">
+                  <img src={heroImage5} alt="Emotionale Hochzeitsfotos Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+                </div>
               </div>
             </div>
           </div>

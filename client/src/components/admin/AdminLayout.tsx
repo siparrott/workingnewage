@@ -122,6 +122,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         { icon: Palette, label: t('nav.studioTemplates'), path: '/admin/studio-templates' },
         { icon: Wand2, label: t('nav.websiteWizard'), path: '/admin/website-wizard' },
         { icon: Search, label: t('nav.websiteAnalyzer'), path: '/admin/website-analyzer' },
+        { icon: FileText, label: 'Manual Website Update', path: '/admin/manual-website-update', badge: 'NEW' },
       ]
     },
     { 
@@ -367,7 +368,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                           <Link
                             key={subItem.path}
                             to={subItem.path}
-                            className={`flex items-center px-8 py-2 text-sm transition-colors ${
+                            className={`flex items-center px-8 py-2 text-sm transition-colors relative ${
                               isSubActive
                                 ? 'bg-purple-700 text-white border-r-2 border-purple-400'
                                 : 'text-gray-400 hover:bg-gray-700 hover:text-white'
@@ -375,6 +376,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                           >
                             <SubIcon size={16} className="flex-shrink-0" />
                             <span className="ml-3">{subItem.label}</span>
+                            {subItem.badge && (
+                              <span className="ml-2 px-2 py-0.5 text-xs font-semibold bg-green-500 text-white rounded-full">
+                                {subItem.badge}
+                              </span>
+                            )}
                           </Link>
                         );
                       })}

@@ -2,11 +2,11 @@ import React, { useEffect } from 'react';
 import Layout from '../components/layout/Layout';
 import { useNavigate } from 'react-router-dom';
 import { Clock, Users, Camera } from 'lucide-react';
-import { useLanguage } from '../context/LanguageContext';
+import { useManualPageContent } from '../hooks/useManualPageContent';
 
 const FotoshootingsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const t = useManualPageContent('photoshoots');
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });

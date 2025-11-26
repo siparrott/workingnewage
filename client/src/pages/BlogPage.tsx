@@ -4,6 +4,7 @@ import Layout from '../components/layout/Layout';
 // Supabase removed - blog data now served via Neon database API
 import { Calendar, ChevronRight, Tag, Search, Loader2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { useManualPageContent } from '../hooks/useManualPageContent';
 
 interface BlogPost {
   id: string;
@@ -28,7 +29,8 @@ interface BlogTag {
 }
 
 const BlogPage: React.FC = () => {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
+  const t = useManualPageContent('blog');
   const [searchParams, setSearchParams] = useSearchParams();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [tags, setTags] = useState<BlogTag[]>([]);

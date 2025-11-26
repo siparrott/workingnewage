@@ -4,10 +4,31 @@ import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link, useNavigate } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Briefcase, Linkedin, TrendingUp, Palette, Shield } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
+import { useManualPageContent } from '../../hooks/useManualPageContent';
 
 export default function BusinessPortraitWienPage() {
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const t = useManualPageContent('businessportraits');
+
+  const fromManual = (key: string, fallback: string) => {
+    const value = t(key);
+    if (!value || value === key) {
+      return fallback;
+    }
+    return value;
+  };
+
+  const heroTitle = fromManual('manual.businessportraits.heroTitle', 'Business-Portraits & Corporate-Fotografie in Wien');
+  const heroSubtitle = fromManual('manual.businessportraits.heroTagline', 'Starkes Bild. Klare Botschaft.');
+  const heroDescription = fromManual('manual.businessportraits.heroDescription', 'Ihre Business-Portraits entstehen bei New Age Fotografie im Studio in Wien – perfekt für LinkedIn, CEO-Porträts und Personal-Branding. Wir führen Sie entspannt durchs Shooting, coachen Ausdruck & Haltung und liefern vollständig retuschierte Dateien in High-Res – kommerzielle Nutzungsrechte inklusive.');
+  const primaryCta = fromManual('manual.businessportraits.primaryCta', 'Termin auf der Warteliste sichern');
+  const secondaryCta = fromManual('manual.businessportraits.secondaryCta', 'Business-Gutschein verschenken');
+  const heroImage1 = fromManual('manual.businessportraits.heroImage1', '/images/business-hero.jpg');
+  const heroImage2 = fromManual('manual.businessportraits.heroImage2', '/images/business-2.jpg');
+  const heroImage3 = fromManual('manual.businessportraits.heroImage3', '/images/business-3.jpg');
+  const heroImage4 = fromManual('manual.businessportraits.heroImage4', '/images/business-4.jpg');
+  const heroImage5 = fromManual('manual.businessportraits.heroImage5', '/images/business-5.jpg');
 
   const handleBookPackage = (packageName: string, price: number, description: string) => {
     addItem({
@@ -43,41 +64,48 @@ export default function BusinessPortraitWienPage() {
             {/* Left: Text Content */}
             <div>
               <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-                Business-Portraits & Corporate-Fotografie in Wien
+                {heroTitle}
               </h1>
               <p className="text-xl text-gray-300 mb-4 leading-relaxed font-semibold">
-                Starkes Bild. Klare Botschaft.
+                {heroSubtitle}
               </p>
               <p className="text-lg text-gray-400 mb-8 leading-relaxed">
-                Ihre <strong>Business-Portraits</strong> entstehen bei New Age Fotografie im Studio in Wien – perfekt für LinkedIn, 
-                CEO-Porträts und Personal-Branding. Wir führen Sie entspannt durchs Shooting, coachen Ausdruck & Haltung und liefern 
-                vollständig retuschierte Dateien in High-Res – kommerzielle Nutzungsrechte inklusive.
+                {heroDescription}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   to="/warteliste"
                   className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg"
                 >
-                  Termin auf der Warteliste sichern
+                  {primaryCta}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
                 <Link
                   to="/gutschein/business"
                   className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white rounded-lg hover:bg-white/10 transition-colors font-semibold text-lg"
                 >
-                  Business-Gutschein verschenken
+                  {secondaryCta}
                 </Link>
               </div>
             </div>
 
-            {/* Right: Hero Image */}
-            <div className="relative">
-              <img
-                src="/images/business-hero.jpg"
-                alt="Business Portrait Wien Studio"
-                className="rounded-2xl shadow-2xl w-full h-96 object-cover"
-                loading="eager"
-              />
+            {/* Right: Hero Images Grid (5 images total) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <img src={heroImage1} alt="Business Portrait Wien Studio" className="rounded-2xl shadow-2xl w-full h-auto object-contain" loading="eager" />
+              </div>
+              <div className="col-span-2">
+                <img src={heroImage2} alt="LinkedIn Foto Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              </div>
+              <div className="col-span-2">
+                <img src={heroImage3} alt="CEO Portrait Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              </div>
+              <div className="col-span-2">
+                <img src={heroImage4} alt="Corporate Fotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              </div>
+              <div className="col-span-2">
+                <img src={heroImage5} alt="Personal Branding Fotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              </div>
             </div>
           </div>
         </div>
@@ -104,9 +132,9 @@ export default function BusinessPortraitWienPage() {
             </div>
             <div>
               <img
-                src="https://i.postimg.cc/V6TFF8rC/00508749.jpg"
-                alt="Professionelles Business Portrait im Studio"
-                className="rounded-2xl shadow-lg w-full h-full object-cover"
+                src={heroImage4}
+                alt="Business Portrait Wien Studio"
+                className="rounded-2xl shadow-lg w-full h-auto object-contain"
                 loading="lazy"
               />
             </div>

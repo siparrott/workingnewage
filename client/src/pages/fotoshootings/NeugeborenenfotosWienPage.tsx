@@ -3,11 +3,35 @@ import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link, useNavigate } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Baby, Music, Smile, Shield, Thermometer } from 'lucide-react';
+import { useManualPageContent } from '../../hooks/useManualPageContent';
 import { useCart } from '../../context/CartContext';
 
 export default function NeugeborenenfotosWienPage() {
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const t = useManualPageContent('neugeborenenfotos');
+
+  const fromManual = (key: string, fallback: string) => {
+    const value = t(key);
+    if (!value || value === key) {
+      return fallback;
+    }
+    return value;
+  };
+
+  const heroTitle = fromManual('manual.neugeborenenfotos.heroTitle', 'Neugeborenen- & Babyfotografie in Wien');
+  const heroSubtitle = fromManual('manual.neugeborenenfotos.heroTagline', 'Neugeborenenfotos – Studio-Pakete (Tag 5–14 nach der Geburt)');
+  const heroDescription = fromManual(
+    'manual.neugeborenenfotos.heroDescription',
+    'Kurzversprechen: Warmes Studio (26–28 °C), sanfte Wraps, sichere Posen mit Hands-on-Safety. Neugeborenenfotos am besten Tag 5–14 nach der Geburt. Zeitplan flexibel – wenn Baby müde ist, machen wir Pause.'
+  );
+  const primaryCta = fromManual('manual.neugeborenenfotos.primaryCta', 'Termin auf der Warteliste sichern');
+  const secondaryCta = fromManual('manual.neugeborenenfotos.secondaryCta', 'Neugeborenen-Gutschein verschenken');
+  const heroImage1 = fromManual('manual.neugeborenenfotos.heroImage1', '');
+  const heroImage2 = fromManual('manual.neugeborenenfotos.heroImage2', '');
+  const heroImage3 = fromManual('manual.neugeborenenfotos.heroImage3', '');
+  const heroImage4 = fromManual('manual.neugeborenenfotos.heroImage4', '');
+  const heroImage5 = fromManual('manual.neugeborenenfotos.heroImage5', '');
 
   const handleBookPackage = (packageName: string, price: number, description: string) => {
     addItem({
@@ -42,28 +66,27 @@ export default function NeugeborenenfotosWienPage() {
             {/* Left: Text Content */}
             <div>
               <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
-                Neugeborenen- & Babyfotografie in Wien
+                {heroTitle}
               </h1>
               <p className="text-xl text-gray-700 mb-4 leading-relaxed font-semibold">
-                Pakete – Neugeborenen- & Babyfotos (Studio)
+                {heroSubtitle}
               </p>
               <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                <strong>Immer inklusive:</strong> Warmes Studio (26–28 °C), sanfte Wraps/Decken, sichere Posen mit Hands-on-Safety, 
-                Zeit für Still-/Fläschchenpausen, Eltern- & (falls vorhanden) Geschwisterportraits, private Nutzungsrechte.
+                {heroDescription}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   to="/warteliste"
                   className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg"
                 >
-                  Termin auf der Warteliste sichern
+                  {primaryCta}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
                 <Link
                   to="/gutschein/newborn"
                   className="inline-flex items-center justify-center px-8 py-4 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors font-semibold text-lg"
                 >
-                  Newborn-Gutschein verschenken
+                  {secondaryCta}
                 </Link>
               </div>
             </div>
@@ -72,25 +95,25 @@ export default function NeugeborenenfotosWienPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
                 <img
-                  src="/images/newborn-hero.jpg"
+                  src={heroImage1}
                   alt="Neugeborenen Fotoshooting in Wien"
-                  className="rounded-2xl shadow-2xl w-full h-80 object-cover"
+                  className="rounded-2xl shadow-2xl w-full h-auto object-contain"
                   loading="eager"
                 />
               </div>
               <div>
                 <img
-                  src="https://i.postimg.cc/V6TFF8rC/00508749.jpg"
+                  src={heroImage2}
                   alt="Newborn Portrait Studio Wien"
-                  className="rounded-xl shadow-lg w-full h-48 object-cover"
+                  className="rounded-xl shadow-lg w-full h-auto object-contain"
                   loading="eager"
                 />
               </div>
               <div>
                 <img
-                  src="https://i.imgur.com/3gctBYO.jpg"
+                  src={heroImage3}
                   alt="Baby Fotografie Wien"
-                  className="rounded-xl shadow-lg w-full h-48 object-cover"
+                  className="rounded-xl shadow-lg w-full h-auto object-contain"
                   loading="eager"
                 />
               </div>
@@ -120,9 +143,9 @@ export default function NeugeborenenfotosWienPage() {
             </div>
             <div>
               <img
-                src="https://i.postimg.cc/V6TFF8rC/00508749.jpg"
+                src={heroImage4}
                 alt="Neugeborenes im warmen Studio"
-                className="rounded-2xl shadow-lg w-full h-full object-cover"
+                className="rounded-2xl shadow-lg w-full h-auto object-contain"
                 loading="lazy"
               />
             </div>
@@ -338,9 +361,9 @@ export default function NeugeborenenfotosWienPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-12">
             <img
-              src="https://i.imgur.com/3gctBYO.jpg"
+              src={heroImage5}
               alt="Neugeborenen Fotografie Wien"
-              className="rounded-2xl shadow-lg w-full h-96 object-cover"
+              className="rounded-2xl shadow-lg w-full h-auto object-contain"
               loading="lazy"
             />
           </div>

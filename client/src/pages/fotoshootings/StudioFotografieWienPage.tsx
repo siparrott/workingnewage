@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Camera, Check, ArrowRight, Lightbulb, Users, Sparkles } from 'lucide-react';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
+import { useManualPageContent } from '../../hooks/useManualPageContent';
 
 interface SEOHeadProps {
   title: string;
@@ -34,6 +35,27 @@ const SEOHead: React.FC<SEOHeadProps> = ({ title, description, keywords, canonic
 };
 
 const StudioFotografieWienPage: React.FC = () => {
+  const t = useManualPageContent('studiofotografie');
+
+  const fromManual = (key: string, fallback: string) => {
+    const value = t(key);
+    if (!value || value === key) {
+      return fallback;
+    }
+    return value;
+  };
+
+  const heroTitle = fromManual('manual.studiofotografie.heroTitle', 'Professionelle Studio-Fotografie');
+  const heroSubtitle = fromManual('manual.studiofotografie.heroTagline', 'präzise & planbar');
+  const heroDescription = fromManual('manual.studiofotografie.heroDescription', 'Studio Fotografie Wien: Definierte Sets, Backdrops & Modifiers. Headshots, Portraits, Teams & Produkte. Ab €150. Jetzt Termin sichern.');
+  const primaryCta = fromManual('manual.studiofotografie.primaryCta', 'Jetzt Termin buchen');
+  const secondaryCta = fromManual('manual.studiofotografie.secondaryCta', 'Studio-Pakete ansehen');
+  const heroImage1 = fromManual('manual.studiofotografie.heroImage1', '/images/studio-hero.jpg');
+  const heroImage2 = fromManual('manual.studiofotografie.heroImage2', '/images/studio-2.jpg');
+  const heroImage3 = fromManual('manual.studiofotografie.heroImage3', '/images/studio-3.jpg');
+  const heroImage4 = fromManual('manual.studiofotografie.heroImage4', '/images/studio-4.jpg');
+  const heroImage5 = fromManual('manual.studiofotografie.heroImage5', '/images/studio-5.jpg');
+
   return (
     <Layout>
     <div className="min-h-screen bg-gray-50">
@@ -77,34 +99,56 @@ const StudioFotografieWienPage: React.FC = () => {
       </Helmet>
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-slate-900 via-purple-900 to-slate-800 text-white py-24">
+      <section className="relative bg-gradient-to-br from-slate-900 via-purple-900 to-slate-800 text-white pt-24 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
-              <Camera className="w-4 h-4" />
-              <span className="text-sm font-medium">Studio Fotografie Wien</span>
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Left: Text Content */}
+            <div>
+              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
+                <Camera className="w-4 h-4" />
+                <span className="text-sm font-medium">Studio Fotografie Wien</span>
+              </div>
+              <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
+                {heroTitle}<br />
+                <span className="text-purple-300">{heroSubtitle}</span>
+              </h1>
+              <p className="text-lg text-purple-100 mb-8 leading-relaxed">
+                {heroDescription}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link
+                  to="/warteliste/"
+                  className="inline-flex items-center justify-center gap-2 bg-purple-500 text-white px-8 py-4 rounded-lg font-semibold hover:bg-purple-600 transition-all transform hover:scale-105"
+                >
+                  {primaryCta}
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+                <a
+                  href="#pakete"
+                  className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-lg font-semibold hover:bg-white/20 transition-all border border-white/20"
+                >
+                  {secondaryCta}
+                </a>
+              </div>
             </div>
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-              Professionelle Studio-Fotografie<br />
-              <span className="text-purple-300">präzise & planbar</span>
-            </h1>
-            <p className="text-xl text-purple-100 mb-8 leading-relaxed">
-              Definierte Sets, kontrolliertes Licht, wiederholbare Ergebnisse – von Business-Headshots bis Family-Sessions in unserem Wien Studio.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                to="/warteliste/"
-                className="inline-flex items-center justify-center gap-2 bg-purple-500 text-white px-8 py-4 rounded-lg font-semibold hover:bg-purple-600 transition-all transform hover:scale-105"
-              >
-                Jetzt Studio-Termin anfragen
-                <ArrowRight className="w-5 h-5" />
-              </Link>
-              <a
-                href="#pakete"
-                className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-lg font-semibold hover:bg-white/20 transition-all border border-white/20"
-              >
-                Pakete & Preise
-              </a>
+
+            {/* Right: Hero Images Grid (5 images total) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <img src={heroImage1} alt="Studio Fotografie Wien – Professionelles Licht-Setup" className="rounded-2xl shadow-2xl w-full h-auto object-contain" loading="eager" />
+              </div>
+              <div className="col-span-2">
+                <img src={heroImage2} alt="Portrait Studio Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              </div>
+              <div className="col-span-2">
+                <img src={heroImage3} alt="Headshot Fotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              </div>
+              <div className="col-span-2">
+                <img src={heroImage4} alt="Studio Shooting Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              </div>
+              <div className="col-span-2">
+                <img src={heroImage5} alt="Professionelles Fotostudio Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              </div>
             </div>
           </div>
         </div>

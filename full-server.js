@@ -1334,86 +1334,117 @@ async function handleFilesAPI(req, res, pathname, query) {
     }
   }
 
-  // POST /api/files/upload - Upload file to a folder
+  // POST /api/files/upload - Upload file to Backblaze B2
   if (req.method === 'POST' && fileEndpoint === 'upload') {
     try {
       const busboy = require('busboy');
       const { v4: uuidv4 } = require('uuid');
-      const fs = require('fs');
-      const path = require('path');
+      const sharp = require('sharp');
       
       const bb = busboy({ headers: req.headers });
-      let folderId = null;
-      let folderName = null;
-      let uploadedFile = null;
+      let folderName = 'Manual Website Images';
+      let context = '';
+      const fileBuffers = [];
+      let fileInfo = null;
       
       bb.on('field', (fieldname, val) => {
-        if (fieldname === 'folderId') {
-          folderId = val;
-          console.log('📤 Upload - Received folderId:', folderId);
-        }
+        if (fieldname === 'folderName') folderName = val;
+        if (fieldname === 'context') context = val;
       });
       
-      bb.on('file', async (fieldname, file, info) => {
-        const { filename, mimeType } = info;
-        const fileId = uuidv4();
-        const uploadDir = path.join(__dirname, 'uploads');
-        
-        // Ensure upload directory exists
-        if (!fs.existsSync(uploadDir)) {
-          fs.mkdirSync(uploadDir, { recursive: true });
-        }
-        
-        const filePath = path.join(uploadDir, `${fileId}-${filename}`);
-        const writeStream = fs.createWriteStream(filePath);
-        
-        file.pipe(writeStream);
-        
-        writeStream.on('finish', async () => {
-          const stats = fs.statSync(filePath);
-          
-          // Get folder name if folderId was provided
-          if (folderId) {
-            try {
-              console.log('📤 Looking up folder for folderId:', folderId);
-              const folders = await sql`SELECT name FROM digital_folders WHERE id = ${parseInt(folderId)}`;
-              if (folders && folders.length > 0) {
-                folderName = folders[0].name;
-                console.log('📤 Found folder name:', folderName);
-              }
-            } catch (error) {
-              console.error('Error looking up folder:', error);
-            }
-          }
-          
-          // Insert file record into database
-          uploadedFile = await sql`
-            INSERT INTO digital_files (
-              id, file_name, file_type, file_size, folder_name,
-              uploaded_at, created_at, updated_at
-            ) VALUES (
-              ${fileId}, ${filename}, ${mimeType}, ${stats.size}, ${folderName},
-              NOW(), NOW(), NOW()
-            )
-            RETURNING *
-          `;
+      bb.on('file', (fieldname, file, info) => {
+        fileInfo = info;
+        file.on('data', (data) => {
+          fileBuffers.push(data);
         });
       });
       
-      bb.on('finish', () => {
-        if (uploadedFile && uploadedFile.length > 0) {
+      bb.on('finish', async () => {
+        try {
+          if (!fileInfo || fileBuffers.length === 0) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'No file uploaded' }));
+            return;
+          }
+
+          const fileBuffer = Buffer.concat(fileBuffers);
+          const { filename, mimeType } = fileInfo;
+          const fileId = uuidv4();
+          const fileExt = path.extname(filename);
+          
+          // Optimize images
+          let processedBuffer = fileBuffer;
+          let processedMime = mimeType;
+          
+          if (mimeType.startsWith('image/')) {
+            try {
+              processedBuffer = await sharp(fileBuffer)
+                .rotate()
+                .resize({ width: 1400, withoutEnlargement: true })
+                .webp({ quality: 75 })
+                .toBuffer();
+              processedMime = 'image/webp';
+            } catch (err) {
+              console.warn('[FILE UPLOAD] Image optimization failed:', err.message);
+            }
+          }
+          
+          // Upload to B2
+          const fileName = `${folderName}/${fileId}${processedMime === 'image/webp' ? '.webp' : fileExt}`;
+          
+          await s3Client.send(new PutObjectCommand({
+            Bucket: process.env.AWS_S3_BUCKET || '',
+            Key: fileName,
+            Body: processedBuffer,
+            ContentType: processedMime,
+            Metadata: {
+              originalName: filename,
+              context: context || 'manual-website',
+            },
+          }));
+          
+          // Build B2 URL
+          const bucket = process.env.AWS_S3_BUCKET || '';
+          const endpoint = process.env.AWS_S3_ENDPOINT || '';
+          let fileUrl = '';
+          
+          if (endpoint.includes('backblazeb2.com')) {
+            fileUrl = `https://${bucket}.${endpoint.replace('https://', '').replace(/\/$/, '')}/${fileName}`;
+          } else {
+            fileUrl = `${endpoint.replace(/\/$/, '')}/${bucket}/${fileName}`;
+          }
+          
+          // Insert file record
+          const uploadedFile = await sql`
+            INSERT INTO digital_files (
+              id, file_name, file_type, file_size, folder_name,
+              uploaded_at, created_at, updated_at, is_public
+            ) VALUES (
+              ${fileId}, ${filename}, ${processedMime}, ${processedBuffer.length}, ${folderName},
+              NOW(), NOW(), NOW(), true
+            )
+            RETURNING *
+          `;
+          
+          console.log('✅ File uploaded to B2:', fileName);
+          
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify(uploadedFile[0]));
-        } else {
+          res.end(JSON.stringify({
+            ...uploadedFile[0],
+            url: fileUrl,
+            message: 'File uploaded successfully to Backblaze B2'
+          }));
+        } catch (error) {
+          console.error('❌ File upload error:', error);
           res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Upload failed' }));
+          res.end(JSON.stringify({ error: error.message || 'Failed to upload file' }));
         }
       });
       
       req.pipe(bb);
       return;
     } catch (error) {
-      console.error('Failed to upload file:', error);
+      console.error('❌ Failed to upload file:', error);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Failed to upload file' }));
       return;
@@ -2401,6 +2432,195 @@ async function handleGalleryAPI(req, res, pathname, query) {
   // If no matching endpoint found
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Gallery API endpoint not found' }));
+}
+
+// Manual Pages API handler function
+async function handleManualPagesAPI(req, res, pathname, query) {
+  console.log('🔧 handleManualPagesAPI - Method:', req.method, 'Path:', pathname);
+  
+  let neon, sql;
+  try {
+    const neonModule = require('@neondatabase/serverless');
+    neon = neonModule.neon;
+    sql = neon(process.env.DATABASE_URL);
+  } catch (error) {
+    console.error('❌ Neon database not available:', error.message);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Database not available' }));
+    return;
+  }
+
+  try {
+    const pathParts = pathname.split('/').filter(Boolean);
+    const studioId = '550e8400-e29b-41d4-a716-446655440000'; // Demo studio ID
+
+    // GET /api/manual-pages/:pageId - Get content for a specific page
+    if (req.method === 'GET' && pathParts[2]) {
+      const pageId = pathParts[2];
+      const { language = 'de' } = query;
+
+      const records = await sql`
+        SELECT * FROM manual_page_content
+        WHERE studio_id = ${studioId}
+        AND page_id = ${pageId}
+        AND language = ${language}
+        LIMIT 1
+      `;
+
+      if (records.length === 0) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          pageId,
+          language,
+          publishedContent: {},
+          draftContent: {},
+          status: 'none'
+        }));
+        return;
+      }
+
+      // Convert snake_case to camelCase for frontend
+      const record = records[0];
+      const response = {
+        id: record.id,
+        studioId: record.studio_id,
+        pageId: record.page_id,
+        language: record.language,
+        draftContent: record.draft_content || {},
+        publishedContent: record.published_content || {},
+        status: record.status,
+        publishedAt: record.published_at,
+        createdAt: record.created_at,
+        updatedAt: record.updated_at
+      };
+
+      console.log('📄 Returning manual page data - publishedContent keys:', Object.keys(response.publishedContent));
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(response));
+      return;
+    }
+
+    // POST /api/manual-pages/:pageId - Save or publish page content
+    if (req.method === 'POST' && pathParts[2]) {
+      const pageId = pathParts[2];
+      let body = '';
+      
+      req.on('data', chunk => { body += chunk.toString(); });
+      req.on('end', async () => {
+        try {
+          console.log('📝 Manual Pages POST - pageId:', pageId, 'body length:', body.length);
+          const { language = 'de', draftContent, action } = JSON.parse(body);
+          console.log('📝 Parsed data - language:', language, 'action:', action, 'draftContent keys:', Object.keys(draftContent || {}).length);
+
+          // Check if record exists
+          const existing = await sql`
+            SELECT * FROM manual_page_content
+            WHERE studio_id = ${studioId}
+            AND page_id = ${pageId}
+            AND language = ${language}
+            LIMIT 1
+          `;
+          
+          console.log('📝 Existing records found:', existing.length);
+
+          if (action === 'publish') {
+            // Publish: move draftContent to publishedContent
+            if (existing.length > 0) {
+              console.log('📝 Updating existing record for publish...');
+              const updated = await sql`
+                UPDATE manual_page_content
+                SET published_content = ${JSON.stringify(draftContent)},
+                    status = 'published',
+                    published_at = NOW(),
+                    updated_at = NOW()
+                WHERE studio_id = ${studioId}
+                AND page_id = ${pageId}
+                AND language = ${language}
+                RETURNING *
+              `;
+              console.log('✅ Published successfully:', updated[0].id);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify(updated[0]));
+            } else {
+              console.log('📝 Creating new record for publish...');
+              const created = await sql`
+                INSERT INTO manual_page_content (
+                  studio_id, page_id, language, draft_content, published_content, status, published_at
+                ) VALUES (
+                  ${studioId}, ${pageId}, ${language}, ${JSON.stringify(draftContent)}, ${JSON.stringify(draftContent)}, 'published', NOW()
+                )
+                RETURNING *
+              `;
+              console.log('✅ Created and published successfully:', created[0].id);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify(created[0]));
+            }
+          } else {
+            // Save draft
+            if (existing.length > 0) {
+              console.log('📝 Updating existing draft...');
+              const updated = await sql`
+                UPDATE manual_page_content
+                SET draft_content = ${JSON.stringify(draftContent)},
+                    status = 'draft',
+                    updated_at = NOW()
+                WHERE studio_id = ${studioId}
+                AND page_id = ${pageId}
+                AND language = ${language}
+                RETURNING *
+              `;
+              console.log('✅ Draft saved successfully:', updated[0].id);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify(updated[0]));
+            } else {
+              console.log('📝 Creating new draft...');
+              const created = await sql`
+                INSERT INTO manual_page_content (
+                  studio_id, page_id, language, draft_content, status
+                ) VALUES (
+                  ${studioId}, ${pageId}, ${language}, ${JSON.stringify(draftContent)}, 'draft'
+                )
+                RETURNING *
+              `;
+              console.log('✅ Draft created successfully:', created[0].id);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify(created[0]));
+            }
+          }
+        } catch (error) {
+          console.error('❌ Manual page save error:', error);
+          console.error('❌ Error stack:', error.stack);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Failed to save page content', details: error.message }));
+        }
+      });
+      return;
+    }
+
+    // DELETE /api/manual-pages/:pageId - Reset page content
+    if (req.method === 'DELETE' && pathParts[2]) {
+      const pageId = pathParts[2];
+      const { language = 'de' } = query;
+
+      await sql`
+        DELETE FROM manual_page_content
+        WHERE studio_id = ${studioId}
+        AND page_id = ${pageId}
+        AND language = ${language}
+      `;
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true }));
+      return;
+    }
+
+  } catch (error) {
+    console.error('❌ Manual Pages API error:', error);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Internal server error' }));
+    return;
+  }
 }
 
 const port = process.env.PORT || 3001;
@@ -9751,6 +9971,18 @@ New Age Fotografie Team`;
         }
         return;
       }
+
+      // Manual Pages API endpoints
+      if (pathname.startsWith('/api/manual-pages')) {
+        try {
+          await handleManualPagesAPI(req, res, pathname, parsedUrl.query);
+        } catch (error) {
+          console.error('❌ Manual Pages API error:', error.message);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: error.message }));
+        }
+        return;
+      }
     }
       // End of /api/* handling
 
@@ -9995,7 +10227,12 @@ New Age Fotografie Team`;
             res.writeHead(500);
             res.end('Server Error: Cannot load application');
           } else {
-            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.writeHead(200, { 
+              'Content-Type': 'text/html',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            });
             res.end(content, 'utf-8');
           }
         });
@@ -10004,7 +10241,14 @@ New Age Fotografie Team`;
         res.end('Server Error: ' + error.code);
       }
     } else {
-      res.writeHead(200, { 'Content-Type': contentType });
+      // Add no-cache headers for HTML and JS to prevent stale client code
+      const headers = { 'Content-Type': contentType };
+      if (extname === '.html' || extname === '.js' || extname === '.css') {
+        headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+        headers['Pragma'] = 'no-cache';
+        headers['Expires'] = '0';
+      }
+      res.writeHead(200, headers);
       res.end(content, 'utf-8');
     }
   });

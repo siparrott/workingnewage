@@ -5,10 +5,31 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Briefcase, Shield, Zap, Eye, MonitorPlay, Award, Building } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import { useCart } from '../../context/CartContext';
+import { useManualPageContent } from '../../hooks/useManualPageContent';
 
 export default function EventfotografieWienPage() {
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const t = useManualPageContent('eventfotografie');
+
+  const fromManual = (key: string, fallback: string) => {
+    const value = t(key);
+    if (!value || value === key) {
+      return fallback;
+    }
+    return value;
+  };
+
+  const heroTitle = fromManual('manual.eventfotografie.heroTitle', 'Eventfotografie in Wien');
+  const heroSubtitle = fromManual('manual.eventfotografie.heroTagline', 'Großes Event. Klare Bilder. Null Stress.');
+  const heroDescription = fromManual('manual.eventfotografie.heroDescription', 'Als eventfotograf wien dokumentieren wir Konferenzen, Brand-Launches und Corporate-Events präzise, unauffällig und on-brand – vom Check-in bis zum Closing Shot.');
+  const primaryCta = fromManual('manual.eventfotografie.primaryCta', 'Termin auf der Warteliste sichern');
+  const secondaryCta = fromManual('manual.eventfotografie.secondaryCta', 'Direkt anfragen');
+  const heroImage1 = fromManual('manual.eventfotografie.heroImage1', '/images/event-hero.jpg');
+  const heroImage2 = fromManual('manual.eventfotografie.heroImage2', '/images/event-2.jpg');
+  const heroImage3 = fromManual('manual.eventfotografie.heroImage3', '/images/event-3.jpg');
+  const heroImage4 = fromManual('manual.eventfotografie.heroImage4', '/images/event-4.jpg');
+  const heroImage5 = fromManual('manual.eventfotografie.heroImage5', '/images/event-5.jpg');
 
   const handleBookPackage = (packageName: string, price: number, description: string) => {
     addItem({
@@ -79,40 +100,48 @@ export default function EventfotografieWienPage() {
             {/* Left: Text Content */}
             <div>
               <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-                Eventfotografie in Wien
+                {heroTitle}
               </h1>
               <p className="text-xl text-gray-300 mb-4 leading-relaxed font-semibold">
-                Großes Event. Klare Bilder. Null Stress.
+                {heroSubtitle}
               </p>
               <p className="text-lg text-gray-400 mb-8 leading-relaxed">
-                Als <strong>eventfotograf wien</strong> dokumentieren wir Konferenzen, Brand-Launches und 
-                Corporate-Events präzise, unauffällig und on-brand – vom Check-in bis zum Closing Shot.
+                {heroDescription}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   to="/warteliste"
                   className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg"
                 >
-                  Termin auf der Warteliste sichern
+                  {primaryCta}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
                 <Link
                   to="/kontakt"
                   className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white rounded-lg hover:bg-white/10 transition-colors font-semibold text-lg"
                 >
-                  Projekt anfragen
+                  {secondaryCta}
                 </Link>
               </div>
             </div>
 
-            {/* Right: Hero Image */}
-            <div className="relative">
-              <img
-                src="/images/event-hero.jpg"
-                alt="eventfotograf wien – Keynote mit vollem Saal, Rathaus Wien"
-                className="rounded-2xl shadow-2xl w-full h-96 object-cover"
-                loading="eager"
-              />
+            {/* Right: Hero Images Grid (5 images total) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <img src={heroImage1} alt="eventfotograf wien – Keynote mit vollem Saal, Rathaus Wien" className="rounded-2xl shadow-2xl w-full h-auto object-contain" loading="eager" />
+              </div>
+              <div className="col-span-2">
+                <img src={heroImage2} alt="Konferenzfotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              </div>
+              <div className="col-span-2">
+                <img src={heroImage3} alt="Messefotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              </div>
+              <div className="col-span-2">
+                <img src={heroImage4} alt="Brand Launch Fotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              </div>
+              <div className="col-span-2">
+                <img src={heroImage5} alt="Corporate Event Fotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              </div>
             </div>
           </div>
         </div>

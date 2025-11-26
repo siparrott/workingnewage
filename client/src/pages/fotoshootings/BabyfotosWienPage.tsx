@@ -5,10 +5,31 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Baby, Shield, Music, Smile, Package, Sun, Home, Eye, Hand } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import { useCart } from '../../context/CartContext';
+import { useManualPageContent } from '../../hooks/useManualPageContent';
 
 export default function BabyfotosWienPage() {
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const t = useManualPageContent('babyfotos');
+
+  const fromManual = (key: string, fallback: string) => {
+    const value = t(key);
+    if (!value || value === key) {
+      return fallback;
+    }
+    return value;
+  };
+
+  const heroTitle = fromManual('manual.babyfotos.heroTitle', 'Babyfotos (3–12 Monate) in Wien');
+  const heroSubtitle = fromManual('manual.babyfotos.heroTagline', 'Echte Babyzeit. Echte Mimik.');
+  const heroDescription = fromManual('manual.babyfotos.heroDescription', 'Von Bauchlage bis Sitzpirouette – wir halten dein Kind genau so fest, wie es jetzt ist. Bei babyfotos wien im Studio oder Outdoor bleibt alles entspannt, sicher und kindgerecht.');
+  const primaryCta = fromManual('manual.babyfotos.primaryCta', 'Termin auf der Warteliste sichern');
+  const secondaryCta = fromManual('manual.babyfotos.secondaryCta', 'Baby-Gutschein kaufen');
+  const heroImage1 = fromManual('manual.babyfotos.heroImage1', 'https://i.postimg.cc/V6TFF8rC/00508749.jpg');
+  const heroImage2 = fromManual('manual.babyfotos.heroImage2', '/images/baby-sitting.jpg');
+  const heroImage3 = fromManual('manual.babyfotos.heroImage3', '/images/baby-smile.jpg');
+  const heroImage4 = fromManual('manual.babyfotos.heroImage4', '/images/baby-4.jpg');
+  const heroImage5 = fromManual('manual.babyfotos.heroImage5', '/images/baby-5.jpg');
 
   const handleBookPackage = (packageName: string, price: number, description: string) => {
     addItem({
@@ -70,54 +91,57 @@ export default function BabyfotosWienPage() {
             {/* Left: Text Content */}
             <div>
               <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
-                Babyfotos (3–12 Monate) in Wien
+                {heroTitle}
               </h1>
               <p className="text-xl text-gray-700 mb-4 leading-relaxed font-semibold">
-                Echte Babyzeit. Echte Mimik.
+                {heroSubtitle}
               </p>
               <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                Von Bauchlage bis Sitzpirouette – wir halten dein Kind genau so fest, wie es jetzt ist. 
-                Bei <strong>babyfotos wien</strong> im Studio oder Outdoor bleibt alles entspannt, sicher und kindgerecht.
+                {heroDescription}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   to="/warteliste"
                   className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg"
                 >
-                  Termin auf der Warteliste sichern
+                  {primaryCta}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
                 <Link
                   to="/gutschein/baby"
                   className="inline-flex items-center justify-center px-8 py-4 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors font-semibold text-lg"
                 >
-                  Baby-Gutschein kaufen
+                  {secondaryCta}
                 </Link>
               </div>
             </div>
 
-            {/* Right: Hero Image */}
+            {/* Right: Hero Images Grid */}
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
                 <img
-                  src="https://i.postimg.cc/V6TFF8rC/00508749.jpg"
+                  src={heroImage1}
                   alt="babyfotos wien – 6 Monate, Bauchlage im Studio"
-                  className="rounded-2xl shadow-xl w-full h-64 object-cover"
+                  className="rounded-2xl shadow-xl w-full h-auto object-contain"
                   loading="eager"
                 />
               </div>
-              <img
-                src="/images/baby-sitting.jpg"
-                alt="babyfotos wien – Sitter-Phase Baby 7 Monate"
-                className="rounded-2xl shadow-lg w-full h-48 object-cover"
-                loading="eager"
-              />
-              <img
-                src="/images/baby-smile.jpg"
-                alt="babyfotos wien – lachendes Baby im Studio"
-                className="rounded-2xl shadow-lg w-full h-48 object-cover"
-                loading="eager"
-              />
+              <div>
+                <img
+                  src={heroImage2}
+                  alt="babyfotos wien – Sitter-Phase Baby 7 Monate"
+                  className="rounded-xl shadow-lg w-full h-auto object-contain"
+                  loading="eager"
+                />
+              </div>
+              <div>
+                <img
+                  src={heroImage3}
+                  alt="babyfotos wien – lachendes Baby im Studio"
+                  className="rounded-xl shadow-lg w-full h-auto object-contain"
+                  loading="eager"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -172,7 +196,7 @@ export default function BabyfotosWienPage() {
               <img
                 src="https://i.imgur.com/3gctBYO.jpg"
                 alt="Unterschied Neugeborene und Babyfotos Wien"
-                className="rounded-2xl shadow-lg w-full h-full object-cover"
+                className="rounded-2xl shadow-lg w-full h-auto object-contain"
                 loading="lazy"
               />
             </div>

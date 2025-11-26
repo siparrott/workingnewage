@@ -9,7 +9,8 @@ import {
   decimal, 
   jsonb,
   date,
-  pgEnum
+  pgEnum,
+  uniqueIndex
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -224,6 +225,21 @@ export const studioAvailableSlots = pgTable("studio_available_slots", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+export const manualPageContent = pgTable("manual_page_content", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  studioId: uuid("studio_id").references(() => studioConfigs.id, { onDelete: "cascade" }).notNull(),
+  pageId: text("page_id").notNull(),
+  language: text("language").notNull().default("de"),
+  draftContent: jsonb("draft_content").$type<Record<string, string>>().default({}),
+  publishedContent: jsonb("published_content").$type<Record<string, string>>().default({}),
+  status: text("status").default("draft"),
+  publishedAt: timestamp("published_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  pageLanguageStudioUnique: uniqueIndex("manual_page_content_unique").on(table.studioId, table.pageId, table.language)
+}));
 
 // Voucher Products (what customers can buy)
 export const voucherProducts = pgTable("voucher_products", {
@@ -1153,6 +1169,9 @@ export const insertAdminUserSchema = createInsertSchema(adminUsers, {
 
 export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
 export type AdminUser = typeof adminUsers.$inferSelect;
+
+export type ManualPageContent = typeof manualPageContent.$inferSelect;
+export type InsertManualPageContent = typeof manualPageContent.$inferInsert;
 
 // ========== MULTI-STUDIO AI OPERATOR TABLES ==========
 

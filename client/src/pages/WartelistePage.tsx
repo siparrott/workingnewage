@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
 import { Calendar, Mail, Phone, User } from 'lucide-react';
 import { submitWaitlistForm } from '../lib/forms';
-import { useLanguage } from '../context/LanguageContext';
+import { useManualPageContent } from '../hooks/useManualPageContent';
 
 const WartelistePage: React.FC = () => {
-  const { t } = useLanguage();
+  const t = useManualPageContent('waitlist');
   const [formData, setFormData] = useState({
     fullName: '',
     preferredDate: '',
@@ -96,7 +96,7 @@ const WartelistePage: React.FC = () => {
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-purple-600 transition-colors"
-                placeholder="Ihr vollständiger Name"
+                placeholder={t('waitlist.fullNamePlaceholder')}
               />
             </div>
 

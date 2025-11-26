@@ -2,11 +2,11 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, ArrowLeft, Download, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useLanguage } from '../context/LanguageContext';
+import { useManualPageContent } from '../hooks/useManualPageContent';
 
 const VoucherSuccessPage: React.FC = () => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const t = useManualPageContent('voucher-success');
 
   return (
     <div className="min-h-screen bg-gray-50">

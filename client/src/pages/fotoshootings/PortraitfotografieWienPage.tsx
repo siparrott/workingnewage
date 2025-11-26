@@ -5,10 +5,31 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Camera, Sparkles, ArrowRight, Check, MapPin } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
+import { useManualPageContent } from '../../hooks/useManualPageContent';
 
 export default function PortraitfotografieWienPage() {
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const t = useManualPageContent('portraitfotografie');
+
+  const fromManual = (key: string, fallback: string) => {
+    const value = t(key);
+    if (!value || value === key) {
+      return fallback;
+    }
+    return value;
+  };
+
+  const heroTitle = fromManual('manual.portraitfotografie.heroTitle', 'Portraitfotografie in Wien');
+  const heroSubtitle = fromManual('manual.portraitfotografie.heroTagline', 'Echte Ausstrahlung. Saubere Lichtführung. Bilder, die bleiben.');
+  const heroDescription = fromManual('manual.portraitfotografie.heroDescription', 'Als portraitfotograf wien inszenieren wir dich so, wie du gesehen werden willst – editorial, klassisch oder kreativ. Im Studio oder on location. Ohne steife Posen, mit klarer Richtung und Tempo.');
+  const primaryCta = fromManual('manual.portraitfotografie.primaryCta', 'Termin sichern');
+  const secondaryCta = fromManual('manual.portraitfotografie.secondaryCta', 'Beratung & Verfügbarkeit');
+  const heroImage1 = fromManual('manual.portraitfotografie.heroImage1', '/images/portrait-hero.jpg');
+  const heroImage2 = fromManual('manual.portraitfotografie.heroImage2', '/images/portrait-2.jpg');
+  const heroImage3 = fromManual('manual.portraitfotografie.heroImage3', '/images/portrait-3.jpg');
+  const heroImage4 = fromManual('manual.portraitfotografie.heroImage4', '/images/portrait-4.jpg');
+  const heroImage5 = fromManual('manual.portraitfotografie.heroImage5', '/images/portrait-5.jpg');
 
   const handleBookPackage = (packageName: string, price: number, description: string) => {
     addItem({
@@ -57,32 +78,41 @@ export default function PortraitfotografieWienPage() {
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div>
                 <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-                  Portraitfotografie in Wien
+                  {heroTitle}
                 </h1>
                 <p className="text-xl text-gray-300 mb-3 leading-relaxed font-semibold">
-                  Echte Ausstrahlung. Saubere Lichtführung. Bilder, die bleiben.
+                  {heroSubtitle}
                 </p>
                 <p className="text-lg text-gray-300/90 mb-8 leading-relaxed">
-                  Als <strong>portraitfotograf wien</strong> inszenieren wir dich so, wie du gesehen werden willst –
-                  editorial, klassisch oder kreativ. Im Studio oder on location. Ohne steife Posen, mit klarer Richtung und Tempo.
+                  {heroDescription}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link to="/warteliste" className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg">
-                    Termin sichern
+                    {primaryCta}
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                   <Link to="/kontakt" className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white rounded-lg hover:bg-white/10 transition-colors font-semibold text-lg">
-                    Beratung & Verfügbarkeit
+                    {secondaryCta}
                   </Link>
                 </div>
               </div>
-              <div className="relative">
-                <img
-                  src="/images/portrait-hero.jpg"
-                  alt="portraitfotograf wien – Editorial-Look mit Kantenlicht auf schwarzem Hintergrund"
-                  className="rounded-2xl shadow-2xl w-full h-96 object-cover"
-                  loading="eager"
-                />
+              {/* Right: Hero Images Grid (5 images total) */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <img src={heroImage1} alt="portraitfotograf wien – Editorial-Look mit Kantenlicht auf schwarzem Hintergrund" className="rounded-2xl shadow-2xl w-full h-auto object-contain" loading="eager" />
+                </div>
+                <div className="col-span-2">
+                  <img src={heroImage2} alt="Portrait Fotografie Wien Studio" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+                </div>
+                <div className="col-span-2">
+                  <img src={heroImage3} alt="Klassisches Portrait Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+                </div>
+                <div className="col-span-2">
+                  <img src={heroImage4} alt="Kreatives Portrait Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+                </div>
+                <div className="col-span-2">
+                  <img src={heroImage5} alt="Professionelle Portraitfotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+                </div>
               </div>
             </div>
           </div>

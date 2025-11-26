@@ -3,8 +3,30 @@ import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Briefcase, Linkedin, TrendingUp, Palette, Shield, Eye } from 'lucide-react';
+import { useManualPageContent } from '../../hooks/useManualPageContent';
 
 export default function BewerbungsfotosWienPage() {
+  const t = useManualPageContent('bewerbungsfotos');
+
+  const fromManual = (key: string, fallback: string) => {
+    const value = t(key);
+    if (!value || value === key) {
+      return fallback;
+    }
+    return value;
+  };
+
+  const heroTitle = fromManual('manual.bewerbungsfotos.heroTitle', 'Bewerbungsfotos & LinkedIn-Portraits in Wien');
+  const heroSubtitle = fromManual('manual.bewerbungsfotos.heroTagline', 'Klar, professionell, sympathisch.');
+  const heroDescription = fromManual('manual.bewerbungsfotos.heroDescription', 'Ihre Bewerbungsfotos in Wien entstehen bei uns im Studio mit sicherem Posing-Coaching, schnellen Lieferzeiten und Hintergründen, die zu Ihrer Branche passen. Perfekt für Lebenslauf, LinkedIn, Xing, E-Mail-Signatur & Firmenprofil.');
+  const primaryCta = fromManual('manual.bewerbungsfotos.primaryCta', 'Termin auf der Warteliste sichern');
+  const secondaryCta = fromManual('manual.bewerbungsfotos.secondaryCta', 'Alle Preise ansehen');
+  const heroImage1 = fromManual('manual.bewerbungsfotos.heroImage1', '/images/bewerbung-hero.jpg');
+  const heroImage2 = fromManual('manual.bewerbungsfotos.heroImage2', '/images/bewerbung-2.jpg');
+  const heroImage3 = fromManual('manual.bewerbungsfotos.heroImage3', '/images/bewerbung-3.jpg');
+  const heroImage4 = fromManual('manual.bewerbungsfotos.heroImage4', '/images/bewerbung-4.jpg');
+  const heroImage5 = fromManual('manual.bewerbungsfotos.heroImage5', '/images/bewerbung-5.jpg');
+
   return (
     <Layout>
     <div className="min-h-screen bg-white">
@@ -28,41 +50,48 @@ export default function BewerbungsfotosWienPage() {
             {/* Left: Text Content */}
             <div>
               <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-                Bewerbungsfotos & LinkedIn-Portraits in Wien
+                {heroTitle}
               </h1>
               <p className="text-xl text-gray-300 mb-4 leading-relaxed font-semibold">
-                Klar, professionell, sympathisch.
+                {heroSubtitle}
               </p>
               <p className="text-lg text-gray-400 mb-8 leading-relaxed">
-                Ihre <strong>Bewerbungsfotos in Wien</strong> entstehen bei uns im Studio mit sicherem Posing-Coaching, 
-                schnellen Lieferzeiten und Hintergründen, die zu Ihrer Branche passen. Perfekt für Lebenslauf, LinkedIn, 
-                Xing, E-Mail-Signatur & Firmenprofil.
+                {heroDescription}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   to="/warteliste"
                   className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg"
                 >
-                  Termin auf der Warteliste sichern
+                  {primaryCta}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
                 <Link
                   to="/preise"
                   className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white rounded-lg hover:bg-white/10 transition-colors font-semibold text-lg"
                 >
-                  Alle Preise ansehen
+                  {secondaryCta}
                 </Link>
               </div>
             </div>
 
-            {/* Right: Hero Image */}
-            <div className="relative">
-              <img
-                src="/images/bewerbung-hero.jpg"
-                alt="Bewerbungsfotos Wien Studio"
-                className="rounded-2xl shadow-2xl w-full h-96 object-cover"
-                loading="eager"
-              />
+            {/* Right: Hero Images Grid (5 images total) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <img src={heroImage1} alt="Bewerbungsfotos Wien Studio" className="rounded-2xl shadow-2xl w-full h-auto object-contain" loading="eager" />
+              </div>
+              <div className="col-span-2">
+                <img src={heroImage2} alt="LinkedIn Portrait Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              </div>
+              <div className="col-span-2">
+                <img src={heroImage3} alt="Professionelles Bewerbungsfoto Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              </div>
+              <div className="col-span-2">
+                <img src={heroImage4} alt="XING Foto Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              </div>
+              <div className="col-span-2">
+                <img src={heroImage5} alt="Business Portrait Bewerbung Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              </div>
             </div>
           </div>
         </div>
@@ -90,9 +119,9 @@ export default function BewerbungsfotosWienPage() {
             </div>
             <div>
               <img
-                src="https://i.postimg.cc/V6TFF8rC/00508749.jpg"
-                alt="Professionelles Bewerbungsfoto im Studio"
-                className="rounded-2xl shadow-lg w-full h-full object-cover"
+                src={heroImage4}
+                alt="Bewerbungsfotos Wien Studio"
+                className="rounded-2xl shadow-lg w-full h-auto object-contain"
                 loading="lazy"
               />
             </div>

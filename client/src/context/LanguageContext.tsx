@@ -476,6 +476,18 @@ const translations = {
     'vouchers.soldOut': 'Sold out',
     'vouchers.resetFilters': 'Reset filters',
     
+    // Gift Cards Landing
+    'giftCards.heroTitle': 'Photoshoot Gift Cards Vienna',
+    'giftCards.heroSubtitle': 'Give unforgettable family, maternity, or newborn experiences with a beautifully designed gift voucher.',
+    'giftCards.sectionIntro': 'Choose a package below and receive a digital voucher instantly for the perfect last-minute surprise.',
+    'giftCards.familyTitle': 'Family Photoshoot Gift Card',
+    'giftCards.familyDescription': 'Unforgettable memories for the whole family with relaxed studio sessions.',
+    'giftCards.pregnancyTitle': 'Pregnancy Photoshoot Gift Card',
+    'giftCards.pregnancyDescription': 'Celebrate the magic of motherhood with elegant portraits.',
+    'giftCards.newbornTitle': 'Newborn Photoshoot Gift Card',
+    'giftCards.newbornDescription': 'Capture the first precious days of your baby with gentle posing and styling.',
+    'giftCards.buttonLabel': 'Learn more',
+    
     // Category translations
     'category.Familie': 'Family',
     'category.Baby': 'Baby',
@@ -1088,6 +1100,18 @@ const translations = {
     'vouchers.available': 'verfügbar',
     'vouchers.soldOut': 'Ausverkauft',
     'vouchers.resetFilters': 'Filter zurücksetzen',
+    
+    // Geschenk-Gutscheine Landing
+    'giftCards.heroTitle': 'Fotoshooting Gutscheine Wien',
+    'giftCards.heroSubtitle': 'Verschenken Sie unvergessliche Familien-, Schwangerschafts- oder Neugeborenenshootings als stilvollen Gutschein.',
+    'giftCards.sectionIntro': 'Wählen Sie das passende Paket und erhalten Sie den digitalen Gutschein sofort per E-Mail.',
+    'giftCards.familyTitle': 'Familien Fotoshooting Gutschein',
+    'giftCards.familyDescription': 'Unvergessliche Momente für die ganze Familie in unserem Studio.',
+    'giftCards.pregnancyTitle': 'Schwangerschafts Fotoshooting Gutschein',
+    'giftCards.pregnancyDescription': 'Magische Babybauchporträts voller Eleganz und Emotion.',
+    'giftCards.newbornTitle': 'Neugeborenen Fotoshooting Gutschein',
+    'giftCards.newbornDescription': 'Die ersten kostbaren Tage Ihres Babys mit viel Feingefühl festgehalten.',
+    'giftCards.buttonLabel': 'Mehr erfahren',
     
     // Blog Page
     'blog.title': 'Fotografie Blog - Tipps & Inspiration',
