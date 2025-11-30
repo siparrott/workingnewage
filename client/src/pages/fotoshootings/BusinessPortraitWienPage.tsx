@@ -24,11 +24,11 @@ export default function BusinessPortraitWienPage() {
   const heroDescription = fromManual('manual.businessportraits.heroDescription', 'Ihre Business-Portraits entstehen bei New Age Fotografie im Studio in Wien – perfekt für LinkedIn, CEO-Porträts und Personal-Branding. Wir führen Sie entspannt durchs Shooting, coachen Ausdruck & Haltung und liefern vollständig retuschierte Dateien in High-Res – kommerzielle Nutzungsrechte inklusive.');
   const primaryCta = fromManual('manual.businessportraits.primaryCta', 'Termin auf der Warteliste sichern');
   const secondaryCta = fromManual('manual.businessportraits.secondaryCta', 'Business-Gutschein verschenken');
-  const heroImage1 = fromManual('manual.businessportraits.heroImage1', '/images/business-hero.jpg');
-  const heroImage2 = fromManual('manual.businessportraits.heroImage2', '/images/business-2.jpg');
-  const heroImage3 = fromManual('manual.businessportraits.heroImage3', '/images/business-3.jpg');
-  const heroImage4 = fromManual('manual.businessportraits.heroImage4', '/images/business-4.jpg');
-  const heroImage5 = fromManual('manual.businessportraits.heroImage5', '/images/business-5.jpg');
+  const heroImage1 = fromManual('manual.businessportraits.heroImage1', '');
+  const heroImage2 = fromManual('manual.businessportraits.heroImage2', '');
+  const heroImage3 = fromManual('manual.businessportraits.heroImage3', '');
+  const heroImage4 = fromManual('manual.businessportraits.heroImage4', '');
+  const heroImage5 = fromManual('manual.businessportraits.heroImage5', '');
 
   const handleBookPackage = (packageName: string, price: number, description: string) => {
     addItem({
@@ -89,22 +89,31 @@ export default function BusinessPortraitWienPage() {
               </div>
             </div>
 
-            {/* Right: Hero Images Grid (5 images total) */}
+            {/* Right: Hero Images Grid */}
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <img src={heroImage1} alt="Business Portrait Wien Studio" className="rounded-2xl shadow-2xl w-full h-auto object-contain" loading="eager" />
+                <img
+                  src={heroImage1}
+                  alt="Business Portrait Wien Studio"
+                  className="rounded-2xl shadow-2xl w-full h-auto object-contain"
+                  loading="eager"
+                />
               </div>
-              <div className="col-span-2">
-                <img src={heroImage2} alt="LinkedIn Foto Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              <div>
+                <img
+                  src={heroImage2}
+                  alt="LinkedIn Foto Wien"
+                  className="rounded-xl shadow-lg w-full h-auto object-contain"
+                  loading="eager"
+                />
               </div>
-              <div className="col-span-2">
-                <img src={heroImage3} alt="CEO Portrait Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
-              </div>
-              <div className="col-span-2">
-                <img src={heroImage4} alt="Corporate Fotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
-              </div>
-              <div className="col-span-2">
-                <img src={heroImage5} alt="Personal Branding Fotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              <div>
+                <img
+                  src={heroImage3}
+                  alt="CEO Portrait Wien"
+                  className="rounded-xl shadow-lg w-full h-auto object-contain"
+                  loading="eager"
+                />
               </div>
             </div>
           </div>
@@ -387,9 +396,9 @@ export default function BusinessPortraitWienPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-12">
             <img
-              src="https://i.imgur.com/3gctBYO.jpg"
+              src={heroImage5}
               alt="Business Portrait Shooting Ablauf"
-              className="rounded-2xl shadow-lg w-full h-96 object-cover"
+              className="rounded-2xl shadow-lg w-full h-auto object-contain"
               loading="lazy"
             />
           </div>

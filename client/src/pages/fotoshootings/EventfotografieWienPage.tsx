@@ -25,11 +25,11 @@ export default function EventfotografieWienPage() {
   const heroDescription = fromManual('manual.eventfotografie.heroDescription', 'Als eventfotograf wien dokumentieren wir Konferenzen, Brand-Launches und Corporate-Events präzise, unauffällig und on-brand – vom Check-in bis zum Closing Shot.');
   const primaryCta = fromManual('manual.eventfotografie.primaryCta', 'Termin auf der Warteliste sichern');
   const secondaryCta = fromManual('manual.eventfotografie.secondaryCta', 'Direkt anfragen');
-  const heroImage1 = fromManual('manual.eventfotografie.heroImage1', '/images/event-hero.jpg');
-  const heroImage2 = fromManual('manual.eventfotografie.heroImage2', '/images/event-2.jpg');
-  const heroImage3 = fromManual('manual.eventfotografie.heroImage3', '/images/event-3.jpg');
-  const heroImage4 = fromManual('manual.eventfotografie.heroImage4', '/images/event-4.jpg');
-  const heroImage5 = fromManual('manual.eventfotografie.heroImage5', '/images/event-5.jpg');
+  const heroImage1 = fromManual('manual.eventfotografie.heroImage1', '');
+  const heroImage2 = fromManual('manual.eventfotografie.heroImage2', '');
+  const heroImage3 = fromManual('manual.eventfotografie.heroImage3', '');
+  const heroImage4 = fromManual('manual.eventfotografie.heroImage4', '');
+  const heroImage5 = fromManual('manual.eventfotografie.heroImage5', '');
 
   const handleBookPackage = (packageName: string, price: number, description: string) => {
     addItem({
@@ -125,22 +125,31 @@ export default function EventfotografieWienPage() {
               </div>
             </div>
 
-            {/* Right: Hero Images Grid (5 images total) */}
+            {/* Right: Hero Images Grid */}
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <img src={heroImage1} alt="eventfotograf wien – Keynote mit vollem Saal, Rathaus Wien" className="rounded-2xl shadow-2xl w-full h-auto object-contain" loading="eager" />
+                <img
+                  src={heroImage1}
+                  alt="eventfotograf wien – Keynote mit vollem Saal, Rathaus Wien"
+                  className="rounded-2xl shadow-2xl w-full h-auto object-contain"
+                  loading="eager"
+                />
               </div>
-              <div className="col-span-2">
-                <img src={heroImage2} alt="Konferenzfotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              <div>
+                <img
+                  src={heroImage2}
+                  alt="Event Fotografie Wien"
+                  className="rounded-xl shadow-lg w-full h-auto object-contain"
+                  loading="eager"
+                />
               </div>
-              <div className="col-span-2">
-                <img src={heroImage3} alt="Messefotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
-              </div>
-              <div className="col-span-2">
-                <img src={heroImage4} alt="Brand Launch Fotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
-              </div>
-              <div className="col-span-2">
-                <img src={heroImage5} alt="Corporate Event Fotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              <div>
+                <img
+                  src={heroImage3}
+                  alt="Corporate Event Shooting Wien"
+                  className="rounded-xl shadow-lg w-full h-auto object-contain"
+                  loading="eager"
+                />
               </div>
             </div>
           </div>
@@ -246,6 +255,20 @@ export default function EventfotografieWienPage() {
           </div>
         </div>
       </section>
+
+      {/* Feature Image 4 */}
+      {heroImage4 && (
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <img
+              src={heroImage4}
+              alt="Eventfotografie Wien – Professional Event Coverage"
+              className="w-full h-auto rounded-2xl shadow-2xl object-cover"
+              loading="lazy"
+            />
+          </div>
+        </section>
+      )}
 
       {/* Packages Section */}
       <section className="py-16 bg-white">
@@ -486,6 +509,20 @@ export default function EventfotografieWienPage() {
           </div>
         </div>
       </section>
+
+      {/* Feature Image 5 */}
+      {heroImage5 && (
+        <section className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <img
+              src={heroImage5}
+              alt="Eventfotografie Wien – Event Highlights"
+              className="w-full h-auto rounded-2xl shadow-2xl object-cover"
+              loading="lazy"
+            />
+          </div>
+        </section>
+      )}
 
       {/* Delivery & Rights Section */}
       <section className="py-16 bg-gray-50">

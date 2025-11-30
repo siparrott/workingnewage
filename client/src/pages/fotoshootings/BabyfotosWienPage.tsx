@@ -25,11 +25,11 @@ export default function BabyfotosWienPage() {
   const heroDescription = fromManual('manual.babyfotos.heroDescription', 'Von Bauchlage bis Sitzpirouette – wir halten dein Kind genau so fest, wie es jetzt ist. Bei babyfotos wien im Studio oder Outdoor bleibt alles entspannt, sicher und kindgerecht.');
   const primaryCta = fromManual('manual.babyfotos.primaryCta', 'Termin auf der Warteliste sichern');
   const secondaryCta = fromManual('manual.babyfotos.secondaryCta', 'Baby-Gutschein kaufen');
-  const heroImage1 = fromManual('manual.babyfotos.heroImage1', 'https://i.postimg.cc/V6TFF8rC/00508749.jpg');
-  const heroImage2 = fromManual('manual.babyfotos.heroImage2', '/images/baby-sitting.jpg');
-  const heroImage3 = fromManual('manual.babyfotos.heroImage3', '/images/baby-smile.jpg');
-  const heroImage4 = fromManual('manual.babyfotos.heroImage4', '/images/baby-4.jpg');
-  const heroImage5 = fromManual('manual.babyfotos.heroImage5', '/images/baby-5.jpg');
+  const heroImage1 = fromManual('manual.babyfotos.heroImage1', '');
+  const heroImage2 = fromManual('manual.babyfotos.heroImage2', '');
+  const heroImage3 = fromManual('manual.babyfotos.heroImage3', '');
+  const heroImage4 = fromManual('manual.babyfotos.heroImage4', '');
+  const heroImage5 = fromManual('manual.babyfotos.heroImage5', '');
 
   const handleBookPackage = (packageName: string, price: number, description: string) => {
     addItem({
@@ -194,7 +194,7 @@ export default function BabyfotosWienPage() {
 
             <div>
               <img
-                src="https://i.imgur.com/3gctBYO.jpg"
+                src={heroImage4}
                 alt="Unterschied Neugeborene und Babyfotos Wien"
                 className="rounded-2xl shadow-lg w-full h-auto object-contain"
                 loading="lazy"

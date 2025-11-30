@@ -1,13 +1,12 @@
-import { SEOHead } from '../../components/SEO/SEOHead';
-import Layout from '../../components/layout/Layout';
-import GoogleReviews from '../../components/layout/GoogleReviews';
+import { SEOHead } from '../components/SEO/SEOHead';
+import Layout from '../components/layout/Layout';
+import GoogleReviews from '../components/layout/GoogleReviews';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Package, Check, ArrowRight, Sparkles, Camera, Layers, SlidersHorizontal } from 'lucide-react';
-import { useManualPageContent } from '../../hooks/useManualPageContent';
+import { useManualPageContent } from '../hooks/useManualPageContent';
 
-// CACHE BUST v2.0
-export default function ProduktfotografieWienPage() {
+export default function TestHeroPage() {
   const t = useManualPageContent('produktfotografie');
 
   const fromManual = (key: string, fallback: string) => {
@@ -24,55 +23,34 @@ export default function ProduktfotografieWienPage() {
   const primaryCta = fromManual('manual.produktfotografie.primaryCta', 'Slot sichern');
   const secondaryCta = fromManual('manual.produktfotografie.secondaryCta', 'Anfrage & Specs');
   const heroImage1 = fromManual('manual.produktfotografie.heroImage1', '');
+  const heroImage2 = fromManual('manual.produktfotografie.heroImage2', '');
   const heroImage3 = fromManual('manual.produktfotografie.heroImage3', '');
-  const heroImage4 = fromManual('manual.produktfotografie.heroImage4', '');
-  const heroImage5 = fromManual('manual.produktfotografie.heroImage5', '');
 
   return (
     <Layout>
       <div className="min-h-screen bg-white">
         <SEOHead
-          title="Produktfotograf Wien – Amazon/Shop/PR Bilder | New Age Fotografie"
-          description="Produkfotograf Wien gesucht? Freisteller, Spiegelungen, Lifestyle-Sets, Amazon/Shop-Specs, Farbtreue & schnelle SLAs. Pakete, Preise, Checklisten."
-          keywords="produktfotograf wien, produktfotografie wien, e-commerce fotos wien, amazon bilder wien"
-          canonical="/produkt-fotografie-wien/"
-          ogImage="https://www.newagefotografie.com/images/product-hero.jpg"
-          hreflang={[
-            { lang: 'de', url: '/produkt-fotografie-wien/' },
-            { lang: 'en', url: '/en/product-photography-vienna/' }
-          ]}
+          title="TEST: Produktfotograf Wien – Full Width Hero Test"
+          description="Test page for full-width hero layout"
+          keywords="test"
+          canonical="/test-hero"
         />
 
-        {/* JSON-LD Structured Data */}
-        <Helmet>
-          <script type="application/ld+json">
-            {JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'Service',
-              name: 'Produkt- & E-Commerce-Fotografie Wien',
-              serviceType: 'Product Photography',
-              areaServed: { '@type': 'City', name: 'Wien' },
-              provider: { '@type': 'LocalBusiness', name: 'New Age Fotografie' },
-              offers: { '@type': 'AggregateOffer', lowPrice: '390', highPrice: '1790', priceCurrency: 'EUR' }
-            })}
-          </script>
-        </Helmet>
-
-        {/* Hero - Full Width Image */}
+        {/* Hero - Full Width Image with Bottles */}
         <section className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
           <div className="absolute inset-0 bg-gradient-to-r from-purple-900/20 to-pink-900/20"></div>
           
           {/* Full Width Hero Image */}
           <div className="relative w-full h-[500px] md:h-[600px] lg:h-[700px] overflow-hidden bg-gray-900">
-            {heroImage1 ? (
+            {heroImage2 ? (
               <img
-                src={heroImage1}
+                src={heroImage2}
                 alt="Produktfotografie Wien – E-Commerce & Amazon Produktfotos"
                 className="w-full h-full object-contain object-center"
                 loading="eager"
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500"></div>
+              <div className="w-full h-full bg-gradient-to-br from-purple-900 to-gray-800"></div>
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/70 to-transparent"></div>
             
@@ -114,7 +92,7 @@ export default function ProduktfotografieWienPage() {
                 <Check className="h-5 w-5 text-purple-600 inline mr-2" />Reflex/Shadow Looks: Bodenspiegelung oder natürlicher Soft-Shadow.
               </div>
               <div className="bg-gray-50 rounded-xl p-6">
-                <Check className="h-5 w-5 text-purple-600 inline mr-2" />Lifestyle-Sets: Umgebung, Hände, Anwendung – „so wirkt’s im echten Leben“.
+                <Check className="h-5 w-5 text-purple-600 inline mr-2" />Lifestyle-Sets: Umgebung, Hände, Anwendung – „so wirkt's im echten Leben".
               </div>
               <div className="bg-gray-50 rounded-xl p-6">
                 <Check className="h-5 w-5 text-purple-600 inline mr-2" />Glänzende Oberflächen: Glas/Metall ohne Hotspots, kontrollierte Highlights.
@@ -156,6 +134,37 @@ export default function ProduktfotografieWienPage() {
         </section>
 
         {/* Example Images - Portfolio Showcase */}
+        <section className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Beispiele unserer Arbeit</h2>
+              <p className="text-lg text-gray-600">Professionelle Produktfotografie für E-Commerce, Amazon und Marketing</p>
+            </div>
+            <div className="grid md:grid-cols-2 gap-8">
+              {heroImage1 && (
+                <div className="rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow">
+                  <img
+                    src={heroImage1}
+                    alt="Produktfotograf Wien – Freisteller auf Weiß mit Soft-Shadow"
+                    className="w-full h-auto object-cover"
+                    loading="lazy"
+                  />
+                </div>
+              )}
+              {heroImage3 && (
+                <div className="rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow">
+                  <img
+                    src={heroImage3}
+                    alt="E-Commerce Produktfotos Wien – Lifestyle Setting"
+                    className="w-full h-auto object-cover"
+                    loading="lazy"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
         {/* Pakete & Preise */}
         <section className="py-16 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

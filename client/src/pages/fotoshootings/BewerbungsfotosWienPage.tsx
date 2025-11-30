@@ -21,11 +21,11 @@ export default function BewerbungsfotosWienPage() {
   const heroDescription = fromManual('manual.bewerbungsfotos.heroDescription', 'Ihre Bewerbungsfotos in Wien entstehen bei uns im Studio mit sicherem Posing-Coaching, schnellen Lieferzeiten und Hintergründen, die zu Ihrer Branche passen. Perfekt für Lebenslauf, LinkedIn, Xing, E-Mail-Signatur & Firmenprofil.');
   const primaryCta = fromManual('manual.bewerbungsfotos.primaryCta', 'Termin auf der Warteliste sichern');
   const secondaryCta = fromManual('manual.bewerbungsfotos.secondaryCta', 'Alle Preise ansehen');
-  const heroImage1 = fromManual('manual.bewerbungsfotos.heroImage1', '/images/bewerbung-hero.jpg');
-  const heroImage2 = fromManual('manual.bewerbungsfotos.heroImage2', '/images/bewerbung-2.jpg');
-  const heroImage3 = fromManual('manual.bewerbungsfotos.heroImage3', '/images/bewerbung-3.jpg');
-  const heroImage4 = fromManual('manual.bewerbungsfotos.heroImage4', '/images/bewerbung-4.jpg');
-  const heroImage5 = fromManual('manual.bewerbungsfotos.heroImage5', '/images/bewerbung-5.jpg');
+  const heroImage1 = fromManual('manual.bewerbungsfotos.heroImage1', '');
+  const heroImage2 = fromManual('manual.bewerbungsfotos.heroImage2', '');
+  const heroImage3 = fromManual('manual.bewerbungsfotos.heroImage3', '');
+  const heroImage4 = fromManual('manual.bewerbungsfotos.heroImage4', '');
+  const heroImage5 = fromManual('manual.bewerbungsfotos.heroImage5', '');
 
   return (
     <Layout>
@@ -75,22 +75,31 @@ export default function BewerbungsfotosWienPage() {
               </div>
             </div>
 
-            {/* Right: Hero Images Grid (5 images total) */}
+            {/* Right: Hero Images Grid */}
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <img src={heroImage1} alt="Bewerbungsfotos Wien Studio" className="rounded-2xl shadow-2xl w-full h-auto object-contain" loading="eager" />
+                <img
+                  src={heroImage1}
+                  alt="Bewerbungsfotos Wien Studio"
+                  className="rounded-2xl shadow-2xl w-full h-auto object-contain"
+                  loading="eager"
+                />
               </div>
-              <div className="col-span-2">
-                <img src={heroImage2} alt="LinkedIn Portrait Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              <div>
+                <img
+                  src={heroImage2}
+                  alt="LinkedIn Portrait Wien"
+                  className="rounded-xl shadow-lg w-full h-auto object-contain"
+                  loading="eager"
+                />
               </div>
-              <div className="col-span-2">
-                <img src={heroImage3} alt="Professionelles Bewerbungsfoto Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
-              </div>
-              <div className="col-span-2">
-                <img src={heroImage4} alt="XING Foto Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
-              </div>
-              <div className="col-span-2">
-                <img src={heroImage5} alt="Business Portrait Bewerbung Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              <div>
+                <img
+                  src={heroImage3}
+                  alt="Professionelles Bewerbungsfoto Wien"
+                  className="rounded-xl shadow-lg w-full h-auto object-contain"
+                  loading="eager"
+                />
               </div>
             </div>
           </div>
@@ -369,9 +378,9 @@ export default function BewerbungsfotosWienPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-12">
             <img
-              src="https://i.imgur.com/3gctBYO.jpg"
-              alt="Bewerbungsfoto Shooting Ablauf"
-              className="rounded-2xl shadow-lg w-full h-96 object-cover"
+              src={heroImage5}
+              alt="Bewerbungsfotos Wien Beispiele"
+              className="rounded-2xl shadow-lg w-full h-auto object-contain"
               loading="lazy"
             />
           </div>

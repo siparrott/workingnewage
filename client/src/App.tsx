@@ -98,6 +98,7 @@ import HochzeitsfotografieWienPage from './pages/fotoshootings/Hochzeitsfotograf
 import ProduktfotografieWienPage from './pages/fotoshootings/ProduktfotografieWienPage';
 import ImmobilienfotografieWienPage from './pages/fotoshootings/ImmobilienfotografieWienPage';
 import StudioFotografieWienPage from './pages/fotoshootings/StudioFotografieWienPage';
+import TestHeroPage from './pages/TestHeroPage';
 import KinderFotografieWienPage from './pages/fotoshootings/KinderFotografieWienPage';
 import PortraitfotografieWienPage from './pages/fotoshootings/PortraitfotografieWienPage';
 import UeberUnsPage from './pages/support/UeberUnsPage';
@@ -143,6 +144,7 @@ function App() {
                 <Route path="/eventfotografie-wien/" element={<EventfotografieWienPage />} />
                 <Route path="/hochzeitsfotografie-wien/" element={<HochzeitsfotografieWienPage />} />
                 <Route path="/produkt-fotografie-wien/" element={<ProduktfotografieWienPage />} />
+                <Route path="/test-hero" element={<TestHeroPage />} />
                 <Route path="/immobilien-fotografie-wien/" element={<ImmobilienfotografieWienPage />} />
                 <Route path="/studio-fotografie-wien/" element={<StudioFotografieWienPage />} />
                 <Route path="/familien-fotoshooting-wien/" element={<FamilienFotoshootingWienPage />} />

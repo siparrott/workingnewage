@@ -50,11 +50,11 @@ const StudioFotografieWienPage: React.FC = () => {
   const heroDescription = fromManual('manual.studiofotografie.heroDescription', 'Studio Fotografie Wien: Definierte Sets, Backdrops & Modifiers. Headshots, Portraits, Teams & Produkte. Ab €150. Jetzt Termin sichern.');
   const primaryCta = fromManual('manual.studiofotografie.primaryCta', 'Jetzt Termin buchen');
   const secondaryCta = fromManual('manual.studiofotografie.secondaryCta', 'Studio-Pakete ansehen');
-  const heroImage1 = fromManual('manual.studiofotografie.heroImage1', '/images/studio-hero.jpg');
-  const heroImage2 = fromManual('manual.studiofotografie.heroImage2', '/images/studio-2.jpg');
-  const heroImage3 = fromManual('manual.studiofotografie.heroImage3', '/images/studio-3.jpg');
-  const heroImage4 = fromManual('manual.studiofotografie.heroImage4', '/images/studio-4.jpg');
-  const heroImage5 = fromManual('manual.studiofotografie.heroImage5', '/images/studio-5.jpg');
+  const heroImage1 = fromManual('manual.studiofotografie.heroImage1', '');
+  const heroImage2 = fromManual('manual.studiofotografie.heroImage2', '');
+  const heroImage3 = fromManual('manual.studiofotografie.heroImage3', '');
+  const heroImage4 = fromManual('manual.studiofotografie.heroImage4', '');
+  const heroImage5 = fromManual('manual.studiofotografie.heroImage5', '');
 
   return (
     <Layout>
@@ -132,22 +132,31 @@ const StudioFotografieWienPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Right: Hero Images Grid (5 images total) */}
+            {/* Right: Hero Images Grid */}
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <img src={heroImage1} alt="Studio Fotografie Wien – Professionelles Licht-Setup" className="rounded-2xl shadow-2xl w-full h-auto object-contain" loading="eager" />
+                <img
+                  src={heroImage1}
+                  alt="Studio Fotografie Wien – Professionelles Licht-Setup"
+                  className="rounded-2xl shadow-2xl w-full h-auto object-contain"
+                  loading="eager"
+                />
               </div>
-              <div className="col-span-2">
-                <img src={heroImage2} alt="Portrait Studio Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              <div>
+                <img
+                  src={heroImage2}
+                  alt="Fotostudio Wien Mieten"
+                  className="rounded-xl shadow-lg w-full h-auto object-contain"
+                  loading="eager"
+                />
               </div>
-              <div className="col-span-2">
-                <img src={heroImage3} alt="Headshot Fotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
-              </div>
-              <div className="col-span-2">
-                <img src={heroImage4} alt="Studio Shooting Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
-              </div>
-              <div className="col-span-2">
-                <img src={heroImage5} alt="Professionelles Fotostudio Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              <div>
+                <img
+                  src={heroImage3}
+                  alt="Studio Shooting Wien"
+                  className="rounded-xl shadow-lg w-full h-auto object-contain"
+                  loading="eager"
+                />
               </div>
             </div>
           </div>
@@ -274,6 +283,20 @@ const StudioFotografieWienPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Feature Image 4 */}
+      {heroImage4 && (
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <img
+              src={heroImage4}
+              alt="Studio Fotografie Wien – Professional Setup"
+              className="w-full h-auto rounded-2xl shadow-2xl object-cover"
+              loading="lazy"
+            />
+          </div>
+        </section>
+      )}
 
       {/* Modifiers & Licht-Setups */}
       <section className="py-16 bg-white">
@@ -607,6 +630,20 @@ const StudioFotografieWienPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Feature Image 5 */}
+      {heroImage5 && (
+        <section className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <img
+              src={heroImage5}
+              alt="Studio Fotografie Wien – Team Portrait"
+              className="w-full h-auto rounded-2xl shadow-2xl object-cover"
+              loading="lazy"
+            />
+          </div>
+        </section>
+      )}
 
       {/* Technik-Details */}
       <section className="py-16 bg-gray-50">

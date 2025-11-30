@@ -25,11 +25,11 @@ export default function PortraitfotografieWienPage() {
   const heroDescription = fromManual('manual.portraitfotografie.heroDescription', 'Als portraitfotograf wien inszenieren wir dich so, wie du gesehen werden willst – editorial, klassisch oder kreativ. Im Studio oder on location. Ohne steife Posen, mit klarer Richtung und Tempo.');
   const primaryCta = fromManual('manual.portraitfotografie.primaryCta', 'Termin sichern');
   const secondaryCta = fromManual('manual.portraitfotografie.secondaryCta', 'Beratung & Verfügbarkeit');
-  const heroImage1 = fromManual('manual.portraitfotografie.heroImage1', '/images/portrait-hero.jpg');
-  const heroImage2 = fromManual('manual.portraitfotografie.heroImage2', '/images/portrait-2.jpg');
-  const heroImage3 = fromManual('manual.portraitfotografie.heroImage3', '/images/portrait-3.jpg');
-  const heroImage4 = fromManual('manual.portraitfotografie.heroImage4', '/images/portrait-4.jpg');
-  const heroImage5 = fromManual('manual.portraitfotografie.heroImage5', '/images/portrait-5.jpg');
+  const heroImage1 = fromManual('manual.portraitfotografie.heroImage1', '');
+  const heroImage2 = fromManual('manual.portraitfotografie.heroImage2', '');
+  const heroImage3 = fromManual('manual.portraitfotografie.heroImage3', '');
+  const heroImage4 = fromManual('manual.portraitfotografie.heroImage4', '');
+  const heroImage5 = fromManual('manual.portraitfotografie.heroImage5', '');
 
   const handleBookPackage = (packageName: string, price: number, description: string) => {
     addItem({
@@ -96,22 +96,31 @@ export default function PortraitfotografieWienPage() {
                   </Link>
                 </div>
               </div>
-              {/* Right: Hero Images Grid (5 images total) */}
+              {/* Right: Hero Images Grid */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <img src={heroImage1} alt="portraitfotograf wien – Editorial-Look mit Kantenlicht auf schwarzem Hintergrund" className="rounded-2xl shadow-2xl w-full h-auto object-contain" loading="eager" />
+                  <img
+                    src={heroImage1}
+                    alt="portraitfotograf wien – Editorial-Look mit Kantenlicht auf schwarzem Hintergrund"
+                    className="rounded-2xl shadow-2xl w-full h-auto object-contain"
+                    loading="eager"
+                  />
                 </div>
-                <div className="col-span-2">
-                  <img src={heroImage2} alt="Portrait Fotografie Wien Studio" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+                <div>
+                  <img
+                    src={heroImage2}
+                    alt="Portrait Fotografie Wien Studio"
+                    className="rounded-xl shadow-lg w-full h-auto object-contain"
+                    loading="eager"
+                  />
                 </div>
-                <div className="col-span-2">
-                  <img src={heroImage3} alt="Klassisches Portrait Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
-                </div>
-                <div className="col-span-2">
-                  <img src={heroImage4} alt="Kreatives Portrait Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
-                </div>
-                <div className="col-span-2">
-                  <img src={heroImage5} alt="Professionelle Portraitfotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+                <div>
+                  <img
+                    src={heroImage3}
+                    alt="Klassisches Portrait Wien"
+                    className="rounded-xl shadow-lg w-full h-auto object-contain"
+                    loading="eager"
+                  />
                 </div>
               </div>
             </div>

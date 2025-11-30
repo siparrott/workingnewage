@@ -53,11 +53,11 @@ const ImmobilienfotografieWienPage: React.FC = () => {
   const heroDescription = fromManual('manual.immobilienfotografie.heroDescription', 'Professionelle Immobilienfotografie in Wien: Window-Pull HDR, vertikale Korrektur, 2D/3D Grundrisse. Ab €190. Für Makler, Eigentümer & Verwalter.');
   const primaryCta = fromManual('manual.immobilienfotografie.primaryCta', 'Termin buchen');
   const secondaryCta = fromManual('manual.immobilienfotografie.secondaryCta', 'Pakete & Preise');
-  const heroImage1 = fromManual('manual.immobilienfotografie.heroImage1', '/images/immobilien-hero.jpg');
-  const heroImage2 = fromManual('manual.immobilienfotografie.heroImage2', '/images/immobilien-2.jpg');
-  const heroImage3 = fromManual('manual.immobilienfotografie.heroImage3', '/images/immobilien-3.jpg');
-  const heroImage4 = fromManual('manual.immobilienfotografie.heroImage4', '/images/immobilien-4.jpg');
-  const heroImage5 = fromManual('manual.immobilienfotografie.heroImage5', '/images/immobilien-5.jpg');
+  const heroImage1 = fromManual('manual.immobilienfotografie.heroImage1', '');
+  const heroImage2 = fromManual('manual.immobilienfotografie.heroImage2', '');
+  const heroImage3 = fromManual('manual.immobilienfotografie.heroImage3', '');
+  const heroImage4 = fromManual('manual.immobilienfotografie.heroImage4', '');
+  const heroImage5 = fromManual('manual.immobilienfotografie.heroImage5', '');
 
   const handleBookPackage = (packageName: string, price: number, description: string) => {
     addItem({
@@ -145,23 +145,16 @@ const ImmobilienfotografieWienPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Right: Hero Images Grid (5 images total) */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2">
-                <img src={heroImage1} alt="Immobilienfotograf Wien – Luxusapartment" className="rounded-2xl shadow-2xl w-full h-auto object-contain" loading="eager" />
-              </div>
-              <div className="col-span-2">
-                <img src={heroImage2} alt="Architekturfotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
-              </div>
-              <div className="col-span-2">
-                <img src={heroImage3} alt="Interieur Fotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
-              </div>
-              <div className="col-span-2">
-                <img src={heroImage4} alt="Real Estate Fotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
-              </div>
-              <div className="col-span-2">
-                <img src={heroImage5} alt="Immobilien HDR Fotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
-              </div>
+            {/* Right: Hero Image */}
+            <div className="flex items-center justify-center">
+              {heroImage1 && (
+                <img
+                  src={heroImage1}
+                  alt="Immobilienfotograf Wien – Luxusapartment"
+                  className="rounded-2xl shadow-2xl w-full h-auto object-contain"
+                  loading="eager"
+                />
+              )}
             </div>
           </div>
         </div>
@@ -227,6 +220,20 @@ const ImmobilienfotografieWienPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Feature Image 2 */}
+      {heroImage2 && (
+        <section className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <img
+              src={heroImage2}
+              alt="Immobilienfotografie Wien – Professional Interior"
+              className="w-full h-auto rounded-2xl shadow-2xl object-cover"
+              loading="lazy"
+            />
+          </div>
+        </section>
+      )}
 
       {/* Sets & Technik Table */}
       <section className="py-16 bg-gray-50">
@@ -438,6 +445,20 @@ const ImmobilienfotografieWienPage: React.FC = () => {
         </div>
       </section>
 
+      {/* Feature Image 3 */}
+      {heroImage3 && (
+        <section className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <img
+              src={heroImage3}
+              alt="Immobilienfotografie Wien – Professional Space"
+              className="w-full h-auto rounded-2xl shadow-2xl object-cover"
+              loading="lazy"
+            />
+          </div>
+        </section>
+      )}
+
       {/* Ablauf & SLAs */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -496,6 +517,20 @@ const ImmobilienfotografieWienPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Feature Image 4 */}
+      {heroImage4 && (
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <img
+              src={heroImage4}
+              alt="Immobilienfotografie Wien – Architecture Detail"
+              className="w-full h-auto rounded-2xl shadow-2xl object-cover"
+              loading="lazy"
+            />
+          </div>
+        </section>
+      )}
 
       {/* Lieferformate & Exporte */}
       <section className="py-16 bg-white">
@@ -651,6 +686,20 @@ const ImmobilienfotografieWienPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Feature Image 5 */}
+      {heroImage5 && (
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <img
+              src={heroImage5}
+              alt="Immobilienfotografie Wien – Luxury Property"
+              className="w-full h-auto rounded-2xl shadow-2xl object-cover"
+              loading="lazy"
+            />
+          </div>
+        </section>
+      )}
 
       {/* FAQ */}
       <section className="py-16 bg-white">

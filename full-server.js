@@ -663,16 +663,46 @@ async function refreshDbCoupons() {
     await sql`ALTER TABLE discount_coupons ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE`;
     await sql`ALTER TABLE discount_coupons ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()`;
     await sql`ALTER TABLE discount_coupons ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`;
-    const rows = await sql`SELECT id, code, type, percent, amount, allowed_skus, starts_at, ends_at, is_active FROM discount_coupons WHERE is_active = true`;
+    
+    // Select from schema columns (discount_type, discount_value, start_date, end_date, applicable_products)
+    // Fallback to legacy columns (type, percent, amount, starts_at, ends_at, allowed_skus) if new ones don't exist
+    const rows = await sql`
+      SELECT 
+        id, code, name, description,
+        COALESCE(discount_type, type) as discount_type,
+        COALESCE(discount_value, CASE WHEN type = 'percentage' THEN percent ELSE amount END) as discount_value,
+        min_order_amount, max_discount_amount,
+        usage_limit, usage_count,
+        COALESCE(start_date, starts_at) as start_date,
+        COALESCE(end_date, ends_at) as end_date,
+        is_active,
+        COALESCE(
+          applicable_products, 
+          CASE 
+            WHEN allowed_skus IS NOT NULL THEN 
+              ARRAY(SELECT jsonb_array_elements_text(allowed_skus))::text[]
+            ELSE NULL 
+          END
+        ) as applicable_products,
+        created_at, updated_at
+      FROM discount_coupons 
+      WHERE is_active = true
+    `;
     __dbCoupons = rows.map(r => ({
       id: r.id,
       code: r.code,
-      type: r.type,
-      percent: r.percent ? Number(r.percent) : undefined,
-      amount: r.amount ? Number(r.amount) : undefined,
-      allowedSkus: Array.isArray(r.allowed_skus) ? r.allowed_skus : [],
-      startDate: r.starts_at,
-      endDate: r.ends_at
+      name: r.name,
+      description: r.description,
+      discount_type: r.discount_type,
+      discount_value: r.discount_value ? Number(r.discount_value) : 0,
+      min_order_amount: r.min_order_amount ? Number(r.min_order_amount) : null,
+      max_discount_amount: r.max_discount_amount ? Number(r.max_discount_amount) : null,
+      usage_limit: r.usage_limit,
+      usage_count: r.usage_count || 0,
+      start_date: r.start_date,
+      end_date: r.end_date,
+      applicable_products: r.applicable_products || [],
+      is_active: r.is_active
     }));
     console.log(`✅ Loaded ${__dbCoupons.length} coupons from DB`);
   } catch (e) {
@@ -732,12 +762,16 @@ function parseCouponsFromEnv() {
 function getCoupons() {
   const now = Date.now();
   if (__couponCache.coupons && now < __couponCache.expiresAt) return __couponCache.coupons;
+  
   const fromEnv = parseCouponsFromEnv();
-  const merged = [
-    ...(__dbCoupons || []),
-    ...((fromEnv && fromEnv.length ? fromEnv : DEFAULT_FALLBACK_COUPONS) || [])
-  ];
-  const coupons = merged;
+  const fromDb = __dbCoupons || [];
+  
+  // If we have DB coupons, use only those (they're the source of truth)
+  // Otherwise fall back to env or default coupons
+  const coupons = fromDb.length > 0 
+    ? fromDb 
+    : (fromEnv && fromEnv.length ? fromEnv : DEFAULT_FALLBACK_COUPONS) || [];
+  
   __couponCache = {
     coupons,
     expiresAt: now + COUPON_TTL_SECONDS * 1000,
@@ -7638,20 +7672,21 @@ Due: ${esc(i.due_date)}</div>
           await refreshDbCoupons();
           const coupons = getCoupons();
           const mapped = (coupons || []).map(c => ({
-            id: c.id || c.code,
+            id: c.id,  // Always use the actual UUID id from database
             code: c.code,
             name: c.name || c.code,
             description: c.description || null,
-            discountType: String(c.type).toLowerCase() === 'percentage' ? 'percentage' : 'fixed_amount',
-            discountValue: String(c.type).toLowerCase() === 'percentage' ? Number(c.percent || 0) : Number(c.amount || 0),
-            minOrderAmount: c.minOrderAmount || null,
-            maxDiscountAmount: c.maxDiscountAmount || null,
-            usageLimit: c.usageLimit || null,
-            usageCount: c.usageCount || 0,
-            startDate: c.startDate || null,
-            endDate: c.endDate || null,
+            discountType: c.discount_type || 'percentage',
+            discountValue: Number(c.discount_value || 0),
+            minOrderAmount: c.min_order_amount ? Number(c.min_order_amount) : null,
+            maxDiscountAmount: c.max_discount_amount ? Number(c.max_discount_amount) : null,
+            usageLimit: c.usage_limit || null,
+            usageCount: c.usage_count || 0,
+            startDate: c.start_date || null,
+            endDate: c.end_date || null,
             isActive: c.is_active !== false,
-            applicableProducts: c.allowedSkus || ['*']
+            applicableProducts: c.applicable_products || [],
+            applicableProductSlug: (c.applicable_products && c.applicable_products.length > 0 && c.applicable_products[0] !== '*' && c.applicable_products[0] !== 'all') ? c.applicable_products[0] : null
           }));
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(mapped));
@@ -7725,38 +7760,57 @@ Due: ${esc(i.due_date)}</div>
           req.on('end', async () => {
             try {
               const body = raw ? JSON.parse(raw) : {};
+              console.log('[UPDATE COUPON SERVER] Received body:', JSON.stringify(body));
+              
               const code = String(body.code || '').trim();
-              const discountType = String(body.discountType || 'percentage');
-              const value = Number(body.discountValue || 0);
-              const type = discountType === 'fixed_amount' ? 'amount' : 'percentage';
-              const percent = type === 'percentage' ? value : null;
-              const amount = type === 'amount' ? value : null;
-              const allowed = body.applicableProductSlug ? [String(body.applicableProductSlug)] : (Array.isArray(body.applicable_products) ? body.applicable_products : (Array.isArray(body.allowed_skus) ? body.allowed_skus : []));
-              const starts_at = body.startDate ? new Date(body.startDate) : null;
-              const ends_at = body.endDate ? new Date(body.endDate) : null;
+              const name = body.name ? String(body.name).trim() : null;
+              const description = body.description ? String(body.description).trim() : null;
+              
+              const discount_type = String(body.discountType || 'percentage');
+              const discount_value = Number(body.discountValue || 0);
+              
+              const min_order_amount = body.minOrderAmount ? Number(body.minOrderAmount) : null;
+              const max_discount_amount = body.maxDiscountAmount ? Number(body.maxDiscountAmount) : null;
+              const usage_limit = body.usageLimit ? Number(body.usageLimit) : null;
+              
+              const applicable_products = body.applicableProductSlug ? [String(body.applicableProductSlug)] : (Array.isArray(body.applicableProducts) ? body.applicableProducts : []);
+              const applicable_products_array = applicable_products.length > 0 ? applicable_products : null;
+              const applicable_products_json = JSON.stringify(applicable_products || []);
+              const start_date = body.startDate ? new Date(body.startDate) : null;
+              const end_date = body.endDate ? new Date(body.endDate) : null;
               const is_active = body.isActive !== false;
+              
+              console.log('[UPDATE COUPON SERVER] Parsed values:', { ident, code, name, description, discount_type, discount_value, applicable_products_array, start_date, end_date, is_active, min_order_amount, max_discount_amount, usage_limit });
+              
               const sqlText = `
                 UPDATE discount_coupons SET
                   code = COALESCE($2, code),
-                  type = $3,
-                  percent = $4,
-                  amount = $5,
-                  allowed_skus = $6,
-                  starts_at = $7,
-                  ends_at = $8,
-                  is_active = $9,
+                  name = COALESCE($3, name),
+                  description = $4,
+                  discount_type = $5,
+                  discount_value = $6,
+                  applicable_products = $7::text[],
+                  start_date = $8::timestamptz,
+                  end_date = $9::timestamptz,
+                  is_active = $10,
+                  min_order_amount = $11,
+                  max_discount_amount = $12,
+                  usage_limit = $13,
+                  starts_at = $8::timestamptz,
+                  ends_at = $9::timestamptz,
+                  allowed_skus = $14::jsonb,
                   updated_at = NOW()
-                WHERE id = $1 OR code = $1
+                WHERE id::text = $1 OR code = $1
                 RETURNING *`;
-              const rows = await sql(sqlText, [ident, code || null, type, percent, amount, JSON.stringify(allowed || []), starts_at, ends_at, is_active]);
+              const rows = await sql(sqlText, [ident, code || null, name, description, discount_type, discount_value, applicable_products_array, start_date, end_date, is_active, min_order_amount, max_discount_amount, usage_limit, applicable_products_json]);
               await refreshDbCoupons();
               forceRefreshCoupons();
               res.writeHead(rows?.length ? 200 : 404, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify(rows?.[0] ? { success: true } : { error: 'Not found' }));
             } catch (e) {
-              console.error('❌ Update coupon error:', e.message);
+              console.error('❌ Update coupon error:', e.message, e.stack);
               res.writeHead(400, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ error: 'Invalid payload' }));
+              res.end(JSON.stringify({ error: 'Invalid payload: ' + e.message }));
             }
           });
         } catch (error) {
@@ -7772,7 +7826,7 @@ Due: ${esc(i.due_date)}</div>
         try {
           if (!sql) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Database unavailable' })); return; }
           const ident = pathname.split('/').pop();
-          const del = await sql`DELETE FROM discount_coupons WHERE id = ${ident} OR code = ${ident} RETURNING id`;
+          const del = await sql`DELETE FROM discount_coupons WHERE id::text = ${ident} OR code = ${ident} RETURNING id`;
           await refreshDbCoupons();
           forceRefreshCoupons();
           res.writeHead(200, { 'Content-Type': 'application/json' });

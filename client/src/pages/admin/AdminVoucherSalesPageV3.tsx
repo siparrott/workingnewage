@@ -410,21 +410,31 @@ export default function AdminVoucherSalesPageV3() {
 
   const createCouponMutation = useMutation({
     mutationFn: async (data: DiscountCouponFormData) => {
+      const requestBody = {
+        code: data.code,
+        name: data.name,
+        description: data.description || '',
+        discountType: data.discountType,
+        discountValue: data.discountValue,
+        minOrderAmount: data.minOrderAmount || undefined,
+        maxDiscountAmount: data.maxDiscountAmount || undefined,
+        usageLimit: data.usageLimit ? parseInt(data.usageLimit) : undefined,
+        applicableProductSlug: data.applicableProductSlug || undefined,
+        startDate: data.startDate || undefined,
+        endDate: data.endDate || undefined,
+        isActive: data.isActive !== undefined ? data.isActive : true,
+      };
+      console.log('[CREATE COUPON] Sending payload:', requestBody);
       const response = await fetch("/api/vouchers/coupons", {
         method: "POST",
         headers: withAdminJsonHeaders(),
-        body: JSON.stringify({
-          ...data,
-          discountValue: data.discountValue,
-          minOrderAmount: data.minOrderAmount || undefined,
-          maxDiscountAmount: data.maxDiscountAmount || undefined,
-          usageLimit: data.usageLimit ? parseInt(data.usageLimit) : undefined,
-          applicableProductSlug: data.applicableProductSlug || undefined,
-          startDate: data.startDate || undefined,
-          endDate: data.endDate || undefined,
-        }),
+        body: JSON.stringify(requestBody),
       });
-      if (!response.ok) throw new Error("Failed to create coupon");
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[CREATE COUPON] Failed:', response.status, errorText);
+        throw new Error(errorText || `HTTP ${response.status}`);
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -433,29 +443,39 @@ export default function AdminVoucherSalesPageV3() {
       couponForm.reset();
       alert("Discount coupon created successfully!");
     },
-    onError: (error) => {
-      // console.error removed
-      alert("Failed to create discount coupon");
+    onError: (error: any) => {
+      console.error('[CREATE COUPON] Error:', error);
+      alert("Failed to create discount coupon: " + (error.message || 'Unknown error'));
     },
   });
 
   const updateCouponMutation = useMutation({
     mutationFn: async (payload: DiscountCouponFormData & { id: string }) => {
+      const requestBody = {
+        code: payload.code,
+        name: payload.name,
+        description: payload.description || '',
+        discountType: payload.discountType,
+        discountValue: payload.discountValue,
+        minOrderAmount: payload.minOrderAmount || undefined,
+        maxDiscountAmount: payload.maxDiscountAmount || undefined,
+        usageLimit: payload.usageLimit ? parseInt(payload.usageLimit) : undefined,
+        applicableProductSlug: payload.applicableProductSlug || undefined,
+        startDate: payload.startDate || undefined,
+        endDate: payload.endDate || undefined,
+        isActive: payload.isActive !== undefined ? payload.isActive : true,
+      };
+      console.log('[UPDATE COUPON] Sending payload:', requestBody);
       const response = await fetch(`/api/vouchers/coupons/${payload.id}`, {
         method: 'PUT',
         headers: withAdminJsonHeaders(),
-        body: JSON.stringify({
-          ...payload,
-          discountValue: payload.discountValue,
-          minOrderAmount: payload.minOrderAmount || undefined,
-          maxDiscountAmount: payload.maxDiscountAmount || undefined,
-          usageLimit: payload.usageLimit ? parseInt(payload.usageLimit) : undefined,
-          applicableProductSlug: payload.applicableProductSlug || undefined,
-          startDate: payload.startDate || undefined,
-          endDate: payload.endDate || undefined,
-        }),
+        body: JSON.stringify(requestBody),
       });
-      if (!response.ok) throw new Error('Failed to update coupon');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[UPDATE COUPON] Failed:', response.status, errorText);
+        throw new Error(errorText || `HTTP ${response.status}`);
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -465,8 +485,9 @@ export default function AdminVoucherSalesPageV3() {
       couponForm.reset();
       alert('Discount coupon updated successfully!');
     },
-    onError: () => {
-      alert('Failed to update discount coupon');
+    onError: (error: any) => {
+      console.error('[UPDATE COUPON] Error:', error);
+      alert('Failed to update discount coupon: ' + (error.message || 'Unknown error'));
     }
   });
 
@@ -478,12 +499,13 @@ export default function AdminVoucherSalesPageV3() {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('folderName', 'Voucher Products');
+      formData.append('context', 'voucher-product-image');
       
       console.log('[IMAGE UPLOAD] Uploading file:', file.name, file.size, 'bytes');
       
-      const response = await fetch('/api/upload/image', {
+      const response = await fetch('/api/files/upload', {
         method: 'POST',
-        headers: withAdminHeaders(),
         body: formData,
       });
       
@@ -612,6 +634,15 @@ export default function AdminVoucherSalesPageV3() {
 
   const handleEditCoupon = (coupon: DiscountCoupon) => {
     setSelectedCoupon(coupon);
+    
+    // Format dates for input[type="date"] - needs YYYY-MM-DD format
+    const formatDateForInput = (dateStr: string | null | undefined) => {
+      if (!dateStr) return "";
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return "";
+      return date.toISOString().split('T')[0];
+    };
+    
     couponForm.reset({
       code: coupon.code,
       name: coupon.name,
@@ -621,10 +652,10 @@ export default function AdminVoucherSalesPageV3() {
       minOrderAmount: coupon.minOrderAmount?.toString() || "",
       maxDiscountAmount: coupon.maxDiscountAmount?.toString() || "",
       usageLimit: coupon.usageLimit?.toString() || "",
-      startDate: coupon.startDate ? coupon.startDate.toString() : "",
-      endDate: coupon.endDate ? coupon.endDate.toString() : "",
+      startDate: formatDateForInput(coupon.startDate),
+      endDate: formatDateForInput(coupon.endDate),
       isActive: coupon.isActive,
-      applicableProductSlug: (coupon as any).applicableProducts?.[0] || "",
+      applicableProductSlug: coupon.applicableProductSlug || (coupon as any).applicableProducts?.[0] || "",
     });
     setIsCouponDialogOpen(true);
   };
@@ -639,6 +670,12 @@ export default function AdminVoucherSalesPageV3() {
 
   const handleCouponSubmit = (data: DiscountCouponFormData) => {
     if (selectedCoupon) {
+      console.log('[COUPON SUBMIT] selectedCoupon:', selectedCoupon);
+      console.log('[COUPON SUBMIT] selectedCoupon.id:', selectedCoupon.id);
+      if (!selectedCoupon.id) {
+        alert('Error: Coupon ID is missing. Please close the dialog and try editing again.');
+        return;
+      }
       updateCouponMutation.mutate({ ...data, id: selectedCoupon.id });
     } else {
       createCouponMutation.mutate(data);

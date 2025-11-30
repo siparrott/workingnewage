@@ -1,5 +1,6 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
+import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link } from 'react-router-dom';
 import { Heart, Sparkles, Camera, ArrowRight, Check } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
@@ -22,11 +23,11 @@ export default function SchwangerschaftsfotosWienPage() {
   const heroDescription = fromManual('manual.schwangerschaftsfotos.heroDescription', t('maternity.hero.description'));
   const primaryCta = fromManual('manual.schwangerschaftsfotos.primaryCta', t('maternity.hero.bookButton'));
   const secondaryCta = fromManual('manual.schwangerschaftsfotos.secondaryCta', t('maternity.hero.voucherButton'));
-  const heroImage1 = fromManual('manual.schwangerschaftsfotos.heroImage1', '/images/maternity-hero.jpg');
-  const heroImage2 = fromManual('manual.schwangerschaftsfotos.heroImage2', '/images/maternity-2.jpg');
-  const heroImage3 = fromManual('manual.schwangerschaftsfotos.heroImage3', '/images/maternity-3.jpg');
-  const heroImage4 = fromManual('manual.schwangerschaftsfotos.heroImage4', '/images/maternity-4.jpg');
-  const heroImage5 = fromManual('manual.schwangerschaftsfotos.heroImage5', '/images/maternity-5.jpg');
+  const heroImage1 = fromManual('manual.schwangerschaftsfotos.heroImage1', '');
+  const heroImage2 = fromManual('manual.schwangerschaftsfotos.heroImage2', '');
+  const heroImage3 = fromManual('manual.schwangerschaftsfotos.heroImage3', '');
+  const heroImage4 = fromManual('manual.schwangerschaftsfotos.heroImage4', '');
+  const heroImage5 = fromManual('manual.schwangerschaftsfotos.heroImage5', '');
   
   return (
     <Layout>
@@ -44,11 +45,12 @@ export default function SchwangerschaftsfotosWienPage() {
       />
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-purple-50 via-pink-50 to-white pt-24 pb-16">
+      <section className="relative bg-gradient-to-br from-purple-50 via-white to-pink-50 pt-24 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Left: Text Content */}
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
                 {heroTitle}
               </h1>
               {heroSubtitle && (
@@ -56,99 +58,83 @@ export default function SchwangerschaftsfotosWienPage() {
                   {heroSubtitle}
                 </p>
               )}
-              <p className="text-xl text-gray-600 mb-8">
+              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
                 {heroDescription}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   to="/termin-planen"
-                  className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+                  className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg"
                 >
                   {primaryCta}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
                 <Link
                   to="/gutschein/maternity"
-                  className="inline-flex items-center justify-center px-8 py-4 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors font-semibold"
+                  className="inline-flex items-center justify-center px-8 py-4 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors font-semibold text-lg"
                 >
                   {secondaryCta}
                 </Link>
               </div>
             </div>
-            {/* Right: Hero Images Grid (5 images total) */}
+
+            {/* Right: Hero Images Grid */}
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <img src={heroImage1} alt="Schwangere Frau beim Babybauch Fotoshooting in Wien" className="rounded-2xl shadow-2xl w-full h-auto object-contain" loading="eager" />
+                <img
+                  src={heroImage1}
+                  alt="Schwangere Frau beim Babybauch Fotoshooting in Wien"
+                  className="rounded-2xl shadow-2xl w-full h-auto object-contain"
+                  loading="eager"
+                />
               </div>
-              <div className="col-span-2">
-                <img src={heroImage2} alt="Schwangerschaftsfotos Studio Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              <div>
+                <img
+                  src={heroImage2}
+                  alt="Schwangerschaftsfotografie Wien Studio"
+                  className="rounded-xl shadow-lg w-full h-auto object-contain"
+                  loading="eager"
+                />
               </div>
-              <div className="col-span-2">
-                <img src={heroImage3} alt="Babybauch Shooting Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
-              </div>
-              <div className="col-span-2">
-                <img src={heroImage4} alt="Maternity Fotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
-              </div>
-              <div className="col-span-2">
-                <img src={heroImage5} alt="Schwangerschaftsfotos Outdoor Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              <div>
+                <img
+                  src={heroImage3}
+                  alt="Babybauch Shooting Wien"
+                  className="rounded-xl shadow-lg w-full h-auto object-contain"
+                  loading="eager"
+                />
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-16 bg-white">
+      {/* Google Reviews Section */}
+      <GoogleReviews />
+
+      {/* Introduction Section */}
+      <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            {t('maternity.features.title')}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
-                <Heart className="h-8 w-8 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">{t('maternity.features.unique.title')}</h3>
-              <p className="text-gray-600">
-                {t('maternity.features.unique.description')}
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div className="prose prose-lg max-w-none">
+              <p className="text-lg text-gray-700 leading-relaxed">
+                Willkommen bei New Age Fotografie – Ihrem Partner für emotionale Schwangerschaftsfotos in Wien! 
+                Unser Studio bietet den perfekten Rahmen für stilvolle Babybauch-Portraits. Ob klassisch, 
+                natürlich oder kreativ – wir nehmen uns Zeit für authentische Momente.
+              </p>
+              <p className="text-lg text-gray-700 leading-relaxed mt-4">
+                Feiern Sie die Schönheit der Schwangerschaft mit professionellen, stilvollen Fotos, die diese 
+                besondere Zeit für immer festhalten. Partner und Geschwisterkinder sind herzlich willkommen.
               </p>
             </div>
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
-                <Sparkles className="h-8 w-8 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">{t('maternity.features.natural.title')}</h3>
-              <p className="text-gray-600">
-                {t('maternity.features.natural.description')}
-              </p>
+            <div>
+              <img
+                src={heroImage4}
+                alt="Schwangerschaftsfotos Wien - Professionelle Babybauch-Fotografie im Studio"
+                className="rounded-2xl shadow-lg w-full h-auto object-contain"
+                loading="lazy"
+              />
             </div>
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
-                <Camera className="h-8 w-8 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">{t('maternity.features.flexible.title')}</h3>
-              <p className="text-gray-600">
-                {t('maternity.features.flexible.description')}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Best Time Section */}
-      <section className="py-16 bg-purple-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-6">
-            {t('maternity.timing.title')}
-          </h2>
-          <p className="text-lg text-gray-700 mb-8">
-            {t('maternity.timing.description')}
-          </p>
-          <div className="bg-white rounded-xl p-8 shadow-lg">
-            <h3 className="font-semibold text-xl mb-4">{t('maternity.timing.proTipTitle')}</h3>
-            <p className="text-gray-600">
-              {t('maternity.timing.proTip')}
-            </p>
           </div>
         </div>
       </section>

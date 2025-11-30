@@ -21,11 +21,11 @@ export default function TeamfotosWienPage() {
   const heroDescription = fromManual('manual.teamfotos.heroDescription', 'Wir fotografieren Teamfotos in Wien direkt bei Ihnen im Unternehmen – mit mobilem Studio, schnellem Ablauf und einem Look, der zu Ihrer Brand passt. Ideal für Website, LinkedIn, Presse & Recruiting.');
   const primaryCta = fromManual('manual.teamfotos.primaryCta', 'Termin auf der Warteliste sichern');
   const secondaryCta = fromManual('manual.teamfotos.secondaryCta', 'Direkt anfragen');
-  const heroImage1 = fromManual('manual.teamfotos.heroImage1', '/images/team-hero.jpg');
-  const heroImage2 = fromManual('manual.teamfotos.heroImage2', '/images/team-2.jpg');
-  const heroImage3 = fromManual('manual.teamfotos.heroImage3', '/images/team-3.jpg');
-  const heroImage4 = fromManual('manual.teamfotos.heroImage4', '/images/team-4.jpg');
-  const heroImage5 = fromManual('manual.teamfotos.heroImage5', '/images/team-5.jpg');
+  const heroImage1 = fromManual('manual.teamfotos.heroImage1', '');
+  const heroImage2 = fromManual('manual.teamfotos.heroImage2', '');
+  const heroImage3 = fromManual('manual.teamfotos.heroImage3', '');
+  const heroImage4 = fromManual('manual.teamfotos.heroImage4', '');
+  const heroImage5 = fromManual('manual.teamfotos.heroImage5', '');
 
   return (
     <Layout>
@@ -75,22 +75,31 @@ export default function TeamfotosWienPage() {
               </div>
             </div>
 
-            {/* Right: Hero Images Grid (5 images total) */}
+            {/* Right: Hero Images Grid */}
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <img src={heroImage1} alt="Team- und Mitarbeiterfotos Wien" className="rounded-2xl shadow-2xl w-full h-auto object-contain" loading="eager" />
+                <img
+                  src={heroImage1}
+                  alt="Team- und Mitarbeiterfotos Wien"
+                  className="rounded-2xl shadow-2xl w-full h-auto object-contain"
+                  loading="eager"
+                />
               </div>
-              <div className="col-span-2">
-                <img src={heroImage2} alt="Mitarbeiterfotos On-Site Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              <div>
+                <img
+                  src={heroImage2}
+                  alt="Mitarbeiterfotos On-Site Wien"
+                  className="rounded-xl shadow-lg w-full h-auto object-contain"
+                  loading="eager"
+                />
               </div>
-              <div className="col-span-2">
-                <img src={heroImage3} alt="Corporate Team Fotografie Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
-              </div>
-              <div className="col-span-2">
-                <img src={heroImage4} alt="Business Team Shooting Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
-              </div>
-              <div className="col-span-2">
-                <img src={heroImage5} alt="Gruppenfoto Team Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+              <div>
+                <img
+                  src={heroImage3}
+                  alt="Corporate Team Fotografie Wien"
+                  className="rounded-xl shadow-lg w-full h-auto object-contain"
+                  loading="eager"
+                />
               </div>
             </div>
           </div>
@@ -365,9 +374,9 @@ export default function TeamfotosWienPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-12">
             <img
-              src="https://i.imgur.com/3gctBYO.jpg"
-              alt="Team Fotoshooting Ablauf"
-              className="rounded-2xl shadow-lg w-full h-96 object-cover"
+              src={heroImage5}
+              alt="Team Fotoshooting Wien On-Site"
+              className="rounded-2xl shadow-lg w-full h-auto object-contain"
               loading="lazy"
             />
           </div>

@@ -25,11 +25,11 @@ export default function HochzeitsfotografieWienPage() {
   const heroDescription = fromManual('manual.hochzeitsfotografie.heroDescription', 'Wir begleiten eure Geschichte – vom ersten Blick bis zum letzten Tanz. Moderne Hochzeitsreportagen mit viel Gefühl, klarer Bildsprache und schnellen Sneak Peeks.');
   const primaryCta = fromManual('manual.hochzeitsfotografie.primaryCta', 'Termin unverbindlich anfragen');
   const secondaryCta = fromManual('manual.hochzeitsfotografie.secondaryCta', 'Verfügbarkeit prüfen');
-  const heroImage1 = fromManual('manual.hochzeitsfotografie.heroImage1', '/images/wedding-hero.jpg');
-  const heroImage2 = fromManual('manual.hochzeitsfotografie.heroImage2', '/images/wedding-2.jpg');
-  const heroImage3 = fromManual('manual.hochzeitsfotografie.heroImage3', '/images/wedding-3.jpg');
-  const heroImage4 = fromManual('manual.hochzeitsfotografie.heroImage4', '/images/wedding-4.jpg');
-  const heroImage5 = fromManual('manual.hochzeitsfotografie.heroImage5', '/images/wedding-5.jpg');
+  const heroImage1 = fromManual('manual.hochzeitsfotografie.heroImage1', '');
+  const heroImage2 = fromManual('manual.hochzeitsfotografie.heroImage2', '');
+  const heroImage3 = fromManual('manual.hochzeitsfotografie.heroImage3', '');
+  const heroImage4 = fromManual('manual.hochzeitsfotografie.heroImage4', '');
+  const heroImage5 = fromManual('manual.hochzeitsfotografie.heroImage5', '');
 
   const handleBookPackage = (packageName: string, price: number, description: string) => {
     addItem({
@@ -111,22 +111,31 @@ export default function HochzeitsfotografieWienPage() {
                   </Link>
                 </div>
               </div>
-              {/* Right: Hero Images Grid (5 images total) */}
+              {/* Right: Hero Images Grid */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <img src={heroImage1} alt="hochzeitsfotograf wien – Brautpaar im Palais Coburg, Abendlicht" className="rounded-2xl shadow-2xl w-full h-auto object-contain" loading="eager" />
+                  <img
+                    src={heroImage1}
+                    alt="hochzeitsfotograf wien – Brautpaar im Palais Coburg, Abendlicht"
+                    className="rounded-2xl shadow-2xl w-full h-auto object-contain"
+                    loading="eager"
+                  />
                 </div>
-                <div className="col-span-2">
-                  <img src={heroImage2} alt="Hochzeitsfotografie Wien Standesamt" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+                <div>
+                  <img
+                    src={heroImage2}
+                    alt="Hochzeitsfotografie Wien"
+                    className="rounded-xl shadow-lg w-full h-auto object-contain"
+                    loading="eager"
+                  />
                 </div>
-                <div className="col-span-2">
-                  <img src={heroImage3} alt="Brautpaar Shooting Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
-                </div>
-                <div className="col-span-2">
-                  <img src={heroImage4} alt="Hochzeit Fotograf Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
-                </div>
-                <div className="col-span-2">
-                  <img src={heroImage5} alt="Emotionale Hochzeitsfotos Wien" className="rounded-xl shadow-lg w-full h-auto object-contain" loading="eager" />
+                <div>
+                  <img
+                    src={heroImage3}
+                    alt="Hochzeit Shooting Wien"
+                    className="rounded-xl shadow-lg w-full h-auto object-contain"
+                    loading="eager"
+                  />
                 </div>
               </div>
             </div>
@@ -134,6 +143,20 @@ export default function HochzeitsfotografieWienPage() {
         </section>
 
         <GoogleReviews />
+
+        {/* Feature Image 4 */}
+        {heroImage4 && (
+          <section className="py-16 bg-gray-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <img
+                src={heroImage4}
+                alt="Hochzeitsfotografie Wien – Emotional Wedding Moment"
+                className="w-full h-auto rounded-2xl shadow-2xl object-cover"
+                loading="lazy"
+              />
+            </div>
+          </section>
+        )}
 
         {/* Was wir festhalten */}
         <section className="py-16 bg-white">
@@ -215,6 +238,20 @@ export default function HochzeitsfotografieWienPage() {
             </div>
           </div>
         </section>
+
+        {/* Feature Image 5 */}
+        {heroImage5 && (
+          <section className="py-16 bg-gray-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <img
+                src={heroImage5}
+                alt="Hochzeitsfotografie Wien – Beautiful Wedding Celebration"
+                className="w-full h-auto rounded-2xl shadow-2xl object-cover"
+                loading="lazy"
+              />
+            </div>
+          </section>
+        )}
 
         {/* Pakete & Preise */}
         <section className="py-16 bg-white">
