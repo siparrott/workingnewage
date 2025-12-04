@@ -31,9 +31,18 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
       }
     }
 
-    // Add base URLs - fix the URL to match the frontend
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
-    checkoutData.successUrl = `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
+    // Add base URLs - prefer explicit env, fallback to request origin/host
+    const envBase = process.env.SITE_URL || process.env.FRONTEND_URL;
+    const inferredBase = (req.headers.origin as string)
+      || `${(req.headers['x-forwarded-proto'] as string) || req.protocol}://${req.get('host')}`;
+    const baseUrl = (envBase || inferredBase || 'http://localhost:3001').replace(/\/+$/, '');
+
+    // Use voucher thank-you for voucher mode, generic success otherwise
+    const successPath = (checkoutData.mode === 'voucher')
+      ? '/voucher/thank-you'
+      : '/checkout/success';
+
+    checkoutData.successUrl = `${baseUrl}${successPath}?session_id={CHECKOUT_SESSION_ID}`;
     checkoutData.cancelUrl = `${baseUrl}/cart`;
 
     console.log('🔗 Using URLs:', { 

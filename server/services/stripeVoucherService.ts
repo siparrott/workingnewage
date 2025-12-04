@@ -193,11 +193,11 @@ export class StripeVoucherService {
     }
 
     try {
-  // Set default URLs if not provided
+  // Build URLs with robust fallbacks. Prefer controller-provided URLs when present.
   const siteBase = process.env.SITE_URL || process.env.FRONTEND_URL || 'http://localhost:5173';
   const voucherSuccess = `${siteBase}/voucher/thank-you?session_id={CHECKOUT_SESSION_ID}`;
   const defaultSuccess = `${siteBase}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
-  const successUrl = data.mode === 'voucher' ? voucherSuccess : (data.successUrl || defaultSuccess);
+  const successUrl = data.successUrl || (data.mode === 'voucher' ? voucherSuccess : defaultSuccess);
   const cancelUrl = data.cancelUrl || `${siteBase}/cart`;
 
   // Use live-reloading coupons service to find a matching custom coupon
