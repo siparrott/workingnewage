@@ -321,6 +321,7 @@ export class StripeVoucherService {
       const expiryDate = String(personalization.expiryDate || '').trim();
       const designImage = String(personalization.selectedDesign?.image || '').trim();
       const customImage = String(personalization.customImageUrl || '').trim();
+      const productDescription = String(personalization.productDescription || '').trim();
 
       sessionParams.metadata = {
         source: 'photography_website',
@@ -343,6 +344,7 @@ export class StripeVoucherService {
         // Optional art for PDF rendering
         design_image: designImage,
         custom_image: customImage,
+        product_description: productDescription.substring(0, 1200),
       };
 
       sessionParams.payment_intent_data = {

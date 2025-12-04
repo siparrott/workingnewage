@@ -35,6 +35,7 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
   const [showVoucherInput, setShowVoucherInput] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [productDescription, setProductDescription] = useState<string | undefined>(undefined);
 
   const deliveryAmount = voucherData?.deliveryOption.price || 0;
   const subtotal = baseAmount + deliveryAmount;
@@ -50,6 +51,24 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
       setShowVoucherInput(false);
     }
   }, [initialVoucher]);
+
+  // Fetch product detail (for description) when slug is provided
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        if (!productSlug) return;
+        const r = await fetch(`/api/vouchers/products/${encodeURIComponent(productSlug)}`);
+        if (!r.ok) return;
+        const j = await r.json();
+        const desc = j?.description || j?.detailedDescription || j?.detailed_description || undefined;
+        if (active) setProductDescription(typeof desc === 'string' ? desc : undefined);
+      } catch {
+        // ignore
+      }
+    })();
+    return () => { active = false; };
+  }, [productSlug]);
 
   // Map productSlug to a clear product name for Stripe line item naming/matching
   const productNameFromSlug = (slug?: string): string | undefined => {
@@ -135,7 +154,7 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
             price: Math.round(baseAmount * 100),
             quantity: 1,
             sku: productSlug,
-            description: 'Gutschein'
+            description: productDescription || 'Gutschein'
           },
           ...(deliveryAmount > 0 ? [{
             name: `Gutschein Lieferung - ${voucherData.deliveryOption.name}`,
@@ -149,7 +168,8 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
         voucherData: {
           ...voucherData,
           // Pass URL so backend PDF can embed it
-          customImageUrl: voucherData.customImageUrl || undefined
+          customImageUrl: voucherData.customImageUrl || undefined,
+          productDescription: productDescription || undefined
         },
         appliedVoucherCode,
         discount: Math.round(discount * 100),
