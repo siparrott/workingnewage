@@ -9050,17 +9050,23 @@ New Age Fotografie CRM System
       try {
         let product: any = null;
         const idOrSlug = String(m.sku || '').trim();
-        if (idOrSlug) {
-          try { product = await neonDb.getVoucherProduct(idOrSlug); } catch {}
-          if (!product) {
-            const all = await neonDb.getVoucherProducts();
-            const slug = idOrSlug.toLowerCase();
-            product = all.find((p: any) => (p.slug || '').toLowerCase() === slug)
-                   || all.find((p: any) => (p.name || '').toLowerCase().includes(slug.replace(/-/g, ' ')));
+        if (idOrSlug && neonDb && typeof neonDb.getVoucherProduct === 'function') {
+          try { product = await neonDb.getVoucherProduct(idOrSlug); } catch (dbErr) {
+            console.warn('Could not fetch voucher product:', dbErr);
+          }
+          if (!product && typeof neonDb.getVoucherProducts === 'function') {
+            try {
+              const all = await neonDb.getVoucherProducts();
+              const slug = idOrSlug.toLowerCase();
+              product = all.find((p: any) => (p.slug || '').toLowerCase() === slug)
+                     || all.find((p: any) => (p.name || '').toLowerCase().includes(slug.replace(/-/g, ' ')));
+            } catch (dbErr2) {
+              console.warn('Could not fetch all voucher products:', dbErr2);
+            }
           }
         }
         const dynamicHeadline = product?.name || title;
-        const dynamicSub = (product?.description || product?.detailedDescription || '').toString();
+        const dynamicSub = (product?.description || product?.detailedDescription || product?.detailed_description || '').toString();
         doc.fillColor('#222222').fontSize(18).text(dynamicHeadline, { width: 595.28 - 100 });
         doc.moveDown(0.4);
         if (dynamicSub) {
@@ -9097,6 +9103,11 @@ New Age Fotografie CRM System
         doc.moveDown(0.6);
       } catch (e) {
         console.warn('Voucher description block render error:', e);
+        // Fallback: just use the title
+        try {
+          doc.fillColor('#222222').fontSize(18).text(title, { width: 595.28 - 100 });
+          doc.moveDown(1);
+        } catch {}
       }
 
       // Voucher meta
