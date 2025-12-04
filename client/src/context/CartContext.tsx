@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface CartItem {
   id: string;
@@ -10,6 +10,8 @@ interface CartItem {
   quantity: number;
   packageType: string;
   type?: string; // Added for voucher detection
+  description?: string; // Voucher description
+  imageUrl?: string; // Voucher thumbnail image
 }
 
 interface CartContextType {
@@ -25,8 +27,32 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+const CART_STORAGE_KEY = 'voucherCart';
+
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [items, setItems] = useState<CartItem[]>([]);
+  // Initialize from localStorage
+  const [items, setItems] = useState<CartItem[]>(() => {
+    try {
+      const stored = localStorage.getItem(CART_STORAGE_KEY);
+      if (!stored) return [];
+      
+      const parsedItems = JSON.parse(stored);
+      
+      // Migrate old items to add description and imageUrl if missing
+      return parsedItems.map((item: CartItem) => ({
+        ...item,
+        description: item.description || `${item.title} - ${item.packageType}`,
+        imageUrl: item.imageUrl || 'https://i.imgur.com/jSFqBCq.jpg' // Default family photo image
+      }));
+    } catch {
+      return [];
+    }
+  });
+
+  // Persist to localStorage whenever items change
+  useEffect(() => {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+  }, [items]);
 
   const addItem = (newItem: Omit<CartItem, 'id'>) => {
     setItems(prevItems => [

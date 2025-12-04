@@ -10,6 +10,8 @@ interface BlogPost {
   excerpt: string;
   content_html: string;
   cover_image?: string;
+  image_url_2?: string;
+  image_url_3?: string;
   tags?: string[];
   status: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED';
   seo_title?: string;
@@ -34,6 +36,8 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = false }) 
     meta_description: '',
     tags: [],
     scheduled_for: '',
+    image_url_2: '',
+    image_url_3: '',
   });
   
   const [availableTags, setAvailableTags] = useState<{id: string, name: string}[]>([]);
@@ -123,6 +127,64 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = false }) 
       setImageUploading(false);
     }
   };
+
+  const handleImage2Upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+    const filePath = `blog/${fileName}`;
+    
+    setImageUploading(true);
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from('images')
+        .upload(filePath, file);
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('images')
+        .getPublicUrl(filePath);
+      
+      setFormData(prev => ({ ...prev, image_url_2: publicUrl }));
+    } catch (err) {
+      setError('Failed to upload feature image 2. Please try again.');
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
+  const handleImage3Upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+    const filePath = `blog/${fileName}`;
+    
+    setImageUploading(true);
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from('images')
+        .upload(filePath, file);
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('images')
+        .getPublicUrl(filePath);
+      
+      setFormData(prev => ({ ...prev, image_url_3: publicUrl }));
+    } catch (err) {
+      setError('Failed to upload feature image 3. Please try again.');
+    } finally {
+      setImageUploading(false);
+    }
+  };
   const handleSubmit = async (e: React.FormEvent, publishNow = false) => {
     e.preventDefault();
     setLoading(true);
@@ -155,6 +217,8 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = false }) 
             excerpt: apiData.excerpt,
             content_html: apiData.contentHtml,
             cover_image: apiData.coverImage,
+            image_url_2: formData.image_url_2,
+            image_url_3: formData.image_url_3,
             status: apiData.status,
             seo_title: apiData.seoTitle,
             meta_description: apiData.metaDescription,            tags: apiData.tags,
@@ -177,6 +241,8 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = false }) 
             content: apiData.contentHtml?.replace(/<[^>]*>/g, '') || '', // Strip HTML for plain text content
             content_html: apiData.contentHtml,
             cover_image: apiData.coverImage,
+            image_url_2: formData.image_url_2,
+            image_url_3: formData.image_url_3,
             status: apiData.status,
             author_id: user.id,
             seo_title: apiData.seoTitle,
@@ -316,7 +382,7 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = false }) 
           {/* Cover Image */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Cover Image
+              Cover Image <span className="text-red-500">*</span>
             </label>
             <div className="mt-1 flex items-center">
               <label className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer">
@@ -340,6 +406,70 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = false }) 
                 />
               </div>
             )}
+          </div>
+
+          {/* Feature Image 2 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Feature Image 2 <span className="text-gray-400">(optional)</span>
+            </label>
+            <div className="mt-1 flex items-center">
+              <label className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer">
+                <Image size={16} className="mr-2" />
+                {imageUploading ? 'Uploading...' : 'Upload Image 2'}
+                <input
+                  type="file"
+                  className="sr-only"
+                  accept="image/*"
+                  onChange={handleImage2Upload}
+                  disabled={imageUploading}
+                />
+              </label>
+            </div>
+            {formData.image_url_2 && (
+              <div className="mt-2">
+                <img
+                  src={formData.image_url_2}
+                  alt="Feature image 2 preview"
+                  className="h-32 w-full object-cover rounded-lg"
+                />
+              </div>
+            )}
+            <p className="text-xs text-gray-500 mt-1">
+              Displayed mid-content (after first section)
+            </p>
+          </div>
+
+          {/* Feature Image 3 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Feature Image 3 <span className="text-gray-400">(optional)</span>
+            </label>
+            <div className="mt-1 flex items-center">
+              <label className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer">
+                <Image size={16} className="mr-2" />
+                {imageUploading ? 'Uploading...' : 'Upload Image 3'}
+                <input
+                  type="file"
+                  className="sr-only"
+                  accept="image/*"
+                  onChange={handleImage3Upload}
+                  disabled={imageUploading}
+                />
+              </label>
+            </div>
+            {formData.image_url_3 && (
+              <div className="mt-2">
+                <img
+                  src={formData.image_url_3}
+                  alt="Feature image 3 preview"
+                  className="h-32 w-full object-cover rounded-lg"
+                />
+              </div>
+            )}
+            <p className="text-xs text-gray-500 mt-1">
+              Displayed near end of content
+            </p>
           </div>
           
           {/* Tags */}

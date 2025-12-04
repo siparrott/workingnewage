@@ -5,6 +5,8 @@ import Layout from '../components/layout/Layout';
 import { Calendar, ChevronRight, Tag, Search, Loader2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useManualPageContent } from '../hooks/useManualPageContent';
+import { SEOHead } from '../components/SEO/SEOHead';
+import { Helmet } from 'react-helmet-async';
 
 interface BlogPost {
   id: string;
@@ -154,6 +156,64 @@ const BlogPage: React.FC = () => {
 
   return (
     <Layout>
+      <SEOHead
+        title="Fotografie Blog Wien – Tipps, Tricks & Inspiration | New Age Fotografie"
+        description="Entdecken Sie Fotografie-Tipps, Behind-the-Scenes Einblicke und Inspiration für Ihr nächstes Fotoshooting in Wien. Von Familien- bis Businessfotografie."
+        keywords="fotografie blog wien, fotografie tipps, fotoshooting tipps wien, familienfotografie tipps, businessfotografie blog, schwangerschaftsfotos tipps"
+        canonical="/blog/"
+        ogImage="https://i.postimg.cc/wTdZVLdC/photo-grid.jpg"
+        hreflang={[
+          { lang: 'de', url: 'https://newagefotografie.at/blog/' },
+          { lang: 'en', url: 'https://newagefotografie.at/en/blog/' },
+          { lang: 'x-default', url: 'https://newagefotografie.at/blog/' }
+        ]}
+      />
+      
+      <Helmet>
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Blog",
+            "name": "New Age Fotografie Blog",
+            "description": "Fotografie-Tipps, Behind-the-Scenes und Inspiration für Fotoshootings in Wien",
+            "url": "https://newagefotografie.at/blog/",
+            "publisher": {
+              "@type": "Organization",
+              "name": "New Age Fotografie",
+              "logo": {
+                "@type": "ImageObject",
+                "url": "https://newagefotografie.at/logo.png"
+              }
+            },
+            "inLanguage": "de-AT",
+            "blogPost": posts.slice(0, 5).map(post => ({
+              "@type": "BlogPosting",
+              "headline": post.title,
+              "description": post.excerpt || post.content?.substring(0, 160),
+              "image": post.imageUrl || "https://i.postimg.cc/wTdZVLdC/photo-grid.jpg",
+              "datePublished": post.publishedAt || post.createdAt,
+              "dateModified": post.updatedAt,
+              "author": {
+                "@type": "Organization",
+                "name": "New Age Fotografie"
+              },
+              "publisher": {
+                "@type": "Organization",
+                "name": "New Age Fotografie",
+                "logo": {
+                  "@type": "ImageObject",
+                  "url": "https://newagefotografie.at/logo.png"
+                }
+              },
+              "mainEntityOfPage": {
+                "@type": "WebPage",
+                "@id": `https://newagefotografie.at/blog/${post.slug}`
+              }
+            }))
+          })}
+        </script>
+      </Helmet>
+
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-purple-600 to-purple-800 py-16">
         <div className="container mx-auto px-4">

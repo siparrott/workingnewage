@@ -10,6 +10,8 @@ interface Package {
   features: string[];
   isFeatured?: boolean;
   link: string;
+  description?: string;
+  imageUrl?: string;
 }
 
 interface VoucherPackagesProps {
@@ -33,7 +35,10 @@ const VoucherPackages: React.FC<VoucherPackagesProps> = ({ packages }) => {
         title: selectedPackage.title,
         price: selectedPackage.price,
         quantity: 1,
-        packageType: selectedPackage.subtitle
+        packageType: selectedPackage.subtitle,
+        type: 'voucher',
+        description: selectedPackage.description,
+        imageUrl: selectedPackage.imageUrl
       });
       setShowConfirmation(false);
       navigate('/cart');

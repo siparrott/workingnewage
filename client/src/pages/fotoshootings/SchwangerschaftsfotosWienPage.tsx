@@ -324,6 +324,73 @@ export default function SchwangerschaftsfotosWienPage() {
         </div>
       </section>
 
+      {/* Related Services Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Weitere Fotografie-Services
+            </h2>
+            <p className="text-lg text-gray-600">
+              Komplette Fotodokumentation Ihrer Schwangerschaft und Familienzeit
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Baby Photography */}
+            <Link
+              to="/baby-fotografie-wien/"
+              className="bg-gray-50 rounded-lg p-6 hover:shadow-lg transition-shadow group"
+            >
+              <Heart className="h-12 w-12 text-purple-600 mb-4" />
+              <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
+                Baby & Newborn Fotografie
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Die perfekte Fortsetzung – zarte Neugeborenenfotos in den ersten Lebenstagen.
+              </p>
+              <span className="text-purple-600 font-semibold inline-flex items-center">
+                Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
+              </span>
+            </Link>
+
+            {/* Family Photography */}
+            <Link
+              to="/familien-fotoshooting-wien/"
+              className="bg-gray-50 rounded-lg p-6 hover:shadow-lg transition-shadow group"
+            >
+              <Users className="h-12 w-12 text-purple-600 mb-4" />
+              <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
+                Familienfotografie
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Natürliche Familienporträts mit Baby – wachsende Familien in Szene setzen.
+              </p>
+              <span className="text-purple-600 font-semibold inline-flex items-center">
+                Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
+              </span>
+            </Link>
+
+            {/* Business Portraits */}
+            <Link
+              to="/business-portrait-wien/"
+              className="bg-gray-50 rounded-lg p-6 hover:shadow-lg transition-shadow group"
+            >
+              <Camera className="h-12 w-12 text-purple-600 mb-4" />
+              <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
+                Business Portraits
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Professionelle Headshots für LinkedIn und Bewerbungen – selbstbewusst zurück ins Business.
+              </p>
+              <span className="text-purple-600 font-semibold inline-flex items-center">
+                Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
+              </span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-16 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

@@ -99,6 +99,8 @@ const VoucherPackagesList: React.FC<{ category?: string; limit?: number; feature
                   quantity: 1,
                   packageType: 'Fotoshooting Gutschein',
                   type: 'voucher',
+                  description: v.description,
+                  imageUrl: v.image,
                 });
                 navigate('/cart');
                 window.scrollTo({ top: 0, behavior: 'smooth' });

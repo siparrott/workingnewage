@@ -358,9 +358,38 @@ async function ensureLeadsSchema() {
   }
 }
 
+// Homepage images schema
+async function ensureHomepageImagesSchema() {
+  if (!sql) return;
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS homepage_images (
+        id TEXT PRIMARY KEY DEFAULT md5(random()::text || clock_timestamp()::text),
+        section TEXT NOT NULL,
+        image_url TEXT NOT NULL,
+        title TEXT,
+        description TEXT,
+        cta_text TEXT,
+        cta_link TEXT,
+        display_order INTEGER DEFAULT 0,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMPTZ DEFAULT now(),
+        updated_at TIMESTAMPTZ DEFAULT now()
+      )
+    `;
+    
+    await sql`CREATE INDEX IF NOT EXISTS idx_homepage_images_section ON homepage_images(section)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_homepage_images_active ON homepage_images(is_active)`;
+    console.log('✅ Homepage images schema ensured');
+  } catch (e) {
+    console.warn('⚠️ ensureHomepageImagesSchema failed:', e.message);
+  }
+}
+
 // Proactively ensure critical schemas (non-blocking) AFTER definition
 (async () => {
   try { await ensureLeadsSchema(); } catch (e) { console.warn('Leads schema ensure (startup) warning:', e.message); }
+  try { await ensureHomepageImagesSchema(); } catch (e) { console.warn('Homepage images schema ensure (startup) warning:', e.message); }
 })();
 
 // ===== Email settings schema and helpers =====
@@ -7659,6 +7688,97 @@ Due: ${esc(i.due_date)}</div>
           res.end(JSON.stringify({ success: true, deleted: deleted?.id || id }));
         } catch (error) {
           console.error('❌ Delete voucher product error:', error.message);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: error.message }));
+        }
+        return;
+      }
+
+      // Get homepage images (public)
+      if (pathname === '/api/homepage/images' && req.method === 'GET') {
+        try {
+          const images = await sql`
+            SELECT id, section, image_url, title, description, cta_text, cta_link, display_order
+            FROM homepage_images
+            WHERE is_active = true
+            ORDER BY section, display_order
+          `;
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(images || []));
+        } catch (error) {
+          console.error('❌ Get homepage images error:', error.message);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: error.message }));
+        }
+        return;
+      }
+
+      // Create homepage image (admin)
+      if (pathname === '/api/homepage/images' && req.method === 'POST') {
+        if (!requireAdminToken(req, res)) return;
+        try {
+          const body = await parseBody(req);
+          const { section, image_url, title, description, cta_text, cta_link, display_order } = body;
+          
+          const [image] = await sql`
+            INSERT INTO homepage_images (section, image_url, title, description, cta_text, cta_link, display_order)
+            VALUES (${section}, ${image_url}, ${title || null}, ${description || null}, ${cta_text || null}, ${cta_link || null}, ${display_order || 0})
+            RETURNING *
+          `;
+          
+          res.writeHead(201, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(image));
+        } catch (error) {
+          console.error('❌ Create homepage image error:', error.message);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: error.message }));
+        }
+        return;
+      }
+
+      // Update homepage image (admin)
+      if (pathname.startsWith('/api/homepage/images/') && req.method === 'PUT') {
+        if (!requireAdminToken(req, res)) return;
+        try {
+          const id = pathname.split('/').pop();
+          const body = await parseBody(req);
+          const { section, image_url, title, description, cta_text, cta_link, display_order, is_active } = body;
+          
+          const [image] = await sql`
+            UPDATE homepage_images
+            SET section = COALESCE(${section}, section),
+                image_url = COALESCE(${image_url}, image_url),
+                title = ${title !== undefined ? title : null},
+                description = ${description !== undefined ? description : null},
+                cta_text = ${cta_text !== undefined ? cta_text : null},
+                cta_link = ${cta_link !== undefined ? cta_link : null},
+                display_order = COALESCE(${display_order}, display_order),
+                is_active = COALESCE(${is_active}, is_active),
+                updated_at = now()
+            WHERE id = ${id}
+            RETURNING *
+          `;
+          
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(image || { success: false }));
+        } catch (error) {
+          console.error('❌ Update homepage image error:', error.message);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: error.message }));
+        }
+        return;
+      }
+
+      // Delete homepage image (admin)
+      if (pathname.startsWith('/api/homepage/images/') && req.method === 'DELETE') {
+        if (!requireAdminToken(req, res)) return;
+        try {
+          const id = pathname.split('/').pop();
+          await sql`DELETE FROM homepage_images WHERE id = ${id}`;
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true }));
+        } catch (error) {
+          console.error('❌ Delete homepage image error:', error.message);
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: false, error: error.message }));
         }

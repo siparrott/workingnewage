@@ -189,7 +189,18 @@ const CartPage: React.FC = () => {
                 const isVoucherItem = item.type === 'voucher' || item.name?.toLowerCase().includes('gutschein') || item.title?.toLowerCase().includes('voucher');
                 
                 return (
-                  <div key={item.id} className="flex items-center py-4 border-b border-gray-200 last:border-0">
+                  <div key={item.id} className="flex items-center py-4 border-b border-gray-200 last:border-0 gap-4">
+                    {/* Thumbnail Image */}
+                    {item.imageUrl && (
+                      <div className="flex-shrink-0">
+                        <img 
+                          src={item.imageUrl} 
+                          alt={item.title}
+                          className="w-20 h-20 object-cover rounded-lg"
+                        />
+                      </div>
+                    )}
+                    
                     <div className="flex-grow">
                       <div className="flex items-center space-x-2">
                         <h3 className="font-semibold text-gray-800">{item.title}</h3>
@@ -198,8 +209,15 @@ const CartPage: React.FC = () => {
                         )}
                       </div>
                       <p className="text-gray-600 text-sm">{item.packageType}</p>
+                      {item.description && (
+                        <p className="text-gray-600 text-sm mt-1">
+                          {item.description.length > 100 
+                            ? `${item.description.substring(0, 100)}...` 
+                            : item.description}
+                        </p>
+                      )}
                       {isVoucherItem && (
-                        <p className="text-purple-600 text-sm font-medium">
+                        <p className="text-purple-600 text-sm font-medium mt-1">
                           Personalisierung verfügbar
                         </p>
                       )}

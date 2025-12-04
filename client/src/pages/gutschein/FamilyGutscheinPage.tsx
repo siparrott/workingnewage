@@ -23,7 +23,9 @@ const FamilyGutscheinPage: React.FC = () => {
         '60 Minuten Shooting',
         '1 bearbeitetes Foto als A3 Leinwand (40x30cm) + gleiches Portrait digital',
         '2 Outfits'
-      ]
+      ],
+      description: 'Familienfotografie Basic — 1 bearbeitetes Foto als A3 Leinwand + digital, ideal für kleine Familien',
+      imageUrl: 'https://i.imgur.com/jSFqBCq.jpg'
     },
     {
       title: 'Family Premium',
@@ -34,7 +36,9 @@ const FamilyGutscheinPage: React.FC = () => {
         '5 bearbeitete Fotos digital (Porträts nach Wahl)',
         'A3 Leinwand (40x30cm)'
       ],
-      isFeatured: true
+      isFeatured: true,
+      description: 'Familienfotografie Premium — 5 bearbeitete Fotos digital + A3 Leinwand, perfekt für größere Familien',
+      imageUrl: 'https://i.imgur.com/jSFqBCq.jpg'
     },
     {
       title: 'Family Deluxe',
@@ -44,7 +48,9 @@ const FamilyGutscheinPage: React.FC = () => {
       features: [
         'A2 Leinwand (60x40cm)',
         '10 bearbeitete Fotos digital (Porträts nach Wahl)'
-      ]
+      ],
+      description: 'Familienfotografie Deluxe — 10 bearbeitete Fotos digital + A2 Leinwand, das komplette Familienerlebnis',
+      imageUrl: 'https://i.imgur.com/jSFqBCq.jpg'
     }
   ];
 
@@ -130,7 +136,9 @@ const FamilyGutscheinPage: React.FC = () => {
       price: pkg.price,
       quantity: 1,
       packageType: pkg.subtitle,
-      type: 'voucher'
+      type: 'voucher',
+      description: pkg.description,
+      imageUrl: pkg.imageUrl
     });
     // Scroll to top before navigating
     window.scrollTo({ top: 0, behavior: 'smooth' });

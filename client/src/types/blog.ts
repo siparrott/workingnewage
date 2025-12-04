@@ -6,6 +6,8 @@ export interface BlogPost {
   content: string; // Plain text content (required)
   content_html: string; // HTML content
   cover_image?: string; // Updated from image_url
+  image_url_2?: string; // Feature image 2
+  image_url_3?: string; // Feature image 3
   status: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED'; // New status field
   published: boolean; // Kept for backward compatibility
   author_id: string;
@@ -45,6 +47,8 @@ export interface BlogPostFormData {
   excerpt?: string;
   contentHtml: string;
   coverImage?: string;
+  imageUrl2?: string;
+  imageUrl3?: string;
   tags?: string[];
   status: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED';
   seoTitle?: string;

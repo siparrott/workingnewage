@@ -94,7 +94,7 @@ export default function BusinessPortraitWienPage() {
               <div className="col-span-2">
                 <img
                   src={heroImage1}
-                  alt="Business Portrait Wien Studio"
+                  alt="Professionelles Business Portrait Wien - Headshot im modernen Fotostudio"
                   className="rounded-2xl shadow-2xl w-full h-auto object-contain"
                   loading="eager"
                 />
@@ -102,7 +102,7 @@ export default function BusinessPortraitWienPage() {
               <div>
                 <img
                   src={heroImage2}
-                  alt="LinkedIn Foto Wien"
+                  alt="LinkedIn Profilbild Wien - Professionelles Bewerbungsfoto für Social Media"
                   className="rounded-xl shadow-lg w-full h-auto object-contain"
                   loading="eager"
                 />
@@ -110,7 +110,7 @@ export default function BusinessPortraitWienPage() {
               <div>
                 <img
                   src={heroImage3}
-                  alt="CEO Portrait Wien"
+                  alt="CEO Business Portrait Wien - Executive Headshots für Führungskräfte"
                   className="rounded-xl shadow-lg w-full h-auto object-contain"
                   loading="eager"
                 />
@@ -142,7 +142,7 @@ export default function BusinessPortraitWienPage() {
             <div>
               <img
                 src={heroImage4}
-                alt="Business Portrait Wien Studio"
+                alt="Business Fotoshooting Wien - Natürliche Corporate Portraits im Studio"
                 className="rounded-2xl shadow-lg w-full h-auto object-contain"
                 loading="lazy"
               />
@@ -397,7 +397,7 @@ export default function BusinessPortraitWienPage() {
           <div className="mb-12">
             <img
               src={heroImage5}
-              alt="Business Portrait Shooting Ablauf"
+              alt="Business Portrait Shooting Ablauf Wien - Professionelle Mitarbeiterfotos in 30 Minuten"
               className="rounded-2xl shadow-lg w-full h-auto object-contain"
               loading="lazy"
             />
@@ -549,6 +549,73 @@ export default function BusinessPortraitWienPage() {
               </p>
               <span className="text-purple-600 font-semibold flex items-center">
                 Mehr erfahren <ArrowRight className="ml-1 h-4 w-4" />
+              </span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Related Services Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Weitere Fotografie-Services
+            </h2>
+            <p className="text-lg text-gray-600">
+              Entdecken Sie unsere anderen professionellen Fotografie-Angebote in Wien
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Event Photography */}
+            <Link
+              to="/eventfotografie-wien/"
+              className="bg-gray-50 rounded-lg p-6 hover:shadow-lg transition-shadow group"
+            >
+              <Camera className="h-12 w-12 text-purple-600 mb-4" />
+              <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
+                Eventfotografie
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Professionelle Dokumentation von Firmenevents, Konferenzen und Galas in Wien.
+              </p>
+              <span className="text-purple-600 font-semibold inline-flex items-center">
+                Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
+              </span>
+            </Link>
+
+            {/* Product Photography */}
+            <Link
+              to="/produkt-fotografie-wien/"
+              className="bg-gray-50 rounded-lg p-6 hover:shadow-lg transition-shadow group"
+            >
+              <Briefcase className="h-12 w-12 text-purple-600 mb-4" />
+              <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
+                Produktfotografie
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Hochwertige Produktfotos für E-Commerce, Amazon und Marketing-Kampagnen.
+              </p>
+              <span className="text-purple-600 font-semibold inline-flex items-center">
+                Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
+              </span>
+            </Link>
+
+            {/* Family Photography */}
+            <Link
+              to="/familien-fotoshooting-wien/"
+              className="bg-gray-50 rounded-lg p-6 hover:shadow-lg transition-shadow group"
+            >
+              <Users className="h-12 w-12 text-purple-600 mb-4" />
+              <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
+                Familienfotografie
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Natürliche Familienporträts im Studio oder Outdoor – unvergessliche Erinnerungen schaffen.
+              </p>
+              <span className="text-purple-600 font-semibold inline-flex items-center">
+                Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
               </span>
             </Link>
           </div>

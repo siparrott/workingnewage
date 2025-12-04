@@ -10,6 +10,8 @@ import photoGridImage from '../assets/photo-grid.jpg';
 import { useLanguage } from '../context/LanguageContext';
 import { useCart } from '../context/CartContext';
 import { useManualPageContent } from '../hooks/useManualPageContent';
+import { SEOHead } from '../components/SEO/SEOHead';
+import { Helmet } from 'react-helmet-async';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -18,6 +20,17 @@ const HomePage: React.FC = () => {
   
   // Use manual page content hook - allows admin to override any content
   const t = useManualPageContent('home');
+
+  // Fetch homepage images from API
+  const { data: homepageImages } = useQuery({
+    queryKey: ['/api/homepage/images'],
+    queryFn: async () => {
+      const res = await fetch('/api/homepage/images');
+      if (!res.ok) throw new Error('Failed to fetch homepage images');
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000 // Cache for 5 minutes
+  });
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -155,7 +168,7 @@ const HomePage: React.FC = () => {
     }
   ];
 
-  const faqImages = [
+  const faqImages = homepageImages?.filter((img: any) => img.section === 'faq') || [
     {
       title: t('home.faqQuestion1'),
       image: "https://i.postimg.cc/D09JNp5m/00014518.jpg",
@@ -190,6 +203,97 @@ const HomePage: React.FC = () => {
 
   return (
     <Layout>
+      <SEOHead
+        title="Familienfotograf Wien – New Age Fotografie | Studio & Outdoor Fotoshootings"
+        description="Professionelle Familienfotos, Schwangerschaftsfotos, Neugeborenenfotos & Business Portraits in Wien. Über 27.000 glückliche Familien. Studio in 1050 Wien. Jetzt Termin buchen!"
+        keywords="familienfotograf wien, fotostudio wien, familienfotografie wien, schwangerschaftsfotos wien, neugeborenenfotos wien, babyfotograf wien, business portrait wien"
+        canonical="/"
+        ogImage="https://i.postimg.cc/wTdZVLdC/photo-grid.jpg"
+        hreflang={[
+          { lang: 'de', url: '/' },
+          { lang: 'en', url: '/en/' }
+        ]}
+      />
+
+      {/* JSON-LD Structured Data for LocalBusiness */}
+      <Helmet>
+        <script type="application/ld+json">
+          {JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'LocalBusiness',
+            '@id': 'https://www.newagefotografie.com/#business',
+            name: 'New Age Fotografie',
+            image: 'https://i.postimg.cc/wTdZVLdC/photo-grid.jpg',
+            description: 'Professioneller Familienfotograf in Wien. Spezialisiert auf Familienfotos, Schwangerschaftsfotos, Neugeborenenfotos und Business Portraits.',
+            address: {
+              '@type': 'PostalAddress',
+              streetAddress: 'Margaretenstraße',
+              addressLocality: 'Wien',
+              postalCode: '1050',
+              addressCountry: 'AT'
+            },
+            geo: {
+              '@type': 'GeoCoordinates',
+              latitude: 48.191130,
+              longitude: 16.356010
+            },
+            url: 'https://www.newagefotografie.com',
+            telephone: '+43-XXX-XXXXXXX',
+            priceRange: '€€',
+            openingHours: 'Mo-Fr 09:00-18:00',
+            areaServed: {
+              '@type': 'City',
+              name: 'Wien'
+            },
+            hasOfferCatalog: {
+              '@type': 'OfferCatalog',
+              name: 'Fotografie Services',
+              itemListElement: [
+                {
+                  '@type': 'Offer',
+                  itemOffered: {
+                    '@type': 'Service',
+                    name: 'Familienfotografie',
+                    description: 'Professionelle Familienportraits im Studio oder Outdoor'
+                  }
+                },
+                {
+                  '@type': 'Offer',
+                  itemOffered: {
+                    '@type': 'Service',
+                    name: 'Schwangerschaftsfotografie',
+                    description: 'Babybauch Fotoshootings in Wien'
+                  }
+                },
+                {
+                  '@type': 'Offer',
+                  itemOffered: {
+                    '@type': 'Service',
+                    name: 'Neugeborenenfotos',
+                    description: 'Professionelle Babyfotografie für Neugeborene'
+                  }
+                },
+                {
+                  '@type': 'Offer',
+                  itemOffered: {
+                    '@type': 'Service',
+                    name: 'Business Portraits',
+                    description: 'Professionelle Businessfotografie und Headshots'
+                  }
+                }
+              ]
+            },
+            aggregateRating: {
+              '@type': 'AggregateRating',
+              ratingValue: '4.9',
+              reviewCount: '253',
+              bestRating: '5',
+              worstRating: '1'
+            }
+          })}
+        </script>
+      </Helmet>
+
       {/* Hero Section */}
       <section className="bg-white">
         <div className="container mx-auto px-4 py-16 md:py-24 flex flex-col md:flex-row items-center justify-between">
@@ -334,137 +438,177 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Content Blocks */}
+      {/* Our Services Section */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Unsere Fotografie-Services in Wien</h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Von Familien-Shootings bis Business-Portraits – wir bieten professionelle Fotografie für jeden Anlass
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Family Portraits */}
             <div 
-              onClick={() => navigate('/fotoshootings')}
-              className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1"
+              onClick={() => navigate('/familien-fotoshooting-wien/')}
+              className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
             >
               <div className="aspect-[4/3] overflow-hidden">
                 <img 
                   src="https://i.postimg.cc/V6TFF8rC/00508749.jpg"
-                  alt="Familienporträts Wien - Natürliche Familienfotografie"
-                  className="w-full h-full object-cover"
+                  alt="Familienporträts Wien - Natürliche Familienfotografie im Studio und Outdoor"
+                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
                   loading="lazy"
                 />
               </div>
               <div className="p-6">
                 <h3 className="text-xl font-bold text-purple-900 mb-2">{t('home.familyPortraitsTitle')}</h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 mb-4">
                   {t('home.familyPortraitsDescription')}
                 </p>
+                <span className="text-purple-600 font-semibold inline-flex items-center">
+                  Mehr erfahren →
+                </span>
               </div>
             </div>
 
             {/* Pregnancy Photography */}
             <div 
-              onClick={() => navigate('/fotoshootings')}
-              className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1"
+              onClick={() => navigate('/schwangerschaftsfotos-wien/')}
+              className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
             >
               <div className="aspect-[4/3] overflow-hidden">
                 <img 
                   src="https://i.imgur.com/AMnhw6w.jpg"
                   alt={language === 'en' 
-                    ? "Maternity Photography Vienna - Professional Pregnancy Photoshoot"
-                    : "Babybauch Fotografie Wien - Schwangerschaftsfotos im Studio"}
-                  className="w-full h-full object-cover"
+                    ? "Maternity Photography Vienna - Professional Pregnancy Photoshoot in Studio"
+                    : "Babybauch Fotografie Wien - Professionelle Schwangerschaftsfotos im Studio"}
+                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
                   loading="lazy"
                 />
               </div>
               <div className="p-6">
                 <h3 className="text-xl font-bold text-purple-900 mb-2">{t('home.pregnancyPhotographyTitle')}</h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 mb-4">
                   {t('home.pregnancyPhotographyDescription')}
                 </p>
+                <span className="text-purple-600 font-semibold inline-flex items-center">
+                  Mehr erfahren →
+                </span>
               </div>
             </div>
 
             {/* Newborn Photography */}
             <div 
-              onClick={() => navigate('/fotoshootings')}
-              className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1"
+              onClick={() => navigate('/baby-fotografie-wien/')}
+              className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
             >
               <div className="aspect-[4/3] overflow-hidden">
                 <img 
                   src="https://i.imgur.com/VLYZQof.jpg"
                   alt={language === 'en'
-                    ? "Newborn Photography Vienna - Professional Baby Photoshoot"
-                    : "Neugeborenenfotos im Studio Wien - Professionelle Babyfotografie"}
-                  className="w-full h-full object-cover"
+                    ? "Newborn Photography Vienna - Professional Baby Photoshoot in Studio"
+                    : "Neugeborenenfotos Wien - Professionelle Babyfotografie im Studio"}
+                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
                   loading="lazy"
                 />
               </div>
               <div className="p-6">
                 <h3 className="text-xl font-bold text-purple-900 mb-2">{t('home.newbornPhotographyTitle')}</h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 mb-4">
                   {t('home.newbornPhotographyDescription')}
                 </p>
+                <span className="text-purple-600 font-semibold inline-flex items-center">
+                  Mehr erfahren →
+                </span>
               </div>
             </div>
 
             {/* Business Photography */}
             <div 
-              onClick={() => navigate('/fotoshootings')}
-              className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1"
+              onClick={() => navigate('/business-portrait-wien/')}
+              className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
             >
               <div className="aspect-[4/3] overflow-hidden">
-                <ZoomableImage 
-                  src="https://i.postimg.cc/T2tqtjpN/9RaPUSK.jpg"
-                  alt="Business Photography Wien - Professionelle Businessfotografie"
-                  className="w-full h-full object-cover"
+                <img 
+                  src="https://i.postimg.cc/NMqvfKv7/4S8A6958.jpg"
+                  alt="Business Headshots Wien - Professionelle Businessfotografie im Studio"
+                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
                   loading="lazy"
                 />
               </div>
               <div className="p-6">
                 <h3 className="text-xl font-bold text-purple-900 mb-2">{t('home.businessPhotographyTitle')}</h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 mb-4">
                   {t('home.businessPhotographyDescription')}
                 </p>
+                <span className="text-purple-600 font-semibold inline-flex items-center">
+                  Mehr erfahren →
+                </span>
               </div>
             </div>
 
             {/* Event Photography */}
             <div 
-              onClick={() => navigate('/fotoshootings')}
-              className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1"
+              onClick={() => navigate('/eventfotografie-wien/')}
+              className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
             >
               <div className="aspect-[4/3] overflow-hidden">
                 <img 
-                  src="https://i.imgur.com/0KAHvWd.jpg"
-                  alt="Event photography"
-                  className="w-full h-full object-cover"
+                  src="https://i.postimg.cc/CLdXQtkc/00494629.jpg"
+                  alt="Eventfotografie Wien - Professionelle Event & Konferenzfotografie"
+                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                  loading="lazy"
                 />
               </div>
               <div className="p-6">
                 <h3 className="text-xl font-bold text-purple-900 mb-2">{t('home.eventPhotographyTitle')}</h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 mb-4">
                   {t('home.eventPhotographyDescription')}
                 </p>
+                <span className="text-purple-600 font-semibold inline-flex items-center">
+                  Mehr erfahren →
+                </span>
               </div>
             </div>
 
-            {/* Wedding Photography */}
+            {/* Product Photography */}
             <div 
-              onClick={() => navigate('/fotoshootings')}
-              className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1"
+              onClick={() => navigate('/produkt-fotografie-wien/')}
+              className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
             >
               <div className="aspect-[4/3] overflow-hidden">
                 <img 
-                  src="https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg"
-                  alt="Wedding photography"
-                  className="w-full h-full object-cover"
+                  src="https://i.postimg.cc/L6YtYjJC/product-photo-example.jpg"
+                  alt="Produktfotografie Wien - E-Commerce & Amazon Produktfotos im Studio"
+                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                  loading="lazy"
                 />
               </div>
               <div className="p-6">
-                <h3 className="text-xl font-bold text-purple-900 mb-2">{t('home.weddingPhotographyTitle')}</h3>
-                <p className="text-gray-600">
-                  {t('home.weddingPhotographyDescription')}
+                <h3 className="text-xl font-bold text-purple-900 mb-2">{t('home.productPhotographyTitle')}</h3>
+                <p className="text-gray-600 mb-4">
+                  {t('home.productPhotographyDescription')}
                 </p>
+                <span className="text-purple-600 font-semibold inline-flex items-center">
+                  Mehr erfahren →
+                </span>
               </div>
             </div>
+          </div>
+
+          {/* View All Services CTA */}
+          <div className="text-center mt-12">
+            <button
+              onClick={() => navigate('/fotoshootings')}
+              className="inline-flex items-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg shadow-lg"
+            >
+              Alle Services ansehen
+              <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="width" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </button>
           </div>
         </div>
       </section>

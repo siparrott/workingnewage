@@ -326,6 +326,73 @@ export default function ProduktfotografieWienPage() {
           </div>
         </section>
 
+        {/* Related Services Section */}
+        <section className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                Weitere Business-Fotografie Services
+              </h2>
+              <p className="text-lg text-gray-600">
+                Komplette visuelle Lösungen für Ihr Unternehmen
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Business Portraits */}
+              <Link
+                to="/business-portrait-wien/"
+                className="bg-gray-50 rounded-lg p-6 hover:shadow-lg transition-shadow group"
+              >
+                <Users className="h-12 w-12 text-purple-600 mb-4" />
+                <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
+                  Business Portraits
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Professionelle Mitarbeiterfotos und Headshots für Ihre Firmenwebsite und LinkedIn.
+                </p>
+                <span className="text-purple-600 font-semibold inline-flex items-center">
+                  Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
+                </span>
+              </Link>
+
+              {/* Event Photography */}
+              <Link
+                to="/eventfotografie-wien/"
+                className="bg-gray-50 rounded-lg p-6 hover:shadow-lg transition-shadow group"
+              >
+                <Camera className="h-12 w-12 text-purple-600 mb-4" />
+                <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
+                  Eventfotografie
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Dokumentation von Firmenevents, Produktlaunches und Konferenzen in Wien.
+                </p>
+                <span className="text-purple-600 font-semibold inline-flex items-center">
+                  Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
+                </span>
+              </Link>
+
+              {/* Real Estate Photography */}
+              <Link
+                to="/immobilienfotografie-wien/"
+                className="bg-gray-50 rounded-lg p-6 hover:shadow-lg transition-shadow group"
+              >
+                <Star className="h-12 w-12 text-purple-600 mb-4" />
+                <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
+                  Immobilienfotografie
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Hochwertige Architektur- und Immobilienfotos für Exposés und Vermarktung.
+                </p>
+                <span className="text-purple-600 font-semibold inline-flex items-center">
+                  Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
+                </span>
+              </Link>
+            </div>
+          </div>
+        </section>
+
         {/* Final CTA */}
         <section className="py-16 bg-gradient-to-r from-gray-900 to-gray-800 text-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

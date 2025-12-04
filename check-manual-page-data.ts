@@ -37,14 +37,14 @@ async function checkManualPageData() {
       if (draftHeroImages.length > 0) {
         console.log('🎨 Draft Hero Images Found:');
         draftHeroImages.forEach(key => {
-          console.log(`  - ${key}: ${content.draftContent[key]}`);
+          console.log(`  - ${key}: ${content.draftContent?.[key] ?? ''}`);
         });
       }
 
       if (publishedHeroImages.length > 0) {
         console.log('✅ Published Hero Images Found:');
         publishedHeroImages.forEach(key => {
-          console.log(`  - ${key}: ${content.publishedContent[key]}`);
+          console.log(`  - ${key}: ${content.publishedContent?.[key] ?? ''}`);
         });
       } else {
         console.log('⚠️  NO PUBLISHED HERO IMAGES FOUND!');

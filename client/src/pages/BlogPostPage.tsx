@@ -12,6 +12,8 @@ interface BlogPost {
   content: string;
   contentHtml: string;
   imageUrl: string | null;
+  imageUrl2?: string | null;
+  imageUrl3?: string | null;
   publishedAt: string;
   excerpt: string | null;
   author: {
@@ -300,10 +302,116 @@ const BlogPostPage: React.FC = () => {
                     margin: 3rem 0;
                   }
                 `}} />
-                <div 
-                  className="blog-post-content prose prose-purple max-w-none"
-                  dangerouslySetInnerHTML={{ __html: post.contentHtml || post.content }}
-                />
+                
+                {/* Render content with strategically placed images */}
+                {(() => {
+                  const htmlContent = post.contentHtml || post.content;
+                  
+                  // If no additional images, render normally
+                  if (!post.imageUrl2 && !post.imageUrl3) {
+                    return (
+                      <div 
+                        className="blog-post-content prose prose-purple max-w-none"
+                        dangerouslySetInnerHTML={{ __html: htmlContent }}
+                      />
+                    );
+                  }
+                  
+                  // Split content intelligently
+                  const sections = htmlContent.split(/<h2/i);
+                  
+                  if (sections.length <= 1) {
+                    // No H2 tags, fall back to rendering full content with images at bottom
+                    return (
+                      <>
+                        <div 
+                          className="blog-post-content prose prose-purple max-w-none"
+                          dangerouslySetInnerHTML={{ __html: htmlContent }}
+                        />
+                        {post.imageUrl2 && (
+                          <div className="my-8">
+                            <img
+                              src={post.imageUrl2}
+                              alt="Feature image 2"
+                              className="w-full rounded-xl shadow-2xl"
+                              loading="lazy"
+                            />
+                          </div>
+                        )}
+                        {post.imageUrl3 && (
+                          <div className="my-8">
+                            <img
+                              src={post.imageUrl3}
+                              alt="Feature image 3"
+                              className="w-full rounded-xl shadow-2xl"
+                              loading="lazy"
+                            />
+                          </div>
+                        )}
+                      </>
+                    );
+                  }
+                  
+                  // Calculate split points
+                  const totalSections = sections.length;
+                  const firstThird = Math.max(1, Math.floor(totalSections / 3));
+                  const midPoint = Math.max(2, Math.floor(totalSections / 2));
+                  
+                  // Reconstruct sections
+                  const firstPart = sections.slice(0, firstThird).join('<h2');
+                  const secondPart = sections.slice(firstThird, midPoint).map((s, i) => i === 0 ? '<h2' + s : s).join('<h2');
+                  const thirdPart = sections.slice(midPoint).map((s, i) => i === 0 ? '<h2' + s : s).join('<h2');
+                  
+                  return (
+                    <>
+                      {/* First section */}
+                      <div 
+                        className="blog-post-content prose prose-purple max-w-none"
+                        dangerouslySetInnerHTML={{ __html: firstPart }}
+                      />
+                      
+                      {/* Feature Image 2 after first section */}
+                      {post.imageUrl2 && (
+                        <div className="my-8">
+                          <img
+                            src={post.imageUrl2}
+                            alt="Feature image 2"
+                            className="w-full rounded-xl shadow-2xl"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
+                      
+                      {/* Second section */}
+                      {secondPart && (
+                        <div 
+                          className="blog-post-content prose prose-purple max-w-none"
+                          dangerouslySetInnerHTML={{ __html: secondPart }}
+                        />
+                      )}
+                      
+                      {/* Feature Image 3 mid-content */}
+                      {post.imageUrl3 && (
+                        <div className="my-8">
+                          <img
+                            src={post.imageUrl3}
+                            alt="Feature image 3"
+                            className="w-full rounded-xl shadow-2xl"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
+                      
+                      {/* Third section */}
+                      {thirdPart && (
+                        <div 
+                          className="blog-post-content prose prose-purple max-w-none"
+                          dangerouslySetInnerHTML={{ __html: thirdPart }}
+                        />
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             ) : (
               <div className="text-center py-12">

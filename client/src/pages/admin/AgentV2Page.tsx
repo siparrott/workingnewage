@@ -1,11 +1,13 @@
 import React from 'react';
 import { Shield, Sparkles, Zap } from 'lucide-react';
 import CRMOperationsAssistantV2 from '../../components/chat/CRMOperationsAssistantV2';
+import AdminLayout from '../../components/admin/AdminLayout';
 
 const AgentV2Page: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50">
-      <div className="max-w-7xl mx-auto p-8">
+    <AdminLayout>
+      <div className="bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 min-h-screen">
+        <div className="max-w-7xl mx-auto p-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
@@ -155,11 +157,12 @@ const AgentV2Page: React.FC = () => {
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
           <strong>Note:</strong> This is Agent V2 with enhanced safety features. The legacy CRM Assistant (V1) remains available during the migration period.
         </div>
-      </div>
+        </div>
 
-      {/* Agent V2 Chat Component */}
-      <CRMOperationsAssistantV2 useV2={true} />
-    </div>
+        {/* Agent V2 Chat Component */}
+        <CRMOperationsAssistantV2 useV2={true} />
+      </div>
+    </AdminLayout>
   );
 };
 

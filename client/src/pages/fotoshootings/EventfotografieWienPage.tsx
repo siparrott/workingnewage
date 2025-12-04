@@ -31,13 +31,15 @@ export default function EventfotografieWienPage() {
   const heroImage4 = fromManual('manual.eventfotografie.heroImage4', '');
   const heroImage5 = fromManual('manual.eventfotografie.heroImage5', '');
 
-  const handleBookPackage = (packageName: string, price: number, description: string) => {
+  const handleBookPackage = (packageName: string, price: number, description: string, imageUrl?: string) => {
     addItem({
       title: packageName,
       price: price,
       quantity: 1,
       packageType: 'Event',
-      type: 'voucher'
+      type: 'voucher',
+      description: description,
+      imageUrl: imageUrl || heroImage1 || 'https://i.imgur.com/Vd6xtPg.jpg'
     });
     navigate('/cart');
   };
@@ -138,7 +140,7 @@ export default function EventfotografieWienPage() {
               <div>
                 <img
                   src={heroImage2}
-                  alt="Event Fotografie Wien"
+                  alt="Eventfotografie Wien - Networking und Podiumsdiskussion bei Corporate Event"
                   className="rounded-xl shadow-lg w-full h-auto object-contain"
                   loading="eager"
                 />
@@ -146,7 +148,7 @@ export default function EventfotografieWienPage() {
               <div>
                 <img
                   src={heroImage3}
-                  alt="Corporate Event Shooting Wien"
+                  alt="Corporate Event Fotograf Wien - Professionelle Konferenzfotografie und Firmenevents"
                   className="rounded-xl shadow-lg w-full h-auto object-contain"
                   loading="eager"
                 />
@@ -262,7 +264,7 @@ export default function EventfotografieWienPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <img
               src={heroImage4}
-              alt="Eventfotografie Wien – Professional Event Coverage"
+              alt="Eventfotograf Wien - Professionelle Dokumentation von Firmenfeiern und Galas"
               className="w-full h-auto rounded-2xl shadow-2xl object-cover"
               loading="lazy"
             />
@@ -516,7 +518,7 @@ export default function EventfotografieWienPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <img
               src={heroImage5}
-              alt="Eventfotografie Wien – Event Highlights"
+              alt="Event Highlights Wien - Emotionale Momente und besondere Augenblicke einfangen"
               className="w-full h-auto rounded-2xl shadow-2xl object-cover"
               loading="lazy"
             />
@@ -718,6 +720,73 @@ export default function EventfotografieWienPage() {
               </p>
               <span className="text-purple-600 font-semibold flex items-center">
                 Mehr erfahren <ArrowRight className="ml-1 h-4 w-4" />
+              </span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Related Services Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Weitere Fotografie-Services
+            </h2>
+            <p className="text-lg text-gray-600">
+              Entdecken Sie unsere anderen professionellen Fotografie-Angebote in Wien
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Business Portraits */}
+            <Link
+              to="/business-portrait-wien/"
+              className="bg-gray-50 rounded-lg p-6 hover:shadow-lg transition-shadow group"
+            >
+              <Briefcase className="h-12 w-12 text-purple-600 mb-4" />
+              <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
+                Business Portraits
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Professionelle Headshots und Mitarbeiterfotos für LinkedIn, Website und Geschäftsunterlagen.
+              </p>
+              <span className="text-purple-600 font-semibold inline-flex items-center">
+                Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
+              </span>
+            </Link>
+
+            {/* Product Photography */}
+            <Link
+              to="/produkt-fotografie-wien/"
+              className="bg-gray-50 rounded-lg p-6 hover:shadow-lg transition-shadow group"
+            >
+              <Camera className="h-12 w-12 text-purple-600 mb-4" />
+              <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
+                Produktfotografie
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Hochwertige Produktfotos für E-Commerce, Amazon und Marketing-Materialien.
+              </p>
+              <span className="text-purple-600 font-semibold inline-flex items-center">
+                Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
+              </span>
+            </Link>
+
+            {/* Family Photography */}
+            <Link
+              to="/familien-fotoshooting-wien/"
+              className="bg-gray-50 rounded-lg p-6 hover:shadow-lg transition-shadow group"
+            >
+              <Users className="h-12 w-12 text-purple-600 mb-4" />
+              <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
+                Familienfotografie
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Natürliche Familienporträts im Studio oder Outdoor – besondere Momente festhalten.
+              </p>
+              <span className="text-purple-600 font-semibold inline-flex items-center">
+                Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
               </span>
             </Link>
           </div>

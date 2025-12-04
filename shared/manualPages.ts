@@ -35,6 +35,23 @@ const makeField = (
 
 export const manualPageManifest: ManualPageDefinition[] = [
   {
+    id: 'homepage-images',
+    label: 'Homepage Images',
+    route: '/admin/homepage-images',
+    description: 'Manage photo grid and images displayed on the homepage.',
+    tags: ['Images', 'Photos', 'Homepage'],
+    sections: [
+      {
+        id: 'photo-grid',
+        label: 'Photo Grid Management',
+        description: 'Upload and organize images for the homepage photo collage.',
+        fields: [
+          makeField('photo-grid-manager', 'Photo Grid', 'homepage.photoGrid', 'richText', 'Manage homepage photo grid images - these appear in the collage on the homepage')
+        ]
+      }
+    ]
+  },
+  {
     id: 'home',
     label: 'Homepage',
     route: '/',

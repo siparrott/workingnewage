@@ -110,4 +110,59 @@ cron.schedule("0 * * * *", async () => {
   }
 }, { timezone: process.env.TZ || 'UTC' });
 
+/* hourly auto-publish scheduled blog posts */
+cron.schedule("0 * * * *", async () => {
+  jobLog('BLOG', 'Checking for scheduled blog posts to publish');
+  try {
+    const { db } = await import("../db");
+    const { blogPosts } = await import("@shared/schema");
+    const { eq, and, lte } = await import("drizzle-orm");
+    
+    const now = new Date();
+    
+    // Find all scheduled posts where scheduled_for <= now
+    const scheduledPosts = await db
+      .select()
+      .from(blogPosts)
+      .where(
+        and(
+          eq(blogPosts.status, 'SCHEDULED'),
+          lte(blogPosts.scheduledFor, now)
+        )
+      );
+    
+    if (scheduledPosts.length === 0) {
+      jobLog('BLOG', 'No scheduled posts ready to publish');
+      return;
+    }
+    
+    jobLog('BLOG', `Found ${scheduledPosts.length} post(s) ready to publish`);
+    
+    // Publish each post
+    let published = 0;
+    for (const post of scheduledPosts) {
+      try {
+        await db
+          .update(blogPosts)
+          .set({
+            status: 'PUBLISHED',
+            published: true,
+            publishedAt: now,
+            updatedAt: now
+          })
+          .where(eq(blogPosts.id, post.id));
+        
+        published++;
+        jobLog('BLOG', `Published: "${post.title}" (${post.slug})`);
+      } catch (err) {
+        jobLog('BLOG', `Failed to publish post ${post.id}`, err instanceof Error ? err.message : err);
+      }
+    }
+    
+    jobLog('BLOG', `Auto-publish complete: ${published} of ${scheduledPosts.length} posts published`);
+  } catch (err) {
+    jobLog('BLOG', 'Auto-publish job failed', err instanceof Error ? err.message : err);
+  }
+}, { timezone: process.env.TZ || 'UTC' });
+
 // NOTE: Supabase realtime/live update paths deprecated; hourly polling via Neon is now active.

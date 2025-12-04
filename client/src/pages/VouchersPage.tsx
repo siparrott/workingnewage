@@ -8,6 +8,8 @@ import { Search, Gift } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import HeroDealsAuto from '@/components/HeroDealsAuto';
 import { useCart } from '../context/CartContext';
+import { SEOHead } from '../components/SEO/SEOHead';
+import { Helmet } from 'react-helmet-async';
 
 const VouchersPage: React.FC = () => {
   const { selectedCategory } = useAppContext();
@@ -305,7 +307,9 @@ const VouchersPage: React.FC = () => {
       packageType: voucher.category || 'Voucher',
       type: 'voucher',
       productId: voucher.id,
-      productSlug: voucher.slug
+      productSlug: voucher.slug,
+      description: voucher.description,
+      imageUrl: voucher.image
     });
     // Navigate to cart page
     navigate('/cart');
@@ -314,6 +318,45 @@ const VouchersPage: React.FC = () => {
 
   return (
     <Layout>
+      <SEOHead
+        title="Fotoshooting Gutscheine Wien – Geschenkideen | New Age Fotografie"
+        description="Fotoshooting Gutscheine als perfekte Geschenkidee. Familie, Schwangerschaft, Baby, Business & Event Fotoshootings zum Verschenken. Ab €95. Gültig 2 Jahre."
+        keywords="fotoshooting gutschein wien, geschenkgutschein fotografie, fotografie gutschein, fotoshooting verschenken wien"
+        canonical="/vouchers/"
+        ogImage="https://images.unsplash.com/photo-1511895426328-dc8714191300?w=1200&h=630&fit=crop"
+        hreflang={[
+          { lang: 'de', url: '/vouchers/' },
+          { lang: 'en', url: '/en/vouchers/' }
+        ]}
+      />
+
+      {/* JSON-LD Structured Data for Products */}
+      <Helmet>
+        <script type="application/ld+json">
+          {JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'ItemList',
+            itemListElement: voucherProducts.slice(0, 5).map((voucher, index) => ({
+              '@type': 'ListItem',
+              position: index + 1,
+              item: {
+                '@type': 'Product',
+                name: voucher.name,
+                description: voucher.description,
+                image: voucher.image,
+                offers: {
+                  '@type': 'Offer',
+                  price: voucher.price,
+                  priceCurrency: 'EUR',
+                  availability: 'https://schema.org/InStock',
+                  url: `https://www.newagefotografie.com${voucher.route}`
+                }
+              }
+            }))
+          })}
+        </script>
+      </Helmet>
+
       <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">

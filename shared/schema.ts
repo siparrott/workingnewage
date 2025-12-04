@@ -117,6 +117,8 @@ export const blogPosts = pgTable("blog_posts", {
   contentHtml: text("content_html"),
   excerpt: text("excerpt"),
   imageUrl: text("image_url"),
+  imageUrl2: text("image_url_2"),
+  imageUrl3: text("image_url_3"),
   published: boolean("published").default(false),
   publishedAt: timestamp("published_at"),
   scheduledFor: timestamp("scheduled_for"),

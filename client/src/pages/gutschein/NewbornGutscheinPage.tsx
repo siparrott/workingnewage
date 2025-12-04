@@ -23,7 +23,9 @@ const NewbornGutscheinPage: React.FC = () => {
         '60 Minuten Shooting',
         '1 bearbeitetes Foto als A3 Leinwand (40x30cm) + gleiches Portrait digital',
         '2 Outfits'
-      ]
+      ],
+      description: 'Neugeborenen Fotoshooting Basic — 1 bearbeitetes Foto als A3 Leinwand + digital, perfekt für die ersten Tage',
+      imageUrl: 'https://i.postimg.cc/WzrVSs3F/3-J9-A3679-renamed-3632.jpg'
     },
     {
       title: 'Premium',
@@ -34,7 +36,9 @@ const NewbornGutscheinPage: React.FC = () => {
         '5 bearbeitete Fotos digital (Porträts nach Wahl)',
         'A3 Leinwand (40x30cm)'
       ],
-      isFeatured: true
+      isFeatured: true,
+      description: 'Neugeborenen Fotoshooting Premium — 5 bearbeitete Fotos digital + A3 Leinwand, umfangreiche Erinnerungen',
+      imageUrl: 'https://i.postimg.cc/WzrVSs3F/3-J9-A3679-renamed-3632.jpg'
     },
     {
       title: 'Deluxe',
@@ -44,7 +48,9 @@ const NewbornGutscheinPage: React.FC = () => {
       features: [
         'A2 Leinwand (60x40cm)',
         '10 bearbeitete Fotos digital (Porträts nach Wahl)'
-      ]
+      ],
+      description: 'Neugeborenen Fotoshooting Deluxe — 10 bearbeitete Fotos digital + A2 Leinwand, das komplette Erlebnis',
+      imageUrl: 'https://i.postimg.cc/WzrVSs3F/3-J9-A3679-renamed-3632.jpg'
     }
   ];
 
@@ -128,7 +134,9 @@ const NewbornGutscheinPage: React.FC = () => {
       price: pkg.price,
       quantity: 1,
       packageType: pkg.subtitle,
-      type: 'voucher'
+      type: 'voucher',
+      description: pkg.description,
+      imageUrl: pkg.imageUrl
     });
     // Scroll to top before navigating
     window.scrollTo({ top: 0, behavior: 'smooth' });

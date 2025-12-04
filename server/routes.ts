@@ -7683,6 +7683,225 @@ New Age Fotografie CRM System
     }
   });
 
+  // ============================================================================
+  // HOMEPAGE IMAGES API
+  // ============================================================================
+
+  // Get all homepage images
+  app.get("/api/homepage/images", async (req: Request, res: Response) => {
+    try {
+      const section = req.query.section as string | undefined;
+      
+      let query = `
+        SELECT id, section, url, alt, title, sort_order, is_active, created_at, updated_at
+        FROM homepage_images
+        WHERE is_active = true
+      `;
+      const params: any[] = [];
+      
+      if (section) {
+        query += ` AND section = $1`;
+        params.push(section);
+      }
+      
+      query += ` ORDER BY sort_order ASC, created_at DESC`;
+      
+      const images = await runSql(query, params);
+      
+      res.json(images);
+    } catch (error) {
+      console.error("Error fetching homepage images:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get single homepage image
+  app.get("/api/homepage/images/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const result = await runSql(`
+        SELECT id, section, url, alt, title, sort_order, is_active, created_at, updated_at
+        FROM homepage_images
+        WHERE id = $1
+      `, [id]);
+      
+      if (result.length === 0) {
+        return res.status(404).json({ error: "Image not found" });
+      }
+      
+      res.json(result[0]);
+    } catch (error) {
+      console.error("Error fetching homepage image:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create homepage image
+  app.post("/api/homepage/images", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { section, url, alt, title, sortOrder, isActive } = req.body;
+      
+      if (!section || !url) {
+        return res.status(400).json({ error: "Section and URL are required" });
+      }
+      
+      const result = await runSql(`
+        INSERT INTO homepage_images (section, url, alt, title, sort_order, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id, section, url, alt, title, sort_order, is_active, created_at, updated_at
+      `, [section, url, alt || null, title || null, sortOrder || 0, isActive !== false]);
+      
+      console.log(`✅ Created homepage image: ${result[0].id}`);
+      res.json(result[0]);
+    } catch (error) {
+      console.error("Error creating homepage image:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Update homepage image
+  app.put("/api/homepage/images/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { section, url, alt, title, sortOrder, isActive } = req.body;
+      
+      const result = await runSql(`
+        UPDATE homepage_images
+        SET 
+          section = COALESCE($2, section),
+          url = COALESCE($3, url),
+          alt = COALESCE($4, alt),
+          title = COALESCE($5, title),
+          sort_order = COALESCE($6, sort_order),
+          is_active = COALESCE($7, is_active),
+          updated_at = NOW()
+        WHERE id = $1
+        RETURNING id, section, url, alt, title, sort_order, is_active, created_at, updated_at
+      `, [id, section, url, alt, title, sortOrder, isActive]);
+      
+      if (result.length === 0) {
+        return res.status(404).json({ error: "Image not found" });
+      }
+      
+      console.log(`✅ Updated homepage image: ${id}`);
+      res.json(result[0]);
+    } catch (error) {
+      console.error("Error updating homepage image:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete homepage image
+  app.delete("/api/homepage/images/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      
+      const result = await runSql(`
+        DELETE FROM homepage_images
+        WHERE id = $1
+        RETURNING id
+      `, [id]);
+      
+      if (result.length === 0) {
+        return res.status(404).json({ error: "Image not found" });
+      }
+      
+      console.log(`✅ Deleted homepage image: ${id}`);
+      res.json({ success: true, message: "Image deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting homepage image:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Upload homepage image to Backblaze B2
+  app.post("/api/homepage/images/upload", authenticateUser, upload.single('image'), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const { section } = req.body;
+      if (!section) {
+        return res.status(400).json({ error: "Section is required" });
+      }
+
+      // Configure B2/S3 client
+      const b2KeyId = process.env.B2_KEY_ID || process.env.AWS_ACCESS_KEY_ID;
+      const b2AppKey = process.env.B2_APPLICATION_KEY || process.env.AWS_SECRET_ACCESS_KEY;
+      const b2BucketName = process.env.B2_BUCKET_NAME || process.env.AWS_S3_BUCKET;
+      const b2Endpoint = process.env.B2_ENDPOINT || 'https://s3.us-west-004.backblazeb2.com';
+
+      if (!b2KeyId || !b2AppKey || !b2BucketName) {
+        console.error('❌ B2 credentials not configured');
+        return res.status(503).json({ error: "Storage service not configured. Please set B2_KEY_ID, B2_APPLICATION_KEY, and B2_BUCKET_NAME environment variables." });
+      }
+
+      const s3Client = new S3Client({
+        region: 'us-west-004',
+        endpoint: b2Endpoint,
+        credentials: {
+          accessKeyId: b2KeyId,
+          secretAccessKey: b2AppKey,
+        },
+      });
+
+      // Optimize image with sharp
+      const optimizedBuffer = await sharp(req.file.buffer)
+        .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 85, progressive: true })
+        .toBuffer();
+
+      // Generate unique filename
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(7);
+      const filename = `homepage/${section}-${timestamp}-${randomString}.jpg`;
+
+      // Upload to B2
+      const uploadCommand = new PutObjectCommand({
+        Bucket: b2BucketName,
+        Key: filename,
+        Body: optimizedBuffer,
+        ContentType: 'image/jpeg',
+        CacheControl: 'public, max-age=31536000',
+      });
+
+      await s3Client.send(uploadCommand);
+
+      // Generate public URL
+      const publicUrl = `${b2Endpoint}/${b2BucketName}/${filename}`;
+
+      // Save to database
+      const result = await runSql(`
+        INSERT INTO homepage_images (section, url, alt, title, sort_order, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id, section, url, alt, title, sort_order, is_active, created_at, updated_at
+      `, [
+        section,
+        publicUrl,
+        req.body.alt || `Homepage image for ${section}`,
+        req.body.title || section,
+        req.body.sortOrder || 0,
+        true
+      ]);
+
+      console.log(`✅ Uploaded and saved homepage image: ${result[0].id}`);
+      console.log(`📸 Image URL: ${publicUrl}`);
+      
+      res.json({
+        success: true,
+        image: result[0],
+        message: "Image uploaded successfully"
+      });
+    } catch (error: any) {
+      console.error("Error uploading homepage image:", error);
+      res.status(500).json({ 
+        error: "Failed to upload image",
+        message: error.message 
+      });
+    }
+  });
+
   // Create Stripe payment intent for voucher purchase
   app.post("/api/vouchers/create-payment-intent", async (req: Request, res: Response) => {
     try {
