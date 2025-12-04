@@ -8984,69 +8984,71 @@ New Age Fotografie CRM System
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
       doc.pipe(res);
 
-      // Add company logo centered at top
+      // Add company logo centered at top (compact)
       try {
         const logoUrl = process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
         const resp = await fetch(logoUrl);
         if (resp && resp.ok) {
           const arr = await resp.arrayBuffer();
           const imgBuf = Buffer.from(arr);
-          // Center the logo: A4 width = 595.28, logo max width = 160
-          const logoWidth = 160;
+          const logoWidth = 140;
           const centerX = (595.28 - logoWidth) / 2;
-          doc.image(imgBuf, centerX, 50, { fit: [logoWidth, 60] });
-        } else {
-          console.warn('Voucher logo fetch failed:', resp ? resp.status : 'no response');
+          doc.image(imgBuf, centerX, 40, { fit: [logoWidth, 50] });
         }
       } catch (e) {
         console.warn('Voucher logo fetch error:', e);
       }
-      // Ensure we don't overlap the subsequent header text
-      doc.moveDown(2);
-
-      doc.fontSize(12).text('www.newagefotografie.com', { align: 'center' });
       doc.moveDown(1.5);
 
-      doc.fontSize(26).text('PERSONALISIERTER GUTSCHEIN', { align: 'left' });
-      doc.moveDown(0.5);
+      doc.fontSize(10).text('www.newagefotografie.com', { align: 'center' });
+      doc.moveDown(1);
 
-      // Hero image (customer-selected or template)
+      doc.fontSize(22).text('PERSONALISIERTER GUTSCHEIN', { align: 'center' });
+      doc.moveDown(0.4);
+
+      // Hero image (customer-selected or template) - compact
       let heroRendered = false;
       try {
         const artUrl = String(m.custom_image || m.design_image || '').trim();
         if (artUrl) {
-          const pageWidth = 595.28; // A4 width
+          const pageWidth = 595.28;
           const respImg = await fetch(artUrl);
           if (respImg && respImg.ok) {
             const artArr = await respImg.arrayBuffer();
             const artBuf = Buffer.from(artArr);
             const imgWidth = pageWidth - 100;
-            doc.image(artBuf, 50, undefined as any, { fit: [imgWidth, 240], align: 'center' });
+            doc.image(artBuf, 50, undefined as any, { fit: [imgWidth, 160], align: 'center' });
             heroRendered = true;
-          } else {
-            console.warn('Voucher art fetch failed:', respImg ? respImg.status : 'no response');
           }
         }
       } catch (e) {
         console.warn('Voucher art fetch error:', e);
       }
-      if (heroRendered) doc.moveDown(0.5);
+      if (heroRendered) doc.moveDown(0.4);
 
       // Red banner "Gutschein"
       try {
         const pageWidth = 595.28;
-        const bannerY = doc.y + 6;
+        const bannerY = doc.y + 4;
         const bannerX = 50;
         const bannerW = pageWidth - 100;
-        const bannerH = 36;
+        const bannerH = 32;
         doc.save();
         doc.rect(bannerX, bannerY, bannerW, bannerH).fill('#b3202e');
-        doc.fillColor('#ffffff').fontSize(20).text('Gutschein', bannerX + 16, bannerY + 8, { width: bannerW - 32, align: 'left' });
+        doc.fillColor('#ffffff').fontSize(18).text('Gutschein', bannerX + 14, bannerY + 7, { width: bannerW - 28, align: 'left' });
         doc.restore();
-        doc.moveDown(2.2);
+        doc.moveDown(1.8);
       } catch {}
 
-      // Dynamic text from voucher product description
+      // Personal message RIGHT BELOW RED BANNER
+      if (note && note.trim()) {
+        doc.fillColor('#222222').fontSize(11).text('Nachricht:', { underline: true });
+        doc.moveDown(0.2);
+        doc.fontSize(11).text(note, { align: 'left', width: 595.28 - 100 });
+        doc.moveDown(0.6);
+      }
+
+      // Dynamic product description
       try {
         let product: any = null;
         const idOrSlug = String(m.sku || '').trim();
@@ -9065,54 +9067,35 @@ New Age Fotografie CRM System
             }
           }
         }
-        const dynamicHeadline = product?.name || title;
         const dynamicSub = (product?.description || product?.detailedDescription || product?.detailed_description || '').toString();
         
-        // Display product description prominently below red banner
         if (dynamicSub && dynamicSub.trim()) {
-          doc.fillColor('#222222').fontSize(12).text(dynamicSub, { width: 595.28 - 100, align: 'left' });
-          doc.moveDown(1);
-        } else {
-          // Fallback if no product description available
-          doc.fillColor('#222222').fontSize(12).text('Fotoshooting Gutschein', { width: 595.28 - 100 });
-          doc.moveDown(1);
+          doc.fillColor('#222222').fontSize(10).text(dynamicSub, { width: 595.28 - 100, align: 'left' });
+          doc.moveDown(0.6);
         }
       } catch (e) {
         console.warn('Voucher description block render error:', e);
-        // Fallback: show generic text
-        try {
-          doc.fillColor('#222222').fontSize(12).text('Fotoshooting Gutschein', { width: 595.28 - 100 });
-          doc.moveDown(1);
-        } catch {}
       }
 
-      // Voucher meta
-      doc.fillColor('#222222').fontSize(12).text(`Gutschein-ID: ${vId}`);
-      doc.text(`SKU: ${sku}`);
+      // Voucher meta (compact)
+      doc.fillColor('#222222').fontSize(9);
+      doc.text(`Gutschein-ID: ${vId}  |  SKU: ${sku}`);
       doc.text(`Empfänger/in: ${name}`);
       doc.text(`Von: ${from}`);
       doc.text(`Gültig bis: ${exp}`);
       doc.moveDown(0.5);
 
-      if (note) {
-        doc.fontSize(12).text('Nachricht:', { underline: true });
-        doc.moveDown(0.2);
-        doc.fontSize(12).text(note, { align: 'left' });
-        doc.moveDown(0.8);
-      }
-
-      doc.moveDown(1);
-      doc.fontSize(10).text(
-        'Einlösbar für die oben genannte Leistung in unserem Studio. ' +
-        'Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.',
-        { align: 'justify' }
+      // Terms (compact)
+      doc.fontSize(8).fillColor('#444444').text(
+        'Einlösbar für die oben genannte Leistung in unserem Studio. Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.',
+        { align: 'justify', width: 595.28 - 100 }
       );
 
-      doc.moveDown(2);
+      doc.moveDown(0.8);
       const paid = ((session.amount_total || 0) / 100).toFixed(2) + ' ' + String(session.currency || 'EUR').toUpperCase();
       const paymentDate = new Date((session.created || Date.now()/1000)*1000);
       const formattedDate = `${String(paymentDate.getDate()).padStart(2, '0')}/${String(paymentDate.getMonth() + 1).padStart(2, '0')}/${String(paymentDate.getFullYear()).slice(-2)}`;
-      doc.fontSize(10).text(`Belegt durch Zahlung: ${paid} | Datum: ${formattedDate}`);
+      doc.fontSize(8).fillColor('#222222').text(`Belegt durch Zahlung: ${paid} | Datum: ${formattedDate}`);
       doc.end();
     } catch (e) {
       console.error('Voucher PDF generation failed', e);
@@ -9153,107 +9136,118 @@ New Age Fotografie CRM System
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
       doc.pipe(res);
 
-      const pageWidth = 595.28; // A4 width in points
-      const pageHeight = 841.89; // A4 height in points
-      const midPage = pageHeight / 2;
-      let currentY = 30;
-
-      // ========== HEADER: Logo and Website (Centered at very top) ==========
+      // SINGLE-PAGE COMPACT LAYOUT - matches main endpoint
+      
+      // Logo centered at top (compact)
       try {
         const logoUrl = process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
         const resp = await fetch(logoUrl);
         if (resp && resp.ok) {
           const arr = await resp.arrayBuffer();
           const imgBuf = Buffer.from(arr);
-          // Center the logo
-          const logoWidth = 120;
-          const logoX = (pageWidth - logoWidth) / 2;
-          doc.image(imgBuf, logoX, currentY, { width: logoWidth, height: 45 });
-          currentY += 50;
+          const logoWidth = 140;
+          const centerX = (595.28 - logoWidth) / 2;
+          doc.image(imgBuf, centerX, 40, { fit: [logoWidth, 50] });
         }
-      } catch {
-        currentY += 50;
+      } catch (e) {
+        console.warn('Logo fetch error:', e);
       }
+      doc.moveDown(1.5);
 
-      doc.fontSize(10);
-      doc.text('www.newagefotografie.com', 50, currentY, { align: 'center', width: pageWidth - 100 });
-      currentY += 25;
+      doc.fontSize(10).text('www.newagefotografie.com', { align: 'center' });
+      doc.moveDown(1);
 
-      // ========== TITLE ==========
-      doc.fontSize(24);
-      doc.text('SHOOTING GUTSCHEIN', 50, currentY, { align: 'center', width: pageWidth - 100 });
-      currentY += 40;
+      doc.fontSize(22).text('PERSONALISIERTER GUTSCHEIN', { align: 'center' });
+      doc.moveDown(0.4);
 
-      // ========== TOP 50%: Customer's Custom Image or Selected Design ==========
-      const imageStartY = currentY;
-      const imageAreaHeight = midPage - imageStartY - 10;
-      
+      // Hero image (compact 160px height)
+      let heroRendered = false;
       if (customImageUrl) {
         try {
-          console.log('📸 Loading custom image:', customImageUrl);
-          const imgResp = await fetch(customImageUrl);
-          if (imgResp && imgResp.ok) {
-            const imgArr = await imgResp.arrayBuffer();
+          const respImg = await fetch(customImageUrl);
+          if (respImg && respImg.ok) {
+            const imgArr = await respImg.arrayBuffer();
             const imgBuf = Buffer.from(imgArr);
-            console.log('✅ Custom image loaded, size:', imgBuf.length, 'bytes');
-            
-            // Display customer's image in top half, centered
-            const imageWidth = pageWidth - 100;
-            const imageX = 50;
-            
-            doc.image(imgBuf, imageX, imageStartY, { 
-              fit: [imageWidth, imageAreaHeight],
-              align: 'center',
-              valign: 'center'
-            });
-            console.log('✅ Custom image added to PDF');
-          } else {
-            console.error('❌ Failed to fetch image:', imgResp?.status);
+            const imgWidth = 595.28 - 100;
+            doc.image(imgBuf, 50, undefined as any, { fit: [imgWidth, 160], align: 'center' });
+            heroRendered = true;
           }
         } catch (err) {
-          console.error('❌ Failed to load custom image:', err);
+          console.warn('Preview image error:', err);
         }
       }
+      if (heroRendered) doc.moveDown(0.4);
 
-      // ========== BOTTOM 50%: Voucher Details ==========
-      currentY = midPage + 10;
-      
-      doc.fontSize(11);
-      doc.text(`Gutschein-ID: ${vId}`, 50, currentY);
-      currentY += 18;
-      doc.text(`SKU: ${sku}`, 50, currentY);
-      currentY += 18;
-      doc.text(`Empfänger/in: ${name}`, 50, currentY);
-      currentY += 18;
-      doc.text(`Von: ${from}`, 50, currentY);
-      currentY += 18;
-      doc.text(`Gültig bis: ${exp}`, 50, currentY);
-      currentY += 25;
+      // Red banner "Gutschein"
+      try {
+        const pageWidth = 595.28;
+        const bannerY = doc.y + 4;
+        const bannerX = 50;
+        const bannerW = pageWidth - 100;
+        const bannerH = 32;
+        doc.save();
+        doc.rect(bannerX, bannerY, bannerW, bannerH).fill('#b3202e');
+        doc.fillColor('#ffffff').fontSize(18).text('Gutschein', bannerX + 14, bannerY + 7, { width: bannerW - 28, align: 'left' });
+        doc.restore();
+        doc.moveDown(1.8);
+      } catch {}
 
-      if (note) {
-        doc.fontSize(11);
-        doc.text('Nachricht:', 50, currentY, { underline: true });
-        currentY += 18;
-        doc.fontSize(11);
-        doc.text(note, 50, currentY, { width: pageWidth - 100 });
-        currentY += Math.ceil(note.length / 80) * 15 + 20;
+      // Personal message RIGHT BELOW RED BANNER
+      if (note && note.trim()) {
+        doc.fillColor('#222222').fontSize(11).text('Nachricht:', { underline: true });
+        doc.moveDown(0.2);
+        doc.fontSize(11).text(note, { align: 'left', width: 595.28 - 100 });
+        doc.moveDown(0.6);
       }
 
-      doc.fontSize(10);
-      doc.text(
-        'Einlösbar für die oben genannte Leistung in unserem Studio. ' +
-        'Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.',
-        50,
-        currentY,
-        { width: pageWidth - 100 }
-      );
-      currentY += 50;
+      // Dynamic product description (preview mode - fetch from DB if available)
+      try {
+        let product: any = null;
+        const idOrSlug = String(sku || '').trim();
+        if (idOrSlug && neonDb && typeof neonDb.getVoucherProduct === 'function') {
+          try { product = await neonDb.getVoucherProduct(idOrSlug); } catch (dbErr) {
+            console.warn('Preview: Could not fetch voucher product:', dbErr);
+          }
+          if (!product && typeof neonDb.getVoucherProducts === 'function') {
+            try {
+              const all = await neonDb.getVoucherProducts();
+              const slug = idOrSlug.toLowerCase();
+              product = all.find((p: any) => (p.slug || '').toLowerCase() === slug)
+                     || all.find((p: any) => (p.name || '').toLowerCase().includes(slug.replace(/-/g, ' ')));
+            } catch (dbErr2) {
+              console.warn('Preview: Could not fetch all voucher products:', dbErr2);
+            }
+          }
+        }
+        const dynamicSub = (product?.description || product?.detailedDescription || product?.detailed_description || '').toString();
+        
+        if (dynamicSub && dynamicSub.trim()) {
+          doc.fillColor('#222222').fontSize(10).text(dynamicSub, { width: 595.28 - 100, align: 'left' });
+          doc.moveDown(0.6);
+        }
+      } catch (e) {
+        console.warn('Preview description render error:', e);
+      }
 
+      // Voucher meta (compact)
+      doc.fillColor('#222222').fontSize(9);
+      doc.text(`Gutschein-ID: ${vId}  |  SKU: ${sku}`);
+      doc.text(`Empfänger/in: ${name}`);
+      doc.text(`Von: ${from}`);
+      doc.text(`Gültig bis: ${exp}`);
+      doc.moveDown(0.5);
+
+      // Terms (compact)
+      doc.fontSize(8).fillColor('#444444').text(
+        'Einlösbar für die oben genannte Leistung in unserem Studio. Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.',
+        { align: 'justify', width: 595.28 - 100 }
+      );
+
+      doc.moveDown(0.8);
       const paid = amount.toFixed(2) + ' ' + currency.toUpperCase();
       const previewDate = new Date();
       const formattedPreviewDate = `${String(previewDate.getDate()).padStart(2, '0')}/${String(previewDate.getMonth() + 1).padStart(2, '0')}/${String(previewDate.getFullYear()).slice(-2)}`;
-      doc.fontSize(10);
-      doc.text(`Vorschau der Zahlung: ${paid} | Datum: ${formattedPreviewDate}`, 50, currentY);
+      doc.fontSize(8).fillColor('#222222').text(`Vorschau der Zahlung: ${paid} | Datum: ${formattedPreviewDate}`);
       
       doc.end();
     } catch (e) {
