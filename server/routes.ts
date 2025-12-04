@@ -9067,8 +9067,11 @@ New Age Fotografie CRM System
         }
         const dynamicHeadline = product?.name || title;
         const dynamicSub = (product?.description || product?.detailedDescription || product?.detailed_description || '').toString();
-        doc.fillColor('#222222').fontSize(18).text(dynamicHeadline, { width: 595.28 - 100 });
-        doc.moveDown(0.4);
+        // Only show headline if it's not the generic "Gutschein" (already in red banner)
+        if (dynamicHeadline && dynamicHeadline !== 'Gutschein') {
+          doc.fillColor('#222222').fontSize(18).text(dynamicHeadline, { width: 595.28 - 100 });
+          doc.moveDown(0.4);
+        }
         if (dynamicSub) {
           doc.fontSize(10).fillColor('#444444').text(dynamicSub, { width: 595.28 - 100 });
           doc.moveDown(0.6);
