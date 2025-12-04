@@ -9010,10 +9010,8 @@ New Age Fotografie CRM System
       doc.fontSize(26).text('PERSONALISIERTER GUTSCHEIN', { align: 'left' });
       doc.moveDown(0.5);
 
-      doc.fontSize(18).text(title);
-      doc.moveDown(0.5);
-
-      // Try to render customer's chosen image or selected design (if available)
+      // Hero image (customer-selected or template)
+      let heroRendered = false;
       try {
         const artUrl = String(m.custom_image || m.design_image || '').trim();
         if (artUrl) {
@@ -9022,10 +9020,9 @@ New Age Fotografie CRM System
           if (respImg && respImg.ok) {
             const artArr = await respImg.arrayBuffer();
             const artBuf = Buffer.from(artArr);
-            // Place the image with generous width while respecting margins
             const imgWidth = pageWidth - 100;
-            doc.image(artBuf, 50, undefined as any, { fit: [imgWidth, 300], align: 'center' });
-            doc.moveDown(0.8);
+            doc.image(artBuf, 50, undefined as any, { fit: [imgWidth, 240], align: 'center' });
+            heroRendered = true;
           } else {
             console.warn('Voucher art fetch failed:', respImg ? respImg.status : 'no response');
           }
@@ -9033,7 +9030,77 @@ New Age Fotografie CRM System
       } catch (e) {
         console.warn('Voucher art fetch error:', e);
       }
-      doc.fontSize(12).text(`Gutschein-ID: ${vId}`);
+      if (heroRendered) doc.moveDown(0.5);
+
+      // Red banner "Gutschein"
+      try {
+        const pageWidth = 595.28;
+        const bannerY = doc.y + 6;
+        const bannerX = 50;
+        const bannerW = pageWidth - 100;
+        const bannerH = 36;
+        doc.save();
+        doc.rect(bannerX, bannerY, bannerW, bannerH).fill('#b3202e');
+        doc.fillColor('#ffffff').fontSize(20).text('Gutschein', bannerX + 16, bannerY + 8, { width: bannerW - 32, align: 'left' });
+        doc.restore();
+        doc.moveDown(2.2);
+      } catch {}
+
+      // Dynamic text from voucher product description
+      try {
+        let product: any = null;
+        const idOrSlug = String(m.sku || '').trim();
+        if (idOrSlug) {
+          try { product = await neonDb.getVoucherProduct(idOrSlug); } catch {}
+          if (!product) {
+            const all = await neonDb.getVoucherProducts();
+            const slug = idOrSlug.toLowerCase();
+            product = all.find((p: any) => (p.slug || '').toLowerCase() === slug)
+                   || all.find((p: any) => (p.name || '').toLowerCase().includes(slug.replace(/-/g, ' ')));
+          }
+        }
+        const dynamicHeadline = product?.name || title;
+        const dynamicSub = (product?.description || product?.detailedDescription || '').toString();
+        doc.fillColor('#222222').fontSize(18).text(dynamicHeadline, { width: 595.28 - 100 });
+        doc.moveDown(0.4);
+        if (dynamicSub) {
+          doc.fontSize(10).fillColor('#444444').text(dynamicSub, { width: 595.28 - 100 });
+          doc.moveDown(0.6);
+        }
+        // Fixed bullet content
+        doc.fillColor('#222222').fontSize(10).text('Das ist im Gutschein enthalten', { underline: true });
+        doc.moveDown(0.2);
+        const bulletItems = [
+          'Eine 1-stündige Fotosession in unserem gemütlichen Studio – Platz für bis zu 5 Personen.',
+          'Begrüßungsgetränk, um alle herzlich willkommen zu heißen.',
+          'Haustiere sind herzlich willkommen – denn sie gehören zur Familie!',
+          'Zwei wunderschöne Leinwandrahmen (60x40 cm) mit euren Lieblingsmomenten aus dem Shooting.',
+          'Die gleichen 2 digitalen Bilder für euch zum Teilen.'
+        ];
+        for (const item of bulletItems) {
+          doc.circle(58, doc.y + 6, 1.5).fill('#222222').stroke('#222222');
+          doc.fillColor('#222222').text(`  ${item}`, 62, doc.y - 2, { width: 595.28 - 112 });
+          doc.moveDown(0.2);
+        }
+        doc.moveDown(0.6);
+        doc.fillColor('#222222').fontSize(10).text('Ganz flexibel:', { underline: true });
+        doc.moveDown(0.2);
+        const flexItems = [
+          'Bringt gerne Outfit-Wechsel mit, um eure Bilder individuell zu gestalten.',
+          'Wir fangen spontane und natürliche Momente ein – so einzigartig wie eure Familie!'
+        ];
+        for (const item of flexItems) {
+          doc.circle(58, doc.y + 6, 1.5).fill('#222222').stroke('#222222');
+          doc.fillColor('#222222').text(`  ${item}`, 62, doc.y - 2, { width: 595.28 - 112 });
+          doc.moveDown(0.2);
+        }
+        doc.moveDown(0.6);
+      } catch (e) {
+        console.warn('Voucher description block render error:', e);
+      }
+
+      // Voucher meta
+      doc.fillColor('#222222').fontSize(12).text(`Gutschein-ID: ${vId}`);
       doc.text(`SKU: ${sku}`);
       doc.text(`Empfänger/in: ${name}`);
       doc.text(`Von: ${from}`);
