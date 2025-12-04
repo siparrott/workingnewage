@@ -6,8 +6,11 @@ import {
 } from 'lucide-react';
 import Layout from '../../components/layout/Layout';
 import { SEOHead } from '../../components/SEO/SEOHead';
+import { useLanguage } from '../../context/LanguageContext';
 
 const UeberUnsPage: React.FC = () => {
+  const { t } = useLanguage();
+  
   return (
     <Layout>
       <SEOHead
@@ -58,12 +61,10 @@ const UeberUnsPage: React.FC = () => {
           <div className="absolute inset-0 bg-black/20"></div>
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              About New Age Fotografie — Vienna
+              {t('about.hero.title')}
             </h1>
             <p className="text-xl md:text-2xl mb-8 max-w-4xl mx-auto leading-relaxed">
-              A Vienna studio built on craft, calm direction, and real smiles. 
-              I'm Matt, the founder. I've photographed thousands of faces—from high street 
-              studios to global events—and I still love it. Every shoot. Every time.
+              {t('about.hero.description')}
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link
@@ -71,7 +72,7 @@ const UeberUnsPage: React.FC = () => {
                 className="bg-white text-slate-900 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors inline-flex items-center gap-2 shadow-lg"
               >
                 <TrendingUp className="w-5 h-5" />
-                Book your spot on our studio waitlist →
+                {t('about.hero.cta')}
               </Link>
             </div>
           </div>
@@ -80,10 +81,9 @@ const UeberUnsPage: React.FC = () => {
         {/* Story Timeline */}
         <section className="py-16 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-4xl font-bold mb-6 text-gray-900">Our Story (short + true)</h2>
+            <h2 className="text-4xl font-bold mb-6 text-gray-900">{t('about.story.title')}</h2>
             <p className="text-lg text-gray-600 mb-12 max-w-3xl">
-              I've also photographed icons and public figures along the way—names like François Pienaar 
-              and Roger Moore. Still in love with the craft. Still smiling. Never bored.
+              {t('about.story.intro')}
             </p>
 
             {/* Timeline Table */}
@@ -91,41 +91,41 @@ const UeberUnsPage: React.FC = () => {
               <table className="w-full border-collapse bg-white rounded-lg overflow-hidden shadow-lg">
                 <thead className="bg-slate-900 text-white">
                   <tr>
-                    <th className="px-6 py-4 text-left font-semibold">Year</th>
-                    <th className="px-6 py-4 text-left font-semibold">Where</th>
-                    <th className="px-6 py-4 text-left font-semibold">What happened</th>
+                    <th className="px-6 py-4 text-left font-semibold">{t('about.timeline.year')}</th>
+                    <th className="px-6 py-4 text-left font-semibold">{t('about.timeline.where')}</th>
+                    <th className="px-6 py-4 text-left font-semibold">{t('about.timeline.what')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900">Pre-digital</td>
-                    <td className="px-6 py-4 text-gray-700">Bournemouth • Southampton • Brighton</td>
-                    <td className="px-6 py-4 text-gray-700">Started professionally on film cameras, photographing thousands of locals.</td>
+                    <td className="px-6 py-4 font-medium text-gray-900">{t('about.timeline.predigital')}</td>
+                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.predigital.where')}</td>
+                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.predigital.what')}</td>
                   </tr>
                   <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900">Early career</td>
-                    <td className="px-6 py-4 text-gray-700">Arundel</td>
-                    <td className="px-6 py-4 text-gray-700">Ran a high-street studio. Learned pace, people, and consistency.</td>
+                    <td className="px-6 py-4 font-medium text-gray-900">{t('about.timeline.earlycareer')}</td>
+                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.earlycareer.where')}</td>
+                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.earlycareer.what')}</td>
                   </tr>
                   <tr className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 font-medium text-gray-900">2003</td>
-                    <td className="px-6 py-4 text-gray-700">London • New York • LA</td>
-                    <td className="px-6 py-4 text-gray-700">Founded a high-fashion agency. Work published internationally.</td>
+                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.2003.where')}</td>
+                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.2003.what')}</td>
                   </tr>
                   <tr className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 font-medium text-gray-900">2004</td>
-                    <td className="px-6 py-4 text-gray-700">Cape Town</td>
-                    <td className="px-6 py-4 text-gray-700">Opened New Age Portraits in Cape Town, Durban, Johannesburg.</td>
+                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.2004.where')}</td>
+                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.2004.what')}</td>
                   </tr>
                   <tr className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 font-medium text-gray-900">2012</td>
-                    <td className="px-6 py-4 text-gray-700">Vienna</td>
-                    <td className="px-6 py-4 text-gray-700">Sold the SA studios to the owner of Olympus (regional). Moved to Palais Alserbach and launched New Age Fotografie.</td>
+                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.2012.where')}</td>
+                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.2012.what')}</td>
                   </tr>
                   <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900">Since</td>
-                    <td className="px-6 py-4 text-gray-700">Vienna • Europe</td>
-                    <td className="px-6 py-4 text-gray-700">Shot Eurovision in Vienna, UEFA & Champions League events, and weddings in England, Malta, South Africa, Austria.</td>
+                    <td className="px-6 py-4 font-medium text-gray-900">{t('about.timeline.since')}</td>
+                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.since.where')}</td>
+                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.since.what')}</td>
                   </tr>
                 </tbody>
               </table>
@@ -134,23 +134,23 @@ const UeberUnsPage: React.FC = () => {
             {/* External Press Note */}
             <div className="mt-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-gray-700">
-                <strong>External press note:</strong> We've covered major cultural moments, including the{' '}
+                <strong>External press note:</strong> {t('about.press.note')}{' '}
                 <a 
                   href="https://www.capetowncarnival.com/" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline inline-flex items-center gap-1"
                 >
-                  Cape Town Carnival <ExternalLink className="w-4 h-4" />
+                  {t('about.press.capetown')} <ExternalLink className="w-4 h-4" />
                 </a>
-                {' '}and{' '}
+                {' '}{t('about.press.and')}{' '}
                 <a 
                   href="https://eurovision.tv/event/vienna-2015" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline inline-flex items-center gap-1"
                 >
-                  Eurovision in Vienna <ExternalLink className="w-4 h-4" />
+                  {t('about.press.eurovision')} <ExternalLink className="w-4 h-4" />
                 </a>.
               </p>
             </div>
@@ -160,31 +160,31 @@ const UeberUnsPage: React.FC = () => {
         {/* What We Believe */}
         <section className="py-16 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-4xl font-bold mb-8 text-gray-900">What We Believe (personal style)</h2>
+            <h2 className="text-4xl font-bold mb-8 text-gray-900">{t('about.believe.title')}</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-purple-600">
-                <h3 className="text-xl font-semibold mb-3 text-gray-900">People first</h3>
-                <p className="text-gray-700">Gentle direction. Real expression.</p>
+                <h3 className="text-xl font-semibold mb-3 text-gray-900">{t('about.believe.people.title')}</h3>
+                <p className="text-gray-700">{t('about.believe.people.desc')}</p>
               </div>
 
               <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-600">
-                <h3 className="text-xl font-semibold mb-3 text-gray-900">Light matters</h3>
-                <p className="text-gray-700">Soft where it flatters. Shape where it tells the story.</p>
+                <h3 className="text-xl font-semibold mb-3 text-gray-900">{t('about.believe.light.title')}</h3>
+                <p className="text-gray-700">{t('about.believe.light.desc')}</p>
               </div>
 
               <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-pink-600">
-                <h3 className="text-xl font-semibold mb-3 text-gray-900">Simple sets, strong choices</h3>
-                <p className="text-gray-700">Clean backdrops or layered depth—always intentional.</p>
+                <h3 className="text-xl font-semibold mb-3 text-gray-900">{t('about.believe.simple.title')}</h3>
+                <p className="text-gray-700">{t('about.believe.simple.desc')}</p>
               </div>
 
               <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-orange-600">
-                <h3 className="text-xl font-semibold mb-3 text-gray-900">Consistency is kindness</h3>
-                <p className="text-gray-700">You'll get the look you fell in love with on our site.</p>
+                <h3 className="text-xl font-semibold mb-3 text-gray-900">{t('about.believe.consistency.title')}</h3>
+                <p className="text-gray-700">{t('about.believe.consistency.desc')}</p>
               </div>
 
               <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-600">
-                <h3 className="text-xl font-semibold mb-3 text-gray-900">Speed with standards</h3>
-                <p className="text-gray-700">Proofs fast. Retouching natural. Files ready to print and share.</p>
+                <h3 className="text-xl font-semibold mb-3 text-gray-900">{t('about.believe.speed.title')}</h3>
+                <p className="text-gray-700">{t('about.believe.speed.desc')}</p>
               </div>
             </div>
           </div>
@@ -193,44 +193,44 @@ const UeberUnsPage: React.FC = () => {
         {/* What We Photograph */}
         <section className="py-16 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-4xl font-bold mb-4 text-gray-900">What We Photograph</h2>
-            <p className="text-lg text-gray-600 mb-12">Vienna, studio & on-location</p>
+            <h2 className="text-4xl font-bold mb-4 text-gray-900">{t('about.photograph.title')}</h2>
+            <p className="text-lg text-gray-600 mb-12">{t('about.photograph.subtitle')}</p>
             
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="bg-gradient-to-br from-purple-50 to-white p-6 rounded-xl border border-gray-200">
                 <Camera className="w-10 h-10 text-purple-600 mb-3" />
-                <h3 className="text-lg font-semibold mb-2 text-gray-900">Family & Baby (3–12 Monate)</h3>
-                <p className="text-gray-600">Relaxed, playful, warm.</p>
+                <h3 className="text-lg font-semibold mb-2 text-gray-900">{t('about.photograph.family')}</h3>
+                <p className="text-gray-600">{t('about.photograph.family.desc')}</p>
               </div>
 
               <div className="bg-gradient-to-br from-pink-50 to-white p-6 rounded-xl border border-gray-200">
                 <Heart className="w-10 h-10 text-pink-600 mb-3" />
-                <h3 className="text-lg font-semibold mb-2 text-gray-900">Newborn & Maternity</h3>
-                <p className="text-gray-600">Safe, calm, studio-ready.</p>
+                <h3 className="text-lg font-semibold mb-2 text-gray-900">{t('about.photograph.newborn')}</h3>
+                <p className="text-gray-600">{t('about.photograph.newborn.desc')}</p>
               </div>
 
               <div className="bg-gradient-to-br from-blue-50 to-white p-6 rounded-xl border border-gray-200">
                 <Users className="w-10 h-10 text-blue-600 mb-3" />
-                <h3 className="text-lg font-semibold mb-2 text-gray-900">Portraits & Headshots</h3>
-                <p className="text-gray-600">Editorial, classic, or creative; brand-true.</p>
+                <h3 className="text-lg font-semibold mb-2 text-gray-900">{t('about.photograph.portraits')}</h3>
+                <p className="text-gray-600">{t('about.photograph.portraits.desc')}</p>
               </div>
 
               <div className="bg-gradient-to-br from-orange-50 to-white p-6 rounded-xl border border-gray-200">
                 <Film className="w-10 h-10 text-orange-600 mb-3" />
-                <h3 className="text-lg font-semibold mb-2 text-gray-900">Weddings & Engagement/Proposal</h3>
-                <p className="text-gray-600">Timelines, light, and crowd-free routes.</p>
+                <h3 className="text-lg font-semibold mb-2 text-gray-900">{t('about.photograph.weddings')}</h3>
+                <p className="text-gray-600">{t('about.photograph.weddings.desc')}</p>
               </div>
 
               <div className="bg-gradient-to-br from-green-50 to-white p-6 rounded-xl border border-gray-200">
                 <Award className="w-10 h-10 text-green-600 mb-3" />
-                <h3 className="text-lg font-semibold mb-2 text-gray-900">Teams & Corporate</h3>
-                <p className="text-gray-600">Uniform lighting for entire departments.</p>
+                <h3 className="text-lg font-semibold mb-2 text-gray-900">{t('about.photograph.corporate')}</h3>
+                <p className="text-gray-600">{t('about.photograph.corporate.desc')}</p>
               </div>
 
               <div className="bg-gradient-to-br from-yellow-50 to-white p-6 rounded-xl border border-gray-200">
                 <Eye className="w-10 h-10 text-yellow-600 mb-3" />
-                <h3 className="text-lg font-semibold mb-2 text-gray-900">Products & Real Estate</h3>
-                <p className="text-gray-600">Reflections controlled, verticals straight.</p>
+                <h3 className="text-lg font-semibold mb-2 text-gray-900">{t('about.photograph.products')}</h3>
+                <p className="text-gray-600">{t('about.photograph.products.desc')}</p>
               </div>
             </div>
           </div>
@@ -410,9 +410,9 @@ const UeberUnsPage: React.FC = () => {
         {/* CTA Section */}
         <section className="py-16 bg-gradient-to-br from-purple-600 via-pink-500 to-orange-500 text-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-4xl font-bold mb-6">Ready to work together?</h2>
+            <h2 className="text-4xl font-bold mb-6">{t('about.cta.title')}</h2>
             <p className="text-xl mb-8">
-              Let's create something memorable.
+              {t('about.cta.description')}
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link
@@ -420,14 +420,14 @@ const UeberUnsPage: React.FC = () => {
                 className="bg-white text-purple-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors inline-flex items-center gap-2 shadow-lg"
               >
                 <TrendingUp className="w-5 h-5" />
-                Join our waitlist
+                {t('about.cta.waitlist')}
               </Link>
               <Link
                 to="/kontakt"
                 className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white/10 transition-colors inline-flex items-center gap-2"
               >
                 <Phone className="w-5 h-5" />
-                Contact us
+                {t('about.cta.contact')}
               </Link>
             </div>
           </div>
