@@ -316,9 +316,11 @@ export class StripeVoucherService {
       const voucherId = (`V-` + uuidv4().slice(0, 8)).toUpperCase();
       const personalization = data.voucherData || {};
       const recipientName = String(personalization.recipientName || personalization.name || '').trim();
-      const fromName = String(personalization.fromName || personalization.sender || '').trim();
-      const message = String(personalization.message || '').trim();
+      const fromName = String(personalization.fromName || personalization.sender || personalization.senderName || '').trim();
+      const message = String(personalization.message || personalization.personalMessage || '').trim();
       const expiryDate = String(personalization.expiryDate || '').trim();
+      const designImage = String(personalization.selectedDesign?.image || '').trim();
+      const customImage = String(personalization.customImageUrl || '').trim();
 
       sessionParams.metadata = {
         source: 'photography_website',
@@ -338,6 +340,9 @@ export class StripeVoucherService {
         discount_cents: String(Math.max(0, (Number((data as any).discount) || 0) || (basePrimaryCents - discountedPrimaryCents))),
         discount_strict_95: String(strict95Codes.has(appliedCodeUpper)),
         shipping_address: data.voucherData?.shippingAddress ? JSON.stringify(data.voucherData.shippingAddress).substring(0, 500) : '',
+        // Optional art for PDF rendering
+        design_image: designImage,
+        custom_image: customImage,
       };
 
       sessionParams.payment_intent_data = {
@@ -454,7 +459,7 @@ export class StripeVoucherService {
           recipientName: voucherData.recipientName || 'Valued Customer',
           amount: amount,
           type: voucherData.type || voucherData.selectedDesign?.occasion || 'Fotoshooting Gutschein',
-          message: voucherData.message || '',
+          message: voucherData.message || voucherData.personalMessage || '',
           deliveryMethod: voucherData.deliveryOption?.name?.toLowerCase().includes('pdf') ? 'email' : 'postal',
           deliveryDate: voucherData.deliveryDate ? new Date(voucherData.deliveryDate) : undefined,
           senderName: voucherData.fromName || voucherData.senderName,

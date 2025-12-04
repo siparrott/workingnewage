@@ -8952,6 +8952,27 @@ New Age Fotografie CRM System
 
       doc.fontSize(18).text(title);
       doc.moveDown(0.5);
+
+      // Try to render customer's chosen image or selected design (if available)
+      try {
+        const artUrl = String(m.custom_image || m.design_image || '').trim();
+        if (artUrl) {
+          const pageWidth = 595.28; // A4 width
+          const respImg = await fetch(artUrl);
+          if (respImg && respImg.ok) {
+            const artArr = await respImg.arrayBuffer();
+            const artBuf = Buffer.from(artArr);
+            // Place the image with generous width while respecting margins
+            const imgWidth = pageWidth - 100;
+            doc.image(artBuf, 50, undefined as any, { fit: [imgWidth, 300], align: 'center' });
+            doc.moveDown(0.8);
+          } else {
+            console.warn('Voucher art fetch failed:', respImg ? respImg.status : 'no response');
+          }
+        }
+      } catch (e) {
+        console.warn('Voucher art fetch error:', e);
+      }
       doc.fontSize(12).text(`Gutschein-ID: ${vId}`);
       doc.text(`SKU: ${sku}`);
       doc.text(`Empfänger/in: ${name}`);
