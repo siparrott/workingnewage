@@ -8984,15 +8984,17 @@ New Age Fotografie CRM System
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
       doc.pipe(res);
 
-      // Add company logo in header (left), fall back silently if fetch fails
+      // Add company logo centered at top
       try {
         const logoUrl = process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
         const resp = await fetch(logoUrl);
         if (resp && resp.ok) {
           const arr = await resp.arrayBuffer();
           const imgBuf = Buffer.from(arr);
-          // Place logo at top-left inside margins; keep aspect, max height ~60
-          doc.image(imgBuf, 50, 50, { fit: [160, 60] });
+          // Center the logo: A4 width = 595.28, logo max width = 160
+          const logoWidth = 160;
+          const centerX = (595.28 - logoWidth) / 2;
+          doc.image(imgBuf, centerX, 50, { fit: [logoWidth, 60] });
         } else {
           console.warn('Voucher logo fetch failed:', resp ? resp.status : 'no response');
         }
@@ -9002,9 +9004,9 @@ New Age Fotografie CRM System
       // Ensure we don't overlap the subsequent header text
       doc.moveDown(2);
 
-      doc.fontSize(22).text('New Age Fotografie', { align: 'right' });
+      doc.fontSize(22).text('New Age Fotografie', { align: 'center' });
       doc.moveDown(0.5);
-      doc.fontSize(12).text('www.newagefotografie.com', { align: 'right' });
+      doc.fontSize(12).text('www.newagefotografie.com', { align: 'center' });
       doc.moveDown(1.5);
 
       doc.fontSize(26).text('PERSONALISIERTER GUTSCHEIN', { align: 'left' });
