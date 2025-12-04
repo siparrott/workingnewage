@@ -1275,9 +1275,15 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
       return savedLang as Language;
     }
 
-    // Default reliably to German
-    const browserLang = (navigator.language || navigator.languages?.[0] || '').toLowerCase();
-    if (browserLang.startsWith('de')) return 'de';
+    // Clean up any old cached English preference if user hasn't explicitly chosen
+    try {
+      if (savedLang === 'en' && userSet !== 'true') {
+        localStorage.removeItem('language');
+        localStorage.removeItem('app-language');
+      }
+    } catch {}
+
+    // Always default to German for new users or when no explicit choice
     return 'de';
   });
 

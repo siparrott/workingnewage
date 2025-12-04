@@ -294,19 +294,25 @@ export const I18nProvider = ({
   defaultLanguage = 'de', 
   translations = defaultTranslations 
 }: I18nProviderProps) => {
-  const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguage>(defaultLanguage);
+  const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguage>(() => {
+    // Only respect saved language if user explicitly set it
+    try {
+      const savedLanguage = localStorage.getItem('app-language') as SupportedLanguage;
+      const userSet = localStorage.getItem('app-language-user-set');
+      if (userSet === 'true' && savedLanguage && translations[savedLanguage]) {
+        return savedLanguage;
+      }
+    } catch {}
+    // Always default to German
+    return 'de';
+  });
 
-  // Load saved language from localStorage
-  useEffect(() => {
-    const savedLanguage = localStorage.getItem('app-language') as SupportedLanguage;
-    if (savedLanguage && translations[savedLanguage]) {
-      setCurrentLanguage(savedLanguage);
-    }
-  }, [translations]);
+  // No longer need useEffect to load from localStorage since we do it in useState initializer
 
   const setLanguage = (language: SupportedLanguage) => {
     setCurrentLanguage(language);
     localStorage.setItem('app-language', language);
+    localStorage.setItem('app-language-user-set', 'true'); // Mark as explicitly set
   };
 
   const t = (key: string, params?: Record<string, string | number>) => {
