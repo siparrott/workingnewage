@@ -208,11 +208,11 @@ async function createThumbnail(
 function getFileUrl(key: string): string {
   // Prefer CDN if configured
   if (CLOUDFRONT_URL) {
-    return `${CLOUDFRONT_URL.replace(/\\/$/, '')}/${key}`;
+    return `${CLOUDFRONT_URL.replace(/\/$/, '')}/${key}`;
   }
   // If using Backblaze B2 S3-compatible endpoint, use path-style URL
-  if (S3_ENDPOINT && /backblazeb2\\.com/i.test(S3_ENDPOINT)) {
-    return `${S3_ENDPOINT.replace(/\\/$/, '')}/${BUCKET_NAME}/${key}`;
+  if (S3_ENDPOINT && /backblazeb2\.com/i.test(S3_ENDPOINT)) {
+    return `${S3_ENDPOINT.replace(/\/$/, '')}/${BUCKET_NAME}/${key}`;
   }
   const region = process.env.AWS_REGION || 'us-east-1';
   return `https://${BUCKET_NAME}.amazonaws.com/${key}`.replace('amazonaws.com', `s3.${region}.amazonaws.com`);
