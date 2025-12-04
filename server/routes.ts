@@ -9110,7 +9110,9 @@ New Age Fotografie CRM System
 
       doc.moveDown(2);
       const paid = ((session.amount_total || 0) / 100).toFixed(2) + ' ' + String(session.currency || 'EUR').toUpperCase();
-      doc.fontSize(10).text(`Belegt durch Zahlung: ${paid} | Datum: ${new Date((session.created || Date.now()/1000)*1000).toLocaleDateString()}`);
+      const paymentDate = new Date((session.created || Date.now()/1000)*1000);
+      const formattedDate = `${String(paymentDate.getDate()).padStart(2, '0')}/${String(paymentDate.getMonth() + 1).padStart(2, '0')}/${String(paymentDate.getFullYear()).slice(-2)}`;
+      doc.fontSize(10).text(`Belegt durch Zahlung: ${paid} | Datum: ${formattedDate}`);
       doc.end();
     } catch (e) {
       console.error('Voucher PDF generation failed', e);
@@ -9248,8 +9250,10 @@ New Age Fotografie CRM System
       currentY += 50;
 
       const paid = amount.toFixed(2) + ' ' + currency.toUpperCase();
+      const previewDate = new Date();
+      const formattedPreviewDate = `${String(previewDate.getDate()).padStart(2, '0')}/${String(previewDate.getMonth() + 1).padStart(2, '0')}/${String(previewDate.getFullYear()).slice(-2)}`;
       doc.fontSize(10);
-      doc.text(`Vorschau der Zahlung: ${paid} | Datum: ${new Date().toLocaleDateString()}`, 50, currentY);
+      doc.text(`Vorschau der Zahlung: ${paid} | Datum: ${formattedPreviewDate}`, 50, currentY);
       
       doc.end();
     } catch (e) {
