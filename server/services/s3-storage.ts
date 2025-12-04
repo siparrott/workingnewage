@@ -1,3 +1,70 @@
+import { S3Client, ListObjectsV2Command, PutObjectCommand } from '@aws-sdk/client-s3';
+
+export function getS3Config() {
+  const bucket = process.env.AWS_S3_BUCKET || '';
+  const endpoint = (process.env.AWS_S3_ENDPOINT || '').replace(/\/$/, '');
+  const region = process.env.AWS_REGION || 'eu-central-1';
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID || '';
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || '';
+  const isConfigured = !!(bucket && accessKeyId && secretAccessKey);
+  return { bucket, endpoint, region, accessKeyId, secretAccessKey, isConfigured };
+}
+
+export function getS3Client() {
+  const { region, accessKeyId, secretAccessKey, endpoint } = getS3Config();
+  return new S3Client({
+    region,
+    credentials: { accessKeyId, secretAccessKey },
+    endpoint: endpoint || undefined,
+    forcePathStyle: !!endpoint
+  });
+}
+
+export function buildPublicUrl(bucket: string, endpoint: string, key: string): string {
+  const ep = (endpoint || '').replace(/\/$/, '');
+  if (!ep) return `https://${bucket}.s3.amazonaws.com/${key}`;
+  return ep.includes('backblazeb2.com')
+    ? `https://${bucket}.${ep.replace('https://', '')}/${key}`
+    : `${ep}/${bucket}/${key}`;
+}
+
+export async function storageHealth() {
+  const cfg = getS3Config();
+  const result: any = {
+    accessConfigured: cfg.isConfigured,
+    bucket: cfg.bucket || null,
+    endpoint: cfg.endpoint || null,
+    canList: false,
+    canWriteTest: false,
+  };
+  if (!cfg.isConfigured) return result;
+  const s3 = getS3Client();
+  try {
+    await s3.send(new ListObjectsV2Command({ Bucket: cfg.bucket, MaxKeys: 1 }));
+    result.canList = true;
+  } catch (e: any) {
+    result.listError = e?.message || String(e);
+  }
+  // Optional write test only when explicitly allowed (never by default in prod)
+  if (String(process.env.ALLOW_S3_HEALTH_WRITE || '').toLowerCase() === 'true') {
+    try {
+      const key = `health/${Date.now()}_${Math.random().toString(36).slice(2)}.txt`;
+      await s3.send(new PutObjectCommand({
+        Bucket: cfg.bucket,
+        Key: key,
+        Body: Buffer.from('ok', 'utf-8'),
+        ContentType: 'text/plain',
+        CacheControl: 'no-store',
+      }));
+      result.canWriteTest = true;
+      result.testKey = key;
+    } catch (e: any) {
+      result.writeError = e?.message || String(e);
+    }
+  }
+  return result;
+}
+
 /**
  * AWS S3 Storage Service
  * Handles file uploads, downloads, and management in Amazon S3

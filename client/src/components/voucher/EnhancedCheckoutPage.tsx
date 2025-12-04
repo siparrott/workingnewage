@@ -148,7 +148,8 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
         customerEmail: email.trim(),
         voucherData: {
           ...voucherData,
-          customPhoto: voucherData.customPhoto ? 'uploaded' : null
+          // Pass URL so backend PDF can embed it
+          customImageUrl: voucherData.customImageUrl || undefined
         },
         appliedVoucherCode,
         discount: Math.round(discount * 100),

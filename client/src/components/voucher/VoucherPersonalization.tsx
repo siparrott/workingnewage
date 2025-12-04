@@ -28,6 +28,7 @@ export interface VoucherPersonalizationData {
   deliveryOption: DeliveryOption;
   selectedDesign?: DesignTemplate;
   customPhoto?: File;
+  customImageUrl?: string;
   personalMessage: string;
   recipientName?: string;
   senderName?: string;
@@ -48,6 +49,9 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryOption | null>(null);
   const [selectedDesign, setSelectedDesign] = useState<DesignTemplate | null>(null);
   const [customPhoto, setCustomPhoto] = useState<File | null>(null);
+  const [customImageUrl, setCustomImageUrl] = useState<string | undefined>(undefined);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [personalMessage, setPersonalMessage] = useState('');
   const [recipientName, setRecipientName] = useState('');
   const [senderName, setSenderName] = useState('');
@@ -121,6 +125,28 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
     if (file) {
       setCustomPhoto(file);
       setSelectedDesign(null);
+      // Upload immediately so we have a URL for backend PDF rendering
+      (async () => {
+        setUploading(true);
+        setUploadError(null);
+        try {
+          const form = new FormData();
+          form.append('image', file);
+          const resp = await fetch('/api/vouchers/upload-photo', {
+            method: 'POST',
+            body: form,
+          });
+          const data = await resp.json();
+          if (!resp.ok || !data?.success || !data?.url) {
+            throw new Error(data?.error || 'Upload failed');
+          }
+          setCustomImageUrl(data.url);
+        } catch (e: any) {
+          setUploadError(e?.message || 'Upload failed');
+        } finally {
+          setUploading(false);
+        }
+      })();
     }
   };
 
@@ -136,6 +162,7 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
         deliveryOption: selectedDelivery,
         selectedDesign: selectedDesign || undefined,
         customPhoto: customPhoto || undefined,
+        customImageUrl: customImageUrl || undefined,
         personalMessage,
         recipientName,
         senderName,
@@ -265,10 +292,16 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
                   <Camera size={48} className="mx-auto mb-4 text-blue-500" />
                   <p className="text-lg font-semibold text-blue-600 mb-2">Foto suchen</p>
                   <p className="text-gray-600">Klicken Sie hier, um Ihr eigenes Foto hochzuladen</p>
-                  {customPhoto && (
+                  {uploading && (
+                    <p className="text-blue-600 mt-2 font-semibold">Hochladen...</p>
+                  )}
+                  {customPhoto && !uploading && (
                     <p className="text-green-600 mt-2 font-semibold">
                       ✓ {customPhoto.name} ausgewählt
                     </p>
+                  )}
+                  {uploadError && (
+                    <p className="text-red-600 mt-2">{uploadError}</p>
                   )}
                 </div>
                 <input

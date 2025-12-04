@@ -59,6 +59,7 @@ import nodemailer from 'nodemailer';
 import PDFDocument from 'pdfkit';
 import { jsPDF } from 'jspdf';
 import { ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { getS3Client, getS3Config, buildPublicUrl, storageHealth } from './services/s3-storage';
 import OpenAI from 'openai';
 import websiteWizardRoutes from './routes/website-wizard';
 import onboardingRoutes from './routes/onboarding';
@@ -1043,6 +1044,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
+  // Storage health endpoint (Backblaze/S3)
+  app.get("/api/storage/health", async (_req: Request, res: Response) => {
+    try {
+      const summary = await storageHealth();
+      res.json(summary);
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || 'health_failed' });
+    }
+  });
   // Checkout and payment routes
   app.post("/api/checkout/create-session", async (req: Request, res: Response) => {
     try {
@@ -1061,6 +1071,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Checkout success handler not available:', error);
       res.status(500).json({ error: 'Checkout success service unavailable' });
+    }
+  });
+
+  // Provide a stable link for the thank-you page to download the voucher PDF
+  app.get("/api/vouchers/signed-link", async (req: Request, res: Response) => {
+    try {
+      const sessionId = String(req.query.session_id || '').trim();
+      if (!sessionId) return res.status(400).json({ success: false, error: 'session_id required' });
+      const base = `${(req.headers['x-forwarded-proto'] as string) || req.protocol}://${req.get('host')}`.replace(/\/+$/, '');
+      return res.json({ success: true, url: `${base}/voucher/pdf?session_id=${encodeURIComponent(sessionId)}` });
+    } catch (e: any) {
+      return res.status(500).json({ success: false, error: e?.message || 'Failed to create download link' });
     }
   });
 
@@ -7863,10 +7885,9 @@ New Age Fotografie CRM System
         return res.status(400).json({ error: "Section is required" });
       }
 
-      // Use the global S3 client (Backblaze-compatible) and standard AWS_* envs
-      const bucket = process.env.AWS_S3_BUCKET || '';
-      const endpoint = (process.env.AWS_S3_ENDPOINT || '').replace(/\/$/, '');
-      if (!bucket || (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY)) {
+      // Use shared S3 helper (Backblaze-compatible) and standard AWS_* envs
+      const { bucket, endpoint, isConfigured } = getS3Config();
+      if (!isConfigured) {
         console.error('❌ S3/B2 credentials or bucket not configured');
         return res.status(503).json({ error: "Storage service not configured. Please set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_BUCKET." });
       }
@@ -7891,12 +7912,10 @@ New Age Fotografie CRM System
         CacheControl: 'public, max-age=31536000',
       });
 
-      await s3Client.send(uploadCommand);
+      await getS3Client().send(uploadCommand);
 
       // Generate public URL
-      const publicUrl = endpoint.includes('backblazeb2.com')
-        ? `https://${bucket}.${endpoint.replace('https://', '')}/${filename}`
-        : `${endpoint}/${bucket}/${filename}`;
+      const publicUrl = buildPublicUrl(bucket, endpoint, filename);
 
       // Save to database
       const result = await runSql(`
@@ -7924,6 +7943,47 @@ New Age Fotografie CRM System
       console.error("Error uploading homepage image:", error);
       res.status(500).json({ 
         error: "Failed to upload image",
+        message: error.message 
+      });
+    }
+  });
+
+  // Public upload endpoint for voucher custom photos (returns URL only; no DB write)
+  app.post("/api/vouchers/upload-photo", upload.single('image'), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const { bucket, endpoint, isConfigured } = getS3Config();
+      if (!isConfigured) {
+        console.error('❌ S3/B2 credentials or bucket not configured');
+        return res.status(503).json({ error: "Storage service not configured. Please set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_BUCKET." });
+      }
+
+      // Optimize uploaded image for voucher use
+      const optimizedBuffer = await sharp(req.file.buffer)
+        .rotate()
+        .resize(2400, 2400, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 88 })
+        .toBuffer();
+
+      const key = `vouchers/custom/${Date.now()}_${Math.random().toString(36).slice(2)}.webp`;
+      await getS3Client().send(new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: optimizedBuffer,
+        ContentType: 'image/webp',
+        CacheControl: 'public, max-age=31536000',
+      }));
+
+      const url = buildPublicUrl(bucket, endpoint, key);
+
+      res.json({ success: true, url, key });
+    } catch (error: any) {
+      console.error("Error uploading voucher custom photo:", error);
+      res.status(500).json({ 
+        error: "Failed to upload custom photo",
         message: error.message 
       });
     }
