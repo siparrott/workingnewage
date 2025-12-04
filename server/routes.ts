@@ -9004,8 +9004,6 @@ New Age Fotografie CRM System
       // Ensure we don't overlap the subsequent header text
       doc.moveDown(2);
 
-      doc.fontSize(22).text('New Age Fotografie', { align: 'center' });
-      doc.moveDown(0.5);
       doc.fontSize(12).text('www.newagefotografie.com', { align: 'center' });
       doc.moveDown(1.5);
 
@@ -9069,48 +9067,21 @@ New Age Fotografie CRM System
         }
         const dynamicHeadline = product?.name || title;
         const dynamicSub = (product?.description || product?.detailedDescription || product?.detailed_description || '').toString();
-        // Only show headline if it's not the generic "Gutschein" (already in red banner)
-        if (dynamicHeadline && dynamicHeadline !== 'Gutschein') {
-          doc.fillColor('#222222').fontSize(18).text(dynamicHeadline, { width: 595.28 - 100 });
-          doc.moveDown(0.4);
+        
+        // Display product description prominently below red banner
+        if (dynamicSub && dynamicSub.trim()) {
+          doc.fillColor('#222222').fontSize(12).text(dynamicSub, { width: 595.28 - 100, align: 'left' });
+          doc.moveDown(1);
+        } else {
+          // Fallback if no product description available
+          doc.fillColor('#222222').fontSize(12).text('Fotoshooting Gutschein', { width: 595.28 - 100 });
+          doc.moveDown(1);
         }
-        if (dynamicSub) {
-          doc.fontSize(10).fillColor('#444444').text(dynamicSub, { width: 595.28 - 100 });
-          doc.moveDown(0.6);
-        }
-        // Fixed bullet content
-        doc.fillColor('#222222').fontSize(10).text('Das ist im Gutschein enthalten', { underline: true });
-        doc.moveDown(0.2);
-        const bulletItems = [
-          'Eine 1-stündige Fotosession in unserem gemütlichen Studio – Platz für bis zu 5 Personen.',
-          'Begrüßungsgetränk, um alle herzlich willkommen zu heißen.',
-          'Haustiere sind herzlich willkommen – denn sie gehören zur Familie!',
-          'Zwei wunderschöne Leinwandrahmen (60x40 cm) mit euren Lieblingsmomenten aus dem Shooting.',
-          'Die gleichen 2 digitalen Bilder für euch zum Teilen.'
-        ];
-        for (const item of bulletItems) {
-          doc.circle(58, doc.y + 6, 1.5).fill('#222222').stroke('#222222');
-          doc.fillColor('#222222').text(`  ${item}`, 62, doc.y - 2, { width: 595.28 - 112 });
-          doc.moveDown(0.2);
-        }
-        doc.moveDown(0.6);
-        doc.fillColor('#222222').fontSize(10).text('Ganz flexibel:', { underline: true });
-        doc.moveDown(0.2);
-        const flexItems = [
-          'Bringt gerne Outfit-Wechsel mit, um eure Bilder individuell zu gestalten.',
-          'Wir fangen spontane und natürliche Momente ein – so einzigartig wie eure Familie!'
-        ];
-        for (const item of flexItems) {
-          doc.circle(58, doc.y + 6, 1.5).fill('#222222').stroke('#222222');
-          doc.fillColor('#222222').text(`  ${item}`, 62, doc.y - 2, { width: 595.28 - 112 });
-          doc.moveDown(0.2);
-        }
-        doc.moveDown(0.6);
       } catch (e) {
         console.warn('Voucher description block render error:', e);
-        // Fallback: just use the title
+        // Fallback: show generic text
         try {
-          doc.fillColor('#222222').fontSize(18).text(title, { width: 595.28 - 100 });
+          doc.fillColor('#222222').fontSize(12).text('Fotoshooting Gutschein', { width: 595.28 - 100 });
           doc.moveDown(1);
         } catch {}
       }
