@@ -80,7 +80,9 @@ const HomepageImagesManager: React.FC = () => {
   const { data: images, isLoading } = useQuery({
     queryKey: ['/api/homepage/images'],
     queryFn: async () => {
-      const res = await fetch('/api/homepage/images');
+      const res = await fetch('/api/homepage/images', {
+        credentials: 'include'
+      });
       if (!res.ok) throw new Error('Failed to fetch images');
       return res.json();
     }
@@ -91,6 +93,7 @@ const HomepageImagesManager: React.FC = () => {
     mutationFn: async (data: { section: string; url: string }) => {
       const res = await fetch('/api/homepage/images', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
@@ -112,6 +115,7 @@ const HomepageImagesManager: React.FC = () => {
 
       const res = await fetch('/api/homepage/images/upload', {
         method: 'POST',
+        credentials: 'include',
         body: formData
       });
       if (!res.ok) {
@@ -131,7 +135,8 @@ const HomepageImagesManager: React.FC = () => {
   const deleteImageMutation = useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/homepage/images/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        credentials: 'include'
       });
       if (!res.ok) throw new Error('Failed to delete image');
       return res.json();
@@ -182,6 +187,7 @@ const HomepageImagesManager: React.FC = () => {
 
         const uploadRes = await fetch('/api/homepage/images/upload', {
           method: 'POST',
+          credentials: 'include',
           body: formData
         });
         if (!uploadRes.ok) {
@@ -191,13 +197,17 @@ const HomepageImagesManager: React.FC = () => {
         const uploadData = await uploadRes.json();
         
         // Delete old image
-        await fetch(`/api/homepage/images/${data.id}`, { method: 'DELETE' });
+        await fetch(`/api/homepage/images/${data.id}`, { 
+          method: 'DELETE',
+          credentials: 'include'
+        });
         
         return uploadData;
       } else if (data.url) {
         // Update with new URL
         const res = await fetch(`/api/homepage/images/${data.id}`, {
           method: 'PUT',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: data.url })
         });
