@@ -1262,21 +1262,37 @@ const translations = {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>(() => {
-  // Try to get language from localStorage, default to 'en'
-  const savedLang = localStorage.getItem('language');
-  if (savedLang === 'en' || savedLang === 'de') return savedLang as Language;
-  // Optional: detect browser language, prefer 'en' otherwise
-  const browserLang = (navigator.language || navigator.languages?.[0] || '').toLowerCase();
-  if (browserLang.startsWith('de')) return 'de';
-  return 'en';
+  const [language, _setLanguage] = useState<Language>(() => {
+    // Prefer a user-chosen language only if the user has explicitly changed it before
+    const savedLang = (() => {
+      try { return localStorage.getItem('language'); } catch { return null; }
+    })();
+    const userSet = (() => {
+      try { return localStorage.getItem('languageUserSet'); } catch { return null; }
+    })();
+
+    if (userSet === 'true' && (savedLang === 'en' || savedLang === 'de')) {
+      return savedLang as Language;
+    }
+
+    // Default reliably to German
+    const browserLang = (navigator.language || navigator.languages?.[0] || '').toLowerCase();
+    if (browserLang.startsWith('de')) return 'de';
+    return 'de';
   });
 
+  // Setter that records an explicit user choice
+  const setLanguage = (lang: Language) => {
+    _setLanguage(lang);
+    try {
+      localStorage.setItem('language', lang);
+      localStorage.setItem('languageUserSet', 'true');
+    } catch {}
+  };
+
   useEffect(() => {
-    // Save language preference to localStorage
-    localStorage.setItem('language', language);
     // Update HTML lang attribute
-    document.documentElement.lang = language;
+    try { document.documentElement.lang = language; } catch {}
   }, [language]);
 
   const t = (key: string): string => {

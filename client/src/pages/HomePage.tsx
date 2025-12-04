@@ -29,8 +29,20 @@ const HomePage: React.FC = () => {
       if (!res.ok) throw new Error('Failed to fetch homepage images');
       return res.json();
     },
-    staleTime: 5 * 60 * 1000 // Cache for 5 minutes
+    // reflect published changes immediately
+    staleTime: 0,
+    cacheTime: 0,
   });
+
+  // Utility: resolve image URL by section with local fallback
+  const imageForSection = (section: string, fallback?: string) => {
+    const hit = (homepageImages as any[])?.find((img: any) => img.section === section);
+    return (hit && (hit.url as string)) || fallback || photoGridImage;
+  };
+
+  const heroImageUrl = useMemo(() => {
+    return imageForSection('hero', undefined);
+  }, [homepageImages]);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -168,38 +180,22 @@ const HomePage: React.FC = () => {
     }
   ];
 
-  const faqImages = homepageImages?.filter((img: any) => img.section === 'faq') || [
-    {
-      title: t('home.faqQuestion1'),
-      image: "https://i.postimg.cc/D09JNp5m/00014518.jpg",
-      alt: "Unique photography style"
-    },
-    {
-      title: t('home.faqQuestion2'),
-      image: "https://i.postimg.cc/YqFdbhxq/00505458.jpg",
-      alt: "Studio and outdoor locations"
-    },
-    {
-      title: t('home.faqQuestion3'),
-      image: "https://i.postimg.cc/66k02BNs/00509892.jpg",
-      alt: "Photoshoot preparation"
-    },
-    {
-      title: t('home.faqQuestion4'),
-      image: "https://i.postimg.cc/W1Pq6KhH/00015672.jpg",
-      alt: "Family photoshoot duration"
-    },
-    {
-      title: t('home.faqQuestion5'),
-      image: "https://i.postimg.cc/7Y1g57V7/RJGOQBO.jpg",
-      alt: "Pets in photoshoot"
-    },
-    {
-      title: t('home.faqQuestion6'),
-      image: "https://i.postimg.cc/Wb070x2d/brother-sister-close-up-30x20-L.jpg",
-      alt: "Comfortable atmosphere"
-    }
-  ];
+  const faqImages =
+    (homepageImages &&
+      (homepageImages as any[])
+        .filter((img: any) => img.section === 'faq')
+        .map((i: any) => ({
+          title: i.title || '',
+          image: i.url,
+          alt: i.alt || i.title || 'Image',
+        }))) || [
+      { title: t('home.faqQuestion1'), image: photoGridImage, alt: 'Image' },
+      { title: t('home.faqQuestion2'), image: photoGridImage, alt: 'Image' },
+      { title: t('home.faqQuestion3'), image: photoGridImage, alt: 'Image' },
+      { title: t('home.faqQuestion4'), image: photoGridImage, alt: 'Image' },
+      { title: t('home.faqQuestion5'), image: photoGridImage, alt: 'Image' },
+      { title: t('home.faqQuestion6'), image: photoGridImage, alt: 'Image' },
+    ];
 
   return (
     <Layout>
@@ -208,7 +204,7 @@ const HomePage: React.FC = () => {
         description="Professionelle Familienfotos, Schwangerschaftsfotos, Neugeborenenfotos & Business Portraits in Wien. Über 27.000 glückliche Familien. Studio in 1050 Wien. Jetzt Termin buchen!"
         keywords="familienfotograf wien, fotostudio wien, familienfotografie wien, schwangerschaftsfotos wien, neugeborenenfotos wien, babyfotograf wien, business portrait wien"
         canonical="/"
-        ogImage="https://i.postimg.cc/wTdZVLdC/photo-grid.jpg"
+        ogImage={heroImageUrl || undefined}
         hreflang={[
           { lang: 'de', url: '/' },
           { lang: 'en', url: '/en/' }
@@ -223,7 +219,7 @@ const HomePage: React.FC = () => {
             '@type': 'LocalBusiness',
             '@id': 'https://www.newagefotografie.com/#business',
             name: 'New Age Fotografie',
-            image: 'https://i.postimg.cc/wTdZVLdC/photo-grid.jpg',
+            image: heroImageUrl || 'https://example.com/placeholder.jpg',
             description: 'Professioneller Familienfotograf in Wien. Spezialisiert auf Familienfotos, Schwangerschaftsfotos, Neugeborenenfotos und Business Portraits.',
             address: {
               '@type': 'PostalAddress',
@@ -326,9 +322,9 @@ const HomePage: React.FC = () => {
             </button>
           </div>
           <div className="md:w-2/5">
-            <ZoomableImage 
-              src="https://i.postimg.cc/wTdZVLdC/photo-grid.jpg"
-              alt="Comprehensive family portrait showcase featuring various photography styles including family groups, couples, newborns, maternity, and lifestyle sessions"
+            <ZoomableImage
+              src={heroImageUrl || photoGridImage}
+              alt="Comprehensive family portrait showcase including family, newborn, maternity and lifestyle sessions"
               className="w-full rounded-lg shadow-lg"
               onError={(e) => {
                 // Fallback for mobile/loading issues
@@ -385,7 +381,7 @@ const HomePage: React.FC = () => {
             <div className="md:w-1/3">
               <div className="aspect-[4/3] overflow-hidden rounded-lg shadow-lg">
                 <ZoomableImage 
-                  src="https://i.postimg.cc/J7bDNtGx/Familienportrat-Wien-Krchnavy-Stolz-0105-1024x683-1.jpg"
+                  src={imageForSection('content-1', photoGridImage)}
                   alt="Familienfotografie Wien - Professionelle Familienporträts im Studio"
                   className="w-full h-full object-cover"
                   loading="lazy"
@@ -413,7 +409,7 @@ const HomePage: React.FC = () => {
             <div className="md:w-1/3">
               <div className="aspect-[4/5] max-w-xs mx-auto overflow-hidden rounded-lg shadow-lg">
                 <ZoomableImage 
-                  src="https://i.postimg.cc/NMqvfKv7/4S8A6958.jpg"
+                  src={imageForSection('content-2', photoGridImage)}
                   alt="Business Headshots Wien - Professionelle Businessfotografie im Studio"
                   className="w-full h-full object-cover object-center"
                   loading="lazy"
@@ -456,7 +452,7 @@ const HomePage: React.FC = () => {
             >
               <div className="aspect-[4/3] overflow-hidden">
                 <img 
-                  src="https://i.postimg.cc/V6TFF8rC/00508749.jpg"
+                  src={imageForSection('services-family', photoGridImage)}
                   alt="Familienporträts Wien - Natürliche Familienfotografie im Studio und Outdoor"
                   className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
                   loading="lazy"
@@ -480,7 +476,7 @@ const HomePage: React.FC = () => {
             >
               <div className="aspect-[4/3] overflow-hidden">
                 <img 
-                  src="https://i.imgur.com/AMnhw6w.jpg"
+                  src={imageForSection('services-pregnancy', photoGridImage)}
                   alt={language === 'en' 
                     ? "Maternity Photography Vienna - Professional Pregnancy Photoshoot in Studio"
                     : "Babybauch Fotografie Wien - Professionelle Schwangerschaftsfotos im Studio"}
@@ -506,7 +502,7 @@ const HomePage: React.FC = () => {
             >
               <div className="aspect-[4/3] overflow-hidden">
                 <img 
-                  src="https://i.imgur.com/VLYZQof.jpg"
+                  src={imageForSection('services-newborn', photoGridImage)}
                   alt={language === 'en'
                     ? "Newborn Photography Vienna - Professional Baby Photoshoot in Studio"
                     : "Neugeborenenfotos Wien - Professionelle Babyfotografie im Studio"}
@@ -532,7 +528,7 @@ const HomePage: React.FC = () => {
             >
               <div className="aspect-[4/3] overflow-hidden">
                 <img 
-                  src="https://i.postimg.cc/NMqvfKv7/4S8A6958.jpg"
+                  src={imageForSection('services-business', photoGridImage)}
                   alt="Business Headshots Wien - Professionelle Businessfotografie im Studio"
                   className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
                   loading="lazy"
@@ -556,7 +552,7 @@ const HomePage: React.FC = () => {
             >
               <div className="aspect-[4/3] overflow-hidden">
                 <img 
-                  src="https://i.postimg.cc/CLdXQtkc/00494629.jpg"
+                  src={imageForSection('services-event', photoGridImage)}
                   alt="Eventfotografie Wien - Professionelle Event & Konferenzfotografie"
                   className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
                   loading="lazy"
@@ -580,7 +576,7 @@ const HomePage: React.FC = () => {
             >
               <div className="aspect-[4/3] overflow-hidden">
                 <img 
-                  src="https://i.postimg.cc/L6YtYjJC/product-photo-example.jpg"
+                  src={imageForSection('services-product', photoGridImage)}
                   alt="Produktfotografie Wien - E-Commerce & Amazon Produktfotos im Studio"
                   className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
                   loading="lazy"

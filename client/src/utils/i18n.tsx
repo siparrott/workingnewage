@@ -291,7 +291,7 @@ interface I18nProviderProps {
 
 export const I18nProvider = ({ 
   children, 
-  defaultLanguage = 'en', 
+  defaultLanguage = 'de', 
   translations = defaultTranslations 
 }: I18nProviderProps) => {
   const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguage>(defaultLanguage);

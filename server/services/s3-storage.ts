@@ -23,6 +23,7 @@ const s3Client = new S3Client({
 
 const BUCKET_NAME = process.env.AWS_S3_BUCKET || '';
 const CLOUDFRONT_URL = process.env.AWS_CLOUDFRONT_URL;
+const S3_ENDPOINT = process.env.AWS_S3_ENDPOINT || '';
 
 export interface UploadResult {
   key: string;
@@ -138,10 +139,16 @@ async function createThumbnail(
  * Get file URL (CloudFront or S3 direct)
  */
 function getFileUrl(key: string): string {
+  // Prefer CDN if configured
   if (CLOUDFRONT_URL) {
-    return `${CLOUDFRONT_URL}/${key}`;
+    return `${CLOUDFRONT_URL.replace(/\\/$/, '')}/${key}`;
   }
-  return `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+  // If using Backblaze B2 S3-compatible endpoint, use path-style URL
+  if (S3_ENDPOINT && /backblazeb2\\.com/i.test(S3_ENDPOINT)) {
+    return `${S3_ENDPOINT.replace(/\\/$/, '')}/${BUCKET_NAME}/${key}`;
+  }
+  const region = process.env.AWS_REGION || 'us-east-1';
+  return `https://${BUCKET_NAME}.amazonaws.com/${key}`.replace('amazonaws.com', `s3.${region}.amazonaws.com`);
 }
 
 /**

@@ -1,6 +1,7 @@
    import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
+import { useLanguage } from '../../context/LanguageContext';
 import { Save, Eye, RotateCcw, FileText, Globe, Check, X, Upload, Trash2, Image as ImageIcon } from 'lucide-react';
 import { manualPageManifest, type ManualPageDefinition, type ManualPageSection, type ManualPageField } from '../../../../shared/manualPages';
 import Cropper, { Area } from 'react-easy-crop';
@@ -302,11 +303,15 @@ const HomepageImagesManager: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             >
               <option value="hero">Hero / Main Grid</option>
+              <option value="content-1">Content Block 1</option>
+              <option value="content-2">Content Block 2</option>
               <option value="services-family">Services - Family</option>
               <option value="services-pregnancy">Services - Pregnancy</option>
               <option value="services-newborn">Services - Newborn</option>
               <option value="services-business">Services - Business</option>
               <option value="services-event">Services - Event</option>
+              <option value="services-product">Services - Product</option>
+              <option value="faq">FAQ</option>
             </select>
           </div>
 
@@ -550,6 +555,7 @@ const ManualWebsiteUpdatePage: React.FC = () => {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [isProcessingCrop, setIsProcessingCrop] = useState(false);
   const queryClient = useQueryClient();
+  const { t } = useLanguage();
 
   // Load field-specific orientation preferences from localStorage
   const getFieldOrientation = (fieldId: string): 'landscape' | 'portrait' | 'wide' => {
@@ -577,11 +583,26 @@ const ManualWebsiteUpdatePage: React.FC = () => {
   // Initialize edited content when page content loads
   useEffect(() => {
     if (pageContent) {
-      // Merge published content with draft content (draft takes precedence)
+      // Prepare defaults from translation keys so admins see current site copy even before saving
+      const defaults: Record<string, string> = {};
+      if (selectedPage) {
+        for (const section of selectedPage.sections) {
+          for (const field of section.fields) {
+            try {
+              defaults[field.translationKey] = t(field.translationKey) || '';
+            } catch {
+              defaults[field.translationKey] = '';
+            }
+          }
+        }
+      }
+
+      // Merge defaults -> published -> draft (draft takes precedence)
       const mergedContent = {
+        ...defaults,
         ...(pageContent.publishedContent || {}),
         ...(pageContent.draftContent || {})
-      };
+      } as Record<string, string>;
       setEditedContent(mergedContent);
       setHasUnsavedChanges(false);
     } else {

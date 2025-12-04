@@ -80,8 +80,16 @@ router.get('/:pageId', async (req, res) => {
     // For authenticated admin users, return full record including drafts
     res.json(record);
   } catch (error) {
-    console.error('Failed to fetch page content:', error);
-    res.status(500).json({ error: 'Failed to fetch page content' });
+    // If the table doesn't exist yet or any DB error occurs, return a safe fallback
+    console.warn('Manual page fetch fallback:', (error as any)?.message || error);
+    const { pageId } = req.params;
+    const { language = 'de' } = req.query;
+    return res.json({
+      pageId,
+      language,
+      publishedContent: {},
+      status: 'none'
+    });
   }
 });
 
