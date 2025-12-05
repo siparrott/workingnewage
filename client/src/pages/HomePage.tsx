@@ -57,7 +57,12 @@ const HomePage: React.FC = () => {
       const res = await fetch('/api/vouchers/products');
       if (!res.ok) throw new Error('Failed to fetch vouchers');
       return res.json();
-    }
+    },
+    // Keep data fresh but allow brief caching to prevent flash
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    cacheTime: 1000 * 60 * 10, // 10 minutes
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 
   // Fallback voucher products

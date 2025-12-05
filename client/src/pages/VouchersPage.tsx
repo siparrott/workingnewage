@@ -32,7 +32,12 @@ const VouchersPage: React.FC = () => {
       const res = await fetch('/api/vouchers/products');
       if (!res.ok) throw new Error('Failed to fetch vouchers');
       return res.json();
-    }
+    },
+    // Keep data fresh but allow brief caching to prevent flash
+    staleTime: 1000 * 60 * 5, // 5 minutes - products don't change that often
+    cacheTime: 1000 * 60 * 10, // 10 minutes
+    refetchOnMount: false, // Don't refetch if we have cached data
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
   // Fallback to default vouchers if API returns empty or fails - ALL CATEGORIES
