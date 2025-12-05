@@ -9002,11 +9002,12 @@ New Age Fotografie CRM System
         currentY += 55; // Reserve space even if logo fails
       }
 
-      // Website URL between logo and heading
-      doc.fontSize(10).text('www.newagefotografie.com', 50, currentY, { align: 'center', width: 495.28 });
+      // Website URL between logo and heading - centered across full page
+      const pageWidth = 595.28;
+      doc.fontSize(10).text('www.newagefotografie.com', 0, currentY, { align: 'center', width: pageWidth });
       currentY += 25; // Space after website URL
 
-      doc.fontSize(22).text('PERSONALISIERTER GUTSCHEIN', 50, currentY, { align: 'center', width: 495.28 });
+      doc.fontSize(22).text('PERSONALISIERTER GUTSCHEIN', 0, currentY, { align: 'center', width: pageWidth });
       doc.moveDown(0.4);
 
       // Hero image (customer-selected or template) - compact
@@ -9159,11 +9160,12 @@ New Age Fotografie CRM System
         currentY += 55; // Reserve space even if logo fails
       }
 
-      // Website URL between logo and heading
-      doc.fontSize(10).text('www.newagefotografie.com', 50, currentY, { align: 'center', width: 495.28 });
+      // Website URL between logo and heading - centered across full page
+      const pageWidth = 595.28;
+      doc.fontSize(10).text('www.newagefotografie.com', 0, currentY, { align: 'center', width: pageWidth });
       currentY += 25; // Space after website URL
 
-      doc.fontSize(22).text('PERSONALISIERTER GUTSCHEIN', 50, currentY, { align: 'center', width: 495.28 });
+      doc.fontSize(22).text('PERSONALISIERTER GUTSCHEIN', 0, currentY, { align: 'center', width: pageWidth });
       doc.moveDown(0.4);
 
       // Hero image (compact 160px height)
