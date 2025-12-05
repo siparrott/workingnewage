@@ -407,11 +407,11 @@ const HomePage: React.FC = () => {
           {/* Second Content Block */}
           <div className="flex flex-col md:flex-row-reverse items-center gap-8">
             <div className="md:w-1/3">
-              <div className="aspect-[4/5] max-w-xs mx-auto overflow-hidden rounded-lg shadow-lg">
+              <div className="aspect-[3/4] max-w-sm mx-auto overflow-hidden rounded-lg shadow-lg">
                 <ZoomableImage 
                   src={imageForSection('content-2', photoGridImage)}
                   alt="Business Headshots Wien - Professionelle Businessfotografie im Studio"
-                  className="w-full h-full object-cover object-center"
+                  className="w-full h-full object-cover object-top"
                   loading="lazy"
                 />
               </div>
