@@ -1746,7 +1746,27 @@ Bitte versuchen Sie es später noch einmal.`;
     try {
       console.log('[BLOG UPDATE] Updating post:', req.params.id);
       console.log('[BLOG UPDATE] Update data:', JSON.stringify(req.body, null, 2));
-      const post = await storage.updateBlogPost(req.params.id, req.body);
+      
+      // Convert date strings to Date objects (same as POST route)
+      const updates = {
+        ...req.body,
+        // Convert publishedAt string to Date if present
+        publishedAt: req.body.publishedAt ? new Date(req.body.publishedAt) : undefined,
+        // Convert scheduledFor string to Date if present
+        scheduledFor: req.body.scheduledFor ? new Date(req.body.scheduledFor) : undefined,
+        // Always update the updatedAt timestamp
+        updatedAt: new Date()
+      };
+      
+      // Remove undefined values
+      Object.keys(updates).forEach(key => {
+        if (updates[key] === undefined) {
+          delete updates[key];
+        }
+      });
+      
+      console.log('[BLOG UPDATE] Processed updates:', updates);
+      const post = await storage.updateBlogPost(req.params.id, updates);
       console.log('[BLOG UPDATE] Success:', post.id);
       res.json(post);
     } catch (error) {
