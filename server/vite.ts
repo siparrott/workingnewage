@@ -85,7 +85,27 @@ export function serveStatic(app: Express) {
     );
   }
 
+  // Serve static files from dist
   app.use(express.static(distPath));
+
+  // Explicitly serve robots.txt and sitemap.xml for SEO
+  app.get("/robots.txt", (_req, res) => {
+    const robotsPath = path.resolve(distPath, "robots.txt");
+    if (fs.existsSync(robotsPath)) {
+      res.type("text/plain").sendFile(robotsPath);
+    } else {
+      res.status(404).send("robots.txt not found");
+    }
+  });
+
+  app.get("/sitemap.xml", (_req, res) => {
+    const sitemapPath = path.resolve(distPath, "sitemap.xml");
+    if (fs.existsSync(sitemapPath)) {
+      res.type("application/xml").sendFile(sitemapPath);
+    } else {
+      res.status(404).send("sitemap.xml not found");
+    }
+  });
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
