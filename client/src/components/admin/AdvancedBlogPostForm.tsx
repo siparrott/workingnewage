@@ -136,23 +136,39 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
       setImageUploading(true);
       setError(null);
       
-      const fileExt = file.name.split('.').pop();
-      const fileName = `blog/covers/${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      // Get admin token from localStorage
+      const getAdminToken = () => (typeof window !== 'undefined' ? (localStorage.getItem('ADMIN_TOKEN') || '') : '');
       
-      const { error: uploadError } = await supabase.storage
-        .from('images')
-        .upload(fileName, file);
+      // Upload to Backblaze B2 via /api/files/upload
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folderName', 'Blog Covers');
+      formData.append('context', 'blog-cover-image');
       
-      if (uploadError) throw uploadError;
+      const response = await fetch('/api/files/upload', {
+        method: 'POST',
+        headers: {
+          'x-admin-token': getAdminToken()
+        },
+        body: formData
+      });
       
-      const { data: { publicUrl } } = supabase.storage
-        .from('images')
-        .getPublicUrl(fileName);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || errorData.details || 'Upload failed');
+      }
+      
+      const data = await response.json();
+      const publicUrl = data.url || data.publicUrl;
+      
+      if (!publicUrl) {
+        throw new Error('No URL returned from upload');
+      }
       
       handleChange('cover_image', publicUrl);
-    } catch (err) {
-      // console.error removed
-      setError('Failed to upload image. Please try again.');
+    } catch (err: any) {
+      console.error('[BLOG IMAGE UPLOAD] Error:', err);
+      setError('Failed to upload image. Please try again. ' + (err.message || ''));
     } finally {
       setImageUploading(false);
     }
