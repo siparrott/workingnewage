@@ -628,7 +628,20 @@ export default function AdminVoucherSalesPageV3() {
 
   const handleCreateCoupon = () => {
     setSelectedCoupon(null);
-    couponForm.reset();
+    couponForm.reset({
+      code: "",
+      name: "",
+      description: "",
+      discountType: "percentage",
+      discountValue: "",
+      minOrderAmount: "",
+      maxDiscountAmount: "",
+      usageLimit: "",
+      startDate: "",
+      endDate: "",
+      isActive: true,
+      applicableProductSlug: "",
+    });
     setIsCouponDialogOpen(true);
   };
 
