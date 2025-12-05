@@ -433,7 +433,15 @@ export default function AdminVoucherSalesPageV3() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('[CREATE COUPON] Failed:', response.status, errorText);
-        throw new Error(errorText || `HTTP ${response.status}`);
+        
+        // Try to parse JSON error response
+        try {
+          const errorData = JSON.parse(errorText);
+          throw new Error(errorData.details || errorData.error || errorText);
+        } catch (parseError) {
+          // If parsing fails, use the raw error text
+          throw new Error(errorText || `HTTP ${response.status}`);
+        }
       }
       return response.json();
     },
@@ -474,7 +482,15 @@ export default function AdminVoucherSalesPageV3() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('[UPDATE COUPON] Failed:', response.status, errorText);
-        throw new Error(errorText || `HTTP ${response.status}`);
+        
+        // Try to parse JSON error response
+        try {
+          const errorData = JSON.parse(errorText);
+          throw new Error(errorData.details || errorData.error || errorText);
+        } catch (parseError) {
+          // If parsing fails, use the raw error text
+          throw new Error(errorText || `HTTP ${response.status}`);
+        }
       }
       return response.json();
     },

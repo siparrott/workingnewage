@@ -8589,6 +8589,15 @@ New Age Fotografie CRM System
       const errorMessage = error instanceof Error ? error.message : 'Internal server error';
       console.error("[COUPON CREATE] Error message:", errorMessage);
       console.error("[COUPON CREATE] Error stack:", error instanceof Error ? error.stack : '');
+      
+      // Check for duplicate code constraint violation
+      if (errorMessage.includes('discount_coupons_code_unique') || errorMessage.includes('duplicate key')) {
+        return res.status(400).json({ 
+          error: "Coupon code already exists", 
+          details: `A coupon with code "${couponData.code}" already exists. Please use a different code.` 
+        });
+      }
+      
       res.status(500).json({ error: "Internal server error", details: errorMessage });
     }
   });
@@ -8640,6 +8649,15 @@ New Age Fotografie CRM System
       const errorMessage = error instanceof Error ? error.message : 'Internal server error';
       console.error("[COUPON UPDATE] Error message:", errorMessage);
       console.error("[COUPON UPDATE] Error stack:", error instanceof Error ? error.stack : '');
+      
+      // Check for duplicate code constraint violation
+      if (errorMessage.includes('discount_coupons_code_unique') || errorMessage.includes('duplicate key')) {
+        return res.status(400).json({ 
+          error: "Coupon code already exists", 
+          details: `A coupon with code "${updates.code}" already exists. Please use a different code.` 
+        });
+      }
+      
       res.status(500).json({ error: "Internal server error", details: errorMessage });
     }
   });
