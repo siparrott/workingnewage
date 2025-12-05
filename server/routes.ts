@@ -9129,7 +9129,7 @@ New Age Fotografie CRM System
             const artArr = await respImg.arrayBuffer();
             const artBuf = Buffer.from(artArr);
             const imgWidth = pageWidth - 100;
-            doc.image(artBuf, 50, undefined as any, { fit: [imgWidth, 160], align: 'center' });
+            doc.image(artBuf, 50, undefined as any, { fit: [imgWidth, 320], align: 'center' });
             heroRendered = true;
           }
         }
@@ -9297,7 +9297,7 @@ New Age Fotografie CRM System
             const imgArr = await respImg.arrayBuffer();
             const imgBuf = Buffer.from(imgArr);
             const imgWidth = 595.28 - 100;
-            doc.image(imgBuf, 50, undefined as any, { fit: [imgWidth, 160], align: 'center' });
+            doc.image(imgBuf, 50, undefined as any, { fit: [imgWidth, 320], align: 'center' });
             heroRendered = true;
           }
         } catch (err) {
