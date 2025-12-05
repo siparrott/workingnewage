@@ -8985,7 +8985,11 @@ New Age Fotografie CRM System
       doc.pipe(res);
 
       // Add company logo centered at top (compact)
+      const pageWidth = 595.28;
+      const pageMargin = 50;
+      const contentWidth = pageWidth - (pageMargin * 2);
       let currentY = 40;
+      
       try {
         const logoUrl = process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
         const resp = await fetch(logoUrl);
@@ -8993,7 +8997,7 @@ New Age Fotografie CRM System
           const arr = await resp.arrayBuffer();
           const imgBuf = Buffer.from(arr);
           const logoWidth = 140;
-          const centerX = (595.28 - logoWidth) / 2;
+          const centerX = (pageWidth - logoWidth) / 2;
           doc.image(imgBuf, centerX, currentY, { fit: [logoWidth, 50] });
           currentY += 55; // Logo height (50) + small spacing
         }
@@ -9002,12 +9006,12 @@ New Age Fotografie CRM System
         currentY += 55; // Reserve space even if logo fails
       }
 
-      // Website URL between logo and heading - centered across full page
-      const pageWidth = 595.28;
-      doc.fontSize(10).text('www.newagefotografie.com', 0, currentY, { align: 'center', width: pageWidth });
+      // Website URL centered directly below logo
+      doc.fontSize(10).text('www.newagefotografie.com', pageMargin, currentY, { align: 'center', width: contentWidth });
       currentY += 25; // Space after website URL
 
-      doc.fontSize(22).text('PERSONALISIERTER GUTSCHEIN', 0, currentY, { align: 'center', width: pageWidth });
+      // Heading centered below website URL
+      doc.fontSize(22).text('PERSONALISIERTER GUTSCHEIN', pageMargin, currentY, { align: 'center', width: contentWidth });
       doc.moveDown(0.4);
 
       // Hero image (customer-selected or template) - compact
@@ -9143,7 +9147,11 @@ New Age Fotografie CRM System
       // SINGLE-PAGE COMPACT LAYOUT - matches main endpoint
       
       // Logo centered at top (compact)
+      const pageWidth = 595.28;
+      const pageMargin = 50;
+      const contentWidth = pageWidth - (pageMargin * 2);
       let currentY = 40;
+      
       try {
         const logoUrl = process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
         const resp = await fetch(logoUrl);
@@ -9151,7 +9159,7 @@ New Age Fotografie CRM System
           const arr = await resp.arrayBuffer();
           const imgBuf = Buffer.from(arr);
           const logoWidth = 140;
-          const centerX = (595.28 - logoWidth) / 2;
+          const centerX = (pageWidth - logoWidth) / 2;
           doc.image(imgBuf, centerX, currentY, { fit: [logoWidth, 50] });
           currentY += 55; // Logo height (50) + small spacing
         }
@@ -9160,12 +9168,12 @@ New Age Fotografie CRM System
         currentY += 55; // Reserve space even if logo fails
       }
 
-      // Website URL between logo and heading - centered across full page
-      const pageWidth = 595.28;
-      doc.fontSize(10).text('www.newagefotografie.com', 0, currentY, { align: 'center', width: pageWidth });
+      // Website URL centered directly below logo
+      doc.fontSize(10).text('www.newagefotografie.com', pageMargin, currentY, { align: 'center', width: contentWidth });
       currentY += 25; // Space after website URL
 
-      doc.fontSize(22).text('PERSONALISIERTER GUTSCHEIN', 0, currentY, { align: 'center', width: pageWidth });
+      // Heading centered below website URL
+      doc.fontSize(22).text('PERSONALISIERTER GUTSCHEIN', pageMargin, currentY, { align: 'center', width: contentWidth });
       doc.moveDown(0.4);
 
       // Hero image (compact 160px height)

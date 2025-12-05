@@ -9,7 +9,7 @@ Write-Host "`n=== Adding all changes ===" -ForegroundColor Cyan
 git add .
 
 Write-Host "`n=== Committing changes ===" -ForegroundColor Cyan
-git commit -m "Fix voucher PDF layout - center website URL properly under logo"
+git commit -m "Fix voucher alignment - ensure logo and text use consistent centering"
 
 Write-Host "`n=== Pushing to GitHub ===" -ForegroundColor Cyan
 git push origin main
