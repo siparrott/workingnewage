@@ -218,9 +218,15 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
+    // Check for session-based auth OR admin token header
     const userId = req.session?.userId;
-    if (!userId) {
-      return res.status(401).json({ error: 'Not authenticated' });
+    const adminToken = (req.headers['x-admin-token'] as string) || '';
+    const expectedAdminToken = process.env.ADMIN_TOKEN || '';
+    
+    const isAuthenticated = userId || (expectedAdminToken && adminToken && adminToken === expectedAdminToken);
+    
+    if (!isAuthenticated) {
+      return res.status(401).json({ error: 'Not authenticated', details: 'Authentication required to upload files' });
     }
 
     // Store file metadata in database

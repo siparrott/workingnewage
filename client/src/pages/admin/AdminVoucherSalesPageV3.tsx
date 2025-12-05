@@ -522,6 +522,7 @@ export default function AdminVoucherSalesPageV3() {
       
       const response = await fetch('/api/files/upload', {
         method: 'POST',
+        headers: withAdminHeaders(),
         body: formData,
       });
       
