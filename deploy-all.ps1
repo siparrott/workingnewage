@@ -9,7 +9,7 @@ Write-Host "`n=== Adding all changes ===" -ForegroundColor Cyan
 git add .
 
 Write-Host "`n=== Committing changes ===" -ForegroundColor Cyan
-git commit -m "Add contact details footer to voucher PDF"
+git commit -m "Fix VCWIEN coupon validation - include productSlug in cart items"
 
 Write-Host "`n=== Pushing to GitHub ===" -ForegroundColor Cyan
 git push origin main

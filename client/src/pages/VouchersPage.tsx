@@ -209,6 +209,7 @@ const VouchersPage: React.FC = () => {
         .map((p: any) => ({
           id: p.id,
           name: p.name,
+          slug: p.slug,
           description: p.description || '',
           price: parseFloat(p.price) || 0,
           originalPrice: p.original_price ? parseFloat(p.original_price) : parseFloat(p.price) * 1.3,
@@ -227,6 +228,7 @@ const VouchersPage: React.FC = () => {
   const heroItems = voucherProducts.map(v => ({
     id: v.id,
     name: v.name,
+    slug: v.slug,
     description: v.description,
     image: v.image,
     price: v.price,

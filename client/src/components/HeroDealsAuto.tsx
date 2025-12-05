@@ -18,6 +18,7 @@ function normalize(item: AnyObj) {
   const title    = pick<string>(item, ["name", "title", "label"]);
   const url      = pick<string>(item, ["url", "href", "link", "path", "permalink", "detailsUrl", "route"]);
   const detailedDescription = pick<string>(item, ["detailedDescription", "detailed_description", "fullDescription"], "");
+  const slug     = pick<string>(item, ["slug", "sku", "productSlug"], "");
 
   // Start with broad guesses
   let current = Number(pick<number>(item, ["salePrice", "discountPrice", "price", "currentPrice", "amount"], 0));
@@ -46,7 +47,7 @@ function normalize(item: AnyObj) {
   const dataId   = pick<string>(item, ["dataVoucherId", "voucherId", "id"], id);
   const subtitle = pick<string>(item, ["subtitle", "tagline", "shortDescription", "excerpt", "description"], "");
   
-  return { id, imageUrl, thumbnailUrl, promoImageUrl, title, url, price, compareAt, ribbonText: ribbon, dataVoucherId: dataId, subtitle, detailedDescription };
+  return { id, imageUrl, thumbnailUrl, promoImageUrl, title, url, price, compareAt, ribbonText: ribbon, dataVoucherId: dataId, subtitle, detailedDescription, slug };
 }
 
 function pctSave(price: number, compareAt: number | undefined, language: 'en' | 'de') {
@@ -71,11 +72,13 @@ export default function HeroDealsAuto({ items }: { items: AnyObj[] }) {
   });
 
   const handleBuyNow = (voucher: ReturnType<typeof normalize>) => {
-    // Add to cart
+    // Add to cart with productSlug for coupon validation
     addToCart({
       title: voucher.title,
       name: voucher.title,
       productId: voucher.dataVoucherId,
+      productSlug: voucher.slug,
+      sku: voucher.slug,
       packageType: 'Fotoshooting Gutschein',
       price: voucher.price,
       quantity: 1,
