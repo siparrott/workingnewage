@@ -321,6 +321,7 @@ export class StripeVoucherService {
       const expiryDate = String(personalization.expiryDate || '').trim();
       const designImage = String(personalization.selectedDesign?.image || '').trim();
       const customImage = String(personalization.customImageUrl || '').trim();
+      const productHeroImage = String(personalization.productHeroImage || '').trim(); // Product default image fallback
       const productDescription = String(personalization.productDescription || '').trim();
 
       sessionParams.metadata = {
@@ -341,9 +342,10 @@ export class StripeVoucherService {
         discount_cents: String(Math.max(0, (Number((data as any).discount) || 0) || (basePrimaryCents - discountedPrimaryCents))),
         discount_strict_95: String(strict95Codes.has(appliedCodeUpper)),
         shipping_address: data.voucherData?.shippingAddress ? JSON.stringify(data.voucherData.shippingAddress).substring(0, 500) : '',
-        // Optional art for PDF rendering
+        // Optional art for PDF rendering (priority: custom > design > product default)
         design_image: designImage,
         custom_image: customImage,
+        product_hero_image: productHeroImage, // Fallback to product's default hero image
         product_description: productDescription.substring(0, 1200),
       };
 

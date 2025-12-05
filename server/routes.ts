@@ -9119,9 +9119,10 @@ New Age Fotografie CRM System
       doc.moveDown(0.4);
 
       // Hero image (customer-selected or template) - compact
+      // Priority: custom_image > design_image > product_hero_image (fallback)
       let heroRendered = false;
       try {
-        const artUrl = String(m.custom_image || m.design_image || '').trim();
+        const artUrl = String(m.custom_image || m.design_image || m.product_hero_image || '').trim();
         if (artUrl) {
           const pageWidth = 595.28;
           const respImg = await fetch(artUrl);
@@ -9236,7 +9237,19 @@ New Age Fotografie CRM System
       const exp = String(qp.expiry_date || '12 Monate ab Kaufdatum');
       const amount = parseFloat(String(qp.amount || '95.00'));
       const currency = String(qp.currency || 'EUR');
-      const customImageUrl = String(qp.custom_image || qp.design_image || '');
+      
+      // Try custom_image or design_image from query, otherwise fetch product default
+      let customImageUrl = String(qp.custom_image || qp.design_image || '').trim();
+      if (!customImageUrl && sku) {
+        try {
+          if (neonDb && typeof neonDb.getVoucherProduct === 'function') {
+            const product = await neonDb.getVoucherProduct(sku);
+            customImageUrl = product?.imageUrl || '';
+          }
+        } catch (e) {
+          console.warn('Could not fetch product default image for preview:', e);
+        }
+      }
 
       const titleMap: Record<string, string> = {
         'Maternity-Basic': 'Schwangerschafts Fotoshooting - Basic',

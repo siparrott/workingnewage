@@ -36,6 +36,7 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [productDescription, setProductDescription] = useState<string | undefined>(undefined);
+  const [productHeroImage, setProductHeroImage] = useState<string | undefined>(undefined);
 
   const deliveryAmount = voucherData?.deliveryOption.price || 0;
   const subtotal = baseAmount + deliveryAmount;
@@ -52,7 +53,7 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
     }
   }, [initialVoucher]);
 
-  // Fetch product detail (for description) when slug is provided
+  // Fetch product detail (for description and hero image) when slug is provided
   useEffect(() => {
     let active = true;
     (async () => {
@@ -62,7 +63,11 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
         if (!r.ok) return;
         const j = await r.json();
         const desc = j?.description || j?.detailedDescription || j?.detailed_description || undefined;
-        if (active) setProductDescription(typeof desc === 'string' ? desc : undefined);
+        const heroImg = j?.imageUrl || j?.image_url || undefined;
+        if (active) {
+          setProductDescription(typeof desc === 'string' ? desc : undefined);
+          setProductHeroImage(typeof heroImg === 'string' ? heroImg : undefined);
+        }
       } catch {
         // ignore
       }
@@ -169,7 +174,8 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
           ...voucherData,
           // Pass URL so backend PDF can embed it
           customImageUrl: voucherData.customImageUrl || undefined,
-          productDescription: productDescription || undefined
+          productDescription: productDescription || undefined,
+          productHeroImage: productHeroImage || undefined // Fallback to product default image
         },
         appliedVoucherCode,
         discount: Math.round(discount * 100),
