@@ -7876,22 +7876,30 @@ New Age Fotografie CRM System
   // Upload homepage image to Backblaze B2
   app.post("/api/homepage/images/upload", authenticateUser, upload.single('image'), async (req: Request, res: Response) => {
     try {
+      console.log('[HOMEPAGE IMAGE UPLOAD] Request received');
+      console.log('[HOMEPAGE IMAGE UPLOAD] File:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'NO FILE');
+      console.log('[HOMEPAGE IMAGE UPLOAD] Section:', req.body.section);
+      
       if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
+        return res.status(400).json({ error: "No file uploaded", message: "No file was provided in the upload request" });
       }
 
       const { section } = req.body;
       if (!section) {
-        return res.status(400).json({ error: "Section is required" });
+        return res.status(400).json({ error: "Section is required", message: "Please specify a section for this image" });
       }
 
       // Use shared S3 helper (Backblaze-compatible) and standard AWS_* envs
       const { bucket, endpoint, isConfigured } = getS3Config();
       if (!isConfigured) {
         console.error('❌ S3/B2 credentials or bucket not configured');
-        return res.status(503).json({ error: "Storage service not configured. Please set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_BUCKET." });
+        return res.status(503).json({ 
+          error: "Storage service not configured", 
+          message: "Storage service not configured. Please set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_BUCKET." 
+        });
       }
 
+      console.log('[HOMEPAGE IMAGE UPLOAD] Optimizing image...');
       // Optimize image with sharp
       const optimizedBuffer = await sharp(req.file.buffer)
         .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
@@ -7903,6 +7911,7 @@ New Age Fotografie CRM System
       const randomString = Math.random().toString(36).substring(7);
       const filename = `homepage/${section}-${timestamp}-${randomString}.jpg`;
 
+      console.log('[HOMEPAGE IMAGE UPLOAD] Uploading to B2:', filename);
       // Upload to B2
       const uploadCommand = new PutObjectCommand({
         Bucket: bucket,
@@ -7916,7 +7925,9 @@ New Age Fotografie CRM System
 
       // Generate public URL
       const publicUrl = buildPublicUrl(bucket, endpoint, filename);
+      console.log('[HOMEPAGE IMAGE UPLOAD] Public URL:', publicUrl);
 
+      console.log('[HOMEPAGE IMAGE UPLOAD] Saving to database...');
       // Save to database
       const result = await runSql(`
         INSERT INTO homepage_images (section, url, alt, title, sort_order, is_active)
@@ -7940,10 +7951,11 @@ New Age Fotografie CRM System
         message: "Image uploaded successfully"
       });
     } catch (error: any) {
-      console.error("Error uploading homepage image:", error);
+      console.error("[HOMEPAGE IMAGE UPLOAD] ❌ Error:", error);
+      console.error("[HOMEPAGE IMAGE UPLOAD] Error stack:", error.stack);
       res.status(500).json({ 
         error: "Failed to upload image",
-        message: error.message 
+        message: error.message || "An unknown error occurred during upload"
       });
     }
   });

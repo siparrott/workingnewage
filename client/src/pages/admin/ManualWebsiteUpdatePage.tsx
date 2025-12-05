@@ -76,12 +76,18 @@ const HomepageImagesManager: React.FC = () => {
   const [replaceFile, setReplaceFile] = useState<File | null>(null);
   const queryClient = useQueryClient();
 
+  // Admin token helper (read fresh from localStorage each call)
+  const getAdminToken = () => (typeof window !== 'undefined' ? (localStorage.getItem('ADMIN_TOKEN') || '') : '');
+  const withAdminHeaders = () => ({ 'x-admin-token': getAdminToken() });
+  const withAdminJsonHeaders = () => ({ 'Content-Type': 'application/json', 'x-admin-token': getAdminToken() });
+
   // Fetch homepage images
   const { data: images, isLoading } = useQuery({
     queryKey: ['/api/homepage/images'],
     queryFn: async () => {
       const res = await fetch('/api/homepage/images', {
-        credentials: 'include'
+        credentials: 'include',
+        headers: withAdminHeaders()
       });
       if (!res.ok) throw new Error('Failed to fetch images');
       return res.json();
@@ -94,7 +100,7 @@ const HomepageImagesManager: React.FC = () => {
       const res = await fetch('/api/homepage/images', {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: withAdminJsonHeaders(),
         body: JSON.stringify(data)
       });
       if (!res.ok) throw new Error('Failed to add image');
@@ -116,6 +122,7 @@ const HomepageImagesManager: React.FC = () => {
       const res = await fetch('/api/homepage/images/upload', {
         method: 'POST',
         credentials: 'include',
+        headers: withAdminHeaders(),
         body: formData
       });
       if (!res.ok) {
@@ -136,7 +143,8 @@ const HomepageImagesManager: React.FC = () => {
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/homepage/images/${id}`, {
         method: 'DELETE',
-        credentials: 'include'
+        credentials: 'include',
+        headers: withAdminHeaders()
       });
       if (!res.ok) throw new Error('Failed to delete image');
       return res.json();
@@ -188,6 +196,7 @@ const HomepageImagesManager: React.FC = () => {
         const uploadRes = await fetch('/api/homepage/images/upload', {
           method: 'POST',
           credentials: 'include',
+          headers: withAdminHeaders(),
           body: formData
         });
         if (!uploadRes.ok) {
@@ -199,7 +208,8 @@ const HomepageImagesManager: React.FC = () => {
         // Delete old image
         await fetch(`/api/homepage/images/${data.id}`, { 
           method: 'DELETE',
-          credentials: 'include'
+          credentials: 'include',
+          headers: withAdminHeaders()
         });
         
         return uploadData;
@@ -208,7 +218,7 @@ const HomepageImagesManager: React.FC = () => {
         const res = await fetch(`/api/homepage/images/${data.id}`, {
           method: 'PUT',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
+          headers: withAdminJsonHeaders(),
           body: JSON.stringify({ url: data.url })
         });
         if (!res.ok) throw new Error('Failed to update image');
