@@ -22,16 +22,18 @@ const HomePage: React.FC = () => {
   const t = useManualPageContent('home');
 
   // Fetch homepage images from API
-  const { data: homepageImages } = useQuery({
+  const { data: homepageImages, isLoading: isLoadingImages } = useQuery({
     queryKey: ['/api/homepage/images'],
     queryFn: async () => {
       const res = await fetch('/api/homepage/images');
       if (!res.ok) throw new Error('Failed to fetch homepage images');
       return res.json();
     },
-    // reflect published changes immediately
-    staleTime: 0,
-    cacheTime: 0,
+    // Keep data fresh but allow brief caching to prevent flash
+    staleTime: 1000 * 60 * 5, // 5 minutes - images don't change that often
+    cacheTime: 1000 * 60 * 10, // 10 minutes
+    refetchOnMount: false, // Don't refetch if we have cached data
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
   // Utility: resolve image URL by section with local fallback
