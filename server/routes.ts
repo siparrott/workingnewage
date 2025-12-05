@@ -1714,6 +1714,7 @@ Bitte versuchen Sie es später noch einmal.`;
 
   app.post("/api/blog/posts", authenticateUser, async (req: Request, res: Response) => {
     try {
+      console.log('[BLOG CREATE] Creating new post');
       const postData = { 
         ...req.body,
         // Convert publishedAt string to Date if present
@@ -1723,28 +1724,36 @@ Bitte versuchen Sie es später noch einmal.`;
       };
       // Remove authorId from validation data
       delete postData.authorId;
-      console.log("Received blog post data:", postData);
+      console.log("[BLOG CREATE] Received blog post data:", postData);
       const validatedData = insertBlogPostSchema.parse(postData);
-      console.log("Validated blog post data:", validatedData);
+      console.log("[BLOG CREATE] Validated blog post data:", validatedData);
       const post = await storage.createBlogPost(validatedData);
+      console.log('[BLOG CREATE] Success:', post.id);
       res.status(201).json(post);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        console.error("Blog post validation error:", error.errors);
+        console.error("[BLOG CREATE] Validation error:", error.errors);
         return res.status(400).json({ error: "Validation error", details: error.errors });
       }
-      console.error("Error creating blog post:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("[BLOG CREATE] Error details:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+      console.error("[BLOG CREATE] Error message:", errorMessage);
+      res.status(500).json({ error: "Internal server error", details: errorMessage });
     }
   });
 
   app.put("/api/blog/posts/:id", authenticateUser, async (req: Request, res: Response) => {
     try {
+      console.log('[BLOG UPDATE] Updating post:', req.params.id);
+      console.log('[BLOG UPDATE] Update data:', JSON.stringify(req.body, null, 2));
       const post = await storage.updateBlogPost(req.params.id, req.body);
+      console.log('[BLOG UPDATE] Success:', post.id);
       res.json(post);
     } catch (error) {
-      console.error("Error updating blog post:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("[BLOG UPDATE] Error details:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+      console.error("[BLOG UPDATE] Error message:", errorMessage);
+      res.status(500).json({ error: "Internal server error", details: errorMessage });
     }
   });
 

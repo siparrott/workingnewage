@@ -256,10 +256,14 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
         postData.publishedAt = new Date().toISOString();
       }
       
+      // Get admin token from localStorage
+      const getAdminToken = () => (typeof window !== 'undefined' ? (localStorage.getItem('ADMIN_TOKEN') || '') : '');
+      
       const response = await fetch(isEditing && post?.id ? `/api/blog/posts/${post.id}` : '/api/blog/posts', {
         method: isEditing && post?.id ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-admin-token': getAdminToken()
         },
         credentials: 'include',
         body: JSON.stringify(postData)
@@ -267,8 +271,9 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
       
       if (!response.ok) {
         const errorData = await response.json();
-        // console.error removed
-        throw new Error(errorData.error || 'Failed to save post');
+        console.error('[BLOG SAVE] Error response:', errorData);
+        const errorMessage = errorData.details || errorData.error || 'Failed to save post';
+        throw new Error(errorMessage);
       }
       
       setSuccessMessage(isEditing ? 'Post updated successfully!' : 'Post created successfully!');
@@ -278,8 +283,9 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
       }, 1500);
       
     } catch (err) {
-      // console.error removed
-      setError(err instanceof Error ? err.message : 'An error occurred while saving the post');
+      console.error('[BLOG SAVE] Error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred while saving the post';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
