@@ -9006,11 +9006,10 @@ New Age Fotografie CRM System
         currentY += 55; // Reserve space even if logo fails
       }
 
-      // Website URL centered directly below logo
-      doc.fontSize(10).text('www.newagefotografie.com', pageMargin, currentY, { align: 'center', width: contentWidth });
-      currentY += 25; // Space after website URL
+      // Add spacing after logo
+      currentY += 10;
 
-      // Heading centered below website URL
+      // Heading centered below logo
       doc.fontSize(22).text('PERSONALISIERTER GUTSCHEIN', pageMargin, currentY, { align: 'center', width: contentWidth });
       doc.moveDown(0.4);
 
@@ -9104,6 +9103,15 @@ New Age Fotografie CRM System
       const paymentDate = new Date((session.created || Date.now()/1000)*1000);
       const formattedDate = `${String(paymentDate.getDate()).padStart(2, '0')}/${String(paymentDate.getMonth() + 1).padStart(2, '0')}/${String(paymentDate.getFullYear()).slice(-2)}`;
       doc.fontSize(8).fillColor('#222222').text(`Belegt durch Zahlung: ${paid} | Datum: ${formattedDate}`);
+      
+      // Contact details footer
+      doc.moveDown(1.5);
+      doc.fontSize(9).fillColor('#222222');
+      doc.text('www.newagefotografie.com', { align: 'center' });
+      doc.text('hallo@newagefotografie.com', { align: 'center' });
+      doc.moveDown(0.3);
+      doc.text('WhatsApp: 0043 677 633 99210', { align: 'center' });
+      
       doc.end();
     } catch (e) {
       console.error('Voucher PDF generation failed', e);
@@ -9168,11 +9176,10 @@ New Age Fotografie CRM System
         currentY += 55; // Reserve space even if logo fails
       }
 
-      // Website URL centered directly below logo
-      doc.fontSize(10).text('www.newagefotografie.com', pageMargin, currentY, { align: 'center', width: contentWidth });
-      currentY += 25; // Space after website URL
+      // Add spacing after logo
+      currentY += 10;
 
-      // Heading centered below website URL
+      // Heading centered below logo
       doc.fontSize(22).text('PERSONALISIERTER GUTSCHEIN', pageMargin, currentY, { align: 'center', width: contentWidth });
       doc.moveDown(0.4);
 
@@ -9264,6 +9271,14 @@ New Age Fotografie CRM System
       const previewDate = new Date();
       const formattedPreviewDate = `${String(previewDate.getDate()).padStart(2, '0')}/${String(previewDate.getMonth() + 1).padStart(2, '0')}/${String(previewDate.getFullYear()).slice(-2)}`;
       doc.fontSize(8).fillColor('#222222').text(`Vorschau der Zahlung: ${paid} | Datum: ${formattedPreviewDate}`);
+      
+      // Contact details footer
+      doc.moveDown(1.5);
+      doc.fontSize(9).fillColor('#222222');
+      doc.text('www.newagefotografie.com', { align: 'center' });
+      doc.text('hallo@newagefotografie.com', { align: 'center' });
+      doc.moveDown(0.3);
+      doc.text('WhatsApp: 0043 677 633 99210', { align: 'center' });
       
       doc.end();
     } catch (e) {
