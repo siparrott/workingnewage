@@ -8544,14 +8544,21 @@ New Age Fotografie CRM System
   // Create new discount coupon
   app.post("/api/vouchers/coupons", authenticateUser, async (req: Request, res: Response) => {
     try {
-      const { applicableProductId, applicableProducts, ...rest } = req.body as any;
+      console.log('[COUPON CREATE] Request body:', JSON.stringify(req.body, null, 2));
+      const { applicableProductId, applicableProducts, applicableProductSlug, ...rest } = req.body as any;
       const couponData: any = { ...rest };
       
       // Handle applicableProducts field conversion
-      if (Array.isArray(applicableProducts)) {
+      if (Array.isArray(applicableProducts) && applicableProducts.length > 0) {
         couponData.applicableProducts = applicableProducts;
       } else if (applicableProductId) {
         couponData.applicableProducts = [applicableProductId];
+      } else if (applicableProductSlug && applicableProductSlug.trim() !== '') {
+        // Convert product slug to array for applicableProducts
+        couponData.applicableProducts = [applicableProductSlug.trim()];
+      } else {
+        // If no specific product selected, set to null (all products)
+        couponData.applicableProducts = null;
       }
       
       // Convert date strings to Date objects if present
@@ -8562,24 +8569,47 @@ New Age Fotografie CRM System
         couponData.endDate = new Date(couponData.endDate);
       }
       
+      // Convert numeric string fields to proper types
+      if (couponData.discountValue && typeof couponData.discountValue === 'string') {
+        couponData.discountValue = couponData.discountValue.toString();
+      }
+      if (couponData.minOrderAmount && typeof couponData.minOrderAmount === 'string') {
+        couponData.minOrderAmount = couponData.minOrderAmount.toString();
+      }
+      if (couponData.maxDiscountAmount && typeof couponData.maxDiscountAmount === 'string') {
+        couponData.maxDiscountAmount = couponData.maxDiscountAmount.toString();
+      }
+      
+      console.log('[COUPON CREATE] Processing data:', JSON.stringify(couponData, null, 2));
       const coupon = await storage.createDiscountCoupon(couponData);
+      console.log('[COUPON CREATE] Success:', coupon.id);
       res.json(coupon);
     } catch (error) {
-      console.error("Error creating discount coupon:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("[COUPON CREATE] Error details:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+      console.error("[COUPON CREATE] Error message:", errorMessage);
+      console.error("[COUPON CREATE] Error stack:", error instanceof Error ? error.stack : '');
+      res.status(500).json({ error: "Internal server error", details: errorMessage });
     }
   });
 
   // Update discount coupon
   app.put("/api/vouchers/coupons/:id", authenticateUser, async (req: Request, res: Response) => {
     try {
-      const { applicableProductId, applicableProducts, ...rest } = req.body as any;
+      console.log('[COUPON UPDATE] Request body:', JSON.stringify(req.body, null, 2));
+      const { applicableProductId, applicableProducts, applicableProductSlug, ...rest } = req.body as any;
       const updates: any = { ...rest };
       
-      if (Array.isArray(applicableProducts)) {
+      if (Array.isArray(applicableProducts) && applicableProducts.length > 0) {
         updates.applicableProducts = applicableProducts;
       } else if (applicableProductId) {
         updates.applicableProducts = [applicableProductId];
+      } else if (applicableProductSlug && applicableProductSlug.trim() !== '') {
+        // Convert product slug to array for applicableProducts
+        updates.applicableProducts = [applicableProductSlug.trim()];
+      } else {
+        // If no specific product selected, set to null (all products)
+        updates.applicableProducts = null;
       }
       
       // Convert date strings to Date objects if present
@@ -8590,11 +8620,27 @@ New Age Fotografie CRM System
         updates.endDate = new Date(updates.endDate);
       }
       
+      // Convert numeric string fields to proper types
+      if (updates.discountValue && typeof updates.discountValue === 'string') {
+        updates.discountValue = updates.discountValue.toString();
+      }
+      if (updates.minOrderAmount && typeof updates.minOrderAmount === 'string') {
+        updates.minOrderAmount = updates.minOrderAmount.toString();
+      }
+      if (updates.maxDiscountAmount && typeof updates.maxDiscountAmount === 'string') {
+        updates.maxDiscountAmount = updates.maxDiscountAmount.toString();
+      }
+      
+      console.log('[COUPON UPDATE] Processing updates:', JSON.stringify(updates, null, 2));
       const coupon = await storage.updateDiscountCoupon(req.params.id, updates);
+      console.log('[COUPON UPDATE] Success:', coupon.id);
       res.json(coupon);
     } catch (error) {
-      console.error("Error updating discount coupon:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("[COUPON UPDATE] Error details:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+      console.error("[COUPON UPDATE] Error message:", errorMessage);
+      console.error("[COUPON UPDATE] Error stack:", error instanceof Error ? error.stack : '');
+      res.status(500).json({ error: "Internal server error", details: errorMessage });
     }
   });
 
