@@ -12,6 +12,8 @@ import { useCart } from '../context/CartContext';
 import { useManualPageContent } from '../hooks/useManualPageContent';
 import { SEOHead } from '../components/SEO/SEOHead';
 import { Helmet } from 'react-helmet-async';
+import { getCachedData, setCachedData } from '../lib/persistentCache';
+import { useImagePreloader } from '../hooks/useImagePreloader';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -21,14 +23,19 @@ const HomePage: React.FC = () => {
   // Use manual page content hook - allows admin to override any content
   const t = useManualPageContent('home');
 
-  // Fetch homepage images from API
+  // Fetch homepage images from API with persistent cache
   const { data: homepageImages, isLoading: isLoadingImages } = useQuery({
     queryKey: ['/api/homepage/images'],
     queryFn: async () => {
       const res = await fetch('/api/homepage/images');
       if (!res.ok) throw new Error('Failed to fetch homepage images');
-      return res.json();
+      const data = await res.json();
+      // Cache the response for 24 hours
+      setCachedData('homepage-images', data);
+      return data;
     },
+    // Use cached data as initial data to prevent flashing
+    initialData: () => getCachedData('/api/homepage/images', 1000 * 60 * 60 * 24), // 24 hour cache
     // Keep data fresh but allow brief caching to prevent flash
     staleTime: 1000 * 60 * 5, // 5 minutes - images don't change that often
     cacheTime: 1000 * 60 * 10, // 10 minutes
@@ -50,14 +57,19 @@ const HomePage: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Fetch voucher products from API
+  // Fetch voucher products from API with persistent cache
   const { data: apiProducts } = useQuery({
     queryKey: ['/api/vouchers/products'],
     queryFn: async () => {
       const res = await fetch('/api/vouchers/products');
       if (!res.ok) throw new Error('Failed to fetch vouchers');
-      return res.json();
+      const data = await res.json();
+      // Cache the response for 24 hours
+      setCachedData('voucher-products', data);
+      return data;
     },
+    // Use cached data as initial data to prevent flashing
+    initialData: () => getCachedData('/api/vouchers/products', 1000 * 60 * 60 * 24), // 24 hour cache
     // Keep data fresh but allow brief caching to prevent flash
     staleTime: 1000 * 60 * 5, // 5 minutes
     cacheTime: 1000 * 60 * 10, // 10 minutes
@@ -147,6 +159,30 @@ const HomePage: React.FC = () => {
     }
     return defaultVouchers;
   }, [apiProducts, t]);
+
+  // Preload all images to prevent flashing
+  const imageUrlsToPreload = useMemo(() => {
+    const urls: string[] = [];
+    
+    // Add homepage images
+    if (homepageImages && Array.isArray(homepageImages)) {
+      homepageImages.forEach((img: any) => {
+        if (img?.url) urls.push(img.url);
+      });
+    }
+    
+    // Add voucher product images
+    if (voucherProducts && Array.isArray(voucherProducts)) {
+      voucherProducts.forEach((product: any) => {
+        if (product?.image) urls.push(product.image);
+        if (product?.thumbnailUrl) urls.push(product.thumbnailUrl);
+      });
+    }
+    
+    return urls;
+  }, [homepageImages, voucherProducts]);
+  
+  useImagePreloader(imageUrlsToPreload);
 
   const testimonials = [
     {

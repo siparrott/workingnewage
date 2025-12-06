@@ -4038,14 +4038,14 @@ Bitte versuchen Sie es später noch einmal.`;
         await storage.createCrmInvoiceItems(itemsData);
       }
       
-      res.status(201).json(invoice);
+      res.status(201).json({ ok: true, invoice_id: invoice.id, ...invoice });
     } catch (error) {
       if (error instanceof z.ZodError) {
         console.error("Validation error details:", JSON.stringify(error.errors, null, 2));
-        return res.status(400).json({ error: "Validation error", details: error.errors });
+        return res.status(400).json({ ok: false, error: "Validation error", details: error.errors });
       }
       console.error("Error creating invoice:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ ok: false, error: "Internal server error" });
     }
   });
 

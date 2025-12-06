@@ -10,6 +10,8 @@ import HeroDealsAuto from '@/components/HeroDealsAuto';
 import { useCart } from '../context/CartContext';
 import { SEOHead } from '../components/SEO/SEOHead';
 import { Helmet } from 'react-helmet-async';
+import { getCachedData, setCachedData } from '../lib/persistentCache';
+import { useImagePreloader } from '../hooks/useImagePreloader';
 
 const VouchersPage: React.FC = () => {
   const { selectedCategory } = useAppContext();
@@ -25,14 +27,19 @@ const VouchersPage: React.FC = () => {
            (language === 'en' ? 'Photoshoot Vouchers Vienna' : 'Fotoshooting Gutscheine Wien');
   }, [t, language]);
 
-  // Fetch voucher products from API
+  // Fetch voucher products from API with persistent cache
   const { data: apiProducts, isLoading } = useQuery({
     queryKey: ['/api/vouchers/products'],
     queryFn: async () => {
       const res = await fetch('/api/vouchers/products');
       if (!res.ok) throw new Error('Failed to fetch vouchers');
-      return res.json();
+      const data = await res.json();
+      // Cache the response for 24 hours
+      setCachedData('voucher-products', data);
+      return data;
     },
+    // Use cached data as initial data to prevent flashing
+    initialData: () => getCachedData('/api/vouchers/products', 1000 * 60 * 60 * 24), // 24 hour cache
     // Keep data fresh but allow brief caching to prevent flash
     staleTime: 1000 * 60 * 5, // 5 minutes - products don't change that often
     cacheTime: 1000 * 60 * 10, // 10 minutes
@@ -228,6 +235,23 @@ const VouchersPage: React.FC = () => {
     console.log('⚠️ No API products, using fallback');
     return defaultVouchers;
   }, [apiProducts, t]);
+
+  // Preload all voucher images to prevent flashing
+  const imageUrlsToPreload = useMemo(() => {
+    const urls: string[] = [];
+    
+    if (voucherProducts && Array.isArray(voucherProducts)) {
+      voucherProducts.forEach((product: any) => {
+        if (product?.image) urls.push(product.image);
+        if (product?.thumbnailUrl) urls.push(product.thumbnailUrl);
+        if (product?.image_url) urls.push(product.image_url);
+      });
+    }
+    
+    return urls;
+  }, [voucherProducts]);
+  
+  useImagePreloader(imageUrlsToPreload);
 
   // Prepare hero items mapping once
   const heroItems = voucherProducts.map(v => ({
