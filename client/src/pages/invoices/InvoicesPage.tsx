@@ -385,12 +385,11 @@ export default function InvoicesPage() {
   // PDF Download Function
   const downloadInvoicePDF = async (invoiceId: string, invoiceNumber: string) => {
     try {
-      const response = await fetch(`/api/invoices/${invoiceId}/download`, {
+      const response = await fetch(`/api/crm/invoices/${invoiceId}/pdf`, {
         method: 'GET',
         credentials: 'include',
         headers: {
-          'Accept': 'application/pdf',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Accept': 'application/pdf'
         }
       });
       
