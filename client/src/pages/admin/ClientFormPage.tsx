@@ -46,6 +46,7 @@ const ClientFormPage: React.FC = () => {
     zip: '',
     country: 'Austria',
     company: '',
+    leadSource: '',
     notes: ''
   });
   const [loading, setLoading] = useState(false);
@@ -79,6 +80,7 @@ const ClientFormPage: React.FC = () => {
         zip: data.zip || '',
         country: data.country || 'Austria',
         company: data.company || '',
+        leadSource: data.leadSource || '',
         notes: data.notes || ''
       });
     } catch (err: any) {
@@ -235,6 +237,29 @@ const ClientFormPage: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter company name"
                   />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Lead Source
+                  </label>
+                  <select
+                    name="leadSource"
+                    value={formData.leadSource}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Select lead source...</option>
+                    <option value="Website">Website</option>
+                    <option value="Google">Google Search</option>
+                    <option value="Social Media">Social Media</option>
+                    <option value="Instagram">Instagram</option>
+                    <option value="Facebook">Facebook</option>
+                    <option value="Referral">Referral</option>
+                    <option value="Event">Event</option>
+                    <option value="Advertisement">Advertisement</option>
+                    <option value="Word of Mouth">Word of Mouth</option>
+                    <option value="Other">Other</option>
+                  </select>
                 </div>
               </div>
             </div>

@@ -82,6 +82,19 @@ const runMigration = async () => {
       console.log('⚠️ phone_number column may already exist');
     }
 
+    // Add lead_source column to crm_clients table
+    console.log('🔧 Adding lead_source column to crm_clients table...');
+
+    try {
+      await db.execute(sql`
+        ALTER TABLE crm_clients 
+        ADD COLUMN IF NOT EXISTS lead_source TEXT;
+      `);
+      console.log('✅ Added lead_source column');
+    } catch (error) {
+      console.log('⚠️ lead_source column may already exist');
+    }
+
     console.log('🎉 Database migration completed successfully!');
     process.exit(0);
 

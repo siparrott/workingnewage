@@ -42,6 +42,7 @@ async function applySchemaV1(sql) {
   
   // Add any missing columns to existing table
   await sql`ALTER TABLE crm_clients ADD COLUMN IF NOT EXISTS last_invoice_payment_url TEXT`;
+  await sql`ALTER TABLE crm_clients ADD COLUMN IF NOT EXISTS lead_source TEXT`;
   
   // Leads - Single source of truth
   await sql`
