@@ -4178,6 +4178,35 @@ Bitte versuchen Sie es später noch einmal.`;
   });
 
   // ==================== INVOICE PDF & EMAIL ROUTES ====================
+  // Public invoice view (no authentication required)
+  app.get("/api/invoices/public/:id", async (req: Request, res: Response) => {
+    try {
+      const invoice = await storage.getCrmInvoice(req.params.id);
+      if (!invoice) {
+        return res.status(404).json({ error: "Invoice not found" });
+      }
+      
+      // Fetch invoice items
+      const items = await storage.getCrmInvoiceItems(req.params.id);
+      
+      // Fetch client information
+      let client = null;
+      if (invoice.clientId) {
+        client = await storage.getCrmClient(invoice.clientId);
+      }
+      
+      // Return complete invoice with items and client (public view)
+      res.json({
+        ...invoice,
+        items,
+        client
+      });
+    } catch (error) {
+      console.error("Error fetching public invoice:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Generate PDF for invoice
   app.get("/api/crm/invoices/:id/pdf", authenticateUser, async (req: Request, res: Response) => {
     try {
