@@ -249,9 +249,20 @@ export default function InvoicesPage() {
     }
   };
 
-  const handlePreviewInvoice = (invoice: Invoice) => {
-    setSelectedInvoice(invoice);
-    setViewMode('preview');
+  const handlePreviewInvoice = async (invoice: Invoice) => {
+    try {
+      // Fetch full invoice details including items
+      const response = await fetch(`/api/crm/invoices/${invoice.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to load invoice details');
+      }
+      const fullInvoice = await response.json();
+      setSelectedInvoice(fullInvoice);
+      setViewMode('preview');
+    } catch (error) {
+      console.error('Failed to load invoice:', error);
+      alert('Failed to load invoice preview');
+    }
   };
 
   const handleAddItemFromPriceList = (item: any) => {

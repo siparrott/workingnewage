@@ -4042,7 +4042,22 @@ Bitte versuchen Sie es später noch einmal.`;
       if (!invoice) {
         return res.status(404).json({ error: "Invoice not found" });
       }
-      res.json(invoice);
+      
+      // Fetch invoice items
+      const items = await storage.getCrmInvoiceItems(req.params.id);
+      
+      // Fetch client information
+      let client = null;
+      if (invoice.clientId) {
+        client = await storage.getCrmClient(invoice.clientId);
+      }
+      
+      // Return complete invoice with items and client
+      res.json({
+        ...invoice,
+        items,
+        client
+      });
     } catch (error) {
       console.error("Error fetching invoice:", error);
       res.status(500).json({ error: "Internal server error" });
