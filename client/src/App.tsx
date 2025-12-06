@@ -36,6 +36,7 @@ import AdminClientsPage from './pages/admin/ClientsPage';
 import ClientDetailPage from './pages/admin/ClientDetailPage';
 import ClientProfilePage from './pages/admin/ClientProfilePage';
 import ClientFormPage from './pages/admin/ClientFormPage';
+import LeadSourcesPage from './pages/admin/LeadSourcesPage';
 import AdminClientsImportPage from './pages/admin/ClientsImportPage';
 import ImportLogsPage from './pages/admin/ImportLogsPage';
 import HighValueClientsPage from './pages/admin/HighValueClientsPage';
@@ -281,6 +282,14 @@ function App() {
                   element={
                     <NeonProtectedRoute>
                       <ImportLogsPage />
+                    </NeonProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/lead-sources"
+                  element={
+                    <NeonProtectedRoute>
+                      <LeadSourcesPage />
                     </NeonProtectedRoute>
                   }
                 />

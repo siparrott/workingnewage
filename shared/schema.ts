@@ -131,6 +131,16 @@ export const blogPosts = pgTable("blog_posts", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Lead Sources
+export const leadSources = pgTable("lead_sources", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull().unique(),
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // CRM Clients
 export const crmClients = pgTable("crm_clients", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -934,6 +944,12 @@ export const insertCrmLeadSchema = createInsertSchema(crmLeads).pick({
   value: true,
 });
 
+export const insertLeadSourceSchema = createInsertSchema(leadSources).pick({
+  name: true,
+  isActive: true,
+  sortOrder: true,
+});
+
 export const insertGallerySchema = createInsertSchema(galleries).pick({
   title: true,
   description: true,
@@ -1009,6 +1025,8 @@ export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
 export type BlogPost = typeof blogPosts.$inferSelect;
 export type InsertCrmClient = z.infer<typeof insertCrmClientSchema>;
 export type CrmClient = typeof crmClients.$inferSelect;
+export type InsertLeadSource = z.infer<typeof insertLeadSourceSchema>;
+export type LeadSource = typeof leadSources.$inferSelect;
 export type InsertCrmLead = z.infer<typeof insertCrmLeadSchema>;
 export type CrmLead = typeof crmLeads.$inferSelect;
 export type InsertGallery = z.infer<typeof insertGallerySchema>;

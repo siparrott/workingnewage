@@ -12,7 +12,7 @@ async function runSql(query: string, params?: any[]) {
 }
 import { sql } from 'drizzle-orm';
 import { eq } from "drizzle-orm";
-import { priceListItems, emailCampaigns, emailTemplates, emailSegments, emailEvents, emailLinks, emailSubscribers } from "../shared/schema";
+import { priceListItems, emailCampaigns, emailTemplates, emailSegments, emailEvents, emailLinks, emailSubscribers, insertLeadSourceSchema } from "../shared/schema";
 import path from 'path';
 import os from 'os';
 // Removed duplicate fs import (already imported earlier)
@@ -1833,6 +1833,55 @@ Bitte versuchen Sie es später noch einmal.`;
   });
 
   // ==================== CRM CLIENT ROUTES ====================
+  // ==================== LEAD SOURCES ROUTES ====================
+  // Get all lead sources
+  app.get("/api/crm/lead-sources", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const sources = await storage.getLeadSources();
+      res.json(sources);
+    } catch (error) {
+      console.error("Error fetching lead sources:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create lead source
+  app.post("/api/crm/lead-sources", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const sourceData = insertLeadSourceSchema.parse(req.body);
+      const source = await storage.createLeadSource(sourceData);
+      res.status(201).json(source);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Validation error", details: error.errors });
+      }
+      console.error("Error creating lead source:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Update lead source
+  app.put("/api/crm/lead-sources/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const source = await storage.updateLeadSource(req.params.id, req.body);
+      res.json(source);
+    } catch (error) {
+      console.error("Error updating lead source:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete lead source
+  app.delete("/api/crm/lead-sources/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteLeadSource(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting lead source:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Test route for debugging
   app.get("/api/test", (req: Request, res: Response) => {
     console.log("Test route hit!");

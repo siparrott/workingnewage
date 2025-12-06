@@ -44,6 +44,17 @@ async function applySchemaV1(sql) {
   await sql`ALTER TABLE crm_clients ADD COLUMN IF NOT EXISTS last_invoice_payment_url TEXT`;
   await sql`ALTER TABLE crm_clients ADD COLUMN IF NOT EXISTS lead_source TEXT`;
   
+  // Lead Sources table
+  await sql`
+    CREATE TABLE IF NOT EXISTS lead_sources (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name TEXT NOT NULL UNIQUE,
+      is_active BOOLEAN DEFAULT true,
+      sort_order INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  
   // Leads - Single source of truth
   await sql`
     CREATE TABLE IF NOT EXISTS leads (

@@ -4,6 +4,7 @@ import {
   blogPosts,
   crmClients,
   crmLeads,
+  leadSources,
   crmInvoices,
   crmInvoiceItems,
   crmInvoicePayments,
@@ -23,6 +24,8 @@ import {
   type InsertBlogPost,
   type CrmClient,
   type InsertCrmClient,
+  type LeadSource,
+  type InsertLeadSource,
   type CrmLead,
   type InsertCrmLead,
   type CrmInvoice,
@@ -84,6 +87,13 @@ export interface IStorage {
   createCrmClient(client: InsertCrmClient): Promise<CrmClient>;
   updateCrmClient(id: string, updates: Partial<CrmClient>): Promise<CrmClient>;
   deleteCrmClient(id: string): Promise<void>;
+
+  // Lead Sources management
+  getLeadSources(): Promise<LeadSource[]>;
+  getLeadSource(id: string): Promise<LeadSource | undefined>;
+  createLeadSource(source: InsertLeadSource): Promise<LeadSource>;
+  updateLeadSource(id: string, updates: Partial<LeadSource>): Promise<LeadSource>;
+  deleteLeadSource(id: string): Promise<void>;
 
   // CRM Lead management
   getCrmLeads(status?: string): Promise<CrmLead[]>;
@@ -275,6 +285,30 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCrmClient(id: string): Promise<void> {
     await db.delete(crmClients).where(eq(crmClients.id, id));
+  }
+
+  // Lead Sources management
+  async getLeadSources(): Promise<LeadSource[]> {
+    return await db.select().from(leadSources).orderBy(leadSources.sortOrder, leadSources.name);
+  }
+
+  async getLeadSource(id: string): Promise<LeadSource | undefined> {
+    const result = await db.select().from(leadSources).where(eq(leadSources.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createLeadSource(source: InsertLeadSource): Promise<LeadSource> {
+    const result = await db.insert(leadSources).values(source as any).returning();
+    return result[0];
+  }
+
+  async updateLeadSource(id: string, updates: Partial<LeadSource>): Promise<LeadSource> {
+    const result = await db.update(leadSources).set(updates).where(eq(leadSources.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteLeadSource(id: string): Promise<void> {
+    await db.delete(leadSources).where(eq(leadSources.id, id));
   }
 
   // CRM Lead management

@@ -51,6 +51,26 @@ const ClientFormPage: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [leadSources, setLeadSources] = useState<Array<{id: string; name: string; isActive: boolean}>>([]);
+
+  useEffect(() => {
+    fetchLeadSources();
+    if (isEditing && id) {
+      fetchClient();
+    }
+  }, [isEditing, id]);
+
+  const fetchLeadSources = async () => {
+    try {
+      const response = await fetch('/api/crm/lead-sources');
+      if (response.ok) {
+        const data = await response.json();
+        setLeadSources(data.filter((s: any) => s.isActive));
+      }
+    } catch (err) {
+      console.error('Failed to load lead sources:', err);
+    }
+  };
 
   useEffect(() => {
     if (isEditing && id) {
@@ -249,16 +269,11 @@ const ClientFormPage: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Select lead source...</option>
-                    <option value="Website">Website</option>
-                    <option value="Google">Google Search</option>
-                    <option value="Social Media">Social Media</option>
-                    <option value="Instagram">Instagram</option>
-                    <option value="Facebook">Facebook</option>
-                    <option value="Referral">Referral</option>
-                    <option value="Event">Event</option>
-                    <option value="Advertisement">Advertisement</option>
-                    <option value="Word of Mouth">Word of Mouth</option>
-                    <option value="Other">Other</option>
+                    {leadSources.map((source) => (
+                      <option key={source.id} value={source.name}>
+                        {source.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
