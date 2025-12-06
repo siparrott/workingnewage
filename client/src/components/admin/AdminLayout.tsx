@@ -35,7 +35,8 @@ import {
   ChevronDown,
   ChevronRight,
   Calculator,
-  Activity
+  Activity,
+  Tags
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -100,6 +101,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { icon: ShoppingCart, label: t('nav.onlineVoucherSales'), path: '/admin/voucher-sales' },
     { icon: Users, label: t('nav.clients'), path: '/admin/clients' },
     { icon: Crown, label: t('nav.topClients'), path: '/admin/high-value-clients' },
+    { icon: Tags, label: 'Lead Sources', path: '/admin/lead-sources' },
     { icon: Image, label: t('nav.galleriesAdmin'), path: '/admin/galleries' },
     { icon: FileText, label: t('nav.invoices'), path: '/admin/invoices' },
     { icon: Calculator, label: 'Accounting Export', path: '/admin/accounting' },
