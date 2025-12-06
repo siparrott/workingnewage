@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Download, Send, Eye, Edit, Trash2, MessageCircle, Link, Share, Phone } from 'lucide-react';
+import { Plus, Download, Send, Eye, Edit, Trash2, MessageCircle, Link, Share, Phone, ExternalLink } from 'lucide-react';
 import { listInvoices, createInvoice, updateInvoiceStatus, deleteInvoice } from '../../api/invoices';
 import InvoiceTemplate from '../../components/invoice/InvoiceTemplate';
 import PriceListModal from '../../components/invoice/PriceListModal';
@@ -437,6 +437,13 @@ export default function InvoicesPage() {
     }
   };
 
+  // Open Public Invoice Link in New Tab
+  const openPublicInvoiceLink = (invoiceId: string) => {
+    const baseUrl = window.location.origin;
+    const shareableLink = `${baseUrl}/invoice/${invoiceId}`;
+    window.open(shareableLink, '_blank');
+  };
+
   // Share Invoice via WhatsApp Function
   const shareInvoiceViaWhatsApp = (invoiceId: string, invoiceNumber: string) => {
     const baseUrl = window.location.origin;
@@ -594,6 +601,13 @@ export default function InvoicesPage() {
                       title="Preview"
                     >
                       <Eye className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => openPublicInvoiceLink(invoice.id)}
+                      className="text-indigo-600 hover:text-indigo-900"
+                      title="Open Public Link"
+                    >
+                      <ExternalLink className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => downloadInvoicePDF(invoice.id, invoice.invoice_number)}
