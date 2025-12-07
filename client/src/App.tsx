@@ -198,6 +198,7 @@ function App() {
                 <Route path="/survey/:id" element={<SurveyTakingPage />} />
                 <Route path="/q/:token" element={<QuestionnaireFormPage />} />
                 <Route path="/invoice/:invoiceId" element={<PublicInvoicePage />} />
+                <Route path="/inv/:invoiceId" element={<PublicInvoicePage />} />
                 <Route path="/download-data" element={<DownloadDataPage />} />
                 <Route path="/image-test" element={<ImageTestPage />} />
 
