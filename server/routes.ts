@@ -4207,8 +4207,8 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
-  // Generate PDF for invoice
-  app.get("/api/crm/invoices/:id/pdf", authenticateUser, async (req: Request, res: Response) => {
+  // Generate PDF for invoice (accessible both authenticated and public)
+  app.get("/api/crm/invoices/:id/pdf", async (req: Request, res: Response) => {
     try {
       const invoice = await storage.getCrmInvoice(req.params.id);
       if (!invoice) {
@@ -4482,6 +4482,75 @@ New Age Fotografie Team`;
     } catch (error) {
       console.error("Error creating WhatsApp share link:", error);
       res.status(500).json({ error: "Failed to create WhatsApp share link" });
+    }
+  });
+
+  // Legacy WhatsApp share endpoint for backward compatibility
+  app.post("/api/invoices/share-whatsapp", async (req: Request, res: Response) => {
+    try {
+      const { invoice_id, phone_number } = req.body;
+      
+      if (!invoice_id || !phone_number) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "invoice_id and phone_number are required" 
+        });
+      }
+
+      const invoice = await storage.getCrmInvoice(invoice_id);
+      if (!invoice) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Invoice not found" 
+        });
+      }
+
+      const client = await storage.getCrmClient(invoice.clientId);
+      if (!client) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Client not found" 
+        });
+      }
+
+      // Create invoice link
+      const baseUrl = process.env.FRONTEND_URL || req.get('origin') || 'https://newagefotografie.com';
+      const invoiceUrl = `${baseUrl}/invoice/${invoice.id}`;
+      
+      // Create WhatsApp message
+      const clientName = `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'Kunde';
+      const message = `Hallo ${clientName} 👋
+
+Hier ist Ihre Rechnung von New Age Fotografie:
+
+📄 Rechnungsnummer: ${invoice.invoiceNumber}
+💰 Betrag: €${parseFloat(invoice.total?.toString() || '0').toFixed(2)}
+📅 Fälligkeitsdatum: ${new Date(invoice.dueDate || Date.now()).toLocaleDateString('de-DE')}
+
+🔗 Rechnung ansehen: ${invoiceUrl}
+
+Bei Fragen stehe ich Ihnen gerne zur Verfügung! 📸
+
+Vielen Dank für Ihr Vertrauen!
+New Age Fotografie Team`;
+
+      // Create WhatsApp URL
+      const cleanPhone = phone_number.replace(/[^\d+]/g, '');
+      const encodedMessage = encodeURIComponent(message);
+      const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
+
+      res.json({
+        success: true,
+        whatsapp_url: whatsappUrl,
+        invoice_url: invoiceUrl
+      });
+
+    } catch (error) {
+      console.error("Error creating WhatsApp share link:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Failed to create WhatsApp share link" 
+      });
     }
   });
 

@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import Layout from '../components/layout/Layout';
-import ZoomableImage from '../components/ui/ZoomableImage';
+import ZoomableImageV2 from '../components/ui/ZoomableImageV2';
 import Typewriter from 'typewriter-effect';
 import CountUp from 'react-countup';
 import { Check } from 'lucide-react';
@@ -365,7 +365,7 @@ const HomePage: React.FC = () => {
             </button>
           </div>
           <div className="md:w-2/5">
-            <ZoomableImage
+            <ZoomableImageV2
               src={heroImageUrl || photoGridImage}
               alt="Comprehensive family portrait showcase including family, newborn, maternity and lifestyle sessions"
               className="w-full rounded-lg shadow-lg"
@@ -373,7 +373,9 @@ const HomePage: React.FC = () => {
                 // Fallback for mobile/loading issues
                 e.currentTarget.src = photoGridImage;
               }}
-              loading="lazy"
+              priority={true}
+              width={800}
+              height={600}
             />
           </div>
         </div>
@@ -423,11 +425,13 @@ const HomePage: React.FC = () => {
           <div className="flex flex-col md:flex-row items-center gap-8 mb-16">
             <div className="md:w-1/3">
               <div className="aspect-[4/3] overflow-hidden rounded-lg shadow-lg">
-                <ZoomableImage 
+                <ZoomableImageV2 
                   src={imageForSection('content-1', photoGridImage)}
                   alt="Familienfotografie Wien - Professionelle Familienporträts im Studio"
                   className="w-full h-full object-cover"
-                  loading="lazy"
+                  priority={false}
+                  width={400}
+                  height={300}
                 />
               </div>
             </div>
@@ -451,11 +455,13 @@ const HomePage: React.FC = () => {
           <div className="flex flex-col md:flex-row-reverse items-center gap-8">
             <div className="md:w-1/3">
               <div className="aspect-[3/4] max-w-sm mx-auto overflow-hidden rounded-lg shadow-lg">
-                <ZoomableImage 
+                <ZoomableImageV2 
                   src={imageForSection('content-2', photoGridImage)}
                   alt="Business Headshots Wien - Professionelle Businessfotografie im Studio"
                   className="w-full h-full object-cover object-top"
-                  loading="lazy"
+                  priority={false}
+                  width={400}
+                  height={533}
                 />
               </div>
             </div>
@@ -493,12 +499,15 @@ const HomePage: React.FC = () => {
               onClick={() => navigate('/familien-fotoshooting-wien/')}
               className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
             >
-              <div className="aspect-[4/3] overflow-hidden">
+              <div className="aspect-[4/3] overflow-hidden relative">
                 <img 
                   src={imageForSection('services-family', photoGridImage)}
                   alt="Familienporträts Wien - Natürliche Familienfotografie im Studio und Outdoor"
-                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                  className="w-full h-full object-cover transition-all duration-500 hover:scale-110"
                   loading="lazy"
+                  width="400"
+                  height="300"
+                  style={{ backgroundColor: '#f3f4f6' }}
                 />
               </div>
               <div className="p-6">
@@ -517,14 +526,17 @@ const HomePage: React.FC = () => {
               onClick={() => navigate('/schwangerschaftsfotos-wien/')}
               className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
             >
-              <div className="aspect-[4/3] overflow-hidden">
+              <div className="aspect-[4/3] overflow-hidden relative">
                 <img 
                   src={imageForSection('services-pregnancy', photoGridImage)}
                   alt={language === 'en' 
                     ? "Maternity Photography Vienna - Professional Pregnancy Photoshoot in Studio"
                     : "Babybauch Fotografie Wien - Professionelle Schwangerschaftsfotos im Studio"}
-                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                  className="w-full h-full object-cover transition-all duration-500 hover:scale-110"
                   loading="lazy"
+                  width="400"
+                  height="300"
+                  style={{ backgroundColor: '#f3f4f6' }}
                 />
               </div>
               <div className="p-6">
@@ -543,14 +555,17 @@ const HomePage: React.FC = () => {
               onClick={() => navigate('/baby-fotografie-wien/')}
               className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
             >
-              <div className="aspect-[4/3] overflow-hidden">
+              <div className="aspect-[4/3] overflow-hidden relative">
                 <img 
                   src={imageForSection('services-newborn', photoGridImage)}
                   alt={language === 'en'
                     ? "Newborn Photography Vienna - Professional Baby Photoshoot in Studio"
                     : "Neugeborenenfotos Wien - Professionelle Babyfotografie im Studio"}
-                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                  className="w-full h-full object-cover transition-all duration-500 hover:scale-110"
                   loading="lazy"
+                  width="400"
+                  height="300"
+                  style={{ backgroundColor: '#f3f4f6' }}
                 />
               </div>
               <div className="p-6">
@@ -569,12 +584,15 @@ const HomePage: React.FC = () => {
               onClick={() => navigate('/business-portrait-wien/')}
               className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
             >
-              <div className="aspect-[4/3] overflow-hidden">
+              <div className="aspect-[4/3] overflow-hidden relative">
                 <img 
                   src={imageForSection('services-business', photoGridImage)}
                   alt="Business Headshots Wien - Professionelle Businessfotografie im Studio"
-                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                  className="w-full h-full object-cover transition-all duration-500 hover:scale-110"
                   loading="lazy"
+                  width="400"
+                  height="300"
+                  style={{ backgroundColor: '#f3f4f6' }}
                 />
               </div>
               <div className="p-6">
@@ -593,12 +611,15 @@ const HomePage: React.FC = () => {
               onClick={() => navigate('/eventfotografie-wien/')}
               className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
             >
-              <div className="aspect-[4/3] overflow-hidden">
+              <div className="aspect-[4/3] overflow-hidden relative">
                 <img 
                   src={imageForSection('services-event', photoGridImage)}
                   alt="Eventfotografie Wien - Professionelle Event & Konferenzfotografie"
-                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                  className="w-full h-full object-cover transition-all duration-500 hover:scale-110"
                   loading="lazy"
+                  width="400"
+                  height="300"
+                  style={{ backgroundColor: '#f3f4f6' }}
                 />
               </div>
               <div className="p-6">
@@ -617,12 +638,15 @@ const HomePage: React.FC = () => {
               onClick={() => navigate('/produkt-fotografie-wien/')}
               className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
             >
-              <div className="aspect-[4/3] overflow-hidden">
+              <div className="aspect-[4/3] overflow-hidden relative">
                 <img 
                   src={imageForSection('services-product', photoGridImage)}
                   alt="Produktfotografie Wien - E-Commerce & Amazon Produktfotos im Studio"
-                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                  className="w-full h-full object-cover transition-all duration-500 hover:scale-110"
                   loading="lazy"
+                  width="400"
+                  height="300"
+                  style={{ backgroundColor: '#f3f4f6' }}
                 />
               </div>
               <div className="p-6">
@@ -680,6 +704,10 @@ const HomePage: React.FC = () => {
                     src={testimonial.image}
                     alt={testimonial.name}
                     className="w-12 h-12 rounded-full object-cover"
+                    loading="lazy"
+                    width="48"
+                    height="48"
+                    style={{ backgroundColor: '#f3f4f6' }}
                   />
                   <div className="ml-4">
                     <h3 className="font-semibold text-gray-800">{testimonial.name}</h3>
@@ -811,11 +839,15 @@ const HomePage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {faqImages.map((faq, index) => (
               <div key={index} className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
-                <div className="aspect-[4/3] overflow-hidden rounded-lg mb-6">
+                <div className="aspect-[4/3] overflow-hidden rounded-lg mb-6 relative">
                   <img
                     src={faq.image}
                     alt={faq.alt}
                     className="w-full h-full object-cover"
+                    loading="lazy"
+                    width="400"
+                    height="300"
+                    style={{ backgroundColor: '#f3f4f6' }}
                   />
                 </div>
                 <h3 className="text-xl font-bold text-purple-900 mb-4">

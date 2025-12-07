@@ -68,7 +68,8 @@ const PublicInvoicePage: React.FC = () => {
     if (!invoice) return;
     
     try {
-      const response = await fetch(`/api/invoices/${invoice.id}/download`, {
+      // Use the public-accessible PDF endpoint without authentication
+      const response = await fetch(`/api/crm/invoices/${invoice.id}/pdf`, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -94,6 +95,8 @@ const PublicInvoicePage: React.FC = () => {
       // Cleanup
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      
+      alert('PDF downloaded successfully!');
     } catch (error) {
       console.error('PDF download failed:', error);
       alert('PDF download failed. Please try again.');

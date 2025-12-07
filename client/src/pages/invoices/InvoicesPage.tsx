@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Download, Send, Eye, Edit, Trash2, MessageCircle, Link, Share, Phone, ExternalLink } from 'lucide-react';
+import { Plus, Download, Send, Eye, Edit, Trash2, MessageCircle, Link, Share, Phone, ExternalLink, Printer } from 'lucide-react';
 import { listInvoices, createInvoice, updateInvoiceStatus, deleteInvoice } from '../../api/invoices';
 import InvoiceTemplate from '../../components/invoice/InvoiceTemplate';
 import PriceListModal from '../../components/invoice/PriceListModal';
@@ -45,8 +45,10 @@ export default function InvoicesPage() {
   const [showPriceListModal, setShowPriceListModal] = useState(false);
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [showSMSModal, setShowSMSModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
   const [whatsAppPhone, setWhatsAppPhone] = useState('');
   const [smsPhone, setSmsPhone] = useState('');
+  const [emailAddress, setEmailAddress] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'preview'>('list');
 
@@ -257,11 +259,44 @@ export default function InvoicesPage() {
         throw new Error('Failed to load invoice details');
       }
       const fullInvoice = await response.json();
-      setSelectedInvoice(fullInvoice);
+      
+      // Map the data to match what InvoiceTemplate expects
+      const mappedInvoice = {
+        id: fullInvoice.id,
+        invoice_number: fullInvoice.invoiceNumber || fullInvoice.invoice_number,
+        client_id: fullInvoice.clientId || fullInvoice.client_id,
+        amount: parseFloat(fullInvoice.total) || 0,
+        tax_amount: parseFloat(fullInvoice.taxAmount) || 0,
+        total_amount: parseFloat(fullInvoice.total) || 0,
+        subtotal_amount: parseFloat(fullInvoice.subtotal) || 0,
+        discount_amount: parseFloat(fullInvoice.discountAmount) || 0,
+        currency: fullInvoice.currency || 'EUR',
+        status: fullInvoice.status,
+        due_date: fullInvoice.dueDate || fullInvoice.due_date,
+        payment_terms: fullInvoice.paymentTerms || fullInvoice.payment_terms || '30 days',
+        notes: fullInvoice.notes,
+        created_at: fullInvoice.createdAt || fullInvoice.created_at,
+        client: fullInvoice.client ? {
+          name: `${fullInvoice.client.firstName || ''} ${fullInvoice.client.lastName || ''}`.trim(),
+          email: fullInvoice.client.email,
+          address1: fullInvoice.client.address,
+          city: fullInvoice.client.city,
+          country: fullInvoice.client.country
+        } : undefined,
+        items: fullInvoice.items?.map((item: any) => ({
+          description: item.description,
+          quantity: parseFloat(item.quantity) || 0,
+          unit_price: parseFloat(item.unitPrice || item.unit_price) || 0,
+          tax_rate: parseFloat(item.taxRate || item.tax_rate) || 0,
+          line_total: parseFloat(item.lineTotal || item.line_total) || 0
+        })) || []
+      };
+      
+      setSelectedInvoice(mappedInvoice as any);
       setViewMode('preview');
     } catch (error) {
       console.error('Failed to load invoice:', error);
-      alert('Failed to load invoice preview');
+      alert('Failed to load invoice preview. Please try again.');
     }
   };
 
@@ -303,18 +338,21 @@ export default function InvoicesPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
           invoice_id: selectedInvoice.id,
-          phone_number: whatsAppPhone.replace(/\D/g, '') // Remove non-digits
+          phone_number: whatsAppPhone.replace(/[^\d+]/g, '') // Keep only digits and +
         }),
       });
 
       const result = await response.json();
       
-      if (result.success) {
+      if (result.success && result.whatsapp_url) {
         // Open WhatsApp with the prepared message
         window.open(result.whatsapp_url, '_blank');
+        
+        alert('WhatsApp message opened successfully! Please send the message from WhatsApp.');
         
         // Update invoice status to 'sent' if it was draft
         if (selectedInvoice.status === 'draft') {
@@ -328,11 +366,11 @@ export default function InvoicesPage() {
         // Refresh invoices to show updated status
         fetchInvoices();
       } else {
-        alert('Failed to create WhatsApp message: ' + result.error);
+        alert('Failed to create WhatsApp message: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('WhatsApp send error:', error);
-      alert('Failed to send WhatsApp message');
+      alert('Failed to send WhatsApp message. Please try again.');
     }
   };
 
@@ -393,6 +431,74 @@ export default function InvoicesPage() {
     }
   };
 
+  // Email Handler
+  const handleSendEmail = (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    setShowEmailModal(true);
+    
+    // Pre-populate email address if available from client data
+    const selectedClient = clients.find(c => c.id === invoice.client_id);
+    if (selectedClient?.email) {
+      setEmailAddress(selectedClient.email);
+    } else if (invoice.client?.email) {
+      setEmailAddress(invoice.client.email);
+    } else {
+      setEmailAddress('');
+    }
+  };
+
+  const handleConfirmEmailSend = async () => {
+    if (!selectedInvoice || !emailAddress.trim()) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailAddress)) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/crm/invoices/${selectedInvoice.id}/email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          subject: `Rechnung ${selectedInvoice.invoice_number} - New Age Fotografie`,
+          message: 'Anbei senden wir Ihnen Ihre Rechnung zu. Bei Fragen stehen wir Ihnen gerne zur Verfügung.',
+          includeAttachment: true
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success || response.ok) {
+        alert('Email sent successfully!');
+        
+        // Update invoice status to 'sent' if it was draft
+        if (selectedInvoice.status === 'draft') {
+          await handleStatusUpdate(selectedInvoice.id, 'sent');
+        }
+        
+        setShowEmailModal(false);
+        setEmailAddress('');
+        setSelectedInvoice(null);
+        
+        // Refresh invoices to show updated status
+        fetchInvoices();
+      } else {
+        alert('Failed to send email: ' + (result.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Email send error:', error);
+      alert('Failed to send email message');
+    }
+  };
+
   // PDF Download Function
   const downloadInvoicePDF = async (invoiceId: string, invoiceNumber: string) => {
     try {
@@ -400,11 +506,14 @@ export default function InvoicesPage() {
         method: 'GET',
         credentials: 'include',
         headers: {
-          'Accept': 'application/pdf'
+          'Accept': 'application/pdf',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('PDF download error:', errorText);
         throw new Error(`PDF generation failed: ${response.status}`);
       }
       
@@ -422,6 +531,8 @@ export default function InvoicesPage() {
       // Cleanup
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      
+      alert('PDF downloaded successfully!');
     } catch (error) {
       console.error('PDF download error:', error);
       alert('PDF download failed. Please try again.');
@@ -519,15 +630,39 @@ export default function InvoicesPage() {
           </button>
           <div className="flex space-x-2">
             <button
+              onClick={() => handleSendEmail(selectedInvoice)}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              <Send className="w-4 h-4" />
+              <span>Send Email</span>
+            </button>
+            <button
               onClick={() => handleSendWhatsApp(selectedInvoice)}
               className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
             >
               <MessageCircle className="w-4 h-4" />
-              <span>Send via WhatsApp</span>
+              <span>WhatsApp</span>
             </button>
-            <button className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+            <button
+              onClick={() => handleSendSMS(selectedInvoice)}
+              className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+            >
+              <Phone className="w-4 h-4" />
+              <span>SMS</span>
+            </button>
+            <button 
+              onClick={() => downloadInvoicePDF(selectedInvoice.id, selectedInvoice.invoice_number)}
+              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+            >
               <Download className="w-4 h-4" />
               <span>Download PDF</span>
+            </button>
+            <button 
+              onClick={() => window.print()}
+              className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Print</span>
             </button>
           </div>
         </div>
@@ -656,9 +791,9 @@ export default function InvoicesPage() {
                       <Phone className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleStatusUpdate(invoice.id, invoice.status === 'draft' ? 'sent' : 'paid')}
+                      onClick={() => handleSendEmail(invoice)}
                       className="text-blue-600 hover:text-blue-900"
-                      title="Update Status"
+                      title="Send via Email"
                     >
                       <Send className="w-4 h-4" />
                     </button>
@@ -1105,6 +1240,110 @@ export default function InvoicesPage() {
                 >
                   <Phone className="w-4 h-4" />
                   <span>Send via SMS</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Email Share Modal */}
+      {showEmailModal && selectedInvoice && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-6 border w-[500px] shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  📧 Send Invoice via Email
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowEmailModal(false);
+                    setEmailAddress('');
+                    setSelectedInvoice(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 className="font-medium text-blue-900 mb-2">Invoice Details</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <p className="text-blue-700">
+                    <span className="font-medium">Invoice:</span> #{selectedInvoice.invoice_number || selectedInvoice.id}
+                  </p>
+                  <p className="text-blue-700">
+                    <span className="font-medium">Amount:</span> €{selectedInvoice.total_amount?.toFixed(2) || '0.00'}
+                  </p>
+                  <p className="text-blue-700">
+                    <span className="font-medium">Client:</span> {selectedInvoice.client?.name || clients.find(c => c.id === selectedInvoice.client_id)?.firstName + ' ' + clients.find(c => c.id === selectedInvoice.client_id)?.lastName || 'Unknown'}
+                  </p>
+                  <p className="text-blue-700">
+                    <span className="font-medium">Due:</span> {new Date(selectedInvoice.due_date).toLocaleDateString('de-DE')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="email-address" className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  id="email-address"
+                  value={emailAddress}
+                  onChange={(e) => setEmailAddress(e.target.value)}
+                  placeholder="client@example.com"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  The invoice PDF will be sent as an email attachment
+                </p>
+              </div>
+
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 className="font-medium text-blue-900 mb-2">📧 Email Preview</h4>
+                <div className="text-sm text-blue-800 bg-white p-3 rounded border">
+                  <p className="font-medium mb-2">Subject: Rechnung {selectedInvoice.invoice_number || selectedInvoice.id} - New Age Fotografie</p>
+                  <p className="italic">
+                    "Liebe/r Kunde,
+                    <br /><br />
+                    anbei senden wir Ihnen Ihre Rechnung zu. Bei Fragen stehen wir Ihnen gerne zur Verfügung.
+                    <br /><br />
+                    Rechnungsnummer: {selectedInvoice.invoice_number || selectedInvoice.id}<br />
+                    Betrag: €{selectedInvoice.total_amount?.toFixed(2) || '0.00'}<br />
+                    Fälligkeitsdatum: {new Date(selectedInvoice.due_date).toLocaleDateString('de-DE')}
+                    <br /><br />
+                    Mit freundlichen Grüßen,<br />
+                    New Age Fotografie Team"
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowEmailModal(false);
+                    setEmailAddress('');
+                    setSelectedInvoice(null);
+                  }}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmEmailSend}
+                  disabled={!emailAddress.trim()}
+                  className={`px-6 py-2 rounded font-medium flex items-center space-x-2 ${
+                    emailAddress.trim() 
+                      ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  <Send className="w-4 h-4" />
+                  <span>Send via Email</span>
                 </button>
               </div>
             </div>
