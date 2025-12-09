@@ -193,17 +193,6 @@ export default function NeonAdminLoginPage() {
                   )}
                 </Button>
 
-                {/* Dev helper: quick login trigger without manual typing */}
-                <Button 
-                  type="button" 
-                  variant="secondary"
-                  className="w-full"
-                  onClick={() => doLogin()}
-                  disabled={isLoading}
-                >
-                  Quick Dev Login
-                </Button>
-
                 <Button 
                   type="button" 
                   variant="outline"

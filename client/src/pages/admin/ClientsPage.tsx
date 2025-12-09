@@ -99,8 +99,10 @@ const ClientsPage: React.FC = () => {
     try {
       setLoading(true);
       
-      // Use the API endpoint instead of direct Supabase access
-      const response = await fetch('/api/crm/clients');
+      // Use the API endpoint with session-based authentication
+      const response = await fetch('/api/crm/clients', {
+        credentials: 'include'
+      });
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -210,6 +212,7 @@ const ClientsPage: React.FC = () => {
     try {
       const response = await fetch(`/api/crm/clients/${client.id}`, {
         method: 'DELETE',
+        credentials: 'include'
       });
       
       if (!response.ok) {
@@ -270,7 +273,9 @@ const ClientsPage: React.FC = () => {
     setMergeLoading(true);
     setMergeMessage(null);
     try {
-  const resp = await fetch(`/api/crm/clients/merge-suggestions?by=${mergeMode}&strategy=${mergeStrategy}&limit=100`);
+  const resp = await fetch(`/api/crm/clients/merge-suggestions?by=${mergeMode}&strategy=${mergeStrategy}&limit=100`, {
+        credentials: 'include'
+      });
       if (!resp.ok) throw new Error('Failed to fetch merge suggestions');
       const data = await resp.json();
       const suggestions: MergeSuggestionRow[] = (data?.suggestions || []).map((s: any) => ({ ...s, selected: true }));
@@ -304,7 +309,8 @@ const ClientsPage: React.FC = () => {
       try {
         const resp = await fetch('/api/crm/clients/merge-execute', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken || '' },
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body)
         });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);

@@ -93,12 +93,15 @@ export default function InvoicesPage() {
   const fetchClients = async () => {
     try {
       const response = await fetch('/api/crm/clients', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        credentials: 'include'
       });
+      if (!response.ok) {
+        console.error('Failed to fetch clients:', response.status, response.statusText);
+        return;
+      }
       const data = await response.json();
-      setClients(data?.clients || []);
+      // Server returns clients array directly, not wrapped in an object
+      setClients(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to load clients:', err);
     }
@@ -187,9 +190,9 @@ export default function InvoicesPage() {
         try {
           const response = await fetch(`/api/crm/invoices/${createdInvoice.id}/email`, {
             method: 'POST',
+            credentials: 'include',
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
+              'Content-Type': 'application/json'
             },
             body: JSON.stringify({
               subject: `Rechnung ${createdInvoice.invoiceNumber || createdInvoice.id} - New Age Fotografie`,
@@ -254,9 +257,14 @@ export default function InvoicesPage() {
   const handlePreviewInvoice = async (invoice: Invoice) => {
     try {
       // Fetch full invoice details including items
-      const response = await fetch(`/api/crm/invoices/${invoice.id}`);
+      // Use session-based auth (cookies) - no Bearer token needed
+      const response = await fetch(`/api/crm/invoices/${invoice.id}`, {
+        credentials: 'include'
+      });
       if (!response.ok) {
-        throw new Error('Failed to load invoice details');
+        const errorText = await response.text();
+        console.error('Invoice fetch failed:', response.status, errorText);
+        throw new Error(`Failed to load invoice details: ${response.status}`);
       }
       const fullInvoice = await response.json();
       
@@ -336,9 +344,9 @@ export default function InvoicesPage() {
     try {
       const response = await fetch('/api/invoices/share-whatsapp', {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           invoice_id: selectedInvoice.id,
@@ -397,9 +405,9 @@ export default function InvoicesPage() {
     try {
       const response = await fetch(`/api/crm/invoices/${selectedInvoice.id}/sms`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           phoneNumber: smsPhone.replace(/[^\d+]/g, '') // Clean phone number
@@ -463,9 +471,9 @@ export default function InvoicesPage() {
     try {
       const response = await fetch(`/api/crm/invoices/${selectedInvoice.id}/email`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           subject: `Rechnung ${selectedInvoice.invoice_number} - New Age Fotografie`,
@@ -506,8 +514,7 @@ export default function InvoicesPage() {
         method: 'GET',
         credentials: 'include',
         headers: {
-          'Accept': 'application/pdf',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Accept': 'application/pdf'
         }
       });
       
