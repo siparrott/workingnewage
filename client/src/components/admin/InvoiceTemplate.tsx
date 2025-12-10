@@ -1,7 +1,7 @@
 import React from 'react';
 
-// CACHE BUST v2 - Force new bundle hash
-const TEMPLATE_VERSION = 'v2.0.0-20251210';
+// CACHE BUST v3 - FORCE REBUILD - 20251210-1628  
+const TEMPLATE_VERSION = 'v3.0.0-20251210-1628';
 
 interface InvoiceTemplateProps {
   invoice: {
@@ -45,8 +45,8 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
     website: "www.newagefotografie.com"
   }
 }) => {
-  // Debug logging (CACHE BUST v1)
-  console.log('📄 ADMIN INVOICE TEMPLATE RENDERING (CACHE BUST v1):', invoice);
+  // Debug logging (CACHE BUST v3 - FORCED REBUILD)
+  console.log(`📄 ADMIN INVOICE TEMPLATE RENDERING (${TEMPLATE_VERSION}):`, invoice);
   console.log('📄 CLIENT NAME:', invoice.client_name);
   console.log('📄 TOTAL AMOUNT:', invoice.total_amount);
   console.log('📄 CREATED AT:', invoice.created_at);
