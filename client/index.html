@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     
-    <!-- Primary SEO -->
-    <title>New Age Fotografie | Familien-, Baby- & Businessfotograf in Wien</title>
+    <!-- Primary SEO - CACHE BUST v3 -->
+    <title>New Age Fotografie | Familien-, Baby- & Businessfotograf in Wien [v3.0.0]</title>
     <meta name="description" content="Familien-, Neugeborenen-, Babybauch- und Businessfotos in entspannter Studioatmosphäre in Wien. Jetzt Termin buchen und zeitlose Erinnerungen schaffen.">
     <link rel="canonical" href="https://www.newagefotografie.com/">
 
@@ -86,35 +86,40 @@
     </script>
   </head>
   <body>
+    <!-- CACHE BUST v3 INDICATOR -->
+    <div id="cache-bust-indicator" style="position: fixed; top: 0; right: 0; background: red; color: white; padding: 10px; z-index: 999999; font-weight: bold; font-size: 16px;">
+      ✅ v3.0.0-20251210 LOADED
+    </div>
     <script>
-      // Keep console active in development for debugging.
-      // Silence console and disable DevTools only in production.
-      (function() {
-        var isLocal = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
-        var debugParam = /[?&]debug=1(&|$)/.test(location.search);
-        if (isLocal || debugParam) {
-          return; // Do NOT silence console in dev or when ?debug=1 is set
-        }
-        var noop = function(){};
-        try {
-          window.console = {
-            log: noop, warn: noop, error: noop, info: noop, debug: noop,
-            trace: noop, table: noop, group: noop, groupEnd: noop,
-            time: noop, timeEnd: noop, clear: noop, count: noop,
-            assert: noop, dir: noop, dirxml: noop
-          };
-          Object.defineProperty(window, 'console', {
-            value: window.console, writable: false, configurable: false
-          });
-          // Disable React DevTools in production
-          window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
-            isDisabled: true, supportsFiber: true, inject: noop,
-            onCommitFiberRoot: noop, onCommitFiberUnmount: noop
-          };
-        } catch (e) {
-          // If anything goes wrong, fail open (leave console enabled)
-        }
-      })();
+      // Remove indicator after 5 seconds
+      setTimeout(function() {
+        var indicator = document.getElementById('cache-bust-indicator');
+        if (indicator) indicator.remove();
+      }, 5000);
+    </script>
+    <script>
+      // CONSOLE ENABLED FOR DEBUGGING - Cache bust v3
+      console.log('✅ INDEX.HTML LOADED - v3.0.0-20251210');
+      
+      // Clear any service worker cache
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+            console.log('🗑️ Service worker unregistered');
+          }
+        });
+      }
+      
+      // Clear all caches
+      if ('caches' in window) {
+        caches.keys().then(function(names) {
+          for (let name of names) {
+            caches.delete(name);
+            console.log('🗑️ Cache deleted:', name);
+          }
+        });
+      }
     </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
