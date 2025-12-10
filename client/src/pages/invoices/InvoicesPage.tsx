@@ -268,20 +268,30 @@ export default function InvoicesPage() {
       }
       const fullInvoice = await response.json();
       
-      // Debug: Log and alert the raw invoice data
+      // Debug: Log the raw invoice data (CACHE BUST v1)
       console.log('🔍 RAW INVOICE DATA FROM SERVER:', fullInvoice);
       console.log('🔍 CLIENT DATA:', fullInvoice.client);
       console.log('🔍 ITEMS DATA:', fullInvoice.items);
       
-      // Visible debug alert
-      console.warn('DEBUG: Invoice loaded successfully!', {
-        invoiceNumber: fullInvoice.invoiceNumber || fullInvoice.invoice_number,
-        clientName: fullInvoice.client ? `${fullInvoice.client.firstName} ${fullInvoice.client.lastName}` : 'No client',
-        total: fullInvoice.total,
-        itemsCount: fullInvoice.items?.length || 0
-      });
+      // Helper: Parse decimal strings from database
+      const parseDecimal = (value: any): number => {
+        if (!value) return 0;
+        const parsed = typeof value === 'string' ? parseFloat(value) : Number(value);
+        return isNaN(parsed) ? 0 : parsed;
+      };
       
-      // Extract client data first
+      // Helper: Format database date to ISO string
+      const formatDbDate = (dateStr: any): string => {
+        if (!dateStr) return new Date().toISOString();
+        try {
+          const date = new Date(dateStr);
+          return isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+        } catch {
+          return new Date().toISOString();
+        }
+      };
+      
+      // Extract client data
       const clientFirstName = fullInvoice.client?.firstName || fullInvoice.client?.first_name || '';
       const clientLastName = fullInvoice.client?.lastName || fullInvoice.client?.last_name || '';
       const clientFullName = `${clientFirstName} ${clientLastName}`.trim() || 'Unknown Client';
@@ -290,29 +300,28 @@ export default function InvoicesPage() {
       const clientCity = fullInvoice.client?.city || '';
       const clientCountry = fullInvoice.client?.country || '';
       const clientPhone = fullInvoice.client?.phone || '';
+      const fullClientAddress = `${clientAddress}${clientCity ? ', ' + clientCity : ''}${clientCountry ? ', ' + clientCountry : ''}`.trim();
       
-      // Map the data to match what InvoiceTemplate expects (both formats for compatibility)
+      // Map the data to match what InvoiceTemplate expects
       const mappedInvoice = {
         id: fullInvoice.id,
-        invoice_number: fullInvoice.invoiceNumber || fullInvoice.invoice_number || 'N/A',
-        client_id: fullInvoice.clientId || fullInvoice.client_id,
-        amount: parseFloat(fullInvoice.total || fullInvoice.amount || 0),
-        tax_amount: parseFloat(fullInvoice.taxAmount || fullInvoice.tax_amount || 0),
-        total_amount: parseFloat(fullInvoice.total || fullInvoice.total_amount || 0),
-        subtotal_amount: parseFloat(fullInvoice.subtotal || fullInvoice.subtotal_amount || 0),
-        discount_amount: parseFloat(fullInvoice.discountAmount || fullInvoice.discount_amount || 0),
-        currency: fullInvoice.currency || 'EUR',
-        status: fullInvoice.status || 'draft',
-        due_date: fullInvoice.dueDate || fullInvoice.due_date,
-        payment_terms: fullInvoice.paymentTerms || fullInvoice.payment_terms || 'Net 30',
-        notes: fullInvoice.notes || '',
-        // Use issueDate for the invoice date (not createdAt which is record creation)
-        created_at: fullInvoice.issueDate || fullInvoice.issue_date || fullInvoice.createdAt || fullInvoice.created_at,
-        // Flat client fields for admin template
+        invoice_number: fullInvoice.invoiceNumber || 'N/A',
+        client_id: fullInvoice.clientId,
         client_name: clientFullName,
         client_email: clientEmail,
-        client_address: `${clientAddress}${clientCity ? ', ' + clientCity : ''}${clientCountry ? ', ' + clientCountry : ''}`,
-        // Nested client object for invoice template
+        client_address: fullClientAddress,
+        due_date: formatDbDate(fullInvoice.dueDate),
+        created_at: formatDbDate(fullInvoice.issueDate), // Use issueDate for invoice date!
+        currency: fullInvoice.currency || 'EUR',
+        payment_terms: fullInvoice.paymentTerms || 'Net 30',
+        notes: fullInvoice.notes || '',
+        status: fullInvoice.status || 'draft',
+        subtotal_amount: parseDecimal(fullInvoice.subtotal),
+        tax_amount: parseDecimal(fullInvoice.taxAmount),
+        discount_amount: parseDecimal(fullInvoice.discountAmount),
+        total_amount: parseDecimal(fullInvoice.total),
+        amount: parseDecimal(fullInvoice.total),
+        // Nested client object for alternate template format
         client: {
           name: clientFullName,
           email: clientEmail,
@@ -322,22 +331,23 @@ export default function InvoicesPage() {
           phone: clientPhone
         },
         items: (fullInvoice.items || []).map((item: any) => {
-          const quantity = parseFloat(item.quantity || 0);
-          const unitPrice = parseFloat(item.unitPrice || item.unit_price || 0);
-          const taxRate = parseFloat(item.taxRate || item.tax_rate || 0);
-          const lineTotal = item.lineTotal || item.line_total || (quantity * unitPrice);
+          const quantity = parseDecimal(item.quantity);
+          const unitPrice = parseDecimal(item.unitPrice);
+          const taxRate = parseDecimal(item.taxRate);
+          const lineTotal = quantity * unitPrice; // Calculate line total
           
           return {
-            description: item.description || '',
+            description: item.description || 'No description',
             quantity: quantity,
             unit_price: unitPrice,
             tax_rate: taxRate,
-            line_total: parseFloat(lineTotal)
+            line_total: lineTotal
           };
         })
       };
       
-      console.log('Mapped invoice for template:', mappedInvoice);
+      console.log('✅ MAPPED INVOICE FOR TEMPLATE (CACHE BUST v1):', mappedInvoice);
+      console.warn('CLIENT NAME:', mappedInvoice.client_name, 'TOTAL:', mappedInvoice.total_amount);
       
       setSelectedInvoice(mappedInvoice as any);
       setViewMode('preview');

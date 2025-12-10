@@ -42,18 +42,42 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
     website: "www.newagefotografie.com"
   }
 }) => {
-  // Debug logging
-  console.log('📄 ADMIN INVOICE TEMPLATE RENDERING:', invoice);
+  // Debug logging (CACHE BUST v1)
+  console.log('📄 ADMIN INVOICE TEMPLATE RENDERING (CACHE BUST v1):', invoice);
+  console.log('📄 CLIENT NAME:', invoice.client_name);
+  console.log('📄 TOTAL AMOUNT:', invoice.total_amount);
+  console.log('📄 CREATED AT:', invoice.created_at);
+  console.log('📄 ITEMS COUNT:', invoice.items?.length);
   
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('de-DE', {
-      style: 'currency',
-      currency: invoice.currency
-    }).format(amount);
+    const safeAmount = (amount === null || amount === undefined || isNaN(amount)) ? 0 : amount;
+    try {
+      return new Intl.NumberFormat('de-DE', {
+        style: 'currency',
+        currency: invoice.currency || 'EUR'
+      }).format(safeAmount);
+    } catch (error) {
+      console.error('Currency formatting error:', error);
+      return `€${safeAmount.toFixed(2)}`;
+    }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('de-DE');
+    if (!dateString) {
+      console.warn('No date provided to formatDate');
+      return 'No Date';
+    }
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date:', dateString);
+        return 'Invalid Date';
+      }
+      return date.toLocaleDateString('de-DE');
+    } catch (error) {
+      console.error('Date formatting error:', error, dateString);
+      return 'Invalid Date';
+    }
   };
   return (
     <div className="invoice-template max-w-4xl mx-auto bg-white p-8 shadow-lg">

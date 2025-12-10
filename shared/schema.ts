@@ -189,8 +189,11 @@ export const crmInvoices = pgTable("crm_invoices", {
   dueDate: date("due_date").notNull(),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }).default("0"),
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0"),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").default("EUR"),
   status: text("status").default("draft"),
+  paymentTerms: text("payment_terms").default("Net 30"),
   notes: text("notes"),
   termsAndConditions: text("terms_and_conditions"),
   createdBy: uuid("created_by").references(() => users.id),
@@ -957,12 +960,15 @@ export const insertCrmInvoiceSchema = createInsertSchema(crmInvoices).pick({
   dueDate: true,
   subtotal: true,
   taxAmount: true,
+  discountAmount: true,
   total: true,
+  currency: true,
   status: true,
+  paymentTerms: true,
   notes: true,
   termsAndConditions: true,
   createdBy: true,
-}).partial({ invoiceNumber: true, createdBy: true }); // Make invoiceNumber and createdBy optional
+}).partial({ invoiceNumber: true, createdBy: true, discountAmount: true, currency: true, paymentTerms: true }); // Make optional fields
 
 export const insertCrmInvoiceItemSchema = createInsertSchema(crmInvoiceItems).pick({
   invoiceId: true,
