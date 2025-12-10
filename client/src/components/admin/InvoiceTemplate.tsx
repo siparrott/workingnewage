@@ -1,5 +1,8 @@
 import React from 'react';
 
+// CACHE BUST v2 - Force new bundle hash
+const TEMPLATE_VERSION = 'v2.0.0-20251210';
+
 interface InvoiceTemplateProps {
   invoice: {
     invoice_number: string;

@@ -4,6 +4,9 @@ import { listInvoices, createInvoice, updateInvoiceStatus, deleteInvoice } from 
 import InvoiceTemplate from '../../components/invoice/InvoiceTemplate';
 import PriceListModal from '../../components/invoice/PriceListModal';
 
+// CACHE BUST v2 - Force browser to load new code
+const INVOICE_VIEWER_VERSION = 'v2.0.0-20251210';
+
 interface Invoice {
   id: string;
   invoice_number: string;
@@ -268,8 +271,11 @@ export default function InvoicesPage() {
       }
       const fullInvoice = await response.json();
       
-      // Debug: Log the raw invoice data (CACHE BUST v1)
-      console.log('🔍 RAW INVOICE DATA FROM SERVER:', fullInvoice);
+      // FORCE ALERT TO CONFIRM NEW CODE IS LOADED
+      alert(`✅ INVOICE VIEWER ${INVOICE_VIEWER_VERSION} LOADED!\n\nClient: ${fullInvoice.client?.firstName} ${fullInvoice.client?.lastName}\nTotal: €${fullInvoice.total}`);
+      
+      // Debug: Log the raw invoice data (CACHE BUST v2)
+      console.log(`🔍 [${INVOICE_VIEWER_VERSION}] RAW INVOICE DATA FROM SERVER:`, fullInvoice);
       console.log('🔍 CLIENT DATA:', fullInvoice.client);
       console.log('🔍 ITEMS DATA:', fullInvoice.items);
       
