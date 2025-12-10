@@ -35,13 +35,16 @@ interface InvoiceTemplateProps {
 const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ 
   invoice, 
   companyInfo = {
-    name: "Your Company Name",
-    address: "Your Company Address",
-    email: "info@yourcompany.com",
-    phone: "+49 123 456 789",
-    website: "www.yourcompany.com"
+    name: "New Age Fotografie",
+    address: "Julius-Tandler-Platz 5/13, 1090 Wien, Austria",
+    email: "office@newagefotografie.com",
+    phone: "+43 677 633 99210",
+    website: "www.newagefotografie.com"
   }
 }) => {
+  // Debug logging
+  console.log('📄 ADMIN INVOICE TEMPLATE RENDERING:', invoice);
+  
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('de-DE', {
       style: 'currency',

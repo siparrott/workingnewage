@@ -281,7 +281,17 @@ export default function InvoicesPage() {
         itemsCount: fullInvoice.items?.length || 0
       });
       
-      // Map the data to match what InvoiceTemplate expects
+      // Extract client data first
+      const clientFirstName = fullInvoice.client?.firstName || fullInvoice.client?.first_name || '';
+      const clientLastName = fullInvoice.client?.lastName || fullInvoice.client?.last_name || '';
+      const clientFullName = `${clientFirstName} ${clientLastName}`.trim() || 'Unknown Client';
+      const clientEmail = fullInvoice.client?.email || '';
+      const clientAddress = fullInvoice.client?.address || '';
+      const clientCity = fullInvoice.client?.city || '';
+      const clientCountry = fullInvoice.client?.country || '';
+      const clientPhone = fullInvoice.client?.phone || '';
+      
+      // Map the data to match what InvoiceTemplate expects (both formats for compatibility)
       const mappedInvoice = {
         id: fullInvoice.id,
         invoice_number: fullInvoice.invoiceNumber || fullInvoice.invoice_number || 'N/A',
@@ -298,20 +308,18 @@ export default function InvoicesPage() {
         notes: fullInvoice.notes || '',
         // Use issueDate for the invoice date (not createdAt which is record creation)
         created_at: fullInvoice.issueDate || fullInvoice.issue_date || fullInvoice.createdAt || fullInvoice.created_at,
-        client: fullInvoice.client ? {
-          name: `${fullInvoice.client.firstName || fullInvoice.client.first_name || ''} ${fullInvoice.client.lastName || fullInvoice.client.last_name || ''}`.trim() || 'Unknown Client',
-          email: fullInvoice.client.email || '',
-          address1: fullInvoice.client.address || '',
-          city: fullInvoice.client.city || '',
-          country: fullInvoice.client.country || '',
-          phone: fullInvoice.client.phone || ''
-        } : {
-          name: 'Unknown Client',
-          email: '',
-          address1: '',
-          city: '',
-          country: '',
-          phone: ''
+        // Flat client fields for admin template
+        client_name: clientFullName,
+        client_email: clientEmail,
+        client_address: `${clientAddress}${clientCity ? ', ' + clientCity : ''}${clientCountry ? ', ' + clientCountry : ''}`,
+        // Nested client object for invoice template
+        client: {
+          name: clientFullName,
+          email: clientEmail,
+          address1: clientAddress,
+          city: clientCity,
+          country: clientCountry,
+          phone: clientPhone
         },
         items: (fullInvoice.items || []).map((item: any) => {
           const quantity = parseFloat(item.quantity || 0);
