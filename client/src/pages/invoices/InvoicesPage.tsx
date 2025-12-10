@@ -268,37 +268,60 @@ export default function InvoicesPage() {
       }
       const fullInvoice = await response.json();
       
+      // Debug: Log the raw invoice data
+      console.log('Raw invoice data from server:', fullInvoice);
+      console.log('Client data:', fullInvoice.client);
+      console.log('Items data:', fullInvoice.items);
+      
       // Map the data to match what InvoiceTemplate expects
       const mappedInvoice = {
         id: fullInvoice.id,
-        invoice_number: fullInvoice.invoiceNumber || fullInvoice.invoice_number,
+        invoice_number: fullInvoice.invoiceNumber || fullInvoice.invoice_number || 'N/A',
         client_id: fullInvoice.clientId || fullInvoice.client_id,
-        amount: parseFloat(fullInvoice.total) || 0,
-        tax_amount: parseFloat(fullInvoice.taxAmount) || 0,
-        total_amount: parseFloat(fullInvoice.total) || 0,
-        subtotal_amount: parseFloat(fullInvoice.subtotal) || 0,
-        discount_amount: parseFloat(fullInvoice.discountAmount) || 0,
+        amount: parseFloat(fullInvoice.total || fullInvoice.amount || 0),
+        tax_amount: parseFloat(fullInvoice.taxAmount || fullInvoice.tax_amount || 0),
+        total_amount: parseFloat(fullInvoice.total || fullInvoice.total_amount || 0),
+        subtotal_amount: parseFloat(fullInvoice.subtotal || fullInvoice.subtotal_amount || 0),
+        discount_amount: parseFloat(fullInvoice.discountAmount || fullInvoice.discount_amount || 0),
         currency: fullInvoice.currency || 'EUR',
-        status: fullInvoice.status,
+        status: fullInvoice.status || 'draft',
         due_date: fullInvoice.dueDate || fullInvoice.due_date,
-        payment_terms: fullInvoice.paymentTerms || fullInvoice.payment_terms || '30 days',
-        notes: fullInvoice.notes,
-        created_at: fullInvoice.createdAt || fullInvoice.created_at,
+        payment_terms: fullInvoice.paymentTerms || fullInvoice.payment_terms || 'Net 30',
+        notes: fullInvoice.notes || '',
+        // Use issueDate for the invoice date (not createdAt which is record creation)
+        created_at: fullInvoice.issueDate || fullInvoice.issue_date || fullInvoice.createdAt || fullInvoice.created_at,
         client: fullInvoice.client ? {
-          name: `${fullInvoice.client.firstName || ''} ${fullInvoice.client.lastName || ''}`.trim(),
-          email: fullInvoice.client.email,
-          address1: fullInvoice.client.address,
-          city: fullInvoice.client.city,
-          country: fullInvoice.client.country
-        } : undefined,
-        items: fullInvoice.items?.map((item: any) => ({
-          description: item.description,
-          quantity: parseFloat(item.quantity) || 0,
-          unit_price: parseFloat(item.unitPrice || item.unit_price) || 0,
-          tax_rate: parseFloat(item.taxRate || item.tax_rate) || 0,
-          line_total: parseFloat(item.lineTotal || item.line_total) || 0
-        })) || []
+          name: `${fullInvoice.client.firstName || fullInvoice.client.first_name || ''} ${fullInvoice.client.lastName || fullInvoice.client.last_name || ''}`.trim() || 'Unknown Client',
+          email: fullInvoice.client.email || '',
+          address1: fullInvoice.client.address || '',
+          city: fullInvoice.client.city || '',
+          country: fullInvoice.client.country || '',
+          phone: fullInvoice.client.phone || ''
+        } : {
+          name: 'Unknown Client',
+          email: '',
+          address1: '',
+          city: '',
+          country: '',
+          phone: ''
+        },
+        items: (fullInvoice.items || []).map((item: any) => {
+          const quantity = parseFloat(item.quantity || 0);
+          const unitPrice = parseFloat(item.unitPrice || item.unit_price || 0);
+          const taxRate = parseFloat(item.taxRate || item.tax_rate || 0);
+          const lineTotal = item.lineTotal || item.line_total || (quantity * unitPrice);
+          
+          return {
+            description: item.description || '',
+            quantity: quantity,
+            unit_price: unitPrice,
+            tax_rate: taxRate,
+            line_total: parseFloat(lineTotal)
+          };
+        })
       };
+      
+      console.log('Mapped invoice for template:', mappedInvoice);
       
       setSelectedInvoice(mappedInvoice as any);
       setViewMode('preview');
