@@ -35,16 +35,26 @@ interface InvoiceTemplateProps {
 }
 
 const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice }) => {
+  // Debug: Log what the template receives
+  console.log('📄 INVOICE TEMPLATE RECEIVED:', invoice);
+  
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('de-DE', { 
-      day: '2-digit', 
-      month: 'long', 
-      year: 'numeric' 
-    }).toUpperCase();
+    if (!dateString) return 'No Date';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      return date.toLocaleDateString('de-DE', { 
+        day: '2-digit', 
+        month: 'long', 
+        year: 'numeric' 
+      }).toUpperCase();
+    } catch (e) {
+      return 'Invalid Date';
+    }
   };
 
   const formatCurrency = (amount: number, currency: string = 'EUR') => {
+    if (amount === null || amount === undefined || isNaN(amount)) return '0,00 €';
     return new Intl.NumberFormat('de-DE', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2

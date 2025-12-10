@@ -268,10 +268,18 @@ export default function InvoicesPage() {
       }
       const fullInvoice = await response.json();
       
-      // Debug: Log the raw invoice data
-      console.log('Raw invoice data from server:', fullInvoice);
-      console.log('Client data:', fullInvoice.client);
-      console.log('Items data:', fullInvoice.items);
+      // Debug: Log and alert the raw invoice data
+      console.log('🔍 RAW INVOICE DATA FROM SERVER:', fullInvoice);
+      console.log('🔍 CLIENT DATA:', fullInvoice.client);
+      console.log('🔍 ITEMS DATA:', fullInvoice.items);
+      
+      // Visible debug alert
+      console.warn('DEBUG: Invoice loaded successfully!', {
+        invoiceNumber: fullInvoice.invoiceNumber || fullInvoice.invoice_number,
+        clientName: fullInvoice.client ? `${fullInvoice.client.firstName} ${fullInvoice.client.lastName}` : 'No client',
+        total: fullInvoice.total,
+        itemsCount: fullInvoice.items?.length || 0
+      });
       
       // Map the data to match what InvoiceTemplate expects
       const mappedInvoice = {

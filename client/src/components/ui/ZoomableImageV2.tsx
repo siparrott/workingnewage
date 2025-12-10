@@ -334,3 +334,4 @@ const ZoomableImageV2: React.FC<ZoomableImageV2Props> = ({
 
 export default ZoomableImageV2;
 
+
