@@ -356,9 +356,15 @@ export default function AdminVoucherSalesPageV3() {
       const finalImageUrl = uploadedImage || (selectedProduct?.imageUrl) || null;
       const finalThumbnailUrl = uploadedThumbnail || ((selectedProduct as any)?.thumbnailUrl) || null;
       
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🔵 [UPDATE PRODUCT] MUTATION STARTING');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('[UPDATE PRODUCT] Product ID:', data.id);
+      console.log('[UPDATE PRODUCT] Product name:', data.name);
       console.log('[UPDATE PRODUCT] uploadedImage state:', uploadedImage);
       console.log('[UPDATE PRODUCT] selectedProduct.imageUrl:', selectedProduct?.imageUrl);
       console.log('[UPDATE PRODUCT] finalImageUrl to save:', finalImageUrl);
+      console.log('[UPDATE PRODUCT] finalThumbnailUrl to save:', finalThumbnailUrl);
       
       const payload = {
         name: data.name,
@@ -372,24 +378,27 @@ export default function AdminVoucherSalesPageV3() {
         imageUrl: finalImageUrl,
         thumbnailUrl: finalThumbnailUrl,
       };
-      console.log('[UPDATE PRODUCT] selectedProduct:', selectedProduct);
-      console.log('[UPDATE PRODUCT] uploadedImage state:', uploadedImage);
-      console.log('[UPDATE PRODUCT] uploadedThumbnail state:', uploadedThumbnail);
-      console.log('[UPDATE PRODUCT] finalImageUrl:', finalImageUrl);
-      console.log('[UPDATE PRODUCT] finalThumbnailUrl:', finalThumbnailUrl);
-      console.log('[UPDATE PRODUCT] Full payload being sent:', JSON.stringify(payload, null, 2));
+      
+      console.log('[UPDATE PRODUCT] Full payload:', JSON.stringify(payload, null, 2));
+      
       const response = await fetch(`/api/vouchers/products/${data.id}`, {
         method: "PUT",
         headers: withAdminJsonHeaders(),
         body: JSON.stringify(payload),
       });
+      
+      console.log('[UPDATE PRODUCT] Response status:', response.status, response.ok ? '✅' : '❌');
+      
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Failed to update product:", errorText);
+        console.error('[UPDATE PRODUCT] ❌ Failed:', errorText);
         throw new Error(errorText || `HTTP error ${response.status}`);
       }
+      
       const result = await response.json();
       console.log('[UPDATE PRODUCT] ✅ Server response:', result);
+      console.log('[UPDATE PRODUCT] ✅ Returned imageUrl:', result.imageUrl);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
       return result;
     },
     onSuccess: (data) => {
