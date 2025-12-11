@@ -55,6 +55,12 @@ export default function InvoicesPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'preview'>('list');
 
+  // Debug: Component mount
+  useEffect(() => {
+    console.log('📦 InvoicesPage component mounted/updated');
+    console.log('📦 handlePreviewInvoice function exists:', typeof handlePreviewInvoice);
+  }, []);
+
   // New invoice form state
   const [newInvoice, setNewInvoice] = useState({
     client_id: '',
@@ -814,7 +820,11 @@ export default function InvoicesPage() {
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end space-x-2">
                     <button
-                      onClick={() => handlePreviewInvoice(invoice)}
+                      onClick={() => {
+                        console.log('👁️ EYE ICON CLICKED!', invoice);
+                        console.log('👁️ Calling handlePreviewInvoice...');
+                        handlePreviewInvoice(invoice);
+                      }}
                       className="text-blue-600 hover:text-blue-900"
                       title="Preview"
                     >
