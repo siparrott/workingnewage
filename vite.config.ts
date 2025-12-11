@@ -5,8 +5,12 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// FORCE CLEAN BUILD v4 - 20251210-1840
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __BUILD_VERSION__: JSON.stringify('v4-20251210-1840')
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "client", "src"),
@@ -20,6 +24,8 @@ export default defineConfig({
     emptyOutDir: true,
     chunkSizeWarningLimit: 2000,
     target: "es2020",
+    // Force new build hash
+    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks: {
