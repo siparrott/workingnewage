@@ -39,7 +39,14 @@ interface Invoice {
   }>;
 }
 
+// FORCE REBUILD v4 - Critical timestamp to force Vite rebuild
+const INVOICES_PAGE_BUILD = 'v4-REBUILD-20251210-1835';
+console.log('🔥🔥🔥 INVOICES PAGE MODULE LOADED:', INVOICES_PAGE_BUILD);
+
 export default function InvoicesPage() {
+  // IMMEDIATE LOG ON EVERY RENDER
+  console.log('🔥 InvoicesPage RENDER - BUILD:', INVOICES_PAGE_BUILD, new Date().toISOString());
+  
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
