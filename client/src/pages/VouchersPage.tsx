@@ -143,36 +143,6 @@ const VouchersPage: React.FC = () => {
       </Layout>
     );
   }
-
-  // Show both hero AND full catalog with category filtering
-  const showThreeOnly = false;
-  if (showThreeOnly) {
-    return (
-      <Layout>
-        <HeroDealsAuto items={heroItems} />
-      </Layout>
-    );
-  }
-
-  useEffect(() => {
-    // SEO Meta Tags - Dynamic based on language
-    const title = language === 'en' 
-      ? 'Photoshoot Vouchers Vienna - Gift Ideas | New Age Photography'
-      : 'Fotoshooting Gutscheine Wien - Geschenkideen | New Age Fotografie';
-    document.title = title;
-    
-    // Update meta description
-    let metaDescription = document.querySelector('meta[name="description"]');
-    if (!metaDescription) {
-      metaDescription = document.createElement('meta');
-      metaDescription.setAttribute('name', 'description');
-      document.head.appendChild(metaDescription);
-    }
-    const description = language === 'en'
-      ? 'Photoshoot vouchers as the perfect gift idea. Family, pregnancy and newborn photoshoots in Vienna for gifting.'
-      : 'Fotoshooting Gutscheine als perfekte Geschenkidee. Familien-, Schwangerschafts- und Neugeborenen-Fotoshootings in Wien zum Verschenken.';
-    metaDescription.setAttribute('content', description);
-  }, [language]);
   
   // Filter vouchers based on search term and category
   const filteredByCategory = selectedCategory && selectedCategory !== 'Alle' as any
@@ -224,20 +194,6 @@ const VouchersPage: React.FC = () => {
     navigate('/cart');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  // Show loading state while fetching vouchers (prevents placeholder flash)
-  if (isLoading || !apiProducts) {
-    return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
-            <p className="text-gray-600 text-lg">{t('common.loading')}</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
 
   return (
     <Layout>
