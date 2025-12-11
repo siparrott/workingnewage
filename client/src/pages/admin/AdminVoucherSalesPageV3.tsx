@@ -366,17 +366,31 @@ export default function AdminVoucherSalesPageV3() {
       console.log('[UPDATE PRODUCT] finalImageUrl to save:', finalImageUrl);
       console.log('[UPDATE PRODUCT] finalThumbnailUrl to save:', finalThumbnailUrl);
       
+      // Include ALL form fields to ensure complete update
       const payload = {
         name: data.name,
         description: data.description,
+        detailedDescription: data.detailedDescription,
         price: data.price, // Keep as string - backend will handle conversion
-        validityPeriod: parseInt(data.validityPeriod),
-        displayOrder: parseInt(data.displayOrder || "0"),
-        isActive: data.isActive,
+        originalPrice: data.originalPrice,
         category: data.category,
+        sessionDuration: data.sessionDuration ? parseInt(data.sessionDuration) : undefined,
         sessionType: data.sessionType,
+        validityPeriod: parseInt(data.validityPeriod),
+        redemptionInstructions: data.redemptionInstructions,
+        termsAndConditions: data.termsAndConditions,
         imageUrl: finalImageUrl,
         thumbnailUrl: finalThumbnailUrl,
+        promoImageUrl: data.promoImageUrl,
+        displayOrder: parseInt(data.displayOrder || "0"),
+        featured: data.featured,
+        badge: data.badge,
+        isActive: data.isActive,
+        stockLimit: data.stockLimit ? parseInt(data.stockLimit) : undefined,
+        maxPerCustomer: data.maxPerCustomer ? parseInt(data.maxPerCustomer) : undefined,
+        slug: data.slug,
+        metaTitle: data.metaTitle,
+        metaDescription: data.metaDescription,
       };
       
       console.log('[UPDATE PRODUCT] Full payload:', JSON.stringify(payload, null, 2));
@@ -599,9 +613,10 @@ export default function AdminVoucherSalesPageV3() {
   };
 
   const handleEditProduct = (product: VoucherProduct) => {
-    console.log('[EDIT PRODUCT] Opening edit for:', product.name);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🔵 [EDIT PRODUCT] Opening edit for:', product.name);
     console.log('[EDIT PRODUCT] Existing imageUrl:', product.imageUrl);
-    console.log('[EDIT PRODUCT] Existing thumbnailUrl:', (product as any).thumbnailUrl);
+    console.log('[EDIT PRODUCT] Existing thumbnailUrl:', (product as any).thumbnailUrl || (product as any).thumbnail_url || null);
     
     setSelectedProduct(product);
     setUploadedImage(product.imageUrl);
@@ -609,16 +624,32 @@ export default function AdminVoucherSalesPageV3() {
     
     console.log('[EDIT PRODUCT] State initialized - uploadedImage:', product.imageUrl);
     
+    // Populate ALL form fields from the product
     productForm.reset({
       name: product.name,
       description: product.description || "",
+      detailedDescription: product.detailedDescription || "",
       price: product.price.toString(),
-      validityPeriod: product.validityPeriod?.toString() || "365",
-      isActive: product.isActive,
-      displayOrder: product.displayOrder?.toString() || "0",
+      originalPrice: product.originalPrice?.toString() || "",
       category: product.category || "",
+      sessionDuration: product.sessionDuration?.toString() || "",
       sessionType: product.sessionType || "",
+      validityPeriod: product.validityPeriod?.toString() || "365",
+      redemptionInstructions: product.redemptionInstructions || "",
+      termsAndConditions: product.termsAndConditions || "",
+      displayOrder: product.displayOrder?.toString() || "0",
+      featured: product.featured || false,
+      badge: product.badge || "",
+      isActive: product.isActive !== false,
+      stockLimit: product.stockLimit?.toString() || "",
+      maxPerCustomer: product.maxPerCustomer?.toString() || "",
+      slug: product.slug || "",
+      metaTitle: product.metaTitle || "",
+      metaDescription: product.metaDescription || "",
+      promoImageUrl: product.promoImageUrl || "",
     });
+    console.log('[EDIT PRODUCT] Form populated with all fields');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     setIsProductDialogOpen(true);
   };
 
