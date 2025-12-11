@@ -27,24 +27,25 @@ const VouchersPage: React.FC = () => {
            (language === 'en' ? 'Photoshoot Vouchers Vienna' : 'Fotoshooting Gutscheine Wien');
   }, [t, language]);
 
-  // Fetch voucher products from API with persistent cache
+  // Fetch voucher products from API with shorter cache (images update frequently)
   const { data: apiProducts, isLoading } = useQuery({
-    queryKey: ['/api/vouchers/products'],
+    queryKey: ['/api/vouchers/products', 'v2-images-restored'],
     queryFn: async () => {
-      const res = await fetch('/api/vouchers/products');
+      const res = await fetch('/api/vouchers/products?v=2');
       if (!res.ok) throw new Error('Failed to fetch vouchers');
       const data = await res.json();
-      // Cache the response for 24 hours
-      setCachedData('voucher-products', data);
+      console.log('✅ Voucher products fetched:', data.length, 'products');
+      // Cache the response for 5 minutes only (images update frequently)
+      setCachedData('voucher-products-v2', data);
       return data;
     },
     // Use cached data as initial data to prevent flashing
-    initialData: () => getCachedData('/api/vouchers/products', 1000 * 60 * 60 * 24), // 24 hour cache
+    initialData: () => getCachedData('/api/vouchers/products-v2', 1000 * 60 * 5), // 5 minute cache
     // Keep data fresh but allow brief caching to prevent flash
-    staleTime: 1000 * 60 * 5, // 5 minutes - products don't change that often
-    cacheTime: 1000 * 60 * 10, // 10 minutes
-    refetchOnMount: false, // Don't refetch if we have cached data
-    refetchOnWindowFocus: false, // Don't refetch on window focus
+    staleTime: 1000 * 60 * 2, // 2 minutes - refresh more frequently for image updates
+    cacheTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnMount: true, // Refetch on mount to get latest images
+    refetchOnWindowFocus: true, // Refetch on window focus
   });
 
   // Fallback to default vouchers if API returns empty or fails - ALL CATEGORIES
@@ -218,19 +219,23 @@ const VouchersPage: React.FC = () => {
       console.log('📦 API Products received:', apiProducts.length, apiProducts);
       return apiProducts
         .filter((p: any) => p.isActive !== false && p.is_active !== false) // Only show active products
-        .map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          slug: p.slug,
-          description: p.description || '',
-          price: parseFloat(p.price) || 0,
-          originalPrice: p.original_price ? parseFloat(p.original_price) : parseFloat(p.price) * 1.3,
-          image: p.image_url || p.imageUrl || 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=800&h=600&fit=crop',
-          category: p.category || 'family',
-          route: `/vouchers/${p.id}`,
-          validityMonths: Math.floor((p.validity_period || 365) / 30),
-          isActive: p.is_active !== false && p.isActive !== false
-        }));
+        .map((p: any) => {
+          const imageUrl = p.imageUrl || p.image_url || p.thumbnailUrl || p.thumbnail_url;
+          console.log(`📷 Product: ${p.name}, imageUrl:`, imageUrl);
+          return {
+            id: p.id,
+            name: p.name,
+            slug: p.slug,
+            description: p.description || '',
+            price: parseFloat(p.price) || 0,
+            originalPrice: p.originalPrice || p.original_price ? parseFloat(p.originalPrice || p.original_price) : parseFloat(p.price) * 1.3,
+            image: imageUrl || '', // Use actual uploaded image or empty string (no more placeholders)
+            category: p.category || 'family',
+            route: `/vouchers/${p.id}`,
+            validityMonths: Math.floor((p.validityPeriod || p.validity_period || 365) / 30),
+            isActive: p.isActive !== false && p.is_active !== false
+          };
+        });
     }
     console.log('⚠️ No API products, using fallback');
     return defaultVouchers;
