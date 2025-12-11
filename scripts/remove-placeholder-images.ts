@@ -47,22 +47,13 @@ async function removePlaceholderImages() {
       if (row.promo_image_url) console.log(`    promoImageUrl: ${row.promo_image_url}`);
     });
     
-    // Remove placeholder images (set to NULL)
+    // Remove placeholder images (set to NULL) - simpler approach
     const updateQuery = `
       UPDATE voucher_products 
       SET 
-        image_url = CASE 
-          WHEN ${domainChecks.replace(/image_url/g, 'image_url')} THEN NULL 
-          ELSE image_url 
-        END,
-        thumbnail_url = CASE 
-          WHEN ${domainChecks.replace(/image_url/g, 'thumbnail_url').replace(/thumbnail_url/g, 'thumbnail_url')} THEN NULL 
-          ELSE thumbnail_url 
-        END,
-        promo_image_url = CASE 
-          WHEN ${domainChecks.replace(/image_url/g, 'promo_image_url').replace(/thumbnail_url/g, 'promo_image_url')} THEN NULL 
-          ELSE promo_image_url 
-        END,
+        image_url = NULL,
+        thumbnail_url = NULL,
+        promo_image_url = NULL,
         updated_at = NOW()
       WHERE ${domainChecks}
       RETURNING id, name
