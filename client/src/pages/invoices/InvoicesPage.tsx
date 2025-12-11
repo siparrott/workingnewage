@@ -270,11 +270,10 @@ export default function InvoicesPage() {
     }
   };
 
-  const handlePreviewInvoice = async (invoice: Invoice) => {
-    // IMMEDIATE LOG - First line of function
-    console.log('🚀 handlePreviewInvoice CALLED!', invoice);
-    console.log('🚀 Invoice ID:', invoice.id);
-    console.log('🚀 Fetching from:', `/api/crm/invoices/${invoice.id}`);
+  // NEW FUNCTION - Complete rewrite to force rebuild
+  const openInvoicePreview = async (invoice: Invoice) => {
+    console.log('🎯 NEW openInvoicePreview CALLED! v4', invoice);
+    alert(`Opening invoice: ${invoice.invoice_number} for ${invoice.client_name}`);
     
     try {
       // Fetch full invoice details including items
@@ -828,12 +827,11 @@ export default function InvoicesPage() {
                   <div className="flex items-center justify-end space-x-2">
                     <button
                       onClick={() => {
-                        console.log('👁️ EYE ICON CLICKED!', invoice);
-                        console.log('👁️ Calling handlePreviewInvoice...');
-                        handlePreviewInvoice(invoice);
+                        console.log('👁️👁️👁️ EYE ICON CLICKED v4!', invoice);
+                        openInvoicePreview(invoice);
                       }}
                       className="text-blue-600 hover:text-blue-900"
-                      title="Preview"
+                      title="Preview Invoice"
                     >
                       <Eye className="w-4 h-4" />
                     </button>
