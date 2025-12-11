@@ -258,12 +258,19 @@ export default function InvoicesPage() {
   };
 
   const handlePreviewInvoice = async (invoice: Invoice) => {
+    // IMMEDIATE LOG - First line of function
+    console.log('🚀 handlePreviewInvoice CALLED!', invoice);
+    console.log('🚀 Invoice ID:', invoice.id);
+    console.log('🚀 Fetching from:', `/api/crm/invoices/${invoice.id}`);
+    
     try {
       // Fetch full invoice details including items
       // Use session-based auth (cookies) - no Bearer token needed
+      console.log('🚀 Starting fetch...');
       const response = await fetch(`/api/crm/invoices/${invoice.id}`, {
         credentials: 'include'
       });
+      console.log('🚀 Fetch completed. Status:', response.status, response.ok);
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Invoice fetch failed:', response.status, errorText);
@@ -352,13 +359,16 @@ export default function InvoicesPage() {
         })
       };
       
-      console.log('✅ MAPPED INVOICE FOR TEMPLATE (CACHE BUST v1):', mappedInvoice);
-      console.warn('CLIENT NAME:', mappedInvoice.client_name, 'TOTAL:', mappedInvoice.total_amount);
+      console.log('✅ MAPPED INVOICE FOR TEMPLATE:', mappedInvoice);
+      console.warn('✅ CLIENT NAME:', mappedInvoice.client_name, 'TOTAL:', mappedInvoice.total_amount);
       
+      console.log('🚀 Setting selectedInvoice and viewMode...');
       setSelectedInvoice(mappedInvoice as any);
       setViewMode('preview');
+      console.log('🚀 State set successfully!');
     } catch (error) {
-      console.error('Failed to load invoice:', error);
+      console.error('❌ ERROR in handlePreviewInvoice:', error);
+      console.error('❌ Error details:', error instanceof Error ? error.message : String(error));
       alert('Failed to load invoice preview. Please try again.');
     }
   };
