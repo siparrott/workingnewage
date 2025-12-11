@@ -59,9 +59,24 @@ import {
 
 // Form schemas
 const voucherProductFormSchema = insertVoucherProductSchema.extend({
-  price: z.string().min(1, "Price is required"),
-  validityPeriod: z.string().min(1, "Validity period is required"),
-  displayOrder: z.string().optional(),
+  price: z.string().optional().default("0"),
+  validityPeriod: z.string().optional().default("365"),
+  displayOrder: z.string().optional().default("0"),
+  description: z.string().optional().default(""),
+  detailedDescription: z.string().optional().default(""),
+  category: z.string().optional().default(""),
+  sessionType: z.string().optional().default(""),
+  sessionDuration: z.string().optional().default(""),
+  redemptionInstructions: z.string().optional().default(""),
+  termsAndConditions: z.string().optional().default(""),
+  originalPrice: z.string().optional().default(""),
+  promoImageUrl: z.string().optional().default(""),
+  badge: z.string().optional().default(""),
+  slug: z.string().optional().default(""),
+  metaTitle: z.string().optional().default(""),
+  metaDescription: z.string().optional().default(""),
+  stockLimit: z.string().optional().default(""),
+  maxPerCustomer: z.string().optional().default(""),
 });
 
 const discountCouponFormSchema = insertDiscountCouponSchema.extend({
@@ -2243,7 +2258,7 @@ const ProductDialog: React.FC<{
               Preview
             </Button>
             <Button 
-              onClick={() => {
+              onClick={async () => {
                 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                 console.log('🔵 [BUTTON CLICK] Update Product button clicked!');
                 console.log('[BUTTON CLICK] Form validation errors:', form.formState.errors);
@@ -2251,7 +2266,25 @@ const ProductDialog: React.FC<{
                 console.log('[BUTTON CLICK] Is form valid?', form.formState.isValid);
                 console.log('[BUTTON CLICK] Is submitting?', form.formState.isSubmitting);
                 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                form.handleSubmit(onSubmit)();
+                
+                // Show validation errors to user if any
+                const errors = form.formState.errors;
+                if (Object.keys(errors).length > 0) {
+                  const errorMessages = Object.entries(errors)
+                    .map(([field, error]: [string, any]) => `${field}: ${error.message}`)
+                    .join('\n');
+                  alert('Form validation errors:\n\n' + errorMessages);
+                  console.error('[BUTTON CLICK] Validation failed:', errors);
+                  return;
+                }
+                
+                // Try to submit
+                try {
+                  await form.handleSubmit(onSubmit)();
+                } catch (error) {
+                  console.error('[BUTTON CLICK] Submission error:', error);
+                  alert('Error submitting form: ' + (error instanceof Error ? error.message : String(error)));
+                }
               }} 
               disabled={form.formState.isSubmitting}
             >
