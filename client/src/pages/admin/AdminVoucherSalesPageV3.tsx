@@ -315,15 +315,36 @@ export default function AdminVoucherSalesPageV3() {
   // Mutations
   const createProductMutation = useMutation({
     mutationFn: async (data: VoucherProductFormData) => {
+      // Helper to convert empty strings to undefined for optional numeric fields
+      const parseOptionalNumber = (value: string | undefined): number | undefined => {
+        if (!value || value.trim() === '') return undefined;
+        const parsed = parseInt(value);
+        return isNaN(parsed) ? undefined : parsed;
+      };
+      
+      // Convert empty strings to undefined to avoid PostgreSQL errors
       const payload = {
         name: data.name,
-        description: data.description,
+        description: data.description || undefined,
+        detailedDescription: data.detailedDescription || undefined,
         price: data.price, // Keep as string - backend will handle conversion
-        validityPeriod: parseInt(data.validityPeriod),
-        displayOrder: parseInt(data.displayOrder || "0"),
+        originalPrice: data.originalPrice || undefined,
+        validityPeriod: parseInt(data.validityPeriod || "365"),
+        displayOrder: parseOptionalNumber(data.displayOrder) || 0,
         isActive: data.isActive !== undefined ? data.isActive : true,
-        category: data.category,
-        sessionType: data.sessionType,
+        category: data.category || undefined,
+        sessionType: data.sessionType || undefined,
+        sessionDuration: parseOptionalNumber(data.sessionDuration),
+        redemptionInstructions: data.redemptionInstructions || undefined,
+        termsAndConditions: data.termsAndConditions || undefined,
+        promoImageUrl: data.promoImageUrl || undefined,
+        featured: data.featured,
+        badge: data.badge || undefined,
+        stockLimit: parseOptionalNumber(data.stockLimit),
+        maxPerCustomer: parseOptionalNumber(data.maxPerCustomer),
+        slug: data.slug || undefined,
+        metaTitle: data.metaTitle || undefined,
+        metaDescription: data.metaDescription || undefined,
         imageUrl: uploadedImage || null,
         thumbnailUrl: uploadedThumbnail || null,
       };
@@ -381,31 +402,39 @@ export default function AdminVoucherSalesPageV3() {
       console.log('[UPDATE PRODUCT] finalImageUrl to save:', finalImageUrl);
       console.log('[UPDATE PRODUCT] finalThumbnailUrl to save:', finalThumbnailUrl);
       
+      // Helper to convert empty strings to undefined for optional numeric fields
+      const parseOptionalNumber = (value: string | undefined): number | undefined => {
+        if (!value || value.trim() === '') return undefined;
+        const parsed = parseInt(value);
+        return isNaN(parsed) ? undefined : parsed;
+      };
+      
       // Include ALL form fields to ensure complete update
+      // CRITICAL: Convert empty strings to undefined for numeric fields to avoid PostgreSQL errors
       const payload = {
         name: data.name,
-        description: data.description,
-        detailedDescription: data.detailedDescription,
+        description: data.description || undefined,
+        detailedDescription: data.detailedDescription || undefined,
         price: data.price, // Keep as string - backend will handle conversion
-        originalPrice: data.originalPrice,
-        category: data.category,
-        sessionDuration: data.sessionDuration ? parseInt(data.sessionDuration) : undefined,
-        sessionType: data.sessionType,
-        validityPeriod: parseInt(data.validityPeriod),
-        redemptionInstructions: data.redemptionInstructions,
-        termsAndConditions: data.termsAndConditions,
+        originalPrice: data.originalPrice || undefined, // Empty string -> undefined
+        category: data.category || undefined,
+        sessionDuration: parseOptionalNumber(data.sessionDuration),
+        sessionType: data.sessionType || undefined,
+        validityPeriod: parseInt(data.validityPeriod || "365"),
+        redemptionInstructions: data.redemptionInstructions || undefined,
+        termsAndConditions: data.termsAndConditions || undefined,
         imageUrl: finalImageUrl,
         thumbnailUrl: finalThumbnailUrl,
-        promoImageUrl: data.promoImageUrl,
-        displayOrder: parseInt(data.displayOrder || "0"),
+        promoImageUrl: data.promoImageUrl || undefined,
+        displayOrder: parseOptionalNumber(data.displayOrder) || 0,
         featured: data.featured,
-        badge: data.badge,
+        badge: data.badge || undefined,
         isActive: data.isActive,
-        stockLimit: data.stockLimit ? parseInt(data.stockLimit) : undefined,
-        maxPerCustomer: data.maxPerCustomer ? parseInt(data.maxPerCustomer) : undefined,
-        slug: data.slug,
-        metaTitle: data.metaTitle,
-        metaDescription: data.metaDescription,
+        stockLimit: parseOptionalNumber(data.stockLimit),
+        maxPerCustomer: parseOptionalNumber(data.maxPerCustomer),
+        slug: data.slug || undefined,
+        metaTitle: data.metaTitle || undefined,
+        metaDescription: data.metaDescription || undefined,
       };
       
       console.log('[UPDATE PRODUCT] Full payload:', JSON.stringify(payload, null, 2));
