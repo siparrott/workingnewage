@@ -77,7 +77,7 @@ const HomePage: React.FC = () => {
     refetchOnWindowFocus: false,
   });
 
-  // Fallback voucher products
+  // Fallback voucher products - NO PLACEHOLDER IMAGES
   const defaultVouchers = [
     {
       id: 'pregnancy-shooting',
@@ -85,7 +85,7 @@ const HomePage: React.FC = () => {
       description: t('home.pregnancyShootingDescription'),
       originalPrice: 195,
       price: 95,
-      image: 'https://i.imgur.com/Vd6xtPg.jpg',
+      image: '', // Removed placeholder - use actual uploaded images
       category: 'pregnancy',
       route: '/gutschein/maternity'
     },
@@ -95,7 +95,7 @@ const HomePage: React.FC = () => {
       description: t('home.familyShootingDescription'),
       originalPrice: 295,
       price: 95,
-      image: 'https://i.postimg.cc/bw7ZyvPK/Familienfotoshooting-im-Fotostudio-Wien-Krexner-2777.jpg',
+      image: '', // Removed placeholder - use actual uploaded images
       category: 'family',
       route: '/gutschein/family'
     },
@@ -105,7 +105,7 @@ const HomePage: React.FC = () => {
       description: t('home.newbornShootingDescription'),
       originalPrice: 395,
       price: 95,
-      image: 'https://i.imgur.com/QWOgLqX.jpg',
+      image: '', // Removed placeholder - use actual uploaded images
       category: 'newborn',
       route: '/gutschein/newborn'
     }
