@@ -29,22 +29,20 @@ const VouchersPage: React.FC = () => {
 
   // Fetch voucher products from API with shorter cache (images update frequently)
   const { data: apiProducts, isLoading } = useQuery({
-    queryKey: ['/api/vouchers/products', 'v2-images-restored'],
+    queryKey: ['/api/vouchers/products', 'v3-no-flash'],
     queryFn: async () => {
-      const res = await fetch('/api/vouchers/products?v=2');
+      console.log('🔄 Fetching fresh voucher data from API...');
+      const res = await fetch('/api/vouchers/products?_t=' + Date.now()); // Cache busting
       if (!res.ok) throw new Error('Failed to fetch vouchers');
       const data = await res.json();
       console.log('✅ Voucher products fetched:', data.length, 'products');
-      // Cache the response for 5 minutes only (images update frequently)
-      setCachedData('voucher-products-v2', data);
+      // Don't cache to localStorage - always fetch fresh
       return data;
     },
-    // Use cached data as initial data to prevent flashing
-    initialData: () => getCachedData('/api/vouchers/products-v2', 1000 * 60 * 5), // 5 minute cache
-    // Keep data fresh but allow brief caching to prevent flash
-    staleTime: 1000 * 60 * 2, // 2 minutes - refresh more frequently for image updates
-    cacheTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnMount: true, // Refetch on mount to get latest images
+    // NO initialData - prevents flash of old/placeholder images
+    staleTime: 0, // Always fetch fresh data for latest images
+    cacheTime: 1000 * 60 * 2, // Keep in memory for 2 minutes only
+    refetchOnMount: 'always', // Always refetch to get latest uploaded images
     refetchOnWindowFocus: true, // Refetch on window focus
   });
 
@@ -215,31 +213,33 @@ const VouchersPage: React.FC = () => {
 
   // Transform API products to match expected format
   const voucherProducts = useMemo(() => {
-    if (apiProducts && Array.isArray(apiProducts) && apiProducts.length > 0) {
-      console.log('📦 API Products received:', apiProducts.length, apiProducts);
-      return apiProducts
-        .filter((p: any) => p.isActive !== false && p.is_active !== false) // Only show active products
-        .map((p: any) => {
-          const imageUrl = p.imageUrl || p.image_url || p.thumbnailUrl || p.thumbnail_url;
-          console.log(`📷 Product: ${p.name}, imageUrl:`, imageUrl);
-          return {
-            id: p.id,
-            name: p.name,
-            slug: p.slug,
-            description: p.description || '',
-            price: parseFloat(p.price) || 0,
-            originalPrice: p.originalPrice || p.original_price ? parseFloat(p.originalPrice || p.original_price) : parseFloat(p.price) * 1.3,
-            image: imageUrl || '', // Use actual uploaded image or empty string (no more placeholders)
-            category: p.category || 'family',
-            route: `/vouchers/${p.id}`,
-            validityMonths: Math.floor((p.validityPeriod || p.validity_period || 365) / 30),
-            isActive: p.isActive !== false && p.is_active !== false
-          };
-        });
+    // ALWAYS wait for API data - NEVER show defaultVouchers fallback
+    if (!apiProducts || !Array.isArray(apiProducts) || apiProducts.length === 0) {
+      console.log('⏳ Waiting for API data...');
+      return null; // null = loading state, not empty array
     }
-    console.log('⚠️ No API products, using fallback');
-    return defaultVouchers;
-  }, [apiProducts, t]);
+    
+    console.log('📦 API Products received:', apiProducts.length, apiProducts);
+    return apiProducts
+      .filter((p: any) => p.isActive !== false && p.is_active !== false)
+      .map((p: any) => {
+        const imageUrl = p.imageUrl || p.image_url || p.thumbnailUrl || p.thumbnail_url;
+        console.log(`📷 Product: ${p.name}, imageUrl:`, imageUrl);
+        return {
+          id: p.id,
+          name: p.name,
+          slug: p.slug,
+          description: p.description || '',
+          price: parseFloat(p.price) || 0,
+          originalPrice: p.originalPrice || p.original_price ? parseFloat(p.originalPrice || p.original_price) : parseFloat(p.price) * 1.3,
+          image: imageUrl || '', // Use actual uploaded image or empty string
+          category: p.category || 'family',
+          route: `/vouchers/${p.id}`,
+          validityMonths: Math.floor((p.validityPeriod || p.validity_period || 365) / 30),
+          isActive: p.isActive !== false && p.is_active !== false
+        };
+      });
+  }, [apiProducts]);
 
   // Preload all voucher images to prevent flashing
   const imageUrlsToPreload = useMemo(() => {
@@ -258,18 +258,54 @@ const VouchersPage: React.FC = () => {
   
   useImagePreloader(imageUrlsToPreload);
 
-  // Prepare hero items mapping once
-  const heroItems = voucherProducts.map(v => ({
-    id: v.id,
-    name: v.name,
-    slug: v.slug,
-    description: v.description,
-    image: v.image,
-    price: v.price,
-    originalPrice: v.originalPrice,
-    route: v.route,
-    url: v.route,
-  }));
+  // Prepare hero items mapping once - ONLY if data is loaded
+  const heroItems = useMemo(() => {
+    if (!voucherProducts) return [];
+    return voucherProducts.map(v => ({
+      id: v.id,
+      name: v.name,
+      slug: v.slug,
+      description: v.description,
+      image: v.image,
+      price: v.price,
+      originalPrice: v.originalPrice,
+      route: v.route,
+      url: v.route,
+    }));
+  }, [voucherProducts]);
+
+  // Show loading skeleton while data is fetching
+  if (isLoading || !voucherProducts) {
+    return (
+      <Layout>
+        <Helmet>
+          <title>{vouchersTitle}</title>
+        </Helmet>
+        <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 pt-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="text-center mb-12">
+              <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                {vouchersTitle}
+              </h1>
+              <p className="text-lg text-gray-600 animate-pulse">Loading vouchers...</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[1, 2, 3, 4, 5, 6].map((n) => (
+                <div key={n} className="bg-white rounded-xl shadow-lg overflow-hidden animate-pulse">
+                  <div className="h-64 bg-gray-200"></div>
+                  <div className="p-6 space-y-3">
+                    <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full"></div>
+                    <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   // Show both hero AND full catalog with category filtering
   const showThreeOnly = false;
@@ -351,6 +387,20 @@ const VouchersPage: React.FC = () => {
     navigate('/cart');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Show loading state while fetching vouchers (prevents placeholder flash)
+  if (isLoading || !apiProducts) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 text-lg">{t('common.loading')}</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

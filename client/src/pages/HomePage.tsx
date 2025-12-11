@@ -59,22 +59,20 @@ const HomePage: React.FC = () => {
 
   // Fetch voucher products from API with persistent cache
   const { data: apiProducts } = useQuery({
-    queryKey: ['/api/vouchers/products'],
+    queryKey: ['/api/vouchers/products', 'home-v3'],
     queryFn: async () => {
-      const res = await fetch('/api/vouchers/products');
+      console.log('🏠 [HomePage] Fetching fresh voucher data...');
+      const res = await fetch('/api/vouchers/products?_t=' + Date.now());
       if (!res.ok) throw new Error('Failed to fetch vouchers');
       const data = await res.json();
-      // Cache the response for 24 hours
-      setCachedData('voucher-products', data);
+      console.log('🏠 [HomePage] Loaded', data.length, 'vouchers');
       return data;
     },
-    // Use cached data as initial data to prevent flashing
-    initialData: () => getCachedData('/api/vouchers/products', 1000 * 60 * 60 * 24), // 24 hour cache
-    // Keep data fresh but allow brief caching to prevent flash
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    cacheTime: 1000 * 60 * 10, // 10 minutes
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
+    // NO initialData - prevents flash of old images
+    staleTime: 0, // Always fetch fresh
+    cacheTime: 1000 * 60 * 5, // Keep in memory for 5 minutes
+    refetchOnMount: 'always', // Always refetch to get latest uploaded images
+    refetchOnWindowFocus: false, // Don't refetch on window focus for homepage
   });
 
   // Fallback voucher products - NO PLACEHOLDER IMAGES
@@ -123,7 +121,7 @@ const HomePage: React.FC = () => {
           description: p.description || '',
           price: parseFloat(p.price) || 0,
           originalPrice: p.originalPrice ? parseFloat(p.originalPrice) : parseFloat(p.price) * 1.3,
-          image: p.thumbnailUrl || p.imageUrl || 'https://i.imgur.com/Vd6xtPg.jpg',
+          image: p.thumbnailUrl || p.imageUrl || '', // NO PLACEHOLDER - use empty string
           category: p.category || 'family',
           route: `/gutschein/${p.slug || p.id}`
         }))
