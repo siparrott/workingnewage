@@ -742,6 +742,11 @@ export default function AdminVoucherSalesPageV3() {
   };
 
   const handleProductSubmit = (data: VoucherProductFormData) => {
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🟢 [HANDLE PRODUCT SUBMIT] Function called!');
+    console.log('[HANDLE PRODUCT SUBMIT] Form data received:', data);
+    console.log('[HANDLE PRODUCT SUBMIT] selectedProduct:', selectedProduct);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     if (selectedProduct) {
       updateProductMutation.mutate({ ...data, id: selectedProduct.id });
     } else {
@@ -2237,7 +2242,21 @@ const ProductDialog: React.FC<{
             >
               Preview
             </Button>
-            <Button onClick={form.handleSubmit(onSubmit)} disabled={form.formState.isSubmitting}>{product ? 'Update Product' : 'Create Product'}</Button>
+            <Button 
+              onClick={() => {
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('🔵 [BUTTON CLICK] Update Product button clicked!');
+                console.log('[BUTTON CLICK] Form validation errors:', form.formState.errors);
+                console.log('[BUTTON CLICK] Form values:', form.getValues());
+                console.log('[BUTTON CLICK] Is form valid?', form.formState.isValid);
+                console.log('[BUTTON CLICK] Is submitting?', form.formState.isSubmitting);
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                form.handleSubmit(onSubmit)();
+              }} 
+              disabled={form.formState.isSubmitting}
+            >
+              {product ? 'Update Product' : 'Create Product'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </DialogPortal>
