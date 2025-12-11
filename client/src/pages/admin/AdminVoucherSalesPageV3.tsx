@@ -356,6 +356,10 @@ export default function AdminVoucherSalesPageV3() {
       const finalImageUrl = uploadedImage || (selectedProduct?.imageUrl) || null;
       const finalThumbnailUrl = uploadedThumbnail || ((selectedProduct as any)?.thumbnailUrl) || null;
       
+      console.log('[UPDATE PRODUCT] uploadedImage state:', uploadedImage);
+      console.log('[UPDATE PRODUCT] selectedProduct.imageUrl:', selectedProduct?.imageUrl);
+      console.log('[UPDATE PRODUCT] finalImageUrl to save:', finalImageUrl);
+      
       const payload = {
         name: data.name,
         description: data.description,
@@ -586,9 +590,16 @@ export default function AdminVoucherSalesPageV3() {
   };
 
   const handleEditProduct = (product: VoucherProduct) => {
+    console.log('[EDIT PRODUCT] Opening edit for:', product.name);
+    console.log('[EDIT PRODUCT] Existing imageUrl:', product.imageUrl);
+    console.log('[EDIT PRODUCT] Existing thumbnailUrl:', (product as any).thumbnailUrl);
+    
     setSelectedProduct(product);
     setUploadedImage(product.imageUrl);
     setUploadedThumbnail((product as any).thumbnailUrl || (product as any).thumbnail_url || null);
+    
+    console.log('[EDIT PRODUCT] State initialized - uploadedImage:', product.imageUrl);
+    
     productForm.reset({
       name: product.name,
       description: product.description || "",
