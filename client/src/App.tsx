@@ -106,6 +106,7 @@ import UeberUnsPage from './pages/support/UeberUnsPage';
 import PreisePage from './pages/support/PreisePage';
 import FAQPage from './pages/support/FAQPage';
 import KundenstimmenPage from './pages/support/KundenstimmenPage';
+import ImpressumPage from './pages/support/ImpressumPage';
 import GalleryPage from './pages/GalleryPage';
 import PublicGalleriesPage from './pages/PublicGalleriesPage';
 import PublicInvoicePage from './pages/PublicInvoicePage';
@@ -162,6 +163,7 @@ function App() {
                 <Route path="/preise/" element={<PreisePage />} />
                 <Route path="/faq/" element={<FAQPage />} />
                 <Route path="/kundenstimmen/" element={<KundenstimmenPage />} />
+                <Route path="/impressum/" element={<ImpressumPage />} />
                 
                 <Route path="/gutschein" element={<GutscheinPage />} />
                 <Route path="/gutschein/family" element={<FamilyGutscheinPage />} />

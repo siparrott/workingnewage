@@ -262,6 +262,15 @@ const Footer: React.FC = () => {
                   Portfolio
                 </Link>
               </li>
+              <li>
+                <Link 
+                  to="/impressum/" 
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Impressum
+                </Link>
+              </li>
             </ul>
           </div>
           
