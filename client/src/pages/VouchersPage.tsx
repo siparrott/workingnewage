@@ -198,10 +198,10 @@ const VouchersPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Fotoshooting Gutscheine Wien – Geschenkideen | New Age Fotografie"
-        description="Fotoshooting Gutscheine als perfekte Geschenkidee. Familie, Schwangerschaft, Baby, Business & Event Fotoshootings zum Verschenken. Ab €95. Gültig 2 Jahre."
-        keywords="fotoshooting gutschein wien, geschenkgutschein fotografie, fotografie gutschein, fotoshooting verschenken wien"
-        canonical="/vouchers/"
+        title="Fotoshooting Gutscheine in Wien | New Age Fotografie"
+        description="Fotoshooting Gutscheine als perfektes Geschenk. Wählen Sie aus Familie, Baby oder Business Paketen. Sofort per E-Mail!"
+        keywords="Fotoshooting Gutschein Wien, Geschenkgutschein Fotograf, Gutschein Fotoshooting"
+        canonical="/vouchers"
         ogImage="https://images.unsplash.com/photo-1511895426328-dc8714191300?w=1200&h=630&fit=crop"
         hreflang={[
           { lang: 'de', url: '/vouchers/' },

@@ -157,10 +157,10 @@ const BlogPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Fotografie Blog Wien – Tipps, Tricks & Inspiration | New Age Fotografie"
-        description="Entdecken Sie Fotografie-Tipps, Behind-the-Scenes Einblicke und Inspiration für Ihr nächstes Fotoshooting in Wien. Von Familien- bis Businessfotografie."
-        keywords="fotografie blog wien, fotografie tipps, fotoshooting tipps wien, familienfotografie tipps, businessfotografie blog, schwangerschaftsfotos tipps"
-        canonical="/blog/"
+        title="Fotografie Blog | New Age Fotografie"
+        description="Tipps, Inspiration und Neuigkeiten rund um Fotografie in Wien. Familien-, Baby- und Business-Fotografie Insights."
+        keywords="Fotografie Blog Wien, Fotoshooting Tipps, Fotograf Inspiration"
+        canonical="/blog"
         ogImage="https://i.postimg.cc/wTdZVLdC/photo-grid.jpg"
         hreflang={[
           { lang: 'de', url: 'https://newagefotografie.at/blog/' },

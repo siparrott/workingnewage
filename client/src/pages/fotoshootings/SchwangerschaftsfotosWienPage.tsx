@@ -5,6 +5,8 @@ import { Link } from 'react-router-dom';
 import { Heart, Sparkles, Camera, ArrowRight, Check } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
+import MarkdownCopySlot from '../../components/MarkdownCopySlot';
+import { newageCopyMap } from '../../content/newageCopyMap';
 
 export default function SchwangerschaftsfotosWienPage() {
   const { t } = useLanguage();
@@ -33,8 +35,8 @@ export default function SchwangerschaftsfotosWienPage() {
     <Layout>
     <div className="min-h-screen bg-white">
       <SEOHead
-        title={t('maternity.seo.title')}
-        description={t('maternity.seo.description')}
+        title={newageCopyMap['schwangerschaftsfotos-wien'].title}
+        description={newageCopyMap['schwangerschaftsfotos-wien'].metaDescription}
         keywords={t('maternity.seo.keywords')}
         canonical="/schwangerschaftsfotos-wien/"
         ogImage="https://www.newagefotografie.com/images/maternity-hero.jpg"
@@ -138,6 +140,9 @@ export default function SchwangerschaftsfotosWienPage() {
           </div>
         </div>
       </section>
+
+      {/* Extended Content Section - Safe Copy Slot */}
+      <MarkdownCopySlot content={newageCopyMap['schwangerschaftsfotos-wien'].markdown} />
 
       {/* Packages Section */}
       <section className="py-16 bg-white">

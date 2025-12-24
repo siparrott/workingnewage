@@ -14,8 +14,9 @@ const UeberUnsPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="About New Age Fotografie Vienna | Founder Story, Style & Credentials"
-        description="Learn how New Age Fotografie grew from film-era portraits in England to a Vienna studio trusted for families, newborns, maternity, weddings & corporate shoots. Founder-led. Real experience. Clear results."
+        title="Über uns - Fotografen in Wien | New Age Fotografie"
+        description="Erfahren Sie mehr über New Age Fotografie in Wien. Unser Team, unsere Geschichte und was uns als Fotografen antreibt."
+        keywords="New Age Fotografie Wien, Fotografen Team, Über uns Fotostudio"
         canonical="/ueber-uns/"
       />
 

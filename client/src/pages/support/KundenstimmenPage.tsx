@@ -133,8 +133,9 @@ const KundenstimmenPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Kundenstimmen & Bewertungen | New Age Fotografie Wien"
-        description="Lesen Sie Erfahrungsberichte unserer zufriedenen Kunden. Über 500 Familien vertrauen auf New Age Fotografie für ihre schönsten Erinnerungsfotos in Wien."
+        title="Kundenstimmen & Bewertungen | New Age Fotografie"
+        description="Lesen Sie echte Bewertungen und Erfahrungen unserer Kunden. Über 200 zufriedene Familien in Wien."
+        keywords="Kundenstimmen Fotograf Wien, Bewertungen New Age Fotografie, Erfahrungen"
         canonical="/kundenstimmen/"
       />
       

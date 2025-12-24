@@ -1,6 +1,8 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
+import MarkdownCopySlot from '../../components/MarkdownCopySlot';
+import { newageCopyMap } from '../../content/newageCopyMap';
 import { Link, useNavigate } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Baby, Music, Smile, Shield, Thermometer } from 'lucide-react';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
@@ -48,8 +50,8 @@ export default function NeugeborenenfotosWienPage() {
     <Layout>
     <div className="min-h-screen bg-white">
       <SEOHead
-        title="Neugeborenen- & Babyfotografie in Wien – Studio | New Age Fotografie"
-        description="Warmes Studio (26–28 °C), sanfte Wraps, sichere Posen mit Hands-on-Safety. Neugeborenenfotos Tag 5–14 nach der Geburt. Studio in Wien."
+        title={newageCopyMap['neugeborenenfotos-wien'].title}
+        description={newageCopyMap['neugeborenenfotos-wien'].metaDescription}
         keywords="neugeborenenfotograf wien, neugeborenenfotos wien, babyfotografie wien, newborn fotografie wien"
         canonical="/neugeborenenfotos-wien/"
         ogImage="https://www.newagefotografie.com/images/newborn-hero.jpg"
@@ -152,6 +154,9 @@ export default function NeugeborenenfotosWienPage() {
           </div>
         </div>
       </section>
+
+      {/* Extended Content Section - Safe Copy Slot */}
+      <MarkdownCopySlot content={newageCopyMap['neugeborenenfotos-wien'].markdown} />
 
       {/* Packages Section */}
       <section className="py-16 bg-gray-50">

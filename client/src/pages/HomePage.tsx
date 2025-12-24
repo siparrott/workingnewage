@@ -241,9 +241,9 @@ const HomePage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Familienfotograf Wien – New Age Fotografie | Studio & Outdoor Fotoshootings"
-        description="Professionelle Familienfotos, Schwangerschaftsfotos, Neugeborenenfotos & Business Portraits in Wien. Über 27.000 glückliche Familien. Studio in 1050 Wien. Jetzt Termin buchen!"
-        keywords="familienfotograf wien, fotostudio wien, familienfotografie wien, schwangerschaftsfotos wien, neugeborenenfotos wien, babyfotograf wien, business portrait wien"
+        title="Fotograf in Wien für Familie, Baby & Business | New Age Fotografie"
+        description="Professionelle Fotografie in Wien: Familien-, Baby-, Neugeborenen- und Businessfotos. Buchen Sie jetzt Ihr Shooting in unserem Wiener Studio."
+        keywords="Fotograf Wien, Familienfotograf, Babyfotograf, Businessfotografie Wien"
         canonical="/"
         ogImage={heroImageUrl || undefined}
         hreflang={[

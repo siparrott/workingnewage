@@ -148,6 +148,10 @@ const NewbornGutscheinPage: React.FC = () => {
       title="Neugeborenen Fotoshooting"
       subtitle="Die ersten kostbaren Momente Ihres Babys"
       image="https://i.postimg.cc/WzrVSs3F/3-J9-A3679-renamed-3632.jpg"
+      seoTitle="Neugeborenen-Fotoshooting Gutschein | New Age Fotografie"
+      seoDescription="Das perfekte Geschenk für werdende Eltern: Gutschein für ein professionelles Neugeborenen-Fotoshooting in Wien."
+      seoKeywords="Neugeborenen Fotoshooting Gutschein, Newborn Geschenk, Baby Gutschein"
+      canonical="/gutschein/newborn"
     >
       <div className="max-w-4xl mx-auto">
         {/* Content Block */}

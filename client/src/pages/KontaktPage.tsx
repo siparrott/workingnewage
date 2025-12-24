@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Layout from '../components/layout/Layout';
 import { Mail, Phone, Clock, MapPin, Train, Car, MessageCircle } from 'lucide-react';
 import { submitContactForm } from '../lib/forms';
 import { useManualPageContent } from '../hooks/useManualPageContent';
+import { SEOHead } from '../components/SEO/SEOHead';
+import { Helmet } from 'react-helmet-async';
 
 const KontaktPage: React.FC = () => {
   // Use manual page content hook - allows admin to override any content
@@ -16,88 +18,6 @@ const KontaktPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    // SEO Meta Tags
-    document.title = 'Kontakt - Familienfotograf Wien | New Age Fotografie';
-    
-    // Update meta description
-    let metaDescription = document.querySelector('meta[name="description"]');
-    if (!metaDescription) {
-      metaDescription = document.createElement('meta');
-      metaDescription.setAttribute('name', 'description');
-      document.head.appendChild(metaDescription);
-    }
-    metaDescription.setAttribute('content', 'Kontaktieren Sie unseren Familienfotograf in Wien. STUDIO Eingang Ecke Schönbrunnerstraße, Studio: Wehrgasse 11A/2+5, 1050 Wien. Tel: +43 677 633 99210. Öffnungszeiten Fr-So 09:00-17:00.');
-
-    // Open Graph tags
-    let ogTitle = document.querySelector('meta[property="og:title"]');
-    if (!ogTitle) {
-      ogTitle = document.createElement('meta');
-      ogTitle.setAttribute('property', 'og:title');
-      document.head.appendChild(ogTitle);
-    }
-    ogTitle.setAttribute('content', 'Kontakt - Familienfotograf Wien | New Age Fotografie');
-
-    let ogDescription = document.querySelector('meta[property="og:description"]');
-    if (!ogDescription) {
-      ogDescription = document.createElement('meta');
-      ogDescription.setAttribute('property', 'og:description');
-      document.head.appendChild(ogDescription);
-    }
-    ogDescription.setAttribute('content', 'Kontaktieren Sie unseren Familienfotograf in Wien. STUDIO Eingang Ecke Schönbrunnerstraße, Studio: Wehrgasse 11A/2+5, 1050 Wien. Tel: +43 677 633 99210.');
-
-    // Local Business (PhotoStudio) JSON-LD structured data
-    const jsonLdStudio = {
-      '@context': 'https://schema.org',
-      '@type': 'PhotoStudio',
-      name: 'New Age Fotografie',
-      image: 'https://www.newagefotografie.com/path-to-logo-or-hero.jpg',
-      url: 'https://www.newagefotografie.com/',
-      telephone: '+43 677 633 99210',
-      email: 'hallo@newagefotografie.com',
-      address: {
-        '@type': 'PostalAddress',
-        streetAddress: 'Wehrgasse 11A/2+5',
-        addressLocality: 'Wien',
-        postalCode: '1050',
-        addressCountry: 'AT'
-      },
-      description: 'Portraitstudio in 1050 Wien: Familien, Newborn, Babybauch & Business-Headshots. Studio Eingang Ecke Schönbrunnerstraße. Make the most of now!',
-      openingHoursSpecification: [
-        {
-          '@type': 'OpeningHoursSpecification',
-          dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-          opens: '10:00',
-          closes: '18:00'
-        }
-      ],
-      sameAs: [
-        'https://g.page/r/your-google-profile-id',
-        'https://www.facebook.com/yourpage',
-        'https://www.instagram.com/yourpage'
-      ],
-      hasMap: 'https://maps.google.com/?q=Wehrgasse+11A,+1050+Wien',
-      geo: {
-        '@type': 'GeoCoordinates',
-        // Coords derived from the embedded map on this page
-        latitude: 48.1865,
-        longitude: 16.3608
-      }
-    } as const;
-
-    const ldScript = document.createElement('script');
-    ldScript.type = 'application/ld+json';
-    ldScript.text = JSON.stringify(jsonLdStudio);
-    document.head.appendChild(ldScript);
-
-    return () => {
-      document.title = 'New Age Fotografie - Familienfotograf Wien';
-      if (ldScript && ldScript.parentNode) {
-        ldScript.parentNode.removeChild(ldScript);
-      }
-    };
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,6 +44,34 @@ const KontaktPage: React.FC = () => {
 
   return (
     <Layout>
+      <SEOHead
+        title="Kontakt - Fotograf in Wien | New Age Fotografie"
+        description="Kontaktieren Sie New Age Fotografie in Wien. Rufen Sie an oder schreiben Sie uns. Wir freuen uns auf Sie!"
+        keywords="Kontakt Fotograf Wien, Fotostudio Kontakt, New Age Fotografie Adresse"
+        canonical="/kontakt"
+      />
+      
+      {/* JSON-LD Structured Data */}
+      <Helmet>
+        <script type="application/ld+json">
+          {JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'PhotoStudio',
+            name: 'New Age Fotografie',
+            url: 'https://www.newagefotografie.com/',
+            telephone: '+43 677 633 99210',
+            email: 'hallo@newagefotografie.com',
+            address: {
+              '@type': 'PostalAddress',
+              streetAddress: 'Wehrgasse 11A/2+5',
+              addressLocality: 'Wien',
+              postalCode: '1050',
+              addressCountry: 'AT'
+            }
+          })}
+        </script>
+      </Helmet>
+      
       {/* Hero Section */}
       <div className="bg-gray-50 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

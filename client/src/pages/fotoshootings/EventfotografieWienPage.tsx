@@ -1,6 +1,8 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
+import MarkdownCopySlot from '../../components/MarkdownCopySlot';
+import { newageCopyMap } from '../../content/newageCopyMap';
 import { Link, useNavigate } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Briefcase, Shield, Zap, Eye, MonitorPlay, Award, Building } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
@@ -48,8 +50,8 @@ export default function EventfotografieWienPage() {
     <Layout>
     <div className="min-h-screen bg-white">
       <SEOHead
-        title="Eventfotografie Wien – Konferenzen & Brand Launches | New Age Fotografie"
-        description="Eventfotograf Wien gesucht? Konferenzen, Messen, Brand-Launches. Klare SLAs, Express-Galerien, On-Site Auswahl. Studio-Team in Wien. Jetzt Termin sichern!"
+        title={newageCopyMap['eventfotografie-wien'].title}
+        description={newageCopyMap['eventfotografie-wien'].metaDescription}
         keywords="eventfotograf wien, eventfotografie wien, konferenzfotografie wien, messefotografie wien"
         canonical="/eventfotografie-wien/"
         ogImage="https://www.newagefotografie.com/images/event-hero.jpg"
@@ -205,6 +207,9 @@ export default function EventfotografieWienPage() {
           </div>
         </div>
       </section>
+
+      {/* Extended Content Section - Safe Copy Slot */}
+      <MarkdownCopySlot content={newageCopyMap['eventfotografie-wien'].markdown} />
 
       {/* SLAs Table Section */}
       <section className="py-16 bg-gray-50">

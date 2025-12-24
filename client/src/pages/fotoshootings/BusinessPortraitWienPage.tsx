@@ -1,6 +1,8 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
+import MarkdownCopySlot from '../../components/MarkdownCopySlot';
+import { newageCopyMap } from '../../content/newageCopyMap';
 import { Link, useNavigate } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Briefcase, Linkedin, TrendingUp, Palette, Shield } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
@@ -45,8 +47,8 @@ export default function BusinessPortraitWienPage() {
     <Layout>
     <div className="min-h-screen bg-white">
       <SEOHead
-        title="Business Portrait Wien – LinkedIn, CEO & Personal-Branding | New Age Fotografie"
-        description="Business-Portraits im Studio in Wien: LinkedIn, CEO & Personal-Branding. Voll retuschiert, High-Res, kommerzielle Rechte inklusive. Pakete ab €95."
+        title={newageCopyMap['business-portrait-wien'].title}
+        description={newageCopyMap['business-portrait-wien'].metaDescription}
         keywords="business portrait wien, corporate fotografie wien, linkedin foto wien, ceo portrait wien"
         canonical="/business-portrait-wien/"
         ogImage="https://www.newagefotografie.com/images/business-hero.jpg"
@@ -150,6 +152,9 @@ export default function BusinessPortraitWienPage() {
           </div>
         </div>
       </section>
+
+      {/* Extended Content Section - Safe Copy Slot */}
+      <MarkdownCopySlot content={newageCopyMap['business-portrait-wien'].markdown} />
 
       {/* Packages Section */}
       <section className="py-16 bg-gray-50">

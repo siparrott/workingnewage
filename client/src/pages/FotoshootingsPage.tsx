@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import Layout from '../components/layout/Layout';
 import { useNavigate } from 'react-router-dom';
 import { Clock, Users, Camera } from 'lucide-react';
 import { useManualPageContent } from '../hooks/useManualPageContent';
+import { SEOHead } from '../components/SEO/SEOHead';
 
 const FotoshootingsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -11,33 +12,6 @@ const FotoshootingsPage: React.FC = () => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  useEffect(() => {
-    // SEO Meta Tags
-    document.title = 'Fotoshootings Wien - Familien & Neugeborenen Fotografie | New Age Fotografie';
-    
-    // Update meta description
-    let metaDescription = document.querySelector('meta[name="description"]');
-    if (!metaDescription) {
-      metaDescription = document.createElement('meta');
-      metaDescription.setAttribute('name', 'description');
-      document.head.appendChild(metaDescription);
-    }
-    metaDescription.setAttribute('content', 'Professionelle Fotoshootings in Wien: Familienporträts, Schwangerschaftsfotos, Neugeborenenbilder, Business-Headshots. Erfahrener Fotograf mit Studio in 1050 Wien.');
-
-    // Open Graph tags
-    let ogTitle = document.querySelector('meta[property="og:title"]');
-    if (!ogTitle) {
-      ogTitle = document.createElement('meta');
-      ogTitle.setAttribute('property', 'og:title');
-      document.head.appendChild(ogTitle);
-    }
-    ogTitle.setAttribute('content', 'Fotoshootings Wien - Professionelle Fotografie | New Age Fotografie');
-
-    return () => {
-      document.title = 'New Age Fotografie - Familienfotograf Wien';
-    };
-  }, []);
 
   const shootingTypes = [
     {
@@ -80,6 +54,13 @@ const FotoshootingsPage: React.FC = () => {
 
   return (
     <Layout>
+      <SEOHead
+        title="Fotoshootings in Wien buchen | New Age Fotografie"
+        description="Entdecken Sie unsere Fotoshooting-Angebote in Wien: Familie, Baby, Business, Hochzeit und mehr. Flexible Pakete für jeden Anlass."
+        keywords="Fotoshooting Wien, Fotoshooting buchen, Fotograf Pakete Wien"
+        canonical="/fotoshootings"
+      />
+      
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-purple-600 to-purple-800 py-16">
         <div className="container mx-auto px-4">

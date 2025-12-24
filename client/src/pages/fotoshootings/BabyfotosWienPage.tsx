@@ -6,6 +6,8 @@ import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Baby, Shield, Mus
 import { Helmet } from 'react-helmet-async';
 import { useCart } from '../../context/CartContext';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
+import MarkdownCopySlot from '../../components/MarkdownCopySlot';
+import { newageCopyMap } from '../../content/newageCopyMap';
 
 export default function BabyfotosWienPage() {
   const navigate = useNavigate();
@@ -46,8 +48,8 @@ export default function BabyfotosWienPage() {
     <Layout>
     <div className="min-h-screen bg-white">
       <SEOHead
-        title="Babyfotos Wien – Liebevolle Babyfotografie (3–12 Monate) | New Age Fotografie"
-        description="Babyfotos Wien gesucht? Zarte, verspielte Babyfotografie für 3–12 Monate. Studio & Outdoor, altersgerechte Posen, Pakete, Ablauf, FAQs. Jetzt Termin sichern!"
+        title={newageCopyMap['babyfotos-wien'].title}
+        description={newageCopyMap['babyfotos-wien'].metaDescription}
         keywords="babyfotos wien, babyfotografie wien, baby fotoshooting wien, babyfotograf wien"
         canonical="/babyfotos-wien/"
         ogImage="https://www.newagefotografie.com/images/baby-hero.jpg"
@@ -308,6 +310,9 @@ export default function BabyfotosWienPage() {
           </div>
         </div>
       </section>
+
+      {/* Extended Content Section - Safe Copy Slot */}
+      <MarkdownCopySlot content={newageCopyMap['babyfotos-wien'].markdown} />
 
       {/* Packages Section */}
       <section className="py-16 bg-gray-50">

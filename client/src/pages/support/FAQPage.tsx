@@ -151,8 +151,9 @@ const FAQPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="FAQ – Häufig gestellte Fragen | New Age Fotografie Wien"
-        description="Antworten auf häufige Fragen zu Fotoshootings in Wien: Buchung, Ablauf, Preise, Bildlieferung und mehr. Alle Infos zu unseren Fotografie-Leistungen."
+        title="FAQ - Häufige Fragen | New Age Fotografie"
+        description="Antworten auf Ihre Fragen zu Fotoshootings bei New Age Fotografie Wien. Ablauf, Preise, Termine und mehr."
+        keywords="FAQ Fotoshooting, Fragen Fotograf Wien, Fotoshooting Ablauf"
         canonical="/faq/"
       />
       

@@ -1,6 +1,8 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
+import MarkdownCopySlot from '../../components/MarkdownCopySlot';
+import { newageCopyMap } from '../../content/newageCopyMap';
 import { Link } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Briefcase, Linkedin, TrendingUp, Palette, Shield, Eye } from 'lucide-react';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
@@ -31,8 +33,8 @@ export default function BewerbungsfotosWienPage() {
     <Layout>
     <div className="min-h-screen bg-white">
       <SEOHead
-        title="Bewerbungsfotos Wien – LinkedIn-Portraits mit Express-Retusche | New Age Fotografie"
-        description="Professionelle Bewerbungsfotos in Wien: schnelle Lieferung, Hintergrund-Optionen, natürliche Retusche. Pakete ab €95. Jetzt Termin sichern."
+        title={newageCopyMap['bewerbungsfotos-wien'].title}
+        description={newageCopyMap['bewerbungsfotos-wien'].metaDescription}
         keywords="bewerbungsfotos wien, linkedin foto wien, bewerbungsfoto professionell wien, xing foto wien"
         canonical="/bewerbungsfotos-wien/"
         ogImage="https://www.newagefotografie.com/images/bewerbung-hero.jpg"
@@ -137,6 +139,9 @@ export default function BewerbungsfotosWienPage() {
           </div>
         </div>
       </section>
+
+      {/* Extended Content Section - Safe Copy Slot */}
+      <MarkdownCopySlot content={newageCopyMap['bewerbungsfotos-wien'].markdown} />
 
       {/* Packages Section */}
       <section className="py-16 bg-gray-50">

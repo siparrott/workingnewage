@@ -149,6 +149,10 @@ const MaternityGutscheinPage: React.FC = () => {
       title="Schwangerschafts Fotoshooting"
       subtitle="Magische Momente Ihrer Schwangerschaft"
       image="https://i.postimg.cc/xjZzq5Mc/4S8A5701.jpg"
+      seoTitle="Schwangerschafts-Fotoshooting Gutschein | New Age Fotografie"
+      seoDescription="Verschenken Sie Erinnerungen: Gutschein für ein einfühlsames Schwangerschafts-Fotoshooting in Wien."
+      seoKeywords="Schwangerschaft Fotoshooting Gutschein, Babybauch Geschenk, Maternity Gutschein"
+      canonical="/gutschein/maternity"
     >
       <div className="max-w-4xl mx-auto">
         {/* Content Block */}

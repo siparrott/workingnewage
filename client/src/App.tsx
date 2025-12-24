@@ -7,6 +7,8 @@ import { AuthProvider } from './context/AuthContext';
 import { NeonAuthProvider } from './context/NeonAuthContext';
 import { CartProvider } from './context/CartContext';
 import { LanguageProvider } from './context/LanguageContext';
+import CookieConsent from './components/CookieConsent';
+import ConsentScripts from './components/ConsentScripts';
 import HomePage from './pages/HomePage';
 import FotoshootingsPage from './pages/FotoshootingsPage';
 import GutscheinPage from './pages/GutscheinPage';
@@ -106,6 +108,10 @@ import UeberUnsPage from './pages/support/UeberUnsPage';
 import PreisePage from './pages/support/PreisePage';
 import FAQPage from './pages/support/FAQPage';
 import KundenstimmenPage from './pages/support/KundenstimmenPage';
+import ImpressumPage from './pages/support/ImpressumPage';
+import AGBPage from './pages/legal/AGBPage';
+import DatenschutzPage from './pages/legal/DatenschutzPage';
+import ModelReleasePage from './pages/legal/ModelReleasePage';
 import GalleryPage from './pages/GalleryPage';
 import PublicGalleriesPage from './pages/PublicGalleriesPage';
 import PublicInvoicePage from './pages/PublicInvoicePage';
@@ -162,6 +168,10 @@ function App() {
                 <Route path="/preise/" element={<PreisePage />} />
                 <Route path="/faq/" element={<FAQPage />} />
                 <Route path="/kundenstimmen/" element={<KundenstimmenPage />} />
+                <Route path="/impressum/" element={<ImpressumPage />} />
+                <Route path="/agb/" element={<AGBPage />} />
+                <Route path="/datenschutz/" element={<DatenschutzPage />} />
+                <Route path="/model-release/" element={<ModelReleasePage />} />
                 
                 <Route path="/gutschein" element={<GutscheinPage />} />
                 <Route path="/gutschein/family" element={<FamilyGutscheinPage />} />
@@ -600,6 +610,8 @@ function App() {
                 <Route path="/gallery-shop-test" element={<GalleryShopTest />} />
               </Routes>
               <ChatBot />
+              <CookieConsent privacyPolicyUrl="/impressum/" imprintUrl="/impressum/" />
+              <ConsentScripts />
             </Router>
               </LanguageProvider>
             </CartProvider>

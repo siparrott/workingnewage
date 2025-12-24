@@ -6,6 +6,8 @@ import { Helmet } from 'react-helmet-async';
 import { Camera, Sparkles, ArrowRight, Check, MapPin } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
+import MarkdownCopySlot from '../../components/MarkdownCopySlot';
+import { newageCopyMap } from '../../content/newageCopyMap';
 
 export default function PortraitfotografieWienPage() {
   const navigate = useNavigate();
@@ -46,8 +48,8 @@ export default function PortraitfotografieWienPage() {
     <Layout>
       <div className="min-h-screen bg-white">
         <SEOHead
-          title="Portraitfotograf Wien – Editorial, Klassisch & Kreativ | New Age Fotografie"
-          description="Portraitfotograf Wien gesucht? Editorial, klassisch & kreative Portraits – Studio-Sets, Licht-Setups, Pakete & FAQs. Jetzt Termin sichern!"
+          title={newageCopyMap['portrait-fotografie-wien'].title}
+          description={newageCopyMap['portrait-fotografie-wien'].metaDescription}
           keywords="portraitfotograf wien, portraitfotografie wien, editorial portrait wien, studio portrait wien"
           canonical="/portrait-fotografie-wien/"
           hreflang={[
@@ -209,7 +211,8 @@ export default function PortraitfotografieWienPage() {
             </div>
           </div>
         </section>
-
+        {/* Extended Content Section - Safe Copy Slot */}
+        <MarkdownCopySlot content={newageCopyMap['portrait-fotografie-wien'].markdown} />
         {/* Pakete & Preise */}
         <section className="py-16 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

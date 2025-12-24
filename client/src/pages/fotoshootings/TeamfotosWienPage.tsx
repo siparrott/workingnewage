@@ -4,6 +4,8 @@ import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Briefcase, Building, Zap, Shield, TrendingUp, MapPin } from 'lucide-react';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
+import MarkdownCopySlot from '../../components/MarkdownCopySlot';
+import { newageCopyMap } from '../../content/newageCopyMap';
 
 export default function TeamfotosWienPage() {
   const t = useManualPageContent('teamfotos');
@@ -31,8 +33,8 @@ export default function TeamfotosWienPage() {
     <Layout>
     <div className="min-h-screen bg-white">
       <SEOHead
-        title="Teamfotos Wien – Mitarbeiterfotos vor Ort | New Age Fotografie"
-        description="Team- & Mitarbeiterfotos in Wien: mobiles Studio, schneller Ablauf, einheitlicher Look. Ø 7–8 Min. pro Person, Gruppenfoto inkl., kommerzielle Rechte."
+        title={newageCopyMap['teamfotos-wien'].title}
+        description={newageCopyMap['teamfotos-wien'].metaDescription}
         keywords="teamfotos wien, mitarbeiterfotos wien, team fotografie wien, corporate team shooting wien"
         canonical="/teamfotos-wien/"
         ogImage="https://www.newagefotografie.com/images/team-hero.jpg"
@@ -136,6 +138,9 @@ export default function TeamfotosWienPage() {
           </div>
         </div>
       </section>
+
+      {/* Extended Content Section - Safe Copy Slot */}
+      <MarkdownCopySlot content={newageCopyMap['teamfotos-wien'].markdown} />
 
       {/* Packages Section */}
       <section className="py-16 bg-gray-50">

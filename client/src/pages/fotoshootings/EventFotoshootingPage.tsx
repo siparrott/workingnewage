@@ -113,6 +113,10 @@ const EventFotoshootingPage: React.FC = () => {
       title="Eventfotografie in Wien & Zürich"
       subtitle="New Age Fotografie – Authentisch. Professionell. Unvergesslich."
       image="https://i.postimg.cc/rwtMhFtV/Ball-des-Sports-2025-www-newagefotografie-com-5513.jpg"
+      seoTitle="Event Fotoshooting Wien | New Age Fotografie"
+      seoDescription="Event Fotoshooting in Wien: Professionelle Dokumentation Ihrer Veranstaltungen und besonderen Anlässe."
+      seoKeywords="Event Fotoshooting Wien, Eventfotograf buchen, Veranstaltungsfotos"
+      canonical="/fotoshootings/event"
     >
       <div className="max-w-4xl mx-auto">
         {/* Main Content */}

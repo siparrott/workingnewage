@@ -5,6 +5,8 @@ import { Camera, Check, ArrowRight, Lightbulb, Users, Sparkles } from 'lucide-re
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
+import MarkdownCopySlot from '../../components/MarkdownCopySlot';
+import { newageCopyMap } from '../../content/newageCopyMap';
 
 interface SEOHeadProps {
   title: string;
@@ -60,8 +62,8 @@ const StudioFotografieWienPage: React.FC = () => {
     <Layout>
     <div className="min-h-screen bg-gray-50">
       <SEOHead
-        title="Studio Fotografie Wien – Backdrops, Licht, Sets & Kapazitäten | New Age Fotografie"
-        description="Professionelle Studio Fotografie in Wien: Definierte Sets, Backdrops & Modifiers. Headshots, Portraits, Teams & Produkte. Ab €150. Jetzt Termin sichern."
+        title={newageCopyMap['studio-fotografie-wien'].title}
+        description={newageCopyMap['studio-fotografie-wien'].metaDescription}
         keywords="studio fotografie wien, fotostudio wien, portrait studio, headshot fotografie wien, studiofotografie, studio shooting wien"
         canonical="https://workingnewage-2eecd723a444.herokuapp.com/studio-fotografie-wien/"
       />
@@ -444,6 +446,9 @@ const StudioFotografieWienPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Extended Content Section - Safe Copy Slot */}
+      <MarkdownCopySlot content={newageCopyMap['studio-fotografie-wien'].markdown} />
 
       {/* Pakete */}
       <section id="pakete" className="py-16 bg-white">

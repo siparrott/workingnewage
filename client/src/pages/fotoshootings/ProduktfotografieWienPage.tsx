@@ -5,6 +5,8 @@ import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Package, Check, ArrowRight, Sparkles, Camera, Layers, SlidersHorizontal } from 'lucide-react';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
+import MarkdownCopySlot from '../../components/MarkdownCopySlot';
+import { newageCopyMap } from '../../content/newageCopyMap';
 
 // CACHE BUST v2.0
 export default function ProduktfotografieWienPage() {
@@ -32,8 +34,8 @@ export default function ProduktfotografieWienPage() {
     <Layout>
       <div className="min-h-screen bg-white">
         <SEOHead
-          title="Produktfotograf Wien – Amazon/Shop/PR Bilder | New Age Fotografie"
-          description="Produkfotograf Wien gesucht? Freisteller, Spiegelungen, Lifestyle-Sets, Amazon/Shop-Specs, Farbtreue & schnelle SLAs. Pakete, Preise, Checklisten."
+          title={newageCopyMap['produkt-fotografie-wien'].title}
+          description={newageCopyMap['produkt-fotografie-wien'].metaDescription}
           keywords="produktfotograf wien, produktfotografie wien, e-commerce fotos wien, amazon bilder wien"
           canonical="/produkt-fotografie-wien/"
           ogImage="https://www.newagefotografie.com/images/product-hero.jpg"
@@ -154,6 +156,9 @@ export default function ProduktfotografieWienPage() {
             </div>
           </div>
         </section>
+
+        {/* Extended Content Section - Safe Copy Slot */}
+        <MarkdownCopySlot content={newageCopyMap['produkt-fotografie-wien'].markdown} />
 
         {/* Example Images - Portfolio Showcase */}
         {/* Pakete & Preise */}

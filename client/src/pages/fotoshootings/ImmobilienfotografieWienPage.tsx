@@ -6,6 +6,8 @@ import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import { useCart } from '../../context/CartContext';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
+import MarkdownCopySlot from '../../components/MarkdownCopySlot';
+import { newageCopyMap } from '../../content/newageCopyMap';
 
 interface SEOHeadProps {
   title: string;
@@ -74,8 +76,8 @@ const ImmobilienfotografieWienPage: React.FC = () => {
     <Layout>
     <div className="min-h-screen bg-gray-50">
       <SEOHead
-        title="Immobilienfotograf Wien – Architektur, Interieur, Grundrisse | New Age Fotografie"
-        description="Professionelle Immobilienfotografie in Wien: Window-Pull HDR, vertikale Korrektur, 2D/3D Grundrisse. Ab €190. Für Makler, Eigentümer & Verwalter."
+        title={newageCopyMap['immobilien-fotografie-wien'].title}
+        description={newageCopyMap['immobilien-fotografie-wien'].metaDescription}
         keywords="immobilienfotograf wien, architektur fotografie wien, interieur fotografie, grundrisse, real estate fotograf, immobilienfoto, makler fotografie wien"
         canonical="https://workingnewage-2eecd723a444.herokuapp.com/immobilien-fotografie-wien/"
       />
@@ -288,6 +290,9 @@ const ImmobilienfotografieWienPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Extended Content Section - Safe Copy Slot */}
+      <MarkdownCopySlot content={newageCopyMap['immobilien-fotografie-wien'].markdown} />
 
       {/* Pakete */}
       <section id="pakete" className="py-16 bg-white">

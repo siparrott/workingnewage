@@ -83,6 +83,10 @@ const WeddingFotoshootingPage: React.FC = () => {
       title="Hochzeitsfotografie in Wien & Zürich"
       subtitle="New Age Fotografie – Eure Geschichte. Echt. Berührend. Für immer."
       image="https://i.postimg.cc/vBxS7p6K/DSC-0318-01299.jpg"
+      seoTitle="Hochzeits-Fotoshooting Wien | New Age Fotografie"
+      seoDescription="Hochzeits-Fotoshooting in Wien: Romantische Hochzeitsbilder von Ihrem schönsten Tag. Individuell und einzigartig."
+      seoKeywords="Hochzeits Fotoshooting Wien, Brautpaar Fotos, Hochzeitsreportage"
+      canonical="/fotoshootings/wedding"
     >
       <div className="max-w-4xl mx-auto">
         {/* Main Content */}

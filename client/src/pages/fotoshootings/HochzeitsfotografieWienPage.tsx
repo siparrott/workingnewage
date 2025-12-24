@@ -1,6 +1,8 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
+import MarkdownCopySlot from '../../components/MarkdownCopySlot';
+import { newageCopyMap } from '../../content/newageCopyMap';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, MapPin, Gift, Calendar, Sparkles, Shield } from 'lucide-react';
@@ -46,8 +48,8 @@ export default function HochzeitsfotografieWienPage() {
     <Layout>
       <div className="min-h-screen bg-white">
         <SEOHead
-          title="Hochzeitsfotograf Wien – Emotionale Hochzeitsfotografie | New Age Fotografie"
-          description="Hochzeitsfotograf in Wien gesucht? Moderne, zeitlose Hochzeitsfotos – Standesamt, Kirche & Ganztag. Klare Pakete, Sneak Peeks binnen 24–48h. Jetzt unverbindlich anfragen."
+          title={newageCopyMap['hochzeitsfotografie-wien'].title}
+          description={newageCopyMap['hochzeitsfotografie-wien'].metaDescription}
           keywords="hochzeitsfotograf wien, hochzeitsfotografie wien, standesamt wien fotos, brautpaarshooting wien"
           canonical="/hochzeitsfotografie-wien/"
           ogImage="https://www.newagefotografie.com/images/wedding-hero.jpg"
@@ -143,6 +145,9 @@ export default function HochzeitsfotografieWienPage() {
         </section>
 
         <GoogleReviews />
+
+        {/* Extended Content Section - Safe Copy Slot */}
+        <MarkdownCopySlot content={newageCopyMap['hochzeitsfotografie-wien'].markdown} />
 
         {/* Feature Image 4 */}
         {heroImage4 && (

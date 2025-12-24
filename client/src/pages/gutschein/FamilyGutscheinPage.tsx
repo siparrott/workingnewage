@@ -150,6 +150,10 @@ const FamilyGutscheinPage: React.FC = () => {
       title="Familien Fotoshooting"
       subtitle="Unvergessliche Momente für die ganze Familie"
       image="https://i.imgur.com/o9HCqp0.jpg"
+      seoTitle="Familien-Fotoshooting Gutschein | New Age Fotografie"
+      seoDescription="Schenken Sie Familienglück! Gutschein für ein professionelles Familien-Fotoshooting in Wien. Sofort per E-Mail."
+      seoKeywords="Familien Fotoshooting Gutschein, Familienfotos Geschenk, Gutschein Familie"
+      canonical="/gutschein/family"
     >
       <div className="max-w-4xl mx-auto">
         {/* Content Block */}

@@ -1,17 +1,42 @@
 import React, { ReactNode } from 'react';
 import Layout from '../layout/Layout';
 import { Camera } from 'lucide-react';
+import { SEOHead } from '../SEO/SEOHead';
 
 interface GutscheinLayoutProps {
   children: ReactNode;
   title: string;
   subtitle: string;
   image: string;
+  // SEO props
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+  canonical?: string;
 }
 
-const GutscheinLayout: React.FC<GutscheinLayoutProps> = ({ children, title, subtitle, image }) => {
+const GutscheinLayout: React.FC<GutscheinLayoutProps> = ({ 
+  children, 
+  title, 
+  subtitle, 
+  image,
+  seoTitle,
+  seoDescription,
+  seoKeywords,
+  canonical
+}) => {
   return (
     <Layout>
+      {/* SEO Head */}
+      {seoTitle && seoDescription && (
+        <SEOHead
+          title={seoTitle}
+          description={seoDescription}
+          keywords={seoKeywords}
+          canonical={canonical}
+        />
+      )}
+      
       {/* Hero Section */}
       <section 
         className="relative h-[60vh] bg-cover bg-center"

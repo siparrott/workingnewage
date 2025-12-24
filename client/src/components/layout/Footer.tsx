@@ -262,6 +262,42 @@ const Footer: React.FC = () => {
                   Portfolio
                 </Link>
               </li>
+              <li>
+                <Link 
+                  to="/impressum/" 
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Impressum & Datenschutz
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/agb/" 
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  AGB
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/datenschutz/" 
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Datenschutz
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/model-release/" 
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Model-Release
+                </Link>
+              </li>
             </ul>
           </div>
           
@@ -370,7 +406,15 @@ const Footer: React.FC = () => {
         {/* Copyright */}
         <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-300">
           <p>&copy; 2025 New Age Fotografie. Alle Rechte vorbehalten.</p>
-          <p className="mt-2 text-sm">
+          <p className="mt-2 text-sm space-x-3">
+            <button
+              type="button"
+              onClick={() => (window as any).openCookiePreferences?.()}
+              className="text-gray-400 hover:text-purple-300 transition-colors underline hover:no-underline"
+            >
+              Cookie-Einstellungen
+            </button>
+            <span className="text-gray-600">·</span>
             <a 
               href="https://www.togninja.com" 
               target="_blank" 

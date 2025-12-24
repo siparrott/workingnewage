@@ -50,6 +50,10 @@ const BusinessFotoshootingPage: React.FC = () => {
       title="Businessportraits, die Eindruck machen"
       subtitle="Professionell. Authentisch. Unvergesslich."
       image="https://i.postimg.cc/6Q2c2gS1/Whats-App-Image-2025-05-24-at-2-38-45-PM-2.jpg"
+      seoTitle="Business Fotoshooting Wien | New Age Fotografie"
+      seoDescription="Business Fotoshooting in Wien: Professionelle Fotos für Ihr Unternehmen, Team und Personal Branding. Pakete ab €95."
+      seoKeywords="Business Fotoshooting Wien, Corporate Photography, Businessfotos"
+      canonical="/fotoshootings/business"
     >
       <div className="max-w-4xl mx-auto">
         {/* Main Content */}
