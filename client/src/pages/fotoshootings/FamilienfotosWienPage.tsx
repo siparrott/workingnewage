@@ -1,4 +1,6 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
+import { ServiceSchema } from '../../components/SEO/ServiceSchema';
+import { RelatedServices } from '../../components/SEO/RelatedServices';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link, useNavigate } from 'react-router-dom';
@@ -68,6 +70,12 @@ export default function FamilienfotosWienPage() {
           { lang: 'de', url: '/familienfotos-wien/' },
           { lang: 'en', url: '/en/family-photos-vienna/' }
         ]}
+      />
+      <ServiceSchema
+        serviceName="Familienfotografie in Wien"
+        description="Ruhiges Studio, freundliche Anleitung, echte Momente. Max. 12 Personen pro Termin."
+        url="/familienfotos-wien/"
+        serviceType="PhotographyService"
       />
 
       {/* Hero Section - with space for 2-3 images */}
@@ -509,6 +517,9 @@ export default function FamilienfotosWienPage() {
           </div>
         </div>
       </section>
+
+      {/* Related Services - Internal Links */}
+      <RelatedServices currentPath="/familienfotos-wien/" />
 
       {/* Final CTA Section */}
       <section className="py-16 bg-gradient-to-r from-purple-600 to-pink-600 text-white">

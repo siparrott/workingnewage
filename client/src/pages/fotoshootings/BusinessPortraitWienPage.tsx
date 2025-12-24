@@ -1,4 +1,6 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
+import { ServiceSchema } from '../../components/SEO/ServiceSchema';
+import { RelatedServices } from '../../components/SEO/RelatedServices';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
@@ -56,6 +58,12 @@ export default function BusinessPortraitWienPage() {
           { lang: 'de', url: '/business-portrait-wien/' },
           { lang: 'en', url: '/en/business-portrait-vienna/' }
         ]}
+      />
+      <ServiceSchema
+        serviceName={newageCopyMap['business-portrait-wien'].h1}
+        description={newageCopyMap['business-portrait-wien'].metaDescription}
+        url="/business-portrait-wien/"
+        serviceType="PhotographyService"
       />
 
       {/* Hero Section */}
@@ -626,6 +634,9 @@ export default function BusinessPortraitWienPage() {
           </div>
         </div>
       </section>
+
+      {/* Related Services - Internal Links */}
+      <RelatedServices currentPath="/business-portrait-wien/" />
 
       {/* Final CTA Section */}
       <section className="py-16 bg-gradient-to-r from-gray-900 to-gray-800 text-white">

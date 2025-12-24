@@ -1,4 +1,6 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
+import { ServiceSchema } from '../../components/SEO/ServiceSchema';
+import { RelatedServices } from '../../components/SEO/RelatedServices';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
@@ -42,8 +44,12 @@ export default function BewerbungsfotosWienPage() {
           { lang: 'de', url: '/bewerbungsfotos-wien/' },
           { lang: 'en', url: '/en/application-photos-vienna/' }
         ]}
+      />      <ServiceSchema
+        serviceName={newageCopyMap['bewerbungsfotos-wien'].h1}
+        description={newageCopyMap['bewerbungsfotos-wien'].metaDescription}
+        url="/bewerbungsfotos-wien/"
+        serviceType="PhotographyService"
       />
-
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white pt-24 pb-16">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-900/20 to-pink-900/20"></div>
@@ -549,6 +555,9 @@ export default function BewerbungsfotosWienPage() {
           </div>
         </div>
       </section>
+
+      {/* Related Services - Internal Links */}
+      <RelatedServices currentPath="/bewerbungsfotos-wien/" />
 
       {/* Final CTA Section */}
       <section className="py-16 bg-gradient-to-r from-gray-900 to-gray-800 text-white">

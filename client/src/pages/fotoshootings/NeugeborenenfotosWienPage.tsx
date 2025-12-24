@@ -1,4 +1,6 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
+import { ServiceSchema } from '../../components/SEO/ServiceSchema';
+import { RelatedServices } from '../../components/SEO/RelatedServices';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
@@ -59,6 +61,12 @@ export default function NeugeborenenfotosWienPage() {
           { lang: 'de', url: '/neugeborenenfotos-wien/' },
           { lang: 'en', url: '/en/newborn-photos-vienna/' }
         ]}
+      />
+      <ServiceSchema
+        serviceName={newageCopyMap['neugeborenenfotos-wien'].h1}
+        description={newageCopyMap['neugeborenenfotos-wien'].metaDescription}
+        url="/neugeborenenfotos-wien/"
+        serviceType="PhotographyService"
       />
 
       {/* Hero Section */}
@@ -439,6 +447,9 @@ export default function NeugeborenenfotosWienPage() {
           </div>
         </div>
       </section>
+
+      {/* Related Services - Internal Links */}
+      <RelatedServices currentPath="/neugeborenenfotos-wien/" />
 
       {/* Final CTA Section */}
       <section className="py-16 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
