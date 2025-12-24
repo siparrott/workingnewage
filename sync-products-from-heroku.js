@@ -1,10 +1,10 @@
 // Fetch Heroku's products and insert them into local database
+require('dotenv').config();
 const https = require('https');
 const { Pool } = require('pg');
 
-// Use the ORIGINAL local database (that we know works)
 const pool = new Pool({
-  connectionString: 'postgresql://neondb_owner:npg_D2bKWziIZj1G@ep-morning-star-a2i1gglu-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require',
+  connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
