@@ -363,18 +363,20 @@ const HomePage: React.FC = () => {
             </button>
           </div>
           <div className="md:w-2/5">
-            <ZoomableImageV2
-              src={heroImageUrl || photoGridImage}
-              alt="Comprehensive family portrait showcase including family, newborn, maternity and lifestyle sessions"
-              className="w-full rounded-lg shadow-lg"
-              onError={(e) => {
-                // Fallback for mobile/loading issues
-                e.currentTarget.src = photoGridImage;
-              }}
-              priority={true}
-              width={800}
-              height={600}
-            />
+            <div className="aspect-square overflow-hidden rounded-lg shadow-lg">
+              <ZoomableImageV2
+                src={heroImageUrl || photoGridImage}
+                alt="Comprehensive family portrait showcase including family, newborn, maternity and lifestyle sessions"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Fallback for mobile/loading issues
+                  e.currentTarget.src = photoGridImage;
+                }}
+                priority={true}
+                width={600}
+                height={600}
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -422,14 +424,14 @@ const HomePage: React.FC = () => {
           {/* First Content Block */}
           <div className="flex flex-col md:flex-row items-center gap-8 mb-16">
             <div className="md:w-1/3">
-              <div className="aspect-[4/3] overflow-hidden rounded-lg shadow-lg">
+              <div className="aspect-square overflow-hidden rounded-lg shadow-lg">
                 <ZoomableImageV2 
                   src={imageForSection('content-1', photoGridImage)}
                   alt="Familienfotografie Wien - Professionelle Familienporträts im Studio"
                   className="w-full h-full object-cover"
                   priority={false}
                   width={400}
-                  height={300}
+                  height={400}
                 />
               </div>
             </div>
@@ -452,14 +454,14 @@ const HomePage: React.FC = () => {
           {/* Second Content Block */}
           <div className="flex flex-col md:flex-row-reverse items-center gap-8">
             <div className="md:w-1/3">
-              <div className="aspect-[3/4] max-w-sm mx-auto overflow-hidden rounded-lg shadow-lg">
+              <div className="aspect-square max-w-sm mx-auto overflow-hidden rounded-lg shadow-lg">
                 <ZoomableImageV2 
                   src={imageForSection('content-2', photoGridImage)}
                   alt="Business Headshots Wien - Professionelle Businessfotografie im Studio"
                   className="w-full h-full object-cover object-top"
                   priority={false}
                   width={400}
-                  height={533}
+                  height={400}
                 />
               </div>
             </div>
