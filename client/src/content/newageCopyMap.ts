@@ -452,8 +452,7 @@ Meist ca. 60 Minuten – mit genug Zeit für die wichtigsten Motive.
 Ja. Kurz vorher Bescheid geben, dann planen wir entspannt.
 
 **Wann bekommen wir die Bilder?**
-Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
-`, seoExpansion.immobilienIhr)
+Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`, seoExpansion.immobilienIhr)
   },
 
   'portrait-fotografie-wien': {
@@ -491,8 +490,7 @@ Meist ca. 60 Minuten – mit genug Zeit für die wichtigsten Motive.
 Ja. Kurz vorher Bescheid geben, dann planen wir entspannt.
 
 **Wann bekommen wir die Bilder?**
-Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
-`, seoExpansion.portraitIhr)
+Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`, seoExpansion.portraitIhr)
   },
 
   'produkt-fotografie-wien': {
@@ -533,8 +531,7 @@ Meist ca. 60 Minuten – mit genug Zeit für die wichtigsten Motive.
 Ja. Kurz vorher Bescheid geben, dann planen wir entspannt.
 
 **Wann bekommen wir die Bilder?**
-Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
-`, seoExpansion.produktIhr)
+Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`, seoExpansion.produktIhr)
   },
 
   'babyfotos-wien': {
@@ -577,8 +574,7 @@ Meist ca. 60 Minuten – mit genug Zeit für die wichtigsten Motive.
 Ja. Kurz vorher Bescheid geben, dann planen wir entspannt.
 
 **Wann bekommen wir die Bilder?**
-Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
-`, seoExpansion.babyIhr)
+Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`, seoExpansion.babyIhr)
   },
 
   'teamfotos-wien': {
@@ -619,8 +615,7 @@ Meist ca. 60 Minuten – mit genug Zeit für die wichtigsten Motive.
 Ja. Kurz vorher Bescheid geben, dann planen wir entspannt.
 
 **Wann bekommen wir die Bilder?**
-Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
-`, seoExpansion.teamIhr)
+Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`, seoExpansion.teamIhr)
   },
 
   'schwangerschaftsfotos-wien': {
@@ -662,8 +657,7 @@ Meist ca. 60 Minuten – mit genug Zeit für die wichtigsten Motive.
 Ja. Kurz vorher Bescheid geben, dann planen wir entspannt.
 
 **Wann bekommen wir die Bilder?**
-Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
-`, seoExpansion.schwangerschaftIhr)
+Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`, seoExpansion.schwangerschaftIhr)
   },
 
   'studio-fotografie-wien': {
@@ -706,8 +700,7 @@ Meist ca. 60 Minuten – mit genug Zeit für die wichtigsten Motive.
 Ja. Kurz vorher Bescheid geben, dann planen wir entspannt.
 
 **Wann bekommen wir die Bilder?**
-Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
-`, seoExpansion.studioIhr)
+Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`, seoExpansion.studioIhr)
   }
 };
 
