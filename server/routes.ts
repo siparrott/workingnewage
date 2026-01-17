@@ -8247,7 +8247,45 @@ New Age Fotografie CRM System
       if (event?.type === 'checkout.session.completed') {
         const session = event.data?.object;
         console.log('[WEBHOOK] checkout.session.completed', session?.id);
-        // You could create a voucher sale here using session.metadata
+        
+        // Extract metadata from the Stripe session
+        const metadata = session?.metadata || {};
+        const isPaid = session?.payment_status === 'paid';
+        
+        if (isPaid) {
+          // Create voucher sale record from Stripe session
+          const voucherSale = {
+            stripe_session_id: session.id,
+            stripe_payment_intent_id: session.payment_intent,
+            product_id: metadata.product_id || metadata.sku || null,
+            purchaser_name: metadata.purchaser_name || session.customer_details?.name || 'Unknown',
+            purchaser_email: metadata.purchaser_email || session.customer_email || session.customer_details?.email || '',
+            recipient_name: metadata.recipient_name || '',
+            recipient_email: metadata.recipient_email || '',
+            gift_message: metadata.gift_message || metadata.message || '',
+            custom_image: metadata.custom_image || null,
+            design_image: metadata.design_image || null,
+            voucher_code: metadata.voucher_code || `VOUCHER-${session.id.substring(0, 12).toUpperCase()}`,
+            original_amount: session.amount_total ? (session.amount_total / 100).toString() : '0',
+            discount_amount: metadata.discount_amount || '0',
+            final_amount: session.amount_total ? (session.amount_total / 100).toString() : '0',
+            currency: session.currency?.toUpperCase() || 'EUR',
+            payment_intent_id: session.payment_intent,
+            payment_status: 'paid',
+            payment_method: metadata.payment_method || 'stripe_card',
+            is_redeemed: false,
+            valid_from: new Date(),
+            valid_until: metadata.valid_until ? new Date(metadata.valid_until) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year default
+          };
+          
+          try {
+            const createdSale = await storage.createVoucherSale(voucherSale as any);
+            console.log('[WEBHOOK] ✅ Voucher sale created:', createdSale.id, 'Code:', voucherSale.voucher_code);
+          } catch (saleError: any) {
+            console.error('[WEBHOOK] ⚠️ Failed to create voucher sale:', saleError.message);
+            // Don't fail the webhook - Stripe expects 200 OK
+          }
+        }
       } else {
         console.log('[WEBHOOK] Unhandled event type:', event?.type);
       }
