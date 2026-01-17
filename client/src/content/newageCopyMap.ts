@@ -313,7 +313,7 @@ export const newageCopyMap: Record<string, ServicePageCopy> = {
     title: 'Bewerbungsfotos & LinkedIn Fotos in Wien | New Age Fotografie',
     metaDescription: 'Professionelle Bewerbungsfotos & LinkedIn Portraits in Wien. Weiches Studio-Licht, freundliche Anleitung, schnelle Lieferung. Jetzt Termin buchen!',
     h1: 'Bewerbungsfotos & LinkedIn Fotos in Wien',
-    markdown: withSeoExpansion(`## Was ihr erwarten könnt
+    markdown: withSeoExpansion('## Was ihr erwarten könnt
 - **Freundliche Anleitung** statt Unsicherheit vor der Kamera
 - **Weiches, professionelles Licht** (Octa‑Softboxen) für natürliche Hauttöne
 - **Persönlichkeit im Bild:** Bringt gern persönliche Dinge mit: Spielzeug, Hobbys, Instrumente, Lieblingsbuch – das macht eure Bilder einzigartig.
@@ -368,7 +368,7 @@ Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
     title: 'Eventfotografie in Wien | New Age Fotografie',
     metaDescription: 'Eventfotografie in Wien – präsent sein, ohne zu stören. Dokumentarisch und mit Blick für starke Portraits. Firmenfeiern, Konferenzen, PR-Events.',
     h1: 'Eventfotografie in Wien',
-    markdown: withSeoExpansion(`## Was ihr erwarten könnt
+    markdown: withSeoExpansion('## Was ihr erwarten könnt
 - **Freundliche Anleitung** statt Unsicherheit vor der Kamera
 - **Weiches, professionelles Licht** (Octa‑Softboxen) für natürliche Hauttöne
 - **Persönlichkeit im Bild:** Bringt gern persönliche Dinge mit: Spielzeug, Hobbys, Instrumente, Lieblingsbuch – das macht eure Bilder einzigartig.
@@ -417,7 +417,7 @@ Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
     title: 'Immobilienfotografie in Wien | New Age Fotografie',
     metaDescription: 'Immobilienfotografie in Wien – Licht, Raumgefühl, saubere Perspektiven. Professionelle Immobilienfotos für Makler und Eigentümer. Jetzt anfragen!',
     h1: 'Immobilienfotografie in Wien',
-    markdown: withSeoExpansion(`## Was ihr erwarten könnt
+    markdown: withSeoExpansion('## Was ihr erwarten könnt
 - **Freundliche Anleitung** statt Unsicherheit vor der Kamera
 - **Weiches, professionelles Licht** (Octa‑Softboxen) für natürliche Hauttöne
 - **Persönlichkeit im Bild:** Bringt gern persönliche Dinge mit: Spielzeug, Hobbys, Instrumente, Lieblingsbuch – das macht eure Bilder einzigartig.
@@ -461,7 +461,7 @@ Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
     title: 'Portraitfotografie in Wien | New Age Fotografie',
     metaDescription: 'Portraitfotografie in Wien – Persönlichkeit statt Pose. Ehrliche Portraits mit weichem Studio-Licht. Professionelle Portraitfotos. Jetzt Termin buchen!',
     h1: 'Portraitfotografie in Wien',
-    markdown: withSeoExpansion(`## Was ihr erwarten könnt
+    markdown: withSeoExpansion('## Was ihr erwarten könnt
 - **Freundliche Anleitung** statt Unsicherheit vor der Kamera
 - **Weiches, professionelles Licht** (Octa‑Softboxen) für natürliche Hauttöne
 - **Persönlichkeit im Bild:** Bringt gern persönliche Dinge mit: Spielzeug, Hobbys, Instrumente, Lieblingsbuch – das macht eure Bilder einzigartig.
@@ -500,7 +500,7 @@ Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
     title: 'Produktfotografie in Wien | New Age Fotografie',
     metaDescription: 'Produktfotografie in Wien – professionelle Produktbilder für E-Commerce, Kataloge und Marketing. Saubere Freisteller und Lifestyle-Shots.',
     h1: 'Produktfotografie in Wien',
-    markdown: withSeoExpansion(`## Was ihr erwarten könnt
+    markdown: withSeoExpansion('## Was ihr erwarten könnt
 - **Freundliche Anleitung** statt Unsicherheit vor der Kamera
 - **Weiches, professionelles Licht** (Octa‑Softboxen) für natürliche Hauttöne
 - **Persönlichkeit im Bild:** Bringt gern persönliche Dinge mit: Spielzeug, Hobbys, Instrumente, Lieblingsbuch – das macht eure Bilder einzigartig.
@@ -542,7 +542,7 @@ Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
     title: 'Babyfotos (3–12 Monate) in Wien | New Age Fotografie',
     metaDescription: 'Babyfotos in Wien für Babys von 3–12 Monaten. Sitzen, Krabbeln, Lachen – wir fangen die Magie ein. Spielerisch und sicher. Jetzt Termin buchen!',
     h1: 'Babyfotos (3–12 Monate) in Wien',
-    markdown: withSeoExpansion(`## Was ihr erwarten könnt
+    markdown: withSeoExpansion('## Was ihr erwarten könnt
 - **Freundliche Anleitung** statt Unsicherheit vor der Kamera
 - **Weiches, professionelles Licht** (Octa‑Softboxen) für natürliche Hauttöne
 - **Persönlichkeit im Bild:** Bringt gern persönliche Dinge mit: Spielzeug, Hobbys, Instrumente, Lieblingsbuch – das macht eure Bilder einzigartig.
@@ -586,7 +586,7 @@ Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
     title: 'Team- & Mitarbeiterfotos in Wien | New Age Fotografie',
     metaDescription: 'Team- & Mitarbeiterfotos in Wien – einheitlicher Look fürs ganze Team. Wiederholbares Setup für konsistente Bildsprache. Jetzt Termin buchen!',
     h1: 'Team- & Mitarbeiterfotos in Wien',
-    markdown: withSeoExpansion(`## Was ihr erwarten könnt
+    markdown: withSeoExpansion('## Was ihr erwarten könnt
 - **Freundliche Anleitung** statt Unsicherheit vor der Kamera
 - **Weiches, professionelles Licht** (Octa‑Softboxen) für natürliche Hauttöne
 - **Persönlichkeit im Bild:** Bringt gern persönliche Dinge mit: Spielzeug, Hobbys, Instrumente, Lieblingsbuch – das macht eure Bilder einzigartig.
@@ -628,7 +628,7 @@ Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
     title: 'Schwangerschaftsfotos in Wien | New Age Fotografie',
     metaDescription: 'Schwangerschaftsfotos in Wien – Babybauch-Shooting im Studio. Weiches Licht, entspannte Atmosphäre. Ideal Woche 28–34. Jetzt Termin buchen!',
     h1: 'Schwangerschaftsfotos in Wien',
-    markdown: withSeoExpansion(`## Was ihr erwarten könnt
+    markdown: withSeoExpansion('## Was ihr erwarten könnt
 - **Freundliche Anleitung** statt Unsicherheit vor der Kamera
 - **Weiches, professionelles Licht** (Octa‑Softboxen) für natürliche Hauttöne
 - **Persönlichkeit im Bild:** Bringt gern persönliche Dinge mit: Spielzeug, Hobbys, Instrumente, Lieblingsbuch – das macht eure Bilder einzigartig.
@@ -671,7 +671,7 @@ Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
     title: 'Studio-Fotografie in Wien | New Age Fotografie',
     metaDescription: 'Studio-Fotografie in Wien – volle Kontrolle über Licht und Look. Zeitlose Portraits, Familien, Business. Professionelles Fotostudio. Jetzt Termin buchen!',
     h1: 'Studio-Fotografie in Wien',
-    markdown: withSeoExpansion(`## Was ihr erwarten könnt
+    markdown: withSeoExpansion('## Was ihr erwarten könnt
 - **Freundliche Anleitung** statt Unsicherheit vor der Kamera
 - **Weiches, professionelles Licht** (Octa‑Softboxen) für natürliche Hauttöne
 - **Persönlichkeit im Bild:** Bringt gern persönliche Dinge mit: Spielzeug, Hobbys, Instrumente, Lieblingsbuch – das macht eure Bilder einzigartig.
