@@ -402,8 +402,7 @@ Meist ca. 60 Minuten – mit genug Zeit für die wichtigsten Motive.
 Ja. Kurz vorher Bescheid geben, dann planen wir entspannt.
 
 **Wann bekommen wir die Bilder?**
-Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
-`, seoExpansion.eventIhr)
+Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`, seoExpansion.eventIhr)
   },
 
   'hochzeitsfotografie-wien': {
