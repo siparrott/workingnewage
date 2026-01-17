@@ -313,7 +313,7 @@ export const newageCopyMap: Record<string, ServicePageCopy> = {
     title: 'Bewerbungsfotos & LinkedIn Fotos in Wien | New Age Fotografie',
     metaDescription: 'Professionelle Bewerbungsfotos & LinkedIn Portraits in Wien. Weiches Studio-Licht, freundliche Anleitung, schnelle Lieferung. Jetzt Termin buchen!',
     h1: 'Bewerbungsfotos & LinkedIn Fotos in Wien',
-    markdown: withSeoExpansion('## Was ihr erwarten könnt
+    markdown: withSeoExpansion(`## Was ihr erwarten könnt
 - **Freundliche Anleitung** statt Unsicherheit vor der Kamera
 - **Weiches, professionelles Licht** (Octa‑Softboxen) für natürliche Hauttöne
 - **Persönlichkeit im Bild:** Bringt gern persönliche Dinge mit: Spielzeug, Hobbys, Instrumente, Lieblingsbuch – das macht eure Bilder einzigartig.
