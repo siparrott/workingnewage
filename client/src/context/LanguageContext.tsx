@@ -641,6 +641,17 @@ const translations = {
   'nav.viewWebsite': 'View Website',
   'nav.signOut': 'Sign Out',
 
+  // Manual Page - Product Photography
+  'manual.produktfotografie.heroTitle': 'Product & E-Commerce Photography in Vienna',
+  'manual.produktfotografie.heroTagline': 'Sharp. Color-true. Sales-ready.',
+  'manual.produktfotografie.heroDescription': 'As a product photographer in Vienna, we deliver images that convert – from technically clean cutouts to sophisticated reflections to lifestyle sets that tell story and show value. For Amazon, Shopify, B2B catalogs, PR & social.',
+  'manual.produktfotografie.primaryCta': 'Secure Slot',
+  'manual.produktfotografie.secondaryCta': 'Request & Specs',
+  'manual.produktfotografie.heroImage1': '',
+  'manual.produktfotografie.heroImage3': '',
+  'manual.produktfotografie.heroImage4': '',
+  'manual.produktfotografie.heroImage5': '',
+
   // About Page
   'about.hero.title': 'About New Age Fotografie — Vienna',
   'about.hero.description': 'A Vienna studio built on craft, calm direction, and real smiles. I\'m Matt, the founder. I\'ve photographed thousands of faces—from high street studios to global events—and I still love it. Every shoot. Every time.',
@@ -1370,6 +1381,17 @@ const translations = {
   'nav.websiteAnalyzer': 'Website-Analyse',
   'nav.viewWebsite': 'Website anzeigen',
   'nav.signOut': 'Abmelden',
+
+  // Manual Page - Product Photography (Produktfotografie)
+  'manual.produktfotografie.heroTitle': 'Produkt- & E-Commerce-Fotografie in Wien',
+  'manual.produktfotografie.heroTagline': 'Scharf. Farbtreu. Verkaufsstark.',
+  'manual.produktfotografie.heroDescription': 'Als produktfotograf wien liefern wir Bilder, die konvertieren – von technisch sauberen Freistellern über edle Spiegelungen bis zu Lifestyle-Sets, die Story und Nutzen zeigen. Für Amazon, Shopify, B2B-Kataloge, PR & Social.',
+  'manual.produktfotografie.primaryCta': 'Slot sichern',
+  'manual.produktfotografie.secondaryCta': 'Anfrage & Specs',
+  'manual.produktfotografie.heroImage1': '',
+  'manual.produktfotografie.heroImage3': '',
+  'manual.produktfotografie.heroImage4': '',
+  'manual.produktfotografie.heroImage5': '',
 
   // About Page (Über Uns)
   'about.hero.title': 'Über New Age Fotografie — Wien',
