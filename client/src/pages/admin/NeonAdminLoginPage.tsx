@@ -15,12 +15,13 @@ import { Loader2, Camera, Database, CheckCircle2, Lock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function NeonAdminLoginPage() {
-  const [email, setEmail] = useState('admin@newagefotografie.com');
-  // Prefill a sensible dev default. Server accepts admin@newagefotografie.com/admin123 in dev.
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  const showRegister = import.meta.env.DEV;
 
   const doLogin = async () => {
     setIsLoading(true);
@@ -53,18 +54,8 @@ export default function NeonAdminLoginPage() {
     await doLogin();
   };
 
-  // Optional auto-login for smoke tests: /admin/login?auto=1
-  useEffect(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const auto = params.get('auto');
-      if (auto === '1') {
-        // Defer one tick to allow inputs to render
-        setTimeout(() => { void doLogin(); }, 50);
-      }
-    } catch {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Note: no client-side auto-login in production.
+  useEffect(() => {}, []);
 
   const handleRegister = async () => {
     if (!email || !password) {
@@ -153,7 +144,8 @@ export default function NeonAdminLoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@newagefotografie.com"
+                  autoComplete="email"
+                  placeholder="name@domain.com"
                   required
                   disabled={isLoading}
                 />
@@ -165,6 +157,7 @@ export default function NeonAdminLoginPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
                   placeholder="Enter your password"
                   required
                   disabled={isLoading}
@@ -193,15 +186,17 @@ export default function NeonAdminLoginPage() {
                   )}
                 </Button>
 
-                <Button 
-                  type="button" 
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleRegister}
-                  disabled={isLoading}
-                >
-                  Create Admin Account
-                </Button>
+                {showRegister && (
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleRegister}
+                    disabled={isLoading}
+                  >
+                    Create Admin Account
+                  </Button>
+                )}
               </div>
             </form>
           </CardContent>

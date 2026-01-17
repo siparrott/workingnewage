@@ -7842,6 +7842,11 @@ New Age Fotografie CRM System
   // ==================== VOUCHER ROUTES ====================
   app.get("/api/vouchers/products", async (req: Request, res: Response) => {
     try {
+          // Ensure no caching to always get fresh product data
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+          
           const language = (req.query.language as string) || 'de';
           const toCamel = (p: any) => ({
             id: p.id,

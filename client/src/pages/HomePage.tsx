@@ -362,8 +362,8 @@ const HomePage: React.FC = () => {
               {t('home.bookShootingButton')}
             </button>
           </div>
-          <div className="md:w-2/5">
-            <div className="aspect-square overflow-hidden rounded-lg shadow-lg">
+          <div className="w-full md:w-2/5">
+            <div className="aspect-square max-w-md mx-auto overflow-hidden rounded-lg shadow-lg">
               <ZoomableImageV2
                 src={heroImageUrl || photoGridImage}
                 alt="Comprehensive family portrait showcase including family, newborn, maternity and lifestyle sessions"
@@ -700,16 +700,18 @@ const HomePage: React.FC = () => {
             {testimonials.map((testimonial, index) => (
               <div key={index} className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
                 <div className="flex items-center mb-4">
-                  <img
-                    src={testimonial.image}
-                    alt={testimonial.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                    loading="lazy"
-                    width="48"
-                    height="48"
-                    style={{ backgroundColor: '#f3f4f6' }}
-                  />
-                  <div className="ml-4">
+                  {testimonial.name !== "Anna W." && (
+                    <img
+                      src={testimonial.image}
+                      alt={testimonial.name}
+                      className="w-12 h-12 rounded-full object-cover"
+                      loading="lazy"
+                      width="48"
+                      height="48"
+                      style={{ backgroundColor: '#f3f4f6' }}
+                    />
+                  )}
+                  <div className={testimonial.name === "Anna W." ? "" : "ml-4"}>
                     <h3 className="font-semibold text-gray-800">{testimonial.name}</h3>
                     <p className="text-gray-600 text-sm">{testimonial.role}</p>
                   </div>

@@ -8,8 +8,12 @@ const plugin_react_1 = __importDefault(require("@vitejs/plugin-react"));
 const path_1 = __importDefault(require("path"));
 const url_1 = require("url");
 const __dirname = path_1.default.dirname((0, url_1.fileURLToPath)(import.meta.url));
+// FORCE CLEAN BUILD v4 - 20251210-1840
 exports.default = (0, vite_1.defineConfig)({
     plugins: [(0, plugin_react_1.default)()],
+    define: {
+        __BUILD_VERSION__: JSON.stringify('v4-20251210-1840')
+    },
     resolve: {
         alias: {
             "@": path_1.default.resolve(__dirname, "client", "src"),
@@ -23,6 +27,8 @@ exports.default = (0, vite_1.defineConfig)({
         emptyOutDir: true,
         chunkSizeWarningLimit: 2000,
         target: "es2020",
+        // Force new build hash
+        sourcemap: false,
         rollupOptions: {
             output: {
                 manualChunks: {

@@ -7,6 +7,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 require("dotenv/config");
 const express_1 = __importDefault(require("express"));
+const node_http_1 = __importDefault(require("node:http"));
 // Import routes and jobs directly to fix client database access
 const routes_1 = require("./routes");
 require("./jobs");
@@ -19,6 +20,8 @@ const syncScheduler_1 = require("./services/syncScheduler");
 // Agent V2: Modern ToolBus architecture
 const agent_v2_1 = __importDefault(require("./routes/agent-v2"));
 const agent_shadow_1 = __importDefault(require("./routes/agent-shadow"));
+// Manual Pages: Squarespace-style CMS for public pages
+const manual_pages_1 = __importDefault(require("./routes/manual-pages"));
 // Import and configure session middleware
 const auth_2 = require("./auth");
 // Import email service for initialization
@@ -83,6 +86,9 @@ app.use('/api/auth', googleAuth_1.default);
 // Agent V2 routes (ToolBus architecture)
 app.use('/api/agent/v2', agent_v2_1.default);
 console.log('[AGENT-V2] Routes registered at /api/agent/v2');
+// Manual Pages CMS routes
+app.use('/api/manual-pages', manual_pages_1.default);
+console.log('[MANUAL-PAGES] Routes registered at /api/manual-pages');
 // Shadow mode routes (V1 vs V2 comparison)
 if (process.env.AGENT_V2_SHADOW === 'true') {
     app.use('/api/agent/shadow', agent_shadow_1.default);
@@ -176,7 +182,14 @@ app.use((req, res, next) => {
         console.log('🔧 Setting up Vite frontend...');
         let viteReady = false;
         if (process.env.NODE_ENV === "production" && process.env.PORT) {
-            console.log('📦 Production mode - looking for dist folder');
+            console.log('📦 Production mode - serving static files from dist');
+            try {
+                (0, vite_1.serveStatic)(app);
+                console.log('✅ Static file serving configured');
+            }
+            catch (e) {
+                console.error('❌ Failed to setup static serving:', e?.message || e);
+            }
         }
         else {
             // Development mode - setup Vite dev server
@@ -196,26 +209,79 @@ app.use((req, res, next) => {
         // Direct synchronous listen - no await, no promises
         serverInstance = app.listen(port, host);
         // Event handlers
-        serverInstance.on('listening', () => {
-            const addr = serverInstance.address();
-            console.log(`✅ HTTP server LISTENING on ${host}:${port}`);
-            console.log(`🔍 Server address:`, addr);
-            console.log(`🔍 Server listening:`, serverInstance.listening);
-        });
-        serverInstance.on('error', (err) => {
-            console.error('❌ HTTP server error:', err);
-            console.error('Error code:', err.code);
-            if (err.code === 'EADDRINUSE') {
-                console.error(`Port ${port} is already in use!`);
-            }
-        });
-        serverInstance.on('close', () => {
-            console.warn('⚠️ Server "close" event fired - port released!');
-        });
+        const attachServerHandlers = (srv, { reason }) => {
+            srv.on('listening', () => {
+                const addr = srv.address();
+                console.log(`✅ HTTP server LISTENING on ${host}:${port} (${reason})`);
+                console.log(`🔍 Server address:`, addr);
+                console.log(`🔍 Server listening:`, srv.listening);
+            });
+            srv.on('error', (err) => {
+                console.error('❌ HTTP server error:', err);
+                console.error('Error code:', err.code);
+                if (err.code === 'EADDRINUSE') {
+                    console.error(`Port ${port} is already in use!`);
+                }
+            });
+            srv.on('close', () => {
+                console.warn('⚠️ Server "close" event fired - port released!');
+                try {
+                    const addr = srv?.address?.();
+                    console.warn('⚠️ Close context:', { addr, listening: srv?.listening });
+                }
+                catch { }
+                const allowRebind = (process.env.RETRY_LISTEN_ON_CLOSE ?? (process.env.NODE_ENV !== 'production' ? 'true' : 'false')) === 'true';
+                global.__rebindAttempted = global.__rebindAttempted ?? false;
+                if (allowRebind && !global.__rebindAttempted) {
+                    global.__rebindAttempted = true;
+                    console.warn('🛠️ Attempting one-shot rebind after close (dev safeguard)...');
+                    setTimeout(() => {
+                        try {
+                            const newSrv = app.listen(port, host);
+                            serverInstance = newSrv;
+                            global.__server = newSrv;
+                            attachServerHandlers(newSrv, { reason: 'rebind' });
+                        }
+                        catch (e) {
+                            console.error('❌ Rebind attempt failed:', e?.message || e);
+                        }
+                    }, 500);
+                }
+            });
+        };
+        attachServerHandlers(serverInstance, { reason: 'initial' });
         // Also keep in global for extra safety
         global.__server = serverInstance;
         const server = serverInstance; // For compatibility with code below
         console.log(`🔧 Server object created, waiting for 'listening' event...`);
+        // Periodic self health-check to diagnose listener drops
+        const HEALTHZ_URL = `http://${host}:${port}/healthz`;
+        const healthzCheck = setInterval(() => {
+            try {
+                const req = node_http_1.default.get(HEALTHZ_URL, (res) => {
+                    // Only log failures to keep noise low
+                    if (res.statusCode && res.statusCode >= 400) {
+                        console.warn(`[HEALTHZ] Non-200 status: ${res.statusCode}`);
+                    }
+                    // Drain response
+                    res.resume();
+                });
+                req.setTimeout(2500, () => {
+                    try {
+                        req.destroy(new Error('healthz timeout'));
+                    }
+                    catch { }
+                });
+                req.on('error', (err) => {
+                    console.warn(`[HEALTHZ] Request error: ${err?.message || err}`);
+                });
+            }
+            catch (e) {
+                console.warn('[HEALTHZ] Check threw:', e?.message || e);
+            }
+        }, 10000);
+        // Keep reference to prevent GC
+        global.__healthzCheck = healthzCheck;
         // Manual Google Calendar sync endpoint (per-user)
         app.post('/api/calendar/manual-sync', auth_2.requireAuth, async (req, res) => {
             try {
@@ -283,18 +349,60 @@ app.use((req, res, next) => {
 console.log('📍 Module loaded - keepalive will be installed');
 // CRITICAL: Keep process alive AND monitor server - prevent tsx from exiting
 console.log('🔒 Installing process keepalive with server monitoring...');
+const KEEPALIVE_INTERVAL = Number(process.env.KEEPALIVE_INTERVAL_MS || (process.env.NODE_ENV === 'development' ? 30000 : 15000));
+let __lastKeepaliveKey = null;
+let __devTick = 0;
 const keepalive = setInterval(() => {
-    // Monitor server health
-    if (serverInstance) {
-        const addr = serverInstance.address();
+    if (!serverInstance)
+        return;
+    const addr = serverInstance.address();
+    const key = addr ? (typeof addr === 'string' ? addr : `${addr.address}:${addr.port}`) : 'none';
+    const verbose = process.env.KEEPALIVE_VERBOSE === 'true';
+    const isDev = process.env.NODE_ENV === 'development';
+    __devTick++;
+    if (key !== __lastKeepaliveKey) {
         if (addr) {
-            console.log(`[KEEPALIVE] ✅ Server listening on ${typeof addr === 'string' ? addr : `${addr.address}:${addr.port}`}`);
+            console.log(`[KEEPALIVE] ✅ Server listening on ${key}`);
         }
         else {
             console.warn('[KEEPALIVE] ⚠️ Server instance exists but NOT listening!');
         }
+        __lastKeepaliveKey = key;
+        return;
     }
-}, 15000); // Check every 15 seconds
+    if (verbose) {
+        if (addr)
+            console.log(`[KEEPALIVE] ✅ Server listening on ${key}`);
+        else
+            console.warn('[KEEPALIVE] ⚠️ Server instance exists but NOT listening!');
+        return;
+    }
+    // In dev, log every ~4 minutes to show liveness without noise
+    if (isDev && __devTick % 8 === 0) {
+        if (addr)
+            console.log(`[KEEPALIVE] ✅ Server listening on ${key}`);
+        else
+            console.warn('[KEEPALIVE] ⚠️ Server instance exists but NOT listening!');
+    }
+}, KEEPALIVE_INTERVAL);
 // Prevent garbage collection
 global.__keepalive = keepalive;
 console.log('✅ Keepalive installed - process should never exit');
+// Additional process/signal diagnostics to detect shutdown causes
+['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGUSR2'].forEach((sig) => {
+    try {
+        process.on(sig, () => {
+            console.warn(`[SIGNAL] Received ${sig}. Server listening:`, global.__server?.listening);
+        });
+    }
+    catch { }
+});
+process.on('beforeExit', (code) => {
+    console.warn('[PROCESS] beforeExit code:', code);
+});
+process.on('exit', (code) => {
+    console.warn('[PROCESS] exit code:', code);
+});
+process.on('uncaughtExceptionMonitor', (err) => {
+    console.warn('[PROCESS] uncaughtExceptionMonitor:', err?.message || err);
+});

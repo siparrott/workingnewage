@@ -660,7 +660,7 @@ function generateVonageJwt() {
 }
 
 // ===== Coupon Engine (env-driven with VCWIEN fallback) =====
-const COUPON_TTL_SECONDS = parseInt(process.env.COUPON_RELOAD_SECONDS || '60', 10);
+const COUPON_TTL_SECONDS = parseInt(process.env.COUPON_RELOAD_SECONDS || '5', 10); // Reduced from 60 to 5 seconds for faster cache refresh
 let __couponCache = { coupons: null, expiresAt: 0 };
 let __dbCoupons = [];
 
@@ -733,46 +733,16 @@ async function refreshDbCoupons() {
       applicable_products: r.applicable_products || [],
       is_active: r.is_active
     }));
-    console.log(`✅ Loaded ${__dbCoupons.length} coupons from DB`);
+    console.log(`✅ Loaded ${__dbCoupons.length} coupons from DB`, __dbCoupons.map(c => ({ code: c.code, applies_to: c.applicable_products })));
   } catch (e) {
     console.warn('⚠️ Could not load coupons from DB:', e.message);
   }
 }
 
-const DEFAULT_FALLBACK_COUPONS = [
-  {
-    code: 'VCWIEN',
-    type: 'percentage',
-    percent: 50,
-    allowedSkus: [
-      'maternity-basic', 'family-basic', 'newborn-basic'
-    ]
-  },
-  {
-    code: 'CL50',
-    type: 'percentage',
-    percent: 50,
-    allowedSkus: [
-      'maternity-basic', 'family-basic', 'newborn-basic'
-    ]
-  },
-  {
-    code: 'WL50',
-    type: 'percentage',
-    percent: 50,
-    allowedSkus: [
-      'maternity-basic', 'family-basic', 'newborn-basic'
-    ]
-  },
-  {
-    code: 'VW50',
-    type: 'percentage',
-    percent: 50,
-    allowedSkus: [
-      'maternity-basic', 'family-basic', 'newborn-basic'
-    ]
-  }
-];
+// ===== FULLY DATABASE-DRIVEN COUPON SYSTEM =====
+// All coupon codes are now managed through the database.
+// No hardcoded defaults - database is the single source of truth.
+// This ensures all coupon configurations are dynamic and editable.
 
 function parseCouponsFromEnv() {
   const raw = process.env.COUPONS_JSON;
@@ -795,11 +765,9 @@ function getCoupons() {
   const fromEnv = parseCouponsFromEnv();
   const fromDb = __dbCoupons || [];
   
-  // If we have DB coupons, use only those (they're the source of truth)
-  // Otherwise fall back to env or default coupons
-  const coupons = fromDb.length > 0 
-    ? fromDb 
-    : (fromEnv && fromEnv.length ? fromEnv : DEFAULT_FALLBACK_COUPONS) || [];
+  // Database coupons are the source of truth. If DB is empty, try env.
+  // No hardcoded fallback - all coupons must be configured in DB or env.
+  const coupons = fromDb.length > 0 ? fromDb : (fromEnv && fromEnv.length ? fromEnv : []);
   
   __couponCache = {
     coupons,
@@ -807,6 +775,7 @@ function getCoupons() {
   };
   return coupons;
 }
+
 // Preload DB coupons on boot (non-blocking)
 refreshDbCoupons();
 
@@ -821,21 +790,19 @@ function findCouponByCode(code) {
   const target = String(code).trim().toUpperCase();
   const coupons = getCoupons();
   const match = coupons.find(c => String(c.code || '').trim().toUpperCase() === target);
-  if (match) return match;
-  // Also search in fallback if env was present but missing this code
-  const fb = DEFAULT_FALLBACK_COUPONS.find(c => String(c.code || '').trim().toUpperCase() === target);
-  return fb || null;
+  return match || null;
 }
 
-// Helper: which coupon codes must only apply to exact €95 voucher items
+// Get 95-only coupon codes from environment variable (optional)
+// This allows marking specific coupons as 95-only without hardcoding
 function get95OnlyCodes() {
   const env = (process.env.COUPONS_95_ONLY || '').trim();
-  const base = ['VCWIEN', 'CL50', 'WL50', 'VW50'];
-  if (!env) return new Set(base);
-  // Allow comma-separated list in env to override/extend
+  if (!env) return new Set();
+  // Allow comma-separated list in env
   const fromEnv = env.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
-  return new Set(fromEnv.length ? fromEnv : base);
+  return new Set(fromEnv);
 }
+
 function is95OnlyCode(code) {
   if (!code) return false;
   return get95OnlyCodes().has(String(code).toUpperCase());
@@ -9783,7 +9750,8 @@ New Age Fotografie Team`;
               VALUES (${code}, ${type}, ${percent}, ${amount}, ${JSON.stringify(allowed)}, ${starts_at}, ${ends_at}, ${is_active})
             `;
             await refreshDbCoupons();
-            forceRefreshCoupons();
+            const cacheRefreshed = forceRefreshCoupons();
+            console.log(`✅ Created coupon ${code}, cache refreshed with ${cacheRefreshed} coupons`);
             res.writeHead(201, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: true }));
           });
@@ -9832,8 +9800,10 @@ New Age Fotografie Team`;
             const query = `UPDATE discount_coupons SET ${setClauses.join(', ')} WHERE id = $${setClauses.length+1}`;
             values.push(id);
             await sql(query, values);
+            console.log(`⚙️ Updated coupon ${id} with updates:`, updates);
             await refreshDbCoupons();
-            forceRefreshCoupons();
+            const cacheRefreshed = forceRefreshCoupons();
+            console.log(`✅ Cache refreshed with ${cacheRefreshed} coupons after update`);
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: true }));
           });

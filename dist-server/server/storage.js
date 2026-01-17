@@ -102,6 +102,25 @@ class DatabaseStorage {
     async deleteCrmClient(id) {
         await db_1.db.delete(schema_js_1.crmClients).where((0, drizzle_orm_1.eq)(schema_js_1.crmClients.id, id));
     }
+    // Lead Sources management
+    async getLeadSources() {
+        return await db_1.db.select().from(schema_js_1.leadSources).orderBy(schema_js_1.leadSources.sortOrder, schema_js_1.leadSources.name);
+    }
+    async getLeadSource(id) {
+        const result = await db_1.db.select().from(schema_js_1.leadSources).where((0, drizzle_orm_1.eq)(schema_js_1.leadSources.id, id)).limit(1);
+        return result[0];
+    }
+    async createLeadSource(source) {
+        const result = await db_1.db.insert(schema_js_1.leadSources).values(source).returning();
+        return result[0];
+    }
+    async updateLeadSource(id, updates) {
+        const result = await db_1.db.update(schema_js_1.leadSources).set(updates).where((0, drizzle_orm_1.eq)(schema_js_1.leadSources.id, id)).returning();
+        return result[0];
+    }
+    async deleteLeadSource(id) {
+        await db_1.db.delete(schema_js_1.leadSources).where((0, drizzle_orm_1.eq)(schema_js_1.leadSources.id, id));
+    }
     // CRM Lead management
     async getCrmLeads(status) {
         const baseLeads = db_1.db.select().from(schema_js_1.crmLeads);
@@ -227,27 +246,54 @@ class DatabaseStorage {
                     return updated;
                 }
             }
-            // Upsert by ID; update key fields (enables correcting times after parser fixes)
-            const upserted = await db_1.db
-                .insert(schema_js_1.photographySessions)
-                .values(session)
-                // @ts-ignore drizzle typing for onConflictDoUpdate target inference
-                .onConflictDoUpdate({
-                target: schema_js_1.photographySessions.id,
-                set: {
-                    title: session.title,
-                    description: session.description,
-                    startTime: session.startTime,
-                    endTime: session.endTime,
-                    locationName: session.locationName,
-                    locationAddress: session.locationAddress,
-                    clientName: session.clientName,
-                    icalUid: session.icalUid,
-                    updatedAt: new Date(),
-                },
-            })
-                .returning();
-            let row = upserted[0];
+            // For imported sessions (with minimal fields), use raw SQL to avoid Drizzle array serialization bugs
+            // For regular sessions, use upsert to enable updates
+            const isImportedSession = session.sessionType === 'imported' &&
+                !session.description &&
+                !session.clientEmail;
+            console.error(`STORAGE_DEBUG | isImportedSession=${isImportedSession} | sessionType=${session.sessionType} | id=${session.id}`);
+            let row;
+            if (isImportedSession) {
+                console.error(`STORAGE_DEBUG | Using raw SQL for imported session`);
+                // Use raw SQL INSERT to completely bypass Drizzle's array handling
+                const s = session;
+                await db_1.db.execute((0, drizzle_orm_1.sql) `
+          INSERT INTO photography_sessions (id, title, session_type, start_time, end_time, ical_uid)
+          VALUES (${s.id}, ${s.title}, ${s.sessionType}, ${s.startTime}, ${s.endTime}, ${s.icalUid})
+          ON CONFLICT (id) DO NOTHING
+        `);
+                console.error(`STORAGE_DEBUG | Raw SQL executed successfully`);
+                // Fetch the inserted row
+                const result = await db_1.db
+                    .select()
+                    .from(schema_js_1.photographySessions)
+                    .where((0, drizzle_orm_1.eq)(schema_js_1.photographySessions.id, s.id))
+                    .limit(1);
+                row = result[0];
+            }
+            else {
+                // Regular upsert for non-imported sessions
+                const upserted = await db_1.db
+                    .insert(schema_js_1.photographySessions)
+                    .values(session)
+                    // @ts-ignore drizzle typing for onConflictDoUpdate target inference
+                    .onConflictDoUpdate({
+                    target: schema_js_1.photographySessions.id,
+                    set: {
+                        title: session.title,
+                        description: session.description,
+                        startTime: session.startTime,
+                        endTime: session.endTime,
+                        locationName: session.locationName,
+                        locationAddress: session.locationAddress,
+                        clientName: session.clientName,
+                        icalUid: session.icalUid,
+                        updatedAt: new Date(),
+                    },
+                })
+                    .returning();
+                row = upserted[0];
+            }
             // Secondary reconciliation: if we somehow didn't get a row back, try by icalUid
             if (!row && session.icalUid) {
                 const existingByUid = await db_1.db

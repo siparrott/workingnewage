@@ -1,13 +1,13 @@
 "use strict";
-/**
- * AWS S3 Storage Service
- * Handles file uploads, downloads, and management in Amazon S3
- */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.s3Service = void 0;
+exports.getS3Config = getS3Config;
+exports.getS3Client = getS3Client;
+exports.buildPublicUrl = buildPublicUrl;
+exports.storageHealth = storageHealth;
 exports.uploadFile = uploadFile;
 exports.getPresignedDownloadUrl = getPresignedDownloadUrl;
 exports.deleteFile = deleteFile;
@@ -17,6 +17,76 @@ exports.copyFile = copyFile;
 exports.calculateStorageUsed = calculateStorageUsed;
 exports.uploadLargeFile = uploadLargeFile;
 const client_s3_1 = require("@aws-sdk/client-s3");
+function getS3Config() {
+    const bucket = process.env.AWS_S3_BUCKET || '';
+    const endpoint = (process.env.AWS_S3_ENDPOINT || '').replace(/\/$/, '');
+    const region = process.env.AWS_REGION || 'eu-central-1';
+    const accessKeyId = process.env.AWS_ACCESS_KEY_ID || '';
+    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || '';
+    const isConfigured = !!(bucket && accessKeyId && secretAccessKey);
+    return { bucket, endpoint, region, accessKeyId, secretAccessKey, isConfigured };
+}
+function getS3Client() {
+    const { region, accessKeyId, secretAccessKey, endpoint } = getS3Config();
+    return new client_s3_1.S3Client({
+        region,
+        credentials: { accessKeyId, secretAccessKey },
+        endpoint: endpoint || undefined,
+        forcePathStyle: !!endpoint
+    });
+}
+function buildPublicUrl(bucket, endpoint, key) {
+    const ep = (endpoint || '').replace(/\/$/, '');
+    if (!ep)
+        return `https://${bucket}.s3.amazonaws.com/${key}`;
+    return ep.includes('backblazeb2.com')
+        ? `https://${bucket}.${ep.replace('https://', '')}/${key}`
+        : `${ep}/${bucket}/${key}`;
+}
+async function storageHealth() {
+    const cfg = getS3Config();
+    const result = {
+        accessConfigured: cfg.isConfigured,
+        bucket: cfg.bucket || null,
+        endpoint: cfg.endpoint || null,
+        canList: false,
+        canWriteTest: false,
+    };
+    if (!cfg.isConfigured)
+        return result;
+    const s3 = getS3Client();
+    try {
+        await s3.send(new client_s3_1.ListObjectsV2Command({ Bucket: cfg.bucket, MaxKeys: 1 }));
+        result.canList = true;
+    }
+    catch (e) {
+        result.listError = e?.message || String(e);
+    }
+    // Optional write test only when explicitly allowed (never by default in prod)
+    if (String(process.env.ALLOW_S3_HEALTH_WRITE || '').toLowerCase() === 'true') {
+        try {
+            const key = `health/${Date.now()}_${Math.random().toString(36).slice(2)}.txt`;
+            await s3.send(new client_s3_1.PutObjectCommand({
+                Bucket: cfg.bucket,
+                Key: key,
+                Body: Buffer.from('ok', 'utf-8'),
+                ContentType: 'text/plain',
+                CacheControl: 'no-store',
+            }));
+            result.canWriteTest = true;
+            result.testKey = key;
+        }
+        catch (e) {
+            result.writeError = e?.message || String(e);
+        }
+    }
+    return result;
+}
+/**
+ * AWS S3 Storage Service
+ * Handles file uploads, downloads, and management in Amazon S3
+ */
+const client_s3_2 = require("@aws-sdk/client-s3");
 const s3_request_presigner_1 = require("@aws-sdk/s3-request-presigner");
 const uuid_1 = require("uuid");
 const path_1 = __importDefault(require("path"));
@@ -34,6 +104,7 @@ const s3Client = new client_s3_1.S3Client({
 });
 const BUCKET_NAME = process.env.AWS_S3_BUCKET || '';
 const CLOUDFRONT_URL = process.env.AWS_CLOUDFRONT_URL;
+const S3_ENDPOINT = process.env.AWS_S3_ENDPOINT || '';
 /**
  * Upload a file to S3
  */
@@ -117,16 +188,22 @@ async function createThumbnail(imageBuffer, originalKey, mimeType) {
  * Get file URL (CloudFront or S3 direct)
  */
 function getFileUrl(key) {
+    // Prefer CDN if configured
     if (CLOUDFRONT_URL) {
-        return `${CLOUDFRONT_URL}/${key}`;
+        return `${CLOUDFRONT_URL.replace(/\/$/, '')}/${key}`;
     }
-    return `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+    // If using Backblaze B2 S3-compatible endpoint, use path-style URL
+    if (S3_ENDPOINT && /backblazeb2\.com/i.test(S3_ENDPOINT)) {
+        return `${S3_ENDPOINT.replace(/\/$/, '')}/${BUCKET_NAME}/${key}`;
+    }
+    const region = process.env.AWS_REGION || 'us-east-1';
+    return `https://${BUCKET_NAME}.amazonaws.com/${key}`.replace('amazonaws.com', `s3.${region}.amazonaws.com`);
 }
 /**
  * Generate presigned URL for secure file download
  */
 async function getPresignedDownloadUrl(key, expiresIn = 3600) {
-    const command = new client_s3_1.GetObjectCommand({
+    const command = new client_s3_2.GetObjectCommand({
         Bucket: BUCKET_NAME,
         Key: key,
     });
@@ -137,7 +214,7 @@ async function getPresignedDownloadUrl(key, expiresIn = 3600) {
  * Delete a file from S3
  */
 async function deleteFile(key) {
-    const command = new client_s3_1.DeleteObjectCommand({
+    const command = new client_s3_2.DeleteObjectCommand({
         Bucket: BUCKET_NAME,
         Key: key,
     });
@@ -145,7 +222,7 @@ async function deleteFile(key) {
     // Also delete thumbnail if exists
     const thumbnailKey = key.replace('/uploads/', '/thumbnails/').replace(path_1.default.extname(key), '.jpg');
     try {
-        const thumbnailCommand = new client_s3_1.DeleteObjectCommand({
+        const thumbnailCommand = new client_s3_2.DeleteObjectCommand({
             Bucket: BUCKET_NAME,
             Key: thumbnailKey,
         });
@@ -160,7 +237,7 @@ async function deleteFile(key) {
  * Get file metadata from S3
  */
 async function getFileMetadata(key) {
-    const command = new client_s3_1.HeadObjectCommand({
+    const command = new client_s3_2.HeadObjectCommand({
         Bucket: BUCKET_NAME,
         Key: key,
     });
@@ -192,7 +269,7 @@ async function listFiles(subscriptionId, folderId) {
  */
 async function copyFile(sourceKey, destinationSubscriptionId, destinationFolderId) {
     // Download source file
-    const getCommand = new client_s3_1.GetObjectCommand({
+    const getCommand = new client_s3_2.GetObjectCommand({
         Bucket: BUCKET_NAME,
         Key: sourceKey,
     });

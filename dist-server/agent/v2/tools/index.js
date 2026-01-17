@@ -18,6 +18,7 @@ require("./leads.conversion.report");
 require("./invoices.query");
 require("./invoices.summary");
 require("./revenue.by.period");
+require("./sessions.list.upcoming");
 require("./client.acquisition");
 require("./top.clients");
 // Tier 2: Safe writes (medium risk) - Require confirmation in auto_safe mode

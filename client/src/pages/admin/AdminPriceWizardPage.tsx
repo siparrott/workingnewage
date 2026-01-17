@@ -181,11 +181,12 @@ const AdminPriceWizardPage: React.FC = () => {
             <p className="text-gray-600">Competitive pricing intelligence and recommendations</p>
           </div>
           <button
-            onClick={() => window.location.href = '/admin/agent-v2?tool=price_wizard_research'}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2"
+            disabled
+            aria-disabled="true"
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg flex items-center gap-2 opacity-50 cursor-not-allowed"
           >
             <TrendingUp className="w-4 h-4" />
-            New Research
+            New Research (disabled)
           </button>
         </div>
 

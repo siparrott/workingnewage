@@ -116,12 +116,11 @@ const def = {
       
       <p>Thank you for your business!</p>
     `;
-        // Send email
-        const emailService = new enhancedEmailService_1.EnhancedEmailService();
         try {
-            await emailService.sendEmail({
+            await enhancedEmailService_1.EnhancedEmailService.sendEmail({
                 to: client.email,
                 subject: `Invoice ${invoice.invoiceNumber}`,
+                content: `Invoice ${invoice.invoiceNumber} - Total: €${invoice.totalAmount}`,
                 html: emailBody
             });
             // Update invoice status

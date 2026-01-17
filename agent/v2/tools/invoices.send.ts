@@ -127,13 +127,11 @@ const def: ToolDef<typeof params> = {
       <p>Thank you for your business!</p>
     `;
     
-    // Send email
-    const emailService = new EnhancedEmailService();
-    
     try {
-      await emailService.sendEmail({
+      await EnhancedEmailService.sendEmail({
         to: client.email,
         subject: `Invoice ${invoice.invoiceNumber}`,
+        content: `Invoice ${invoice.invoiceNumber} - Total: €${invoice.totalAmount}`,
         html: emailBody
       });
       

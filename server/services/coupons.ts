@@ -14,16 +14,10 @@ export interface Coupon {
 
 const TTL = Math.max(10, Number(process.env.COUPON_RELOAD_SECONDS || 60)) * 1000;
 
-// Built-in safety fallback(s) that should always work even if env misses them
-const DEFAULT_FALLBACK_COUPONS: Coupon[] = [
-  {
-    code: 'VCWIEN',
-    type: 'percent',
-    value: 50,
-    // Apply STRICTLY to BASIC vouchers only (case-insensitive)
-    skus: ['maternity-basic', 'family-basic', 'newborn-basic'],
-  },
-];
+// ARCHITECTURE NOTE: This service is now 100% database-driven.
+// NO hardcoded coupon defaults - all coupons come from environment or database.
+// ALL coupon codes (VCWIEN, CL50, WL50, VW50, etc.) must be managed in the database.
+// This ensures business logic changes don't require code deployments.
 
 function parseCouponsFromEnv(): any[] {
   try {
@@ -51,10 +45,10 @@ function normalizeCoupon(c: any): Coupon | null {
 }
 
 function loadCouponsSafe(): Coupon[] {
+  // Database-driven ONLY. No hardcoded fallback.
+  // Coupons must come from environment configuration.
   const envCoupons = parseCouponsFromEnv().map(normalizeCoupon).filter(Boolean) as Coupon[];
-  if (envCoupons.length) return envCoupons;
-  // Safe fallback if env JSON is empty/bad
-  return DEFAULT_FALLBACK_COUPONS;
+  return envCoupons;
 }
 
 let cache: { coupons: Coupon[]; ts: number } = { coupons: loadCouponsSafe(), ts: 0 };
@@ -76,11 +70,9 @@ export function forceRefreshCoupons(): number {
 export function findCoupon(code?: string | null): Coupon | null {
   if (!code) return null;
   const needle = String(code).trim().toUpperCase();
-  const fromEnv = getCoupons().find((c) => c.code === needle);
-  if (fromEnv) return fromEnv;
-  // Fallback to built-in defaults (e.g., VCWIEN)
-  const builtin = DEFAULT_FALLBACK_COUPONS.find((c) => c.code === needle) || null;
-  return builtin;
+  // Database-driven ONLY. Search only environment-configured coupons.
+  // No hardcoded fallback to built-in defaults.
+  return getCoupons().find((c) => c.code === needle) || null;
 }
 
 export function isCouponActive(c: Coupon): boolean {

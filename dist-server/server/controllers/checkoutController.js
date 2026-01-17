@@ -5,9 +5,10 @@ const stripeVoucherService_1 = require("../services/stripeVoucherService");
 const createCheckoutSession = async (req, res) => {
     try {
         const checkoutData = req.body;
-        console.log('Creating checkout session with data:', checkoutData);
+        console.log('✅ Creating checkout session with data:', JSON.stringify(checkoutData, null, 2));
         // Validate required fields
         if (!checkoutData.items || checkoutData.items.length === 0) {
+            console.error('❌ No items provided in checkout data');
             return res.status(400).json({ error: 'No items provided' });
         }
         // If a delivery (non-PDF) line is present, require shipping address in voucherData
@@ -16,23 +17,33 @@ const createCheckoutSession = async (req, res) => {
             const desc = (i.description || '').toLowerCase();
             return sku.startsWith('delivery-') || desc.includes('liefer');
         });
+        console.log('📦 Delivery check:', { hasDelivery, items: checkoutData.items.length });
         if (hasDelivery) {
             const addr = checkoutData?.voucherData?.shippingAddress || {};
             const missing = !addr.address1 || !addr.city || !addr.zip || !addr.country;
             if (missing) {
+                console.error('❌ Shipping address required but not provided:', addr);
                 return res.status(400).json({ error: 'Shipping address required for postal delivery' });
             }
         }
-        // Add base URLs - fix the URL to match the frontend
-        const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
-        checkoutData.successUrl = `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
+        // Add base URLs - prefer explicit env, fallback to request origin/host
+        const envBase = process.env.SITE_URL || process.env.FRONTEND_URL;
+        const inferredBase = req.headers.origin
+            || `${req.headers['x-forwarded-proto'] || req.protocol}://${req.get('host')}`;
+        const baseUrl = (envBase || inferredBase || 'http://localhost:3001').replace(/\/+$/, '');
+        // Use voucher thank-you for voucher mode, generic success otherwise
+        const successPath = (checkoutData.mode === 'voucher')
+            ? '/voucher/thank-you'
+            : '/checkout/success';
+        checkoutData.successUrl = `${baseUrl}${successPath}?session_id={CHECKOUT_SESSION_ID}`;
         checkoutData.cancelUrl = `${baseUrl}/cart`;
-        console.log('Using URLs:', {
+        console.log('🔗 Using URLs:', {
             successUrl: checkoutData.successUrl,
-            cancelUrl: checkoutData.cancelUrl
+            cancelUrl: checkoutData.cancelUrl,
+            mode: checkoutData.mode
         });
         const session = await stripeVoucherService_1.StripeVoucherService.createCheckoutSession(checkoutData);
-        console.log('Checkout session created:', {
+        console.log('✅ Checkout session created successfully:', {
             sessionId: session.id,
             url: session.url
         });
@@ -43,10 +54,11 @@ const createCheckoutSession = async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Checkout creation failed:', error);
+        console.error('❌ Checkout creation failed with error:', error);
         res.status(500).json({
             error: 'Checkout creation failed',
-            message: error instanceof Error ? error.message : 'Unknown error'
+            message: error instanceof Error ? error.message : 'Unknown error',
+            details: error instanceof Error ? error.stack : undefined
         });
     }
 };

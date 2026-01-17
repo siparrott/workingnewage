@@ -394,6 +394,11 @@ router.post('/activate-free-tier', async (req, res) => {
     try {
         // Check if user is authenticated
         const userId = req.session?.userId;
+        console.log('🔍 Free tier activation request:', {
+            userId,
+            hasSession: !!req.session,
+            sessionKeys: req.session ? Object.keys(req.session) : []
+        });
         if (!userId) {
             return res.status(401).json({
                 error: 'Please log in to activate free storage'
@@ -404,9 +409,17 @@ router.post('/activate-free-tier', async (req, res) => {
             .from(schema_1.storageSubscriptions)
             .where((0, drizzle_orm_1.eq)(schema_1.storageSubscriptions.userId, userId))
             .limit(1);
+        console.log('🔍 Existing subscription check:', {
+            userId,
+            hasExisting: existingSub && existingSub.length > 0,
+            existingStatus: existingSub?.[0]?.status
+        });
         if (existingSub && existingSub.length > 0) {
-            return res.status(400).json({
-                error: 'You already have a subscription. Please cancel it first to switch to free tier.'
+            console.log('⚠️ User already has subscription:', existingSub[0]);
+            return res.json({
+                success: true,
+                message: 'You already have an active subscription!',
+                subscription: existingSub[0],
             });
         }
         // Create free tier subscription (5GB)
@@ -421,12 +434,23 @@ router.post('/activate-free-tier', async (req, res) => {
             currentPeriodEnd: null, // Free tier doesn't expire
         })
             .returning();
+        console.log('✅ Free tier subscription created:', {
+            subscriptionId: newSub.id,
+            userId,
+            tier: newSub.tier,
+            status: newSub.status
+        });
         // Create initial usage record using raw SQL (schema mismatch workaround)
         await db_1.db.execute((0, drizzle_orm_1.sql) `
       INSERT INTO storage_usage (subscription_id, current_storage_bytes, file_count)
       VALUES (${newSub.id}, 0, 0)
     `);
-        console.log('✅ Free tier activated:', { userId });
+        console.log('✅ Free tier activated:', {
+            userId,
+            subscriptionId: newSub.id,
+            tier: 'free',
+            storageLimit: newSub.storageLimit
+        });
         res.json({
             success: true,
             message: 'Free tier activated! You now have 5GB of storage.',
@@ -434,7 +458,7 @@ router.post('/activate-free-tier', async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Error activating free tier:', error);
+        console.error('❌ Error activating free tier:', error);
         res.status(500).json({ error: 'Failed to activate free tier' });
     }
 });

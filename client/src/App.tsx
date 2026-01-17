@@ -115,7 +115,6 @@ import ModelReleasePage from './pages/legal/ModelReleasePage';
 import GalleryPage from './pages/GalleryPage';
 import PublicGalleriesPage from './pages/PublicGalleriesPage';
 import PublicInvoicePage from './pages/PublicInvoicePage';
-import ChatBot from './components/chat/ChatBot';
 import { GalleryShopTest } from './pages/GalleryShopTest';
 import DownloadDataPage from './pages/DownloadDataPage';
 import MockSuccessPage from './pages/MockSuccessPage';
@@ -443,19 +442,11 @@ function App() {
                 />
                 <Route
                   path="/admin/crm-assistant"
-                  element={
-                    <NeonProtectedRoute>
-                      <CRMOperationsAssistant />
-                    </NeonProtectedRoute>
-                  }
+                  element={<Navigate to="/admin/dashboard" replace />}
                 />
                 <Route
                   path="/admin/agent-v2"
-                  element={
-                    <NeonProtectedRoute>
-                      <AgentV2Page />
-                    </NeonProtectedRoute>
-                  }
+                  element={<Navigate to="/admin/dashboard" replace />}
                 />
                 <Route
                   path="/admin/agent-console"
@@ -609,7 +600,6 @@ function App() {
                 />
                 <Route path="/gallery-shop-test" element={<GalleryShopTest />} />
               </Routes>
-              <ChatBot />
               <CookieConsent privacyPolicyUrl="/impressum/" imprintUrl="/impressum/" />
               <ConsentScripts />
             </Router>

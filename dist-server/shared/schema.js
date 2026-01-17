@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.insertVoucherProductSchema = exports.insertSMSConfigSchema = exports.insertMessageCampaignSchema = exports.insertCrmMessageSchema = exports.insertCrmInvoiceItemSchema = exports.insertCrmInvoiceSchema = exports.insertGallerySchema = exports.insertCrmLeadSchema = exports.insertCrmClientSchema = exports.insertBlogPostSchema = exports.insertUserSchema = exports.insertPhotographySessionSchema = exports.questionnaireResponses = exports.questionnaires = exports.onlineBookings = exports.bookingForms = exports.calendarSyncLogs = exports.calendarSyncSettings = exports.availabilityOverrides = exports.availabilityTemplates = exports.businessInsights = exports.weatherData = exports.sessionCommunications = exports.sessionTasks = exports.sessionEquipment = exports.photographySessions = exports.digitalFiles = exports.galleryImages = exports.galleries = exports.smsConfig = exports.googleCalendarConfig = exports.studioAppointments = exports.messageCampaigns = exports.crmMessages = exports.couponUsage = exports.voucherSales = exports.priceListItems = exports.discountCoupons = exports.voucherProducts = exports.studioAvailableSlots = exports.crmInvoicePayments = exports.crmInvoiceItems = exports.crmInvoices = exports.crmLeads = exports.crmClients = exports.blogPosts = exports.adminUsers = exports.templateDefinitions = exports.studioConfigs = exports.users = void 0;
-exports.gallery_images = exports.photography_sessions = exports.emailLinks = exports.emailEvents = exports.insertEmailSegmentSchema = exports.emailSegments = exports.insertEmailSubscriberSchema = exports.emailSubscribers = exports.insertEmailTemplateSchema = exports.emailTemplates = exports.insertEmailCampaignSchema = exports.emailCampaigns = exports.insertGalleryTransferLogSchema = exports.insertArchivedFolderSchema = exports.insertArchivedFileSchema = exports.insertStorageUsageSchema = exports.insertStorageSubscriptionSchema = exports.galleryTransferLog = exports.archivedFiles = exports.archivedFolders = exports.storageUsage = exports.storageSubscriptions = exports.storageSubscriptionStatus = exports.storageSubscriptionTier = exports.insertPriceListItemSchema = exports.insertAgentAuditDiffSchema = exports.insertAgentAuditSchema = exports.insertAgentMessageSchema = exports.insertAgentSessionSchema = exports.insertAgentActionLogSchema = exports.insertAiPolicySchema = exports.insertStudioIntegrationSchema = exports.insertStudioSchema = exports.agentAuditDiff = exports.agentAudit = exports.agentMessage = exports.agentSession = exports.agentActionLog = exports.aiPolicies = exports.studioIntegrations = exports.studios = exports.insertAdminUserSchema = exports.insertOpenaiAssistantSchema = exports.insertKnowledgeBaseSchema = exports.openaiAssistants = exports.knowledgeBase = exports.insertCouponUsageSchema = exports.insertVoucherSaleSchema = exports.insertDiscountCouponSchema = void 0;
+exports.insertCrmInvoiceItemSchema = exports.insertCrmInvoiceSchema = exports.insertGallerySchema = exports.insertLeadSourceSchema = exports.insertCrmLeadSchema = exports.insertCrmClientSchema = exports.insertBlogPostSchema = exports.insertUserSchema = exports.insertPhotographySessionSchema = exports.questionnaireResponses = exports.questionnaires = exports.onlineBookings = exports.bookingForms = exports.calendarSyncLogs = exports.calendarSyncSettings = exports.availabilityOverrides = exports.availabilityTemplates = exports.businessInsights = exports.weatherData = exports.sessionCommunications = exports.sessionTasks = exports.sessionEquipment = exports.photographySessions = exports.photoFolders = exports.digitalFiles = exports.galleryImages = exports.galleries = exports.smsConfig = exports.googleCalendarConfig = exports.studioAppointments = exports.messageCampaigns = exports.crmMessages = exports.couponUsage = exports.voucherSales = exports.priceListItems = exports.discountCoupons = exports.voucherProducts = exports.manualPageContent = exports.studioAvailableSlots = exports.crmInvoicePayments = exports.crmInvoiceItems = exports.crmInvoices = exports.crmLeads = exports.crmClients = exports.leadSources = exports.blogPosts = exports.adminUsers = exports.templateDefinitions = exports.studioConfigs = exports.users = void 0;
+exports.emailEvents = exports.insertEmailSegmentSchema = exports.emailSegments = exports.insertEmailSubscriberSchema = exports.emailSubscribers = exports.insertEmailTemplateSchema = exports.emailTemplates = exports.insertEmailCampaignSchema = exports.emailCampaigns = exports.insertGalleryTransferLogSchema = exports.insertArchivedFolderSchema = exports.insertArchivedFileSchema = exports.insertStorageUsageSchema = exports.insertStorageSubscriptionSchema = exports.galleryTransferLog = exports.archivedFiles = exports.archivedFolders = exports.storageUsage = exports.storageSubscriptions = exports.storageSubscriptionStatus = exports.storageSubscriptionTier = exports.insertPriceListItemSchema = exports.insertAgentAuditDiffSchema = exports.insertAgentAuditSchema = exports.insertAgentMessageSchema = exports.insertAgentSessionSchema = exports.insertAgentActionLogSchema = exports.insertAiPolicySchema = exports.insertStudioIntegrationSchema = exports.insertStudioSchema = exports.agentAuditDiff = exports.agentAudit = exports.agentMessage = exports.agentSession = exports.agentActionLog = exports.aiPolicies = exports.studioIntegrations = exports.studios = exports.insertAdminUserSchema = exports.insertOpenaiAssistantSchema = exports.insertKnowledgeBaseSchema = exports.openaiAssistants = exports.knowledgeBase = exports.insertCouponUsageSchema = exports.insertVoucherSaleSchema = exports.insertDiscountCouponSchema = exports.insertVoucherProductSchema = exports.insertSMSConfigSchema = exports.insertMessageCampaignSchema = exports.insertCrmMessageSchema = void 0;
+exports.gallery_images = exports.photography_sessions = exports.emailLinks = void 0;
 const pg_core_1 = require("drizzle-orm/pg-core");
 const drizzle_zod_1 = require("drizzle-zod");
 const zod_1 = require("zod");
@@ -94,6 +95,8 @@ exports.blogPosts = (0, pg_core_1.pgTable)("blog_posts", {
     contentHtml: (0, pg_core_1.text)("content_html"),
     excerpt: (0, pg_core_1.text)("excerpt"),
     imageUrl: (0, pg_core_1.text)("image_url"),
+    imageUrl2: (0, pg_core_1.text)("image_url_2"),
+    imageUrl3: (0, pg_core_1.text)("image_url_3"),
     published: (0, pg_core_1.boolean)("published").default(false),
     publishedAt: (0, pg_core_1.timestamp)("published_at"),
     scheduledFor: (0, pg_core_1.timestamp)("scheduled_for"),
@@ -102,6 +105,15 @@ exports.blogPosts = (0, pg_core_1.pgTable)("blog_posts", {
     tags: (0, pg_core_1.text)("tags").array(),
     metaDescription: (0, pg_core_1.text)("meta_description"),
     seoTitle: (0, pg_core_1.text)("seo_title"),
+    createdAt: (0, pg_core_1.timestamp)("created_at").defaultNow(),
+    updatedAt: (0, pg_core_1.timestamp)("updated_at").defaultNow(),
+});
+// Lead Sources
+exports.leadSources = (0, pg_core_1.pgTable)("lead_sources", {
+    id: (0, pg_core_1.uuid)("id").primaryKey().defaultRandom(),
+    name: (0, pg_core_1.text)("name").notNull().unique(),
+    isActive: (0, pg_core_1.boolean)("is_active").default(true),
+    sortOrder: (0, pg_core_1.integer)("sort_order").default(0),
     createdAt: (0, pg_core_1.timestamp)("created_at").defaultNow(),
     updatedAt: (0, pg_core_1.timestamp)("updated_at").defaultNow(),
 });
@@ -114,7 +126,6 @@ exports.crmClients = (0, pg_core_1.pgTable)("crm_clients", {
     email: (0, pg_core_1.text)("email").notNull(),
     phone: (0, pg_core_1.text)("phone"),
     address: (0, pg_core_1.text)("address"),
-    address2: (0, pg_core_1.text)("address2"),
     city: (0, pg_core_1.text)("city"),
     state: (0, pg_core_1.text)("state"),
     zip: (0, pg_core_1.text)("zip"),
@@ -122,9 +133,6 @@ exports.crmClients = (0, pg_core_1.pgTable)("crm_clients", {
     company: (0, pg_core_1.text)("company"),
     notes: (0, pg_core_1.text)("notes"),
     status: (0, pg_core_1.text)("status").default("active"),
-    clientSince: (0, pg_core_1.timestamp)("client_since"),
-    lastSessionDate: (0, pg_core_1.timestamp)("last_session_date"),
-    lifetimeValue: (0, pg_core_1.decimal)("lifetime_value", { precision: 10, scale: 2 }),
     createdAt: (0, pg_core_1.timestamp)("created_at").defaultNow(),
     updatedAt: (0, pg_core_1.timestamp)("updated_at").defaultNow(),
 });
@@ -155,8 +163,11 @@ exports.crmInvoices = (0, pg_core_1.pgTable)("crm_invoices", {
     dueDate: (0, pg_core_1.date)("due_date").notNull(),
     subtotal: (0, pg_core_1.decimal)("subtotal", { precision: 10, scale: 2 }).notNull(),
     taxAmount: (0, pg_core_1.decimal)("tax_amount", { precision: 10, scale: 2 }).default("0"),
+    discountAmount: (0, pg_core_1.decimal)("discount_amount", { precision: 10, scale: 2 }).default("0"),
     total: (0, pg_core_1.decimal)("total", { precision: 10, scale: 2 }).notNull(),
+    currency: (0, pg_core_1.text)("currency").default("EUR"),
     status: (0, pg_core_1.text)("status").default("draft"),
+    paymentTerms: (0, pg_core_1.text)("payment_terms").default("Net 30"),
     notes: (0, pg_core_1.text)("notes"),
     termsAndConditions: (0, pg_core_1.text)("terms_and_conditions"),
     createdBy: (0, pg_core_1.uuid)("created_by").references(() => exports.users.id),
@@ -196,6 +207,20 @@ exports.studioAvailableSlots = (0, pg_core_1.pgTable)("studio_available_slots", 
     createdAt: (0, pg_core_1.timestamp)("created_at").defaultNow(),
     updatedAt: (0, pg_core_1.timestamp)("updated_at").defaultNow(),
 });
+exports.manualPageContent = (0, pg_core_1.pgTable)("manual_page_content", {
+    id: (0, pg_core_1.uuid)("id").primaryKey().defaultRandom(),
+    studioId: (0, pg_core_1.uuid)("studio_id").references(() => exports.studioConfigs.id, { onDelete: "cascade" }).notNull(),
+    pageId: (0, pg_core_1.text)("page_id").notNull(),
+    language: (0, pg_core_1.text)("language").notNull().default("de"),
+    draftContent: (0, pg_core_1.jsonb)("draft_content").$type().default({}),
+    publishedContent: (0, pg_core_1.jsonb)("published_content").$type().default({}),
+    status: (0, pg_core_1.text)("status").default("draft"),
+    publishedAt: (0, pg_core_1.timestamp)("published_at"),
+    createdAt: (0, pg_core_1.timestamp)("created_at").defaultNow(),
+    updatedAt: (0, pg_core_1.timestamp)("updated_at").defaultNow(),
+}, (table) => ({
+    pageLanguageStudioUnique: (0, pg_core_1.uniqueIndex)("manual_page_content_unique").on(table.studioId, table.pageId, table.language)
+}));
 // Voucher Products (what customers can buy)
 exports.voucherProducts = (0, pg_core_1.pgTable)("voucher_products", {
     id: (0, pg_core_1.uuid)("id").primaryKey().defaultRandom(),
@@ -469,6 +494,14 @@ exports.digitalFiles = (0, pg_core_1.pgTable)("digital_files", {
     tags: (0, pg_core_1.text)("tags"), // stored as JSON string for now for backward-compat
     isPublic: (0, pg_core_1.boolean)("is_public").default(false),
     uploadedAt: (0, pg_core_1.timestamp)("uploaded_at", { withTimezone: true }).defaultNow(),
+    createdAt: (0, pg_core_1.timestamp)("created_at", { withTimezone: true }).defaultNow(),
+    updatedAt: (0, pg_core_1.timestamp)("updated_at", { withTimezone: true }).defaultNow(),
+});
+// Photo Folders for organizing digital files
+exports.photoFolders = (0, pg_core_1.pgTable)("photo_folders", {
+    id: (0, pg_core_1.text)("id").primaryKey(),
+    name: (0, pg_core_1.text)("name").notNull().unique(),
+    parentId: (0, pg_core_1.text)("parent_id"),
     createdAt: (0, pg_core_1.timestamp)("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: (0, pg_core_1.timestamp)("updated_at", { withTimezone: true }).defaultNow(),
 });
@@ -775,7 +808,6 @@ exports.insertCrmClientSchema = (0, drizzle_zod_1.createInsertSchema)(exports.cr
     email: true,
     phone: true,
     address: true,
-    address2: true,
     city: true,
     state: true,
     zip: true,
@@ -783,9 +815,6 @@ exports.insertCrmClientSchema = (0, drizzle_zod_1.createInsertSchema)(exports.cr
     company: true,
     notes: true,
     status: true,
-    clientSince: true,
-    lastSessionDate: true,
-    lifetimeValue: true,
 });
 exports.insertCrmLeadSchema = (0, drizzle_zod_1.createInsertSchema)(exports.crmLeads).pick({
     name: true,
@@ -799,6 +828,11 @@ exports.insertCrmLeadSchema = (0, drizzle_zod_1.createInsertSchema)(exports.crmL
     tags: true,
     follow_up_date: true,
     value: true,
+});
+exports.insertLeadSourceSchema = (0, drizzle_zod_1.createInsertSchema)(exports.leadSources).pick({
+    name: true,
+    isActive: true,
+    sortOrder: true,
 });
 exports.insertGallerySchema = (0, drizzle_zod_1.createInsertSchema)(exports.galleries).pick({
     title: true,
@@ -816,12 +850,15 @@ exports.insertCrmInvoiceSchema = (0, drizzle_zod_1.createInsertSchema)(exports.c
     dueDate: true,
     subtotal: true,
     taxAmount: true,
+    discountAmount: true,
     total: true,
+    currency: true,
     status: true,
+    paymentTerms: true,
     notes: true,
     termsAndConditions: true,
     createdBy: true,
-}).partial({ invoiceNumber: true, createdBy: true }); // Make invoiceNumber and createdBy optional
+}).partial({ invoiceNumber: true, createdBy: true, discountAmount: true, currency: true, paymentTerms: true }); // Make optional fields
 exports.insertCrmInvoiceItemSchema = (0, drizzle_zod_1.createInsertSchema)(exports.crmInvoiceItems).pick({
     invoiceId: true,
     description: true,

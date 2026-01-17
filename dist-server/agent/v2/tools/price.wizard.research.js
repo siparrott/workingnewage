@@ -43,8 +43,7 @@ Returns: Price research results with competitor data, extracted prices, and AI-g
     risk: "medium",
     handler: async (ctx, args) => {
         try {
-            // Use current host instead of separate API
-            const BASE_URL = process.env.APP_URL || process.env.APP_BASE_URL || 'http://localhost:3001';
+            const BASE_URL = process.env.API_BASE_URL || 'http://localhost:5000';
             ctx.log(`🔍 Starting price research for ${args.services.join(', ')} in ${args.location}`);
             // Step 1: Start research session
             const startResponse = await fetch(`${BASE_URL}/api/price-wizard/start`, {

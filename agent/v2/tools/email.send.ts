@@ -86,16 +86,12 @@ const def: ToolDef<typeof params> = {
       };
     }
     
-    // Send email via EmailService
-    const emailService = new EnhancedEmailService();
-    
     try {
-      await emailService.sendEmail({
+      await EnhancedEmailService.sendEmail({
         to: emailData.to,
         subject: emailData.subject,
-        html: emailData.body,
-        cc: emailData.cc,
-        bcc: emailData.bcc
+        content: emailData.body,
+        html: emailData.body
       });
       
       // Update draft status if sending from draft

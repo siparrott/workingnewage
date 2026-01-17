@@ -49,12 +49,12 @@ Returns: Time-series revenue data with trends and comparisons`,
             const queryParams = [];
             let paramIndex = 1;
             if (args.startDate) {
-                whereClauses.push(`date >= $${paramIndex}`);
+                whereClauses.push(`tx_date >= $${paramIndex}::date`);
                 queryParams.push(args.startDate);
                 paramIndex++;
             }
             if (args.endDate) {
-                whereClauses.push(`date <= $${paramIndex}`);
+                whereClauses.push(`tx_date <= $${paramIndex}::date`);
                 queryParams.push(args.endDate);
                 paramIndex++;
             }
@@ -76,12 +76,12 @@ Returns: Time-series revenue data with trends and comparisons`,
                 revenueQuery += `
           SELECT 
             TO_CHAR(issue_date, '${dateFormat}') as period,
-            issue_date as date,
-            SUM(total_amount) FILTER (WHERE status = 'paid') as revenue,
+            issue_date::date as tx_date,
+            SUM(total) FILTER (WHERE status = 'paid') as revenue,
             COUNT(*) FILTER (WHERE status = 'paid') as transaction_count,
             'invoices' as source
           FROM crm_invoices
-          GROUP BY TO_CHAR(issue_date, '${dateFormat}'), issue_date
+          GROUP BY TO_CHAR(issue_date, '${dateFormat}'), issue_date::date
         `;
             }
             if (args.source === 'vouchers' || args.source === 'both') {
@@ -90,7 +90,7 @@ Returns: Time-series revenue data with trends and comparisons`,
                 revenueQuery += `
           SELECT 
             TO_CHAR(created_at, '${dateFormat}') as period,
-            created_at::date as date,
+            created_at::date as tx_date,
             SUM(final_amount::numeric) FILTER (WHERE payment_status = 'paid') as revenue,
             COUNT(*) FILTER (WHERE payment_status = 'paid') as transaction_count,
             'vouchers' as source

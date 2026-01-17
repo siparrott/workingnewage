@@ -22,8 +22,8 @@ const Types_1 = require("../../agent/v2/core/Types");
 const ToolBus_1 = require("../../agent/v2/core/ToolBus");
 const Guardrails_1 = require("../../agent/v2/core/Guardrails");
 const openai_1 = __importDefault(require("openai"));
-// Import tools to register them
-require("../../agent/v2/tools");
+// Import tools to register them with ToolBus
+require("../../agent/v2/tools/index");
 const router = express_1.default.Router();
 // OpenAI client
 const openai = process.env.OPENAI_API_KEY
@@ -102,7 +102,7 @@ router.post("/chat", async (req, res) => {
                 }
             ],
             tools: availableTools.length > 0 ? availableTools : undefined,
-            tool_choice: "auto"
+            tool_choice: availableTools.length > 0 ? "auto" : undefined
         });
         const choice = completion.choices[0];
         const assistantMessage = choice.message;
@@ -432,7 +432,7 @@ function getSystemPrompt(mode) {
    High Risk (3 tools): send_email, send_invoice, delete_calendar_event
 
 🎯 INTERACTION GUIDELINES:
-   - Always use tools to answer questions (don't say "I don't have access")
+  - Always use tools to answer questions (don't say "I don't have access")
    - When photographer asks "Can you...?" check available tools first
    - For automation requests, use Workflow Wizard, NOT external tools
    - For email marketing, use email_campaigns system, NOT Mailchimp
@@ -449,6 +449,18 @@ function getSystemPrompt(mode) {
    
    Q: "What should I charge for family portraits?"
    A: "Let me research competitor pricing in your area. What's your location and what services should I analyze?"
+
+DATA ACCESS CONTRACT (CRITICAL):
+   - You DO have access to live CRM data via tools. For any question about:
+     • sales, revenue, turnover, income
+     • invoices (sent/paid/unpaid), invoice totals
+     • clients, leads, bookings, calendar events
+   - You MUST call the appropriate tools (like list_invoices, search_clients, list_leads, search_calendar, etc.) before answering.
+   - You MUST NOT answer with phrases like:
+       "I can't directly access real-time data or systems",
+       "I don't have access to your CRM", or
+       "I can only help if you paste the data".
+   - If a tool returns an error or no data, explain the specific tool error and propose the next concrete step (e.g., different date range) instead of claiming no access.
 
 Always be professional, concise, and helpful. Use tools when appropriate to answer user questions.`;
     if (mode === "read_only") {

@@ -329,4 +329,47 @@ router.get('/usage', requireAuth, async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch usage' });
     }
 });
+/**
+ * Move file to folder
+ * PATCH /api/files/:id/move
+ */
+router.patch('/:id/move', requireAuth, async (req, res) => {
+    try {
+        const userId = req.session.userId;
+        const fileId = parseInt(req.params.id);
+        const { folderId } = req.body;
+        // Get file and verify ownership
+        const files = await db_1.db.select({
+            file: schema_1.archivedFiles,
+            subscription: schema_1.storageSubscriptions,
+        })
+            .from(schema_1.archivedFiles)
+            .innerJoin(schema_1.storageSubscriptions, (0, drizzle_orm_1.eq)(schema_1.archivedFiles.subscriptionId, schema_1.storageSubscriptions.id))
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.archivedFiles.id, fileId), (0, drizzle_orm_1.eq)(schema_1.storageSubscriptions.userId, userId)))
+            .limit(1);
+        if (!files || files.length === 0) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+        // If folderId is provided, verify folder exists and belongs to same subscription
+        if (folderId) {
+            const folder = await db_1.db.select()
+                .from(schema_1.archivedFolders)
+                .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.archivedFolders.id, folderId), (0, drizzle_orm_1.eq)(schema_1.archivedFolders.subscriptionId, files[0].file.subscriptionId)))
+                .limit(1);
+            if (!folder || folder.length === 0) {
+                return res.status(404).json({ error: 'Folder not found' });
+            }
+        }
+        // Update file's folder
+        await db_1.db
+            .update(schema_1.archivedFiles)
+            .set({ folderId: folderId || null })
+            .where((0, drizzle_orm_1.eq)(schema_1.archivedFiles.id, fileId));
+        res.json({ success: true, message: 'File moved successfully' });
+    }
+    catch (error) {
+        console.error('Error moving file:', error);
+        res.status(500).json({ error: 'Failed to move file' });
+    }
+});
 exports.default = router;

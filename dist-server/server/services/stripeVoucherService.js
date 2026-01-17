@@ -131,26 +131,39 @@ class StripeVoucherService {
         if (!stripe || !stripeConfigured) {
             // Instead of throwing an error, return a mock success for demo purposes
             console.warn('⚠️  Stripe not configured, returning demo response');
+            console.log('📦 Demo checkout data:', JSON.stringify(data, null, 2));
             // Get the proper base URL for demo mode
             const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+            const demoSessionId = `demo_session_${Date.now()}`;
+            // Store the voucher data for demo session retrieval
+            const voucherDataStr = JSON.stringify(data.voucherData || {});
             // Create a mock session object that mimics Stripe's response
             const mockSession = {
-                id: `demo_session_${Date.now()}`,
-                url: `${baseUrl}/checkout/mock-success?session_id=demo_session_${Date.now()}`,
+                id: demoSessionId,
+                url: `${baseUrl}/checkout/mock-success?session_id=${demoSessionId}`,
                 object: 'checkout.session',
                 payment_status: 'paid',
                 success_url: data.successUrl,
-                cancel_url: data.cancelUrl
+                cancel_url: data.cancelUrl,
+                customer_email: data.customerEmail || 'demo@example.com',
+                amount_total: data.items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+                metadata: {
+                    source: 'photography_website',
+                    voucher_used: data.appliedVoucherCode || 'none',
+                    mode: data.mode || 'voucher',
+                    voucher_data: voucherDataStr,
+                    payment_method_preference: data.paymentMethod || 'card'
+                }
             };
-            console.log('Demo checkout session created:', mockSession.url);
+            console.log('✅ Demo checkout session created:', mockSession.url);
             return mockSession;
         }
         try {
-            // Set default URLs if not provided
+            // Build URLs with robust fallbacks. Prefer controller-provided URLs when present.
             const siteBase = process.env.SITE_URL || process.env.FRONTEND_URL || 'http://localhost:5173';
             const voucherSuccess = `${siteBase}/voucher/thank-you?session_id={CHECKOUT_SESSION_ID}`;
             const defaultSuccess = `${siteBase}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
-            const successUrl = data.mode === 'voucher' ? voucherSuccess : (data.successUrl || defaultSuccess);
+            const successUrl = data.successUrl || (data.mode === 'voucher' ? voucherSuccess : defaultSuccess);
             const cancelUrl = data.cancelUrl || `${siteBase}/cart`;
             // Use live-reloading coupons service to find a matching custom coupon
             const appliedCode = data.appliedVoucherCode?.toUpperCase();
@@ -257,9 +270,13 @@ class StripeVoucherService {
             const voucherId = (`V-` + (0, uuid_1.v4)().slice(0, 8)).toUpperCase();
             const personalization = data.voucherData || {};
             const recipientName = String(personalization.recipientName || personalization.name || '').trim();
-            const fromName = String(personalization.fromName || personalization.sender || '').trim();
-            const message = String(personalization.message || '').trim();
+            const fromName = String(personalization.fromName || personalization.sender || personalization.senderName || '').trim();
+            const message = String(personalization.message || personalization.personalMessage || '').trim();
             const expiryDate = String(personalization.expiryDate || '').trim();
+            const designImage = String(personalization.selectedDesign?.image || '').trim();
+            const customImage = String(personalization.customImageUrl || '').trim();
+            const productHeroImage = String(personalization.productHeroImage || '').trim(); // Product default image fallback
+            const productDescription = String(personalization.productDescription || '').trim();
             sessionParams.metadata = {
                 source: 'photography_website',
                 voucher_used: data.appliedVoucherCode || data.appliedVoucher?.code || 'none',
@@ -278,6 +295,11 @@ class StripeVoucherService {
                 discount_cents: String(Math.max(0, (Number(data.discount) || 0) || (basePrimaryCents - discountedPrimaryCents))),
                 discount_strict_95: String(strict95Codes.has(appliedCodeUpper)),
                 shipping_address: data.voucherData?.shippingAddress ? JSON.stringify(data.voucherData.shippingAddress).substring(0, 500) : '',
+                // Optional art for PDF rendering (priority: custom > design > product default)
+                design_image: designImage,
+                custom_image: customImage,
+                product_hero_image: productHeroImage, // Fallback to product's default hero image
+                product_description: productDescription.substring(0, 1200),
             };
             sessionParams.payment_intent_data = {
                 metadata: {
@@ -348,6 +370,8 @@ class StripeVoucherService {
             throw new Error('Stripe is not properly configured. Please check your STRIPE_SECRET_KEY.');
         }
         const session = await this.retrieveSession(sessionId);
+        console.log('📧 Processing successful payment for session:', sessionId);
+        console.log('💳 Session metadata:', session.metadata);
         // Track voucher usage if applicable
         const voucherUsed = session.metadata?.voucher_used;
         if (voucherUsed && voucherUsed !== 'none') {
@@ -357,28 +381,37 @@ class StripeVoucherService {
         let generatedVoucher;
         if (session.metadata?.voucher_data) {
             try {
+                console.log('🎁 Parsing voucher data from metadata...');
                 const voucherData = JSON.parse(session.metadata.voucher_data);
+                console.log('✅ Voucher data parsed:', voucherData);
+                // Extract amount from session total (in cents, convert to euros)
+                const amountInCents = session.amount_total || 0;
+                const amount = amountInCents / 100;
                 // Create the voucher with sequential security code
                 generatedVoucher = await voucherGenerationService_1.VoucherGenerationService.createGiftVoucher({
                     recipientEmail: voucherData.recipientEmail || session.customer_email || '',
-                    recipientName: voucherData.recipientName,
-                    amount: session.amount_total || 0,
-                    type: voucherData.type || 'Fotoshooting Gutschein',
-                    message: voucherData.message,
-                    deliveryMethod: voucherData.deliveryMethod || 'email',
+                    recipientName: voucherData.recipientName || 'Valued Customer',
+                    amount: amount,
+                    type: voucherData.type || voucherData.selectedDesign?.occasion || 'Fotoshooting Gutschein',
+                    message: voucherData.message || voucherData.personalMessage || '',
+                    deliveryMethod: voucherData.deliveryOption?.name?.toLowerCase().includes('pdf') ? 'email' : 'postal',
                     deliveryDate: voucherData.deliveryDate ? new Date(voucherData.deliveryDate) : undefined,
-                    senderName: voucherData.senderName,
+                    senderName: voucherData.fromName || voucherData.senderName,
                     senderEmail: session.customer_email || undefined
                 });
-                console.log('Generated voucher with security code:', generatedVoucher.securityCode);
+                console.log('✅ Generated voucher with security code:', generatedVoucher.securityCode);
                 // Send voucher email or schedule delivery
                 if (generatedVoucher.deliveryMethod === 'email') {
                     await this.sendVoucherEmail(generatedVoucher);
                 }
             }
             catch (error) {
-                console.error('Error generating voucher:', error);
+                console.error('❌ Error generating voucher:', error);
+                console.error('❌ Metadata content:', session.metadata?.voucher_data);
             }
+        }
+        else {
+            console.warn('⚠️  No voucher_data found in session metadata');
         }
         return {
             session,

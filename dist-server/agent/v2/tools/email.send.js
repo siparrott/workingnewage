@@ -78,15 +78,12 @@ const def = {
                 warning: "This was a simulation - no email was actually sent"
             };
         }
-        // Send email via EmailService
-        const emailService = new enhancedEmailService_1.EnhancedEmailService();
         try {
-            await emailService.sendEmail({
+            await enhancedEmailService_1.EnhancedEmailService.sendEmail({
                 to: emailData.to,
                 subject: emailData.subject,
-                html: emailData.body,
-                cc: emailData.cc,
-                bcc: emailData.bcc
+                content: emailData.body,
+                html: emailData.body
             });
             // Update draft status if sending from draft
             if (args.draftId) {

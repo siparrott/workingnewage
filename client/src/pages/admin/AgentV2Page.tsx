@@ -1,6 +1,5 @@
 import React from 'react';
 import { Shield, Sparkles, Zap } from 'lucide-react';
-import CRMOperationsAssistantV2 from '../../components/chat/CRMOperationsAssistantV2';
 import AdminLayout from '../../components/admin/AdminLayout';
 
 const AgentV2Page: React.FC = () => {
@@ -159,8 +158,7 @@ const AgentV2Page: React.FC = () => {
         </div>
         </div>
 
-        {/* Agent V2 Chat Component */}
-        <CRMOperationsAssistantV2 useV2={true} />
+        {/* Agent disabled */}
       </div>
     </AdminLayout>
   );

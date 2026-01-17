@@ -20,7 +20,10 @@ const drizzle_orm_2 = require("drizzle-orm");
 const schema_1 = require("../shared/schema");
 const path_1 = __importDefault(require("path"));
 const os_1 = __importDefault(require("os"));
+// Removed duplicate fs import (already imported earlier)
 const multer_1 = __importDefault(require("multer"));
+const client_s3_1 = require("@aws-sdk/client-s3");
+const sharp_1 = __importDefault(require("sharp"));
 // Using require for 'imap' to satisfy commonjs typings within ESM context
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const Imap = require('imap');
@@ -59,10 +62,14 @@ const stripe_1 = __importDefault(require("stripe"));
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const pdfkit_1 = __importDefault(require("pdfkit"));
 const jspdf_1 = require("jspdf");
+const client_s3_2 = require("@aws-sdk/client-s3");
+const s3_storage_1 = require("./services/s3-storage");
 const openai_1 = __importDefault(require("openai"));
 const website_wizard_1 = __importDefault(require("./routes/website-wizard"));
 const onboarding_1 = __importDefault(require("./routes/onboarding"));
 const price_wizard_1 = __importDefault(require("./routes/price-wizard"));
+// Simple in-memory status for last calendar import
+let lastCalendarImportStatus = {};
 const workflow_wizard_1 = __importDefault(require("./routes/workflow-wizard"));
 const questionnaires_1 = __importDefault(require("./routes/questionnaires"));
 const gallery_shop_1 = __importDefault(require("./routes/gallery-shop"));
@@ -78,6 +85,26 @@ const coupons_1 = require("./services/coupons");
 // Synchronous fallback (for non-async template helpers)
 function getEnvContactEmailSync() {
     return process.env.SMTP_FROM || process.env.STUDIO_NOTIFY_EMAIL || process.env.SMTP_USER || '';
+}
+// Parse ICS date format (YYYYMMDDTHHMMSS or YYYYMMDD)
+function parseICSDate(dateStr) {
+    if (!dateStr)
+        return new Date().toISOString();
+    // Remove timezone info if present
+    dateStr = dateStr.split('Z')[0].split('T')[0] + (dateStr.includes('T') ? 'T' + dateStr.split('T')[1].split('Z')[0] : '');
+    // Format: YYYYMMDDTHHMMSS or YYYYMMDD
+    const year = parseInt(dateStr.substring(0, 4));
+    const month = parseInt(dateStr.substring(4, 6)) - 1; // JS months are 0-indexed
+    const day = parseInt(dateStr.substring(6, 8));
+    if (dateStr.length > 8) {
+        const hour = parseInt(dateStr.substring(9, 11));
+        const minute = parseInt(dateStr.substring(11, 13));
+        const second = parseInt(dateStr.substring(13, 15) || '0');
+        return new Date(Date.UTC(year, month, day, hour, minute, second)).toISOString();
+    }
+    else {
+        return new Date(Date.UTC(year, month, day)).toISOString();
+    }
 }
 async function resolveContactEmail() {
     try {
@@ -354,8 +381,26 @@ else {
         console.warn('⚠️ Failed to initialize Stripe in routes:', err);
     }
 }
-// Authentication middleware - use the one imported at top of file
-const authenticateUser = auth_1.requireAuth;
+// Authentication middleware with fallback to static admin token header for legacy admin pages
+const authenticateUser = async (req, res, next) => {
+    try {
+        // If session exists, defer to original requireAuth for user resolution
+        if (req.session && req.session.userId) {
+            return (0, auth_1.requireAuth)(req, res, next);
+        }
+        // Legacy / headless token header fallback
+        const token = req.headers['x-admin-token'] || '';
+        const expected = process.env.ADMIN_TOKEN || '';
+        if (expected && token && token === expected) {
+            return next();
+        }
+        return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+    catch (err) {
+        console.error('[auth] authenticateUser fallback error:', err);
+        return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+};
 // Generate HTML template for invoice PDF
 function generateInvoiceHTML(invoice, client) {
     const today = new Date().toLocaleDateString('de-DE');
@@ -665,25 +710,21 @@ function generateInvoiceHTML(invoice, client) {
     </html>
   `;
 }
-// Configure multer for image uploads to local storage
+// Initialize S3 Client for Backblaze B2
+const s3Client = new client_s3_1.S3Client({
+    region: process.env.AWS_REGION || 'eu-central-1',
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+    },
+    endpoint: process.env.AWS_S3_ENDPOINT || undefined,
+    forcePathStyle: process.env.AWS_S3_ENDPOINT ? true : false,
+});
+// Configure multer for image uploads - use memory storage for B2 upload
 const upload = (0, multer_1.default)({
-    storage: multer_1.default.diskStorage({
-        destination: (req, file, cb) => {
-            const uploadPath = path_1.default.join(process.cwd(), 'public', 'uploads', 'vouchers');
-            // Create directory if it doesn't exist
-            if (!fs_1.default.existsSync(uploadPath)) {
-                fs_1.default.mkdirSync(uploadPath, { recursive: true });
-            }
-            cb(null, uploadPath);
-        },
-        filename: (req, file, cb) => {
-            const fileExt = path_1.default.extname(file.originalname);
-            const fileName = `voucher-${Date.now()}-${Math.random().toString(36).substring(2, 15)}${fileExt}`;
-            cb(null, fileName);
-        }
-    }),
+    storage: multer_1.default.memoryStorage(), // Changed to memory storage for direct B2 upload
     limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB limit
+        fileSize: 20 * 1024 * 1024, // 20MB limit to reduce Multer edge rejections
     },
     fileFilter: (req, file, cb) => {
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -883,7 +924,9 @@ async function registerRoutes(app) {
     // Session middleware and /api/auth routes are applied early in server/index.ts
     // to ensure auth works before lazy loading other routes. Avoid duplicating here.
     // Digital files API - Using filesRouter (routes/files.ts) - file-routes.ts has schema mismatches
+    console.log('🔧 Registering /api/files router...');
     app.use('/api/files', files_1.default);
+    console.log('✅ /api/files router registered');
     // Questionnaire module (public + admin APIs)
     app.use(questionnaires_1.default);
     // Onboarding + Website Analyzer (dev parity with production full-server.js)
@@ -895,6 +938,16 @@ async function registerRoutes(app) {
     // Health check endpoint for deployment
     app.get("/api/health", (req, res) => {
         res.json({ status: "ok", timestamp: new Date().toISOString() });
+    });
+    // Storage health endpoint (Backblaze/S3)
+    app.get("/api/storage/health", async (_req, res) => {
+        try {
+            const summary = await (0, s3_storage_1.storageHealth)();
+            res.json(summary);
+        }
+        catch (e) {
+            res.status(500).json({ error: e?.message || 'health_failed' });
+        }
     });
     // Checkout and payment routes
     app.post("/api/checkout/create-session", async (req, res) => {
@@ -915,6 +968,19 @@ async function registerRoutes(app) {
         catch (error) {
             console.error('Checkout success handler not available:', error);
             res.status(500).json({ error: 'Checkout success service unavailable' });
+        }
+    });
+    // Provide a stable link for the thank-you page to download the voucher PDF
+    app.get("/api/vouchers/signed-link", async (req, res) => {
+        try {
+            const sessionId = String(req.query.session_id || '').trim();
+            if (!sessionId)
+                return res.status(400).json({ success: false, error: 'session_id required' });
+            const base = `${req.headers['x-forwarded-proto'] || req.protocol}://${req.get('host')}`.replace(/\/+$/, '');
+            return res.json({ success: true, url: `${base}/voucher/pdf?session_id=${encodeURIComponent(sessionId)}` });
+        }
+        catch (e) {
+            return res.status(500).json({ success: false, error: e?.message || 'Failed to create download link' });
         }
     });
     app.post("/api/vouchers/validate", async (req, res) => {
@@ -956,6 +1022,63 @@ async function registerRoutes(app) {
         }
     });
     // Calendar routes (Studio Appointments)
+    // Fetch Google Calendar ICS data
+    app.get("/api/calendar/google-events", async (req, res) => {
+        try {
+            const https = require('https');
+            const icsUrl = 'https://calendar.google.com/calendar/ical/newagefotografen%40gmail.com/private-08da3063a40ffdd19da69b7f3264baf6/basic.ics';
+            https.get(icsUrl, (icsRes) => {
+                let data = '';
+                icsRes.on('data', (chunk) => data += chunk);
+                icsRes.on('end', () => {
+                    // Parse ICS data into events
+                    const events = [];
+                    const lines = data.split('\n');
+                    let currentEvent = null;
+                    for (let i = 0; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (line === 'BEGIN:VEVENT') {
+                            currentEvent = {};
+                        }
+                        else if (line === 'END:VEVENT' && currentEvent) {
+                            events.push(currentEvent);
+                            currentEvent = null;
+                        }
+                        else if (currentEvent) {
+                            if (line.startsWith('SUMMARY:')) {
+                                currentEvent.title = line.substring(8);
+                            }
+                            else if (line.startsWith('DTSTART')) {
+                                const dateStr = line.split(':')[1];
+                                currentEvent.start = parseICSDate(dateStr);
+                            }
+                            else if (line.startsWith('DTEND')) {
+                                const dateStr = line.split(':')[1];
+                                currentEvent.end = parseICSDate(dateStr);
+                            }
+                            else if (line.startsWith('DESCRIPTION:')) {
+                                currentEvent.description = line.substring(12);
+                            }
+                            else if (line.startsWith('LOCATION:')) {
+                                currentEvent.location = line.substring(9);
+                            }
+                            else if (line.startsWith('UID:')) {
+                                currentEvent.id = line.substring(4);
+                            }
+                        }
+                    }
+                    res.json({ success: true, events });
+                });
+            }).on('error', (e) => {
+                console.error('Error fetching Google Calendar:', e);
+                res.status(500).json({ error: 'Failed to fetch calendar data' });
+            });
+        }
+        catch (error) {
+            console.error('Google Calendar sync error:', error);
+            res.status(500).json({ error: 'Calendar sync unavailable' });
+        }
+    });
     app.post("/api/calendar/appointments", async (req, res) => {
         try {
             const { createAppointment } = await import("./controllers/calendarController");
@@ -1117,14 +1240,20 @@ async function registerRoutes(app) {
             res.status(500).json({ error: 'Email test service unavailable' });
         }
     });
-    // Import and register CRM agent router - DISABLED due to missing tools
-    // try {
-    //   const { crmAgentRouter } = await import("./routes/crm-agent");
-    //   app.use(crmAgentRouter);
-    // } catch (error) {
-    //   console.warn("CRM agent router not available:", error instanceof Error ? error.message : 'Unknown error');
-    // }
-    console.log("⚠️ CRM agent router disabled - missing tool dependencies");
+    // Import and register CRM agent router (legacy V1) only when explicitly enabled
+    if (process.env.ENABLE_CRM_AGENT_V1 === 'true') {
+        try {
+            const { crmAgentRouter } = await import("./routes/crm-agent");
+            app.use(crmAgentRouter);
+            console.log("✅ CRM agent router enabled (ENABLE_CRM_AGENT_V1=true)");
+        }
+        catch (error) {
+            console.warn("⚠️ CRM agent router not available:", error?.message || error);
+        }
+    }
+    else {
+        console.log('ℹ️ Skipping CRM agent router (ENABLE_CRM_AGENT_V1!=true)');
+    }
     // Audio transcription endpoint using OpenAI Whisper
     app.post("/api/transcribe", authenticateUser, audioUpload.single('audio'), async (req, res) => {
         try {
@@ -1246,6 +1375,87 @@ Bitte versuchen Sie es später noch einmal.`;
             });
         }
     });
+    // ==================== AGENT DATA INTELLIGENCE ENDPOINTS ====================
+    // Sales analytics for last 6 months (for agent intelligence)
+    app.get("/api/agent/sales-last6", authenticateUser, async (_req, res) => {
+        try {
+            const now = new Date();
+            const anchor = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+            const periods = [];
+            for (let i = 5; i >= 0; i--) {
+                const start = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() - i, 1));
+                const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
+                const rows = await runSql(`SELECT COALESCE(SUM(CASE WHEN status='paid' THEN total ELSE 0 END),0)::double precision AS total
+           FROM crm_invoices
+           WHERE created_at >= $1 AND created_at < $2`, [start.toISOString(), end.toISOString()]);
+                periods.push({
+                    month: `${start.getUTCFullYear()}-${String(start.getUTCMonth() + 1).padStart(2, '0')}`,
+                    total: Number(rows[0]?.total || 0)
+                });
+            }
+            const overall = periods.reduce((s, p) => s + p.total, 0);
+            res.json({ success: true, periods, overall });
+        }
+        catch (e) {
+            console.error('Error fetching sales last 6 months:', e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    });
+    // Upcoming photography sessions (for agent intelligence)
+    app.get("/api/agent/upcoming-sessions", authenticateUser, async (req, res) => {
+        try {
+            const limit = Math.max(1, Math.min(50, Number(req.query.limit ?? 10)));
+            const rows = await runSql(`SELECT id, title, start_time, end_time, client_id
+         FROM photography_sessions
+         WHERE start_time > NOW()
+         ORDER BY start_time ASC
+         LIMIT $1`, [limit]);
+            res.json({ success: true, count: rows.length, sessions: rows });
+        }
+        catch (e) {
+            console.error('Error fetching upcoming sessions:', e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    });
+    // Annual sales total (for agent intelligence)
+    app.get("/api/agent/sales-year", authenticateUser, async (req, res) => {
+        try {
+            const year = parseInt(String(req.query.year || new Date().getFullYear()), 10);
+            const rows = await runSql(`SELECT COALESCE(SUM(CASE WHEN status='paid' THEN total ELSE 0 END),0)::double precision AS total
+         FROM crm_invoices
+         WHERE EXTRACT(YEAR FROM created_at) = $1`, [year]);
+            res.json({ success: true, year, total: Number(rows[0]?.total || 0) });
+        }
+        catch (e) {
+            console.error('Error fetching sales for year:', e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    });
+    // Extended diagnostics with tool availability (for agent intelligence verification)
+    app.get("/api/agent/diagnostics-extended", authenticateUser, async (_req, res) => {
+        try {
+            const [invRows, sessRows] = await Promise.all([
+                runSql(`SELECT COUNT(*)::int AS c, MIN(created_at) AS first, MAX(created_at) AS last FROM crm_invoices`),
+                runSql(`SELECT COUNT(*)::int AS c, MIN(start_time) AS first, MAX(start_time) AS last FROM photography_sessions`)
+            ]);
+            res.json({
+                success: true,
+                invoices: invRows[0],
+                sessions: sessRows[0],
+                tools: {
+                    salesYear: true,
+                    salesLast6: true,
+                    upcomingSessions: true
+                },
+                dbUrlSet: !!process.env.DATABASE_URL,
+                openaiKeySet: !!process.env.OPENAI_API_KEY
+            });
+        }
+        catch (e) {
+            console.error('Error fetching extended diagnostics:', e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    });
     // ==================== USER ROUTES ====================
     app.get("/api/users/:id", authenticateUser, async (req, res) => {
         try {
@@ -1355,6 +1565,7 @@ Bitte versuchen Sie es später noch einmal.`;
     });
     app.post("/api/blog/posts", authenticateUser, async (req, res) => {
         try {
+            console.log('[BLOG CREATE] Creating new post');
             const postData = {
                 ...req.body,
                 // Convert publishedAt string to Date if present
@@ -1364,29 +1575,54 @@ Bitte versuchen Sie es später noch einmal.`;
             };
             // Remove authorId from validation data
             delete postData.authorId;
-            console.log("Received blog post data:", postData);
+            console.log("[BLOG CREATE] Received blog post data:", postData);
             const validatedData = insertBlogPostSchema.parse(postData);
-            console.log("Validated blog post data:", validatedData);
+            console.log("[BLOG CREATE] Validated blog post data:", validatedData);
             const post = await storage_1.storage.createBlogPost(validatedData);
+            console.log('[BLOG CREATE] Success:', post.id);
             res.status(201).json(post);
         }
         catch (error) {
             if (error instanceof z.ZodError) {
-                console.error("Blog post validation error:", error.errors);
+                console.error("[BLOG CREATE] Validation error:", error.errors);
                 return res.status(400).json({ error: "Validation error", details: error.errors });
             }
-            console.error("Error creating blog post:", error);
-            res.status(500).json({ error: "Internal server error" });
+            console.error("[BLOG CREATE] Error details:", error);
+            const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+            console.error("[BLOG CREATE] Error message:", errorMessage);
+            res.status(500).json({ error: "Internal server error", details: errorMessage });
         }
     });
     app.put("/api/blog/posts/:id", authenticateUser, async (req, res) => {
         try {
-            const post = await storage_1.storage.updateBlogPost(req.params.id, req.body);
+            console.log('[BLOG UPDATE] Updating post:', req.params.id);
+            console.log('[BLOG UPDATE] Update data:', JSON.stringify(req.body, null, 2));
+            // Convert date strings to Date objects (same as POST route)
+            const updates = {
+                ...req.body,
+                // Convert publishedAt string to Date if present
+                publishedAt: req.body.publishedAt ? new Date(req.body.publishedAt) : undefined,
+                // Convert scheduledFor string to Date if present
+                scheduledFor: req.body.scheduledFor ? new Date(req.body.scheduledFor) : undefined,
+                // Always update the updatedAt timestamp
+                updatedAt: new Date()
+            };
+            // Remove undefined values
+            Object.keys(updates).forEach(key => {
+                if (updates[key] === undefined) {
+                    delete updates[key];
+                }
+            });
+            console.log('[BLOG UPDATE] Processed updates:', updates);
+            const post = await storage_1.storage.updateBlogPost(req.params.id, updates);
+            console.log('[BLOG UPDATE] Success:', post.id);
             res.json(post);
         }
         catch (error) {
-            console.error("Error updating blog post:", error);
-            res.status(500).json({ error: "Internal server error" });
+            console.error("[BLOG UPDATE] Error details:", error);
+            const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+            console.error("[BLOG UPDATE] Error message:", errorMessage);
+            res.status(500).json({ error: "Internal server error", details: errorMessage });
         }
     });
     app.delete("/api/blog/posts/:id", authenticateUser, async (req, res) => {
@@ -1439,6 +1675,55 @@ Bitte versuchen Sie es später noch einmal.`;
         }
     });
     // ==================== CRM CLIENT ROUTES ====================
+    // ==================== LEAD SOURCES ROUTES ====================
+    // Get all lead sources
+    app.get("/api/crm/lead-sources", authenticateUser, async (req, res) => {
+        try {
+            const sources = await storage_1.storage.getLeadSources();
+            res.json(sources);
+        }
+        catch (error) {
+            console.error("Error fetching lead sources:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    });
+    // Create lead source
+    app.post("/api/crm/lead-sources", authenticateUser, async (req, res) => {
+        try {
+            const sourceData = schema_1.insertLeadSourceSchema.parse(req.body);
+            const source = await storage_1.storage.createLeadSource(sourceData);
+            res.status(201).json(source);
+        }
+        catch (error) {
+            if (error instanceof z.ZodError) {
+                return res.status(400).json({ error: "Validation error", details: error.errors });
+            }
+            console.error("Error creating lead source:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    });
+    // Update lead source
+    app.put("/api/crm/lead-sources/:id", authenticateUser, async (req, res) => {
+        try {
+            const source = await storage_1.storage.updateLeadSource(req.params.id, req.body);
+            res.json(source);
+        }
+        catch (error) {
+            console.error("Error updating lead source:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    });
+    // Delete lead source
+    app.delete("/api/crm/lead-sources/:id", authenticateUser, async (req, res) => {
+        try {
+            await storage_1.storage.deleteLeadSource(req.params.id);
+            res.json({ success: true });
+        }
+        catch (error) {
+            console.error("Error deleting lead source:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    });
     // Test route for debugging
     app.get("/api/test", (req, res) => {
         console.log("Test route hit!");
@@ -2757,61 +3042,100 @@ Bitte versuchen Sie es später noch einmal.`;
     });
     // Admin dashboard stats route handled below with a safer implementation.
     // ==================== DASHBOARD METRICS ROUTE ====================
-    app.get("/api/crm/dashboard/metrics", authenticateUser, async (req, res) => {
+    // In development, allow unauthenticated access to avoid local session flakiness causing reload loops
+    const devBypassAuth = (process.env.NODE_ENV || 'development') !== 'production';
+    const disableAuthFlag = String(process.env.DISABLE_METRICS_AUTH || '').toLowerCase() === 'true';
+    const metricsAuth = (devBypassAuth || disableAuthFlag) ? ((_, __, next) => next()) : authenticateUser;
+    app.get("/api/crm/dashboard/metrics", metricsAuth, async (_req, res) => {
+        // Helper to guard DB calls and always return an array fallback
+        const safe = async (fn, fallback) => {
+            try {
+                return await fn();
+            }
+            catch (err) {
+                console.warn("[dashboard-metrics] datasource failed:", err?.message || err);
+                return fallback;
+            }
+        };
         try {
-            // Get actual data from database
+            // Fetch with safeguards so a transient DB hiccup doesn't 500 the page
             const [invoices, leads, sessions, clients] = await Promise.all([
-                storage_1.storage.getCrmInvoices(),
-                storage_1.storage.getCrmLeads(),
-                storage_1.storage.getPhotographySessions(),
-                storage_1.storage.getCrmClients()
+                safe(() => storage_1.storage.getCrmInvoices(), []),
+                safe(() => storage_1.storage.getCrmLeads(), []),
+                safe(() => storage_1.storage.getPhotographySessions(), []),
+                safe(() => storage_1.storage.getCrmClients(), []),
             ]);
             // Calculate revenue metrics from PAID invoices only
-            const paidInvoices = invoices.filter(inv => inv.status === 'paid');
-            const totalRevenue = paidInvoices.reduce((sum, invoice) => {
-                const total = parseFloat(invoice.total?.toString() || '0');
-                return sum + total;
-            }, 0);
-            const paidRevenue = totalRevenue; // Same as totalRevenue since we only count paid invoices
+            const paidInvoices = (invoices || []).filter((inv) => inv?.status === "paid");
+            const toNumber = (v) => {
+                const n = parseFloat(v?.toString?.() ?? "0");
+                return Number.isFinite(n) ? n : 0;
+            };
+            const totalRevenue = paidInvoices.reduce((sum, invoice) => sum + toNumber(invoice.total), 0);
+            const paidRevenue = totalRevenue;
             const avgOrderValue = paidInvoices.length > 0 ? totalRevenue / paidInvoices.length : 0;
             // Calculate trend data from PAID invoices over last 7 days
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-            const recentInvoices = paidInvoices.filter(invoice => {
-                const createdDate = new Date(invoice.createdAt || invoice.created_at);
-                return createdDate >= sevenDaysAgo;
+            const parseDate = (v) => {
+                try {
+                    const d = new Date(v);
+                    return isNaN(d.getTime()) ? null : d;
+                }
+                catch {
+                    return null;
+                }
+            };
+            const recentInvoices = paidInvoices.filter((invoice) => {
+                const created = parseDate(invoice.createdAt || invoice.created_at);
+                return created ? created >= sevenDaysAgo : false;
             });
             const trendData = [];
             for (let i = 6; i >= 0; i--) {
                 const date = new Date();
                 date.setDate(date.getDate() - i);
-                const dateStr = date.toISOString().split('T')[0];
-                const dayInvoices = recentInvoices.filter(invoice => {
-                    const invoiceDate = new Date(invoice.createdAt || invoice.created_at).toISOString().split('T')[0];
-                    return invoiceDate === dateStr;
-                });
-                const dayRevenue = dayInvoices.reduce((sum, invoice) => {
-                    const total = parseFloat(invoice.total?.toString() || '0');
-                    return sum + total;
+                const dateStr = date.toISOString().split("T")[0];
+                const dayRevenue = recentInvoices.reduce((sum, invoice) => {
+                    const created = parseDate(invoice.createdAt || invoice.created_at);
+                    const isSameDay = created ? created.toISOString().split("T")[0] === dateStr : false;
+                    return isSameDay ? sum + toNumber(invoice.total) : sum;
                 }, 0);
                 trendData.push({ date: dateStr, value: dayRevenue });
             }
-            const metrics = {
+            const activeLeads = (leads || []).filter((lead) => {
+                const s = (lead?.status || "").toString().toLowerCase();
+                return s === "new" || s === "contacted";
+            }).length;
+            const upcomingSessions = (sessions || []).filter((session) => {
+                const start = parseDate(session?.startTime || session?.start_time);
+                return start ? start > new Date() : false;
+            }).length;
+            res.json({
                 totalRevenue: Number((totalRevenue || 0).toFixed(2)),
                 paidRevenue: Number((paidRevenue || 0).toFixed(2)),
                 avgOrderValue: Number((avgOrderValue || 0).toFixed(2)),
-                totalInvoices: invoices.length,
+                totalInvoices: (invoices || []).length,
                 paidInvoices: paidInvoices.length,
-                activeLeads: leads.filter(lead => lead.status === 'new' || lead.status === 'contacted').length,
-                totalClients: clients.length,
-                upcomingSessions: sessions.filter(session => new Date(session.startTime) > new Date()).length,
-                trendData
-            };
-            res.json(metrics);
+                activeLeads,
+                totalClients: (clients || []).length,
+                upcomingSessions,
+                trendData,
+            });
         }
         catch (error) {
-            console.error("Error fetching dashboard metrics:", error);
-            res.status(500).json({ error: "Internal server error" });
+            console.error("[dashboard-metrics] Unexpected error:", error?.message || error);
+            // Never take the dashboard down - return safe defaults
+            res.json({
+                totalRevenue: 0,
+                paidRevenue: 0,
+                avgOrderValue: 0,
+                totalInvoices: 0,
+                paidInvoices: 0,
+                activeLeads: 0,
+                totalClients: 0,
+                upcomingSessions: 0,
+                trendData: [],
+            });
         }
     });
     // ==================== CALENDAR CLEANUP TOOLS (ADMIN) ====================
@@ -3299,7 +3623,19 @@ Bitte versuchen Sie es später noch einmal.`;
             if (!invoice) {
                 return res.status(404).json({ error: "Invoice not found" });
             }
-            res.json(invoice);
+            // Fetch invoice items
+            const items = await storage_1.storage.getCrmInvoiceItems(req.params.id);
+            // Fetch client information
+            let client = null;
+            if (invoice.clientId) {
+                client = await storage_1.storage.getCrmClient(invoice.clientId);
+            }
+            // Return complete invoice with items and client
+            res.json({
+                ...invoice,
+                items,
+                client
+            });
         }
         catch (error) {
             console.error("Error fetching invoice:", error);
@@ -3335,15 +3671,15 @@ Bitte versuchen Sie es später noch einmal.`;
                 }));
                 await storage_1.storage.createCrmInvoiceItems(itemsData);
             }
-            res.status(201).json(invoice);
+            res.status(201).json({ ok: true, invoice_id: invoice.id, ...invoice });
         }
         catch (error) {
             if (error instanceof z.ZodError) {
                 console.error("Validation error details:", JSON.stringify(error.errors, null, 2));
-                return res.status(400).json({ error: "Validation error", details: error.errors });
+                return res.status(400).json({ ok: false, error: "Validation error", details: error.errors });
             }
             console.error("Error creating invoice:", error);
-            res.status(500).json({ error: "Internal server error" });
+            res.status(500).json({ ok: false, error: "Internal server error" });
         }
     });
     app.put("/api/crm/invoices/:id", authenticateUser, async (req, res) => {
@@ -3411,8 +3747,34 @@ Bitte versuchen Sie es später noch einmal.`;
         }
     });
     // ==================== INVOICE PDF & EMAIL ROUTES ====================
-    // Generate PDF for invoice
-    app.get("/api/crm/invoices/:id/pdf", authenticateUser, async (req, res) => {
+    // Public invoice view (no authentication required)
+    app.get("/api/invoices/public/:id", async (req, res) => {
+        try {
+            const invoice = await storage_1.storage.getCrmInvoice(req.params.id);
+            if (!invoice) {
+                return res.status(404).json({ error: "Invoice not found" });
+            }
+            // Fetch invoice items
+            const items = await storage_1.storage.getCrmInvoiceItems(req.params.id);
+            // Fetch client information
+            let client = null;
+            if (invoice.clientId) {
+                client = await storage_1.storage.getCrmClient(invoice.clientId);
+            }
+            // Return complete invoice with items and client (public view)
+            res.json({
+                ...invoice,
+                items,
+                client
+            });
+        }
+        catch (error) {
+            console.error("Error fetching public invoice:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    });
+    // Generate PDF for invoice (accessible both authenticated and public)
+    app.get("/api/crm/invoices/:id/pdf", async (req, res) => {
         try {
             const invoice = await storage_1.storage.getCrmInvoice(req.params.id);
             if (!invoice) {
@@ -3654,6 +4016,67 @@ New Age Fotografie Team`;
         catch (error) {
             console.error("Error creating WhatsApp share link:", error);
             res.status(500).json({ error: "Failed to create WhatsApp share link" });
+        }
+    });
+    // Legacy WhatsApp share endpoint for backward compatibility
+    app.post("/api/invoices/share-whatsapp", async (req, res) => {
+        try {
+            const { invoice_id, phone_number } = req.body;
+            if (!invoice_id || !phone_number) {
+                return res.status(400).json({
+                    success: false,
+                    error: "invoice_id and phone_number are required"
+                });
+            }
+            const invoice = await storage_1.storage.getCrmInvoice(invoice_id);
+            if (!invoice) {
+                return res.status(404).json({
+                    success: false,
+                    error: "Invoice not found"
+                });
+            }
+            const client = await storage_1.storage.getCrmClient(invoice.clientId);
+            if (!client) {
+                return res.status(404).json({
+                    success: false,
+                    error: "Client not found"
+                });
+            }
+            // Create invoice link
+            const baseUrl = process.env.FRONTEND_URL || req.get('origin') || 'https://newagefotografie.com';
+            const invoiceUrl = `${baseUrl}/invoice/${invoice.id}`;
+            // Create WhatsApp message
+            const clientName = `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'Kunde';
+            const message = `Hallo ${clientName} 👋
+
+Hier ist Ihre Rechnung von New Age Fotografie:
+
+📄 Rechnungsnummer: ${invoice.invoiceNumber}
+💰 Betrag: €${parseFloat(invoice.total?.toString() || '0').toFixed(2)}
+📅 Fälligkeitsdatum: ${new Date(invoice.dueDate || Date.now()).toLocaleDateString('de-DE')}
+
+🔗 Rechnung ansehen: ${invoiceUrl}
+
+Bei Fragen stehe ich Ihnen gerne zur Verfügung! 📸
+
+Vielen Dank für Ihr Vertrauen!
+New Age Fotografie Team`;
+            // Create WhatsApp URL
+            const cleanPhone = phone_number.replace(/[^\d+]/g, '');
+            const encodedMessage = encodeURIComponent(message);
+            const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
+            res.json({
+                success: true,
+                whatsapp_url: whatsappUrl,
+                invoice_url: invoiceUrl
+            });
+        }
+        catch (error) {
+            console.error("Error creating WhatsApp share link:", error);
+            res.status(500).json({
+                success: false,
+                error: "Failed to create WhatsApp share link"
+            });
         }
     });
     // ==================== EMAIL ROUTES ====================
@@ -4354,9 +4777,11 @@ New Age Fotografie Team`;
         }
     });
     app.post("/api/calendar/import/ics-url", async (req, res) => {
+        let debugStage = 'init';
         try {
-                const { icsUrl } = req.body;
-                let debugStage = 'init';
+            const { icsUrl } = req.body;
+            debugStage = 'init';
+            const debugMode = String(req.query.debug || req.query.verbose || '').toLowerCase() === 'true' || String(req.query.debug) === '1';
             if (!icsUrl) {
                 return res.status(400).json({ error: 'No iCal URL provided' });
             }
@@ -4418,37 +4843,277 @@ New Age Fotografie Team`;
             let importedEvents = [];
             try {
                 importedEvents = parseICalContent(icsContent);
-            } catch (parseErr) {
+            }
+            catch (parseErr) {
                 console.error('ICS_URL_PARSE_ERROR', parseErr);
                 return res.status(500).json({ error: 'Failed to parse iCal content', details: parseErr?.message || String(parseErr), stage: debugStage });
             }
             const cutoff = getImportCutoffUtc(req);
             const upper = getImportUpperBoundUtc(req);
+            // Also keep original query strings to enable day-level fallback comparisons
+            const parsedQ = require('url').parse(req.url || '', true).query || {};
+            const qFrom = parsedQ.from || parsedQ.since || undefined;
+            const qTo = parsedQ.to || parsedQ.until || undefined;
+            const includePast = String((req.query.includePast || req.query.includepast) ?? '').toLowerCase() === 'true' || String(req.query.includePast) === '1';
             debugStage = 'filterEvents';
+            const safeCutoff = cutoff instanceof Date && !isNaN(cutoff.getTime()) ? cutoff.toISOString() : 'INVALID';
+            const safeUpper = upper instanceof Date && !isNaN(upper.getTime()) ? upper.toISOString() : 'none';
+            console.error(`ICS_URL_IMPORT | total_parsed=${importedEvents.length} | cutoff=${safeCutoff} | upper=${safeUpper}`);
+            // Log first few parsed events for debugging (avoid throwing on invalid dates)
+            importedEvents.slice(0, 3).forEach((ev, idx) => {
+                let parsed = 'INVALID';
+                try {
+                    if (ev?.dtstart) {
+                        const d = new Date(ev.dtstart);
+                        parsed = isNaN(d.getTime()) ? 'INVALID' : d.toISOString();
+                    }
+                }
+                catch { /* ignore */ }
+                console.error(`  Event ${idx + 1}: ${ev.summary} | dtstart=${ev.dtstart} | parsed_date=${parsed}`);
+            });
             let eventsToImport = [];
+            const debugSamples = [];
+            const reasonCounts = { no_date: 0, invalid_date: 0, outside_time_range: 0, outside_day_range: 0 };
+            // Helper: extract local day string (Europe/Vienna) from a UTC ISO string safely
+            const toLocalDay = (iso, tz = 'Europe/Vienna') => {
+                try {
+                    const d = new Date(iso);
+                    if (isNaN(d.getTime()))
+                        return null;
+                    const dtf = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
+                    const parts = dtf.formatToParts(d).reduce((m, p) => { if (p.type !== 'literal')
+                        m[p.type] = p.value; return m; }, {});
+                    return `${parts.year}-${parts.month}-${parts.day}`; // YYYY-MM-DD
+                }
+                catch {
+                    return null;
+                }
+            };
             try {
                 eventsToImport = importedEvents.filter(ev => {
-                    const ds = ev?.dtstart ? new Date(ev.dtstart) : null;
+                    // Build a robust Date instance from event.dtstart
+                    let ds = null;
+                    let parseMode = 'failed';
+                    if (ev?.dtstart) {
+                        let d = new Date(ev.dtstart);
+                        if (isNaN(d.getTime())) {
+                            let s = String(ev.dtstart).trim();
+                            s = s.replace(/[^0-9TZ]/g, '');
+                            // Allow canonical ICS (with or without Z) and optional milliseconds
+                            const m = s.match(/^(\d{8})T(\d{6})(?:\d{0,3})?Z?$/);
+                            if (m) {
+                                const datePart = m[1];
+                                const timePart = m[2];
+                                const y = datePart.substring(0, 4);
+                                const mo = datePart.substring(4, 6);
+                                const da = datePart.substring(6, 8);
+                                const hh = timePart.substring(0, 2);
+                                const mm = timePart.substring(2, 4);
+                                const ss = timePart.substring(4, 6);
+                                const iso = `${y}-${mo}-${da}T${hh}:${mm}:${ss}.000Z`;
+                                const d2 = new Date(iso);
+                                if (!isNaN(d2.getTime())) {
+                                    d = d2;
+                                    parseMode = 'ics';
+                                }
+                            }
+                            else if (ev._raw_dtstart) {
+                                // Try from raw value if present
+                                const raw = String(ev._raw_dtstart).trim();
+                                const dIso = new Date(raw);
+                                if (!isNaN(dIso.getTime())) {
+                                    d = dIso;
+                                    parseMode = 'raw-iso';
+                                }
+                                else {
+                                    const s2 = raw.replace(/[^0-9TZ]/g, '');
+                                    const m2 = s2.match(/^(\d{8})T(\d{6})(?:\d{0,3})?Z?$/);
+                                    if (m2) {
+                                        const y = m2[1].substring(0, 4);
+                                        const mo = m2[1].substring(4, 6);
+                                        const da = m2[1].substring(6, 8);
+                                        const hh = m2[2].substring(0, 2);
+                                        const mm = m2[2].substring(2, 4);
+                                        const ss = m2[2].substring(4, 6);
+                                        const iso = `${y}-${mo}-${da}T${hh}:${mm}:${ss}.000Z`;
+                                        const d3 = new Date(iso);
+                                        if (!isNaN(d3.getTime())) {
+                                            d = d3;
+                                            parseMode = 'raw-ics';
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        ds = isNaN(d.getTime()) ? null : d;
+                        if (parseMode === 'failed' && ds)
+                            parseMode = 'iso';
+                    }
+                    else if (ev?._raw_dtstart) {
+                        const raw = String(ev._raw_dtstart).trim();
+                        const dIso = new Date(raw);
+                        if (!isNaN(dIso.getTime())) {
+                            ds = dIso;
+                            parseMode = 'raw-iso';
+                        }
+                        else {
+                            const s2 = raw.replace(/[^0-9TZ]/g, '');
+                            const m2 = s2.match(/^(\d{8})T(\d{6})(?:\d{0,3})?Z?$/);
+                            if (m2) {
+                                const y = m2[1].substring(0, 4);
+                                const mo = m2[1].substring(4, 6);
+                                const da = m2[1].substring(6, 8);
+                                const hh = m2[2].substring(0, 2);
+                                const mm = m2[2].substring(2, 4);
+                                const ss = m2[2].substring(4, 6);
+                                const iso = `${y}-${mo}-${da}T${hh}:${mm}:${ss}.000Z`;
+                                const d3 = new Date(iso);
+                                if (!isNaN(d3.getTime())) {
+                                    ds = d3;
+                                    parseMode = 'raw-ics';
+                                }
+                            }
+                        }
+                    }
                     const valid = !!(ds && !isNaN(ds.getTime()));
-                    const passes = !!(valid && ds >= cutoff && (!upper || ds <= upper));
-                    if (!passes && ev.dtstart) {
+                    const passTime = !!(valid && ds >= cutoff && (!upper || ds <= upper));
+                    // Day-level fallback in Europe/Vienna, only when from/to provided
+                    let passDay = false;
+                    if (!passTime && valid && (qFrom || qTo)) {
+                        const localDay = toLocalDay(ds.toISOString(), 'Europe/Vienna');
+                        const fromDay = typeof qFrom === 'string' && /\d{4}-\d{2}-\d{2}/.test(qFrom) ? qFrom : null;
+                        const toDay = typeof qTo === 'string' && /\d{4}-\d{2}-\d{2}/.test(qTo) ? qTo : null;
+                        if (localDay) {
+                            const geFrom = !fromDay || localDay >= fromDay;
+                            const leTo = !toDay || localDay <= toDay;
+                            passDay = geFrom && leTo;
+                        }
+                    }
+                    const passes = passTime || passDay;
+                    if (!passes) {
+                        const reason = !ds ? 'no_date' : !valid ? 'invalid_date' : (!passTime ? 'outside_time_range' : 'outside_day_range');
+                        reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
+                    }
+                    // Prefer sampling December 2025 entries to aid current debugging
+                    const preferDec2025 = (() => {
+                        const raw = String(ev._raw_dtstart || ev.dtstart || '');
+                        return /(^|[^0-9])202512/.test(raw);
+                    })();
+                    if (debugMode && (debugSamples.length < 40 || (preferDec2025 && debugSamples.length < 60))) {
                         let safeIso = 'INVALID';
-                        try { if (valid) safeIso = ds.toISOString(); } catch {}
-                        console.error(`  FILTERED OUT: ${ev.summary} | dtstart=${ev.dtstart} | date=${safeIso}`);
+                        let localDayDbg = null;
+                        try {
+                            if (valid) {
+                                safeIso = ds.toISOString();
+                                localDayDbg = toLocalDay(safeIso, 'Europe/Vienna');
+                            }
+                            else if (ev?.dtstart) {
+                                let s = String(ev.dtstart).trim();
+                                s = s.replace(/[^0-9TZ]/g, '');
+                                const m = s.match(/^(\d{8})T(\d{6})(?:\d{0,3})?Z?$/);
+                                if (m) {
+                                    const datePart = m[1];
+                                    const timePart = m[2];
+                                    const y = datePart.substring(0, 4);
+                                    const mo = datePart.substring(4, 6);
+                                    const da = datePart.substring(6, 8);
+                                    const hh = timePart.substring(0, 2);
+                                    const mm = timePart.substring(2, 4);
+                                    const ss = timePart.substring(4, 6);
+                                    const iso = `${y}-${mo}-${da}T${hh}:${mm}:${ss}.000Z`;
+                                    safeIso = iso;
+                                    localDayDbg = toLocalDay(iso, 'Europe/Vienna');
+                                }
+                                if (safeIso === 'INVALID' && ev._raw_dtstart) {
+                                    const raw = String(ev._raw_dtstart).trim().replace(/[^0-9TZ]/g, '');
+                                    const m2 = raw.match(/^(\d{8})T(\d{6})(?:\d{0,3})?Z?$/);
+                                    if (m2) {
+                                        const y = m2[1].substring(0, 4);
+                                        const mo = m2[1].substring(4, 6);
+                                        const da = m2[1].substring(6, 8);
+                                        const hh = m2[2].substring(0, 2);
+                                        const mm = m2[2].substring(2, 4);
+                                        const ss = m2[2].substring(4, 6);
+                                        const iso = `${y}-${mo}-${da}T${hh}:${mm}:${ss}.000Z`;
+                                        safeIso = iso;
+                                        localDayDbg = toLocalDay(iso, 'Europe/Vienna');
+                                    }
+                                }
+                            }
+                        }
+                        catch { }
+                        debugSamples.push({
+                            summary: ev.summary,
+                            raw: { dtstart: ev.dtstart, raw_dtstart: ev._raw_dtstart, dtend: ev.dtend, raw_dtend: ev._raw_dtend },
+                            parsed: {
+                                utc: safeIso,
+                                viennaDay: localDayDbg,
+                                passTime,
+                                passDay,
+                                mode: parseMode,
+                            },
+                            keys: Object.keys(ev || {}).slice(0, 20)
+                        });
+                    }
+                    if (!passes && ev.dtstart) {
+                        let safeIso2 = 'INVALID';
+                        try {
+                            if (valid)
+                                safeIso2 = ds.toISOString();
+                        }
+                        catch { }
+                        const localDay = valid ? toLocalDay(ds.toISOString(), 'Europe/Vienna') : 'null';
+                        console.error(`  FILTERED OUT: ${ev.summary} | dtstart=${ev.dtstart} | date=${safeIso2} | localDay=${localDay} | reason=${!ds ? 'no_date' : !valid ? 'invalid_date' : (!passTime ? 'outside_time_range' : 'outside_day_range')}`);
                     }
                     return passes;
                 });
-            } catch (filterErr) {
+            }
+            catch (filterErr) {
                 console.error('ICS_URL_FILTER_ERROR', filterErr);
                 return res.status(500).json({ error: 'Failed during event filtering', details: filterErr?.message || String(filterErr), stage: debugStage });
             }
+            console.error(`ICS_URL_IMPORT | events_to_import=${eventsToImport.length}`);
             const dryRun = String(req.query.dryRun || req.query.dryrun || '').toLowerCase() === 'true';
             if (dryRun) {
-                let cutoffIso = null; let upperIso = null;
-                try { if (cutoff instanceof Date && !isNaN(cutoff.getTime())) cutoffIso = cutoff.toISOString(); } catch (e) { console.error('CUT_OFF_TO_ISO_ERROR', e); }
-                try { if (upper instanceof Date && !isNaN(upper.getTime())) upperIso = upper.toISOString(); } catch (e) { console.error('UPPER_TO_ISO_ERROR', e); }
-                console.error(`ICS_URL_DRY_RUN | events=${importedEvents.length} | filtered=${eventsToImport.length} | cutoff=${cutoffIso} | upper=${upperIso} | url=${icsUrl}`);
-                return res.json({ success: true, dryRun: true, parsed: importedEvents.length, filtered: eventsToImport.length, cutoff: cutoffIso, upper: upperIso, stage: debugStage });
+                console.error(`ICS_URL_DRY_RUN | events=${importedEvents.length} | filtered=${eventsToImport.length} | cutoff=${safeCutoff} | upper=${safeUpper} | url=${icsUrl}`);
+                let safeCutoffIso = null;
+                let safeUpperIso = null;
+                try {
+                    if (cutoff instanceof Date && !isNaN(cutoff.getTime()))
+                        safeCutoffIso = cutoff.toISOString();
+                }
+                catch (e) {
+                    console.error('CUT_OFF_TO_ISO_ERROR', e);
+                }
+                try {
+                    if (upper instanceof Date && !isNaN(upper.getTime()))
+                        safeUpperIso = upper.toISOString();
+                }
+                catch (e) {
+                    console.error('UPPER_TO_ISO_ERROR', e);
+                }
+                const base = { success: true, dryRun: true, parsed: importedEvents.length, filtered: eventsToImport.length, cutoff: safeCutoffIso, upper: safeUpperIso, stage: debugStage };
+                // Update last status for monitoring
+                lastCalendarImportStatus = {
+                    when: new Date().toISOString(),
+                    url: icsUrl,
+                    parsed: importedEvents.length,
+                    filtered: eventsToImport.length,
+                    imported: 0,
+                    from: qFrom || null,
+                    to: qTo || null,
+                    includePast,
+                    stage: debugStage,
+                };
+                if (debugMode) {
+                    base.debug = {
+                        qFrom,
+                        qTo,
+                        reasonCounts,
+                        sample: debugSamples,
+                    };
+                }
+                return res.json(base);
             }
             let importedCount = 0;
             for (const event of eventsToImport) {
@@ -4466,41 +5131,17 @@ New Age Fotografie Team`;
                         console.error('SKIP_IMPORT_INVALID_DATES', { summary: event.summary, dtstart: event.dtstart, dtend: event.dtend });
                         continue; // skip invalid entries instead of assigning "now"
                     }
-                    // Create photography session from calendar event
+                    // Create minimal photography session (only required fields to avoid array serialization issues)
+                    // Use explicit null for array fields to prevent Drizzle from serializing them as "[]" string
                     const session = {
-                        id: `imported-${(event.uid || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`).replace(/[^a-zA-Z0-9_-]/g, '')}`,
-                        icalUid: event.uid || undefined,
+                        id: `cal-import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                         title: event.summary || 'Imported Event',
-                        description: event.description || '',
                         sessionType: 'imported',
-                        status: 'confirmed',
-                        // Ensure timestamps are valid Date objects for Drizzle/pg driver
                         startTime: start,
                         endTime: end,
-                        locationName: event.location || '',
-                        locationAddress: event.location || '',
-                        clientName: extractClientFromDescription(event.description || event.summary || ''),
-                        clientEmail: '',
-                        clientPhone: '',
-                        // omit optional pricing fields to avoid decimal coercion issues
-                        paymentStatus: 'pending',
-                        conflictDetected: false,
-                        weatherDependent: false,
-                        goldenHourOptimized: false,
-                        portfolioWorthy: false,
-                        editingStatus: 'pending',
-                        deliveryStatus: 'pending',
-                        isRecurring: false,
-                        reminderSent: false,
-                        confirmationSent: false,
-                        followUpSent: false,
-                        isOnlineBookable: false,
-                        availabilityStatus: 'booked',
-                        priority: 'medium',
-                        isPublic: false,
-                        photographerId: 'imported',
-                        createdAt: new Date(),
-                        updatedAt: new Date()
+                        equipmentList: null,
+                        crewMembers: null,
+                        tags: null,
                     };
                     // Synchronous debug snapshot to capture payload exactly before DB insert (write to OS temp dir)
                     try {
@@ -4531,6 +5172,10 @@ New Age Fotografie Team`;
                         // Ensure debug failure doesn't stop import
                         console.error('Failed to write debug snapshot:', dbgErr);
                     }
+                    // Attach icalUid if present for duplicate prevention
+                    if (event.uid) {
+                        session.icalUid = String(event.uid);
+                    }
                     await storage_1.storage.createPhotographySession(session);
                     importedCount++;
                 }
@@ -4538,20 +5183,34 @@ New Age Fotografie Team`;
                     console.error('Error importing event:', event.summary, error);
                 }
             }
-            let cutoffIso2 = null; let upperIso2 = null;
-            try { if (cutoff instanceof Date && !isNaN(cutoff.getTime())) cutoffIso2 = cutoff.toISOString(); } catch {}
-            try { if (upper instanceof Date && !isNaN(upper.getTime())) upperIso2 = upper.toISOString(); } catch {}
             res.json({
                 success: true,
                 imported: importedCount,
-                cutoff: cutoffIso2,
-                upper: upperIso2,
+                cutoff: cutoff.toISOString(),
+                upper: upper ? upper.toISOString() : null,
                 message: `Successfully imported ${importedCount} events from calendar URL`
             });
+            // Update last status for monitoring
+            try {
+                lastCalendarImportStatus = {
+                    when: new Date().toISOString(),
+                    url: icsUrl,
+                    parsed: importedEvents.length,
+                    filtered: eventsToImport.length,
+                    imported: importedCount,
+                    from: qFrom || null,
+                    to: qTo || null,
+                    includePast,
+                    stage: 'completed',
+                };
+            }
+            catch { }
         }
         catch (error) {
             console.error("Error importing from iCal URL:", error);
-            res.status(500).json({ error: "Failed to fetch or parse iCal URL", details: error?.message, stage: typeof debugStage !== 'undefined' ? debugStage : 'unknown' });
+            // Expose debugStage if available for diagnostics
+            const stage = error?.stage || (typeof debugStage !== 'undefined' ? debugStage : 'unknown');
+            res.status(500).json({ error: "Failed to fetch or parse iCal URL", details: error?.message, stage });
         }
     });
     // Helper function to parse iCal content
@@ -4565,17 +5224,15 @@ New Age Fotografie Team`;
             let line = lines[i].trim();
             // Handle line continuation (lines starting with space or tab)
             if (line.startsWith(' ') || line.startsWith('\t')) {
-                multiLineValue += line.substring(1);
+                // Ignore folded continuation for import logic; not needed for dtstart/dtend
+                // multiLineValue += line.substring(1);
                 continue;
             }
             // Process the previous multi-line property if any
-            if (multiLineProperty && multiLineValue) {
-                if (currentEvent) {
-                    currentEvent[multiLineProperty.toLowerCase()] = decodeICalValue(multiLineValue);
-                }
-                multiLineProperty = '';
-                multiLineValue = '';
-            }
+            // Commit previously accumulated property is intentionally disabled
+            // to avoid overwriting canonical dtstart/dtend values.
+            multiLineProperty = '';
+            multiLineValue = '';
             if (line === 'BEGIN:VEVENT') {
                 currentEvent = {};
             }
@@ -4587,9 +5244,9 @@ New Age Fotografie Team`;
                 const colonIndex = line.indexOf(':');
                 const property = line.substring(0, colonIndex);
                 const value = line.substring(colonIndex + 1);
-                // Handle multi-line values
-                multiLineProperty = property;
-                multiLineValue = value;
+                // Skip multi-line accumulation for simplicity in import context
+                multiLineProperty = '';
+                multiLineValue = '';
                 // Extract base property and any parameters (e.g., TZID)
                 const [baseProp, ...paramParts] = property.split(';');
                 const propName = baseProp.toLowerCase();
@@ -4606,10 +5263,15 @@ New Age Fotografie Team`;
                     try {
                         const defaultTz = process.env.DEFAULT_CAL_TZ || 'Europe/Vienna';
                         const parsed = parseICalDate(value, params['tzid'] || defaultTz);
+                        // Preserve raw value for diagnostics
+                        const rawKey = propName === 'dtstart' ? '_raw_dtstart' : '_raw_dtend';
+                        currentEvent[rawKey] = value;
                         currentEvent[propName] = parsed; // may be undefined on failure
                     }
                     catch (error) {
                         console.error(`Error parsing ${propName}: ${value}`, error);
+                        const rawKey = propName === 'dtstart' ? '_raw_dtstart' : '_raw_dtend';
+                        currentEvent[rawKey] = value;
                         currentEvent[propName] = undefined; // don't default to now
                     }
                 }
@@ -4625,29 +5287,31 @@ New Age Fotografie Team`;
         try {
             // Quiet parser; callers decide how to handle undefined
             // Handle various iCal date formats
-            let cleanDate = dateString.trim();
-            // Google Calendar format: 20131013T100000Z
-            if (cleanDate.includes('T') && cleanDate.endsWith('Z')) {
-                // Remove Z suffix
-                cleanDate = cleanDate.replace('Z', '');
-                const datePart = cleanDate.split('T')[0];
-                const timePart = cleanDate.split('T')[1];
-                if (datePart.length === 8 && timePart.length === 6) {
-                    const year = datePart.substring(0, 4);
-                    const month = datePart.substring(4, 6);
-                    const day = datePart.substring(6, 8);
-                    const hour = timePart.substring(0, 2);
-                    const minute = timePart.substring(2, 4);
-                    const second = timePart.substring(4, 6);
-                    // Create ISO string manually to avoid invalid date issues
-                    const isoString = `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
-                    console.log(`Created ISO string: ${isoString}`);
-                    const dateObj = new Date(isoString);
-                    if (!isNaN(dateObj.getTime())) {
-                        return dateObj.toISOString();
-                    }
-                }
+            let cleanDate = (dateString || '').trim();
+            // Normalize: remove stray characters and normalize Z
+            cleanDate = cleanDate.replace(/\s+/g, '').replace(/[\u0000-\u001f\u007f]/g, '');
+            // Some providers fold lines; remove hard breaks within value
+            cleanDate = cleanDate.replace(/\\n/gi, '');
+            // Uppercase trailing z
+            if (cleanDate.endsWith('z'))
+                cleanDate = cleanDate.slice(0, -1) + 'Z';
+            // Strict Zulu with or without final Z
+            const zMatch = cleanDate.match(/^(\d{8})T(\d{6})(Z)?$/);
+            if (zMatch) {
+                const datePart = zMatch[1];
+                const timePart = zMatch[2];
+                const year = datePart.substring(0, 4);
+                const month = datePart.substring(4, 6);
+                const day = datePart.substring(6, 8);
+                const hour = timePart.substring(0, 2);
+                const minute = timePart.substring(2, 4);
+                const second = timePart.substring(4, 6);
+                const isoString = `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
+                const dateObj = new Date(isoString);
+                if (!isNaN(dateObj.getTime()))
+                    return dateObj.toISOString();
             }
+            // Google Calendar format: treat like Zulu if present above; otherwise continue
             // Handle YYYYMMDD format (all-day events)
             if (cleanDate.length === 8 && !cleanDate.includes('T')) {
                 const year = cleanDate.substring(0, 4);
@@ -4701,9 +5365,16 @@ New Age Fotografie Team`;
             const tzLib = requireFn('date-fns-tz');
             if (tzLib && typeof tzLib.zonedTimeToUtc === 'function') {
                 const d = tzLib.zonedTimeToUtc(localIso, tzid);
+                // Guard against invalid Date objects producing "Invalid time value"
                 let converted;
-                try { converted = (d instanceof Date) ? d : new Date(d); } catch { converted = new Date(NaN); }
+                try {
+                    converted = (d instanceof Date) ? d : new Date(d);
+                }
+                catch {
+                    converted = new Date(NaN);
+                }
                 if (!converted || isNaN(converted.getTime())) {
+                    // Fallback: append Z if missing and try again; else return a safe epoch
                     const fallbackIso = /Z$/.test(localIso) ? localIso : `${localIso}.000Z`;
                     const fb = new Date(fallbackIso);
                     return isNaN(fb.getTime()) ? new Date(0).toISOString() : fb.toISOString();
@@ -4782,6 +5453,59 @@ New Age Fotografie Team`;
         return 'Imported Client';
     }
     // ==================== ICAL CALENDAR FEED ====================
+    // Admin: ensure ical_uid column + unique index for duplicate prevention
+    app.post("/api/admin/calendar/install-dedupe", async (req, res) => {
+        try {
+            await runSql(`ALTER TABLE photography_sessions ADD COLUMN IF NOT EXISTS ical_uid text`);
+            await runSql(`
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_photography_sessions_ical_uid
+        ON photography_sessions(ical_uid)
+        WHERE ical_uid IS NOT NULL AND ical_uid <> ''
+      `);
+            res.json({ success: true, message: 'ical_uid column ensured and unique index installed' });
+        }
+        catch (e) {
+            res.status(500).json({ success: false, error: e?.message || String(e) });
+        }
+    });
+    // Diagnostics: quick aggregates to verify agent data connectivity
+    app.get("/api/agent/diagnostics", async (_req, res) => {
+        try {
+            const invoices = await runSql(`
+        SELECT 
+          COALESCE(SUM(CASE WHEN status='paid' THEN total ELSE 0 END),0)::double precision AS paid_revenue,
+          MIN(created_at) AS first_invoice,
+          MAX(created_at) AS last_invoice,
+          COUNT(*)::int AS invoice_count
+        FROM crm_invoices
+      `);
+            const sessions = await runSql(`
+        SELECT 
+          MIN(start_time) AS first_session,
+          MAX(start_time) AS last_session,
+          COUNT(*)::int AS session_count
+        FROM photography_sessions
+      `);
+            res.json({
+                success: true,
+                invoices: invoices?.[0] || {},
+                sessions: sessions?.[0] || {},
+                dbUrlSet: !!process.env.DATABASE_URL,
+            });
+        }
+        catch (e) {
+            res.status(500).json({ success: false, error: e?.message || String(e) });
+        }
+    });
+    // Simple status endpoint to inspect the last ICS import operation
+    app.get("/api/calendar/import/status", async (req, res) => {
+        try {
+            res.json({ success: true, status: lastCalendarImportStatus });
+        }
+        catch (e) {
+            res.status(500).json({ success: false, error: e?.message || String(e) });
+        }
+    });
     app.get("/api/calendar/photography-sessions.ics", async (req, res) => {
         try {
             // Fetch all photography sessions
@@ -6289,54 +7013,185 @@ New Age Fotografie CRM System
             if (!req.file) {
                 return res.status(400).json({ error: "No file uploaded" });
             }
-            // Return the local file URL
-            const fileUrl = `/uploads/vouchers/${req.file.filename}`;
-            console.log("Image uploaded successfully:", {
-                filename: req.file.filename,
-                url: fileUrl,
-                size: req.file.size
+            // Validate essential env vars early
+            if (!process.env.AWS_S3_BUCKET) {
+                return res.status(500).json({ error: 'Cloud storage bucket not configured (AWS_S3_BUCKET missing)' });
+            }
+            if (!process.env.AWS_S3_ENDPOINT) {
+                console.warn('[VOUCHER IMAGE] AWS_S3_ENDPOINT missing; falling back to standard S3 URL format');
+            }
+            console.log("[VOUCHER IMAGE] Uploading to B2:", {
+                originalname: req.file.originalname,
+                size: req.file.size,
+                mimetype: req.file.mimetype
             });
-            res.json({ url: fileUrl });
+            // Prepare buffers
+            const originalBuffer = req.file.buffer;
+            if (!originalBuffer) {
+                console.error("[VOUCHER IMAGE] No buffer available");
+                return res.status(500).json({ error: "File buffer not available" });
+            }
+            let processedBuffer = originalBuffer;
+            let processedMime = req.file.mimetype;
+            let thumbnailBuffer = null;
+            let thumbnailMime = 'image/webp';
+            let didTransform = false;
+            try {
+                // Resize & convert to webp for efficiency (max width 1600)
+                const main = (0, sharp_1.default)(originalBuffer)
+                    .rotate()
+                    .resize({ width: 1400, withoutEnlargement: true })
+                    .webp({ quality: 72 });
+                processedBuffer = await main.toBuffer();
+                processedMime = 'image/webp';
+                didTransform = true;
+                // Create thumbnail (square crop)
+                thumbnailBuffer = await (0, sharp_1.default)(originalBuffer)
+                    .rotate()
+                    .resize({ width: 360, height: 360, fit: 'cover' })
+                    .webp({ quality: 70 })
+                    .toBuffer();
+            }
+            catch (imgErr) {
+                console.warn("[VOUCHER IMAGE] Sharp processing failed, falling back to original:", imgErr);
+                thumbnailBuffer = null; // Will skip thumbnail upload
+            }
+            const baseName = `voucher-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+            const mainFileName = `${baseName}${processedMime === 'image/webp' ? '.webp' : path_1.default.extname(req.file.originalname)}`;
+            const thumbFileName = `thumb-${baseName}.webp`;
+            const mainKey = `vouchers/${mainFileName}`;
+            const thumbKey = `vouchers/${thumbFileName}`;
+            console.log("[VOUCHER IMAGE] Uploading to B2 with keys:", { mainKey, thumbKey, transformed: didTransform });
+            // Upload main image
+            await s3Client.send(new client_s3_1.PutObjectCommand({
+                Bucket: process.env.AWS_S3_BUCKET || '',
+                Key: mainKey,
+                Body: processedBuffer,
+                ContentType: processedMime,
+                // Backblaze B2 S3 API: omit ACL; bucket policy controls public access
+                Metadata: {
+                    originalName: req.file.originalname,
+                    uploadedBy: 'voucher-system',
+                    transformed: didTransform ? 'true' : 'false',
+                },
+            }));
+            // Helper to build public URL (supports Backblaze B2 S3 & download endpoints)
+            const buildPublicUrl = (key) => {
+                const bucket = process.env.AWS_S3_BUCKET || '';
+                const endpoint = process.env.AWS_S3_ENDPOINT || '';
+                if (endpoint.includes('backblazeb2.com')) {
+                    return `https://${bucket}.${endpoint.replace('https://', '').replace(/\/$/, '')}/${key}`;
+                }
+                if (endpoint) {
+                    if (endpoint.includes('/file/')) {
+                        return `${endpoint.replace(/\/$/, '')}/${key}`;
+                    }
+                    return `${endpoint.replace(/\/$/, '')}/${bucket}/${key}`;
+                }
+                return `https://${bucket}.s3.${process.env.AWS_REGION || 'eu-central-1'}.amazonaws.com/${key}`;
+            };
+            // Upload thumbnail if created
+            let thumbUrl = null;
+            if (thumbnailBuffer) {
+                try {
+                    await s3Client.send(new client_s3_1.PutObjectCommand({
+                        Bucket: process.env.AWS_S3_BUCKET || '',
+                        Key: thumbKey,
+                        Body: thumbnailBuffer,
+                        ContentType: thumbnailMime,
+                        Metadata: {
+                            originalName: req.file.originalname,
+                            uploadedBy: 'voucher-system',
+                            type: 'thumbnail'
+                        }
+                    }));
+                    thumbUrl = buildPublicUrl(thumbKey);
+                }
+                catch (thumbErr) {
+                    console.warn("[VOUCHER IMAGE] Thumbnail upload failed:", thumbErr);
+                }
+            }
+            const mainUrl = buildPublicUrl(mainKey);
+            console.log("[VOUCHER IMAGE] Upload successful:", {
+                mainKey,
+                thumbKey: thumbnailBuffer ? thumbKey : null,
+                url: mainUrl,
+                thumbUrl,
+                originalSize: req.file.size,
+                processedSize: processedBuffer.length,
+                bucket: process.env.AWS_S3_BUCKET
+            });
+            res.json({ url: mainUrl, thumbnailUrl: thumbUrl, originalSize: req.file.size, processedSize: processedBuffer.length });
         }
         catch (error) {
-            console.error("Error uploading image:", error);
-            res.status(500).json({ error: "Internal server error" });
+            const e = error;
+            console.error("[VOUCHER IMAGE] Upload error:", {
+                name: e?.name,
+                message: e?.message,
+                code: e?.code,
+                $metadata: e?.$metadata,
+                stack: e?.stack,
+            });
+            res.status(500).json({ error: "Failed to upload image to cloud storage", details: e?.message || String(e) });
         }
+    });
+    // Central error handler for Multer (file too large, invalid type)
+    app.use((err, req, res, next) => {
+        // Multer errors surface here when using upload.single()
+        if (err && err.name === 'MulterError') {
+            console.error('[UPLOAD] MulterError:', { code: err.code, message: err.message });
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(413).json({ error: 'File too large', limit: '20MB' });
+            }
+            return res.status(400).json({ error: 'Upload error', code: err.code, message: err.message });
+        }
+        return next(err);
+    });
+    // Diagnostics endpoint for upload environment
+    app.get('/api/upload/debug/env', (req, res) => {
+        res.json({
+            bucketSet: !!process.env.AWS_S3_BUCKET,
+            endpointSet: !!process.env.AWS_S3_ENDPOINT,
+            region: process.env.AWS_REGION || 'eu-central-1',
+            forcePathStyle: !!process.env.AWS_S3_ENDPOINT,
+            maxFileSizeMB: 20,
+            sharpVersion: require('sharp').version,
+        });
     });
     // ==================== VOUCHER ROUTES ====================
     app.get("/api/vouchers/products", async (req, res) => {
         try {
             const language = req.query.language || 'de';
-            let products = await neonDb.getVoucherProducts();
-            // Transform snake_case to camelCase for frontend
-            products = products.map(product => ({
-                id: product.id,
-                name: language === 'en' ? translateVoucherToEnglish(product.name) : product.name,
-                description: product.description ? (language === 'en' ? translateVoucherToEnglish(product.description) : product.description) : null,
-                detailedDescription: product.detailed_description ? (language === 'en' ? translateVoucherToEnglish(product.detailed_description) : product.detailed_description) : null,
-                price: product.price,
-                originalPrice: product.original_price,
-                category: product.category,
-                sessionDuration: product.session_duration,
-                sessionType: product.session_type,
-                validityPeriod: product.validity_period,
-                redemptionInstructions: product.redemption_instructions,
-                termsAndConditions: product.terms_and_conditions ? (language === 'en' ? translateVoucherToEnglish(product.terms_and_conditions) : product.terms_and_conditions) : null,
-                imageUrl: product.image_url,
-                thumbnailUrl: product.thumbnail_url,
-                promoImageUrl: product.promo_image_url,
-                displayOrder: product.display_order,
-                featured: product.featured,
-                badge: product.badge,
-                isActive: product.is_active,
-                stockLimit: product.stock_limit,
-                maxPerCustomer: product.max_per_customer,
-                slug: product.slug,
-                metaTitle: product.meta_title,
-                metaDescription: product.meta_description,
-                createdAt: product.created_at,
-                updatedAt: product.updated_at,
-            }));
+            const toCamel = (p) => ({
+                id: p.id,
+                name: language === 'en' ? translateVoucherToEnglish(p.name) : p.name,
+                description: p.description ? (language === 'en' ? translateVoucherToEnglish(p.description) : p.description) : null,
+                detailedDescription: (p.detailedDescription ?? p.detailed_description) ? (language === 'en' ? translateVoucherToEnglish(p.detailedDescription ?? p.detailed_description) : (p.detailedDescription ?? p.detailed_description)) : null,
+                price: p.price,
+                originalPrice: p.originalPrice ?? p.original_price,
+                category: p.category,
+                sessionDuration: p.sessionDuration ?? p.session_duration,
+                sessionType: p.sessionType ?? p.session_type,
+                validityPeriod: p.validityPeriod ?? p.validity_period,
+                redemptionInstructions: p.redemptionInstructions ?? p.redemption_instructions,
+                termsAndConditions: (p.termsAndConditions ?? p.terms_and_conditions) ? (language === 'en' ? translateVoucherToEnglish(p.termsAndConditions ?? p.terms_and_conditions) : (p.termsAndConditions ?? p.terms_and_conditions)) : null,
+                imageUrl: p.imageUrl ?? p.image_url,
+                thumbnailUrl: p.thumbnailUrl ?? p.thumbnail_url,
+                promoImageUrl: p.promoImageUrl ?? p.promo_image_url,
+                displayOrder: p.displayOrder ?? p.display_order,
+                featured: p.featured,
+                badge: p.badge,
+                isActive: p.isActive ?? p.is_active,
+                stockLimit: p.stockLimit ?? p.stock_limit,
+                maxPerCustomer: p.maxPerCustomer ?? p.max_per_customer,
+                slug: p.slug,
+                metaTitle: p.metaTitle ?? p.meta_title,
+                metaDescription: p.metaDescription ?? p.meta_description,
+                createdAt: p.createdAt ?? p.created_at,
+                updatedAt: p.updatedAt ?? p.updated_at,
+            });
+            const raw = await neonDb.getVoucherProducts();
+            const products = raw.map(toCamel);
             res.json(products);
         }
         catch (error) {
@@ -6344,47 +7199,285 @@ New Age Fotografie CRM System
             res.status(500).json({ error: "Internal server error" });
         }
     });
-    // Get single voucher product by ID (public endpoint)
+    // Get single voucher product by ID or slug (public endpoint)
     app.get("/api/vouchers/products/:id", async (req, res) => {
         try {
-            const product = await neonDb.getVoucherProduct(req.params.id);
+            const idOrSlug = req.params.id;
+            let product = await neonDb.getVoucherProduct(idOrSlug);
+            if (!product) {
+                // Fallback: attempt slug lookup
+                try {
+                    const all = await neonDb.getVoucherProducts();
+                    product = all.find((p) => p.slug === idOrSlug);
+                }
+                catch (e) {
+                    console.warn('[VOUCHER] Slug fallback failed:', e);
+                }
+            }
             if (!product) {
                 return res.status(404).json({ error: "Voucher product not found" });
             }
-            // Transform snake_case to camelCase
+            const p = product;
             const transformedProduct = {
-                id: product.id,
-                name: product.name,
-                description: product.description,
-                detailedDescription: product.detailed_description,
-                price: product.price,
-                originalPrice: product.original_price,
-                category: product.category,
-                sessionDuration: product.session_duration,
-                sessionType: product.session_type,
-                validityPeriod: product.validity_period,
-                redemptionInstructions: product.redemption_instructions,
-                termsAndConditions: product.terms_and_conditions,
-                imageUrl: product.image_url,
-                thumbnailUrl: product.thumbnail_url,
-                promoImageUrl: product.promo_image_url,
-                displayOrder: product.display_order,
-                featured: product.featured,
-                badge: product.badge,
-                isActive: product.is_active,
-                stockLimit: product.stock_limit,
-                maxPerCustomer: product.max_per_customer,
-                slug: product.slug,
-                metaTitle: product.meta_title,
-                metaDescription: product.meta_description,
-                createdAt: product.created_at,
-                updatedAt: product.updated_at,
+                id: p.id,
+                name: p.name,
+                description: p.description,
+                detailedDescription: p.detailedDescription ?? p.detailed_description,
+                price: p.price,
+                originalPrice: p.originalPrice ?? p.original_price,
+                category: p.category,
+                sessionDuration: p.sessionDuration ?? p.session_duration,
+                sessionType: p.sessionType ?? p.session_type,
+                validityPeriod: p.validityPeriod ?? p.validity_period,
+                redemptionInstructions: p.redemptionInstructions ?? p.redemption_instructions,
+                termsAndConditions: p.termsAndConditions ?? p.terms_and_conditions,
+                imageUrl: p.imageUrl ?? p.image_url,
+                thumbnailUrl: p.thumbnailUrl ?? p.thumbnail_url,
+                promoImageUrl: p.promoImageUrl ?? p.promo_image_url,
+                displayOrder: p.displayOrder ?? p.display_order,
+                featured: p.featured,
+                badge: p.badge,
+                isActive: p.isActive ?? p.is_active,
+                stockLimit: p.stockLimit ?? p.stock_limit,
+                maxPerCustomer: p.maxPerCustomer ?? p.max_per_customer,
+                slug: p.slug,
+                metaTitle: p.metaTitle ?? p.meta_title,
+                metaDescription: p.metaDescription ?? p.meta_description,
+                createdAt: p.createdAt ?? p.created_at,
+                updatedAt: p.updatedAt ?? p.updated_at,
             };
             res.json(transformedProduct);
         }
         catch (error) {
             console.error("Error fetching voucher product:", error);
             res.status(500).json({ error: "Internal server error" });
+        }
+    });
+    // ============================================================================
+    // HOMEPAGE IMAGES API
+    // ============================================================================
+    // Get all homepage images
+    app.get("/api/homepage/images", async (req, res) => {
+        try {
+            const section = req.query.section;
+            let query = `
+        SELECT id, section, url, alt, title, sort_order, is_active, created_at, updated_at
+        FROM homepage_images
+        WHERE is_active = true
+      `;
+            const params = [];
+            if (section) {
+                query += ` AND section = $1`;
+                params.push(section);
+            }
+            query += ` ORDER BY sort_order ASC, created_at DESC`;
+            const images = await runSql(query, params);
+            res.set('Cache-Control', 'no-store');
+            res.json(images);
+        }
+        catch (error) {
+            console.error("Error fetching homepage images:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    });
+    // Get single homepage image
+    app.get("/api/homepage/images/:id", authenticateUser, async (req, res) => {
+        try {
+            const { id } = req.params;
+            const result = await runSql(`
+        SELECT id, section, url, alt, title, sort_order, is_active, created_at, updated_at
+        FROM homepage_images
+        WHERE id = $1
+      `, [id]);
+            if (result.length === 0) {
+                return res.status(404).json({ error: "Image not found" });
+            }
+            res.json(result[0]);
+        }
+        catch (error) {
+            console.error("Error fetching homepage image:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    });
+    // Create homepage image
+    app.post("/api/homepage/images", authenticateUser, async (req, res) => {
+        try {
+            const { section, url, alt, title, sortOrder, isActive } = req.body;
+            if (!section || !url) {
+                return res.status(400).json({ error: "Section and URL are required" });
+            }
+            const result = await runSql(`
+        INSERT INTO homepage_images (section, url, alt, title, sort_order, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id, section, url, alt, title, sort_order, is_active, created_at, updated_at
+      `, [section, url, alt || null, title || null, sortOrder || 0, isActive !== false]);
+            console.log(`✅ Created homepage image: ${result[0].id}`);
+            res.json(result[0]);
+        }
+        catch (error) {
+            console.error("Error creating homepage image:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    });
+    // Update homepage image
+    app.put("/api/homepage/images/:id", authenticateUser, async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { section, url, alt, title, sortOrder, isActive } = req.body;
+            const result = await runSql(`
+        UPDATE homepage_images
+        SET 
+          section = COALESCE($2, section),
+          url = COALESCE($3, url),
+          alt = COALESCE($4, alt),
+          title = COALESCE($5, title),
+          sort_order = COALESCE($6, sort_order),
+          is_active = COALESCE($7, is_active),
+          updated_at = NOW()
+        WHERE id = $1
+        RETURNING id, section, url, alt, title, sort_order, is_active, created_at, updated_at
+      `, [id, section, url, alt, title, sortOrder, isActive]);
+            if (result.length === 0) {
+                return res.status(404).json({ error: "Image not found" });
+            }
+            console.log(`✅ Updated homepage image: ${id}`);
+            res.json(result[0]);
+        }
+        catch (error) {
+            console.error("Error updating homepage image:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    });
+    // Delete homepage image
+    app.delete("/api/homepage/images/:id", authenticateUser, async (req, res) => {
+        try {
+            const { id } = req.params;
+            const result = await runSql(`
+        DELETE FROM homepage_images
+        WHERE id = $1
+        RETURNING id
+      `, [id]);
+            if (result.length === 0) {
+                return res.status(404).json({ error: "Image not found" });
+            }
+            console.log(`✅ Deleted homepage image: ${id}`);
+            res.json({ success: true, message: "Image deleted successfully" });
+        }
+        catch (error) {
+            console.error("Error deleting homepage image:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    });
+    // Upload homepage image to Backblaze B2
+    app.post("/api/homepage/images/upload", authenticateUser, upload.single('image'), async (req, res) => {
+        try {
+            console.log('[HOMEPAGE IMAGE UPLOAD] Request received');
+            console.log('[HOMEPAGE IMAGE UPLOAD] File:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'NO FILE');
+            console.log('[HOMEPAGE IMAGE UPLOAD] Section:', req.body.section);
+            if (!req.file) {
+                return res.status(400).json({ error: "No file uploaded", message: "No file was provided in the upload request" });
+            }
+            const { section } = req.body;
+            if (!section) {
+                return res.status(400).json({ error: "Section is required", message: "Please specify a section for this image" });
+            }
+            // Use shared S3 helper (Backblaze-compatible) and standard AWS_* envs
+            const { bucket, endpoint, isConfigured } = (0, s3_storage_1.getS3Config)();
+            if (!isConfigured) {
+                console.error('❌ S3/B2 credentials or bucket not configured');
+                return res.status(503).json({
+                    error: "Storage service not configured",
+                    message: "Storage service not configured. Please set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_BUCKET."
+                });
+            }
+            console.log('[HOMEPAGE IMAGE UPLOAD] Optimizing image...');
+            // Optimize image with sharp
+            const optimizedBuffer = await (0, sharp_1.default)(req.file.buffer)
+                .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
+                .jpeg({ quality: 85, progressive: true })
+                .toBuffer();
+            // Generate unique filename
+            const timestamp = Date.now();
+            const randomString = Math.random().toString(36).substring(7);
+            const filename = `homepage/${section}-${timestamp}-${randomString}.jpg`;
+            console.log('[HOMEPAGE IMAGE UPLOAD] Uploading to B2:', filename);
+            // Upload to B2
+            const uploadCommand = new client_s3_1.PutObjectCommand({
+                Bucket: bucket,
+                Key: filename,
+                Body: optimizedBuffer,
+                ContentType: 'image/jpeg',
+                CacheControl: 'public, max-age=31536000',
+            });
+            await (0, s3_storage_1.getS3Client)().send(uploadCommand);
+            // Generate public URL
+            const publicUrl = (0, s3_storage_1.buildPublicUrl)(bucket, endpoint, filename);
+            console.log('[HOMEPAGE IMAGE UPLOAD] Public URL:', publicUrl);
+            console.log('[HOMEPAGE IMAGE UPLOAD] Saving to database...');
+            // Save to database
+            const result = await runSql(`
+        INSERT INTO homepage_images (section, url, alt, title, sort_order, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id, section, url, alt, title, sort_order, is_active, created_at, updated_at
+      `, [
+                section,
+                publicUrl,
+                req.body.alt || `Homepage image for ${section}`,
+                req.body.title || section,
+                req.body.sortOrder || 0,
+                true
+            ]);
+            console.log(`✅ Uploaded and saved homepage image: ${result[0].id}`);
+            console.log(`📸 Image URL: ${publicUrl}`);
+            res.json({
+                success: true,
+                image: result[0],
+                message: "Image uploaded successfully"
+            });
+        }
+        catch (error) {
+            console.error("[HOMEPAGE IMAGE UPLOAD] ❌ Error:", error);
+            console.error("[HOMEPAGE IMAGE UPLOAD] Error stack:", error.stack);
+            res.status(500).json({
+                error: "Failed to upload image",
+                message: error.message || "An unknown error occurred during upload"
+            });
+        }
+    });
+    // Public upload endpoint for voucher custom photos (returns URL only; no DB write)
+    app.post("/api/vouchers/upload-photo", upload.single('image'), async (req, res) => {
+        try {
+            if (!req.file) {
+                return res.status(400).json({ error: "No file uploaded" });
+            }
+            const { bucket, endpoint, isConfigured } = (0, s3_storage_1.getS3Config)();
+            if (!isConfigured) {
+                console.error('❌ S3/B2 credentials or bucket not configured');
+                return res.status(503).json({ error: "Storage service not configured. Please set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_BUCKET." });
+            }
+            // Optimize uploaded image for voucher use
+            const optimizedBuffer = await (0, sharp_1.default)(req.file.buffer)
+                .rotate()
+                .resize(2400, 2400, { fit: 'inside', withoutEnlargement: true })
+                .webp({ quality: 88 })
+                .toBuffer();
+            const key = `vouchers/custom/${Date.now()}_${Math.random().toString(36).slice(2)}.webp`;
+            await (0, s3_storage_1.getS3Client)().send(new client_s3_1.PutObjectCommand({
+                Bucket: bucket,
+                Key: key,
+                Body: optimizedBuffer,
+                ContentType: 'image/webp',
+                CacheControl: 'public, max-age=31536000',
+            }));
+            const url = (0, s3_storage_1.buildPublicUrl)(bucket, endpoint, key);
+            res.json({ success: true, url, key });
+        }
+        catch (error) {
+            console.error("Error uploading voucher custom photo:", error);
+            res.status(500).json({
+                error: "Failed to upload custom photo",
+                message: error.message
+            });
         }
     });
     // Create Stripe payment intent for voucher purchase
@@ -6426,72 +7519,22 @@ New Age Fotografie CRM System
             });
         }
     });
-    // Stripe webhook endpoint for payment confirmations
+    // Stripe webhook endpoint for payment confirmations (simplified, signature not verified here)
     app.post("/api/vouchers/stripe-webhook", async (req, res) => {
-        const sig = req.headers['stripe-signature'];
-        let event;
         try {
-            // In production, you'd verify the webhook signature
-            event = req.body;
-            console.log('🔔 Webhook received:', event.type);
-            if (event.type === 'checkout.session.completed') {
-                const session = event.data.object;
-                console.log('✅ Checkout session completed:', session.id);
-                console.log('📧 Customer email:', session.customer_email);
-                console.log('💰 Amount:', session.amount_total / 100, 'EUR');
-                // Extract voucher data from metadata
-                const voucherData = session.metadata?.voucher_data
-                    ? JSON.parse(session.metadata.voucher_data)
-                    : {};
-                console.log('📦 Voucher data:', voucherData);
-                // Generate unique voucher code
-                const voucherCode = generateVoucherCode();
-                console.log('🎟️  Generated voucher code:', voucherCode);
-                // Calculate validity (1 year from purchase)
-                const validUntil = new Date();
-                validUntil.setFullYear(validUntil.getFullYear() + 1);
-                // Create voucher sale record
-                const voucherSale = {
-                    product_id: session.metadata?.product_id || null,
-                    purchaser_name: session.customer_details?.name || voucherData.senderName || '',
-                    purchaser_email: session.customer_email || '',
-                    purchaser_phone: null,
-                    recipient_name: voucherData.recipientName || '',
-                    recipient_email: voucherData.recipientEmail || '',
-                    gift_message: voucherData.message || '',
-                    custom_image: voucherData.customImage || session.metadata?.custom_image || null,
-                    design_image: voucherData.designImage || session.metadata?.design_image || null,
-                    personalization_data: voucherData.personalizationData || null,
-                    voucher_code: voucherCode,
-                    original_amount: ((session.amount_total || 0) / 100).toString(),
-                    discount_amount: '0',
-                    final_amount: ((session.amount_total || 0) / 100).toString(),
-                    currency: 'EUR',
-                    payment_intent_id: session.payment_intent,
-                    payment_status: 'paid',
-                    payment_method: session.payment_method_types?.[0] || 'card',
-                    is_redeemed: false,
-                    redeemed_at: null,
-                    redeemed_by: null,
-                    session_id: null,
-                    valid_from: new Date(),
-                    valid_until: validUntil
-                };
-                console.log('💾 Saving voucher sale to database...');
-                const savedSale = await neonDb.createVoucherSale(voucherSale);
-                console.log('✅ Voucher sale saved with ID:', savedSale.id);
-                // TODO: Send voucher email to customer
-                console.log('📧 Email would be sent to:', session.customer_email);
+            const event = req.body;
+            if (event?.type === 'checkout.session.completed') {
+                const session = event.data?.object;
+                console.log('[WEBHOOK] checkout.session.completed', session?.id);
+                // You could create a voucher sale here using session.metadata
             }
             else {
-                console.log('ℹ️  Unhandled webhook event type:', event.type);
+                console.log('[WEBHOOK] Unhandled event type:', event?.type);
             }
             res.json({ received: true });
         }
         catch (error) {
-            console.error("❌ Webhook error:", error);
-            console.error("Error details:", error.message);
-            console.error("Stack:", error.stack);
+            console.error('[WEBHOOK] Error handling webhook:', error);
             res.status(400).json({ error: error.message });
         }
     });
@@ -6662,218 +7705,374 @@ New Age Fotografie CRM System
     });
     app.post("/api/vouchers/products", async (req, res) => {
         try {
-            console.log('[VOUCHER] Creating product with data:', req.body);
-            const validatedData = insertVoucherProductSchema.parse(req.body);
+            console.log('[VOUCHER] Creating product with raw body:', req.body);
+            // Accept both camelCase and snake_case incoming fields
+            const normalized = { ...req.body };
+            if (normalized.detailedDescription && !normalized.detailed_description)
+                normalized.detailed_description = normalized.detailedDescription;
+            if (normalized.originalPrice && !normalized.original_price)
+                normalized.original_price = normalized.originalPrice;
+            if (normalized.sessionDuration && !normalized.session_duration)
+                normalized.session_duration = normalized.sessionDuration;
+            if (normalized.sessionType && !normalized.session_type)
+                normalized.session_type = normalized.sessionType;
+            if (normalized.validityPeriod && !normalized.validity_period)
+                normalized.validity_period = normalized.validityPeriod;
+            if (normalized.redemptionInstructions && !normalized.redemption_instructions)
+                normalized.redemption_instructions = normalized.redemptionInstructions;
+            if (normalized.termsAndConditions && !normalized.terms_and_conditions)
+                normalized.terms_and_conditions = normalized.termsAndConditions;
+            if (normalized.imageUrl && !normalized.image_url)
+                normalized.image_url = normalized.imageUrl;
+            if (normalized.thumbnailUrl && !normalized.thumbnail_url)
+                normalized.thumbnail_url = normalized.thumbnailUrl;
+            if (normalized.promoImageUrl && !normalized.promo_image_url)
+                normalized.promo_image_url = normalized.promoImageUrl;
+            if (normalized.displayOrder && !normalized.display_order)
+                normalized.display_order = normalized.displayOrder;
+            if (normalized.isActive !== undefined && !normalized.is_active)
+                normalized.is_active = normalized.isActive;
+            if (normalized.maxPerCustomer && !normalized.max_per_customer)
+                normalized.max_per_customer = normalized.maxPerCustomer;
+            if (normalized.metaTitle && !normalized.meta_title)
+                normalized.meta_title = normalized.metaTitle;
+            if (normalized.metaDescription && !normalized.meta_description)
+                normalized.meta_description = normalized.metaDescription;
+            // Generate slug if missing
+            const slugify = (text) => {
+                return text
+                    .toString()
+                    .normalize('NFKD')
+                    .replace(/[\u0300-\u036f]/g, '') // remove diacritics
+                    .toLowerCase()
+                    .replace(/ß/g, 'ss')
+                    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-+|-+$/g, '')
+                    .replace(/--+/g, '-');
+            };
+            if (!normalized.slug && normalized.name) {
+                const base = slugify(normalized.name);
+                let candidate = base;
+                try {
+                    const existingProducts = await neonDb.getVoucherProducts();
+                    let i = 1;
+                    while (existingProducts.find((p) => p.slug === candidate)) {
+                        candidate = `${base}-${i++}`;
+                    }
+                }
+                catch (e) {
+                    console.warn('[VOUCHER] Could not check existing slugs:', e);
+                }
+                normalized.slug = candidate;
+            }
+            console.log('[VOUCHER] Normalized for validation (with slug):', normalized);
+            const validatedData = insertVoucherProductSchema.parse(normalized);
             console.log('[VOUCHER] Validated data:', validatedData);
             const product = await neonDb.createVoucherProduct(validatedData);
             console.log('[VOUCHER] Product created:', product);
-            res.status(201).json(product);
+            // Respond in camelCase for frontend (Drizzle already returns camelCase properties)
+            res.status(201).json({
+                id: product.id,
+                name: product.name,
+                description: product.description,
+                detailedDescription: product.detailedDescription,
+                price: product.price,
+                originalPrice: product.originalPrice,
+                category: product.category,
+                sessionDuration: product.sessionDuration,
+                sessionType: product.sessionType,
+                validityPeriod: product.validityPeriod,
+                redemptionInstructions: product.redemptionInstructions,
+                termsAndConditions: product.termsAndConditions,
+                imageUrl: product.imageUrl,
+                thumbnailUrl: product.thumbnailUrl,
+                promoImageUrl: product.promoImageUrl,
+                displayOrder: product.displayOrder,
+                featured: product.featured,
+                badge: product.badge,
+                isActive: product.isActive,
+                stockLimit: product.stockLimit,
+                maxPerCustomer: product.maxPerCustomer,
+                slug: product.slug,
+                metaTitle: product.metaTitle,
+                metaDescription: product.metaDescription,
+                createdAt: product.createdAt,
+                updatedAt: product.updatedAt,
+            });
         }
         catch (error) {
             if (error instanceof z.ZodError) {
                 console.error('[VOUCHER] Validation error:', error.errors);
                 return res.status(400).json({ error: "Validation error", details: error.errors });
             }
-            console.error("[VOUCHER] Error creating voucher product:", error);
-            res.status(500).json({ error: "Internal server error", message: error.message });
+            console.error('[VOUCHER] Error creating voucher product:', error);
+            res.status(500).json({ error: 'Internal server error', message: error.message });
+        }
+    });
+    // Public single voucher product fetch by id or slug
+    app.get('/api/vouchers/products/:idOrSlug', async (req, res) => {
+        try {
+            const idOrSlug = req.params.idOrSlug;
+            let product = null;
+            // Try direct ID lookup first
+            try {
+                product = await neonDb.getVoucherProduct(idOrSlug);
+            }
+            catch (_) { /* ignore */ }
+            if (!product) {
+                // Fallback: iterate over all and match slug
+                const all = await neonDb.getVoucherProducts();
+                product = all.find((p) => p.slug === idOrSlug);
+            }
+            if (!product) {
+                return res.status(404).json({ error: 'Voucher product not found' });
+            }
+            const p = product;
+            return res.json({
+                id: p.id,
+                name: p.name,
+                description: p.description,
+                detailedDescription: p.detailedDescription ?? p.detailed_description,
+                price: p.price,
+                originalPrice: p.originalPrice ?? p.original_price,
+                category: p.category,
+                sessionDuration: p.sessionDuration ?? p.session_duration,
+                sessionType: p.sessionType ?? p.session_type,
+                validityPeriod: p.validityPeriod ?? p.validity_period,
+                redemptionInstructions: p.redemptionInstructions ?? p.redemption_instructions,
+                termsAndConditions: p.termsAndConditions ?? p.terms_and_conditions,
+                imageUrl: p.imageUrl ?? p.image_url,
+                thumbnailUrl: p.thumbnailUrl ?? p.thumbnail_url,
+                promoImageUrl: p.promoImageUrl ?? p.promo_image_url,
+                displayOrder: p.displayOrder ?? p.display_order,
+                featured: p.featured,
+                badge: p.badge,
+                isActive: p.isActive ?? p.is_active,
+                stockLimit: p.stockLimit ?? p.stock_limit,
+                maxPerCustomer: p.maxPerCustomer ?? p.max_per_customer,
+                slug: p.slug,
+                metaTitle: p.metaTitle ?? p.meta_title,
+                metaDescription: p.metaDescription ?? p.meta_description,
+                createdAt: p.createdAt ?? p.created_at,
+                updatedAt: p.updatedAt ?? p.updated_at,
+            });
+        }
+        catch (err) {
+            console.error('[VOUCHER] Error fetching single product:', err);
+            res.status(500).json({ error: 'Internal server error' });
         }
     });
     app.put("/api/vouchers/products/:id", async (req, res) => {
         try {
             console.log('[VOUCHER UPDATE] Updating product:', req.params.id, 'with data:', req.body);
-            // Transform camelCase to snake_case for database
+            let existing = null;
+            try {
+                existing = await neonDb.getVoucherProduct(req.params.id);
+            }
+            catch (e) {
+                console.warn('[VOUCHER UPDATE] Fetch existing failed:', e);
+            }
             const updates = {};
             if (req.body.name !== undefined)
                 updates.name = req.body.name;
             if (req.body.description !== undefined)
                 updates.description = req.body.description;
             if (req.body.detailedDescription !== undefined)
-                updates.detailed_description = req.body.detailedDescription;
+                updates.detailedDescription = req.body.detailedDescription;
             if (req.body.price !== undefined)
                 updates.price = req.body.price;
             if (req.body.originalPrice !== undefined)
-                updates.original_price = req.body.originalPrice;
+                updates.originalPrice = req.body.originalPrice;
             if (req.body.category !== undefined)
                 updates.category = req.body.category;
             if (req.body.sessionDuration !== undefined)
-                updates.session_duration = req.body.sessionDuration;
+                updates.sessionDuration = req.body.sessionDuration;
             if (req.body.sessionType !== undefined)
-                updates.session_type = req.body.sessionType;
+                updates.sessionType = req.body.sessionType;
             if (req.body.validityPeriod !== undefined)
-                updates.validity_period = req.body.validityPeriod;
+                updates.validityPeriod = req.body.validityPeriod;
             if (req.body.redemptionInstructions !== undefined)
-                updates.redemption_instructions = req.body.redemptionInstructions;
+                updates.redemptionInstructions = req.body.redemptionInstructions;
             if (req.body.termsAndConditions !== undefined)
-                updates.terms_and_conditions = req.body.termsAndConditions;
+                updates.termsAndConditions = req.body.termsAndConditions;
             if (req.body.imageUrl !== undefined)
-                updates.image_url = req.body.imageUrl;
+                updates.imageUrl = req.body.imageUrl;
             if (req.body.thumbnailUrl !== undefined)
-                updates.thumbnail_url = req.body.thumbnailUrl;
+                updates.thumbnailUrl = req.body.thumbnailUrl;
             if (req.body.promoImageUrl !== undefined)
-                updates.promo_image_url = req.body.promoImageUrl;
+                updates.promoImageUrl = req.body.promoImageUrl;
             if (req.body.displayOrder !== undefined)
-                updates.display_order = req.body.displayOrder;
+                updates.displayOrder = req.body.displayOrder;
             if (req.body.featured !== undefined)
                 updates.featured = req.body.featured;
             if (req.body.badge !== undefined)
                 updates.badge = req.body.badge;
             if (req.body.isActive !== undefined)
-                updates.is_active = req.body.isActive;
+                updates.isActive = req.body.isActive;
             if (req.body.stockLimit !== undefined)
-                updates.stock_limit = req.body.stockLimit;
+                updates.stockLimit = req.body.stockLimit;
             if (req.body.maxPerCustomer !== undefined)
-                updates.max_per_customer = req.body.maxPerCustomer;
-            if (req.body.slug !== undefined)
+                updates.maxPerCustomer = req.body.maxPerCustomer;
+            const slugify = (text) => text.toString().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/ß/g, 'ss').replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').replace(/--+/g, '-');
+            if (req.body.slug !== undefined && req.body.slug !== '') {
                 updates.slug = req.body.slug;
+            }
+            else if (req.body.name && existing && req.body.name !== existing.name) {
+                const base = slugify(req.body.name);
+                let candidate = base;
+                let i = 1;
+                try {
+                    const all = await neonDb.getVoucherProducts();
+                    while (all.find((p) => p.slug === candidate && p.id !== existing.id))
+                        candidate = `${base}-${i++}`;
+                }
+                catch (e) {
+                    console.warn('[VOUCHER UPDATE] Slug uniqueness check failed:', e);
+                }
+                updates.slug = candidate;
+            }
             if (req.body.metaTitle !== undefined)
-                updates.meta_title = req.body.metaTitle;
+                updates.metaTitle = req.body.metaTitle;
             if (req.body.metaDescription !== undefined)
-                updates.meta_description = req.body.metaDescription;
-            console.log('[VOUCHER UPDATE] Transformed updates:', updates);
+                updates.metaDescription = req.body.metaDescription;
+            console.log('[VOUCHER UPDATE] Updates object:', updates);
             const product = await neonDb.updateVoucherProduct(req.params.id, updates);
-            // Transform response back to camelCase
+            const bucketName = process.env.AWS_S3_BUCKET || '';
+            const parseKey = (urlStr) => { if (!urlStr)
+                return null; try {
+                const u = new URL(urlStr);
+                let p = u.pathname.replace(/^\//, '');
+                const b = process.env.AWS_S3_BUCKET || '';
+                if (p.startsWith(b + '/'))
+                    p = p.slice(b.length + 1);
+                return p || null;
+            }
+            catch {
+                return null;
+            } };
+            if (existing && bucketName) {
+                const newImageUrl = req.body.imageUrl;
+                const newThumbUrl = req.body.thumbnailUrl;
+                if (existing.imageUrl && newImageUrl && existing.imageUrl !== newImageUrl) {
+                    const oldKey = parseKey(existing.imageUrl);
+                    if (oldKey) {
+                        try {
+                            await s3Client.send(new client_s3_1.DeleteObjectCommand({ Bucket: bucketName, Key: oldKey }));
+                            console.log('[VOUCHER UPDATE] Deleted old image object:', oldKey);
+                        }
+                        catch (e) {
+                            console.warn('[VOUCHER UPDATE] Failed to delete old image object:', oldKey, e);
+                        }
+                    }
+                }
+                if (existing.thumbnailUrl && newThumbUrl && existing.thumbnailUrl !== newThumbUrl) {
+                    const oldThumbKey = parseKey(existing.thumbnailUrl);
+                    if (oldThumbKey) {
+                        try {
+                            await s3Client.send(new client_s3_1.DeleteObjectCommand({ Bucket: bucketName, Key: oldThumbKey }));
+                            console.log('[VOUCHER UPDATE] Deleted old thumbnail object:', oldThumbKey);
+                        }
+                        catch (e) {
+                            console.warn('[VOUCHER UPDATE] Failed to delete old thumbnail object:', oldThumbKey, e);
+                        }
+                    }
+                }
+            }
             const response = {
                 id: product.id,
                 name: product.name,
                 description: product.description,
-                detailedDescription: product.detailed_description,
+                detailedDescription: product.detailedDescription,
                 price: product.price,
-                originalPrice: product.original_price,
+                originalPrice: product.originalPrice,
                 category: product.category,
-                sessionDuration: product.session_duration,
-                sessionType: product.session_type,
-                validityPeriod: product.validity_period,
-                redemptionInstructions: product.redemption_instructions,
-                termsAndConditions: product.terms_and_conditions,
-                imageUrl: product.image_url,
-                thumbnailUrl: product.thumbnail_url,
-                promoImageUrl: product.promo_image_url,
-                displayOrder: product.display_order,
+                sessionDuration: product.sessionDuration,
+                sessionType: product.sessionType,
+                validityPeriod: product.validityPeriod,
+                redemptionInstructions: product.redemptionInstructions,
+                termsAndConditions: product.termsAndConditions,
+                imageUrl: product.imageUrl,
+                thumbnailUrl: product.thumbnailUrl,
+                promoImageUrl: product.promoImageUrl,
+                displayOrder: product.displayOrder,
                 featured: product.featured,
                 badge: product.badge,
-                isActive: product.is_active,
-                stockLimit: product.stock_limit,
-                maxPerCustomer: product.max_per_customer,
+                isActive: product.isActive,
+                stockLimit: product.stockLimit,
+                maxPerCustomer: product.maxPerCustomer,
                 slug: product.slug,
-                metaTitle: product.meta_title,
-                metaDescription: product.meta_description,
-                createdAt: product.created_at,
-                updatedAt: product.updated_at,
+                metaTitle: product.metaTitle,
+                metaDescription: product.metaDescription,
+                createdAt: product.createdAt,
+                updatedAt: product.updatedAt,
             };
             console.log('[VOUCHER UPDATE] Success:', response);
             res.json(response);
         }
         catch (error) {
-            console.error("[VOUCHER UPDATE] Error updating voucher product:", error);
-            res.status(500).json({ error: "Internal server error", message: error.message });
+            console.error('[VOUCHER UPDATE] Error updating voucher product:', error);
+            res.status(500).json({ error: 'Internal server error', message: error.message });
         }
     });
-    app.delete("/api/vouchers/products/:id", async (req, res) => {
+    app.delete("/api/vouchers/products/:id", authenticateUser, async (req, res) => {
         try {
-            await neonDb.deleteVoucherProduct(req.params.id);
-            res.json({ success: true });
-        }
-        catch (error) {
-            console.error("Error deleting voucher product:", error);
-            res.status(500).json({ error: "Internal server error" });
-        }
-    });
-    // Discount Coupons Routes
-    app.get("/api/vouchers/coupons", authenticateUser, async (req, res) => {
-        try {
-            const coupons = await storage_1.storage.getDiscountCoupons();
-            res.json(coupons);
-        }
-        catch (error) {
-            console.error("Error fetching discount coupons:", error);
-            res.status(500).json({ error: "Internal server error" });
-        }
-    });
-    // Alias for admin panel
-    app.get("/api/admin/coupons", authenticateUser, async (req, res) => {
-        try {
-            const coupons = await storage_1.storage.getDiscountCoupons();
-            res.json(coupons);
-        }
-        catch (error) {
-            console.error("Error fetching discount coupons:", error);
-            res.status(500).json({ error: "Internal server error" });
-        }
-    });
-    app.post("/api/vouchers/coupons", authenticateUser, async (req, res) => {
-        try {
-            const validatedData = insertDiscountCouponSchema.parse(req.body);
-            const { applicableProductId, applicableProductSlug } = req.body;
-            const { ...rest } = validatedData;
-            // Normalize single product selection into array field expected by DB
-            const payload = {
-                ...rest,
-                applicableProducts: Array.isArray(validatedData.applicableProducts)
-                    ? validatedData.applicableProducts
-                    : (applicableProductSlug ? [applicableProductSlug] : (applicableProductId ? [applicableProductId] : validatedData.applicableProducts))
-            };
-            const coupon = await storage_1.storage.createDiscountCoupon(payload);
-            res.status(201).json(coupon);
-        }
-        catch (error) {
-            if (error instanceof z.ZodError) {
-                return res.status(400).json({ error: "Validation error", details: error.errors });
+            const id = req.params.id;
+            console.log('[VOUCHER DELETE] Request to delete product:', id);
+            // Check references to avoid FK constraint failures
+            try {
+                const ref = await runSql('SELECT COUNT(1)::int AS c FROM voucher_sales WHERE product_id = $1', [id]);
+                if (ref?.[0]?.c > 0) {
+                    return res.status(409).json({ success: false, error: 'Product has sales and cannot be deleted', references: ref[0].c });
+                }
             }
-            console.error("Error creating discount coupon:", error);
-            res.status(500).json({ error: "Internal server error" });
-        }
-    });
-    app.put("/api/vouchers/coupons/:id", authenticateUser, async (req, res) => {
-        try {
-            const { applicableProductId, applicableProducts, ...rest } = req.body;
-            const updates = { ...rest };
-            if (Array.isArray(applicableProducts)) {
-                updates.applicableProducts = applicableProducts;
+            catch (e) {
+                console.warn('[VOUCHER DELETE] Reference check failed (continuing):', e);
             }
-            else if (applicableProductId) {
-                updates.applicableProducts = [applicableProductId];
+            const existing = await neonDb.getVoucherProduct(id);
+            const bucketName = process.env.AWS_S3_BUCKET || '';
+            const parseKey = (urlStr) => { if (!urlStr)
+                return null; try {
+                const u = new URL(urlStr);
+                let p = u.pathname.replace(/^\//, '');
+                const b = process.env.AWS_S3_BUCKET || '';
+                if (p.startsWith(b + '/'))
+                    p = p.slice(b.length + 1);
+                return p || null;
             }
-            const coupon = await storage_1.storage.updateDiscountCoupon(req.params.id, updates);
-            res.json(coupon);
+            catch {
+                return null;
+            } };
+            if (existing && bucketName) {
+                const imgUrl = (existing.imageUrl ?? existing.image_url);
+                const thumbUrl = (existing.thumbnailUrl ?? existing.thumbnail_url);
+                for (const url of [imgUrl, thumbUrl]) {
+                    const key = url ? parseKey(url) : null;
+                    if (key) {
+                        try {
+                            await s3Client.send(new client_s3_1.DeleteObjectCommand({ Bucket: bucketName, Key: key }));
+                            console.log('[VOUCHER DELETE] Deleted object:', key);
+                        }
+                        catch (e) {
+                            console.warn('[VOUCHER DELETE] Failed to delete object:', key, e);
+                        }
+                    }
+                }
+            }
+            await neonDb.deleteVoucherProduct(id);
+            console.log('[VOUCHER DELETE] Deleted product row:', id);
+            res.json({ success: true, id });
         }
         catch (error) {
-            console.error("Error updating discount coupon:", error);
-            res.status(500).json({ error: "Internal server error" });
-        }
-    });
-    app.delete("/api/vouchers/coupons/:id", authenticateUser, async (req, res) => {
-        try {
-            await storage_1.storage.deleteDiscountCoupon(req.params.id);
-            res.json({ success: true });
-        }
-        catch (error) {
-            console.error("Error deleting discount coupon:", error);
-            res.status(500).json({ error: "Internal server error" });
-        }
-    });
-    // Admin panel aliases for coupons
-    app.post("/api/admin/coupons", authenticateUser, async (req, res) => {
-        try {
-            const validatedData = insertDiscountCouponSchema.parse(req.body);
-            const { applicableProductId, applicableProductSlug } = req.body;
-            const { ...rest } = validatedData;
-            const payload = {
-                ...rest,
-                applicableProducts: Array.isArray(validatedData.applicableProducts)
-                    ? validatedData.applicableProducts
-                    : (applicableProductSlug ? [applicableProductSlug] : (applicableProductId ? [applicableProductId] : validatedData.applicableProducts))
-            };
-            const coupon = await storage_1.storage.createDiscountCoupon(payload);
-            res.status(201).json(coupon);
-        }
-        catch (error) {
-            if (error instanceof z.ZodError) {
-                return res.status(400).json({ error: "Validation error", details: error.errors });
+            const code = error?.code || error?.detail || '';
+            console.error('Error deleting voucher product:', error);
+            if (String(code).includes('foreign key') || error?.code === '23503') {
+                return res.status(409).json({ success: false, error: 'Product cannot be deleted due to existing references' });
             }
-            console.error("Error creating discount coupon:", error);
-            res.status(500).json({ error: "Internal server error" });
+            res.status(500).json({ error: 'Internal server error' });
         }
     });
+    // ====== COUPON ADMIN ROUTES (continuation) ======
     app.put("/api/admin/coupons/:id", authenticateUser, async (req, res) => {
         try {
             const { applicableProductId, applicableProducts, ...rest } = req.body;
@@ -6893,6 +8092,144 @@ New Age Fotografie CRM System
         }
     });
     app.delete("/api/admin/coupons/:id", authenticateUser, async (req, res) => {
+        try {
+            await storage_1.storage.deleteDiscountCoupon(req.params.id);
+            res.json({ success: true });
+        }
+        catch (error) {
+            console.error("Error deleting discount coupon:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    });
+    // ====== VOUCHER COUPONS MANAGEMENT (CRUD) ======
+    // Get all discount coupons
+    app.get("/api/vouchers/coupons", authenticateUser, async (req, res) => {
+        try {
+            const coupons = await storage_1.storage.getDiscountCoupons();
+            res.json(coupons);
+        }
+        catch (error) {
+            console.error("Error fetching discount coupons:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    });
+    // Create new discount coupon
+    app.post("/api/vouchers/coupons", authenticateUser, async (req, res) => {
+        try {
+            console.log('[COUPON CREATE] Request body:', JSON.stringify(req.body, null, 2));
+            const { applicableProductId, applicableProducts, applicableProductSlug, ...rest } = req.body;
+            const couponData = { ...rest };
+            // Handle applicableProducts field conversion
+            if (Array.isArray(applicableProducts) && applicableProducts.length > 0) {
+                couponData.applicableProducts = applicableProducts;
+            }
+            else if (applicableProductId) {
+                couponData.applicableProducts = [applicableProductId];
+            }
+            else if (applicableProductSlug && applicableProductSlug.trim() !== '') {
+                // Convert product slug to array for applicableProducts
+                couponData.applicableProducts = [applicableProductSlug.trim()];
+            }
+            else {
+                // If no specific product selected, set to null (all products)
+                couponData.applicableProducts = null;
+            }
+            // Convert date strings to Date objects if present
+            if (couponData.startDate && typeof couponData.startDate === 'string') {
+                couponData.startDate = new Date(couponData.startDate);
+            }
+            if (couponData.endDate && typeof couponData.endDate === 'string') {
+                couponData.endDate = new Date(couponData.endDate);
+            }
+            // Convert numeric string fields to proper types
+            if (couponData.discountValue && typeof couponData.discountValue === 'string') {
+                couponData.discountValue = couponData.discountValue.toString();
+            }
+            if (couponData.minOrderAmount && typeof couponData.minOrderAmount === 'string') {
+                couponData.minOrderAmount = couponData.minOrderAmount.toString();
+            }
+            if (couponData.maxDiscountAmount && typeof couponData.maxDiscountAmount === 'string') {
+                couponData.maxDiscountAmount = couponData.maxDiscountAmount.toString();
+            }
+            console.log('[COUPON CREATE] Processing data:', JSON.stringify(couponData, null, 2));
+            const coupon = await storage_1.storage.createDiscountCoupon(couponData);
+            console.log('[COUPON CREATE] Success:', coupon.id);
+            res.json(coupon);
+        }
+        catch (error) {
+            console.error("[COUPON CREATE] Error details:", error);
+            const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+            console.error("[COUPON CREATE] Error message:", errorMessage);
+            console.error("[COUPON CREATE] Error stack:", error instanceof Error ? error.stack : '');
+            // Check for duplicate code constraint violation
+            if (errorMessage.includes('discount_coupons_code_unique') || errorMessage.includes('duplicate key')) {
+                return res.status(400).json({
+                    error: "Coupon code already exists",
+                    details: `A coupon with code "${couponData.code}" already exists. Please use a different code.`
+                });
+            }
+            res.status(500).json({ error: "Internal server error", details: errorMessage });
+        }
+    });
+    // Update discount coupon
+    app.put("/api/vouchers/coupons/:id", authenticateUser, async (req, res) => {
+        try {
+            console.log('[COUPON UPDATE] Request body:', JSON.stringify(req.body, null, 2));
+            const { applicableProductId, applicableProducts, applicableProductSlug, ...rest } = req.body;
+            const updates = { ...rest };
+            if (Array.isArray(applicableProducts) && applicableProducts.length > 0) {
+                updates.applicableProducts = applicableProducts;
+            }
+            else if (applicableProductId) {
+                updates.applicableProducts = [applicableProductId];
+            }
+            else if (applicableProductSlug && applicableProductSlug.trim() !== '') {
+                // Convert product slug to array for applicableProducts
+                updates.applicableProducts = [applicableProductSlug.trim()];
+            }
+            else {
+                // If no specific product selected, set to null (all products)
+                updates.applicableProducts = null;
+            }
+            // Convert date strings to Date objects if present
+            if (updates.startDate && typeof updates.startDate === 'string') {
+                updates.startDate = new Date(updates.startDate);
+            }
+            if (updates.endDate && typeof updates.endDate === 'string') {
+                updates.endDate = new Date(updates.endDate);
+            }
+            // Convert numeric string fields to proper types
+            if (updates.discountValue && typeof updates.discountValue === 'string') {
+                updates.discountValue = updates.discountValue.toString();
+            }
+            if (updates.minOrderAmount && typeof updates.minOrderAmount === 'string') {
+                updates.minOrderAmount = updates.minOrderAmount.toString();
+            }
+            if (updates.maxDiscountAmount && typeof updates.maxDiscountAmount === 'string') {
+                updates.maxDiscountAmount = updates.maxDiscountAmount.toString();
+            }
+            console.log('[COUPON UPDATE] Processing updates:', JSON.stringify(updates, null, 2));
+            const coupon = await storage_1.storage.updateDiscountCoupon(req.params.id, updates);
+            console.log('[COUPON UPDATE] Success:', coupon.id);
+            res.json(coupon);
+        }
+        catch (error) {
+            console.error("[COUPON UPDATE] Error details:", error);
+            const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+            console.error("[COUPON UPDATE] Error message:", errorMessage);
+            console.error("[COUPON UPDATE] Error stack:", error instanceof Error ? error.stack : '');
+            // Check for duplicate code constraint violation
+            if (errorMessage.includes('discount_coupons_code_unique') || errorMessage.includes('duplicate key')) {
+                return res.status(400).json({
+                    error: "Coupon code already exists",
+                    details: `A coupon with code "${updates.code}" already exists. Please use a different code.`
+                });
+            }
+            res.status(500).json({ error: "Internal server error", details: errorMessage });
+        }
+    });
+    // Delete discount coupon
+    app.delete("/api/vouchers/coupons/:id", authenticateUser, async (req, res) => {
         try {
             await storage_1.storage.deleteDiscountCoupon(req.params.id);
             res.json({ success: true });
@@ -7045,6 +8382,114 @@ New Age Fotografie CRM System
             res.status(500).json({ error: "Internal server error" });
         }
     });
+    // Coupon analytics (admin)
+    app.get('/api/vouchers/coupons/analytics', authenticateUser, async (req, res) => {
+        try {
+            const coupons = await storage_1.storage.getDiscountCoupons();
+            const sales = await storage_1.storage.getVoucherSales();
+            const analytics = coupons.map(c => {
+                const related = sales.filter(s => (s.couponId && s.couponId === c.id) || (s.couponCode && s.couponCode.toUpperCase() === c.code.toUpperCase()));
+                const usageCount = related.length;
+                const totalDiscount = related.reduce((sum, s) => sum + Number(s.discountAmount || 0), 0);
+                const totalRevenue = related.reduce((sum, s) => sum + Number(s.finalAmount || 0), 0);
+                const lastUsedAt = related.reduce((latest, s) => {
+                    const d = s.createdAt;
+                    const dt = d instanceof Date ? d : (d ? new Date(d) : null);
+                    if (!dt)
+                        return latest;
+                    return !latest || dt > latest ? dt : latest;
+                }, null);
+                return {
+                    id: c.id,
+                    code: c.code,
+                    name: c.name,
+                    discountType: c.discountType,
+                    discountValue: c.discountValue,
+                    isActive: c.isActive,
+                    usageCount,
+                    totalDiscountAmount: Number(totalDiscount.toFixed(2)),
+                    totalRevenueInfluenced: Number(totalRevenue.toFixed(2)),
+                    lastUsedAt,
+                };
+            });
+            res.json(analytics);
+        }
+        catch (error) {
+            console.error('Error generating coupon analytics:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+    // Voucher settings (ephemeral in-memory for now)
+    let voucherSettings = {
+        defaultValidityDays: 365,
+        defaultAspectRatio: '4:3',
+        imageQuality: 0.9,
+        updatedAt: new Date(),
+    };
+    app.get('/api/vouchers/settings', authenticateUser, async (req, res) => {
+        res.json(voucherSettings);
+    });
+    app.put('/api/vouchers/settings', authenticateUser, async (req, res) => {
+        try {
+            const { defaultValidityDays, defaultAspectRatio, imageQuality } = req.body || {};
+            if (defaultValidityDays !== undefined)
+                voucherSettings.defaultValidityDays = parseInt(defaultValidityDays);
+            if (defaultAspectRatio !== undefined)
+                voucherSettings.defaultAspectRatio = String(defaultAspectRatio);
+            if (imageQuality !== undefined)
+                voucherSettings.imageQuality = Math.min(1, Math.max(0.4, Number(imageQuality)));
+            voucherSettings.updatedAt = new Date();
+            res.json(voucherSettings);
+        }
+        catch (e) {
+            res.status(400).json({ error: 'Invalid settings payload' });
+        }
+    });
+    // CSV export endpoints
+    app.get('/api/vouchers/products.csv', authenticateUser, async (req, res) => {
+        try {
+            const products = await neonDb.getVoucherProducts();
+            const header = 'id,name,price,originalPrice,slug,isActive\n';
+            const rows = products.map((p) => [
+                p.id,
+                '"' + String(p.name || '').replace(/"/g, '""') + '"',
+                p.price,
+                p.original_price || '',
+                p.slug || '',
+                p.is_active,
+            ].join(','));
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', 'attachment; filename="voucher-products.csv"');
+            res.send(header + rows.join('\n'));
+        }
+        catch (error) {
+            console.error('Error exporting products CSV:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+    app.get('/api/vouchers/sales.csv', authenticateUser, async (req, res) => {
+        try {
+            const sales = await storage_1.storage.getVoucherSales();
+            const header = 'id,productId,voucherCode,purchaserEmail,finalAmount,discountAmount,couponCode,createdAt\n';
+            const rows = sales.map((s) => [
+                s.id,
+                s.productId,
+                s.voucherCode,
+                s.purchaserEmail,
+                s.finalAmount,
+                s.discountAmount,
+                s.couponCode || '',
+                s.createdAt instanceof Date ? s.createdAt.toISOString() : s.createdAt,
+            ].join(','));
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', 'attachment; filename="voucher-sales.csv"');
+            res.send(header + rows.join('\n'));
+        }
+        catch (error) {
+            console.error('Error exporting sales CSV:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
     // Optional: secure admin endpoint to force refresh coupons after Heroku config change
     app.post("/__admin/refresh-coupons", async (req, res) => {
         try {
@@ -7151,51 +8596,128 @@ New Age Fotografie CRM System
             res.setHeader('Content-Disposition', `attachment; filename="${vId}.pdf"`);
             const doc = new pdfkit_1.default({ size: 'A4', margin: 50 });
             doc.pipe(res);
-            // Add company logo in header (left), fall back silently if fetch fails
+            // Add company logo centered at top (compact)
+            const pageWidth = 595.28;
+            const pageMargin = 50;
+            const contentWidth = pageWidth - (pageMargin * 2);
+            let currentY = 40;
             try {
                 const logoUrl = process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
                 const resp = await fetch(logoUrl);
                 if (resp && resp.ok) {
                     const arr = await resp.arrayBuffer();
                     const imgBuf = Buffer.from(arr);
-                    // Place logo at top-left inside margins; keep aspect, max height ~60
-                    doc.image(imgBuf, 50, 50, { fit: [160, 60] });
-                }
-                else {
-                    console.warn('Voucher logo fetch failed:', resp ? resp.status : 'no response');
+                    const logoWidth = 140;
+                    const centerX = (pageWidth - logoWidth) / 2;
+                    doc.image(imgBuf, centerX, currentY, { fit: [logoWidth, 50] });
+                    currentY += 55; // Logo height (50) + small spacing
                 }
             }
             catch (e) {
                 console.warn('Voucher logo fetch error:', e);
+                currentY += 55; // Reserve space even if logo fails
             }
-            // Ensure we don't overlap the subsequent header text
-            doc.moveDown(2);
-            doc.fontSize(22).text('New Age Fotografie', { align: 'right' });
-            doc.moveDown(0.5);
-            doc.fontSize(12).text('www.newagefotografie.com', { align: 'right' });
-            doc.moveDown(1.5);
-            doc.fontSize(26).text('PERSONALISIERTER GUTSCHEIN', { align: 'left' });
-            doc.moveDown(0.5);
-            doc.fontSize(18).text(title);
-            doc.moveDown(0.5);
-            doc.fontSize(12).text(`Gutschein-ID: ${vId}`);
-            doc.text(`SKU: ${sku}`);
+            // Add spacing after logo
+            currentY += 10;
+            // Heading centered below logo
+            doc.fontSize(22).text('PERSONALISIERTER GUTSCHEIN', pageMargin, currentY, { align: 'center', width: contentWidth });
+            doc.moveDown(0.4);
+            // Hero image (customer-selected or template) - compact
+            // Priority: custom_image > design_image > product_hero_image (fallback)
+            let heroRendered = false;
+            try {
+                const artUrl = String(m.custom_image || m.design_image || m.product_hero_image || '').trim();
+                if (artUrl) {
+                    const pageWidth = 595.28;
+                    const respImg = await fetch(artUrl);
+                    if (respImg && respImg.ok) {
+                        const artArr = await respImg.arrayBuffer();
+                        const artBuf = Buffer.from(artArr);
+                        const imgWidth = pageWidth - 100;
+                        doc.image(artBuf, 50, undefined, { fit: [imgWidth, 320], align: 'center' });
+                        heroRendered = true;
+                    }
+                }
+            }
+            catch (e) {
+                console.warn('Voucher art fetch error:', e);
+            }
+            if (heroRendered)
+                doc.moveDown(0.4);
+            // Red banner "Gutschein"
+            try {
+                const pageWidth = 595.28;
+                const bannerY = doc.y + 4;
+                const bannerX = 50;
+                const bannerW = pageWidth - 100;
+                const bannerH = 32;
+                doc.save();
+                doc.rect(bannerX, bannerY, bannerW, bannerH).fill('#b3202e');
+                doc.fillColor('#ffffff').fontSize(18).text('Gutschein', bannerX + 14, bannerY + 7, { width: bannerW - 28, align: 'left' });
+                doc.restore();
+                doc.moveDown(1.8);
+            }
+            catch { }
+            // Personal message RIGHT BELOW RED BANNER
+            if (note && note.trim()) {
+                doc.fillColor('#222222').fontSize(11).text('Nachricht:', { underline: true });
+                doc.moveDown(0.2);
+                doc.fontSize(11).text(note, { align: 'left', width: 595.28 - 100 });
+                doc.moveDown(0.6);
+            }
+            // Dynamic product description
+            try {
+                let product = null;
+                const idOrSlug = String(m.sku || '').trim();
+                if (idOrSlug && neonDb && typeof neonDb.getVoucherProduct === 'function') {
+                    try {
+                        product = await neonDb.getVoucherProduct(idOrSlug);
+                    }
+                    catch (dbErr) {
+                        console.warn('Could not fetch voucher product:', dbErr);
+                    }
+                    if (!product && typeof neonDb.getVoucherProducts === 'function') {
+                        try {
+                            const all = await neonDb.getVoucherProducts();
+                            const slug = idOrSlug.toLowerCase();
+                            product = all.find((p) => (p.slug || '').toLowerCase() === slug)
+                                || all.find((p) => (p.name || '').toLowerCase().includes(slug.replace(/-/g, ' ')));
+                        }
+                        catch (dbErr2) {
+                            console.warn('Could not fetch all voucher products:', dbErr2);
+                        }
+                    }
+                }
+                const dynamicSub = (product?.description || product?.detailedDescription || product?.detailed_description || '').toString();
+                if (dynamicSub && dynamicSub.trim()) {
+                    doc.fillColor('#222222').fontSize(10).text(dynamicSub, { width: 595.28 - 100, align: 'left' });
+                    doc.moveDown(0.6);
+                }
+            }
+            catch (e) {
+                console.warn('Voucher description block render error:', e);
+            }
+            // Voucher meta (compact)
+            doc.fillColor('#222222').fontSize(9);
+            doc.text(`Gutschein-ID: ${vId}  |  SKU: ${sku}`);
             doc.text(`Empfänger/in: ${name}`);
             doc.text(`Von: ${from}`);
             doc.text(`Gültig bis: ${exp}`);
             doc.moveDown(0.5);
-            if (note) {
-                doc.fontSize(12).text('Nachricht:', { underline: true });
-                doc.moveDown(0.2);
-                doc.fontSize(12).text(note, { align: 'left' });
-                doc.moveDown(0.8);
-            }
-            doc.moveDown(1);
-            doc.fontSize(10).text('Einlösbar für die oben genannte Leistung in unserem Studio. ' +
-                'Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.', { align: 'justify' });
-            doc.moveDown(2);
+            // Terms (compact)
+            doc.fontSize(8).fillColor('#444444').text('Einlösbar für die oben genannte Leistung in unserem Studio. Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.', { align: 'justify', width: 595.28 - 100 });
+            doc.moveDown(0.8);
             const paid = ((session.amount_total || 0) / 100).toFixed(2) + ' ' + String(session.currency || 'EUR').toUpperCase();
-            doc.fontSize(10).text(`Belegt durch Zahlung: ${paid} | Datum: ${new Date((session.created || Date.now() / 1000) * 1000).toLocaleDateString()}`);
+            const paymentDate = new Date((session.created || Date.now() / 1000) * 1000);
+            const formattedDate = `${String(paymentDate.getDate()).padStart(2, '0')}/${String(paymentDate.getMonth() + 1).padStart(2, '0')}/${String(paymentDate.getFullYear()).slice(-2)}`;
+            doc.fontSize(8).fillColor('#222222').text(`Belegt durch Zahlung: ${paid} | Datum: ${formattedDate}`);
+            // Contact details footer
+            doc.moveDown(1.5);
+            doc.fontSize(9).fillColor('#222222');
+            doc.text('www.newagefotografie.com', { align: 'center' });
+            doc.text('hallo@newagefotografie.com', { align: 'center' });
+            doc.moveDown(0.3);
+            doc.text('WhatsApp: 0043 677 633 99210', { align: 'center' });
             doc.end();
         }
         catch (e) {
@@ -7215,7 +8737,19 @@ New Age Fotografie CRM System
             const exp = String(qp.expiry_date || '12 Monate ab Kaufdatum');
             const amount = parseFloat(String(qp.amount || '95.00'));
             const currency = String(qp.currency || 'EUR');
-            const customImageUrl = String(qp.custom_image || qp.design_image || '');
+            // Try custom_image or design_image from query, otherwise fetch product default
+            let customImageUrl = String(qp.custom_image || qp.design_image || '').trim();
+            if (!customImageUrl && sku) {
+                try {
+                    if (neonDb && typeof neonDb.getVoucherProduct === 'function') {
+                        const product = await neonDb.getVoucherProduct(sku);
+                        customImageUrl = product?.imageUrl || '';
+                    }
+                }
+                catch (e) {
+                    console.warn('Could not fetch product default image for preview:', e);
+                }
+            }
             const titleMap = {
                 'Maternity-Basic': 'Schwangerschafts Fotoshooting - Basic',
                 'Family-Basic': 'Family Fotoshooting - Basic',
@@ -7232,91 +8766,126 @@ New Age Fotografie CRM System
             res.setHeader('Content-Disposition', `attachment; filename="${vId}.pdf"`);
             const doc = new pdfkit_1.default({ size: 'A4', margin: 50 });
             doc.pipe(res);
-            const pageWidth = 595.28; // A4 width in points
-            const pageHeight = 841.89; // A4 height in points
-            const midPage = pageHeight / 2;
-            let currentY = 30;
-            // ========== HEADER: Logo and Website (Centered at very top) ==========
+            // SINGLE-PAGE COMPACT LAYOUT - matches main endpoint
+            // Logo centered at top (compact)
+            const pageWidth = 595.28;
+            const pageMargin = 50;
+            const contentWidth = pageWidth - (pageMargin * 2);
+            let currentY = 40;
             try {
                 const logoUrl = process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
                 const resp = await fetch(logoUrl);
                 if (resp && resp.ok) {
                     const arr = await resp.arrayBuffer();
                     const imgBuf = Buffer.from(arr);
-                    // Center the logo
-                    const logoWidth = 120;
-                    const logoX = (pageWidth - logoWidth) / 2;
-                    doc.image(imgBuf, logoX, currentY, { width: logoWidth, height: 45 });
-                    currentY += 50;
+                    const logoWidth = 140;
+                    const centerX = (pageWidth - logoWidth) / 2;
+                    doc.image(imgBuf, centerX, currentY, { fit: [logoWidth, 50] });
+                    currentY += 55; // Logo height (50) + small spacing
                 }
             }
-            catch {
-                currentY += 50;
+            catch (e) {
+                console.warn('Logo fetch error:', e);
+                currentY += 55; // Reserve space even if logo fails
             }
-            doc.fontSize(10);
-            doc.text('www.newagefotografie.com', 50, currentY, { align: 'center', width: pageWidth - 100 });
-            currentY += 25;
-            // ========== TITLE ==========
-            doc.fontSize(24);
-            doc.text('SHOOTING GUTSCHEIN', 50, currentY, { align: 'center', width: pageWidth - 100 });
-            currentY += 40;
-            // ========== TOP 50%: Customer's Custom Image or Selected Design ==========
-            const imageStartY = currentY;
-            const imageAreaHeight = midPage - imageStartY - 10;
+            // Add spacing after logo
+            currentY += 10;
+            // Heading centered below logo
+            doc.fontSize(22).text('PERSONALISIERTER GUTSCHEIN', pageMargin, currentY, { align: 'center', width: contentWidth });
+            doc.moveDown(0.4);
+            // Hero image (compact 160px height)
+            let heroRendered = false;
             if (customImageUrl) {
                 try {
-                    console.log('📸 Loading custom image:', customImageUrl);
-                    const imgResp = await fetch(customImageUrl);
-                    if (imgResp && imgResp.ok) {
-                        const imgArr = await imgResp.arrayBuffer();
+                    const respImg = await fetch(customImageUrl);
+                    if (respImg && respImg.ok) {
+                        const imgArr = await respImg.arrayBuffer();
                         const imgBuf = Buffer.from(imgArr);
-                        console.log('✅ Custom image loaded, size:', imgBuf.length, 'bytes');
-                        // Display customer's image in top half, centered
-                        const imageWidth = pageWidth - 100;
-                        const imageX = 50;
-                        doc.image(imgBuf, imageX, imageStartY, {
-                            fit: [imageWidth, imageAreaHeight],
-                            align: 'center',
-                            valign: 'center'
-                        });
-                        console.log('✅ Custom image added to PDF');
-                    }
-                    else {
-                        console.error('❌ Failed to fetch image:', imgResp?.status);
+                        const imgWidth = 595.28 - 100;
+                        doc.image(imgBuf, 50, undefined, { fit: [imgWidth, 320], align: 'center' });
+                        heroRendered = true;
                     }
                 }
                 catch (err) {
-                    console.error('❌ Failed to load custom image:', err);
+                    console.warn('Preview image error:', err);
                 }
             }
-            // ========== BOTTOM 50%: Voucher Details ==========
-            currentY = midPage + 10;
-            doc.fontSize(11);
-            doc.text(`Gutschein-ID: ${vId}`, 50, currentY);
-            currentY += 18;
-            doc.text(`SKU: ${sku}`, 50, currentY);
-            currentY += 18;
-            doc.text(`Empfänger/in: ${name}`, 50, currentY);
-            currentY += 18;
-            doc.text(`Von: ${from}`, 50, currentY);
-            currentY += 18;
-            doc.text(`Gültig bis: ${exp}`, 50, currentY);
-            currentY += 25;
-            if (note) {
-                doc.fontSize(11);
-                doc.text('Nachricht:', 50, currentY, { underline: true });
-                currentY += 18;
-                doc.fontSize(11);
-                doc.text(note, 50, currentY, { width: pageWidth - 100 });
-                currentY += Math.ceil(note.length / 80) * 15 + 20;
+            if (heroRendered)
+                doc.moveDown(0.4);
+            // Red banner "Gutschein"
+            try {
+                const pageWidth = 595.28;
+                const bannerY = doc.y + 4;
+                const bannerX = 50;
+                const bannerW = pageWidth - 100;
+                const bannerH = 32;
+                doc.save();
+                doc.rect(bannerX, bannerY, bannerW, bannerH).fill('#b3202e');
+                doc.fillColor('#ffffff').fontSize(18).text('Gutschein', bannerX + 14, bannerY + 7, { width: bannerW - 28, align: 'left' });
+                doc.restore();
+                doc.moveDown(1.8);
             }
-            doc.fontSize(10);
-            doc.text('Einlösbar für die oben genannte Leistung in unserem Studio. ' +
-                'Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.', 50, currentY, { width: pageWidth - 100 });
-            currentY += 50;
+            catch { }
+            // Personal message RIGHT BELOW RED BANNER
+            if (note && note.trim()) {
+                doc.fillColor('#222222').fontSize(11).text('Nachricht:', { underline: true });
+                doc.moveDown(0.2);
+                doc.fontSize(11).text(note, { align: 'left', width: 595.28 - 100 });
+                doc.moveDown(0.6);
+            }
+            // Dynamic product description (preview mode - fetch from DB if available)
+            try {
+                let product = null;
+                const idOrSlug = String(sku || '').trim();
+                if (idOrSlug && neonDb && typeof neonDb.getVoucherProduct === 'function') {
+                    try {
+                        product = await neonDb.getVoucherProduct(idOrSlug);
+                    }
+                    catch (dbErr) {
+                        console.warn('Preview: Could not fetch voucher product:', dbErr);
+                    }
+                    if (!product && typeof neonDb.getVoucherProducts === 'function') {
+                        try {
+                            const all = await neonDb.getVoucherProducts();
+                            const slug = idOrSlug.toLowerCase();
+                            product = all.find((p) => (p.slug || '').toLowerCase() === slug)
+                                || all.find((p) => (p.name || '').toLowerCase().includes(slug.replace(/-/g, ' ')));
+                        }
+                        catch (dbErr2) {
+                            console.warn('Preview: Could not fetch all voucher products:', dbErr2);
+                        }
+                    }
+                }
+                const dynamicSub = (product?.description || product?.detailedDescription || product?.detailed_description || '').toString();
+                if (dynamicSub && dynamicSub.trim()) {
+                    doc.fillColor('#222222').fontSize(10).text(dynamicSub, { width: 595.28 - 100, align: 'left' });
+                    doc.moveDown(0.6);
+                }
+            }
+            catch (e) {
+                console.warn('Preview description render error:', e);
+            }
+            // Voucher meta (compact)
+            doc.fillColor('#222222').fontSize(9);
+            doc.text(`Gutschein-ID: ${vId}  |  SKU: ${sku}`);
+            doc.text(`Empfänger/in: ${name}`);
+            doc.text(`Von: ${from}`);
+            doc.text(`Gültig bis: ${exp}`);
+            doc.moveDown(0.5);
+            // Terms (compact)
+            doc.fontSize(8).fillColor('#444444').text('Einlösbar für die oben genannte Leistung in unserem Studio. Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.', { align: 'justify', width: 595.28 - 100 });
+            doc.moveDown(0.8);
             const paid = amount.toFixed(2) + ' ' + currency.toUpperCase();
-            doc.fontSize(10);
-            doc.text(`Vorschau der Zahlung: ${paid} | Datum: ${new Date().toLocaleDateString()}`, 50, currentY);
+            const previewDate = new Date();
+            const formattedPreviewDate = `${String(previewDate.getDate()).padStart(2, '0')}/${String(previewDate.getMonth() + 1).padStart(2, '0')}/${String(previewDate.getFullYear()).slice(-2)}`;
+            doc.fontSize(8).fillColor('#222222').text(`Vorschau der Zahlung: ${paid} | Datum: ${formattedPreviewDate}`);
+            // Contact details footer
+            doc.moveDown(1.5);
+            doc.fontSize(9).fillColor('#222222');
+            doc.text('www.newagefotografie.com', { align: 'center' });
+            doc.text('hallo@newagefotografie.com', { align: 'center' });
+            doc.moveDown(0.3);
+            doc.text('WhatsApp: 0043 677 633 99210', { align: 'center' });
             doc.end();
         }
         catch (e) {
@@ -9089,6 +10658,29 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
     app.use('/api/gallery-transfer', gallery_transfer_routes_1.default);
     // Storage statistics routes
     app.use('/api/storage-stats', storage_stats_routes_1.default);
+    // Storage health check (diagnostics for Backblaze/AWS S3 configuration)
+    app.get('/api/storage/health', async (_req, res) => {
+        const bucket = process.env.AWS_S3_BUCKET || '';
+        const endpoint = process.env.AWS_S3_ENDPOINT || '';
+        const region = process.env.AWS_REGION || 'eu-central-003';
+        const accessConfigured = Boolean(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY);
+        let canList = false;
+        let error;
+        try {
+            const client = new client_s3_1.S3Client({
+                region,
+                endpoint: endpoint || undefined,
+                // path-style required for Backblaze S3 compatibility when endpoint is set
+                forcePathStyle: Boolean(endpoint),
+            });
+            await client.send(new client_s3_2.ListObjectsV2Command({ Bucket: bucket, MaxKeys: 1 }));
+            canList = true;
+        }
+        catch (e) {
+            error = e?.message || String(e);
+        }
+        res.json({ bucket, endpoint, region, accessConfigured, canList, error });
+    });
     // Accounting Export routes
     // Attach storage to request so accounting export can access invoices/clients
     app.use('/api/accounting-export', authenticateUser, (req, _res, next) => {

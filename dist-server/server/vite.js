@@ -70,7 +70,27 @@ function serveStatic(app) {
     if (!fs_1.default.existsSync(distPath)) {
         throw new Error(`Could not find the build directory: ${distPath}, make sure to build the client first`);
     }
+    // Serve static files from dist
     app.use(express_1.default.static(distPath));
+    // Explicitly serve robots.txt and sitemap.xml for SEO
+    app.get("/robots.txt", (_req, res) => {
+        const robotsPath = path_1.default.resolve(distPath, "robots.txt");
+        if (fs_1.default.existsSync(robotsPath)) {
+            res.type("text/plain").sendFile(robotsPath);
+        }
+        else {
+            res.status(404).send("robots.txt not found");
+        }
+    });
+    app.get("/sitemap.xml", (_req, res) => {
+        const sitemapPath = path_1.default.resolve(distPath, "sitemap.xml");
+        if (fs_1.default.existsSync(sitemapPath)) {
+            res.type("application/xml").sendFile(sitemapPath);
+        }
+        else {
+            res.status(404).send("sitemap.xml not found");
+        }
+    });
     // fall through to index.html if the file doesn't exist
     app.use("*", (_req, res) => {
         res.sendFile(path_1.default.resolve(distPath, "index.html"));

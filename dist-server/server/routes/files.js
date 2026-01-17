@@ -11,25 +11,37 @@ const multer_1 = __importDefault(require("multer"));
 const sharp_1 = __importDefault(require("sharp"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
+const client_s3_1 = require("@aws-sdk/client-s3");
+const crypto_1 = __importDefault(require("crypto"));
 // removed unused imports
 const router = (0, express_1.Router)();
-// Configure multer for file uploads
-const storage = multer_1.default.diskStorage({
-    destination: (_req, _file, cb) => {
-        const uploadDir = path_1.default.join(process.cwd(), 'uploads');
-        if (!fs_1.default.existsSync(uploadDir)) {
-            fs_1.default.mkdirSync(uploadDir, { recursive: true });
-        }
-        cb(null, uploadDir);
+// Initialize S3 client for Backblaze B2
+const s3Client = new client_s3_1.S3Client({
+    endpoint: process.env.AWS_S3_ENDPOINT || 'https://s3.eu-central-003.backblazeb2.com',
+    region: process.env.AWS_REGION || 'eu-central-003',
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
     },
-    filename: (_req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + path_1.default.extname(file.originalname));
-    }
 });
+// Helper to build public B2 URL
+const buildB2Url = (key) => {
+    const bucket = process.env.AWS_S3_BUCKET || '';
+    const endpoint = process.env.AWS_S3_ENDPOINT || '';
+    if (endpoint.includes('backblazeb2.com')) {
+        return `https://${bucket}.${endpoint.replace('https://', '').replace(/\/$/, '')}/${key}`;
+    }
+    return `${endpoint.replace(/\/$/, '')}/${bucket}/${key}`;
+};
+// Debug route to test router is mounted
+router.get('/test', (req, res) => {
+    res.json({ message: 'Files router is working!' });
+});
+// Configure multer for file uploads (memory storage for B2 upload)
+const storage = multer_1.default.memoryStorage();
 const upload = (0, multer_1.default)({
     storage,
-    limits: { fileSize: 500 * 1024 * 1024 } // 500MB limit
+    limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
 });
 // Serve uploaded files
 router.get('/serve/:filename', (req, res) => {
@@ -136,7 +148,7 @@ router.post('/', async (req, res) => {
                 error: 'Missing required fields: folder_name, file_name, file_type, file_size'
             });
         }
-        const fileId = crypto.randomUUID();
+        const fileId = crypto_1.default.randomUUID();
         const [newFile] = await db_1.db.insert(schema_1.digitalFiles).values({
             id: fileId,
             folderName: folder_name,
@@ -165,81 +177,78 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
+        // Check for session-based auth OR admin token header
         const userId = req.session?.userId;
-        if (!userId) {
-            // Clean up uploaded file
-            fs_1.default.unlinkSync(req.file.path);
-            return res.status(401).json({ error: 'Not authenticated' });
-        }
-        // Check user's storage subscription and limits
-        const { neon } = await import('@neondatabase/serverless');
-        const sql = neon(process.env.DATABASE_URL);
-        const subscriptions = await sql `
-      SELECT id, tier, storage_limit, status
-      FROM storage_subscriptions
-      WHERE user_id = ${userId}
-      AND status = 'active'
-      LIMIT 1
-    `;
-        if (subscriptions.length === 0) {
-            fs_1.default.unlinkSync(req.file.path);
-            return res.status(403).json({ error: 'No active storage subscription' });
-        }
-        const subscription = subscriptions[0];
-        // Check current usage
-        const usage = await sql `
-      SELECT current_storage_bytes
-      FROM storage_usage
-      WHERE subscription_id = ${subscription.id}
-      LIMIT 1
-    `;
-        const currentBytes = usage.length > 0 ? Number(usage[0].current_storage_bytes) : 0;
-        const limitBytes = Number(subscription.storage_limit);
-        const fileSize = req.file.size;
-        if (currentBytes + fileSize > limitBytes) {
-            fs_1.default.unlinkSync(req.file.path);
-            return res.status(413).json({
-                error: 'Storage limit exceeded',
-                current: currentBytes,
-                limit: limitBytes,
-                fileSize
-            });
+        const adminToken = req.headers['x-admin-token'] || '';
+        const expectedAdminToken = process.env.ADMIN_TOKEN || '';
+        const isAuthenticated = userId || (expectedAdminToken && adminToken && adminToken === expectedAdminToken);
+        if (!isAuthenticated) {
+            return res.status(401).json({ error: 'Not authenticated', details: 'Authentication required to upload files' });
         }
         // Store file metadata in database
-        const fileId = crypto.randomUUID();
+        const fileId = crypto_1.default.randomUUID();
         const fileType = req.file.mimetype.startsWith('image/') ? 'image' :
             req.file.mimetype.startsWith('video/') ? 'video' :
                 req.file.mimetype === 'application/pdf' ? 'document' : 'other';
-        // Rename original file to use the fileId for easier retrieval
         const fileExt = path_1.default.extname(req.file.originalname);
-        const newFilename = `${fileId}${fileExt}`;
-        const newPath = path_1.default.join(path_1.default.dirname(req.file.path), newFilename);
-        fs_1.default.renameSync(req.file.path, newPath);
-        // Generate compressed thumbnail for images (300x300, quality 80)
+        const folderName = req.body.folderName || 'Manual Website Images';
+        const fileName = `${folderName}/${fileId}${fileExt}`;
+        // Upload to Backblaze B2
+        let processedBuffer = req.file.buffer;
+        let processedMime = req.file.mimetype;
+        // Optimize images
+        if (req.file.mimetype.startsWith('image/')) {
+            try {
+                processedBuffer = await (0, sharp_1.default)(req.file.buffer)
+                    .rotate()
+                    .resize({ width: 1400, withoutEnlargement: true })
+                    .webp({ quality: 75 })
+                    .toBuffer();
+                processedMime = 'image/webp';
+            }
+            catch (error) {
+                console.warn('[FILE UPLOAD] Image optimization failed, using original:', error);
+            }
+        }
+        // Upload to B2
+        await s3Client.send(new client_s3_1.PutObjectCommand({
+            Bucket: process.env.AWS_S3_BUCKET || '',
+            Key: fileName,
+            Body: processedBuffer,
+            ContentType: processedMime,
+            Metadata: {
+                originalName: req.file.originalname,
+                uploadedBy: userId,
+                folder: folderName,
+            },
+        }));
+        const fileUrl = buildB2Url(fileName);
+        // Generate thumbnail for images
         let thumbnailUrl;
         if (req.file.mimetype.startsWith('image/')) {
             try {
-                const thumbnailFilename = `${fileId}_thumb.webp`;
-                const thumbnailPath = path_1.default.join(path_1.default.dirname(newPath), thumbnailFilename);
-                await (0, sharp_1.default)(newPath)
-                    .resize(300, 300, {
-                    fit: 'cover',
-                    position: 'center'
-                })
+                const thumbBuffer = await (0, sharp_1.default)(req.file.buffer)
+                    .resize(300, 300, { fit: 'cover', position: 'center' })
                     .webp({ quality: 80 })
-                    .toFile(thumbnailPath);
-                thumbnailUrl = `/api/files/serve/${thumbnailFilename}`;
+                    .toBuffer();
+                const thumbFileName = `${folderName}/${fileId}_thumb.webp`;
+                await s3Client.send(new client_s3_1.PutObjectCommand({
+                    Bucket: process.env.AWS_S3_BUCKET || '',
+                    Key: thumbFileName,
+                    Body: thumbBuffer,
+                    ContentType: 'image/webp',
+                }));
+                thumbnailUrl = buildB2Url(thumbFileName);
                 console.log(`✅ Generated thumbnail for ${req.file.originalname}`);
             }
             catch (error) {
                 console.error('Failed to generate thumbnail:', error);
-                // Fallback to original image if thumbnail generation fails
-                thumbnailUrl = `/api/files/serve/${newFilename}`;
+                thumbnailUrl = fileUrl;
             }
         }
         const [newFile] = await db_1.db.insert(schema_1.digitalFiles).values({
             id: fileId,
-            folderName: req.body.folderId || 'Home',
+            folderName: folderName,
             fileName: req.file.originalname,
             fileType: fileType,
             fileSize: req.file.size,
@@ -247,43 +256,21 @@ router.post('/upload', upload.single('file'), async (req, res) => {
             sessionId: null,
             description: '',
             tags: JSON.stringify([]),
-            isPublic: false,
+            isPublic: true,
             uploadedAt: new Date(),
             createdAt: new Date(),
             updatedAt: new Date()
         }).returning();
-        // Update storage usage
-        if (usage.length > 0) {
-            await sql `
-        UPDATE storage_usage
-        SET current_storage_bytes = current_storage_bytes + ${fileSize},
-            file_count = file_count + 1
-        WHERE subscription_id = ${subscription.id}
-      `;
-        }
-        else {
-            await sql `
-        INSERT INTO storage_usage (subscription_id, current_storage_bytes, file_count)
-        VALUES (${subscription.id}, ${fileSize}, 1)
-      `;
-        }
         res.status(201).json({
             ...newFile,
-            thumbnailUrl, // Include thumbnail URL for frontend
-            mimeType: req.file.mimetype, // Include mimeType for icon selection
-            message: 'File uploaded successfully'
+            url: fileUrl,
+            thumbnailUrl,
+            mimeType: processedMime,
+            message: 'File uploaded successfully to Backblaze B2'
         });
     }
     catch (error) {
         console.error('Failed to upload file:', error);
-        if (req.file) {
-            try {
-                fs_1.default.unlinkSync(req.file.path);
-            }
-            catch (e) {
-                // File already deleted or moved
-            }
-        }
         res.status(500).json({ error: 'Failed to upload file' });
     }
 });
@@ -363,7 +350,13 @@ router.delete('/:id', async (req, res) => {
 router.get('/usage', async (req, res) => {
     try {
         const userId = req.session?.userId;
+        console.log('📊 Usage check request:', {
+            userId,
+            hasSession: !!req.session,
+            sessionKeys: req.session ? Object.keys(req.session) : []
+        });
         if (!userId) {
+            console.log('⚠️ No userId in session, returning no subscription');
             return res.json({
                 hasSubscription: false,
                 currentUsage: 0,
@@ -384,7 +377,13 @@ router.get('/usage', async (req, res) => {
       AND status = 'active'
       LIMIT 1
     `;
+        console.log('📊 Subscription query result:', {
+            userId,
+            count: subscriptions.length,
+            subscription: subscriptions.length > 0 ? subscriptions[0] : null
+        });
         if (subscriptions.length === 0) {
+            console.log('⚠️ No active subscription found for user:', userId);
             return res.json({
                 hasSubscription: false,
                 currentUsage: 0,
@@ -426,77 +425,58 @@ router.get('/usage', async (req, res) => {
         res.status(500).json({ error: 'Failed to get storage usage' });
     }
 });
-// GET /api/files/folders - Get folder organization and statistics
+// GET /api/files/folders - Get folders from photo_folders table
 router.get('/folders', async (req, res) => {
     try {
-        const { folder_name } = req.query;
-        // Get folder statistics
-        let folderStatsQuery = `
-      SELECT 
-        folder_name,
-        COUNT(*) as file_count,
-        SUM(file_size) as total_size,
-        COUNT(CASE WHEN file_type = 'image' THEN 1 END) as image_count,
-        COUNT(CASE WHEN file_type = 'document' THEN 1 END) as document_count,
-        COUNT(CASE WHEN file_type = 'video' THEN 1 END) as video_count,
-        MAX(uploaded_at) as last_uploaded
-      FROM digital_files
-    `;
-        const values = [];
-        if (folder_name) {
-            folderStatsQuery += ` WHERE folder_name = $1`;
-            values.push(folder_name);
-        }
-        folderStatsQuery += ` GROUP BY folder_name ORDER BY file_count DESC`;
         const { neon } = await import('@neondatabase/serverless');
         const sql = neon(process.env.DATABASE_URL);
-        const folders = await sql(folderStatsQuery, values);
-        // Get recent files
-        const recentFiles = await sql `
-      SELECT folder_name, file_name, file_type, uploaded_at
-      FROM digital_files
-      ORDER BY uploaded_at DESC
-      LIMIT 10
+        // Get all folders from photo_folders table
+        const folders = await sql `
+      SELECT id, name, parent_id, created_at, updated_at
+      FROM photo_folders
+      ORDER BY name ASC
     `;
-        res.json({
-            total_folders: folders.length,
-            folders: folders.map((folder) => ({
-                name: folder.folder_name,
-                file_count: folder.file_count,
-                total_size: `${(folder.total_size / 1024 / 1024).toFixed(2)} MB`,
-                breakdown: {
-                    images: folder.image_count,
-                    documents: folder.document_count,
-                    videos: folder.video_count
-                },
-                last_uploaded: folder.last_uploaded
-            })),
-            recent_files: recentFiles.map((file) => ({
-                folder: file.folder_name,
-                name: file.file_name,
-                type: file.file_type,
-                uploaded: file.uploaded_at
-            }))
-        });
+        // Return in format expected by frontend
+        res.json(folders.map((folder) => ({
+            id: String(folder.id),
+            name: folder.name,
+            parentId: folder.parent_id ? String(folder.parent_id) : null,
+            createdAt: folder.created_at,
+            updatedAt: folder.updated_at
+        })));
     }
     catch (error) {
-        console.error('Failed to get folder organization:', error);
+        console.error('Failed to get folders:', error);
         res.status(500).json({ error: 'Failed to get folder organization' });
     }
 });
-// POST /api/files/folders - Create a new folder (stub for compatibility)
+// POST /api/files/folders - Create a new folder
 router.post('/folders', async (req, res) => {
     try {
-        // For now, return a simple response since the old system doesn't use folders
-        // TODO: Implement proper folder creation with archived_folders table
+        const { name, parentId } = req.body;
+        if (!name || typeof name !== 'string' || name.trim() === '') {
+            return res.status(400).json({ error: 'Folder name is required' });
+        }
+        const { neon } = await import('@neondatabase/serverless');
+        const sql = neon(process.env.DATABASE_URL);
+        // Create folder ID from name
+        const folderId = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        // Insert into photo_folders table
+        const [folder] = await sql `
+      INSERT INTO photo_folders (id, name, parent_id)
+      VALUES (${folderId}, ${name.trim()}, ${parentId || null})
+      ON CONFLICT (name) DO UPDATE SET updated_at = NOW()
+      RETURNING id, name, parent_id, created_at, updated_at
+    `;
         res.json({
             success: true,
-            message: 'Folder creation is not yet implemented in this version',
+            message: 'Folder created successfully',
             folder: {
-                id: Math.random().toString(36).substr(2, 9),
-                name: req.body.name,
-                parentId: req.body.parentId || null,
-                createdAt: new Date().toISOString()
+                id: String(folder.id),
+                name: folder.name,
+                parentId: folder.parent_id ? String(folder.parent_id) : null,
+                createdAt: folder.created_at,
+                updatedAt: folder.updated_at
             }
         });
     }
