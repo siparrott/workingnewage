@@ -3,7 +3,7 @@ import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Package, Check, ArrowRight, Sparkles, Camera, Layers, SlidersHorizontal, Users } from 'lucide-react';
+import { Package, Check, ArrowRight, Sparkles, Camera, Layers, SlidersHorizontal, Users, Star } from 'lucide-react';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
 import { newageCopyMap } from '../../content/newageCopyMap';
