@@ -412,16 +412,16 @@ Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
     h1: 'Hochzeitsfotografie in Wien',
     markdown: withSeoExpansion(`## Was ihr erwarten könnt
 - **Freundliche Anleitung** statt Unsicherheit vor der Kamera
-- **Weiches, professionelles Licht** (Octa‑Softboxen) für natürliche Hauttöne
+- **Weiches, professionelles Licht** (Octa-Softboxen) für natürliche Hauttöne
 - **Persönlichkeit im Bild:** Bringt gern persönliche Dinge mit: Spielzeug, Hobbys, Instrumente, Lieblingsbuch – das macht eure Bilder einzigartig.
-- **Flexibel mit Menschen & Tieren:** Haustiere sind willkommen – gebt uns kurz vorher Bescheid, dann planen wir eine kleine „Pet-Pause" ein.
+- **Flexibel mit Menschen & Tieren:** Haustiere sind willkommen – gebt uns kurz vorher Bescheid, dann planen wir eine kleine Pet-Pause ein.
 
 ## Pakete & Optionen
 | Paket | Ideal für | Inklusive |
 |---|---|---|
 | **Basic** | ein Hauptmotiv | Shooting (ca. 60 Min.) · Auswahlgalerie · 1 retuschiertes Bild digital |
 | **Premium** | mehrere Lieblingsmotive | mehr retuschierte Bilder · Varianten · optionale Print/Leinwand-Add-ons |
-| **Deluxe** | „Alles drin" | größere Auswahl · mehr Retusche · ideal für Familien/Meilensteine |
+| **Deluxe** | Alles drin | größere Auswahl · mehr Retusche · ideal für Familien/Meilensteine |
 
 ## Hochzeiten – ungestellt, aber geführt
 Wir lieben echte Momente – und wir geben genau dann Anleitung, wenn ihr sie braucht (Paarportraits, Gruppen, Familienbilder).
@@ -429,12 +429,12 @@ Wasser, Kaffee & Tee sind da – auf Wunsch auch Bier oder Prosecco. Die fertige
 
 ## Ablauf – so läuft euer Shooting
 1. **Kurzbriefing:** wer kommt, welche Kombinationen sind wichtig, welche Stimmung wollt ihr?
-2. **Ankommen & Outfit-Check:** wir stimmen Farben ab und geben Mini‑Tipps.
+2. **Ankommen & Outfit-Check:** wir stimmen Farben ab und geben Mini-Tipps.
 3. **Shooting mit Anleitung:** Gesamtmotiv, Teilgruppen, Einzelportraits – locker geführt.
 4. **Auswahl:** Wenn es zeitlich passt, zeigen wir häufig noch am selben Tag eine Auswahl (IPS). Wenn es der letzte Termin ist, kommt die Auswahl bequem online.
 5. **Retusche & Lieferung:** Die fertigen Bilder liefern wir immer über eine private, passwortgeschützte Online-Galerie aus der Cloud.
 
-## Mini‑FAQ
+## Mini-FAQ
 **Wie lange dauert das Shooting?**
 Meist ca. 60 Minuten – mit genug Zeit für die wichtigsten Motive.
 
@@ -442,8 +442,7 @@ Meist ca. 60 Minuten – mit genug Zeit für die wichtigsten Motive.
 Ja. Kurz vorher Bescheid geben, dann planen wir entspannt.
 
 **Wann bekommen wir die Bilder?**
-Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
-`, seoExpansion.hochzeitIhr)
+Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`, seoExpansion.hochzeitIhr)`
   },
 
   'immobilien-fotografie-wien': {
