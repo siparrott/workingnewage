@@ -132,7 +132,7 @@ const GoogleReviews: React.FC = () => {
               <div key={index} className="bg-white rounded-lg shadow-lg p-6">
                 <div className="flex items-center mb-4">
                   {/* Hide thumbnail for specific review(s) (Anna W / Anna Steiner) */}
-                  {!(review.author_name === 'Anna Steiner' || review.author_name === 'Anna W') && (
+                  {!(review.author_name === 'Anna Steiner') && (
                     <img 
                       src={review.profile_photo_url} 
                       alt={review.author_name}
