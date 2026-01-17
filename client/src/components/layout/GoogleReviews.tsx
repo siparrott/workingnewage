@@ -131,11 +131,14 @@ const GoogleReviews: React.FC = () => {
             {visibleReviews.map((review, index) => (
               <div key={index} className="bg-white rounded-lg shadow-lg p-6">
                 <div className="flex items-center mb-4">
-                  <img 
-                    src={review.profile_photo_url} 
-                    alt={review.author_name}
-                    className="w-12 h-12 rounded-full mr-4"
-                  />
+                  {/* Hide thumbnail for specific review(s) (Anna W / Anna Steiner) */}
+                  {!(review.author_name === 'Anna Steiner' || review.author_name === 'Anna W') && (
+                    <img 
+                      src={review.profile_photo_url} 
+                      alt={review.author_name}
+                      className="w-12 h-12 rounded-full mr-4"
+                    />
+                  )}
                   <div>
                     <h3 className="font-semibold text-gray-800">{review.author_name}</h3>
                     <div className="flex items-center">
