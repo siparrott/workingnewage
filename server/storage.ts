@@ -228,9 +228,22 @@ export class DatabaseStorage implements IStorage {
   // Blog management
   async getBlogPosts(published?: boolean): Promise<BlogPost[]> {
     const baseQuery = db.select().from(blogPosts);
-    const filtered = published !== undefined
-      ? baseQuery.where(eq(blogPosts.published, published))
-      : baseQuery;
+    
+    let filtered = baseQuery;
+    
+    // If filtering for published posts, also check that publishedAt <= now
+    if (published === true) {
+      filtered = filtered.where(
+        and(
+          eq(blogPosts.published, true),
+          sql`${blogPosts.publishedAt} <= NOW()`
+        )
+      );
+    } else if (published === false) {
+      filtered = filtered.where(eq(blogPosts.published, false));
+    }
+    // If published is undefined, return all posts regardless of date (for admin)
+    
     return await filtered.orderBy(desc(blogPosts.createdAt));
   }
 
