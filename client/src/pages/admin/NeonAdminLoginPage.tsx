@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 export default function NeonAdminLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -38,6 +39,13 @@ export default function NeonAdminLoginPage() {
       const result = await response.json();
       if (result.success) {
         localStorage.setItem('admin_user', JSON.stringify(result.user));
+        if (rememberMe) {
+          localStorage.setItem('remember_me', 'true');
+          localStorage.setItem('admin_email', email);
+        } else {
+          localStorage.removeItem('remember_me');
+          localStorage.removeItem('admin_email');
+        }
         window.location.href = '/admin/dashboard';
       } else {
         setError(result.error || 'Login failed');
@@ -55,7 +63,14 @@ export default function NeonAdminLoginPage() {
   };
 
   // Note: no client-side auto-login in production.
-  useEffect(() => {}, []);
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('admin_email');
+    const isRemembered = localStorage.getItem('remember_me') === 'true';
+    if (isRemembered && savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleRegister = async () => {
     if (!email || !password) {
@@ -162,6 +177,20 @@ export default function NeonAdminLoginPage() {
                   required
                   disabled={isLoading}
                 />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                  disabled={isLoading}
+                />
+                <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer">
+                  Remember me
+                </Label>
               </div>
 
               {error && (
