@@ -12,7 +12,7 @@ async function runSql(query: string, params?: any[]) {
 }
 import { sql } from 'drizzle-orm';
 import { eq } from "drizzle-orm";
-import { priceListItems, emailCampaigns, emailTemplates, emailSegments, emailEvents, emailLinks, emailSubscribers, insertLeadSourceSchema } from "../shared/schema";
+import { priceListItems, emailCampaigns, emailTemplates, emailSegments, emailEvents, emailLinks, emailSubscribers, insertLeadSourceSchema, crmLeads } from "../shared/schema";
 import path from 'path';
 import os from 'os';
 // Removed duplicate fs import (already imported earlier)
@@ -47,7 +47,6 @@ const insertOpenaiAssistantSchema = { parse: (v: any) => v, safeParse: (v: any) 
 // Drizzle table placeholders for routes not yet wired in this environment
 // These are typed as any to avoid compile errors when optional modules are absent
 const crmMessages: any = { id: 'crm_messages.id', createdAt: 'crm_messages.created_at', senderEmail: 'crm_messages.sender_email', subject: 'crm_messages.subject' };
-const crmLeads: any = { id: 'crm_leads.id' };
 const knowledgeBase: any = { id: 'knowledge_base.id' };
 const openaiAssistants: any = { id: 'openai_assistants.id' };
 const z = { ZodError: class {} } as any;
@@ -11461,11 +11460,10 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
 
       // Save to database as a lead
       const leadData = {
-        firstName: '',
-        lastName: '',
+        name: email.split('@')[0] || 'Newsletter Subscriber',
         email: email,
         source: 'Newsletter Signup (50 EUR Voucher)',
-        notes: 'Signed up for 50 EUR voucher offer',
+        message: 'Signed up for 50 EUR voucher offer',
         status: 'new'
       };
 
