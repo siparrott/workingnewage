@@ -11,7 +11,7 @@ export const sessionConfig = session({
   saveUninitialized: false,
   name: 'admin.session.id',
   cookie: {
-    secure: false,
+    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production (HTTPS)
     httpOnly: true,
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     sameSite: 'lax'
