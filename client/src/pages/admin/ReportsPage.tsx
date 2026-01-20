@@ -153,28 +153,31 @@ const processClientsBySource = (clients: any[]) => {
   }));
 };
 
-const processTopClients = (clients: any[], invoices: any[]) => {
-  const clientRevenue = new Map();
-  
-  invoices.forEach(invoice => {
-    const clientId = invoice.clientId;
-    const revenue = parseFloat(invoice.total) || 0;
-    const existing = clientRevenue.get(clientId) || { revenue: 0, bookings: 0 };
-    existing.revenue += revenue;
-    existing.bookings += 1;
-    clientRevenue.set(clientId, existing);
-  });
-  
-  return clients
-    .map(client => ({
+const processTopClients = async () => {
+  try {
+    const response = await fetch('/api/reports/high-value-clients?limit=10', {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      console.error('Failed to fetch high-value clients:', response.statusText);
+      return [];
+    }
+    
+    const data = await response.json();
+    return data.map((client: any) => ({
       name: client.name || 'Unknown Client',
-      revenue: clientRevenue.get(client.id)?.revenue || 0,
-      bookings: clientRevenue.get(client.id)?.bookings || 0,
+      revenue: client.revenue || 0,
+      bookings: client.bookings || 0,
       lastBooking: 'N/A'
-    }))
-    .filter(client => client.revenue > 0)
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 10);
+    }));
+  } catch (error) {
+    console.error('Error fetching high-value clients:', error);
+    return [];
+  }
 };
 
 const processClientRetention = (clients: any[], invoices: any[]) => {
@@ -456,7 +459,7 @@ const ReportsPage: React.FC = () => {
 
       // Process client data
       const clientsBySource = processClientsBySource(clients);
-      const topClients = processTopClients(clients, dateFilteredInvoices);
+      const topClients = await processTopClients();
       const clientRetention = processClientRetention(clients, dateFilteredInvoices);
 
       // Process lead data

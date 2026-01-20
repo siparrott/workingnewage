@@ -2214,6 +2214,41 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
+  // High-value clients endpoint for reports dashboard
+  app.get("/api/reports/high-value-clients", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      
+      // Query to get clients with their total booking revenue and count
+      const query = `
+        SELECT 
+          c.id,
+          c.name,
+          COALESCE(SUM(CAST(i.total AS DECIMAL(10,2))), 0) as total_revenue,
+          COUNT(DISTINCT b.id) as booking_count
+        FROM crm_clients c
+        LEFT JOIN bookings b ON b.client_id = c.id
+        LEFT JOIN invoices i ON i.client_id = c.id AND i.status = 'paid'
+        GROUP BY c.id, c.name
+        HAVING COALESCE(SUM(CAST(i.total AS DECIMAL(10,2))), 0) > 0
+        ORDER BY total_revenue DESC
+        LIMIT $1
+      `;
+      
+      const result = await db.execute(sql.raw(query), [limit]);
+      const clients = result.rows || [];
+      
+      res.json(clients.map((row: any) => ({
+        name: row.name || 'Unknown Client',
+        revenue: parseFloat(row.total_revenue || 0),
+        bookings: parseInt(row.booking_count || 0)
+      })));
+    } catch (error) {
+      console.error('Error fetching high-value clients:', error);
+      res.status(500).json({ error: 'Failed to fetch high-value clients', details: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
   // Alias route for frontend compatibility (/api/leads/list)
   app.get("/api/leads/list", authenticateUser, async (req: Request, res: Response) => {
     try {
