@@ -1,8 +1,55 @@
-import React from 'react';
-import { Shield, Sparkles, Zap } from 'lucide-react';
+import React, { useState } from 'react';
+import { Shield, Sparkles, Zap, MessageSquare, Send, X, Loader2 } from 'lucide-react';
 import AdminLayout from '../../components/admin/AdminLayout';
 
 const AgentV2Page: React.FC = () => {
+  const [showChat, setShowChat] = useState(false);
+  const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSendMessage = async () => {
+    if (!message.trim() || isLoading) return;
+
+    const userMessage = message.trim();
+    setMessage('');
+    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/agent-v2/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          message: userMessage,
+          safetyMode: 'auto-safe'
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: result.response || 'Task completed successfully.'
+        }]);
+      } else {
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: `Error: ${result.error || 'Failed to process request'}`
+        }]);
+      }
+    } catch (error) {
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: 'Failed to connect to the agent. Please try again.'
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 min-h-screen">
@@ -157,6 +204,92 @@ const AgentV2Page: React.FC = () => {
           <strong>Note:</strong> This is Agent V2 with enhanced safety features. The legacy CRM Assistant (V1) remains available during the migration period.
         </div>
         </div>
+
+        {/* Floating Chat Button */}
+        {!showChat && (
+          <button
+            onClick={() => setShowChat(true)}
+            className="fixed bottom-6 right-6 bg-gradient-to-r from-violet-600 to-purple-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-110 z-50"
+          >
+            <MessageSquare className="w-6 h-6" />
+          </button>
+        )}
+
+        {/* Chat Interface */}
+        {showChat && (
+          <div className="fixed bottom-6 right-6 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col z-50" style={{ height: '500px' }}>
+            {/* Chat Header */}
+            <div className="bg-gradient-to-r from-violet-600 to-purple-600 text-white p-4 rounded-t-xl flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5" />
+                <h3 className="font-semibold">Agent V2 Assistant</h3>
+              </div>
+              <button
+                onClick={() => setShowChat(false)}
+                className="hover:bg-white/20 p-1 rounded transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {messages.length === 0 ? (
+                <div className="text-center text-gray-500 mt-8">
+                  <Sparkles className="w-12 h-12 mx-auto mb-3 text-violet-400" />
+                  <p className="text-sm">Ask me anything!</p>
+                  <p className="text-xs mt-2">Try: "Search for clients" or "Create an invoice"</p>
+                </div>
+              ) : (
+                messages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] p-3 rounded-lg ${
+                        msg.role === 'user'
+                          ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 p-3 rounded-lg">
+                    <Loader2 className="w-5 h-5 text-violet-600 animate-spin" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Input */}
+            <div className="p-4 border-t border-gray-200">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  placeholder="Type your command..."
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
+                  disabled={isLoading}
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={isLoading || !message.trim()}
+                  className="bg-gradient-to-r from-violet-600 to-purple-600 text-white p-2 rounded-lg hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Agent disabled */}
       </div>

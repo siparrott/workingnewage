@@ -2294,6 +2294,27 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
+  // Bulk mark new leads as contacted
+  app.post("/api/leads/bulk/mark-new-contacted", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const result = await runSql(`
+        UPDATE crm_leads 
+        SET status = 'contacted', updated_at = NOW()
+        WHERE status = 'new'
+        RETURNING id
+      `, []);
+      
+      res.json({ 
+        success: true, 
+        message: `${result.length} leads marked as contacted`,
+        count: result.length 
+      });
+    } catch (error) {
+      console.error('Error bulk updating leads:', error);
+      res.status(500).json({ error: 'Failed to bulk update leads' });
+    }
+  });
+
   // Create new lead endpoint
   app.post("/api/leads/create", async (req: Request, res: Response) => {
     try {

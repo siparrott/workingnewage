@@ -46,7 +46,7 @@ export default function NeonAdminLoginPage() {
           localStorage.removeItem('remember_me');
           localStorage.removeItem('admin_email');
         }
-        window.location.href = '/admin/dashboard';
+        window.location.href = '/admin/agent-v2';
       } else {
         setError(result.error || 'Login failed');
       }

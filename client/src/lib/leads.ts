@@ -60,8 +60,9 @@ export async function getLeads(params?: { status?: 'NEW' | 'CONTACTED' | 'CONVER
 
 export async function updateLeadStatus(id: string, status: 'NEW' | 'CONTACTED' | 'CONVERTED' | 'ARCHIVED') {
   try {
-    const response = await fetch(`/api/leads/${id}/status`, {
+    const response = await fetch(`/api/crm/leads/${id}`, {
       method: 'PUT',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -81,9 +82,10 @@ export async function updateLeadStatus(id: string, status: 'NEW' | 'CONTACTED' |
 
 export async function deleteLead(id: string) {
   try {
-    // Not supported in minimal API; treat as archive instead
-    const response = await fetch(`/api/leads/${id}/status`, {
+    // Archive the lead instead of hard deleting
+    const response = await fetch(`/api/crm/leads/${id}`, {
       method: 'PUT',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'archived' })
     });
@@ -100,7 +102,10 @@ export async function deleteLead(id: string) {
 }
 
 export async function bulkMarkNewAsContacted() {
-  const r = await fetch('/api/leads/bulk/mark-new-contacted', { method: 'POST' });
+  const r = await fetch('/api/leads/bulk/mark-new-contacted', { 
+    method: 'POST',
+    credentials: 'include'
+  });
   if (!r.ok) throw new Error('Failed to bulk update leads');
   return r.json();
 }
