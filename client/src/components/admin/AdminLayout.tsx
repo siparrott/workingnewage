@@ -36,7 +36,8 @@ import {
   ChevronRight,
   Calculator,
   Activity,
-  Tags
+  Tags,
+  TrendingUp
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -105,6 +106,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { icon: Image, label: t('nav.galleriesAdmin'), path: '/admin/galleries' },
     { icon: FileText, label: t('nav.invoices'), path: '/admin/invoices' },
     { icon: Calculator, label: 'Accounting Export', path: '/admin/accounting' },
+    { icon: TrendingUp, label: 'Price List Wizard', path: '/admin/price-wizard', badge: 'AI' },
     { icon: Calendar, label: t('nav.calendar'), path: '/admin/calendar' },
     { icon: FolderOpen, label: t('nav.digitalFiles'), path: '/admin/digital-files' },
     { icon: PenTool, label: t('nav.blogAdmin'), path: '/admin/blog' },
