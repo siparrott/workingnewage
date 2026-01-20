@@ -446,7 +446,11 @@ function App() {
                 />
                 <Route
                   path="/admin/agent-v2"
-                  element={<Navigate to="/admin/dashboard" replace />}
+                  element={
+                    <NeonProtectedRoute>
+                      <AgentV2Page />
+                    </NeonProtectedRoute>
+                  }
                 />
                 <Route
                   path="/admin/agent-console"
