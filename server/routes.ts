@@ -8252,6 +8252,9 @@ New Age Fotografie CRM System
         const isPaid = session?.payment_status === 'paid';
         
         if (isPaid) {
+          // Extract coupon code from metadata (key is voucher_used)
+          const appliedCouponCode = metadata.voucher_used && metadata.voucher_used !== 'none' ? metadata.voucher_used : null;
+          
           // Create voucher sale record from Stripe session
           const voucherSale = {
             stripe_session_id: session.id,
@@ -8266,9 +8269,10 @@ New Age Fotografie CRM System
             design_image: metadata.design_image || null,
             voucher_code: metadata.voucher_code || `VOUCHER-${session.id.substring(0, 12).toUpperCase()}`,
             original_amount: session.amount_total ? (session.amount_total / 100).toString() : '0',
-            discount_amount: metadata.discount_amount || '0',
+            discount_amount: metadata.discount_cents ? (parseFloat(metadata.discount_cents) / 100).toString() : metadata.discount_amount || '0',
             final_amount: session.amount_total ? (session.amount_total / 100).toString() : '0',
             currency: session.currency?.toUpperCase() || 'EUR',
+            coupon_code: appliedCouponCode,
             payment_intent_id: session.payment_intent,
             payment_status: 'paid',
             payment_method: metadata.payment_method || 'stripe_card',
