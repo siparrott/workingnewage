@@ -34,7 +34,9 @@ interface Client {
 const CalendarPage: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const [googleEvents, setGoogleEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingGoogleEvents, setLoadingGoogleEvents] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('');
@@ -62,6 +64,7 @@ const CalendarPage: React.FC = () => {
   // Fetch clients once on mount (don't re-fetch on filter changes)
   useEffect(() => {
     fetchClients();
+    fetchGoogleCalendarEvents();
   }, []);
 
   // Fetch sessions when filters change
@@ -84,6 +87,27 @@ const CalendarPage: React.FC = () => {
     } catch (error) {
       console.error('Failed to fetch clients:', error);
       setClients([]); // Don't crash calendar if clients fail to load
+    }
+  };
+
+  const fetchGoogleCalendarEvents = async () => {
+    try {
+      setLoadingGoogleEvents(true);
+      const response = await fetch('/api/calendar/google-events');
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.events) {
+          setGoogleEvents(data.events);
+          console.log(`Loaded ${data.events.length} Google Calendar events`);
+        }
+      } else {
+        console.warn('Failed to load Google Calendar events:', response.status);
+      }
+    } catch (error) {
+      console.error('Failed to fetch Google Calendar events:', error);
+    } finally {
+      setLoadingGoogleEvents(false);
     }
   };
 
@@ -216,6 +240,7 @@ const CalendarPage: React.FC = () => {
               setError(null);
               fetchSessions();
               fetchClients();
+              fetchGoogleCalendarEvents();
             }}>
               Try Again
             </Button>
@@ -446,6 +471,51 @@ const CalendarPage: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Google Calendar Events */}
+        {googleEvents.length > 0 && (
+          <Card className="bg-blue-50 border-blue-200">
+            <CardHeader>
+              <CardTitle className="flex items-center text-blue-900">
+                <Calendar className="h-5 w-5 mr-2" />
+                Google Calendar Events ({googleEvents.length})
+                {loadingGoogleEvents && <span className="ml-2 text-sm text-blue-600">Syncing...</span>}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {googleEvents.slice(0, 10).map((event, idx) => (
+                  <div key={event.id || idx} className="flex items-center justify-between p-3 bg-white rounded border border-blue-200">
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900">{event.title || 'Untitled Event'}</div>
+                      <div className="text-sm text-gray-600 flex items-center mt-1">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {new Date(event.start).toLocaleString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                        {event.location && (
+                          <span className="ml-3 flex items-center">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            {event.location}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {googleEvents.length > 10 && (
+                  <div className="text-center text-sm text-blue-600 pt-2">
+                    + {googleEvents.length - 10} more events
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Sessions List */}
         <div className="grid grid-cols-1 gap-4">
