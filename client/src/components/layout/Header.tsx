@@ -46,7 +46,7 @@ const Header: React.FC = () => {
   ];
 
   const aboutItems = [
-    { path: '/ueber-uns/', label: 'Über uns' },
+    { path: '/ueber-uns/', label: t('nav.about') },
     { path: '/kontakt', label: t('nav.contact') },
   ];
 
@@ -126,7 +126,7 @@ const Header: React.FC = () => {
               onClick={() => setAboutOpen(!aboutOpen)}
               className="text-gray-700 hover:text-purple-600 transition-colors flex items-center pointer-events-auto"
             >
-              Über Uns
+              {t('nav.aboutUs')}
               <ChevronDown size={16} className="ml-1" />
             </button>
             {aboutOpen && (
@@ -230,7 +230,7 @@ const Header: React.FC = () => {
                 onClick={() => setAboutOpen(!aboutOpen)}
                 className="w-full text-left text-gray-700 hover:text-purple-600 transition-colors flex items-center justify-between"
               >
-                Über Uns
+                {t('nav.aboutUs')}
                 <ChevronDown size={16} className={`transition-transform ${aboutOpen ? 'rotate-180' : ''}`} />
               </button>
               {aboutOpen && (
