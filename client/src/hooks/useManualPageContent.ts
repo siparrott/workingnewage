@@ -49,30 +49,27 @@ export function useManualPageContent(pageId: string) {
 
   /**
    * Enhanced translation function that checks manual overrides first,
-   * then falls back to default translations
+   * then falls back to default translations from LanguageContext
    */
   const t = (key: string): string => {
-    // Debug logging
-    console.log('[useManualPageContent] Looking up key:', key);
-    console.log('[useManualPageContent] pageContent:', pageContent);
-    console.log('[useManualPageContent] publishedContent:', pageContent?.publishedContent);
-    console.log('[useManualPageContent] Keys in publishedContent:', pageContent?.publishedContent ? Object.keys(pageContent.publishedContent) : 'none');
-    
-    // First check if there's a manual override for this key
+    // First check if there's a manual override for this key in current language
     if (pageContent?.publishedContent?.[key]) {
-      console.log('[useManualPageContent] ✅ Found in publishedContent:', pageContent.publishedContent[key]);
       return pageContent.publishedContent[key];
     }
 
+    // For English, check if there's a German manual override ONLY for custom content
+    // (not for standard translation keys that exist in LanguageContext)
     if (language !== 'de' && germanFallback?.publishedContent?.[key]) {
-      console.log('[useManualPageContent] ✅ Found in German fallback:', germanFallback.publishedContent[key]);
-      return germanFallback.publishedContent[key];
+      // Only use German fallback for custom keys that don't exist in LanguageContext
+      const defaultValue = originalT(key);
+      // If the key returns itself, it means it's not in LanguageContext, so use German fallback
+      if (defaultValue === key) {
+        return germanFallback.publishedContent[key];
+      }
     }
     
-    // Fall back to default translation
-    const defaultValue = originalT(key);
-    console.log('[useManualPageContent] ⚠️ Using fallback translation:', defaultValue);
-    return defaultValue;
+    // Fall back to default translation from LanguageContext (properly localized)
+    return originalT(key);
   };
 
   return t;

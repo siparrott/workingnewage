@@ -554,7 +554,7 @@ const translations = {
     'contact.successMessage': 'Your message has been sent successfully. We will get back to you soon.',
     'contact.openingHours': 'Fri-Sun: 09:00 - 17:00',
     'contact.officeAddress': 'Office and Correspondence Address',
-    'contact.addressNote': 'STUDIO Entrance corner Schönbrunnerstraße',
+    'contact.addressNote': 'Entrance corner Schönbrunnerstraße',
     'contact.studioAddress': 'Studio: Wehrgasse 11A/2+5, 1050 Wien',
     'contact.transport': 'Transportation',
     'contact.trainInfo': '5 minutes from Kettenbrückengasse',
