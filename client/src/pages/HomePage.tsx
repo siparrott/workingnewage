@@ -487,9 +487,9 @@ const HomePage: React.FC = () => {
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Unsere Fotografie-Services in Wien</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{t('home.servicesTitle')}</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Von Familien-Shootings bis Business-Portraits – wir bieten professionelle Fotografie für jeden Anlass
+              {t('home.servicesSubtitle')}
             </p>
           </div>
 
@@ -516,7 +516,7 @@ const HomePage: React.FC = () => {
                   {t('home.familyPortraitsDescription')}
                 </p>
                 <span className="text-purple-600 font-semibold inline-flex items-center">
-                  Mehr erfahren →
+                  {t('home.learnMore')} →
                 </span>
               </div>
             </div>
@@ -545,7 +545,7 @@ const HomePage: React.FC = () => {
                   {t('home.pregnancyPhotographyDescription')}
                 </p>
                 <span className="text-purple-600 font-semibold inline-flex items-center">
-                  Mehr erfahren →
+                  {t('home.learnMore')} →
                 </span>
               </div>
             </div>
@@ -574,7 +574,7 @@ const HomePage: React.FC = () => {
                   {t('home.newbornPhotographyDescription')}
                 </p>
                 <span className="text-purple-600 font-semibold inline-flex items-center">
-                  Mehr erfahren →
+                  {t('home.learnMore')} →
                 </span>
               </div>
             </div>
@@ -601,7 +601,7 @@ const HomePage: React.FC = () => {
                   {t('home.businessPhotographyDescription')}
                 </p>
                 <span className="text-purple-600 font-semibold inline-flex items-center">
-                  Mehr erfahren →
+                  {t('home.learnMore')} →
                 </span>
               </div>
             </div>
@@ -628,7 +628,7 @@ const HomePage: React.FC = () => {
                   {t('home.eventPhotographyDescription')}
                 </p>
                 <span className="text-purple-600 font-semibold inline-flex items-center">
-                  Mehr erfahren →
+                  {t('home.learnMore')} →
                 </span>
               </div>
             </div>
@@ -655,7 +655,7 @@ const HomePage: React.FC = () => {
                   {t('home.productPhotographyDescription')}
                 </p>
                 <span className="text-purple-600 font-semibold inline-flex items-center">
-                  Mehr erfahren →
+                  {t('home.learnMore')} →
                 </span>
               </div>
             </div>
@@ -667,9 +667,9 @@ const HomePage: React.FC = () => {
               onClick={() => navigate('/fotoshootings')}
               className="inline-flex items-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg shadow-lg"
             >
-              Alle Services ansehen
+              {t('home.viewAllServices')}
               <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="width" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </button>
           </div>
@@ -683,7 +683,7 @@ const HomePage: React.FC = () => {
             {t('home.portraitStudioTitle')}
           </h2>
           <p className="text-center text-gray-700 mb-12 max-w-2xl mx-auto">
-            Schenken Sie unvergessliche Momente! Unsere personalisierbaren Fotoshooting-Gutscheine sind das perfekte Geschenk für jeden Anlass.
+            {t('home.giftVouchersSubtitle')}
           </p>
         </div>
       </section>
@@ -725,10 +725,10 @@ const HomePage: React.FC = () => {
       <section className="py-16 bg-purple-50">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 text-purple-900">
-            Geschenkgutscheine
+            {t('home.giftVouchersTitle')}
           </h2>
           <p className="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
-            Schenken Sie unvergessliche Momente! Unsere personalisierbaren Fotoshooting-Gutscheine sind das perfekte Geschenk für jeden Anlass.
+            {t('home.giftVouchersSubtitle')}
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto mb-12">
@@ -752,15 +752,15 @@ const HomePage: React.FC = () => {
                 <ul className={idx === 1 ? 'space-y-3 mb-8 text-white/90' : 'space-y-3 mb-8 text-gray-700'}>
                   <li className="flex items-start">
                     <Check className={idx === 1 ? 'h-5 w-5 text-white mr-2 flex-shrink-0 mt-0.5' : 'h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5'} />
-                    <span>{voucher.description || 'Auswahlgalerie online'}</span>
+                    <span>{voucher.description || t('home.voucherOnlineGallery')}</span>
                   </li>
                   <li className="flex items-start">
                     <Check className={idx === 1 ? 'h-5 w-5 text-white mr-2 flex-shrink-0 mt-0.5' : 'h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5'} />
-                    <span>Nutzungsrechte privat</span>
+                    <span>{t('home.voucherPrivateUsage')}</span>
                   </li>
                   <li className="flex items-start">
                     <Check className={idx === 1 ? 'h-5 w-5 text-white mr-2 flex-shrink-0 mt-0.5' : 'h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5'} />
-                    <span>Flexible Zustellung</span>
+                    <span>{t('home.voucherFlexibleDelivery')}</span>
                   </li>
                 </ul>
 
@@ -780,7 +780,7 @@ const HomePage: React.FC = () => {
                   }}
                   className={idx === 1 ? 'block w-full bg-white text-purple-700 font-semibold py-3 px-6 rounded-lg' : 'block w-full bg-gray-900 text-white font-semibold py-3 px-6 rounded-lg'}
                 >
-                  Jetzt Buchen
+                  {t('home.bookNowButton')}
                 </button>
               </div>
             ))}
@@ -794,35 +794,35 @@ const HomePage: React.FC = () => {
               }}
               className="inline-block bg-white text-purple-600 border-2 border-purple-600 hover:bg-purple-600 hover:text-white font-semibold py-3 px-8 rounded-lg transition-colors"
             >
-              Alle Gutscheine ansehen →
+              {t('home.viewAllVouchers')} →
             </button>
           </div>
 
           <div className="text-center mt-12">
             <div className="bg-white rounded-lg shadow-lg p-6 max-w-4xl mx-auto">
               <h3 className="text-xl font-bold text-purple-900 mb-4">
-                Warum unsere Gutscheine?
+                {t('home.whyOurVouchers')}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
                 <div>
                   <div className="text-3xl mb-2">🎨</div>
-                  <h4 className="font-semibold text-purple-700">Personalisierbar</h4>
-                  <p className="text-sm text-gray-600">Eigene Fotos & Nachrichten</p>
+                  <h4 className="font-semibold text-purple-700">{t('home.voucherCustomizable')}</h4>
+                  <p className="text-sm text-gray-600">{t('home.voucherCustomizableDesc')}</p>
                 </div>
                 <div>
                   <div className="text-3xl mb-2">📦</div>
-                  <h4 className="font-semibold text-purple-700">Flexible Zustellung</h4>
-                  <p className="text-sm text-gray-600">PDF, Post oder Geschenkbox</p>
+                  <h4 className="font-semibold text-purple-700">{t('home.voucherFlexibleDeliveryTitle')}</h4>
+                  <p className="text-sm text-gray-600">{t('home.voucherFlexibleDeliveryDesc')}</p>
                 </div>
                 <div>
                   <div className="text-3xl mb-2">⏰</div>
-                  <h4 className="font-semibold text-purple-700">Sofort verfügbar</h4>
-                  <p className="text-sm text-gray-600">Auch last-minute bestellbar</p>
+                  <h4 className="font-semibold text-purple-700">{t('home.voucherInstantAvailable')}</h4>
+                  <p className="text-sm text-gray-600">{t('home.voucherInstantAvailableDesc')}</p>
                 </div>
                 <div>
                   <div className="text-3xl mb-2">💝</div>
-                  <h4 className="font-semibold text-purple-700">Perfektes Geschenk</h4>
-                  <p className="text-sm text-gray-600">Für jeden Anlass geeignet</p>
+                  <h4 className="font-semibold text-purple-700">{t('home.voucherPerfectGift')}</h4>
+                  <p className="text-sm text-gray-600">{t('home.voucherPerfectGiftDesc')}</p>
                 </div>
               </div>
             </div>
