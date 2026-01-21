@@ -185,37 +185,37 @@ const HomePage: React.FC = () => {
   const testimonials = [
     {
       name: "Sarah M.",
-      image: "https://i.imgur.com/BScsxGX.jpg",
+      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&backgroundColor=b6e3f4",
       role: t('home.testimonial1Role'),
       text: t('home.testimonial1Text')
     },
     {
       name: "Michael K.",
-      image: "https://i.imgur.com/HGZGIGX.jpg",
+      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Michael&backgroundColor=c0aede",
       role: t('home.testimonial2Role'),
       text: t('home.testimonial2Text')
     },
     {
       name: "Lisa & Tom",
-      image: "https://i.imgur.com/fcFwAhs.jpg", 
+      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=LisaTom&backgroundColor=d1d4f9", 
       role: t('home.testimonial3Role'),
       text: t('home.testimonial3Text')
     },
     {
       name: "Anna W.",
-      image: "https://i.imgur.com/xx3UWL7.jpg",
+      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Anna&backgroundColor=ffd5dc",
       role: t('home.testimonial4Role'),
       text: t('home.testimonial4Text')
     },
     {
       name: "Maria & Peter",
-      image: "https://i.imgur.com/9d98SBH.jpg",
+      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=MariaPeter&backgroundColor=ffdfbf",
       role: t('home.testimonial5Role'),
       text: t('home.testimonial5Text')
     },
     {
       name: "Christina R.",
-      image: "https://i.imgur.com/8HD86CW.jpg",
+      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Christina&backgroundColor=c1f0c1",
       role: t('home.testimonial6Role'),
       text: t('home.testimonial6Text')
     }
@@ -700,18 +700,16 @@ const HomePage: React.FC = () => {
             {testimonials.map((testimonial, index) => (
               <div key={index} className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
                 <div className="flex items-center mb-4">
-                  {testimonial.name !== "Anna W." && (
-                    <img
-                      src={testimonial.image}
-                      alt={testimonial.name}
-                      className="w-12 h-12 rounded-full object-cover"
-                      loading="lazy"
-                      width="48"
-                      height="48"
-                      style={{ backgroundColor: '#f3f4f6' }}
-                    />
-                  )}
-                  <div className={testimonial.name === "Anna W." ? "" : "ml-4"}>
+                  <img
+                    src={testimonial.image}
+                    alt={testimonial.name}
+                    className="w-12 h-12 rounded-full object-cover"
+                    loading="lazy"
+                    width="48"
+                    height="48"
+                    style={{ backgroundColor: '#f3f4f6' }}
+                  />
+                  <div className="ml-4">
                     <h3 className="font-semibold text-gray-800">{testimonial.name}</h3>
                     <p className="text-gray-600 text-sm">{testimonial.role}</p>
                   </div>

@@ -1261,7 +1261,7 @@ const translations = {
     'contact.successMessage': 'Ihre Nachricht wurde erfolgreich gesendet. Wir werden uns bald bei Ihnen melden.',
     'contact.openingHours': 'Fr-So: 09:00 - 17:00',
     'contact.officeAddress': '',
-    'contact.addressNote': 'STUDIO Eingang Ecke Schönbrunnerstraße',
+    'contact.addressNote': 'Eingang Ecke Schönbrunnerstraße',
     'contact.studioAddress': 'Studio: Wehrgasse 11A/2+5, 1050 Wien',
     'contact.transport': 'Anfahrt',
     'contact.trainInfo': '5 Minuten von Kettenbrückengasse',
