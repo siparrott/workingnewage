@@ -8,11 +8,33 @@ import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Briefcase, Shield
 import { Helmet } from 'react-helmet-async';
 import { useCart } from '../../context/CartContext';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function EventfotografieWienPage() {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const t = useManualPageContent('eventfotografie');
+  const { language } = useLanguage();
+
+  // Language-aware fallbacks
+  const fallbacks = {
+    en: {
+      heroTitle: 'Event Photography in Vienna',
+      heroSubtitle: 'Big Event. Clear Images. Zero Stress.',
+      heroDescription: 'As event photographers in Vienna, we document conferences, brand launches and corporate events precisely, unobtrusively and on-brand – from check-in to closing shot.',
+      primaryCta: 'Secure a Spot on the Waitlist',
+      secondaryCta: 'Inquire Directly',
+    },
+    de: {
+      heroTitle: 'Eventfotografie in Wien',
+      heroSubtitle: 'Großes Event. Klare Bilder. Null Stress.',
+      heroDescription: 'Als eventfotograf wien dokumentieren wir Konferenzen, Brand-Launches und Corporate-Events präzise, unauffällig und on-brand – vom Check-in bis zum Closing Shot.',
+      primaryCta: 'Termin auf der Warteliste sichern',
+      secondaryCta: 'Direkt anfragen',
+    }
+  };
+
+  const fb = fallbacks[language] || fallbacks.de;
 
   const fromManual = (key: string, fallback: string) => {
     const value = t(key);
@@ -22,11 +44,11 @@ export default function EventfotografieWienPage() {
     return value;
   };
 
-  const heroTitle = fromManual('manual.eventfotografie.heroTitle', 'Eventfotografie in Wien');
-  const heroSubtitle = fromManual('manual.eventfotografie.heroTagline', 'Großes Event. Klare Bilder. Null Stress.');
-  const heroDescription = fromManual('manual.eventfotografie.heroDescription', 'Als eventfotograf wien dokumentieren wir Konferenzen, Brand-Launches und Corporate-Events präzise, unauffällig und on-brand – vom Check-in bis zum Closing Shot.');
-  const primaryCta = fromManual('manual.eventfotografie.primaryCta', 'Termin auf der Warteliste sichern');
-  const secondaryCta = fromManual('manual.eventfotografie.secondaryCta', 'Direkt anfragen');
+  const heroTitle = fromManual('manual.eventfotografie.heroTitle', fb.heroTitle);
+  const heroSubtitle = fromManual('manual.eventfotografie.heroTagline', fb.heroSubtitle);
+  const heroDescription = fromManual('manual.eventfotografie.heroDescription', fb.heroDescription);
+  const primaryCta = fromManual('manual.eventfotografie.primaryCta', fb.primaryCta);
+  const secondaryCta = fromManual('manual.eventfotografie.secondaryCta', fb.secondaryCta);
   const heroImage1 = fromManual('manual.eventfotografie.heroImage1', '');
   const heroImage2 = fromManual('manual.eventfotografie.heroImage2', '');
   const heroImage3 = fromManual('manual.eventfotografie.heroImage3', '');

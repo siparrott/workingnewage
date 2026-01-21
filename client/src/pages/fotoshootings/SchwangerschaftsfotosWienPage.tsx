@@ -9,8 +9,28 @@ import MarkdownCopySlot from '../../components/MarkdownCopySlot';
 import { newageCopyMap } from '../../content/newageCopyMap';
 
 export default function SchwangerschaftsfotosWienPage() {
-  const { t } = useLanguage();
+  const { language } = useLanguage();
   const tm = useManualPageContent('schwangerschaftsfotos');
+
+  // Language-aware fallbacks
+  const fallbacks = {
+    en: {
+      heroTitle: 'Maternity Photography in Vienna',
+      heroSubtitle: 'Celebrate the Beauty of Pregnancy',
+      heroDescription: 'Professional, stylish maternity photos that capture this special time forever. Partner and siblings are warmly welcome.',
+      primaryCta: 'Book a Session',
+      secondaryCta: 'Give a Maternity Voucher',
+    },
+    de: {
+      heroTitle: 'Schwangerschaftsfotografie in Wien',
+      heroSubtitle: 'Die Schönheit der Schwangerschaft feiern',
+      heroDescription: 'Professionelle, stilvolle Schwangerschaftsfotos, die diese besondere Zeit für immer festhalten. Partner und Geschwisterkinder sind herzlich willkommen.',
+      primaryCta: 'Termin buchen',
+      secondaryCta: 'Schwangerschafts-Gutschein verschenken',
+    }
+  };
+
+  const fb = fallbacks[language] || fallbacks.de;
   
   const fromManual = (key: string, fallback: string) => {
     const value = tm(key);
@@ -20,11 +40,11 @@ export default function SchwangerschaftsfotosWienPage() {
     return value;
   };
 
-  const heroTitle = fromManual('manual.schwangerschaftsfotos.heroTitle', t('maternity.hero.title'));
-  const heroSubtitle = fromManual('manual.schwangerschaftsfotos.heroTagline', '');
-  const heroDescription = fromManual('manual.schwangerschaftsfotos.heroDescription', t('maternity.hero.description'));
-  const primaryCta = fromManual('manual.schwangerschaftsfotos.primaryCta', t('maternity.hero.bookButton'));
-  const secondaryCta = fromManual('manual.schwangerschaftsfotos.secondaryCta', t('maternity.hero.voucherButton'));
+  const heroTitle = fromManual('manual.schwangerschaftsfotos.heroTitle', fb.heroTitle);
+  const heroSubtitle = fromManual('manual.schwangerschaftsfotos.heroTagline', fb.heroSubtitle);
+  const heroDescription = fromManual('manual.schwangerschaftsfotos.heroDescription', fb.heroDescription);
+  const primaryCta = fromManual('manual.schwangerschaftsfotos.primaryCta', fb.primaryCta);
+  const secondaryCta = fromManual('manual.schwangerschaftsfotos.secondaryCta', fb.secondaryCta);
   const heroImage1 = fromManual('manual.schwangerschaftsfotos.heroImage1', '');
   const heroImage2 = fromManual('manual.schwangerschaftsfotos.heroImage2', '');
   const heroImage3 = fromManual('manual.schwangerschaftsfotos.heroImage3', '');

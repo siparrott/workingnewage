@@ -8,11 +8,33 @@ import { useCart } from '../../context/CartContext';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
 import { newageCopyMap } from '../../content/newageCopyMap';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function BabyfotosWienPage() {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const t = useManualPageContent('babyfotos');
+  const { language } = useLanguage();
+
+  // Language-aware fallbacks
+  const fallbacks = {
+    en: {
+      heroTitle: 'Baby Photos (3–12 Months) in Vienna',
+      heroSubtitle: 'Real Baby Time. Real Expressions.',
+      heroDescription: 'From tummy time to sitting pirouettes – we capture your child exactly as they are right now. At baby photos Vienna in the studio or outdoors, everything stays relaxed, safe and child-friendly.',
+      primaryCta: 'Book a Spot on the Waitlist',
+      secondaryCta: 'Buy a Baby Voucher',
+    },
+    de: {
+      heroTitle: 'Babyfotos (3–12 Monate) in Wien',
+      heroSubtitle: 'Echte Babyzeit. Echte Mimik.',
+      heroDescription: 'Von Bauchlage bis Sitzpirouette – wir halten dein Kind genau so fest, wie es jetzt ist. Bei babyfotos wien im Studio oder Outdoor bleibt alles entspannt, sicher und kindgerecht.',
+      primaryCta: 'Termin auf der Warteliste sichern',
+      secondaryCta: 'Baby-Gutschein kaufen',
+    }
+  };
+
+  const fb = fallbacks[language] || fallbacks.de;
 
   const fromManual = (key: string, fallback: string) => {
     const value = t(key);
@@ -22,11 +44,11 @@ export default function BabyfotosWienPage() {
     return value;
   };
 
-  const heroTitle = fromManual('manual.babyfotos.heroTitle', 'Babyfotos (3–12 Monate) in Wien');
-  const heroSubtitle = fromManual('manual.babyfotos.heroTagline', 'Echte Babyzeit. Echte Mimik.');
-  const heroDescription = fromManual('manual.babyfotos.heroDescription', 'Von Bauchlage bis Sitzpirouette – wir halten dein Kind genau so fest, wie es jetzt ist. Bei babyfotos wien im Studio oder Outdoor bleibt alles entspannt, sicher und kindgerecht.');
-  const primaryCta = fromManual('manual.babyfotos.primaryCta', 'Termin auf der Warteliste sichern');
-  const secondaryCta = fromManual('manual.babyfotos.secondaryCta', 'Baby-Gutschein kaufen');
+  const heroTitle = fromManual('manual.babyfotos.heroTitle', fb.heroTitle);
+  const heroSubtitle = fromManual('manual.babyfotos.heroTagline', fb.heroSubtitle);
+  const heroDescription = fromManual('manual.babyfotos.heroDescription', fb.heroDescription);
+  const primaryCta = fromManual('manual.babyfotos.primaryCta', fb.primaryCta);
+  const secondaryCta = fromManual('manual.babyfotos.secondaryCta', fb.secondaryCta);
   const heroImage1 = fromManual('manual.babyfotos.heroImage1', '');
   const heroImage2 = fromManual('manual.babyfotos.heroImage2', '');
   const heroImage3 = fromManual('manual.babyfotos.heroImage3', '');

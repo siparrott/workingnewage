@@ -9,11 +9,33 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Briefcase, Linkedin, TrendingUp, Palette, Shield } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function BusinessPortraitWienPage() {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const t = useManualPageContent('businessportraits');
+  const { language } = useLanguage();
+
+  // Language-aware fallbacks
+  const fallbacks = {
+    en: {
+      heroTitle: 'Business Portraits & Corporate Photography in Vienna',
+      heroSubtitle: 'Strong Image. Clear Message.',
+      heroDescription: 'Your business portraits are created at New Age Fotografie in our Vienna studio – perfect for LinkedIn, CEO portraits and personal branding. We guide you relaxed through the shoot, coach expression & posture, and deliver fully retouched files in high-res – commercial usage rights included.',
+      primaryCta: 'Book a Spot on the Waitlist',
+      secondaryCta: 'Give a Business Voucher',
+    },
+    de: {
+      heroTitle: 'Business-Portraits & Corporate-Fotografie in Wien',
+      heroSubtitle: 'Starkes Bild. Klare Botschaft.',
+      heroDescription: 'Ihre Business-Portraits entstehen bei New Age Fotografie im Studio in Wien – perfekt für LinkedIn, CEO-Porträts und Personal-Branding. Wir führen Sie entspannt durchs Shooting, coachen Ausdruck & Haltung und liefern vollständig retuschierte Dateien in High-Res – kommerzielle Nutzungsrechte inklusive.',
+      primaryCta: 'Termin auf der Warteliste sichern',
+      secondaryCta: 'Business-Gutschein verschenken',
+    }
+  };
+
+  const fb = fallbacks[language] || fallbacks.de;
 
   const fromManual = (key: string, fallback: string) => {
     const value = t(key);
@@ -23,11 +45,11 @@ export default function BusinessPortraitWienPage() {
     return value;
   };
 
-  const heroTitle = fromManual('manual.businessportraits.heroTitle', 'Business-Portraits & Corporate-Fotografie in Wien');
-  const heroSubtitle = fromManual('manual.businessportraits.heroTagline', 'Starkes Bild. Klare Botschaft.');
-  const heroDescription = fromManual('manual.businessportraits.heroDescription', 'Ihre Business-Portraits entstehen bei New Age Fotografie im Studio in Wien – perfekt für LinkedIn, CEO-Porträts und Personal-Branding. Wir führen Sie entspannt durchs Shooting, coachen Ausdruck & Haltung und liefern vollständig retuschierte Dateien in High-Res – kommerzielle Nutzungsrechte inklusive.');
-  const primaryCta = fromManual('manual.businessportraits.primaryCta', 'Termin auf der Warteliste sichern');
-  const secondaryCta = fromManual('manual.businessportraits.secondaryCta', 'Business-Gutschein verschenken');
+  const heroTitle = fromManual('manual.businessportraits.heroTitle', fb.heroTitle);
+  const heroSubtitle = fromManual('manual.businessportraits.heroTagline', fb.heroSubtitle);
+  const heroDescription = fromManual('manual.businessportraits.heroDescription', fb.heroDescription);
+  const primaryCta = fromManual('manual.businessportraits.primaryCta', fb.primaryCta);
+  const secondaryCta = fromManual('manual.businessportraits.secondaryCta', fb.secondaryCta);
   const heroImage1 = fromManual('manual.businessportraits.heroImage1', '');
   const heroImage2 = fromManual('manual.businessportraits.heroImage2', '');
   const heroImage3 = fromManual('manual.businessportraits.heroImage3', '');

@@ -8,9 +8,31 @@ import { newageCopyMap } from '../../content/newageCopyMap';
 import { Link } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Briefcase, Linkedin, TrendingUp, Palette, Shield, Eye } from 'lucide-react';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function BewerbungsfotosWienPage() {
   const t = useManualPageContent('bewerbungsfotos');
+  const { language } = useLanguage();
+
+  // Language-aware fallbacks
+  const fallbacks = {
+    en: {
+      heroTitle: 'Application Photos & LinkedIn Portraits in Vienna',
+      heroSubtitle: 'Clear, professional, personable.',
+      heroDescription: 'Your application photos in Vienna are created in our studio with expert posing coaching, fast delivery times and backgrounds that match your industry. Perfect for CV, LinkedIn, Xing, email signature & company profile.',
+      primaryCta: 'Book a Spot on the Waitlist',
+      secondaryCta: 'View All Prices',
+    },
+    de: {
+      heroTitle: 'Bewerbungsfotos & LinkedIn-Portraits in Wien',
+      heroSubtitle: 'Klar, professionell, sympathisch.',
+      heroDescription: 'Ihre Bewerbungsfotos in Wien entstehen bei uns im Studio mit sicherem Posing-Coaching, schnellen Lieferzeiten und Hintergründen, die zu Ihrer Branche passen. Perfekt für Lebenslauf, LinkedIn, Xing, E-Mail-Signatur & Firmenprofil.',
+      primaryCta: 'Termin auf der Warteliste sichern',
+      secondaryCta: 'Alle Preise ansehen',
+    }
+  };
+
+  const fb = fallbacks[language] || fallbacks.de;
 
   const fromManual = (key: string, fallback: string) => {
     const value = t(key);
@@ -20,11 +42,11 @@ export default function BewerbungsfotosWienPage() {
     return value;
   };
 
-  const heroTitle = fromManual('manual.bewerbungsfotos.heroTitle', 'Bewerbungsfotos & LinkedIn-Portraits in Wien');
-  const heroSubtitle = fromManual('manual.bewerbungsfotos.heroTagline', 'Klar, professionell, sympathisch.');
-  const heroDescription = fromManual('manual.bewerbungsfotos.heroDescription', 'Ihre Bewerbungsfotos in Wien entstehen bei uns im Studio mit sicherem Posing-Coaching, schnellen Lieferzeiten und Hintergründen, die zu Ihrer Branche passen. Perfekt für Lebenslauf, LinkedIn, Xing, E-Mail-Signatur & Firmenprofil.');
-  const primaryCta = fromManual('manual.bewerbungsfotos.primaryCta', 'Termin auf der Warteliste sichern');
-  const secondaryCta = fromManual('manual.bewerbungsfotos.secondaryCta', 'Alle Preise ansehen');
+  const heroTitle = fromManual('manual.bewerbungsfotos.heroTitle', fb.heroTitle);
+  const heroSubtitle = fromManual('manual.bewerbungsfotos.heroTagline', fb.heroSubtitle);
+  const heroDescription = fromManual('manual.bewerbungsfotos.heroDescription', fb.heroDescription);
+  const primaryCta = fromManual('manual.bewerbungsfotos.primaryCta', fb.primaryCta);
+  const secondaryCta = fromManual('manual.bewerbungsfotos.secondaryCta', fb.secondaryCta);
   const heroImage1 = fromManual('manual.bewerbungsfotos.heroImage1', '');
   const heroImage2 = fromManual('manual.bewerbungsfotos.heroImage2', '');
   const heroImage3 = fromManual('manual.bewerbungsfotos.heroImage3', '');

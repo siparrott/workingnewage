@@ -7,6 +7,7 @@ import GoogleReviews from '../../components/layout/GoogleReviews';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
 import { newageCopyMap } from '../../content/newageCopyMap';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface SEOHeadProps {
   title: string;
@@ -38,6 +39,27 @@ const SEOHead: React.FC<SEOHeadProps> = ({ title, description, keywords, canonic
 
 const StudioFotografieWienPage: React.FC = () => {
   const t = useManualPageContent('studiofotografie');
+  const { language } = useLanguage();
+
+  // Language-aware fallbacks
+  const fallbacks = {
+    en: {
+      heroTitle: 'Professional Studio Photography',
+      heroSubtitle: 'precise & plannable',
+      heroDescription: 'Studio Photography Vienna: Defined sets, backdrops & modifiers. Headshots, portraits, teams & products. From €150. Book your appointment now.',
+      primaryCta: 'Book Appointment Now',
+      secondaryCta: 'View Studio Packages',
+    },
+    de: {
+      heroTitle: 'Professionelle Studio-Fotografie',
+      heroSubtitle: 'präzise & planbar',
+      heroDescription: 'Studio Fotografie Wien: Definierte Sets, Backdrops & Modifiers. Headshots, Portraits, Teams & Produkte. Ab €150. Jetzt Termin sichern.',
+      primaryCta: 'Jetzt Termin buchen',
+      secondaryCta: 'Studio-Pakete ansehen',
+    }
+  };
+
+  const fb = fallbacks[language] || fallbacks.de;
 
   const fromManual = (key: string, fallback: string) => {
     const value = t(key);
@@ -47,11 +69,11 @@ const StudioFotografieWienPage: React.FC = () => {
     return value;
   };
 
-  const heroTitle = fromManual('manual.studiofotografie.heroTitle', 'Professionelle Studio-Fotografie');
-  const heroSubtitle = fromManual('manual.studiofotografie.heroTagline', 'präzise & planbar');
-  const heroDescription = fromManual('manual.studiofotografie.heroDescription', 'Studio Fotografie Wien: Definierte Sets, Backdrops & Modifiers. Headshots, Portraits, Teams & Produkte. Ab €150. Jetzt Termin sichern.');
-  const primaryCta = fromManual('manual.studiofotografie.primaryCta', 'Jetzt Termin buchen');
-  const secondaryCta = fromManual('manual.studiofotografie.secondaryCta', 'Studio-Pakete ansehen');
+  const heroTitle = fromManual('manual.studiofotografie.heroTitle', fb.heroTitle);
+  const heroSubtitle = fromManual('manual.studiofotografie.heroTagline', fb.heroSubtitle);
+  const heroDescription = fromManual('manual.studiofotografie.heroDescription', fb.heroDescription);
+  const primaryCta = fromManual('manual.studiofotografie.primaryCta', fb.primaryCta);
+  const secondaryCta = fromManual('manual.studiofotografie.secondaryCta', fb.secondaryCta);
   const heroImage1 = fromManual('manual.studiofotografie.heroImage1', '');
   const heroImage2 = fromManual('manual.studiofotografie.heroImage2', '');
   const heroImage3 = fromManual('manual.studiofotografie.heroImage3', '');

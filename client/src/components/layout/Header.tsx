@@ -30,19 +30,19 @@ const Header: React.FC = () => {
 
   // Unified Fotoshootings navigation matching footer (SEO cornerstone pages)
   const fotoshootingItems = [
-    { path: '/familienfotos-wien/', label: 'Familienfotos' },
-    { path: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos' },
-    { path: '/babyfotos-wien/', label: 'Babyfotos (3-12 Monate)' },
-    { path: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaftsfotos' },
-    { path: '/business-portrait-wien/', label: 'Business-Portraits' },
-    { path: '/teamfotos-wien/', label: 'Team- & Mitarbeiterfotos' },
-    { path: '/bewerbungsfotos-wien/', label: 'Bewerbungsfotos & LinkedIn' },
-    { path: '/portrait-fotografie-wien/', label: 'Portraitfotografie' },
-    { path: '/produkt-fotografie-wien/', label: 'Produktfotografie' },
-    { path: '/immobilien-fotografie-wien/', label: 'Immobilienfotografie' },
-    { path: '/studio-fotografie-wien/', label: 'Studio-Fotografie' },
-    { path: '/hochzeitsfotografie-wien/', label: 'Hochzeitsfotografie' },
-    { path: '/eventfotografie-wien/', label: 'Eventfotografie' },
+    { path: '/familienfotos-wien/', label: t('nav.familyPhotos') },
+    { path: '/neugeborenenfotos-wien/', label: t('nav.newbornPhotos') },
+    { path: '/babyfotos-wien/', label: t('nav.babyPhotos') },
+    { path: '/schwangerschaftsfotos-wien/', label: t('nav.maternityPhotos') },
+    { path: '/business-portrait-wien/', label: t('nav.businessPortraits') },
+    { path: '/teamfotos-wien/', label: t('nav.teamPhotos') },
+    { path: '/bewerbungsfotos-wien/', label: t('nav.linkedinPhotos') },
+    { path: '/portrait-fotografie-wien/', label: t('nav.portraitPhotography') },
+    { path: '/produkt-fotografie-wien/', label: t('nav.productPhotography') },
+    { path: '/immobilien-fotografie-wien/', label: t('nav.realEstatePhotography') },
+    { path: '/studio-fotografie-wien/', label: t('nav.studioPhotography') },
+    { path: '/hochzeitsfotografie-wien/', label: t('nav.weddingPhotography') },
+    { path: '/eventfotografie-wien/', label: t('nav.eventPhotography') },
   ];
 
   const aboutItems = [

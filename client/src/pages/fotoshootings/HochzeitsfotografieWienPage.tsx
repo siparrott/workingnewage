@@ -8,11 +8,33 @@ import { Helmet } from 'react-helmet-async';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, MapPin, Gift, Calendar, Sparkles, Shield } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function HochzeitsfotografieWienPage() {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const t = useManualPageContent('hochzeitsfotografie');
+  const { language } = useLanguage();
+
+  // Language-aware fallbacks
+  const fallbacks = {
+    en: {
+      heroTitle: 'Wedding Photography in Vienna',
+      heroSubtitle: 'Authentic. Stylish. Unobtrusive.',
+      heroDescription: 'We capture your story – from the first glance to the last dance. Modern wedding reportages with emotion, clear visual language and quick sneak peeks.',
+      primaryCta: 'Request Appointment',
+      secondaryCta: 'Check Availability',
+    },
+    de: {
+      heroTitle: 'Hochzeitsfotografie in Wien',
+      heroSubtitle: 'Echt. Stilvoll. Unaufdringlich.',
+      heroDescription: 'Wir begleiten eure Geschichte – vom ersten Blick bis zum letzten Tanz. Moderne Hochzeitsreportagen mit viel Gefühl, klarer Bildsprache und schnellen Sneak Peeks.',
+      primaryCta: 'Termin unverbindlich anfragen',
+      secondaryCta: 'Verfügbarkeit prüfen',
+    }
+  };
+
+  const fb = fallbacks[language] || fallbacks.de;
 
   const fromManual = (key: string, fallback: string) => {
     const value = t(key);
@@ -22,11 +44,11 @@ export default function HochzeitsfotografieWienPage() {
     return value;
   };
 
-  const heroTitle = fromManual('manual.hochzeitsfotografie.heroTitle', 'Hochzeitsfotografie in Wien');
-  const heroSubtitle = fromManual('manual.hochzeitsfotografie.heroTagline', 'Echt. Stilvoll. Unaufdringlich.');
-  const heroDescription = fromManual('manual.hochzeitsfotografie.heroDescription', 'Wir begleiten eure Geschichte – vom ersten Blick bis zum letzten Tanz. Moderne Hochzeitsreportagen mit viel Gefühl, klarer Bildsprache und schnellen Sneak Peeks.');
-  const primaryCta = fromManual('manual.hochzeitsfotografie.primaryCta', 'Termin unverbindlich anfragen');
-  const secondaryCta = fromManual('manual.hochzeitsfotografie.secondaryCta', 'Verfügbarkeit prüfen');
+  const heroTitle = fromManual('manual.hochzeitsfotografie.heroTitle', fb.heroTitle);
+  const heroSubtitle = fromManual('manual.hochzeitsfotografie.heroTagline', fb.heroSubtitle);
+  const heroDescription = fromManual('manual.hochzeitsfotografie.heroDescription', fb.heroDescription);
+  const primaryCta = fromManual('manual.hochzeitsfotografie.primaryCta', fb.primaryCta);
+  const secondaryCta = fromManual('manual.hochzeitsfotografie.secondaryCta', fb.secondaryCta);
   const heroImage1 = fromManual('manual.hochzeitsfotografie.heroImage1', '');
   const heroImage2 = fromManual('manual.hochzeitsfotografie.heroImage2', '');
   const heroImage3 = fromManual('manual.hochzeitsfotografie.heroImage3', '');

@@ -9,11 +9,33 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Baby, Music, Smile, Shield, Thermometer } from 'lucide-react';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import { useCart } from '../../context/CartContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function NeugeborenenfotosWienPage() {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const t = useManualPageContent('neugeborenenfotos');
+  const { language } = useLanguage();
+
+  // Language-aware fallbacks
+  const fallbacks = {
+    en: {
+      heroTitle: 'Newborn & Baby Photography in Vienna',
+      heroSubtitle: 'Newborn Photos – Studio Packages (Day 5–14 after birth)',
+      heroDescription: 'Our promise: Warm studio (26–28 °C), soft wraps, safe poses with hands-on safety. Newborn photos best taken on day 5–14 after birth. Schedule is flexible – when baby is tired, we take a break.',
+      primaryCta: 'Book a Spot on the Waitlist',
+      secondaryCta: 'Give a Newborn Voucher',
+    },
+    de: {
+      heroTitle: 'Neugeborenen- & Babyfotografie in Wien',
+      heroSubtitle: 'Neugeborenenfotos – Studio-Pakete (Tag 5–14 nach der Geburt)',
+      heroDescription: 'Kurzversprechen: Warmes Studio (26–28 °C), sanfte Wraps, sichere Posen mit Hands-on-Safety. Neugeborenenfotos am besten Tag 5–14 nach der Geburt. Zeitplan flexibel – wenn Baby müde ist, machen wir Pause.',
+      primaryCta: 'Termin auf der Warteliste sichern',
+      secondaryCta: 'Neugeborenen-Gutschein verschenken',
+    }
+  };
+
+  const fb = fallbacks[language] || fallbacks.de;
 
   const fromManual = (key: string, fallback: string) => {
     const value = t(key);
@@ -23,14 +45,14 @@ export default function NeugeborenenfotosWienPage() {
     return value;
   };
 
-  const heroTitle = fromManual('manual.neugeborenenfotos.heroTitle', 'Neugeborenen- & Babyfotografie in Wien');
-  const heroSubtitle = fromManual('manual.neugeborenenfotos.heroTagline', 'Neugeborenenfotos – Studio-Pakete (Tag 5–14 nach der Geburt)');
+  const heroTitle = fromManual('manual.neugeborenenfotos.heroTitle', fb.heroTitle);
+  const heroSubtitle = fromManual('manual.neugeborenenfotos.heroTagline', fb.heroSubtitle);
   const heroDescription = fromManual(
     'manual.neugeborenenfotos.heroDescription',
-    'Kurzversprechen: Warmes Studio (26–28 °C), sanfte Wraps, sichere Posen mit Hands-on-Safety. Neugeborenenfotos am besten Tag 5–14 nach der Geburt. Zeitplan flexibel – wenn Baby müde ist, machen wir Pause.'
+    fb.heroDescription
   );
-  const primaryCta = fromManual('manual.neugeborenenfotos.primaryCta', 'Termin auf der Warteliste sichern');
-  const secondaryCta = fromManual('manual.neugeborenenfotos.secondaryCta', 'Neugeborenen-Gutschein verschenken');
+  const primaryCta = fromManual('manual.neugeborenenfotos.primaryCta', fb.primaryCta);
+  const secondaryCta = fromManual('manual.neugeborenenfotos.secondaryCta', fb.secondaryCta);
   const heroImage1 = fromManual('manual.neugeborenenfotos.heroImage1', '');
   const heroImage2 = fromManual('manual.neugeborenenfotos.heroImage2', '');
   const heroImage3 = fromManual('manual.neugeborenenfotos.heroImage3', '');

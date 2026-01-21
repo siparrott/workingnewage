@@ -8,6 +8,7 @@ import { useCart } from '../../context/CartContext';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
 import { newageCopyMap } from '../../content/newageCopyMap';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface SEOHeadProps {
   title: string;
@@ -41,6 +42,27 @@ const ImmobilienfotografieWienPage: React.FC = () => {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const t = useManualPageContent('immobilienfotografie');
+  const { language } = useLanguage();
+
+  // Language-aware fallbacks
+  const fallbacks = {
+    en: {
+      heroTitle: 'Real Estate Photography Vienna – Architecture, Interior, Floor Plans',
+      heroSubtitle: 'Space. Light. Perspective.',
+      heroDescription: 'Professional real estate photography in Vienna: Window-Pull HDR, vertical correction, 2D/3D floor plans. From €190. For realtors, owners & property managers.',
+      primaryCta: 'Book Appointment',
+      secondaryCta: 'Packages & Prices',
+    },
+    de: {
+      heroTitle: 'Immobilienfotograf Wien – Architektur, Interieur, Grundrisse',
+      heroSubtitle: 'Raum. Licht. Perspektive.',
+      heroDescription: 'Professionelle Immobilienfotografie in Wien: Window-Pull HDR, vertikale Korrektur, 2D/3D Grundrisse. Ab €190. Für Makler, Eigentümer & Verwalter.',
+      primaryCta: 'Termin buchen',
+      secondaryCta: 'Pakete & Preise',
+    }
+  };
+
+  const fb = fallbacks[language] || fallbacks.de;
 
   const fromManual = (key: string, fallback: string) => {
     const value = t(key);
@@ -50,11 +72,11 @@ const ImmobilienfotografieWienPage: React.FC = () => {
     return value;
   };
 
-  const heroTitle = fromManual('manual.immobilienfotografie.heroTitle', 'Immobilienfotograf Wien – Architektur, Interieur, Grundrisse');
-  const heroSubtitle = fromManual('manual.immobilienfotografie.heroTagline', 'Raum. Licht. Perspektive.');
-  const heroDescription = fromManual('manual.immobilienfotografie.heroDescription', 'Professionelle Immobilienfotografie in Wien: Window-Pull HDR, vertikale Korrektur, 2D/3D Grundrisse. Ab €190. Für Makler, Eigentümer & Verwalter.');
-  const primaryCta = fromManual('manual.immobilienfotografie.primaryCta', 'Termin buchen');
-  const secondaryCta = fromManual('manual.immobilienfotografie.secondaryCta', 'Pakete & Preise');
+  const heroTitle = fromManual('manual.immobilienfotografie.heroTitle', fb.heroTitle);
+  const heroSubtitle = fromManual('manual.immobilienfotografie.heroTagline', fb.heroSubtitle);
+  const heroDescription = fromManual('manual.immobilienfotografie.heroDescription', fb.heroDescription);
+  const primaryCta = fromManual('manual.immobilienfotografie.primaryCta', fb.primaryCta);
+  const secondaryCta = fromManual('manual.immobilienfotografie.secondaryCta', fb.secondaryCta);
   const heroImage1 = fromManual('manual.immobilienfotografie.heroImage1', '');
   const heroImage2 = fromManual('manual.immobilienfotografie.heroImage2', '');
   const heroImage3 = fromManual('manual.immobilienfotografie.heroImage3', '');

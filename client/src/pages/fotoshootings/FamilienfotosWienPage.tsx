@@ -7,11 +7,33 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Baby, Music, Smile } from 'lucide-react';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import { useCart } from '../../context/CartContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function FamilienfotosWienPage() {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const t = useManualPageContent('familienfotos');
+  const { language } = useLanguage();
+
+  // Language-aware fallbacks
+  const fallbacks = {
+    en: {
+      heroTitle: 'Family Photography in Vienna',
+      heroSubtitle: 'Family Photos – Studio Packages (up to 12 people)',
+      heroDescription: 'Our promise: Quiet studio, friendly guidance, real moments. Max. 12 people per session – children, grandparents & pets are warmly welcome. Outfit changes? Absolutely. Feel free to bring toys & hobby props (ball, violin, favorite book...).',
+      primaryCta: 'Book a Spot on the Waitlist',
+      secondaryCta: 'Give a Family Voucher',
+    },
+    de: {
+      heroTitle: 'Familienfotografie in Wien',
+      heroSubtitle: 'Familienfotos – Studio-Pakete (bis 12 Personen)',
+      heroDescription: 'Kurzversprechen: Ruhiges Studio, freundliche Anleitung, echte Momente. Max. 12 Personen pro Termin – Kinder, Großeltern & Haustiere sind herzlich willkommen. Outfitwechsel? Sehr gern. Bringt gern Spielzeug & Hobby-Requisiten (Ball, Geige, Lieblingsbuch …) mit.',
+      primaryCta: 'Termin auf der Warteliste sichern',
+      secondaryCta: 'Familien-Gutschein verschenken',
+    }
+  };
+
+  const fb = fallbacks[language] || fallbacks.de;
 
   const fromManual = (key: string, fallback: string) => {
     const value = t(key);
@@ -21,14 +43,14 @@ export default function FamilienfotosWienPage() {
     return value;
   };
 
-  const heroTitle = fromManual('manual.familienfotos.heroTitle', 'Familienfotografie in Wien');
-  const heroSubtitle = fromManual('manual.familienfotos.heroTagline', 'Familienfotos – Studio-Pakete (bis 12 Personen)');
+  const heroTitle = fromManual('manual.familienfotos.heroTitle', fb.heroTitle);
+  const heroSubtitle = fromManual('manual.familienfotos.heroTagline', fb.heroSubtitle);
   const heroDescription = fromManual(
     'manual.familienfotos.heroDescription',
-    'Kurzversprechen: Ruhiges Studio, freundliche Anleitung, echte Momente. Max. 12 Personen pro Termin – Kinder, Großeltern & Haustiere sind herzlich willkommen. Outfitwechsel? Sehr gern. Bringt gern Spielzeug & Hobby-Requisiten (Ball, Geige, Lieblingsbuch …) mit.'
+    fb.heroDescription
   );
-  const primaryCta = fromManual('manual.familienfotos.primaryCta', 'Termin auf der Warteliste sichern');
-  const secondaryCta = fromManual('manual.familienfotos.secondaryCta', 'Familien-Gutschein verschenken');
+  const primaryCta = fromManual('manual.familienfotos.primaryCta', fb.primaryCta);
+  const secondaryCta = fromManual('manual.familienfotos.secondaryCta', fb.secondaryCta);
   const heroImage1 = fromManual('manual.familienfotos.heroImage1', '');
   const heroImage2 = fromManual('manual.familienfotos.heroImage2', '');
   const heroImage3 = fromManual('manual.familienfotos.heroImage3', '');

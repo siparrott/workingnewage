@@ -8,11 +8,33 @@ import { useCart } from '../../context/CartContext';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
 import { newageCopyMap } from '../../content/newageCopyMap';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function PortraitfotografieWienPage() {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const t = useManualPageContent('portraitfotografie');
+  const { language } = useLanguage();
+
+  // Language-aware fallbacks
+  const fallbacks = {
+    en: {
+      heroTitle: 'Portrait Photography in Vienna',
+      heroSubtitle: 'Real presence. Clean lighting. Images that last.',
+      heroDescription: 'As a portrait photographer in Vienna, we capture you exactly how you want to be seen – editorial, classic or creative. In the studio or on location. No stiff poses, with clear direction and pace.',
+      primaryCta: 'Book a Spot',
+      secondaryCta: 'Consultation & Availability',
+    },
+    de: {
+      heroTitle: 'Portraitfotografie in Wien',
+      heroSubtitle: 'Echte Ausstrahlung. Saubere Lichtführung. Bilder, die bleiben.',
+      heroDescription: 'Als portraitfotograf wien inszenieren wir dich so, wie du gesehen werden willst – editorial, klassisch oder kreativ. Im Studio oder on location. Ohne steife Posen, mit klarer Richtung und Tempo.',
+      primaryCta: 'Termin sichern',
+      secondaryCta: 'Beratung & Verfügbarkeit',
+    }
+  };
+
+  const fb = fallbacks[language] || fallbacks.de;
 
   const fromManual = (key: string, fallback: string) => {
     const value = t(key);
@@ -22,11 +44,11 @@ export default function PortraitfotografieWienPage() {
     return value;
   };
 
-  const heroTitle = fromManual('manual.portraitfotografie.heroTitle', 'Portraitfotografie in Wien');
-  const heroSubtitle = fromManual('manual.portraitfotografie.heroTagline', 'Echte Ausstrahlung. Saubere Lichtführung. Bilder, die bleiben.');
-  const heroDescription = fromManual('manual.portraitfotografie.heroDescription', 'Als portraitfotograf wien inszenieren wir dich so, wie du gesehen werden willst – editorial, klassisch oder kreativ. Im Studio oder on location. Ohne steife Posen, mit klarer Richtung und Tempo.');
-  const primaryCta = fromManual('manual.portraitfotografie.primaryCta', 'Termin sichern');
-  const secondaryCta = fromManual('manual.portraitfotografie.secondaryCta', 'Beratung & Verfügbarkeit');
+  const heroTitle = fromManual('manual.portraitfotografie.heroTitle', fb.heroTitle);
+  const heroSubtitle = fromManual('manual.portraitfotografie.heroTagline', fb.heroSubtitle);
+  const heroDescription = fromManual('manual.portraitfotografie.heroDescription', fb.heroDescription);
+  const primaryCta = fromManual('manual.portraitfotografie.primaryCta', fb.primaryCta);
+  const secondaryCta = fromManual('manual.portraitfotografie.secondaryCta', fb.secondaryCta);
   const heroImage1 = fromManual('manual.portraitfotografie.heroImage1', '');
   const heroImage2 = fromManual('manual.portraitfotografie.heroImage2', '');
   const heroImage3 = fromManual('manual.portraitfotografie.heroImage3', '');

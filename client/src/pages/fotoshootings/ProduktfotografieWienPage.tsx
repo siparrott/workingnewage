@@ -7,10 +7,32 @@ import { Package, Check, ArrowRight, Sparkles, Camera, Layers, SlidersHorizontal
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
 import { newageCopyMap } from '../../content/newageCopyMap';
+import { useLanguage } from '../../context/LanguageContext';
 
 // CACHE BUST v2.0
 export default function ProduktfotografieWienPage() {
   const t = useManualPageContent('produktfotografie');
+  const { language } = useLanguage();
+
+  // Language-aware fallbacks
+  const fallbacks = {
+    en: {
+      heroTitle: 'Product & E-Commerce Photography in Vienna',
+      heroSubtitle: 'Sharp. Color-accurate. Sales-driven.',
+      heroDescription: 'As a product photographer in Vienna, we deliver images that convert – from technically clean cutouts to elegant reflections to lifestyle sets that show story and benefit. For Amazon, Shopify, B2B catalogs, PR & Social.',
+      primaryCta: 'Secure a Slot',
+      secondaryCta: 'Inquiry & Specs',
+    },
+    de: {
+      heroTitle: 'Produkt- & E-Commerce-Fotografie in Wien',
+      heroSubtitle: 'Scharf. Farbtreu. Verkaufsstark.',
+      heroDescription: 'Als produktfotograf wien liefern wir Bilder, die konvertieren – von technisch sauberen Freistellern über edle Spiegelungen bis zu Lifestyle-Sets, die Story und Nutzen zeigen. Für Amazon, Shopify, B2B-Kataloge, PR & Social.',
+      primaryCta: 'Slot sichern',
+      secondaryCta: 'Anfrage & Specs',
+    }
+  };
+
+  const fb = fallbacks[language] || fallbacks.de;
 
   const fromManual = (key: string, fallback: string) => {
     const value = t(key);
@@ -20,11 +42,11 @@ export default function ProduktfotografieWienPage() {
     return value;
   };
 
-  const heroTitle = fromManual('manual.produktfotografie.heroTitle', 'Produkt- & E-Commerce-Fotografie in Wien');
-  const heroSubtitle = fromManual('manual.produktfotografie.heroTagline', 'Scharf. Farbtreu. Verkaufsstark.');
-  const heroDescription = fromManual('manual.produktfotografie.heroDescription', 'Als produktfotograf wien liefern wir Bilder, die konvertieren – von technisch sauberen Freistellern über edle Spiegelungen bis zu Lifestyle-Sets, die Story und Nutzen zeigen. Für Amazon, Shopify, B2B-Kataloge, PR & Social.');
-  const primaryCta = fromManual('manual.produktfotografie.primaryCta', 'Slot sichern');
-  const secondaryCta = fromManual('manual.produktfotografie.secondaryCta', 'Anfrage & Specs');
+  const heroTitle = fromManual('manual.produktfotografie.heroTitle', fb.heroTitle);
+  const heroSubtitle = fromManual('manual.produktfotografie.heroTagline', fb.heroSubtitle);
+  const heroDescription = fromManual('manual.produktfotografie.heroDescription', fb.heroDescription);
+  const primaryCta = fromManual('manual.produktfotografie.primaryCta', fb.primaryCta);
+  const secondaryCta = fromManual('manual.produktfotografie.secondaryCta', fb.secondaryCta);
   const heroImage1 = fromManual('manual.produktfotografie.heroImage1', '');
   const heroImage3 = fromManual('manual.produktfotografie.heroImage3', '');
   const heroImage4 = fromManual('manual.produktfotografie.heroImage4', '');

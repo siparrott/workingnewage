@@ -6,9 +6,31 @@ import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Briefcase, Buildi
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
 import { newageCopyMap } from '../../content/newageCopyMap';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function TeamfotosWienPage() {
   const t = useManualPageContent('teamfotos');
+  const { language } = useLanguage();
+
+  // Language-aware fallbacks
+  const fallbacks = {
+    en: {
+      heroTitle: 'Team & Employee Photos in Vienna',
+      heroSubtitle: 'Strong. Consistent. Brand-aligned.',
+      heroDescription: 'We photograph team photos in Vienna directly at your company – with mobile studio, fast workflow and a look that matches your brand. Ideal for website, LinkedIn, press & recruiting.',
+      primaryCta: 'Book a Spot on the Waitlist',
+      secondaryCta: 'Contact Us Directly',
+    },
+    de: {
+      heroTitle: 'Team- & Mitarbeiterfotos in Wien',
+      heroSubtitle: 'Stark. Einheitlich. Markengetreu.',
+      heroDescription: 'Wir fotografieren Teamfotos in Wien direkt bei Ihnen im Unternehmen – mit mobilem Studio, schnellem Ablauf und einem Look, der zu Ihrer Brand passt. Ideal für Website, LinkedIn, Presse & Recruiting.',
+      primaryCta: 'Termin auf der Warteliste sichern',
+      secondaryCta: 'Direkt anfragen',
+    }
+  };
+
+  const fb = fallbacks[language] || fallbacks.de;
 
   const fromManual = (key: string, fallback: string) => {
     const value = t(key);
@@ -18,11 +40,11 @@ export default function TeamfotosWienPage() {
     return value;
   };
 
-  const heroTitle = fromManual('manual.teamfotos.heroTitle', 'Team- & Mitarbeiterfotos in Wien');
-  const heroSubtitle = fromManual('manual.teamfotos.heroTagline', 'Stark. Einheitlich. Markengetreu.');
-  const heroDescription = fromManual('manual.teamfotos.heroDescription', 'Wir fotografieren Teamfotos in Wien direkt bei Ihnen im Unternehmen – mit mobilem Studio, schnellem Ablauf und einem Look, der zu Ihrer Brand passt. Ideal für Website, LinkedIn, Presse & Recruiting.');
-  const primaryCta = fromManual('manual.teamfotos.primaryCta', 'Termin auf der Warteliste sichern');
-  const secondaryCta = fromManual('manual.teamfotos.secondaryCta', 'Direkt anfragen');
+  const heroTitle = fromManual('manual.teamfotos.heroTitle', fb.heroTitle);
+  const heroSubtitle = fromManual('manual.teamfotos.heroTagline', fb.heroSubtitle);
+  const heroDescription = fromManual('manual.teamfotos.heroDescription', fb.heroDescription);
+  const primaryCta = fromManual('manual.teamfotos.primaryCta', fb.primaryCta);
+  const secondaryCta = fromManual('manual.teamfotos.secondaryCta', fb.secondaryCta);
   const heroImage1 = fromManual('manual.teamfotos.heroImage1', '');
   const heroImage2 = fromManual('manual.teamfotos.heroImage2', '');
   const heroImage3 = fromManual('manual.teamfotos.heroImage3', '');
