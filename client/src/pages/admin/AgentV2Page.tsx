@@ -1,6 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Shield, Sparkles, Zap, MessageSquare, Send, X, Loader2, RefreshCw } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Shield, Sparkles, Zap, MessageSquare, Send, X, Loader2, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import AdminLayout from '../../components/admin/AdminLayout';
+
+// Connection status type
+type ConnectionStatus = 'connected' | 'checking' | 'disconnected' | 'reconnecting';
 
 const AgentV2Page: React.FC = () => {
   const [showChat, setShowChat] = useState(false);
@@ -9,8 +12,98 @@ const AgentV2Page: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('checking');
   const retryCountRef = useRef(0);
-  const maxRetries = 3;
+  const maxRetries = 5; // Increased from 3
+  const healthCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const maxReconnectAttempts = 10;
+
+  // Health check function - verify agent endpoint is reachable
+  const checkAgentHealth = useCallback(async (): Promise<boolean> => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+      
+      const response = await fetch('/api/agent/v2/stats', {
+        method: 'GET',
+        credentials: 'include',
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      return response.ok;
+    } catch (error) {
+      console.warn('[Agent V2] Health check failed:', error);
+      return false;
+    }
+  }, []);
+
+  // Auto-reconnection logic
+  const attemptReconnection = useCallback(async () => {
+    if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+      setConnectionStatus('disconnected');
+      console.error('[Agent V2] Max reconnection attempts reached');
+      return;
+    }
+
+    setConnectionStatus('reconnecting');
+    reconnectAttemptsRef.current++;
+    
+    const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current - 1), 30000); // Exponential backoff, max 30s
+    console.log(`[Agent V2] Reconnection attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts} in ${delay}ms`);
+    
+    await new Promise(resolve => setTimeout(resolve, delay));
+    
+    const isHealthy = await checkAgentHealth();
+    if (isHealthy) {
+      setConnectionStatus('connected');
+      reconnectAttemptsRef.current = 0;
+      console.log('[Agent V2] ✅ Reconnected successfully');
+    } else {
+      attemptReconnection();
+    }
+  }, [checkAgentHealth]);
+
+  // Start health monitoring on mount
+  useEffect(() => {
+    let isMounted = true;
+
+    const startHealthMonitoring = async () => {
+      // Initial health check
+      const isHealthy = await checkAgentHealth();
+      if (isMounted) {
+        setConnectionStatus(isHealthy ? 'connected' : 'disconnected');
+        if (!isHealthy) {
+          attemptReconnection();
+        }
+      }
+
+      // Periodic health checks every 30 seconds
+      healthCheckIntervalRef.current = setInterval(async () => {
+        if (!isMounted) return;
+        
+        const healthy = await checkAgentHealth();
+        if (!healthy && connectionStatus === 'connected') {
+          console.warn('[Agent V2] Connection lost, attempting to reconnect...');
+          setConnectionStatus('reconnecting');
+          attemptReconnection();
+        } else if (healthy && connectionStatus !== 'connected') {
+          setConnectionStatus('connected');
+          reconnectAttemptsRef.current = 0;
+        }
+      }, 30000);
+    };
+
+    startHealthMonitoring();
+
+    return () => {
+      isMounted = false;
+      if (healthCheckIntervalRef.current) {
+        clearInterval(healthCheckIntervalRef.current);
+      }
+    };
+  }, [checkAgentHealth, attemptReconnection, connectionStatus]);
 
   // Reset session on mount
   useEffect(() => {
@@ -22,6 +115,16 @@ const AgentV2Page: React.FC = () => {
     const userMessage = retryMessage || message.trim();
     if (!userMessage || isLoading) return;
 
+    // Check connection before sending
+    if (connectionStatus === 'disconnected') {
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: '⚠️ Agent is currently disconnected. Attempting to reconnect...'
+      }]);
+      attemptReconnection();
+      return;
+    }
+
     if (!retryMessage) {
       setMessage('');
       setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
@@ -31,10 +134,14 @@ const AgentV2Page: React.FC = () => {
 
     const attemptRequest = async (): Promise<void> => {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for chat requests
+        
         const response = await fetch('/api/agent/v2/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
+          signal: controller.signal,
           body: JSON.stringify({
             message: userMessage,
             sessionId: sessionId,
@@ -42,16 +149,31 @@ const AgentV2Page: React.FC = () => {
           })
         });
 
+        clearTimeout(timeoutId);
+
         if (!response.ok) {
+          // Handle specific HTTP errors
+          if (response.status === 401 || response.status === 403) {
+            throw new Error('Authentication required. Please refresh the page and log in again.');
+          }
+          if (response.status === 500) {
+            throw new Error('Server error. The team has been notified.');
+          }
+          if (response.status === 503) {
+            throw new Error('Service temporarily unavailable. Retrying...');
+          }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
         const result = await response.json();
         retryCountRef.current = 0; // Reset retry count on success
+        setConnectionStatus('connected'); // Confirm connection is good
         
         // Save session ID for conversation continuity
         if (result.sessionId) {
           setSessionId(result.sessionId);
+          // Persist session ID to localStorage for page refreshes
+          localStorage.setItem('agentV2SessionId', result.sessionId);
         }
         
         if (result.message) {
@@ -78,19 +200,33 @@ const AgentV2Page: React.FC = () => {
       } catch (error: any) {
         console.error('[Agent V2] Request failed:', error);
         
-        // Retry logic
+        // Check if it's a network error vs application error
+        const isNetworkError = error.name === 'AbortError' || 
+                              error.message?.includes('fetch') || 
+                              error.message?.includes('network') ||
+                              error.message?.includes('Failed to fetch');
+        
+        // Retry logic with exponential backoff
         if (retryCountRef.current < maxRetries) {
           retryCountRef.current++;
-          console.log(`[Agent V2] Retrying... attempt ${retryCountRef.current}/${maxRetries}`);
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCountRef.current));
+          const delay = Math.min(1000 * Math.pow(1.5, retryCountRef.current), 10000);
+          console.log(`[Agent V2] Retrying... attempt ${retryCountRef.current}/${maxRetries} in ${delay}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
           return attemptRequest();
         }
         
         // All retries failed
         setConnectionError(true);
+        if (isNetworkError) {
+          setConnectionStatus('disconnected');
+          attemptReconnection();
+        }
+        
         setMessages(prev => [...prev, { 
           role: 'assistant', 
-          content: 'Failed to connect to the agent. Please try again.'
+          content: isNetworkError 
+            ? '⚠️ Connection lost. Attempting to reconnect automatically...'
+            : `Error: ${error.message || 'Failed to process request. Please try again.'}`
         }]);
       }
     };
@@ -114,6 +250,26 @@ const AgentV2Page: React.FC = () => {
     setMessages([]);
     setConnectionError(false);
     retryCountRef.current = 0;
+    localStorage.removeItem('agentV2SessionId');
+  };
+
+  // Connection status indicator component
+  const ConnectionIndicator = () => {
+    const statusConfig = {
+      connected: { color: 'bg-green-500', text: 'Connected', icon: Wifi },
+      checking: { color: 'bg-yellow-500 animate-pulse', text: 'Checking...', icon: Wifi },
+      disconnected: { color: 'bg-red-500', text: 'Disconnected', icon: WifiOff },
+      reconnecting: { color: 'bg-yellow-500 animate-pulse', text: 'Reconnecting...', icon: RefreshCw }
+    };
+    const config = statusConfig[connectionStatus];
+    const Icon = config.icon;
+    
+    return (
+      <div className="flex items-center gap-1 text-xs">
+        <span className={`w-2 h-2 rounded-full ${config.color}`}></span>
+        <Icon className={`w-3 h-3 ${connectionStatus === 'reconnecting' ? 'animate-spin' : ''}`} />
+      </div>
+    );
   };
 
   return (
@@ -289,6 +445,7 @@ const AgentV2Page: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5" />
                 <h3 className="font-semibold">Agent V2 Assistant</h3>
+                <ConnectionIndicator />
               </div>
               <div className="flex items-center gap-1">
                 <button
@@ -306,6 +463,25 @@ const AgentV2Page: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {/* Connection Warning Banner */}
+            {connectionStatus === 'disconnected' && (
+              <div className="bg-red-50 border-b border-red-200 px-4 py-2 flex items-center justify-between">
+                <span className="text-red-700 text-xs">Connection lost</span>
+                <button 
+                  onClick={attemptReconnection}
+                  className="text-red-700 text-xs underline hover:text-red-900"
+                >
+                  Reconnect
+                </button>
+              </div>
+            )}
+            {connectionStatus === 'reconnecting' && (
+              <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 flex items-center gap-2">
+                <Loader2 className="w-3 h-3 animate-spin text-yellow-700" />
+                <span className="text-yellow-700 text-xs">Reconnecting...</span>
+              </div>
+            )}
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
