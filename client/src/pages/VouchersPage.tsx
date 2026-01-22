@@ -48,6 +48,28 @@ const VouchersPage: React.FC = () => {
 
   // NO fallback vouchers - always load from API to prevent placeholder flash
 
+  // Translation map for product descriptions (English -> German)
+  // Keys must match EXACTLY what's in the database
+  const descriptionTranslations: Record<string, string> = {
+    // Familie Fotoshootings
+    'Professional family photo session in our studio - 10x Portraits of your choice Digital, and one A3 (40x30cm) canvas - Shooting for up to five persons plus pets': 'Professionelles Familien-Fotoshooting in unserem Studio - 10x Portraits Ihrer Wahl digital, und eine A3 (40x30cm) Leinwand - Shooting für bis zu fünf Personen plus Haustiere',
+    // Business Portrait Session
+    'Professional headshots for business use on location - price per Person': 'Professionelle Business-Portraits vor Ort - Preis pro Person',
+    // Shooting Experience Gutschein (multiline description from DB)
+    'Valid for Families of all sizes, including pregnancy and newborn Shootings\nOne hour Shooting for up to 15 guests plus pets\n3 Outfit changes\nA2 (60x40cm) canvas - portrait of your choice\nDigital copy to share, and to make copies, delivered as a high quality jpg file': 
+      'Gültig für Familien jeder Größe, inklusive Schwangerschafts- und Neugeborenen-Shootings\nEine Stunde Shooting für bis zu 15 Gäste plus Haustiere\n3 Outfit-Wechsel\nA2 (60x40cm) Leinwand - Portrait Ihrer Wahl\nDigitale Kopie zum Teilen und für Abzüge, als hochwertige JPG-Datei',
+    // Maternity Premium
+    '60 minute shoot - including all Portraits in Digital format (high quality jpg, delivered electronically)': '60-minütiges Shooting - inklusive aller Portraits im Digitalformat (hochwertige JPG-Dateien, elektronisch geliefert)',
+  };
+
+  // Helper function to get translated description
+  const getTranslatedDescription = (description: string): string => {
+    if (language === 'de' && descriptionTranslations[description]) {
+      return descriptionTranslations[description];
+    }
+    return description;
+  };
+
   // Transform API products to match expected format
   const voucherProducts = useMemo(() => {
     // ALWAYS wait for API data - NEVER show defaultVouchers fallback
@@ -62,11 +84,12 @@ const VouchersPage: React.FC = () => {
       .map((p: any) => {
         const imageUrl = p.imageUrl || p.image_url || p.thumbnailUrl || p.thumbnail_url;
         console.log(`📷 Product: ${p.name}, imageUrl:`, imageUrl);
+        const rawDescription = p.description || '';
         return {
           id: p.id,
           name: p.name,
           slug: p.slug,
-          description: p.description || '',
+          description: getTranslatedDescription(rawDescription),
           price: parseFloat(p.price) || 0,
           originalPrice: p.originalPrice || p.original_price ? parseFloat(p.originalPrice || p.original_price) : parseFloat(p.price) * 1.3,
           image: imageUrl || '', // Use actual uploaded image or empty string
@@ -76,7 +99,7 @@ const VouchersPage: React.FC = () => {
           isActive: p.isActive !== false && p.is_active !== false
         };
       });
-  }, [apiProducts]);
+  }, [apiProducts, language]);
 
   // Preload all voucher images to prevent flashing
   const imageUrlsToPreload = useMemo(() => {

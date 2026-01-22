@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { Calendar, Tag, AlertCircle, Info, ShoppingCart, ArrowLeft } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ApiVoucher {
   id: string;
@@ -22,10 +23,33 @@ interface ApiVoucher {
 const VoucherDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { language } = useLanguage();
   const [quantity, setQuantity] = useState(1);
   const [voucher, setVoucher] = useState<ApiVoucher | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Translation map for product descriptions (English -> German)
+  const descriptionTranslations: Record<string, string> = {
+    // Familie Fotoshootings
+    'Professional family photo session in our studio - 10x Portraits of your choice Digital, and one A3 (40x30cm) canvas - Shooting for up to five persons plus pets': 'Professionelles Familien-Fotoshooting in unserem Studio - 10x Portraits Ihrer Wahl digital, und eine A3 (40x30cm) Leinwand - Shooting für bis zu fünf Personen plus Haustiere',
+    // Business Portrait Session
+    'Professional headshots for business use on location - price per Person': 'Professionelle Business-Portraits vor Ort - Preis pro Person',
+    // Shooting Experience Gutschein (multiline description from DB)
+    'Valid for Families of all sizes, including pregnancy and newborn Shootings\nOne hour Shooting for up to 15 guests plus pets\n3 Outfit changes\nA2 (60x40cm) canvas - portrait of your choice\nDigital copy to share, and to make copies, delivered as a high quality jpg file': 
+      'Gültig für Familien jeder Größe, inklusive Schwangerschafts- und Neugeborenen-Shootings\nEine Stunde Shooting für bis zu 15 Gäste plus Haustiere\n3 Outfit-Wechsel\nA2 (60x40cm) Leinwand - Portrait Ihrer Wahl\nDigitale Kopie zum Teilen und für Abzüge, als hochwertige JPG-Datei',
+    // Maternity Premium
+    '60 minute shoot - including all Portraits in Digital format (high quality jpg, delivered electronically)': '60-minütiges Shooting - inklusive aller Portraits im Digitalformat (hochwertige JPG-Dateien, elektronisch geliefert)',
+  };
+
+  // Helper function to get translated description
+  const getTranslatedDescription = (description: string | null): string => {
+    if (!description) return '';
+    if (language === 'de' && descriptionTranslations[description]) {
+      return descriptionTranslations[description];
+    }
+    return description;
+  };
 
   useEffect(() => {
     let active = true;
@@ -162,7 +186,7 @@ const VoucherDetailPage: React.FC = () => {
                 <span className="text-purple-600 font-bold text-3xl ml-2">€{voucher.price.toFixed(2)}</span>
               </div>
               
-              <p className="text-gray-700 mb-6">{voucher.description}</p>
+              <p className="text-gray-700 mb-6">{getTranslatedDescription(voucher.description)}</p>
               
               <div className="mb-6">
                 <p className="text-gray-700 mb-2">

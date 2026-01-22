@@ -1,7 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
-import { TemplateProvider } from './contexts/TemplateContext';
 import './index.css';
 
 // Enhanced error handling for production deployment
@@ -45,9 +44,7 @@ const initializeApp = () => {
 
     createRoot(rootElement).render(
       <StrictMode>
-        <TemplateProvider>
-          <App />
-        </TemplateProvider>
+        <App />
       </StrictMode>
     );
   } catch (error) {
