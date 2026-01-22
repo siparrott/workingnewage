@@ -4,6 +4,7 @@ import Header from './Header';
 import Footer from './Footer';
 import PartnerLogos from './PartnerLogos';
 import GoogleReviews from './GoogleReviews';
+import WhatsAppButton from '../WhatsAppButton';
 
 interface LayoutProps {
   children: ReactNode;
@@ -21,6 +22,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <GoogleReviews />
       <PartnerLogos />
       <Footer />
+      <WhatsAppButton />
     </div>
   );
 };
