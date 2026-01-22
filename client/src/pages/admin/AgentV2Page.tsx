@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Shield, Sparkles, Zap, MessageSquare, Send, X, Loader2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Shield, Sparkles, Zap, MessageSquare, Send, X, Loader2, RefreshCw } from 'lucide-react';
 import AdminLayout from '../../components/admin/AdminLayout';
 
 const AgentV2Page: React.FC = () => {
@@ -7,47 +7,113 @@ const AgentV2Page: React.FC = () => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState(false);
+  const retryCountRef = useRef(0);
+  const maxRetries = 3;
 
-  const handleSendMessage = async () => {
-    if (!message.trim() || isLoading) return;
+  // Reset session on mount
+  useEffect(() => {
+    setSessionId(null);
+    setMessages([]);
+  }, []);
 
-    const userMessage = message.trim();
-    setMessage('');
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+  const handleSendMessage = async (retryMessage?: string) => {
+    const userMessage = retryMessage || message.trim();
+    if (!userMessage || isLoading) return;
+
+    if (!retryMessage) {
+      setMessage('');
+      setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    }
     setIsLoading(true);
+    setConnectionError(false);
 
-    try {
-      const response = await fetch('/api/agent-v2/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          message: userMessage,
-          safetyMode: 'auto-safe'
-        })
-      });
+    const attemptRequest = async (): Promise<void> => {
+      try {
+        const response = await fetch('/api/agent/v2/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            message: userMessage,
+            sessionId: sessionId,
+            mode: 'auto_safe'
+          })
+        });
 
-      const result = await response.json();
-      
-      if (result.success) {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        retryCountRef.current = 0; // Reset retry count on success
+        
+        // Save session ID for conversation continuity
+        if (result.sessionId) {
+          setSessionId(result.sessionId);
+        }
+        
+        if (result.message) {
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: result.message
+          }]);
+        } else if (result.confirmRequired) {
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: `⚠️ Confirmation required: ${result.message || result.reason || 'This action needs your approval.'}`
+          }]);
+        } else if (result.error) {
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: `Error: ${result.error}`
+          }]);
+        } else {
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: 'Task completed.'
+          }]);
+        }
+      } catch (error: any) {
+        console.error('[Agent V2] Request failed:', error);
+        
+        // Retry logic
+        if (retryCountRef.current < maxRetries) {
+          retryCountRef.current++;
+          console.log(`[Agent V2] Retrying... attempt ${retryCountRef.current}/${maxRetries}`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCountRef.current));
+          return attemptRequest();
+        }
+        
+        // All retries failed
+        setConnectionError(true);
         setMessages(prev => [...prev, { 
           role: 'assistant', 
-          content: result.response || 'Task completed successfully.'
-        }]);
-      } else {
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: `Error: ${result.error || 'Failed to process request'}`
+          content: 'Failed to connect to the agent. Please try again.'
         }]);
       }
-    } catch (error) {
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: 'Failed to connect to the agent. Please try again.'
-      }]);
-    } finally {
-      setIsLoading(false);
+    };
+
+    await attemptRequest();
+    setIsLoading(false);
+  };
+
+  const handleRetry = () => {
+    const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
+    if (lastUserMessage) {
+      // Remove the error message
+      setMessages(prev => prev.slice(0, -1));
+      retryCountRef.current = 0;
+      handleSendMessage(lastUserMessage.content);
     }
+  };
+
+  const handleNewSession = () => {
+    setSessionId(null);
+    setMessages([]);
+    setConnectionError(false);
+    retryCountRef.current = 0;
   };
 
   return (
@@ -224,12 +290,21 @@ const AgentV2Page: React.FC = () => {
                 <Sparkles className="w-5 h-5" />
                 <h3 className="font-semibold">Agent V2 Assistant</h3>
               </div>
-              <button
-                onClick={() => setShowChat(false)}
-                className="hover:bg-white/20 p-1 rounded transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handleNewSession}
+                  className="hover:bg-white/20 p-1 rounded transition-colors"
+                  title="New conversation"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setShowChat(false)}
+                  className="hover:bg-white/20 p-1 rounded transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Messages */}
@@ -265,6 +340,17 @@ const AgentV2Page: React.FC = () => {
                   </div>
                 </div>
               )}
+              {connectionError && !isLoading && (
+                <div className="flex justify-center">
+                  <button
+                    onClick={handleRetry}
+                    className="flex items-center gap-2 text-violet-600 hover:text-violet-700 text-sm"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Retry
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Input */}
@@ -280,7 +366,7 @@ const AgentV2Page: React.FC = () => {
                   disabled={isLoading}
                 />
                 <button
-                  onClick={handleSendMessage}
+                  onClick={() => handleSendMessage()}
                   disabled={isLoading || !message.trim()}
                   className="bg-gradient-to-r from-violet-600 to-purple-600 text-white p-2 rounded-lg hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
