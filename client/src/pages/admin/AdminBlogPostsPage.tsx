@@ -52,17 +52,9 @@ const AdminBlogPostsPage: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      // Build query parameters
-      const params = new URLSearchParams();
-      if (statusFilter !== 'all') {
-        if (statusFilter === 'published') {
-          params.append('published', 'true');
-        } else if (statusFilter === 'draft') {
-          params.append('published', 'false');
-        }
-      }
-      
-      const response = await fetch(`/api/blog/posts?${params.toString()}`, {
+      // Fetch all posts - we'll filter by status on the client side
+      // This ensures we get SCHEDULED posts which have published=false
+      const response = await fetch('/api/blog/posts', {
         credentials: 'include'
       });
       
@@ -73,6 +65,7 @@ const AdminBlogPostsPage: React.FC = () => {
       const data = await response.json();
       
       // Map the API response to match the expected format
+      // Use the actual status field from the API - don't override based on published boolean
       const mappedPosts = data.posts.map((post: any) => ({
         id: post.id,
         title: post.title,
@@ -80,10 +73,12 @@ const AdminBlogPostsPage: React.FC = () => {
         excerpt: post.excerpt,
         content_html: post.contentHtml || post.content,
         cover_image: post.imageUrl,
-        status: post.published ? 'PUBLISHED' : 'DRAFT',
+        // Use actual status from API - PUBLISHED, SCHEDULED, or DRAFT
+        status: post.status || (post.published ? 'PUBLISHED' : 'DRAFT'),
         published: post.published,
         author_id: post.authorId,
         published_at: post.publishedAt,
+        scheduled_for: post.scheduledFor, // Include scheduled date
         created_at: post.createdAt,
         updated_at: post.updatedAt,
         seo_title: post.seoTitle,
@@ -91,14 +86,25 @@ const AdminBlogPostsPage: React.FC = () => {
         tags: post.tags || []
       }));
       
+      // Filter by status
+      let filteredByStatus = mappedPosts;
+      if (statusFilter !== 'all') {
+        filteredByStatus = mappedPosts.filter((post: any) => {
+          if (statusFilter === 'published') return post.status === 'PUBLISHED';
+          if (statusFilter === 'scheduled') return post.status === 'SCHEDULED';
+          if (statusFilter === 'draft') return post.status === 'DRAFT';
+          return true;
+        });
+      }
+      
       // Filter by search term if present
       const filteredPosts = searchTerm 
-        ? mappedPosts.filter((post: any) => 
+        ? filteredByStatus.filter((post: any) => 
             post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            post.content_html.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (post.content_html && post.content_html.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (post.excerpt && post.excerpt.toLowerCase().includes(searchTerm.toLowerCase()))
           )
-        : mappedPosts;
+        : filteredByStatus;
       
       setPosts(filteredPosts);
       setTotalPosts(filteredPosts.length);
@@ -181,9 +187,14 @@ const AdminBlogPostsPage: React.FC = () => {
           </span>
         );
       case 'SCHEDULED':
+        const scheduledDate = post.scheduled_for ? new Date(post.scheduled_for).toLocaleDateString('de-AT', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric'
+        }) : '';
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-            <Clock size={12} className="mr-1" /> {t('status.scheduled')}
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+            <Clock size={12} className="mr-1" /> Scheduled: {scheduledDate}
           </span>
         );
       default:
