@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Upload, Check, ChevronRight, Camera, Eye, Download } from 'lucide-react';
+import { Upload, Check, ChevronRight, ChevronLeft, Camera, Eye, Download, ArrowLeft } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface DeliveryOption {
   id: string;
@@ -45,6 +46,7 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
   onComplete, 
   voucherAmount 
 }) => {
+  const { language } = useLanguage();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryOption | null>(null);
   const [selectedDesign, setSelectedDesign] = useState<DesignTemplate | null>(null);
@@ -63,6 +65,37 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
     country: 'AT',
   });
   const [addressTouched, setAddressTouched] = useState(false);
+
+  // Translations
+  const t = {
+    back: language === 'en' ? 'Back' : 'Zurück',
+    next: language === 'en' ? 'Next' : 'Weiter',
+    step1Title: language === 'en' ? 'Select Delivery' : 'Versandart wählen',
+    step2Title: language === 'en' ? 'Choose Design / Upload Photo' : 'Motiv wählen / Foto hochladen',
+    step3Title: language === 'en' ? 'Personal Message' : 'Persönliche Widmung',
+    step4Title: language === 'en' ? 'Preview & Checkout' : 'Vorschau & Kasse',
+    previewTitle: language === 'en' ? 'Voucher Preview' : 'Gutschein Vorschau',
+    previewSubtitle: language === 'en' ? 'This is how your personalized voucher will look. Please check all details before payment.' : 'So wird Ihr personalisierter Gutschein aussehen. Bitte überprüfen Sie alle Details vor der Zahlung.',
+    showPreview: language === 'en' ? 'Show Preview' : 'Vorschau anzeigen',
+    backToEdit: language === 'en' ? 'Back to edit' : 'Zurück bearbeiten',
+    payNow: language === 'en' ? 'Pay now & receive voucher' : 'Jetzt bezahlen & Gutschein erhalten',
+    afterPayment: language === 'en' ? 'After successful payment, you can download your voucher as PDF.' : 'Nach erfolgreicher Zahlung können Sie Ihren Gutschein als PDF herunterladen.',
+    recipientLabel: language === 'en' ? 'Recipient Name (optional)' : 'Empfänger Name (optional)',
+    recipientPlaceholder: language === 'en' ? 'Who is this voucher for?' : 'Für wen ist dieser Gutschein?',
+    messageLabel: language === 'en' ? 'Personal Message *' : 'Persönliche Nachricht *',
+    messagePlaceholder: language === 'en' ? 'Enter your message...' : 'Widmung eingeben...',
+    senderLabel: language === 'en' ? 'Your Name (optional)' : 'Ihr Name (optional)',
+    senderPlaceholder: language === 'en' ? 'Who is this voucher from?' : 'Von wem ist dieser Gutschein?',
+    characters: language === 'en' ? 'characters' : 'Zeichen',
+    searchPhoto: language === 'en' ? 'Search Photo' : 'Foto suchen',
+    uploadPhotoHint: language === 'en' ? 'Click here to upload your own photo' : 'Klicken Sie hier, um Ihr eigenes Foto hochzuladen',
+    validUntil: language === 'en' ? 'Valid until' : 'Gültig bis',
+    monthsFromPurchase: language === 'en' ? '12 months from purchase date' : '12 Monate ab Kaufdatum',
+    recipient: language === 'en' ? 'Recipient' : 'Empfänger/in',
+    from: language === 'en' ? 'From' : 'Von',
+    subtotal: language === 'en' ? 'Subtotal' : 'Zwischensumme',
+    shipping: language === 'en' ? 'Shipping' : 'Versand',
+  };
 
   const deliveryOptions: DeliveryOption[] = [
     {
@@ -208,10 +241,10 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
             </div>
             <div className="ml-3 mr-6">
               <p className={`font-medium ${currentStep === step ? 'text-blue-600' : 'text-gray-500'}`}>
-                {step === 1 && 'Versandart wählen'}
-                {step === 2 && 'Motiv wählen / Foto hochladen'}
-                {step === 3 && 'Persönliche Widmung'}
-                {step === 4 && 'Vorschau & Kasse'}
+                {step === 1 && t.step1Title}
+                {step === 2 && t.step2Title}
+                {step === 3 && t.step3Title}
+                {step === 4 && t.step4Title}
               </p>
             </div>
             {step < 4 && (
@@ -224,7 +257,7 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
       {/* Step 1: Delivery Options */}
       {currentStep === 1 && (
         <div>
-          <h2 className="text-2xl font-bold mb-6 text-center">Versandart wählen</h2>
+          <h2 className="text-2xl font-bold mb-6 text-center">{t.step1Title}</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {deliveryOptions.map((option) => (
               <div
@@ -282,7 +315,14 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column: Design Selection */}
           <div>
-            <h2 className="text-2xl font-bold mb-6 text-center">Motiv wählen / Foto hochladen</h2>
+            <button
+              onClick={() => setCurrentStep(1)}
+              className="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4"
+            >
+              <ArrowLeft size={20} />
+              <span>{t.back}</span>
+            </button>
+            <h2 className="text-2xl font-bold mb-6 text-center">{t.step2Title}</h2>
             
             {/* Custom Photo Upload */}
             <div className="mb-8">
@@ -441,7 +481,14 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
       {/* Step 3: Personal Message */}
       {currentStep === 3 && (
         <div>
-          <h2 className="text-2xl font-bold mb-6 text-center">Persönliche Widmung</h2>
+          <button
+            onClick={() => setCurrentStep(2)}
+            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4"
+          >
+            <ArrowLeft size={20} />
+            <span>{t.back}</span>
+          </button>
+          <h2 className="text-2xl font-bold mb-6 text-center">{t.step3Title}</h2>
           
           <div className="max-w-2xl mx-auto space-y-6">
             <div>
@@ -580,9 +627,16 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
       {/* Step 4: Final Preview before Checkout */}
       {currentStep === 4 && (
         <div>
-          <h2 className="text-2xl font-bold mb-6 text-center">Gutschein Vorschau</h2>
+          <button
+            onClick={() => setCurrentStep(3)}
+            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4"
+          >
+            <ArrowLeft size={20} />
+            <span>{t.back}</span>
+          </button>
+          <h2 className="text-2xl font-bold mb-6 text-center">{t.previewTitle}</h2>
           <p className="text-center text-gray-600 mb-8">
-            So wird Ihr personalisierter Gutschein aussehen. Bitte überprüfen Sie alle Details vor der Zahlung.
+            {t.previewSubtitle}
           </p>
           
           {/* Voucher Preview Card */}
