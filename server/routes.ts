@@ -8211,6 +8211,219 @@ New Age Fotografie CRM System
     }
   });
 
+  // ===========================
+  // Portfolio Images API Routes
+  // ===========================
+
+  // Get all portfolio images (public, filterable by category)
+  app.get("/api/portfolio/images", async (req: Request, res: Response) => {
+    try {
+      const category = req.query.category as string | undefined;
+      
+      let query = `
+        SELECT id, category, url, alt, title, description, sort_order, is_active, created_at, updated_at
+        FROM portfolio_images
+        WHERE is_active = true
+      `;
+      const params: any[] = [];
+      
+      if (category) {
+        query += ` AND category = $1`;
+        params.push(category);
+      }
+      
+      query += ` ORDER BY category, sort_order ASC, created_at DESC`;
+      
+      const images = await runSql(query, params);
+      res.set('Cache-Control', 'no-store');
+      res.json(images);
+    } catch (error) {
+      console.error("Error fetching portfolio images:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get single portfolio image
+  app.get("/api/portfolio/images/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const result = await runSql(`
+        SELECT id, category, url, alt, title, description, sort_order, is_active, created_at, updated_at
+        FROM portfolio_images
+        WHERE id = $1
+      `, [id]);
+      
+      if (result.length === 0) {
+        return res.status(404).json({ error: "Image not found" });
+      }
+      
+      res.json(result[0]);
+    } catch (error) {
+      console.error("Error fetching portfolio image:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create portfolio image (admin only)
+  app.post("/api/portfolio/images", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { category, url, alt, title, description, sortOrder, isActive } = req.body;
+      
+      if (!category || !url) {
+        return res.status(400).json({ error: "Category and URL are required" });
+      }
+      
+      const result = await runSql(`
+        INSERT INTO portfolio_images (category, url, alt, title, description, sort_order, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING id, category, url, alt, title, description, sort_order, is_active, created_at, updated_at
+      `, [category, url, alt || null, title || null, description || null, sortOrder || 0, isActive !== false]);
+      
+      console.log(`✅ Created portfolio image: ${result[0].id}`);
+      res.json(result[0]);
+    } catch (error) {
+      console.error("Error creating portfolio image:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Update portfolio image (admin only)
+  app.put("/api/portfolio/images/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { category, url, alt, title, description, sortOrder, isActive } = req.body;
+      
+      const result = await runSql(`
+        UPDATE portfolio_images
+        SET 
+          category = COALESCE($2, category),
+          url = COALESCE($3, url),
+          alt = COALESCE($4, alt),
+          title = COALESCE($5, title),
+          description = COALESCE($6, description),
+          sort_order = COALESCE($7, sort_order),
+          is_active = COALESCE($8, is_active),
+          updated_at = NOW()
+        WHERE id = $1
+        RETURNING id, category, url, alt, title, description, sort_order, is_active, created_at, updated_at
+      `, [id, category, url, alt, title, description, sortOrder, isActive]);
+      
+      if (result.length === 0) {
+        return res.status(404).json({ error: "Image not found" });
+      }
+      
+      console.log(`✅ Updated portfolio image: ${id}`);
+      res.json(result[0]);
+    } catch (error) {
+      console.error("Error updating portfolio image:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete portfolio image (admin only)
+  app.delete("/api/portfolio/images/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      
+      const result = await runSql(`
+        DELETE FROM portfolio_images
+        WHERE id = $1
+        RETURNING id
+      `, [id]);
+      
+      if (result.length === 0) {
+        return res.status(404).json({ error: "Image not found" });
+      }
+      
+      console.log(`✅ Deleted portfolio image: ${id}`);
+      res.json({ success: true, message: "Image deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting portfolio image:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Upload portfolio image to Backblaze B2 (admin only)
+  app.post("/api/portfolio/images/upload", authenticateUser, upload.single('image'), async (req: Request, res: Response) => {
+    try {
+      console.log('[PORTFOLIO IMAGE UPLOAD] Request received');
+      console.log('[PORTFOLIO IMAGE UPLOAD] File:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'NO FILE');
+      console.log('[PORTFOLIO IMAGE UPLOAD] Category:', req.body.category);
+      
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded", message: "No file was provided in the upload request" });
+      }
+
+      const { category } = req.body;
+      if (!category) {
+        return res.status(400).json({ error: "Category is required", message: "Please specify a category for this image" });
+      }
+
+      const { bucket, endpoint, isConfigured } = getS3Config();
+      if (!isConfigured) {
+        console.error('❌ S3/B2 credentials or bucket not configured');
+        return res.status(503).json({ 
+          error: "Storage service not configured", 
+          message: "Storage service not configured. Please set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_BUCKET." 
+        });
+      }
+
+      console.log('[PORTFOLIO IMAGE UPLOAD] Optimizing image...');
+      const optimizedBuffer = await sharp(req.file.buffer)
+        .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 85, progressive: true })
+        .toBuffer();
+
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(7);
+      const filename = `portfolio/${category}-${timestamp}-${randomString}.jpg`;
+
+      console.log('[PORTFOLIO IMAGE UPLOAD] Uploading to B2:', filename);
+      const uploadCommand = new PutObjectCommand({
+        Bucket: bucket,
+        Key: filename,
+        Body: optimizedBuffer,
+        ContentType: 'image/jpeg',
+        CacheControl: 'public, max-age=31536000',
+      });
+
+      await getS3Client().send(uploadCommand);
+
+      const publicUrl = buildPublicUrl(bucket, endpoint, filename);
+      console.log('[PORTFOLIO IMAGE UPLOAD] Public URL:', publicUrl);
+
+      console.log('[PORTFOLIO IMAGE UPLOAD] Saving to database...');
+      const result = await runSql(`
+        INSERT INTO portfolio_images (category, url, alt, title, sort_order, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id, category, url, alt, title, description, sort_order, is_active, created_at, updated_at
+      `, [
+        category,
+        publicUrl,
+        req.body.alt || `Portfolio image for ${category}`,
+        req.body.title || category,
+        req.body.sortOrder || 0,
+        true
+      ]);
+
+      console.log(`✅ Uploaded and saved portfolio image: ${result[0].id}`);
+      console.log(`📸 Image URL: ${publicUrl}`);
+      
+      res.json({
+        success: true,
+        image: result[0],
+        message: "Image uploaded successfully"
+      });
+    } catch (error: any) {
+      console.error("[PORTFOLIO IMAGE UPLOAD] ❌ Error:", error);
+      console.error("[PORTFOLIO IMAGE UPLOAD] Error stack:", error.stack);
+      res.status(500).json({ 
+        error: "Failed to upload image",
+        message: error.message || "An unknown error occurred during upload"
+      });
+    }
+  });
+
   // Public upload endpoint for voucher custom photos (returns URL only; no DB write)
   app.post("/api/vouchers/upload-photo", upload.single('image'), async (req: Request, res: Response) => {
     try {
@@ -8311,6 +8524,13 @@ New Age Fotografie CRM System
           // Extract coupon code from metadata (key is voucher_used)
           const appliedCouponCode = metadata.voucher_used && metadata.voucher_used !== 'none' ? metadata.voucher_used : null;
           
+          // Extract billing address from customer_details
+          const customerAddress = session.customer_details?.address || {};
+          const billingAddress = customerAddress.line1 || '';
+          const billingCity = customerAddress.city || '';
+          const billingZip = customerAddress.postal_code || '';
+          const billingCountry = customerAddress.country || '';
+          
           // Create voucher sale record from Stripe session
           const voucherSale = {
             stripe_session_id: session.id,
@@ -8318,6 +8538,7 @@ New Age Fotografie CRM System
             product_id: metadata.product_id || metadata.sku || null,
             purchaser_name: metadata.purchaser_name || session.customer_details?.name || 'Unknown',
             purchaser_email: metadata.purchaser_email || session.customer_email || session.customer_details?.email || '',
+            purchaser_phone: session.customer_details?.phone || '',
             recipient_name: metadata.recipient_name || '',
             recipient_email: metadata.recipient_email || '',
             gift_message: metadata.gift_message || metadata.message || '',
@@ -8332,6 +8553,10 @@ New Age Fotografie CRM System
             payment_intent_id: session.payment_intent,
             payment_status: 'paid',
             payment_method: metadata.payment_method || 'stripe_card',
+            billing_address: billingAddress,
+            billing_city: billingCity,
+            billing_zip: billingZip,
+            billing_country: billingCountry,
             is_redeemed: false,
             valid_from: new Date(),
             valid_until: metadata.valid_until ? new Date(metadata.valid_until) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year default
@@ -8340,6 +8565,31 @@ New Age Fotografie CRM System
           try {
             const createdSale = await storage.createVoucherSale(voucherSale as any);
             console.log('[WEBHOOK] ✅ Voucher sale created:', createdSale.id, 'Code:', voucherSale.voucher_code);
+            
+            // Try to get card details from payment intent
+            if (session.payment_intent) {
+              try {
+                const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+                if (stripeSecretKey) {
+                  const StripeLib = (await import('stripe')).default;
+                  const stripe = new StripeLib(stripeSecretKey, { apiVersion: '2025-08-27.basil' });
+                  const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent, {
+                    expand: ['payment_method']
+                  });
+                  const pm = paymentIntent.payment_method;
+                  if (pm && typeof pm === 'object' && 'card' in pm) {
+                    const card = (pm as any).card;
+                    if (card) {
+                      await runSql(`UPDATE voucher_sales SET card_brand = $1, card_last4 = $2 WHERE id = $3`,
+                        [card.brand || '', card.last4 || '', createdSale.id]);
+                      console.log('[WEBHOOK] ✅ Card details saved:', card.brand, '****' + card.last4);
+                    }
+                  }
+                }
+              } catch (cardErr: any) {
+                console.log('[WEBHOOK] Could not fetch card details:', cardErr.message);
+              }
+            }
           } catch (saleError: any) {
             console.error('[WEBHOOK] ⚠️ Failed to create voucher sale:', saleError.message);
             // Don't fail the webhook - Stripe expects 200 OK
@@ -9304,6 +9554,283 @@ New Age Fotografie CRM System
     }
   });
 
+  // ========= Create Client from Voucher Sale =========
+  // Convert a voucher purchaser into a CRM client
+  app.post("/api/vouchers/sales/:id/create-client", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const saleId = req.params.id;
+      
+      // Get the voucher sale with all data
+      const saleResult = await runSql(`
+        SELECT vs.*, vp.name as product_name
+        FROM voucher_sales vs
+        LEFT JOIN voucher_products vp ON vs.product_id = vp.id
+        WHERE vs.id = $1
+      `, [saleId]);
+      
+      if (saleResult.length === 0) {
+        return res.status(404).json({ error: "Voucher sale not found" });
+      }
+      
+      const sale = saleResult[0];
+      
+      // Check if already linked to a client
+      if (sale.client_id) {
+        return res.status(400).json({ 
+          error: "Already linked to a client",
+          clientId: sale.client_id 
+        });
+      }
+      
+      // Check if client already exists with this email
+      const existingClientResult = await runSql(
+        'SELECT id, first_name, last_name, email FROM crm_clients WHERE LOWER(email) = LOWER($1) LIMIT 1',
+        [sale.purchaser_email]
+      );
+      
+      if (existingClientResult.length > 0) {
+        // Link existing client to this sale
+        const existingClient = existingClientResult[0];
+        await runSql('UPDATE voucher_sales SET client_id = $1 WHERE id = $2', [existingClient.id, saleId]);
+        
+        // Update client's lifetime_value
+        const currentLifetimeValue = await runSql(
+          'SELECT COALESCE(lifetime_value, 0) as lv FROM crm_clients WHERE id = $1',
+          [existingClient.id]
+        );
+        const newLifetimeValue = parseFloat(currentLifetimeValue[0]?.lv || 0) + parseFloat(sale.final_amount || 0);
+        await runSql('UPDATE crm_clients SET lifetime_value = $1 WHERE id = $2', [newLifetimeValue.toFixed(2), existingClient.id]);
+        
+        return res.json({
+          success: true,
+          message: "Linked to existing client",
+          client: existingClient,
+          isNew: false
+        });
+      }
+      
+      // Parse purchaser name into first/last name
+      const fullName = sale.purchaser_name || 'Unknown';
+      const nameParts = fullName.trim().split(/\s+/);
+      const firstName = nameParts[0] || 'Unknown';
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+      
+      // Build notes with purchase info
+      const paymentInfo = [];
+      if (sale.card_brand && sale.card_last4) {
+        paymentInfo.push(`Payment: ${sale.card_brand} ****${sale.card_last4}`);
+      }
+      if (sale.coupon_code) {
+        paymentInfo.push(`Coupon used: ${sale.coupon_code}`);
+      }
+      
+      const notes = [
+        `Added from voucher purchase`,
+        `Voucher Code: ${sale.voucher_code}`,
+        `Product: ${sale.product_name || 'Unknown'}`,
+        `Amount: €${parseFloat(sale.final_amount || 0).toFixed(2)}`,
+        ...paymentInfo,
+        `Purchase Date: ${new Date(sale.created_at).toLocaleDateString('de-DE')}`
+      ].join('\n');
+      
+      // Create the new client
+      const newClientData = {
+        firstName,
+        lastName,
+        email: sale.purchaser_email,
+        phone: sale.purchaser_phone || '',
+        address: sale.billing_address || '',
+        city: sale.billing_city || '',
+        zip: sale.billing_zip || '',
+        country: sale.billing_country || '',
+        notes,
+        status: 'active',
+        source: 'voucher_purchase',
+        clientSince: new Date(sale.created_at),
+        lifetimeValue: sale.final_amount || '0'
+      };
+      
+      const createdClient = await storage.createCrmClient(newClientData as any);
+      
+      // Link client to the voucher sale
+      await runSql('UPDATE voucher_sales SET client_id = $1 WHERE id = $2', [createdClient.id, saleId]);
+      
+      console.log(`[Client] Created client from voucher sale: ${createdClient.id} - ${firstName} ${lastName}`);
+      
+      res.json({
+        success: true,
+        message: "Client created successfully",
+        client: createdClient,
+        isNew: true
+      });
+      
+    } catch (error: any) {
+      console.error("Error creating client from voucher sale:", error);
+      res.status(500).json({ error: error.message || "Failed to create client" });
+    }
+  });
+
+  // ========= Stripe Sales Sync Endpoint =========
+  // Manually sync voucher sales from Stripe checkout sessions
+  app.post("/api/vouchers/sync-stripe", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+      if (!stripeSecretKey) {
+        return res.status(500).json({ error: "Stripe not configured" });
+      }
+
+      const StripeLib = (await import('stripe')).default;
+      const stripe = new StripeLib(stripeSecretKey, { apiVersion: '2025-08-27.basil' });
+
+      // Fetch all checkout sessions from the last 90 days
+      const ninetyDaysAgo = Math.floor(Date.now() / 1000) - (90 * 24 * 60 * 60);
+      const sessions = await stripe.checkout.sessions.list({
+        limit: 100,
+        created: { gte: ninetyDaysAgo },
+        expand: ['data.line_items']
+      });
+
+      let synced = 0;
+      let skipped = 0;
+      let errors: string[] = [];
+
+      for (const session of sessions.data) {
+        // Only process paid sessions
+        if (session.payment_status !== 'paid') {
+          skipped++;
+          continue;
+        }
+
+        // Check if already exists in database
+        const existingCheck = await runSql(
+          'SELECT id FROM voucher_sales WHERE stripe_session_id = $1 LIMIT 1',
+          [session.id]
+        );
+
+        if (existingCheck.length > 0) {
+          skipped++;
+          continue;
+        }
+
+        try {
+          // Extract voucher info from metadata or line items
+          const metadata = session.metadata || {};
+          const lineItems = (session as any).line_items?.data || [];
+          
+          // Generate voucher code if not in metadata
+          const voucherCode = metadata.voucher_code || 
+            metadata.voucher_id || 
+            `SYNC-${session.id.slice(-8).toUpperCase()}`;
+          
+          // Get product info
+          const productName = lineItems[0]?.description || metadata.product_name || 'Unknown Product';
+          const productId = metadata.product_id || null;
+          
+          // Get customer info
+          const customerEmail = session.customer_email || session.customer_details?.email || '';
+          const customerName = session.customer_details?.name || metadata.purchaser_name || '';
+          
+          // Get recipient info from metadata
+          const recipientName = metadata.recipient_name || metadata.to_name || '';
+          const recipientEmail = metadata.recipient_email || '';
+          const giftMessage = metadata.message || metadata.gift_message || '';
+          
+          // Extract coupon code from metadata (voucher_used is the key from checkout)
+          const couponCode = metadata.voucher_used && metadata.voucher_used !== 'none' 
+            ? metadata.voucher_used 
+            : metadata.coupon_code || metadata.discount_code || null;
+          
+          // Extract billing address from customer_details
+          const customerAddress = session.customer_details?.address || {};
+          const billingAddress = customerAddress.line1 || '';
+          const billingCity = customerAddress.city || '';
+          const billingZip = customerAddress.postal_code || '';
+          const billingCountry = customerAddress.country || '';
+          const customerPhone = session.customer_details?.phone || '';
+          
+          // Calculate amounts - use amount_total, fallback to amount_subtotal
+          const amountInCents = session.amount_total || session.amount_subtotal || 0;
+          const finalAmount = amountInCents / 100;
+          // Try to get original amount from metadata, otherwise use final amount
+          const origAmountFromMeta = metadata.original_amount ? parseFloat(metadata.original_amount) : null;
+          const originalAmount = origAmountFromMeta || finalAmount;
+          const discountAmount = originalAmount - finalAmount;
+          const currency = (session.currency || 'EUR').toUpperCase();
+
+          // Insert the voucher sale with billing data
+          const insertResult = await runSql(`
+            INSERT INTO voucher_sales (
+              voucher_code, product_id, purchaser_email, purchaser_name, purchaser_phone,
+              recipient_name, recipient_email, gift_message, original_amount, discount_amount, final_amount,
+              currency, payment_status, stripe_session_id, stripe_payment_intent_id,
+              coupon_code, billing_address, billing_city, billing_zip, billing_country, created_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+            RETURNING id
+          `, [
+            voucherCode,
+            productId,
+            customerEmail,
+            customerName,
+            customerPhone,
+            recipientName,
+            recipientEmail,
+            giftMessage,
+            originalAmount.toFixed(2),
+            discountAmount > 0 ? discountAmount.toFixed(2) : '0',
+            finalAmount.toFixed(2),
+            currency,
+            'paid',
+            session.id,
+            typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id || null,
+            couponCode,
+            billingAddress,
+            billingCity,
+            billingZip,
+            billingCountry,
+            new Date(session.created * 1000).toISOString()
+          ]);
+          
+          // Try to get card details from payment intent
+          const saleId = insertResult[0]?.id;
+          const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id;
+          if (saleId && paymentIntentId) {
+            try {
+              const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+                expand: ['payment_method']
+              });
+              const pm = paymentIntent.payment_method;
+              if (pm && typeof pm === 'object' && 'card' in pm) {
+                const card = (pm as any).card;
+                if (card) {
+                  await runSql(`UPDATE voucher_sales SET card_brand = $1, card_last4 = $2 WHERE id = $3`,
+                    [card.brand || '', card.last4 || '', saleId]);
+                }
+              }
+            } catch (cardErr: any) {
+              // Card details are optional, don't fail sync
+            }
+          }
+
+          synced++;
+        } catch (insertError: any) {
+          console.error(`[Stripe Sync] Error inserting session ${session.id}:`, insertError);
+          errors.push(`${session.id}: ${insertError.message}`);
+        }
+      }
+
+      res.json({
+        success: true,
+        synced,
+        skipped,
+        total: sessions.data.length,
+        errors: errors.length > 0 ? errors : undefined
+      });
+    } catch (error: any) {
+      console.error("[Stripe Sync] Error:", error);
+      res.status(500).json({ error: error.message || "Sync failed" });
+    }
+  });
+
   // ========= Voucher PDF Generation (no webhook required) =========
   app.get('/voucher/pdf', async (req: Request, res: Response) => {
     try {
@@ -9353,78 +9880,67 @@ New Age Fotografie CRM System
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
       doc.pipe(res);
 
-      // Add company logo centered at top (compact)
+      // NEW LAYOUT: Image at top, then user message as heading, logo in footer
       const pageWidth = 595.28;
+      const pageHeight = 841.89;
       const pageMargin = 50;
       const contentWidth = pageWidth - (pageMargin * 2);
       let currentY = 40;
-      
-      try {
-        const logoUrl = process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
-        const resp = await fetch(logoUrl);
-        if (resp && resp.ok) {
-          const arr = await resp.arrayBuffer();
-          const imgBuf = Buffer.from(arr);
-          const logoWidth = 140;
-          const centerX = (pageWidth - logoWidth) / 2;
-          doc.image(imgBuf, centerX, currentY, { fit: [logoWidth, 50] });
-          currentY += 55; // Logo height (50) + small spacing
-        }
-      } catch (e) {
-        console.warn('Voucher logo fetch error:', e);
-        currentY += 55; // Reserve space even if logo fails
-      }
 
-      // Add spacing after logo
-      currentY += 10;
-
-      // Heading centered below logo
-      doc.fontSize(22).text('PERSONALISIERTER GUTSCHEIN', pageMargin, currentY, { align: 'center', width: contentWidth });
-      doc.moveDown(0.4);
-
-      // Hero image (customer-selected or template) - compact
-      // Priority: custom_image > design_image > product_hero_image (fallback)
+      // 1. HERO IMAGE AT THE TOP (customer-selected or template photo)
       let heroRendered = false;
       try {
         const artUrl = String(m.custom_image || m.design_image || m.product_hero_image || '').trim();
         if (artUrl) {
-          const pageWidth = 595.28;
           const respImg = await fetch(artUrl);
           if (respImg && respImg.ok) {
             const artArr = await respImg.arrayBuffer();
             const artBuf = Buffer.from(artArr);
-            const imgWidth = pageWidth - 100;
-            doc.image(artBuf, 50, undefined as any, { fit: [imgWidth, 320], align: 'center' });
+            const imgWidth = contentWidth;
+            doc.image(artBuf, pageMargin, currentY, { fit: [imgWidth, 280], align: 'center' });
+            currentY += 290;
             heroRendered = true;
           }
         }
       } catch (e) {
         console.warn('Voucher art fetch error:', e);
       }
-      if (heroRendered) doc.moveDown(0.4);
+      if (!heroRendered) {
+        currentY += 20; // Small gap if no image
+      }
 
-      // Red banner "Gutschein"
+      // 2. USER'S PERSONAL MESSAGE AS MAIN HEADING (instead of generic "PERSONALISIERTER GUTSCHEIN")
+      if (note && note.trim()) {
+        doc.fontSize(22).fillColor('#222222').text(note, pageMargin, currentY, { 
+          align: 'center', 
+          width: contentWidth 
+        });
+        currentY = doc.y + 15;
+      } else {
+        // Fallback if no message provided
+        doc.fontSize(22).fillColor('#222222').text('Gutschein', pageMargin, currentY, { 
+          align: 'center', 
+          width: contentWidth 
+        });
+        currentY = doc.y + 15;
+      }
+
+      // 3. RED BANNER with product title
       try {
-        const pageWidth = 595.28;
-        const bannerY = doc.y + 4;
-        const bannerX = 50;
-        const bannerW = pageWidth - 100;
+        const bannerY = currentY;
+        const bannerX = pageMargin;
+        const bannerW = contentWidth;
         const bannerH = 32;
         doc.save();
         doc.rect(bannerX, bannerY, bannerW, bannerH).fill('#b3202e');
-        doc.fillColor('#ffffff').fontSize(18).text('Gutschein', bannerX + 14, bannerY + 7, { width: bannerW - 28, align: 'left' });
+        doc.fillColor('#ffffff').fontSize(16).text(title, bannerX + 14, bannerY + 8, { width: bannerW - 28, align: 'left' });
         doc.restore();
-        doc.moveDown(1.8);
+        currentY = bannerY + bannerH + 20;
       } catch {}
 
-      // Personal message RIGHT BELOW RED BANNER
-      if (note && note.trim()) {
-        doc.fillColor('#222222').fontSize(11).text('Nachricht:', { underline: true });
-        doc.moveDown(0.2);
-        doc.fontSize(11).text(note, { align: 'left', width: 595.28 - 100 });
-        doc.moveDown(0.6);
-      }
-
+      // 4. VOUCHER DETAILS
+      doc.fillColor('#222222');
+      
       // Dynamic product description
       try {
         let product: any = null;
@@ -9447,39 +9963,57 @@ New Age Fotografie CRM System
         const dynamicSub = (product?.description || product?.detailedDescription || product?.detailed_description || '').toString();
         
         if (dynamicSub && dynamicSub.trim()) {
-          doc.fillColor('#222222').fontSize(10).text(dynamicSub, { width: 595.28 - 100, align: 'left' });
-          doc.moveDown(0.6);
+          doc.fontSize(10).text(dynamicSub, pageMargin, currentY, { width: contentWidth, align: 'left' });
+          currentY = doc.y + 10;
         }
       } catch (e) {
         console.warn('Voucher description block render error:', e);
       }
 
-      // Voucher meta (compact)
-      doc.fillColor('#222222').fontSize(9);
-      doc.text(`Gutschein-ID: ${vId}  |  SKU: ${sku}`);
+      // Voucher meta
+      doc.fontSize(9);
+      doc.text(`Gutschein-ID: ${vId}  |  SKU: ${sku}`, pageMargin, currentY);
       doc.text(`Empfänger/in: ${name}`);
       doc.text(`Von: ${from}`);
       doc.text(`Gültig bis: ${exp}`);
-      doc.moveDown(0.5);
+      currentY = doc.y + 10;
 
-      // Terms (compact)
+      // Terms
       doc.fontSize(8).fillColor('#444444').text(
         'Einlösbar für die oben genannte Leistung in unserem Studio. Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.',
-        { align: 'justify', width: 595.28 - 100 }
+        pageMargin, currentY,
+        { align: 'justify', width: contentWidth }
       );
+      currentY = doc.y + 10;
 
-      doc.moveDown(0.8);
+      // Payment info
       const paid = ((session.amount_total || 0) / 100).toFixed(2) + ' ' + String(session.currency || 'EUR').toUpperCase();
       const paymentDate = new Date((session.created || Date.now()/1000)*1000);
       const formattedDate = `${String(paymentDate.getDate()).padStart(2, '0')}/${String(paymentDate.getMonth() + 1).padStart(2, '0')}/${String(paymentDate.getFullYear()).slice(-2)}`;
-      doc.fontSize(8).fillColor('#222222').text(`Belegt durch Zahlung: ${paid} | Datum: ${formattedDate}`);
+      doc.fontSize(8).fillColor('#222222').text(`Belegt durch Zahlung: ${paid} | Datum: ${formattedDate}`, pageMargin, currentY);
       
-      // Contact details footer
-      doc.moveDown(1.5);
+      // 5. FOOTER WITH LOGO AND CONTACT DETAILS (positioned at bottom of page)
+      const footerY = pageHeight - 120;
+      
+      // Logo centered in footer
+      try {
+        const logoUrl = process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
+        const resp = await fetch(logoUrl);
+        if (resp && resp.ok) {
+          const arr = await resp.arrayBuffer();
+          const imgBuf = Buffer.from(arr);
+          const logoWidth = 120;
+          const centerX = (pageWidth - logoWidth) / 2;
+          doc.image(imgBuf, centerX, footerY, { fit: [logoWidth, 40] });
+        }
+      } catch (e) {
+        console.warn('Voucher logo fetch error:', e);
+      }
+
+      // Contact details below logo
       doc.fontSize(9).fillColor('#222222');
-      doc.text('www.newagefotografie.com', { align: 'center' });
+      doc.text('www.newagefotografie.com', pageMargin, footerY + 50, { align: 'center', width: contentWidth });
       doc.text('hallo@newagefotografie.com', { align: 'center' });
-      doc.moveDown(0.3);
       doc.text('WhatsApp: 0043 677 633 99210', { align: 'center' });
       
       doc.end();
@@ -9534,38 +10068,14 @@ New Age Fotografie CRM System
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
       doc.pipe(res);
 
-      // SINGLE-PAGE COMPACT LAYOUT - matches main endpoint
-      
-      // Logo centered at top (compact)
+      // NEW LAYOUT: Image at top, then user message as heading, logo in footer
       const pageWidth = 595.28;
+      const pageHeight = 841.89;
       const pageMargin = 50;
       const contentWidth = pageWidth - (pageMargin * 2);
       let currentY = 40;
-      
-      try {
-        const logoUrl = process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
-        const resp = await fetch(logoUrl);
-        if (resp && resp.ok) {
-          const arr = await resp.arrayBuffer();
-          const imgBuf = Buffer.from(arr);
-          const logoWidth = 140;
-          const centerX = (pageWidth - logoWidth) / 2;
-          doc.image(imgBuf, centerX, currentY, { fit: [logoWidth, 50] });
-          currentY += 55; // Logo height (50) + small spacing
-        }
-      } catch (e) {
-        console.warn('Logo fetch error:', e);
-        currentY += 55; // Reserve space even if logo fails
-      }
 
-      // Add spacing after logo
-      currentY += 10;
-
-      // Heading centered below logo
-      doc.fontSize(22).text('PERSONALISIERTER GUTSCHEIN', pageMargin, currentY, { align: 'center', width: contentWidth });
-      doc.moveDown(0.4);
-
-      // Hero image (compact 160px height)
+      // 1. HERO IMAGE AT THE TOP (customer-selected or template photo)
       let heroRendered = false;
       if (customImageUrl) {
         try {
@@ -9573,37 +10083,50 @@ New Age Fotografie CRM System
           if (respImg && respImg.ok) {
             const imgArr = await respImg.arrayBuffer();
             const imgBuf = Buffer.from(imgArr);
-            const imgWidth = 595.28 - 100;
-            doc.image(imgBuf, 50, undefined as any, { fit: [imgWidth, 320], align: 'center' });
+            const imgWidth = contentWidth;
+            doc.image(imgBuf, pageMargin, currentY, { fit: [imgWidth, 280], align: 'center' });
+            currentY += 290;
             heroRendered = true;
           }
         } catch (err) {
           console.warn('Preview image error:', err);
         }
       }
-      if (heroRendered) doc.moveDown(0.4);
+      if (!heroRendered) {
+        currentY += 20; // Small gap if no image
+      }
 
-      // Red banner "Gutschein"
+      // 2. USER'S PERSONAL MESSAGE AS MAIN HEADING (instead of generic "PERSONALISIERTER GUTSCHEIN")
+      if (note && note.trim()) {
+        doc.fontSize(22).fillColor('#222222').text(note, pageMargin, currentY, { 
+          align: 'center', 
+          width: contentWidth 
+        });
+        currentY = doc.y + 15;
+      } else {
+        // Fallback if no message provided
+        doc.fontSize(22).fillColor('#222222').text('Gutschein', pageMargin, currentY, { 
+          align: 'center', 
+          width: contentWidth 
+        });
+        currentY = doc.y + 15;
+      }
+
+      // 3. RED BANNER with product title
       try {
-        const pageWidth = 595.28;
-        const bannerY = doc.y + 4;
-        const bannerX = 50;
-        const bannerW = pageWidth - 100;
+        const bannerY = currentY;
+        const bannerX = pageMargin;
+        const bannerW = contentWidth;
         const bannerH = 32;
         doc.save();
         doc.rect(bannerX, bannerY, bannerW, bannerH).fill('#b3202e');
-        doc.fillColor('#ffffff').fontSize(18).text('Gutschein', bannerX + 14, bannerY + 7, { width: bannerW - 28, align: 'left' });
+        doc.fillColor('#ffffff').fontSize(16).text(title, bannerX + 14, bannerY + 8, { width: bannerW - 28, align: 'left' });
         doc.restore();
-        doc.moveDown(1.8);
+        currentY = bannerY + bannerH + 20;
       } catch {}
 
-      // Personal message RIGHT BELOW RED BANNER
-      if (note && note.trim()) {
-        doc.fillColor('#222222').fontSize(11).text('Nachricht:', { underline: true });
-        doc.moveDown(0.2);
-        doc.fontSize(11).text(note, { align: 'left', width: 595.28 - 100 });
-        doc.moveDown(0.6);
-      }
+      // 4. VOUCHER DETAILS
+      doc.fillColor('#222222');
 
       // Dynamic product description (preview mode - fetch from DB if available)
       try {
@@ -9627,39 +10150,57 @@ New Age Fotografie CRM System
         const dynamicSub = (product?.description || product?.detailedDescription || product?.detailed_description || '').toString();
         
         if (dynamicSub && dynamicSub.trim()) {
-          doc.fillColor('#222222').fontSize(10).text(dynamicSub, { width: 595.28 - 100, align: 'left' });
-          doc.moveDown(0.6);
+          doc.fontSize(10).text(dynamicSub, pageMargin, currentY, { width: contentWidth, align: 'left' });
+          currentY = doc.y + 10;
         }
       } catch (e) {
         console.warn('Preview description render error:', e);
       }
 
-      // Voucher meta (compact)
-      doc.fillColor('#222222').fontSize(9);
-      doc.text(`Gutschein-ID: ${vId}  |  SKU: ${sku}`);
+      // Voucher meta
+      doc.fontSize(9);
+      doc.text(`Gutschein-ID: ${vId}  |  SKU: ${sku}`, pageMargin, currentY);
       doc.text(`Empfänger/in: ${name}`);
       doc.text(`Von: ${from}`);
       doc.text(`Gültig bis: ${exp}`);
-      doc.moveDown(0.5);
+      currentY = doc.y + 10;
 
-      // Terms (compact)
+      // Terms
       doc.fontSize(8).fillColor('#444444').text(
         'Einlösbar für die oben genannte Leistung in unserem Studio. Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.',
-        { align: 'justify', width: 595.28 - 100 }
+        pageMargin, currentY,
+        { align: 'justify', width: contentWidth }
       );
+      currentY = doc.y + 10;
 
-      doc.moveDown(0.8);
+      // Payment info
       const paid = amount.toFixed(2) + ' ' + currency.toUpperCase();
       const previewDate = new Date();
       const formattedPreviewDate = `${String(previewDate.getDate()).padStart(2, '0')}/${String(previewDate.getMonth() + 1).padStart(2, '0')}/${String(previewDate.getFullYear()).slice(-2)}`;
-      doc.fontSize(8).fillColor('#222222').text(`Vorschau der Zahlung: ${paid} | Datum: ${formattedPreviewDate}`);
+      doc.fontSize(8).fillColor('#222222').text(`Vorschau der Zahlung: ${paid} | Datum: ${formattedPreviewDate}`, pageMargin, currentY);
       
-      // Contact details footer
-      doc.moveDown(1.5);
+      // 5. FOOTER WITH LOGO AND CONTACT DETAILS (positioned at bottom of page)
+      const footerY = pageHeight - 120;
+      
+      // Logo centered in footer
+      try {
+        const logoUrl = process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
+        const resp = await fetch(logoUrl);
+        if (resp && resp.ok) {
+          const arr = await resp.arrayBuffer();
+          const imgBuf = Buffer.from(arr);
+          const logoWidth = 120;
+          const centerX = (pageWidth - logoWidth) / 2;
+          doc.image(imgBuf, centerX, footerY, { fit: [logoWidth, 40] });
+        }
+      } catch (e) {
+        console.warn('Logo fetch error:', e);
+      }
+
+      // Contact details below logo
       doc.fontSize(9).fillColor('#222222');
-      doc.text('www.newagefotografie.com', { align: 'center' });
+      doc.text('www.newagefotografie.com', pageMargin, footerY + 50, { align: 'center', width: contentWidth });
       doc.text('hallo@newagefotografie.com', { align: 'center' });
-      doc.moveDown(0.3);
       doc.text('WhatsApp: 0043 677 633 99210', { align: 'center' });
       
       doc.end();

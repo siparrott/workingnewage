@@ -11,6 +11,7 @@ import CookieConsent from './components/CookieConsent';
 import ConsentScripts from './components/ConsentScripts';
 import HomePage from './pages/HomePage';
 import FotoshootingsPage from './pages/FotoshootingsPage';
+import PortfolioPage from './pages/PortfolioPage';
 import GutscheinPage from './pages/GutscheinPage';
 import BlogPage from './pages/BlogPage';
 import BlogPostPage from './pages/BlogPostPage';
@@ -136,6 +137,7 @@ function App() {
               <ScrollToTop />
               <Routes>
                 <Route path="/" element={<HomePage />} />
+                <Route path="/portfolio" element={<PortfolioPage />} />
                 <Route path="/fotoshootings" element={<FotoshootingsPage />} />
                 <Route path="/fotoshootings/business" element={<BusinessFotoshootingPage />} />
                 <Route path="/fotoshootings/event" element={<EventFotoshootingPage />} />

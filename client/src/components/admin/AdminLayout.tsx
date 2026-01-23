@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import NotificationBell from './NotificationBell';
+import AgentChatWidget from './AgentChatWidget';
 import {
   LayoutDashboard,
   UserPlus,
@@ -306,10 +307,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                   {item.subItems ? (
                     <button
                       onClick={() => toggleExpandedItem(item.path)}
-                      className={`flex items-center w-full px-4 py-3 text-sm transition-colors relative ${
+                      className={`sidebar-nav-item flex items-center w-full px-4 py-3 text-sm transition-colors relative ${
                         isActive || hasActiveChild
-                          ? 'bg-purple-600 text-white border-r-2 border-purple-400'
-                          : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                          ? 'active bg-purple-600 text-white border-r-2 border-purple-400'
+                          : 'text-gray-300 hover:text-white'
                       }`}
                     >
                       <Icon size={20} className="flex-shrink-0" />
@@ -337,10 +338,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                   ) : (
                     <Link
                       to={item.path}
-                      className={`flex items-center px-4 py-3 text-sm transition-colors relative ${
+                      className={`sidebar-nav-item flex items-center px-4 py-3 text-sm transition-colors relative ${
                         isActive
-                          ? 'bg-purple-600 text-white border-r-2 border-purple-400'
-                          : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                          ? 'active bg-purple-600 text-white border-r-2 border-purple-400'
+                          : 'text-gray-300 hover:text-white'
                       }`}
                     >
                       <Icon size={20} className="flex-shrink-0" />
@@ -372,10 +373,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                           <Link
                             key={subItem.path}
                             to={subItem.path}
-                            className={`flex items-center px-8 py-2 text-sm transition-colors relative ${
+                            className={`sidebar-nav-item flex items-center px-8 py-2 text-sm transition-colors relative ${
                               isSubActive
-                                ? 'bg-purple-700 text-white border-r-2 border-purple-400'
-                                : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+                                ? 'active bg-purple-700 text-white border-r-2 border-purple-400'
+                                : 'text-gray-400 hover:text-white'
                             }`}
                           >
                             <SubIcon size={16} className="flex-shrink-0" />
@@ -400,7 +401,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+            className="sidebar-nav-item flex items-center px-4 py-3 text-sm text-gray-300 hover:text-white transition-colors"
           >
             <ExternalLink size={20} className="flex-shrink-0" />
             {!sidebarCollapsed && (
@@ -413,7 +414,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         <div className="border-t border-gray-700 p-4">
           <button
             onClick={handleSignOut}
-            className="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white rounded transition-colors"
+            className="sidebar-nav-item flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:text-white rounded transition-colors"
           >
             <LogOut size={20} className="flex-shrink-0" />
             {!sidebarCollapsed && <span className="ml-3">{t('nav.signOut')}</span>}
@@ -501,6 +502,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           {children}
         </main>
       </div>
+
+      {/* Floating Agent Chat Widget */}
+      <AgentChatWidget />
     </div>
   );
 };

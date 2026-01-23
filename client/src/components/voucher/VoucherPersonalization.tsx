@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, Check, ChevronRight, Camera } from 'lucide-react';
+import { Upload, Check, ChevronRight, Camera, Eye, Download } from 'lucide-react';
 
 interface DeliveryOption {
   id: string;
@@ -186,6 +186,8 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
         return selectedDesign !== null || customPhoto !== null;
       case 3:
         return personalMessage.trim() !== '';
+      case 4:
+        return false; // Preview step - always show as current until checkout
       default:
         return false;
     }
@@ -195,7 +197,7 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
     <div className="max-w-4xl mx-auto p-6 bg-white">
       {/* Progress Steps */}
       <div className="flex items-center justify-center mb-8">
-        {[1, 2, 3].map((step) => (
+        {[1, 2, 3, 4].map((step) => (
           <div key={step} className="flex items-center">
             <div className={`
               w-10 h-10 rounded-full flex items-center justify-center text-white font-bold
@@ -209,9 +211,10 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
                 {step === 1 && 'Versandart wählen'}
                 {step === 2 && 'Motiv wählen / Foto hochladen'}
                 {step === 3 && 'Persönliche Widmung'}
+                {step === 4 && 'Vorschau & Kasse'}
               </p>
             </div>
-            {step < 3 && (
+            {step < 4 && (
               <ChevronRight className="text-gray-400 mr-6" size={20} />
             )}
           </div>
@@ -548,27 +551,128 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
               </div>
             )}
 
-            {personalMessage.trim() && (
-              <div className="text-center">
-                <button
-                  onClick={handleComplete}
-                  className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                >
-                  Zur Kasse
-                </button>
-              </div>
-            )}
-
-            {/* Always show checkout button in step 3 */}
+            {/* Go to Preview button */}
             <div className="text-center mt-6">
               <button
-                onClick={handleComplete}
-                className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors w-full lg:w-auto"
+                onClick={() => {
+                  if (personalMessage.trim()) {
+                    // Validate shipping address if needed
+                    if (selectedDelivery && (selectedDelivery.price > 0 || selectedDelivery.id.startsWith('post-'))) {
+                      if (!shippingAddress.address1.trim() || !shippingAddress.city.trim() || !shippingAddress.zip.trim()) {
+                        setAddressTouched(true);
+                        return;
+                      }
+                    }
+                    setCurrentStep(4);
+                  }
+                }}
+                disabled={!personalMessage.trim()}
+                className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors w-full lg:w-auto disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                Jetzt zur Kasse gehen
+                <Eye className="inline-block mr-2" size={20} />
+                Vorschau anzeigen
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Step 4: Final Preview before Checkout */}
+      {currentStep === 4 && (
+        <div>
+          <h2 className="text-2xl font-bold mb-6 text-center">Gutschein Vorschau</h2>
+          <p className="text-center text-gray-600 mb-8">
+            So wird Ihr personalisierter Gutschein aussehen. Bitte überprüfen Sie alle Details vor der Zahlung.
+          </p>
+          
+          {/* Voucher Preview Card */}
+          <div className="max-w-2xl mx-auto bg-white border-2 border-gray-200 rounded-xl shadow-lg overflow-hidden mb-8">
+            {/* Hero Image */}
+            <div className="w-full h-64 bg-gray-100 relative overflow-hidden">
+              {customImageUrl ? (
+                <img 
+                  src={customImageUrl} 
+                  alt="Voucher Design" 
+                  className="w-full h-full object-cover"
+                />
+              ) : selectedDesign ? (
+                <img 
+                  src={selectedDesign.image} 
+                  alt={selectedDesign.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  <Camera size={48} />
+                </div>
+              )}
+              {/* Overlay with Gutschein badge */}
+              <div className="absolute bottom-4 left-4 bg-white/90 px-4 py-2 rounded-lg">
+                <span className="font-semibold text-[#b3202e]">Gutschein</span>
+                {(selectedDesign?.occasion || 'Eigenes Foto') && (
+                  <span className="ml-2 text-gray-600">{selectedDesign?.occasion || 'Eigenes Foto'}</span>
+                )}
+              </div>
+            </div>
+
+            {/* Personal Message as Heading */}
+            <div className="p-6">
+              <h3 className="text-2xl font-bold text-center text-gray-800 mb-4">
+                {personalMessage || 'Ihre persönliche Nachricht'}
+              </h3>
+
+              {/* Red Banner */}
+              <div className="bg-[#b3202e] text-white py-3 px-4 rounded-lg mb-4">
+                <span className="font-semibold">Fotoshooting Gutschein</span>
+              </div>
+
+              {/* Details */}
+              <div className="space-y-2 text-sm text-gray-600">
+                {recipientName && (
+                  <p><span className="font-medium">Empfänger/in:</span> {recipientName}</p>
+                )}
+                {senderName && (
+                  <p><span className="font-medium">Von:</span> {senderName}</p>
+                )}
+                <p><span className="font-medium">Gültig bis:</span> 12 Monate ab Kaufdatum</p>
+              </div>
+
+              {/* Price */}
+              <div className="mt-6 pt-4 border-t text-right">
+                <p className="text-2xl font-bold text-gray-800">{voucherAmount.toFixed(2)} €</p>
+                {selectedDelivery && selectedDelivery.price > 0 && (
+                  <p className="text-sm text-gray-500">+ {selectedDelivery.price.toFixed(2)} € Versand</p>
+                )}
+              </div>
+            </div>
+
+            {/* Footer with logo placeholder */}
+            <div className="bg-gray-50 p-4 text-center border-t">
+              <p className="text-xs text-gray-500">
+                New Age Fotografie | www.newagefotografie.com
+              </p>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-2xl mx-auto">
+            <button
+              onClick={() => setCurrentStep(3)}
+              className="px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors w-full sm:w-auto"
+            >
+              Zurück bearbeiten
+            </button>
+            <button
+              onClick={handleComplete}
+              className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors w-full sm:w-auto"
+            >
+              Jetzt bezahlen & Gutschein erhalten
+            </button>
+          </div>
+
+          <p className="text-center text-sm text-gray-500 mt-4">
+            Nach erfolgreicher Zahlung können Sie Ihren Gutschein als PDF herunterladen.
+          </p>
         </div>
       )}
 

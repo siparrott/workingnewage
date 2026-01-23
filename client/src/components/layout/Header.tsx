@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, Globe, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useManualPageContent } from '../../hooks/useManualPageContent';
 
 const Header: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -10,6 +11,11 @@ const Header: React.FC = () => {
   const [aboutOpen, setAboutOpen] = useState(false);
   const location = useLocation();
   const { language, setLanguage, t } = useLanguage();
+  
+  // Get site settings for logo
+  const tSite = useManualPageContent('site-settings');
+  const customLogo = tSite('site.logo');
+  const logoUrl = customLogo && customLogo !== 'site.logo' ? customLogo : '/frontend-logo.jpg';
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
@@ -62,7 +68,7 @@ const Header: React.FC = () => {
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <Link to="/" className="flex items-center">
           <img 
-            src="/frontend-logo.jpg" 
+            src={logoUrl} 
             alt="New Age Fotografie"
             className="h-24 w-auto"
           />

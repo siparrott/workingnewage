@@ -14,6 +14,7 @@ import { SEOHead } from '../components/SEO/SEOHead';
 import { Helmet } from 'react-helmet-async';
 import { getCachedData, setCachedData } from '../lib/persistentCache';
 import { useImagePreloader } from '../hooks/useImagePreloader';
+import HomepageConfidenceSection from '../components/home/HomepageConfidenceSection';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -335,9 +336,9 @@ const HomePage: React.FC = () => {
       <section className="bg-white">
         <div className="container mx-auto px-4 py-16 md:py-24 flex flex-col md:flex-row items-center justify-between">
           <div className="max-w-2xl md:w-3/5 mb-8 md:mb-0">
-            <h1 className="mb-4 leading-tight text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 text-transparent bg-clip-text">
+            <p className="mb-4 leading-tight text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 text-transparent bg-clip-text">
               {t('home.heroTitle')}
-            </h1>
+            </p>
             <div className="mb-6">
               <span className="block text-xl sm:text-2xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-pink-500 to-purple-600 text-transparent bg-clip-text">
                 <Typewriter
@@ -351,9 +352,9 @@ const HomePage: React.FC = () => {
                   }}
                 />
               </span>
-              <span className="block text-xl sm:text-2xl md:text-4xl font-bold text-gray-900 tracking-tighter animate-fade-in-up">
+              <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-gray-900 tracking-tighter animate-fade-in-up">
                 {t('home.heroDescription')}
-              </span>
+              </h1>
             </div>
             <button 
               onClick={() => navigate('/warteliste')}
@@ -676,20 +677,6 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Title Section */}
-      <section className="py-12">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-purple-900">
-            {t('home.portraitStudioTitle')}
-          </h2>
-          <p className="text-center text-gray-700 mb-12 max-w-2xl mx-auto">
-            {t('home.giftVouchersSubtitle')}
-          </p>
-        </div>
-      </section>
-
-      {/* Voucher section removed per request (keeps Gift Voucher section below) */}
-
       {/* Testimonials Section */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
@@ -830,42 +817,8 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-purple-900">
-            {t('home.faqTitle')}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {faqImages.map((faq, index) => (
-              <div key={index} className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
-                <div className="aspect-[4/3] overflow-hidden rounded-lg mb-6 relative">
-                  <img
-                    src={faq.image}
-                    alt={faq.alt}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                    width="400"
-                    height="300"
-                    style={{ backgroundColor: '#f3f4f6' }}
-                  />
-                </div>
-                <h3 className="text-xl font-bold text-purple-900 mb-4">
-                  {faq.title}
-                </h3>
-                <p className="text-gray-700">
-                  {index === 0 && t('home.faq1Text')}
-                  {index === 1 && t('home.faq2Text')}
-                  {index === 2 && t('home.faq3Text')}
-                  {index === 3 && t('home.faq4Text')}
-                  {index === 4 && t('home.faq5Text')}
-                  {index === 5 && t('home.faq6Text')}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* FAQ / Confidence Section */}
+      <HomepageConfidenceSection />
     </Layout>
   );
 };

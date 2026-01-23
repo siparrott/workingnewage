@@ -35,6 +35,23 @@ const makeField = (
 
 export const manualPageManifest: ManualPageDefinition[] = [
   {
+    id: 'site-settings',
+    label: 'Site Settings',
+    route: '/admin/site-settings',
+    description: 'Global site settings including logo, branding, and contact information.',
+    tags: ['Settings', 'Branding', 'Logo'],
+    sections: [
+      {
+        id: 'site-branding',
+        label: 'Logo & Branding',
+        description: 'Upload and manage the site logo that appears in the header.',
+        fields: [
+          makeField('site-logo', 'Site Logo', 'site.logo', 'image', 'The main logo displayed in the website header (recommended size: 200x80px)')
+        ]
+      }
+    ]
+  },
+  {
     id: 'homepage-images',
     label: 'Homepage Images',
     route: '/admin/homepage-images',
@@ -47,6 +64,23 @@ export const manualPageManifest: ManualPageDefinition[] = [
         description: 'Upload and organize images for the homepage photo collage.',
         fields: [
           makeField('photo-grid-manager', 'Photo Grid', 'homepage.photoGrid', 'richText', 'Manage homepage photo grid images - these appear in the collage on the homepage')
+        ]
+      }
+    ]
+  },
+  {
+    id: 'portfolio-images',
+    label: 'Portfolio Images',
+    route: '/admin/portfolio-images',
+    description: 'Manage portfolio gallery images for all photography categories.',
+    tags: ['Images', 'Portfolio', 'Gallery'],
+    sections: [
+      {
+        id: 'portfolio-gallery',
+        label: 'Portfolio Gallery Management',
+        description: 'Upload and organize images for the portfolio page categories.',
+        fields: [
+          makeField('portfolio-gallery-manager', 'Portfolio Gallery', 'portfolio.gallery', 'richText', 'Manage portfolio images - these appear in the carousels on the portfolio page')
         ]
       }
     ]
@@ -117,6 +151,79 @@ export const manualPageManifest: ManualPageDefinition[] = [
           makeField('home-faq-a5', 'Answer 5', 'home.faq5Text', 'longForm'),
           makeField('home-faq-q6', 'Question 6', 'home.faqQuestion6'),
           makeField('home-faq-a6', 'Answer 6', 'home.faq6Text', 'longForm')
+        ]
+      },
+      {
+        id: 'home-confidence',
+        label: 'Confidence Section Header',
+        description: 'Main title and subtitle for the confidence/FAQ section.',
+        fields: [
+          makeField('confidence-title', 'Section Title', 'faq.confidenceTitle'),
+          makeField('confidence-subtitle', 'Section Subtitle', 'faq.confidenceSubtitle', 'longForm'),
+          makeField('confidence-cta', 'CTA Text', 'faq.ctaContact'),
+          makeField('confidence-waitlist-btn', 'Waitlist Button', 'faq.ctaWaitlist')
+        ]
+      },
+      {
+        id: 'home-process',
+        label: 'Process Strip (How It Works)',
+        description: 'The 4-step process icons shown at the top of the confidence section.',
+        fields: [
+          makeField('process-title', 'Process Title', 'faq.processTitle'),
+          makeField('process-step1-label', 'Step 1 Label', 'faq.process.step1.label'),
+          makeField('process-step1-desc', 'Step 1 Description', 'faq.process.step1.desc', 'longForm'),
+          makeField('process-step2-label', 'Step 2 Label', 'faq.process.step2.label'),
+          makeField('process-step2-desc', 'Step 2 Description', 'faq.process.step2.desc', 'longForm'),
+          makeField('process-step3-label', 'Step 3 Label', 'faq.process.step3.label'),
+          makeField('process-step3-desc', 'Step 3 Description', 'faq.process.step3.desc', 'longForm'),
+          makeField('process-step4-label', 'Step 4 Label', 'faq.process.step4.label'),
+          makeField('process-step4-desc', 'Step 4 Description', 'faq.process.step4.desc', 'longForm')
+        ]
+      },
+      {
+        id: 'home-worries',
+        label: 'Common Worries Grid',
+        description: 'The 6 FAQ cards addressing common concerns (hover for full answer).',
+        fields: [
+          makeField('worries-title', 'Worries Section Title', 'faq.worriesTitle'),
+          makeField('worry1-q', 'Worry 1 Question', 'faq.worry1.q'),
+          makeField('worry1-micro', 'Worry 1 Short Answer', 'faq.worry1.micro'),
+          makeField('worry1-full', 'Worry 1 Full Answer', 'faq.worry1.full', 'longForm'),
+          makeField('worry2-q', 'Worry 2 Question', 'faq.worry2.q'),
+          makeField('worry2-micro', 'Worry 2 Short Answer', 'faq.worry2.micro'),
+          makeField('worry2-full', 'Worry 2 Full Answer', 'faq.worry2.full', 'longForm'),
+          makeField('worry3-q', 'Worry 3 Question', 'faq.worry3.q'),
+          makeField('worry3-micro', 'Worry 3 Short Answer', 'faq.worry3.micro'),
+          makeField('worry3-full', 'Worry 3 Full Answer', 'faq.worry3.full', 'longForm'),
+          makeField('worry4-q', 'Worry 4 Question', 'faq.worry4.q'),
+          makeField('worry4-micro', 'Worry 4 Short Answer', 'faq.worry4.micro'),
+          makeField('worry4-full', 'Worry 4 Full Answer', 'faq.worry4.full', 'longForm'),
+          makeField('worry5-q', 'Worry 5 Question', 'faq.worry5.q'),
+          makeField('worry5-micro', 'Worry 5 Short Answer', 'faq.worry5.micro'),
+          makeField('worry5-full', 'Worry 5 Full Answer', 'faq.worry5.full', 'longForm'),
+          makeField('worry6-q', 'Worry 6 Question', 'faq.worry6.q'),
+          makeField('worry6-micro', 'Worry 6 Short Answer', 'faq.worry6.micro'),
+          makeField('worry6-full', 'Worry 6 Full Answer', 'faq.worry6.full', 'longForm')
+        ]
+      },
+      {
+        id: 'home-clarity',
+        label: 'Clarity & Value Row',
+        description: 'The 3 highlighted cards with pricing, packages, and about info.',
+        fields: [
+          makeField('clarity-title', 'Clarity Section Title', 'faq.clarityTitle'),
+          makeField('clarity1-q', 'Card 1 Question', 'faq.clarity1.q'),
+          makeField('clarity1-micro', 'Card 1 Highlight', 'faq.clarity1.micro'),
+          makeField('clarity1-full', 'Card 1 Full Text', 'faq.clarity1.full', 'longForm'),
+          makeField('clarity1-cta', 'Card 1 CTA', 'faq.clarity1.cta'),
+          makeField('clarity2-q', 'Card 2 Question', 'faq.clarity2.q'),
+          makeField('clarity2-micro', 'Card 2 Highlight', 'faq.clarity2.micro'),
+          makeField('clarity2-full', 'Card 2 Full Text', 'faq.clarity2.full', 'longForm'),
+          makeField('clarity2-cta', 'Card 2 CTA', 'faq.clarity2.cta'),
+          makeField('clarity3-q', 'Card 3 Question', 'faq.clarity3.q'),
+          makeField('clarity3-micro', 'Card 3 Highlight', 'faq.clarity3.micro'),
+          makeField('clarity3-full', 'Card 3 Full Text', 'faq.clarity3.full', 'longForm'),
+          makeField('clarity3-cta', 'Card 3 CTA', 'faq.clarity3.cta')
         ]
       }
     ]

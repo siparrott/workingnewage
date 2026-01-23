@@ -153,6 +153,7 @@ export default function AdminVoucherSalesPageV3() {
   const [isImportingPackages, setIsImportingPackages] = useState(false);
   const [isImportingNewborn, setIsImportingNewborn] = useState(false);
   const [isImportingAll, setIsImportingAll] = useState(false);
+  const [isSyncingStripe, setIsSyncingStripe] = useState(false);
   // Temporary in-memory map for uploaded images per-product (shows immediately on product cards)
   const [tempImageMap, setTempImageMap] = useState<Record<string, string>>({});
   // Preview state for showing unsaved product preview
@@ -819,6 +820,57 @@ export default function AdminVoucherSalesPageV3() {
   const handleExportSales = () => {
     window.open('/api/vouchers/sales.csv', '_blank');
   };
+  
+  // Sync sales from Stripe
+  const handleSyncStripe = async () => {
+    if (isSyncingStripe) return;
+    if (!confirm('Sync voucher sales from Stripe? This will import any missing sales from the last 90 days.')) return;
+    setIsSyncingStripe(true);
+    try {
+      const response = await fetch('/api/vouchers/sync-stripe', {
+        method: 'POST',
+        headers: withAdminJsonHeaders()
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Sync failed');
+      }
+      queryClient.invalidateQueries({ queryKey: ['/api/vouchers/sales'] });
+      alert(`Stripe sync complete!\n\n✅ Synced: ${result.synced}\n⏭️ Skipped (already exists): ${result.skipped}\n📊 Total checked: ${result.total}${result.errors ? `\n\n⚠️ Errors:\n${result.errors.join('\n')}` : ''}`);
+    } catch (err: any) {
+      console.error('[STRIPE SYNC] Error:', err);
+      alert('Sync failed: ' + (err?.message || String(err)));
+    } finally {
+      setIsSyncingStripe(false);
+    }
+  };
+
+  // Create CRM client from voucher sale
+  const handleCreateClientFromSale = async (sale: VoucherSale) => {
+    const purchaserName = sale.purchaserName || 'this customer';
+    if (!confirm(`Add "${purchaserName}" to your client database?`)) return;
+    try {
+      const response = await fetch(`/api/vouchers/sales/${sale.id}/create-client`, {
+        method: 'POST',
+        headers: withAdminJsonHeaders()
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create client');
+      }
+      queryClient.invalidateQueries({ queryKey: ['/api/vouchers/sales'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/crm/clients'] });
+      if (result.isNew) {
+        alert(`✅ Client "${result.client.firstName} ${result.client.lastName}" created successfully!\n\nThey have been added to your CRM with their billing details and purchase history.`);
+      } else {
+        alert(`ℹ️ "${result.client.first_name} ${result.client.last_name}" is already in your client database.\n\nThe voucher sale has been linked to their existing record.`);
+      }
+    } catch (err: any) {
+      console.error('[CREATE CLIENT] Error:', err);
+      alert('Failed to add client: ' + (err?.message || String(err)));
+    }
+  };
+
   const handleOpenSettings = () => {
     setIsSettingsDialogOpen(true);
   };
@@ -1098,6 +1150,17 @@ export default function AdminVoucherSalesPageV3() {
                 <Download className="h-4 w-4 mr-2" />
                 Export Sales
               </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleSyncStripe} 
+                disabled={isSyncingStripe} 
+                title="Sync missing sales from Stripe"
+                className="border-purple-300 hover:bg-purple-50"
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                {isSyncingStripe ? 'Syncing...' : '🔄 Sync from Stripe'}
+              </Button>
               <Button variant="outline" size="sm" onClick={handleImportFamilyPackages} disabled={isImportingPackages} title="Import Family Packages">
                 <Users className="h-4 w-4 mr-2" />
                 {isImportingPackages ? 'Importing...' : 'Import Family Packages'}
@@ -1191,6 +1254,7 @@ export default function AdminVoucherSalesPageV3() {
                 recentSales={voucherSales?.slice(0, 5) || []}
                 onShowAnalytics={handleShowAnalytics}
                 onShowSettings={handleOpenSettings}
+                onCreateClient={handleCreateClientFromSale}
               />
             )}
             {activeView === "products" && (
@@ -1216,6 +1280,7 @@ export default function AdminVoucherSalesPageV3() {
               <SalesView 
                 sales={voucherSales || []} 
                 isLoading={isLoadingSales}
+                onCreateClient={handleCreateClientFromSale}
               />
             )}
           </div>
@@ -1305,7 +1370,8 @@ const DashboardView: React.FC<{
   recentSales: VoucherSale[];
   onShowAnalytics?: () => void;
   onShowSettings?: () => void;
-}> = ({ stats, onCreateProduct, onCreateCoupon, recentSales, onShowAnalytics, onShowSettings }) => {
+  onCreateClient?: (sale: VoucherSale) => void;
+}> = ({ stats, onCreateProduct, onCreateCoupon, recentSales, onShowAnalytics, onShowSettings, onCreateClient }) => {
   return (
     <div className="space-y-8">
       {/* Key Metrics */}
@@ -1433,23 +1499,51 @@ const DashboardView: React.FC<{
         <CardContent>
           {recentSales.length > 0 ? (
             <div className="space-y-4">
-              {recentSales.map((sale) => (
-                <div key={sale.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Gift className="h-5 w-5 text-blue-600" />
+              {recentSales.map((sale) => {
+                const saleData = sale as any;
+                const couponUsed = saleData.coupon_code || sale.couponCode;
+                return (
+                  <div key={sale.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <Gift className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{sale.purchaserName}</p>
+                        <p className="text-sm text-gray-500">{sale.voucherCode}</p>
+                        {couponUsed && (
+                          <Badge variant="outline" className="mt-1 bg-green-50 text-green-700 border-green-200 text-xs">
+                            <Tag className="h-3 w-3 mr-1" />
+                            {couponUsed}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">{sale.purchaserName}</p>
-                      <p className="text-sm text-gray-500">{sale.voucherCode}</p>
+                    <div className="flex items-center space-x-4">
+                      <div className="text-right">
+                        <p className="font-medium">€{Number(sale.finalAmount).toFixed(2)}</p>
+                        <p className="text-sm text-gray-500">{new Date(sale.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      {(sale as any).clientId ? (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          In CRM
+                        </Badge>
+                      ) : (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => onCreateClient?.(sale)}
+                          className="text-xs"
+                        >
+                          <UserPlus className="h-3 w-3 mr-1" />
+                          Add to Clients
+                        </Button>
+                      )}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium">€{Number(sale.finalAmount).toFixed(2)}</p>
-                    <p className="text-sm text-gray-500">{new Date(sale.createdAt).toLocaleDateString()}</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
@@ -1760,14 +1854,15 @@ const CouponsView: React.FC<{
 const SalesView: React.FC<{
   sales: VoucherSale[];
   isLoading: boolean;
-}> = ({ sales, isLoading }) => {
+  onCreateClient?: (sale: VoucherSale) => void;
+}> = ({ sales, isLoading, onCreateClient }) => {
   const [showExportMenu, setShowExportMenu] = useState(false);
 
   const exportToCSV = () => {
     if (sales.length === 0) return;
     
     // Create CSV content
-    const headers = ['Voucher Code', 'Product', 'Purchaser Name', 'Purchaser Email', 'Recipient Name', 'Recipient Email', 'Gift Message', 'Original Amount', 'Discount', 'Final Amount', 'Status', 'Date'];
+    const headers = ['Voucher Code', 'Product', 'Purchaser Name', 'Purchaser Email', 'Recipient Name', 'Recipient Email', 'Gift Message', 'Original Amount', 'Discount', 'Final Amount', 'Coupon Used', 'Status', 'Date'];
     const rows = sales.map((sale: any) => [
       sale.voucherCode || '',
       sale.product_name || 'Unknown Product',
@@ -1779,6 +1874,7 @@ const SalesView: React.FC<{
       Number(sale.originalAmount || 0).toFixed(2),
       Number(sale.discountAmount || 0).toFixed(2),
       Number(sale.finalAmount || 0).toFixed(2),
+      sale.coupon_code || sale.couponCode || '',
       sale.paymentStatus || 'pending',
       new Date(sale.createdAt).toLocaleDateString()
     ]);
@@ -1836,6 +1932,7 @@ const SalesView: React.FC<{
               <th>Purchaser</th>
               <th>Recipient</th>
               <th>Amount</th>
+              <th>Coupon</th>
               <th>Status</th>
               <th>Date</th>
             </tr>
@@ -1848,6 +1945,7 @@ const SalesView: React.FC<{
                 <td>${sale.purchaserName || ''}<br/><small>${sale.purchaserEmail || ''}</small></td>
                 <td>${sale.recipientName || 'Self-purchase'}<br/><small>${sale.recipientEmail || ''}</small></td>
                 <td>€${Number(sale.finalAmount || 0).toFixed(2)}</td>
+                <td>${sale.coupon_code || sale.couponCode || '-'}</td>
                 <td>${sale.paymentStatus || 'pending'}</td>
                 <td>${new Date(sale.createdAt).toLocaleDateString()}</td>
               </tr>
@@ -1981,6 +2079,9 @@ const SalesView: React.FC<{
                       Final Price
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Coupon Used
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -2055,6 +2156,16 @@ const SalesView: React.FC<{
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
+                          {saleWithProduct.coupon_code || sale.couponCode ? (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              <Tag className="h-3 w-3 mr-1" />
+                              {saleWithProduct.coupon_code || sale.couponCode}
+                            </Badge>
+                          ) : (
+                            <span className="text-gray-400 italic text-sm">None</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <Badge variant={sale.paymentStatus === 'paid' || sale.paymentStatus === 'completed' ? 'default' : 'secondary'}>
                             {sale.paymentStatus || 'pending'}
                           </Badge>
@@ -2072,6 +2183,22 @@ const SalesView: React.FC<{
                               <Download className="h-4 w-4 mr-1" />
                               PDF
                             </Button>
+                            {saleWithProduct.client_id ? (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 px-2 py-1">
+                                <Users className="h-3 w-3 mr-1" />
+                                In CRM
+                              </Badge>
+                            ) : onCreateClient && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                onClick={() => onCreateClient(sale)}
+                              >
+                                <UserPlus className="h-4 w-4 mr-1" />
+                                Add to Clients
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>

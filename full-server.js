@@ -2849,11 +2849,36 @@ const server = http.createServer(async (req, res) => {
       const availableTools = typeof listOpenAITools === 'function' ? listOpenAITools(scopes) : [];
       const model = process.env.AGENT_MODEL || 'gpt-4-turbo-preview';
 
+      // Calculate current date info for the system prompt
+      const now = new Date();
+      const currentDate = now.toISOString().split('T')[0];
+      const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
+      
+      // Calculate start of current week (Monday)
+      const startOfWeek = new Date(now);
+      const dayNum = now.getDay();
+      const diff = dayNum === 0 ? -6 : 1 - dayNum; // Adjust for Monday start
+      startOfWeek.setDate(now.getDate() + diff);
+      const weekStart = startOfWeek.toISOString().split('T')[0];
+      
+      // Calculate start of current month
+      const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+
       // Initial completion
       const completionOptions = {
         model,
         messages: [
-          { role: 'system', content: 'You are a helpful CRM assistant for a photography studio. Use the provided tools when needed to answer questions or take actions. Be concise and professional.' },
+          { role: 'system', content: `You are a helpful CRM assistant for a photography studio. Use the provided tools when needed to answer questions or take actions. Be concise and professional.
+
+IMPORTANT DATE CONTEXT:
+- Today's date: ${currentDate} (${dayOfWeek})
+- Current week started: ${weekStart} (Monday)
+- Current month started: ${monthStart}
+
+When users ask about "this week", "this month", "today", "yesterday", etc., always use these dates to calculate the correct date ranges for tool parameters. For example:
+- "this week" means startDate=${weekStart} and endDate=${currentDate}
+- "this month" means startDate=${monthStart} and endDate=${currentDate}
+- "today" means startDate=${currentDate} and endDate=${currentDate}` },
           { role: 'user', content: message }
         ]
       };

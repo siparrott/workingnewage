@@ -688,7 +688,7 @@ const translations = {
 
   // About Page
   'about.hero.title': 'About New Age Fotografie — Vienna',
-  'about.hero.description': 'A Vienna studio built on craft, calm direction, and real smiles. I\'m Matt, the founder. I\'ve photographed thousands of faces—from high street studios to global events—and I still love it. Every shoot. Every time.',
+  'about.hero.description': 'A Vienna studio built on craft, calm direction, and real smiles. I\'m Simon, the founder. I\'ve photographed thousands of faces—from high street studios to global events—and I still love it. Every shoot. Every time.',
   'about.hero.cta': 'Book your spot on our studio waitlist →',
   'about.story.title': 'Our Story (short + true)',
   'about.story.intro': 'I\'ve also photographed icons and public figures along the way—names like François Pienaar and Roger Moore. Still in love with the craft. Still smiling. Never bored.',
@@ -794,7 +794,75 @@ const translations = {
   'about.cta.title': 'Ready to work together?',
   'about.cta.description': 'Let\'s create something memorable.',
   'about.cta.waitlist': 'Join our waitlist',
-  'about.cta.contact': 'Contact us'
+  'about.cta.contact': 'Contact us',
+
+  // ─── Homepage Confidence Section (FAQ) ───
+  'faq.confidenceTitle': 'Everything You Need to Know',
+  'faq.confidenceSubtitle': 'Answers to common questions before you book',
+  
+  // Process Strip - How it works
+  'faq.processTitle': 'How It Works',
+  'faq.process.step1.label': 'Book',
+  'faq.process.step1.desc': 'Choose your session type and pick a date',
+  'faq.process.step2.label': 'Prepare',
+  'faq.process.step2.desc': 'Receive your prep guide with outfit tips',
+  'faq.process.step3.label': 'Shoot',
+  'faq.process.step3.desc': 'Relax and enjoy – we guide you through',
+  'faq.process.step4.label': 'Gallery',
+  'faq.process.step4.desc': 'View and download your images online',
+  
+  // Common Worries - QA Cards
+  'faq.worriesTitle': 'Common Worries',
+  
+  'faq.worry1.q': 'What if my kids won\'t cooperate?',
+  'faq.worry1.micro': 'We\'re experts at playful sessions',
+  'faq.worry1.full': 'Children rarely sit still – and that\'s okay! We use games, bubbles, and silly sounds to capture genuine smiles. The best shots often come from unscripted moments. Parents are always surprised how quickly kids warm up.',
+  
+  'faq.worry2.q': 'How long does it take?',
+  'faq.worry2.micro': '45–90 min depending on session',
+  'faq.worry2.full': 'Family sessions typically run 60 minutes. Newborn sessions can take up to 90 minutes including feeding breaks. We never rush – the goal is relaxed, natural photos.',
+  
+  'faq.worry3.q': 'What should we wear?',
+  'faq.worry3.micro': 'Soft neutrals, no logos',
+  'faq.worry3.full': 'Coordinate, don\'t match! Soft colors like cream, sage, dusty rose work beautifully. Avoid bold logos and busy patterns. You\'ll receive a detailed style guide after booking with Pinterest boards for inspiration.',
+  
+  'faq.worry4.q': 'When should I book newborn photos?',
+  'faq.worry4.micro': 'Ideally 5–14 days after birth',
+  'faq.worry4.full': 'Newborns are sleepiest and curliest in the first two weeks. Book during pregnancy (around week 32) to secure your spot – we\'ll adjust the date once baby arrives. Flexible rescheduling included.',
+  
+  'faq.worry5.q': 'When do we get the photos?',
+  'faq.worry5.micro': 'Same-day reveal, 7–14 days delivery',
+  'faq.worry5.full': 'Photos can be revealed on the same day as your shooting. Print orders are delivered within 14 days of placing your order, and digital orders are delivered retouched and in full resolution within 7 days.',
+  
+  'faq.worry6.q': 'Who can join the shoot?',
+  'faq.worry6.micro': 'Immediate family + pets welcome',
+  'faq.worry6.full': 'Parents, kids, grandparents, pets – the more the merrier! We recommend keeping groups under 8 for best results. Extended family sessions can be arranged with advance notice.',
+  
+  // Clarity & Value Row
+  'faq.clarityTitle': 'Clarity & Value',
+  
+  'faq.clarity1.q': 'What does it cost?',
+  'faq.clarity1.micro': 'From €95 – transparent pricing',
+  'faq.clarity1.full': 'Our packages start at €95 for family sessions and go up to €599 for wedding photography. All prices include editing and digital files. No hidden fees – what you see is what you pay.',
+  'faq.clarity1.cta': 'View Pricing',
+  'faq.clarity1.link': '/vouchers',
+  
+  'faq.clarity2.q': 'How many photos do I get?',
+  'faq.clarity2.micro': 'Depends on package – you can vary',
+  'faq.clarity2.full': 'The number of photos depends on the package you choose. Don\'t worry – you can always vary the number of portraits you want when you see your photos. Check our voucher page for details on what\'s included in each package.',
+  'faq.clarity2.cta': 'See Packages',
+  'faq.clarity2.link': '/vouchers',
+  
+  'faq.clarity3.q': 'Why choose us?',
+  'faq.clarity3.micro': '10+ years, 500+ families',
+  'faq.clarity3.full': 'Over a decade of experience with families in Vienna. Relaxed, playful approach. Natural editing style. We specialize in making camera-shy kids (and adults!) feel comfortable.',
+  'faq.clarity3.cta': 'About Us',
+  'faq.clarity3.link': '/ueber-uns/',
+  
+  // CTAs
+  'faq.ctaWaitlist': 'Join the Waitlist',
+  'faq.ctaGuide': 'Read Our Prep Guide',
+  'faq.ctaContact': 'Still have questions?'
   },
   de: {
     'nav.home': 'Startseite',
@@ -1463,7 +1531,7 @@ const translations = {
 
   // About Page (Über Uns)
   'about.hero.title': 'Über New Age Fotografie — Wien',
-  'about.hero.description': 'Ein Wiener Studio, das auf Handwerk, ruhiger Führung und echten Lächeln basiert. Ich bin Matt, der Gründer. Ich habe Tausende von Gesichtern fotografiert – von High-Street-Studios bis zu globalen Events – und ich liebe es immer noch. Jedes Shooting. Jedes Mal.',
+  'about.hero.description': 'Ein Wiener Studio, das auf Handwerk, ruhiger Führung und echten Lächeln basiert. Ich bin Simon, der Gründer. Ich habe Tausende von Gesichtern fotografiert – von High-Street-Studios bis zu globalen Events – und ich liebe es immer noch. Jedes Shooting. Jedes Mal.',
   'about.hero.cta': 'Reservieren Sie Ihren Platz auf unserer Studio-Warteliste →',
   'about.story.title': 'Unsere Geschichte (kurz + wahr)',
   'about.story.intro': 'Ich habe auch Ikonen und bekannte Persönlichkeiten fotografiert – Namen wie François Pienaar und Roger Moore. Immer noch verliebt ins Handwerk. Immer noch lächelnd. Nie gelangweilt.',
@@ -1569,7 +1637,75 @@ const translations = {
   'about.cta.title': 'Bereit, zusammenzuarbeiten?',
   'about.cta.description': 'Lassen Sie uns etwas Unvergessliches schaffen.',
   'about.cta.waitlist': 'Zur Warteliste',
-  'about.cta.contact': 'Kontaktieren Sie uns'
+  'about.cta.contact': 'Kontaktieren Sie uns',
+
+  // ─── Homepage Confidence Section (FAQ) ───
+  'faq.confidenceTitle': 'Alles, was Sie wissen müssen',
+  'faq.confidenceSubtitle': 'Antworten auf häufige Fragen vor der Buchung',
+  
+  // Process Strip - So funktioniert's
+  'faq.processTitle': 'So funktioniert\'s',
+  'faq.process.step1.label': 'Buchen',
+  'faq.process.step1.desc': 'Wählen Sie Ihre Session und einen Termin',
+  'faq.process.step2.label': 'Vorbereiten',
+  'faq.process.step2.desc': 'Sie erhalten einen Leitfaden mit Outfit-Tipps',
+  'faq.process.step3.label': 'Shooting',
+  'faq.process.step3.desc': 'Entspannen Sie sich – wir führen Sie durch',
+  'faq.process.step4.label': 'Galerie',
+  'faq.process.step4.desc': 'Bilder online ansehen und herunterladen',
+  
+  // Common Worries - QA Cards
+  'faq.worriesTitle': 'Häufige Bedenken',
+  
+  'faq.worry1.q': 'Was, wenn meine Kinder nicht mitmachen?',
+  'faq.worry1.micro': 'Wir sind Experten für spielerische Sessions',
+  'faq.worry1.full': 'Kinder sitzen selten still – und das ist okay! Wir nutzen Spiele, Seifenblasen und lustige Geräusche für echte Lächeln. Die besten Aufnahmen entstehen oft ungeplant. Eltern sind immer überrascht, wie schnell Kinder auftauen.',
+  
+  'faq.worry2.q': 'Wie lange dauert es?',
+  'faq.worry2.micro': '45–90 Min. je nach Session',
+  'faq.worry2.full': 'Familien-Sessions dauern ca. 60 Minuten. Neugeborenen-Sessions bis zu 90 Minuten inkl. Stillpausen. Wir hetzen nie – das Ziel sind entspannte, natürliche Fotos.',
+  
+  'faq.worry3.q': 'Was sollen wir anziehen?',
+  'faq.worry3.micro': 'Sanfte Neutraltöne, keine Logos',
+  'faq.worry3.full': 'Koordinieren, nicht matchen! Sanfte Farben wie Creme, Salbei, Altrosa wirken wunderbar. Vermeiden Sie große Logos und unruhige Muster. Nach der Buchung erhalten Sie einen Stil-Leitfaden mit Pinterest-Boards.',
+  
+  'faq.worry4.q': 'Wann sollte ich Neugeborenenfotos buchen?',
+  'faq.worry4.micro': 'Idealerweise 5–14 Tage nach Geburt',
+  'faq.worry4.full': 'Neugeborene sind in den ersten zwei Wochen am schläfrigsten und eingerollsten. Buchen Sie während der Schwangerschaft (ca. Woche 32) – wir passen das Datum nach der Geburt an. Flexible Umbuchung inklusive.',
+  
+  'faq.worry5.q': 'Wann bekommen wir die Fotos?',
+  'faq.worry5.micro': 'Vorschau am selben Tag, 7–14 Tage Lieferung',
+  'faq.worry5.full': 'Fotos können am selben Tag wie Ihr Shooting enthüllt werden. Druckbestellungen werden innerhalb von 14 Tagen nach Bestellung geliefert, digitale Bestellungen werden retuschiert und in voller Auflösung innerhalb von 7 Tagen geliefert.',
+  
+  'faq.worry6.q': 'Wer kann beim Shooting dabei sein?',
+  'faq.worry6.micro': 'Kernfamilie + Haustiere willkommen',
+  'faq.worry6.full': 'Eltern, Kinder, Großeltern, Haustiere – je mehr, desto besser! Wir empfehlen Gruppen unter 8 Personen für beste Ergebnisse. Erweiterte Familien-Sessions nach Absprache möglich.',
+  
+  // Clarity & Value Row
+  'faq.clarityTitle': 'Klarheit & Mehrwert',
+  
+  'faq.clarity1.q': 'Was kostet es?',
+  'faq.clarity1.micro': 'Ab €95 – transparente Preise',
+  'faq.clarity1.full': 'Unsere Pakete beginnen bei €95 für Familien-Sessions und gehen bis €599 für Hochzeitsfotografie. Alle Preise inkl. Bearbeitung und digitalen Dateien. Keine versteckten Kosten.',
+  'faq.clarity1.cta': 'Preise ansehen',
+  'faq.clarity1.link': '/vouchers',
+  
+  'faq.clarity2.q': 'Wie viele Fotos bekomme ich?',
+  'faq.clarity2.micro': 'Abhängig vom Paket – flexibel wählbar',
+  'faq.clarity2.full': 'Die Anzahl der Fotos hängt vom gewählten Paket ab. Keine Sorge – Sie können die Anzahl der Porträts jederzeit anpassen, wenn Sie Ihre Fotos sehen. Schauen Sie auf unserer Gutschein-Seite nach, was in jedem Paket enthalten ist.',
+  'faq.clarity2.cta': 'Pakete ansehen',
+  'faq.clarity2.link': '/vouchers',
+  
+  'faq.clarity3.q': 'Warum uns wählen?',
+  'faq.clarity3.micro': '10+ Jahre, 500+ Familien',
+  'faq.clarity3.full': 'Über ein Jahrzehnt Erfahrung mit Familien in Wien. Entspannter, spielerischer Ansatz. Natürlicher Bearbeitungsstil. Wir sind spezialisiert darauf, kamerascheue Kinder (und Erwachsene!) wohlzufühlen.',
+  'faq.clarity3.cta': 'Über uns',
+  'faq.clarity3.link': '/ueber-uns/',
+  
+  // CTAs
+  'faq.ctaWaitlist': 'Zur Warteliste',
+  'faq.ctaGuide': 'Vorbereitungsguide lesen',
+  'faq.ctaContact': 'Noch Fragen?'
   }
 };
 
