@@ -676,29 +676,34 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
         </div>
       )}
 
-      {/* Voucher Preview (fixed bottom) */}
-      {selectedDelivery && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4">
+      {/* Voucher Preview (fixed bottom) - Hidden on Step 4 since preview is in main content */}
+      {selectedDelivery && currentStep !== 4 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg p-2 z-50">
           <div className="max-w-4xl mx-auto flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
                 <span className="text-xs text-center">Voucher<br/>Preview</span>
               </div>
               <div>
-                <h3 className="font-semibold">Fotoshooting Gutschein</h3>
-                <p className="text-sm text-gray-600">
+                <h3 className="font-semibold text-sm">Fotoshooting Gutschein</h3>
+                <p className="text-xs text-gray-600">
                   {selectedDelivery.name} | {selectedDesign?.occasion || customPhoto?.name || 'Eigenes Foto'}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-600">Zwischensumme</p>
-              <p className="font-bold text-lg">
+              <p className="text-xs text-gray-600">Zwischensumme</p>
+              <p className="font-bold">
                 {(voucherAmount + selectedDelivery.price).toFixed(2)} €
               </p>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Add bottom padding when footer is visible to prevent content overlap */}
+      {selectedDelivery && currentStep !== 4 && (
+        <div className="h-20"></div>
       )}
     </div>
   );
