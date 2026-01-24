@@ -55,12 +55,23 @@ const GoogleCalendarIntegration: React.FC<GoogleCalendarIntegrationProps> = ({
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      if (response.ok) {
+      const contentType = response.headers.get('content-type');
+      if (response.ok && contentType && contentType.includes('application/json')) {
         const data = await response.json();
         setSyncStatus(data);
+      } else {
+        // Try to get error message from response
+        let errorText = '';
+        try {
+          errorText = await response.text();
+        } catch (e) {}
+        console.error('Non-JSON response from sync status:', errorText);
+        setSyncStatus({ connected: false });
+        alert('Failed to fetch calendar sync status. Please check your login and try again.');
       }
     } catch (error) {
       console.error('Error fetching sync status:', error);
+      alert('Error fetching calendar sync status. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
