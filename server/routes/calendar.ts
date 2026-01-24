@@ -1,3 +1,15 @@
+// POST /api/calendar/import-google-events - Import all Google Calendar events (past and future) into CRM
+import StudioCalendarService from '../services/calendarService';
+router.post('/import-google-events', async (req, res) => {
+  try {
+    const { fromDate } = req.body;
+    const result = await StudioCalendarService.importGoogleCalendarEvents(fromDate ? new Date(fromDate) : undefined);
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    console.error('Failed to import Google Calendar events:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 import { Router } from 'express';
 import { db } from '../db';
 import { photographySessions } from '../../shared/schema';

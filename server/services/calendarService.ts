@@ -1,3 +1,63 @@
+  /**
+   * Import all Google Calendar events (past and future) into the CRM
+   * @param {Date} [fromDate] - Optional: Only import events from this date forward
+   * @returns {Promise<{imported: number, skipped: number, errors: any[]}>}
+   */
+  static async importGoogleCalendarEvents(fromDate?: Date): Promise<{imported: number, skipped: number, errors: any[]}> {
+    if (!this.calendar) {
+      const ok = await this.initializeGoogleCalendar();
+      if (!ok) throw new Error('Google Calendar not configured');
+    }
+    const now = new Date();
+    const timeMin = fromDate ? fromDate.toISOString() : new Date('2000-01-01').toISOString();
+    const events: any[] = [];
+    let pageToken: string | undefined = undefined;
+    do {
+      const response = await this.calendar.events.list({
+        calendarId: 'primary',
+        timeMin,
+        maxResults: 2500,
+        singleEvents: true,
+        orderBy: 'startTime',
+        pageToken,
+      });
+      if (response.data.items) events.push(...response.data.items);
+      pageToken = response.data.nextPageToken;
+    } while (pageToken);
+
+    let imported = 0, skipped = 0;
+    const errors: any[] = [];
+    for (const event of events) {
+      if (!event.id || !event.start?.dateTime || !event.end?.dateTime) {
+        skipped++;
+        continue;
+      }
+      // Check if already imported
+      const existing = await db.select().from(studioAppointments).where(eq(studioAppointments.googleCalendarEventId, event.id)).limit(1);
+      if (existing.length > 0) {
+        skipped++;
+        continue;
+      }
+      try {
+        await db.insert(studioAppointments).values({
+          title: event.summary || 'Google Event',
+          description: event.description || '',
+          appointmentType: 'meeting',
+          startDateTime: new Date(event.start.dateTime),
+          endDateTime: new Date(event.end.dateTime),
+          location: event.location || '',
+          notes: '',
+          googleCalendarEventId: event.id,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        imported++;
+      } catch (err) {
+        errors.push({ eventId: event.id, error: err });
+      }
+    }
+    return { imported, skipped, errors };
+  }
 /**
  * Studio Calendar Service
  * Handles appointment scheduling and Google Calendar integration
