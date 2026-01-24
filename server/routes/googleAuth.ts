@@ -8,6 +8,7 @@ import { google } from 'googleapis';
 import { db } from '../db';
 import { calendarSyncSettings } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { requireAuth } from '../auth';
 
 const router = Router();
 
@@ -27,13 +28,22 @@ const SCOPES = [
 /**
  * Start OAuth flow - redirect user to Google consent screen
  */
-router.get('/google/connect', (req: Request, res: Response) => {
+router.get('/google/connect', requireAuth, (req: Request, res: Response) => {
+  console.log('[GOOGLE-OAUTH] Connect endpoint hit');
   try {
   const userId = (req as any).user?.id as string | undefined;
+    console.log('[GOOGLE-OAUTH] User ID:', userId);
     
     if (!userId) {
+      console.log('[GOOGLE-OAUTH] No user ID found');
       return res.status(401).json({ error: 'Not authenticated' });
     }
+
+    console.log('[GOOGLE-OAUTH] Generating auth URL with credentials:', {
+      hasClientId: !!process.env.GOOGLE_CLIENT_ID,
+      hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+      baseUrl: process.env.BASE_URL
+    });
 
     // Generate authorization URL
     const authUrl = oauth2Client.generateAuthUrl({
@@ -42,6 +52,8 @@ router.get('/google/connect', (req: Request, res: Response) => {
       state: userId.toString(), // Pass user ID through state
       prompt: 'consent', // Force consent screen to get refresh token
     });
+
+    console.log('[GOOGLE-OAUTH] Generated auth URL:', authUrl.substring(0, 100) + '...');
 
     res.json({ authUrl });
   } catch (error: any) {
@@ -247,7 +259,7 @@ router.get('/google/callback', async (req: Request, res: Response) => {
 /**
  * Get current sync status
  */
-router.get('/google/status', async (req: Request, res: Response) => {
+router.get('/google/status', requireAuth, async (req: Request, res: Response) => {
   try {
   const userId = (req as any).user?.id as string | undefined;
 
@@ -282,7 +294,7 @@ router.get('/google/status', async (req: Request, res: Response) => {
 /**
  * Disconnect Google Calendar
  */
-router.post('/google/disconnect', async (req: Request, res: Response) => {
+router.post('/google/disconnect', requireAuth, async (req: Request, res: Response) => {
   try {
   const userId = (req as any).user?.id as string | undefined;
 
@@ -305,7 +317,7 @@ router.post('/google/disconnect', async (req: Request, res: Response) => {
 /**
  * Toggle sync on/off
  */
-router.post('/google/toggle-sync', async (req: Request, res: Response) => {
+router.post('/google/toggle-sync', requireAuth, async (req: Request, res: Response) => {
   try {
   const userId = (req as any).user?.id as string | undefined;
     const { enabled } = req.body;
