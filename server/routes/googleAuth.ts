@@ -12,11 +12,21 @@ import { requireAuth } from '../auth';
 
 const router = Router();
 
+// Determine the correct redirect URI based on environment
+const getRedirectUri = () => {
+  // In production, always use the production URL
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://newagefotografie.com/api/auth/google/callback';
+  }
+  // In development, use BASE_URL or localhost
+  return `${process.env.BASE_URL || 'http://localhost:3001'}/api/auth/google/callback`;
+};
+
 // OAuth2 client setup
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  `${process.env.BASE_URL || 'http://localhost:3001'}/api/auth/google/callback`
+  getRedirectUri()
 );
 
 // Scopes required for calendar access
