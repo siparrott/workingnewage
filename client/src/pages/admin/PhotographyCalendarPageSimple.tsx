@@ -74,7 +74,8 @@ interface DashboardStats {
 }
 
 // Golden Hour calculation returning formatted windows plus raw Date objects for scheduling suggestions
-const calculateGoldenHour = (date: Date, latitude: number = 52.52, longitude: number = 13.405) => {
+// Default coordinates: Vienna, Austria (48.2082°N, 16.3738°E)
+const calculateGoldenHour = (date: Date, latitude: number = 48.2082, longitude: number = 16.3738) => {
   const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000);
   const solarDeclination = 23.45 * Math.sin((2 * Math.PI * (284 + dayOfYear)) / 365) * Math.PI / 180;
   const latRad = latitude * Math.PI / 180;
@@ -199,12 +200,17 @@ const PhotographyCalendarPage: React.FC = () => {
     try {
       setClientsLoading(true);
       const resp = await fetch('/api/crm/clients', {
+        credentials: 'include',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
-      if (!resp.ok) return setClients([]);
+      if (!resp.ok) {
+        console.warn('[Calendar] Failed to fetch clients:', resp.status, resp.statusText);
+        return setClients([]);
+      }
       const data = await resp.json();
+      console.log('[Calendar] Fetched clients:', data?.length ?? 0, 'records');
       const mapped: ClientLight[] = (Array.isArray(data) ? data : []).map((c: any) => ({
         id: c.id,
         firstName: c.first_name ?? c.firstName ?? '',
@@ -213,7 +219,8 @@ const PhotographyCalendarPage: React.FC = () => {
         phone: c.phone,
       }));
       setClients(mapped);
-    } catch {
+    } catch (err) {
+      console.error('[Calendar] Error fetching clients:', err);
       setClients([]);
     } finally {
       setClientsLoading(false);
@@ -1028,8 +1035,8 @@ const PhotographyCalendarPage: React.FC = () => {
                       </div>
                       {(() => {
                         const sessionDate = new Date(formData.startTime);
-                        // Default to Berlin coordinates - in production, get from user location
-                        const goldenHours = calculateGoldenHour(sessionDate, 52.52, 13.405);
+                        // Vienna, Austria coordinates for Golden Hour calculation
+                        const goldenHours = calculateGoldenHour(sessionDate, 48.2082, 16.3738);
                         return (
                           <div className="text-xs text-yellow-700 space-y-1">
                             <p><strong>Morning Golden Hour:</strong> {goldenHours.morning}</p>
@@ -1044,7 +1051,13 @@ const PhotographyCalendarPage: React.FC = () => {
 
                 {/* Link to existing CRM client (optional) */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">Link Client (optional)</label>
+                  <label className="block text-sm font-medium mb-1">
+                    Link Client (optional)
+                    {clientsLoading && <span className="ml-2 text-gray-400 text-xs">Loading...</span>}
+                    {!clientsLoading && clients.length > 0 && (
+                      <span className="ml-2 text-gray-400 text-xs">({clients.length} clients available)</span>
+                    )}
+                  </label>
                   <input
                     type="text"
                     placeholder="Search clients by name or email"
@@ -1065,7 +1078,7 @@ const PhotographyCalendarPage: React.FC = () => {
                     }}
                     className="w-full border rounded px-3 py-2"
                   >
-                    <option value="">— No linked client —</option>
+                    <option value="">{clientsLoading ? '— Loading clients... —' : '— No linked client —'}</option>
                     {(clientsLoading ? [] : clients)
                       .filter(c => {
                         const q = clientSearch.trim().toLowerCase();
