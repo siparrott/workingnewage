@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Settings, RotateCcw, Check, AlertCircle, ExternalLink, RefreshCw, Copy, Download, Upload } from 'lucide-react';
+import { Calendar, Settings, RotateCcw, Check, AlertCircle, ExternalLink, RefreshCw, Copy, Download, Upload, Loader2 } from 'lucide-react';
 import ImportCalendarEvents from './ImportCalendarEvents';
 
 interface GoogleCalendarIntegrationProps {
@@ -8,12 +8,141 @@ interface GoogleCalendarIntegrationProps {
   onConnectionSuccess?: () => void;
 }
 
+interface SyncStatus {
+  connected: boolean;
+  syncEnabled?: boolean;
+  calendarId?: string;
+  lastSyncAt?: string;
+  email?: string;
+}
+
 const GoogleCalendarIntegration: React.FC<GoogleCalendarIntegrationProps> = ({
   isOpen,
   onClose,
   onConnectionSuccess
 }) => {
   const [activeTab, setActiveTab] = useState<'ical' | 'oauth' | 'import'>('ical');
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>({ connected: false });
+  const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+
+  // Fetch sync status when OAuth tab is active
+  useEffect(() => {
+    if (isOpen && activeTab === 'oauth') {
+      fetchSyncStatus();
+    }
+  }, [isOpen, activeTab]);
+
+  // Listen for OAuth callback from popup
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'GOOGLE_CALENDAR_CONNECTED') {
+        fetchSyncStatus();
+        onConnectionSuccess?.();
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [onConnectionSuccess]);
+
+  const fetchSyncStatus = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/auth/google/status', {
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSyncStatus(data);
+      }
+    } catch (error) {
+      console.error('Error fetching sync status:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConnect = async () => {
+    try {
+      setConnecting(true);
+      const response = await fetch('/api/auth/google/connect', {
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      if (response.ok) {
+        const { authUrl } = await response.json();
+        // Open OAuth popup
+        const popup = window.open(
+          authUrl,
+          'Google Calendar Authorization',
+          'width=600,height=700,left=200,top=100'
+        );
+        if (!popup) {
+          alert('Please allow popups for this site to connect Google Calendar');
+        }
+      } else {
+        const error = await response.json();
+        alert(`Failed to connect: ${error.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error connecting:', error);
+      alert('Failed to connect Google Calendar');
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!confirm('Are you sure you want to disconnect Google Calendar?')) return;
+    try {
+      const response = await fetch('/api/auth/google/disconnect', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      if (response.ok) {
+        setSyncStatus({ connected: false });
+        alert('Google Calendar disconnected');
+      }
+    } catch (error) {
+      console.error('Error disconnecting:', error);
+    }
+  };
+
+  const handleManualSync = async () => {
+    try {
+      setSyncing(true);
+      const response = await fetch('/api/calendar/manual-sync', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      if (response.ok) {
+        const results = await response.json();
+        alert(`Sync complete!\nImported: ${results.imported || 0}\nUpdated: ${results.updated || 0}`);
+        fetchSyncStatus();
+        onConnectionSuccess?.();
+      } else {
+        alert('Sync failed');
+      }
+    } catch (error) {
+      console.error('Error syncing:', error);
+      alert('Failed to sync');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -173,47 +302,116 @@ const GoogleCalendarIntegration: React.FC<GoogleCalendarIntegrationProps> = ({
           {/* OAuth Tab */}
           {activeTab === 'oauth' && (
             <div className="space-y-6">
-              {/* OAuth Alternative */}
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-medium text-blue-900 mb-2">Advanced Integration (OAuth 2.0)</h4>
-                <div className="text-sm text-blue-800 space-y-2">
-                  <p>For two-way sync and advanced features, OAuth integration is available:</p>
-                  <ul className="list-disc list-inside space-y-1 ml-4">
-                    <li>Two-way synchronization (Google Calendar ↔ Photography CRM)</li>
-                    <li>Real-time updates</li>
-                    <li>Create sessions directly from Google Calendar</li>
-                    <li>Automatic conflict detection</li>
-                    <li>Multiple calendar support</li>
-                  </ul>
-                  <p className="mt-2">
-                    <strong>Requires:</strong> Google Cloud Console setup with OAuth credentials
-                  </p>
-                  <p className="mt-2">
-                    See <code>docs/google-calendar-setup.md</code> for OAuth setup instructions.
-                  </p>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="animate-spin text-blue-500" size={32} />
+                  <span className="ml-2 text-gray-600">Loading sync status...</span>
                 </div>
-              </div>
+              ) : syncStatus.connected ? (
+                <>
+                  {/* Connected Status */}
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <div className="flex items-center space-x-3">
+                      <Check className="text-green-600" size={24} />
+                      <div>
+                        <h4 className="font-medium text-green-900">Google Calendar Connected</h4>
+                        {syncStatus.email && (
+                          <p className="text-sm text-green-700">Connected as: {syncStatus.email}</p>
+                        )}
+                        {syncStatus.calendarId && (
+                          <p className="text-sm text-green-700">Calendar: {syncStatus.calendarId}</p>
+                        )}
+                        {syncStatus.lastSyncAt && (
+                          <p className="text-sm text-green-600">
+                            Last synced: {new Date(syncStatus.lastSyncAt).toLocaleString()}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
 
-              {/* OAuth Setup Steps */}
-              <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-                <h4 className="font-medium text-amber-900 mb-2">OAuth Setup Required</h4>
-                <div className="text-sm text-amber-800 space-y-2">
-                  <p>To enable OAuth integration, you need to:</p>
-                  <ol className="list-decimal list-inside space-y-1 ml-4">
-                    <li>Create a Google Cloud Console project</li>
-                    <li>Enable the Google Calendar API</li>
-                    <li>Create OAuth 2.0 credentials</li>
-                    <li>Configure redirect URIs for your domain</li>
-                    <li>Add credentials to environment variables</li>
-                  </ol>
-                  <p className="mt-2">
-                    <strong>Environment variables needed:</strong><br/>
-                    <code className="bg-amber-100 px-1 rounded">GOOGLE_CLIENT_ID</code><br/>
-                    <code className="bg-amber-100 px-1 rounded">GOOGLE_CLIENT_SECRET</code><br/>
-                    <code className="bg-amber-100 px-1 rounded">GOOGLE_REDIRECT_URI</code>
-                  </p>
-                </div>
-              </div>
+                  {/* Sync Actions */}
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      onClick={handleManualSync}
+                      disabled={syncing}
+                      className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {syncing ? (
+                        <Loader2 className="animate-spin" size={16} />
+                      ) : (
+                        <RefreshCw size={16} />
+                      )}
+                      <span>{syncing ? 'Syncing...' : 'Sync Now'}</span>
+                    </button>
+                    <button
+                      onClick={handleDisconnect}
+                      className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                    >
+                      <AlertCircle size={16} />
+                      <span>Disconnect</span>
+                    </button>
+                  </div>
+
+                  {/* Sync Features */}
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h4 className="font-medium text-blue-900 mb-2">Two-Way Sync Features</h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• Events sync automatically between Google Calendar and CRM</li>
+                      <li>• Create sessions from Google Calendar events</li>
+                      <li>• Automatic conflict detection</li>
+                      <li>• Real-time updates</li>
+                    </ul>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Not Connected */}
+                  <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                    <div className="flex items-center space-x-3">
+                      <AlertCircle className="text-amber-600" size={24} />
+                      <div>
+                        <h4 className="font-medium text-amber-900">Google Calendar Not Connected</h4>
+                        <p className="text-sm text-amber-700">
+                          Connect your Google Calendar for two-way synchronization
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Connect Button */}
+                  <button
+                    onClick={handleConnect}
+                    disabled={connecting}
+                    className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
+                  >
+                    {connecting ? (
+                      <Loader2 className="animate-spin" size={20} />
+                    ) : (
+                      <Calendar size={20} />
+                    )}
+                    <span>{connecting ? 'Connecting...' : 'Connect Google Calendar'}</span>
+                  </button>
+
+                  {/* Features Description */}
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h4 className="font-medium text-blue-900 mb-2">OAuth Integration Features</h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• Two-way synchronization (Google Calendar ↔ Photography CRM)</li>
+                      <li>• Real-time updates</li>
+                      <li>• Create sessions directly from Google Calendar</li>
+                      <li>• Automatic conflict detection</li>
+                      <li>• Multiple calendar support</li>
+                    </ul>
+                  </div>
+
+                  {/* Privacy Notice */}
+                  <div className="text-xs text-gray-500 text-center">
+                    By connecting, you authorize access to view and manage your Google Calendar.
+                    You can disconnect at any time.
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
