@@ -216,6 +216,11 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     `);
   } catch (error: any) {
     console.error('OAuth callback error:', error);
+    // Always return JSON for API requests
+    if (req.headers.accept && req.headers.accept.includes('application/json')) {
+      return res.status(500).json({ error: 'OAuth callback failed', message: error.message });
+    }
+    // Otherwise, fallback to HTML for browser
     res.status(500).send(`
       <!DOCTYPE html>
       <html>
