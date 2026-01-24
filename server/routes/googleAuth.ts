@@ -14,9 +14,9 @@ const router = Router();
 
 // Determine the correct redirect URI based on environment
 const getRedirectUri = () => {
-  // In production, always use the production URL
+  // In production, always use the www subdomain
   if (process.env.NODE_ENV === 'production') {
-    return 'https://newagefotografie.com/api/auth/google/callback';
+    return 'https://www.newagefotografie.com/api/auth/google/callback';
   }
   // In development, use BASE_URL or localhost
   return `${process.env.BASE_URL || 'http://localhost:3001'}/api/auth/google/callback`;
