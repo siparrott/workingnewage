@@ -7,7 +7,7 @@
    */
   static async importGoogleCalendarEvents(fromDate?: Date, userId?: string): Promise<{imported: number, updated: number, deleted: number, skipped: number, errors: any[]}> {
     // Get OAuth tokens from calendarSyncSettings (set by OAuth flow)
-    const { calendarSyncSettings } = await import('@shared/schema');
+    const { calendarSyncSettings, photographySessions } = await import('@shared/schema');
     
     // Find an active sync config (if userId provided, filter by it)
     let configs;
@@ -94,37 +94,37 @@
         continue;
       }
 
-      // Check if event already exists
-      const existing = await db
+      // Check if event already exists in photographySessions (by google_calendar_event_id)
+      const existingSession = await db
         .select()
-        .from(studioAppointments)
-        .where(eq(studioAppointments.googleCalendarEventId, event.id))
+        .from(photographySessions)
+        .where(eq(photographySessions.googleCalendarEventId, event.id))
         .limit(1);
 
-      if (existing.length > 0) {
-        // Update existing event if it changed
-        const existingEvent = existing[0];
+      if (existingSession.length > 0) {
+        // Update existing session if it changed
+        const existing = existingSession[0];
         const newStart = new Date(startDateTime);
         const newEnd = new Date(endDateTime);
         
         if (
-          existingEvent.title !== (event.summary || 'Google Event') ||
-          existingEvent.startDateTime.getTime() !== newStart.getTime() ||
-          existingEvent.endDateTime.getTime() !== newEnd.getTime() ||
-          existingEvent.location !== (event.location || '')
+          existing.title !== (event.summary || 'Google Event') ||
+          existing.startTime.getTime() !== newStart.getTime() ||
+          existing.endTime.getTime() !== newEnd.getTime() ||
+          existing.locationName !== (event.location || null)
         ) {
           try {
             await db
-              .update(studioAppointments)
+              .update(photographySessions)
               .set({
                 title: event.summary || 'Google Event',
-                description: event.description || '',
-                startDateTime: newStart,
-                endDateTime: newEnd,
-                location: event.location || '',
+                description: event.description || null,
+                startTime: newStart,
+                endTime: newEnd,
+                locationName: event.location || null,
                 updatedAt: new Date(),
               })
-              .where(eq(studioAppointments.id, existingEvent.id));
+              .where(eq(photographySessions.id, existing.id));
             updated++;
           } catch (err) {
             errors.push({ eventId: event.id, error: err });
@@ -135,17 +135,44 @@
         continue;
       }
 
-      // Insert new event
+      // Insert new event as photography session
       try {
-        await db.insert(studioAppointments).values({
-          title: event.summary || 'Google Event',
-          description: event.description || '',
-          appointmentType: 'meeting',
-          startDateTime: new Date(startDateTime),
-          endDateTime: new Date(endDateTime),
-          location: event.location || '',
-          notes: `Imported from Google Calendar on ${new Date().toLocaleString()}`,
+        // Parse client name from event summary (often in format "Familienshooting mit Name")
+        const summary = event.summary || 'Google Event';
+        let clientName = null;
+        const mitMatch = summary.match(/mit\s+(.+)$/i);
+        if (mitMatch) {
+          clientName = mitMatch[1].trim();
+        }
+        
+        // Determine session type from summary
+        let sessionType = 'portrait';
+        const lowerSummary = summary.toLowerCase();
+        if (lowerSummary.includes('familie') || lowerSummary.includes('family')) sessionType = 'family';
+        else if (lowerSummary.includes('hochzeit') || lowerSummary.includes('wedding')) sessionType = 'wedding';
+        else if (lowerSummary.includes('baby') || lowerSummary.includes('newborn')) sessionType = 'portrait';
+        else if (lowerSummary.includes('business') || lowerSummary.includes('commercial')) sessionType = 'commercial';
+        else if (lowerSummary.includes('event')) sessionType = 'event';
+
+        const newStart = new Date(startDateTime);
+        const newEnd = new Date(endDateTime);
+        const isPast = newStart < new Date();
+
+        await db.insert(photographySessions).values({
+          title: summary,
+          description: event.description || null,
+          sessionType: sessionType,
+          status: isPast ? 'completed' : 'scheduled',
+          startTime: newStart,
+          endTime: newEnd,
+          clientName: clientName,
+          locationName: event.location || null,
           googleCalendarEventId: event.id,
+          icalUid: event.iCalUID || null,
+          externalCalendarSync: true,
+          deliveryStatus: isPast ? 'delivered' : 'pending',
+          editingStatus: isPast ? 'completed' : 'pending',
+          priority: 'medium',
           createdAt: new Date(),
           updatedAt: new Date(),
         });
