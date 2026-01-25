@@ -112,6 +112,8 @@ const calculateGoldenHour = (date: Date, latitude: number = 48.2082, longitude: 
 const PhotographyCalendarPage: React.FC = () => {
   const [sessions, setSessions] = useState<PhotographySession[]>([]);
   const [showGoogleCalendarModal, setShowGoogleCalendarModal] = useState(false);
+  const [showLocationScoutModal, setShowLocationScoutModal] = useState(false);
+  const [locationScoutQuery, setLocationScoutQuery] = useState('');
   const [selectedSession, setSelectedSession] = useState<PhotographySession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -846,10 +848,7 @@ const PhotographyCalendarPage: React.FC = () => {
               <span className="text-sm">Schedule Session</span>
             </button>
             <button
-              onClick={() => {
-                const q = prompt('Location to scout (opens Google Maps search):');
-                if (q) window.open(`https://www.google.com/maps/search/${encodeURIComponent(q)}`, '_blank');
-              }}
+              onClick={() => setShowLocationScoutModal(true)}
               className="flex flex-col items-center space-y-2 p-4 border rounded-lg hover:bg-gray-50">
               <MapPin className="w-6 h-6" />
               <span className="text-sm">Location Scouting</span>
@@ -1594,6 +1593,90 @@ const PhotographyCalendarPage: React.FC = () => {
                 >
                   Edit Session
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Location Scouting Modal */}
+        {showLocationScoutModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <MapPin className="h-6 w-6 text-teal-600 mr-3" />
+                    <h2 className="text-xl font-semibold text-gray-900">Location Scouting</h2>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowLocationScoutModal(false);
+                      setLocationScoutQuery('');
+                    }}
+                    className="text-gray-400 hover:text-gray-600 text-2xl"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+              <div className="p-6">
+                <p className="text-gray-600 mb-4">
+                  Search for a location to scout for your next photoshoot. Opens in Google Maps.
+                </p>
+                <input
+                  type="text"
+                  value={locationScoutQuery}
+                  onChange={(e) => setLocationScoutQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && locationScoutQuery.trim()) {
+                      window.open(`https://www.google.com/maps/search/${encodeURIComponent(locationScoutQuery.trim())}`, '_blank');
+                    }
+                  }}
+                  placeholder="e.g., Vienna parks, Schönbrunn Palace, urban rooftops..."
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 mb-4 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  autoFocus
+                />
+                <div className="mb-4">
+                  <p className="text-sm text-gray-500 mb-2">Quick suggestions:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {['Vienna parks', 'Schönbrunn Palace', 'Danube riverbank', 'Urban streets', 'Coffee shops Vienna', 'Prater'].map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        onClick={() => setLocationScoutQuery(suggestion)}
+                        className="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      if (locationScoutQuery.trim()) {
+                        window.open(`https://www.google.com/maps/search/${encodeURIComponent(locationScoutQuery.trim())}`, '_blank');
+                      }
+                    }}
+                    disabled={!locationScoutQuery.trim()}
+                    className={`flex-1 py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2 ${
+                      locationScoutQuery.trim()
+                        ? 'bg-teal-600 text-white hover:bg-teal-700'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    <MapPin className="w-4 h-4" />
+                    Open in Google Maps
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowLocationScoutModal(false);
+                      setLocationScoutQuery('');
+                    }}
+                    className="px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             </div>
           </div>
