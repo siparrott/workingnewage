@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { db } from '../db';
 import { photographySessions } from '../../shared/schema';
 import { eq, desc, asc, and, gte, lte, like } from 'drizzle-orm';
-import StudioCalendarService from '../services/calendarService';
+import StudioCalendarService, { importGoogleCalendarEvents } from '../services/calendarService';
 
 const router = Router();
 
@@ -10,7 +10,7 @@ const router = Router();
 router.post('/import-google-events', async (req, res) => {
   try {
     const { fromDate } = req.body;
-    const result = await StudioCalendarService.importGoogleCalendarEvents(fromDate ? new Date(fromDate) : undefined);
+    const result = await importGoogleCalendarEvents(fromDate ? new Date(fromDate) : undefined);
     res.json({ success: true, ...result });
   } catch (error: any) {
     console.error('Failed to import Google Calendar events:', error);

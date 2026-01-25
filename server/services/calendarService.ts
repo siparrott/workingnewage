@@ -1,14 +1,22 @@
-  /**
-   * Import all Google Calendar events (past and future) into the CRM
-   * Uses the calendarSyncSettings table for OAuth tokens (set by OAuth flow)
-   * @param {Date} [fromDate] - Optional: Only import events from this date forward
-   * @param {string} [userId] - Optional: User ID to get OAuth tokens for
-   * @returns {Promise<{imported: number, updated: number, deleted: number, skipped: number, errors: any[]}>}
-   */
-  static async importGoogleCalendarEvents(fromDate?: Date, userId?: string): Promise<{imported: number, updated: number, deleted: number, skipped: number, errors: any[]}> {
-    // Get OAuth tokens from calendarSyncSettings (set by OAuth flow)
-    const { calendarSyncSettings, photographySessions } = await import('@shared/schema');
-    
+/**
+ * Studio Calendar Service
+ * Handles appointment scheduling and Google Calendar integration
+ */
+
+import { db } from '../db';
+import { studioAppointments, googleCalendarConfig, crmClients, calendarSyncSettings, photographySessions } from '@shared/schema';
+import { eq, and, gte, lte, desc } from 'drizzle-orm';
+import { google } from 'googleapis';
+
+/**
+ * Import all Google Calendar events (past and future) into the CRM
+ * Uses the calendarSyncSettings table for OAuth tokens (set by OAuth flow)
+ * This is a standalone function that can be called from routes
+ * @param {Date} [fromDate] - Optional: Only import events from this date forward
+ * @param {string} [userId] - Optional: User ID to get OAuth tokens for
+ * @returns {Promise<{imported: number, updated: number, deleted: number, skipped: number, errors: any[]}>}
+ */
+export async function importGoogleCalendarEvents(fromDate?: Date, userId?: string): Promise<{imported: number, updated: number, deleted: number, skipped: number, errors: any[]}> {
     // Find an active sync config (if userId provided, filter by it)
     let configs;
     if (userId) {
@@ -158,7 +166,11 @@
         const newEnd = new Date(endDateTime);
         const isPast = newStart < new Date();
 
+        // Generate a unique ID using crypto
+        const sessionId = `gcal_${event.id}_${Date.now()}`;
+
         await db.insert(photographySessions).values({
+          id: sessionId,
           title: summary,
           description: event.description || null,
           sessionType: sessionType,
@@ -177,8 +189,9 @@
           updatedAt: new Date(),
         });
         imported++;
-      } catch (err) {
-        errors.push({ eventId: event.id, error: err });
+      } catch (err: any) {
+        console.error(`Failed to import event ${event.id}:`, err.message || err);
+        errors.push({ eventId: event.id, error: err.message || String(err) });
       }
     }
 
@@ -191,16 +204,7 @@
     console.log(`✅ Sync complete: ${imported} imported, ${updated} updated, ${skipped} skipped, ${errors.length} errors`);
 
     return { imported, updated, deleted, skipped, errors };
-  }
-/**
- * Studio Calendar Service
- * Handles appointment scheduling and Google Calendar integration
- */
-
-import { db } from '../db';
-import { studioAppointments, googleCalendarConfig, crmClients } from '@shared/schema';
-import { eq, and, gte, lte, desc } from 'drizzle-orm';
-import { google } from 'googleapis';
+}
 
 interface CreateAppointmentOptions {
   clientId: string;
