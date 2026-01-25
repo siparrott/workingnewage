@@ -285,19 +285,11 @@ const CalendarPage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-gray-900">Google Calendar View</h2>
-            <div className="flex items-center space-x-4">
-              {lastSync && (
-                <span className="text-sm text-gray-500">
-                  Last synced: {lastSync.toLocaleTimeString()}
-                </span>
-              )}
-              <button
-                onClick={loadGoogleEvents}
-                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
-              >
-                🔄 Sync Now
-              </button>
-            </div>
+            {lastSync && (
+              <span className="text-sm text-gray-500">
+                Last synced: {lastSync.toLocaleTimeString()}
+              </span>
+            )}
           </div>
           <div className="relative w-full" style={{ paddingBottom: '75%' }}>
             <iframe

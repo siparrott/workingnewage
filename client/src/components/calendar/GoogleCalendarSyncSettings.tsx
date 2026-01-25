@@ -141,7 +141,7 @@ const GoogleCalendarSyncSettings: React.FC<{ isOpen: boolean; onClose: () => voi
   const handleManualSync = async () => {
     try {
       setSyncing(true);
-      const response = await fetch('/api/calendar/manual-sync', {
+      const response = await fetch('/api/calendar/import-google-events', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
