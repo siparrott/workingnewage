@@ -432,6 +432,25 @@ const authenticateUser = async (req: any, res: any, next: any) => {
     if (req.session && req.session.userId) {
       return requireAuth(req, res, next);
     }
+    
+    // Check for JWT token in Authorization header (Bearer token)
+    const authHeader = req.headers['authorization'] as string;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      try {
+        const jwt = await import('jsonwebtoken');
+        const secret = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'default-secret';
+        const decoded = jwt.default.verify(token, secret) as any;
+        if (decoded && decoded.userId) {
+          req.user = { id: decoded.userId, role: decoded.role || 'admin' };
+          return next();
+        }
+      } catch (jwtErr) {
+        // JWT verification failed, continue to other auth methods
+        console.warn('[auth] JWT verification failed:', (jwtErr as any)?.message);
+      }
+    }
+    
     // Legacy / headless token header fallback
     const token = (req.headers['x-admin-token'] as string) || '';
     const expected = process.env.ADMIN_TOKEN || '';
