@@ -1267,39 +1267,54 @@ const PhotographyCalendarPage: React.FC = () => {
                       type="button"
                       disabled={creatingClient || !newClientDraft.firstName || !newClientDraft.lastName || !newClientDraft.email}
                       onClick={async () => {
+                        if (!newClientDraft.firstName || !newClientDraft.lastName || !newClientDraft.email) {
+                          alert('Please fill in First name, Last name, and Email to create a new client.');
+                          return;
+                        }
                         try {
                           setCreatingClient(true);
                           const resp = await fetch('/api/crm/clients', {
                             method: 'POST',
+                            credentials: 'include',
                             headers: { 
                               'Content-Type': 'application/json',
                               'Authorization': `Bearer ${localStorage.getItem('token')}`
                             },
                             body: JSON.stringify({
-                              firstName: newClientDraft.firstName,
-                              lastName: newClientDraft.lastName,
-                              email: newClientDraft.email,
-                              phone: newClientDraft.phone || undefined,
+                              firstName: newClientDraft.firstName.trim(),
+                              lastName: newClientDraft.lastName.trim(),
+                              email: newClientDraft.email.trim(),
+                              phone: newClientDraft.phone?.trim() || undefined,
                             }),
                           });
                           if (!resp.ok) {
-                            alert('Failed to create client');
+                            const errorData = await resp.json().catch(() => ({}));
+                            alert(`Failed to create client: ${errorData.error || errorData.message || resp.statusText}`);
                             return;
                           }
                           const created = await resp.json();
-                          // refresh clients list and select
+                          // refresh clients list and select the new client
                           await fetchClients();
                           handleInputChange('clientId', created.id);
-                          handleInputChange('clientName', `${created.first_name || created.firstName} ${created.last_name || created.lastName}`.trim());
+                          handleInputChange('clientName', `${created.first_name || created.firstName || ''} ${created.last_name || created.lastName || ''}`.trim());
                           if (created.email) handleInputChange('clientEmail', created.email);
                           setNewClientDraft({ firstName: '', lastName: '', email: '', phone: '' });
-                        } catch (_) {
-                          alert('Error creating client');
+                          alert('✅ Client created and linked successfully!');
+                        } catch (err: any) {
+                          console.error('Error creating client:', err);
+                          alert(`Error creating client: ${err.message || 'Unknown error'}`);
                         } finally {
                           setCreatingClient(false);
                         }
                       }}
-                      className={`text-xs px-3 py-1 rounded ${creatingClient ? 'bg-gray-300 text-gray-600' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                      className={`text-xs px-3 py-1 rounded ${
+                        creatingClient || !newClientDraft.firstName || !newClientDraft.lastName || !newClientDraft.email
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                      title={!newClientDraft.firstName || !newClientDraft.lastName || !newClientDraft.email 
+                        ? 'Fill in First name, Last name, and Email above to enable' 
+                        : 'Create new client and link to this session'}
                     >
                       {creatingClient ? 'Creating…' : 'Create & Link Client'}
                     </button>
