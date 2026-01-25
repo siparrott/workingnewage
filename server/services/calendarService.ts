@@ -1,52 +1,150 @@
   /**
    * Import all Google Calendar events (past and future) into the CRM
+   * Uses the calendarSyncSettings table for OAuth tokens (set by OAuth flow)
    * @param {Date} [fromDate] - Optional: Only import events from this date forward
-   * @returns {Promise<{imported: number, skipped: number, errors: any[]}>}
+   * @param {string} [userId] - Optional: User ID to get OAuth tokens for
+   * @returns {Promise<{imported: number, updated: number, deleted: number, skipped: number, errors: any[]}>}
    */
-  static async importGoogleCalendarEvents(fromDate?: Date): Promise<{imported: number, skipped: number, errors: any[]}> {
-    if (!this.calendar) {
-      const ok = await this.initializeGoogleCalendar();
-      if (!ok) throw new Error('Google Calendar not configured');
+  static async importGoogleCalendarEvents(fromDate?: Date, userId?: string): Promise<{imported: number, updated: number, deleted: number, skipped: number, errors: any[]}> {
+    // Get OAuth tokens from calendarSyncSettings (set by OAuth flow)
+    const { calendarSyncSettings } = await import('@shared/schema');
+    
+    // Find an active sync config (if userId provided, filter by it)
+    let configs;
+    if (userId) {
+      configs = await db
+        .select()
+        .from(calendarSyncSettings)
+        .where(and(eq(calendarSyncSettings.userId, userId), eq(calendarSyncSettings.syncEnabled, true)))
+        .limit(1);
+    } else {
+      configs = await db
+        .select()
+        .from(calendarSyncSettings)
+        .where(eq(calendarSyncSettings.syncEnabled, true))
+        .limit(1);
     }
-    const now = new Date();
-    const timeMin = fromDate ? fromDate.toISOString() : new Date('2000-01-01').toISOString();
+
+    if (configs.length === 0) {
+      throw new Error('No Google Calendar sync configured. Please connect your Google Calendar first.');
+    }
+
+    const syncConfig = configs[0];
+    
+    if (!syncConfig.accessToken || !syncConfig.refreshToken) {
+      throw new Error('Google Calendar OAuth tokens missing. Please reconnect your Google Calendar.');
+    }
+
+    // Initialize OAuth client with tokens from calendarSyncSettings
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.NODE_ENV === 'production'
+        ? 'https://www.newagefotografie.com/api/auth/google/callback'
+        : `${process.env.BASE_URL || 'http://localhost:3001'}/api/auth/google/callback`
+    );
+
+    oauth2Client.setCredentials({
+      access_token: syncConfig.accessToken,
+      refresh_token: syncConfig.refreshToken,
+    });
+
+    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+    // Fetch events from 1 year ago to 2 years in future to ensure past AND future events
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    const twoYearsAhead = new Date();
+    twoYearsAhead.setFullYear(twoYearsAhead.getFullYear() + 2);
+
+    const timeMin = fromDate ? fromDate.toISOString() : oneYearAgo.toISOString();
+    const timeMax = twoYearsAhead.toISOString();
+
+    console.log(`📅 Fetching Google Calendar events from ${timeMin} to ${timeMax}`);
+
     const events: any[] = [];
     let pageToken: string | undefined = undefined;
+    
     do {
-      const response = await this.calendar.events.list({
-        calendarId: 'primary',
+      const response = await calendar.events.list({
+        calendarId: syncConfig.calendarId || 'primary',
         timeMin,
+        timeMax,
         maxResults: 2500,
         singleEvents: true,
         orderBy: 'startTime',
         pageToken,
       });
       if (response.data.items) events.push(...response.data.items);
-      pageToken = response.data.nextPageToken;
+      pageToken = response.data.nextPageToken ?? undefined;
     } while (pageToken);
 
-    let imported = 0, skipped = 0;
+    console.log(`📅 Found ${events.length} events in Google Calendar`);
+
+    let imported = 0, updated = 0, deleted = 0, skipped = 0;
     const errors: any[] = [];
+
     for (const event of events) {
-      if (!event.id || !event.start?.dateTime || !event.end?.dateTime) {
+      // Skip all-day events that don't have dateTime (only have date)
+      const startDateTime = event.start?.dateTime || event.start?.date;
+      const endDateTime = event.end?.dateTime || event.end?.date;
+      
+      if (!event.id || !startDateTime || !endDateTime) {
         skipped++;
         continue;
       }
-      // Check if already imported
-      const existing = await db.select().from(studioAppointments).where(eq(studioAppointments.googleCalendarEventId, event.id)).limit(1);
+
+      // Check if event already exists
+      const existing = await db
+        .select()
+        .from(studioAppointments)
+        .where(eq(studioAppointments.googleCalendarEventId, event.id))
+        .limit(1);
+
       if (existing.length > 0) {
-        skipped++;
+        // Update existing event if it changed
+        const existingEvent = existing[0];
+        const newStart = new Date(startDateTime);
+        const newEnd = new Date(endDateTime);
+        
+        if (
+          existingEvent.title !== (event.summary || 'Google Event') ||
+          existingEvent.startDateTime.getTime() !== newStart.getTime() ||
+          existingEvent.endDateTime.getTime() !== newEnd.getTime() ||
+          existingEvent.location !== (event.location || '')
+        ) {
+          try {
+            await db
+              .update(studioAppointments)
+              .set({
+                title: event.summary || 'Google Event',
+                description: event.description || '',
+                startDateTime: newStart,
+                endDateTime: newEnd,
+                location: event.location || '',
+                updatedAt: new Date(),
+              })
+              .where(eq(studioAppointments.id, existingEvent.id));
+            updated++;
+          } catch (err) {
+            errors.push({ eventId: event.id, error: err });
+          }
+        } else {
+          skipped++;
+        }
         continue;
       }
+
+      // Insert new event
       try {
         await db.insert(studioAppointments).values({
           title: event.summary || 'Google Event',
           description: event.description || '',
           appointmentType: 'meeting',
-          startDateTime: new Date(event.start.dateTime),
-          endDateTime: new Date(event.end.dateTime),
+          startDateTime: new Date(startDateTime),
+          endDateTime: new Date(endDateTime),
           location: event.location || '',
-          notes: '',
+          notes: `Imported from Google Calendar on ${new Date().toLocaleString()}`,
           googleCalendarEventId: event.id,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -56,7 +154,16 @@
         errors.push({ eventId: event.id, error: err });
       }
     }
-    return { imported, skipped, errors };
+
+    // Update last sync time
+    await db
+      .update(calendarSyncSettings)
+      .set({ lastSyncAt: new Date(), updatedAt: new Date() })
+      .where(eq(calendarSyncSettings.id, syncConfig.id));
+
+    console.log(`✅ Sync complete: ${imported} imported, ${updated} updated, ${skipped} skipped, ${errors.length} errors`);
+
+    return { imported, updated, deleted, skipped, errors };
   }
 /**
  * Studio Calendar Service
