@@ -13,6 +13,7 @@ import authRoutes from './routes/auth';
 // Google Calendar 2-way sync: OAuth routes and scheduler
 import googleAuthRoutes from './routes/googleAuth';
 import { startSyncScheduler, triggerManualSync } from './services/syncScheduler';
+import { importGoogleCalendarEvents } from './services/calendarService';
 // Agent V2: Modern ToolBus architecture
 import agentV2Routes from './routes/agent-v2';
 import agentShadowRoutes from './routes/agent-shadow';
@@ -308,13 +309,15 @@ app.use((req, res, next) => {
     (global as any).__healthzCheck = healthzCheck;
 
 
-    // Manual Google Calendar sync endpoint (per-user)
+    // Manual Google Calendar sync endpoint (per-user) - does FULL import of all events
     app.post('/api/calendar/manual-sync', requireAuth, async (req: Request, res: Response) => {
       try {
         const userId = (req as any).user?.id;
         if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-        const results = await triggerManualSync(userId);
-        res.json(results);
+        
+        // Use full import function to get ALL events (past and future)
+        const results = await importGoogleCalendarEvents(undefined, userId);
+        res.json({ success: true, ...results });
       } catch (e: any) {
         console.error('Manual sync error:', e?.message || e);
         res.status(500).json({ success: false, errors: [e?.message || 'Manual sync failed'] });
