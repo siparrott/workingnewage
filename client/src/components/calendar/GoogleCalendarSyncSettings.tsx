@@ -144,24 +144,25 @@ const GoogleCalendarSyncSettings: React.FC<{ isOpen: boolean; onClose: () => voi
       const response = await fetch('/api/calendar/import-google-events', {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
+        body: JSON.stringify({}),
       });
 
-      if (response.ok) {
-        const results = await response.json();
+      const results = await response.json();
+      
+      if (response.ok && results.success) {
         setLastSyncResults(results);
         fetchSyncStatus(); // Refresh status
-        
-        if (results.success) {
-          alert(`Sync complete!\nImported: ${results.imported}\nUpdated: ${results.updated}\nDeleted: ${results.deleted}`);
-        } else {
-          alert(`Sync failed: ${results.errors?.join(', ')}`);
-        }
+        alert(`Sync complete!\nImported: ${results.imported}\nUpdated: ${results.updated}\nDeleted: ${results.deleted}`);
+      } else {
+        const errorMsg = results.error || results.errors?.join(', ') || 'Unknown error';
+        alert(`Sync failed: ${errorMsg}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error syncing:', error);
-      alert('Failed to sync');
+      alert(`Failed to sync: ${error.message || 'Network error'}`);
     } finally {
       setSyncing(false);
     }

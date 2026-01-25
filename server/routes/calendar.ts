@@ -1,5 +1,12 @@
-// POST /api/calendar/import-google-events - Import all Google Calendar events (past and future) into CRM
+import { Router } from 'express';
+import { db } from '../db';
+import { photographySessions } from '../../shared/schema';
+import { eq, desc, asc, and, gte, lte, like } from 'drizzle-orm';
 import StudioCalendarService from '../services/calendarService';
+
+const router = Router();
+
+// POST /api/calendar/import-google-events - Import all Google Calendar events (past and future) into CRM
 router.post('/import-google-events', async (req, res) => {
   try {
     const { fromDate } = req.body;
@@ -10,12 +17,6 @@ router.post('/import-google-events', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
-import { Router } from 'express';
-import { db } from '../db';
-import { photographySessions } from '../../shared/schema';
-import { eq, desc, asc, and, gte, lte, like } from 'drizzle-orm';
-
-const router = Router();
 
 // GET /api/calendar/sessions - Retrieve calendar sessions with filters
 router.get('/sessions', async (req, res) => {
