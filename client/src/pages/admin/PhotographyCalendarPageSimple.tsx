@@ -113,7 +113,26 @@ const PhotographyCalendarPage: React.FC = () => {
   const [sessions, setSessions] = useState<PhotographySession[]>([]);
   const [showGoogleCalendarModal, setShowGoogleCalendarModal] = useState(false);
   const [showLocationScoutModal, setShowLocationScoutModal] = useState(false);
+  const [showEquipmentCheckModal, setShowEquipmentCheckModal] = useState(false);
   const [locationScoutQuery, setLocationScoutQuery] = useState('');
+  const [equipmentChecklist, setEquipmentChecklist] = useState<{id: string; name: string; checked: boolean; category: string}[]>([
+    { id: '1', name: 'Camera Body (Primary)', checked: false, category: 'Camera' },
+    { id: '2', name: 'Camera Body (Backup)', checked: false, category: 'Camera' },
+    { id: '3', name: '24-70mm f/2.8 Lens', checked: false, category: 'Lenses' },
+    { id: '4', name: '70-200mm f/2.8 Lens', checked: false, category: 'Lenses' },
+    { id: '5', name: '50mm f/1.4 Lens', checked: false, category: 'Lenses' },
+    { id: '6', name: '85mm f/1.8 Lens', checked: false, category: 'Lenses' },
+    { id: '7', name: 'Speedlight Flash x2', checked: false, category: 'Lighting' },
+    { id: '8', name: 'Light Stands x2', checked: false, category: 'Lighting' },
+    { id: '9', name: 'Softbox / Umbrella', checked: false, category: 'Lighting' },
+    { id: '10', name: 'Reflector (5-in-1)', checked: false, category: 'Lighting' },
+    { id: '11', name: 'Memory Cards (formatted)', checked: false, category: 'Storage' },
+    { id: '12', name: 'Extra Batteries', checked: false, category: 'Power' },
+    { id: '13', name: 'Battery Charger', checked: false, category: 'Power' },
+    { id: '14', name: 'Tripod', checked: false, category: 'Support' },
+    { id: '15', name: 'Lens Cleaning Kit', checked: false, category: 'Accessories' },
+    { id: '16', name: 'Camera Bag', checked: false, category: 'Accessories' },
+  ]);
   const [selectedSession, setSelectedSession] = useState<PhotographySession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -854,9 +873,7 @@ const PhotographyCalendarPage: React.FC = () => {
               <span className="text-sm">Location Scouting</span>
             </button>
             <button
-              onClick={() => {
-                alert('Equipment checklist coming soon. For now, add items per session in the form.');
-              }}
+              onClick={() => setShowEquipmentCheckModal(true)}
               className="flex flex-col items-center space-y-2 p-4 border rounded-lg hover:bg-gray-50">
               <CheckCircle className="w-6 h-6" />
               <span className="text-sm">Equipment Check</span>
@@ -1675,6 +1692,97 @@ const PhotographyCalendarPage: React.FC = () => {
                     className="px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
                   >
                     Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Equipment Check Modal */}
+        {showEquipmentCheckModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <CheckCircle className="h-6 w-6 text-teal-600 mr-3" />
+                    <h2 className="text-xl font-semibold text-gray-900">Equipment Checklist</h2>
+                  </div>
+                  <button
+                    onClick={() => setShowEquipmentCheckModal(false)}
+                    className="text-gray-400 hover:text-gray-600 text-2xl"
+                  >
+                    ×
+                  </button>
+                </div>
+                <p className="text-sm text-gray-500 mt-2">
+                  {equipmentChecklist.filter(i => i.checked).length} of {equipmentChecklist.length} items checked
+                </p>
+              </div>
+              <div className="p-6 overflow-y-auto flex-1">
+                {['Camera', 'Lenses', 'Lighting', 'Storage', 'Power', 'Support', 'Accessories'].map((category) => {
+                  const items = equipmentChecklist.filter(i => i.category === category);
+                  if (items.length === 0) return null;
+                  return (
+                    <div key={category} className="mb-4">
+                      <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">{category}</h3>
+                      <div className="space-y-2">
+                        {items.map((item) => (
+                          <label
+                            key={item.id}
+                            className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${
+                              item.checked 
+                                ? 'bg-teal-50 border-teal-300' 
+                                : 'bg-white border-gray-200 hover:bg-gray-50'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={item.checked}
+                              onChange={() => {
+                                setEquipmentChecklist(prev => 
+                                  prev.map(i => i.id === item.id ? { ...i, checked: !i.checked } : i)
+                                );
+                              }}
+                              className="w-5 h-5 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
+                            />
+                            <span className={`ml-3 ${item.checked ? 'text-teal-700 line-through' : 'text-gray-700'}`}>
+                              {item.name}
+                            </span>
+                            {item.checked && (
+                              <CheckCircle className="w-4 h-4 text-teal-600 ml-auto" />
+                            )}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="p-4 border-t border-gray-200 bg-gray-50">
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setEquipmentChecklist(prev => prev.map(i => ({ ...i, checked: true })));
+                    }}
+                    className="flex-1 py-2 px-4 bg-teal-600 text-white rounded-lg hover:bg-teal-700 font-medium"
+                  >
+                    Check All
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEquipmentChecklist(prev => prev.map(i => ({ ...i, checked: false })));
+                    }}
+                    className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 font-medium"
+                  >
+                    Reset All
+                  </button>
+                  <button
+                    onClick={() => setShowEquipmentCheckModal(false)}
+                    className="py-2 px-4 bg-gray-800 text-white rounded-lg hover:bg-gray-900 font-medium"
+                  >
+                    Done
                   </button>
                 </div>
               </div>
