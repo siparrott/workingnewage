@@ -4636,7 +4636,7 @@ New Age Fotografie Team`;
   // ==================== EMAIL ROUTES ====================
   app.post("/api/email/import", authenticateUser, async (req: Request, res: Response) => {
     try {
-      const { provider, smtpHost, smtpPort, username, password, useTLS } = req.body;
+      const { provider, smtpHost, smtpPort, username, password, useTLS, imapHost } = req.body;
 
       // Basic validation
       if (!smtpHost || !smtpPort || !username || !password) {
@@ -4648,12 +4648,17 @@ New Age Fotografie Team`;
 
       console.log(`Attempting to import emails from ${username} via ${smtpHost}:${smtpPort}`);
 
-      // Special handling for business email with EasyName IMAP settings
-      // If this looks like the studio's business address, prefer environment-configured mailbox credentials
-  if (username === (process.env.STUDIO_NOTIFY_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER) || username === process.env.BUSINESS_MAILBOX_USER) {
+      // Special handling for EasyName/business email
+      // Check for EasyName SMTP host or known business mailbox usernames
+      const isEasyNameHost = smtpHost.includes('easyname');
+      const isBusinessMailbox = username === '30840mail10' || 
+                                username === (process.env.STUDIO_NOTIFY_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER) || 
+                                username === process.env.BUSINESS_MAILBOX_USER;
+      
+      if (isEasyNameHost || isBusinessMailbox) {
         console.log('Using EasyName IMAP settings for business email');
-        const mailboxUser = process.env.BUSINESS_MAILBOX_USER || username;
-        const mailboxPass = process.env.EMAIL_PASSWORD || password;
+        const mailboxUser = username;
+        const mailboxPass = password;
 
         const importedEmails = await importEmailsFromIMAP({
           host: 'imap.easyname.com',
@@ -6234,12 +6239,66 @@ New Age Fotografie Team`;
         });
       }
 
-  // For the business email, provide guidance
-  if (username === (process.env.STUDIO_NOTIFY_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER)) {
-        return res.json({
-          success: true,
-          message: "Business email configuration ready. Contact your hosting provider to set up SMTP authentication for your studio email to enable full inbox functionality."
-        });
+      // Check for EasyName/business email - actually test the IMAP connection
+      const isEasyNameHost = smtpHost.includes('easyname');
+      const isBusinessMailbox = username === '30840mail10' || 
+                                username === (process.env.STUDIO_NOTIFY_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER) || 
+                                username === process.env.BUSINESS_MAILBOX_USER;
+      
+      if (isEasyNameHost || isBusinessMailbox) {
+        try {
+          // Actually test IMAP connection
+          const testResult = await new Promise<boolean>((resolve) => {
+            const Imap = require('imap');
+            const imap = new Imap({
+              user: username,
+              password: password,
+              host: 'imap.easyname.com',
+              port: 993,
+              tls: true,
+              tlsOptions: { rejectUnauthorized: false },
+              connTimeout: 10000,
+              authTimeout: 10000
+            });
+            
+            const timeout = setTimeout(() => {
+              imap.end();
+              resolve(false);
+            }, 15000);
+            
+            imap.once('ready', () => {
+              clearTimeout(timeout);
+              imap.end();
+              resolve(true);
+            });
+            
+            imap.once('error', (err: any) => {
+              clearTimeout(timeout);
+              console.error('IMAP test error:', err.message);
+              resolve(false);
+            });
+            
+            imap.connect();
+          });
+          
+          if (testResult) {
+            return res.json({
+              success: true,
+              message: "Connection successful! IMAP credentials verified for EasyName mailbox."
+            });
+          } else {
+            return res.json({
+              success: false,
+              message: "Connection failed. Please check your username and password."
+            });
+          }
+        } catch (testError) {
+          console.error('IMAP test exception:', testError);
+          return res.json({
+            success: false,
+            message: "Connection test failed: " + (testError as Error).message
+          });
+        }
       }
 
       // For other emails, provide standard configuration guidance

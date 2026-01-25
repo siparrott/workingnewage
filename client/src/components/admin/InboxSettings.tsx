@@ -30,7 +30,7 @@ const InboxSettings: React.FC<InboxSettingsProps> = ({
     currentSettings || {
       provider: 'smtp',
       smtpHost: 'smtp.easyname.com',
-      smtpPort: '465',
+      smtpPort: '587',
       // Restoring hard-coded business mailbox credentials as requested
       username: '30840mail10',
       password: 'HoveBN41!',
@@ -144,13 +144,24 @@ const InboxSettings: React.FC<InboxSettingsProps> = ({
 
   const importEmails = async () => {
     setImporting(true);
+    setTestResult(null);
     try {
+      // Convert SMTP host to IMAP host for email fetching
+      let imapHost = settings.smtpHost;
+      if (settings.smtpHost.includes('smtp.')) {
+        imapHost = settings.smtpHost.replace('smtp.', 'imap.');
+      }
+      
       const response = await fetch('/api/email/import', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(settings),
+        credentials: 'include',
+        body: JSON.stringify({
+          ...settings,
+          imapHost: imapHost
+        }),
       });
 
       const result = await response.json();
