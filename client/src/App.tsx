@@ -122,6 +122,8 @@ import MockSuccessPage from './pages/MockSuccessPage';
 import CommunicationsPage from './pages/CommunicationsPage';
 import QuestionnaireFormPage from './pages/QuestionnaireFormPage';
 import ImageTestPage from './pages/ImageTestPage';
+import PublicSchedulerPage from './pages/public/PublicSchedulerPage';
+import AdminSchedulersPage from './pages/admin/AdminSchedulersPage';
 import ScrollToTop from './components/ScrollToTop';
 
 function App() {
@@ -208,6 +210,7 @@ function App() {
                 <Route path="/survey-demo" element={<SurveySystemDemoPage />} />
                 <Route path="/survey/:id" element={<SurveyTakingPage />} />
                 <Route path="/q/:token" element={<QuestionnaireFormPage />} />
+                <Route path="/book/:slug" element={<PublicSchedulerPage />} />
                 <Route path="/invoice/:invoiceId" element={<PublicInvoicePage />} />
                 <Route path="/inv/:invoiceId" element={<PublicInvoicePage />} />
                 <Route path="/download-data" element={<DownloadDataPage />} />
@@ -351,6 +354,14 @@ function App() {
                   element={
                     <NeonProtectedRoute>
                       <PhotographyCalendarPage />
+                    </NeonProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/schedulers"
+                  element={
+                    <NeonProtectedRoute>
+                      <AdminSchedulersPage />
                     </NeonProtectedRoute>
                   }
                 />

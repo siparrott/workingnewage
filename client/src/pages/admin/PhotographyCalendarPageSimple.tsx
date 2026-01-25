@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import AdvancedPhotographyCalendar from '../../components/calendar/AdvancedPhotographyCalendar';
 import GoogleCalendarIntegration from '../../components/calendar/GoogleCalendarIntegration';
-import { Calendar, Camera, Clock, DollarSign, MapPin, TrendingUp, AlertTriangle, CheckCircle, Plus, Sun, Cloud, Star, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
+import { Calendar, Camera, Clock, DollarSign, MapPin, TrendingUp, AlertTriangle, CheckCircle, Plus, Sun, Cloud, Star, ChevronLeft, ChevronRight, Settings, Link2, Copy, Check, Share2 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, isAfter } from 'date-fns';
 
 interface PhotographySession {
@@ -205,6 +205,11 @@ const PhotographyCalendarPage: React.FC = () => {
   });
   const [weatherData, setWeatherData] = useState<{ temp?: number; conditions?: string; icon?: string } | null>(null);
   
+  // Scheduler share modal state
+  const [showShareSchedulerModal, setShowShareSchedulerModal] = useState(false);
+  const [availableSchedulers, setAvailableSchedulers] = useState<Array<{ id: number; name: string; slug: string; isActive: boolean }>>([]);
+  const [copiedSchedulerId, setCopiedSchedulerId] = useState<number | null>(null);
+  
   // Map loaded clients to the shape expected by AdvancedPhotographyCalendar (id, name, email)
   const clientsForCalendar = clients.map(c => ({
     id: c.id,
@@ -296,6 +301,33 @@ const PhotographyCalendarPage: React.FC = () => {
     if (code <= 79) return '❄️';
     if (code <= 99) return '⛈️';
     return '🌤️';
+  };
+
+  // Fetch available schedulers for share modal
+  const fetchSchedulers = async () => {
+    try {
+      const resp = await fetch('/api/schedulers', {
+        credentials: 'include',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
+      });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      setAvailableSchedulers(data.filter((s: any) => s.isActive));
+    } catch (err) {
+      console.warn('[Calendar] Failed to fetch schedulers');
+    }
+  };
+
+  const handleShareSchedulerClick = () => {
+    fetchSchedulers();
+    setShowShareSchedulerModal(true);
+  };
+
+  const copySchedulerLink = (scheduler: { id: number; slug: string }) => {
+    const link = `${window.location.origin}/schedule/${scheduler.slug}`;
+    navigator.clipboard.writeText(link);
+    setCopiedSchedulerId(scheduler.id);
+    setTimeout(() => setCopiedSchedulerId(null), 2000);
   };
 
   const fetchLeadsCount = async () => {
@@ -885,6 +917,13 @@ const PhotographyCalendarPage: React.FC = () => {
               className="flex flex-col items-center space-y-2 p-4 border rounded-lg hover:bg-gray-50">
               <TrendingUp className="w-6 h-6" />
               <span className="text-sm">Revenue Report</span>
+            </button>
+            <button
+              onClick={handleShareSchedulerClick}
+              className="flex flex-col items-center space-y-2 p-4 border rounded-lg hover:bg-gray-50 relative">
+              <Share2 className="w-6 h-6 text-purple-600" />
+              <span className="text-sm">Share Booking Link</span>
+              <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs px-1.5 py-0.5 rounded-full">NEW</span>
             </button>
           </div>
         </div>
@@ -1783,6 +1822,83 @@ const PhotographyCalendarPage: React.FC = () => {
                     className="py-2 px-4 bg-gray-800 text-white rounded-lg hover:bg-gray-900 font-medium"
                   >
                     Done
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Share Scheduler Modal */}
+        {showShareSchedulerModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Share2 className="h-6 w-6 text-purple-600 mr-3" />
+                    <h2 className="text-xl font-semibold text-gray-900">Share Booking Link</h2>
+                  </div>
+                  <button
+                    onClick={() => setShowShareSchedulerModal(false)}
+                    className="text-gray-400 hover:text-gray-600 text-2xl"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+              <div className="p-6">
+                <p className="text-gray-600 mb-4">
+                  Send a booking link to clients so they can schedule their own appointment - no back and forth needed!
+                </p>
+                {availableSchedulers.length > 0 ? (
+                  <div className="space-y-3">
+                    {availableSchedulers.map((scheduler) => (
+                      <div
+                        key={scheduler.id}
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                      >
+                        <div>
+                          <p className="font-medium text-gray-900">{scheduler.name}</p>
+                          <p className="text-sm text-gray-500">/schedule/{scheduler.slug}</p>
+                        </div>
+                        <button
+                          onClick={() => copySchedulerLink(scheduler)}
+                          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                            copiedSchedulerId === scheduler.id
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                          }`}
+                        >
+                          {copiedSchedulerId === scheduler.id ? '✓ Copied!' : 'Copy Link'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Share2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 mb-4">No active schedulers found</p>
+                    <button
+                      onClick={() => {
+                        setShowShareSchedulerModal(false);
+                        window.location.href = '/admin/schedulers';
+                      }}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
+                    >
+                      Create Your First Scheduler
+                    </button>
+                  </div>
+                )}
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => {
+                      setShowShareSchedulerModal(false);
+                      window.location.href = '/admin/schedulers';
+                    }}
+                    className="w-full py-2 text-purple-600 hover:text-purple-700 font-medium text-sm"
+                  >
+                    Manage Schedulers →
                   </button>
                 </div>
               </div>

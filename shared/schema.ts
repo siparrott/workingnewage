@@ -830,6 +830,119 @@ export const onlineBookings = pgTable("online_bookings", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
+// ==================== SCHEDULER SYSTEM ====================
+// Client Self-Booking Schedulers (like Sprout Studio)
+
+// Scheduler templates - defines booking types available to clients
+export const schedulers = pgTable("schedulers", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(), // e.g., "Shooting", "Consultation", "Mini Session"
+  slug: text("slug").notNull().unique(), // URL-friendly slug for public link
+  description: text("description"),
+  
+  // Session configuration
+  sessionType: text("session_type").notNull().default("portrait"), // portrait, wedding, event, etc.
+  duration: integer("duration").notNull().default(60), // Duration in minutes
+  location: text("location"), // Default location
+  price: decimal("price", { precision: 10, scale: 2 }).default("0"), // Price for this session type
+  
+  // Availability configuration
+  availabilityType: text("availability_type").default("ongoing"), // "ongoing", "date_range", "specific_dates"
+  startDate: timestamp("start_date", { withTimezone: true }), // For date_range
+  endDate: timestamp("end_date", { withTimezone: true }), // For date_range
+  timezone: text("timezone").default("Europe/Vienna"),
+  
+  // Weekly availability (JSON: { monday: [{start: "09:00", end: "17:00"}], ... })
+  weeklyAvailability: jsonb("weekly_availability"),
+  
+  // Specific available dates (for specific_dates type)
+  specificDates: jsonb("specific_dates"),
+  
+  // Booking rules
+  bufferBefore: integer("buffer_before").default(0), // Minutes buffer before appointment
+  bufferAfter: integer("buffer_after").default(0), // Minutes buffer after appointment
+  minNotice: integer("min_notice").default(24), // Minimum hours notice required
+  maxAdvance: integer("max_advance").default(90), // Maximum days in advance to book
+  maxPerDay: integer("max_per_day"), // Max appointments per day (null = unlimited)
+  availabilityIncrements: integer("availability_increments").default(60), // 15, 30, 60 mins
+  
+  // Communication settings
+  confirmationMessage: text("confirmation_message"),
+  questionnaireId: integer("questionnaire_id").references(() => questionnaires.id),
+  autoApprove: boolean("auto_approve").default(true), // Auto-confirm or require manual approval
+  sendReminders: boolean("send_reminders").default(true),
+  reminderHours: integer("reminder_hours").default(24),
+  
+  // Branding
+  brandName: text("brand_name"),
+  brandColor: text("brand_color").default("#0d9488"), // Teal
+  
+  // Status
+  isActive: boolean("is_active").default(true),
+  createdBy: text("created_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+// Scheduler bookings - when a client books through a scheduler
+export const schedulerBookings = pgTable("scheduler_bookings", {
+  id: text("id").primaryKey(),
+  schedulerId: text("scheduler_id").notNull().references(() => schedulers.id),
+  
+  // Client info (may or may not link to existing CRM client)
+  clientId: text("client_id").references(() => crmClients.id),
+  clientName: text("client_name").notNull(),
+  clientEmail: text("client_email").notNull(),
+  clientPhone: text("client_phone"),
+  
+  // Booking details
+  scheduledDate: timestamp("scheduled_date", { withTimezone: true }).notNull(),
+  scheduledEndDate: timestamp("scheduled_end_date", { withTimezone: true }).notNull(),
+  timezone: text("timezone").default("Europe/Vienna"),
+  
+  // Status: pending, confirmed, cancelled, completed, no_show
+  status: text("status").default("pending"),
+  
+  // Linked session (created when booking is confirmed)
+  sessionId: text("session_id"),
+  
+  // Client notes & questionnaire responses
+  clientNotes: text("client_notes"),
+  questionnaireResponses: jsonb("questionnaire_responses"),
+  
+  // Confirmation & reminders
+  confirmationSent: boolean("confirmation_sent").default(false),
+  confirmationSentAt: timestamp("confirmation_sent_at", { withTimezone: true }),
+  reminderSent: boolean("reminder_sent").default(false),
+  reminderSentAt: timestamp("reminder_sent_at", { withTimezone: true }),
+  
+  // Cancellation
+  cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+  cancellationReason: text("cancellation_reason"),
+  
+  // Metadata
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  source: text("source").default("scheduler"), // scheduler, admin, import
+  
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+// Blocked times - times when scheduler is unavailable (holidays, personal time)
+export const schedulerBlockedTimes = pgTable("scheduler_blocked_times", {
+  id: text("id").primaryKey(),
+  schedulerId: text("scheduler_id").references(() => schedulers.id), // null = applies to all
+  title: text("title"),
+  startDate: timestamp("start_date", { withTimezone: true }).notNull(),
+  endDate: timestamp("end_date", { withTimezone: true }).notNull(),
+  isAllDay: boolean("is_all_day").default(false),
+  isRecurring: boolean("is_recurring").default(false),
+  recurrenceRule: text("recurrence_rule"), // iCal RRULE format
+  reason: text("reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
 // Questionnaires table
 export const questionnaires = pgTable("questionnaires", {
   id: serial("id").primaryKey(),
@@ -1016,6 +1129,36 @@ export const insertSMSConfigSchema = createInsertSchema(smsConfig).pick({
   authToken: true,
   fromNumber: true,
   isActive: true,
+});
+
+// Scheduler insert schemas
+export const insertSchedulerSchema = createInsertSchema(schedulers, {
+  name: z.string().min(1, "Scheduler name is required"),
+  slug: z.string().min(1, "URL slug is required"),
+  sessionType: z.string().min(1, "Session type is required"),
+  duration: z.number().min(15, "Duration must be at least 15 minutes"),
+}).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+
+export const insertSchedulerBookingSchema = createInsertSchema(schedulerBookings, {
+  schedulerId: z.string().min(1, "Scheduler ID is required"),
+  clientName: z.string().min(1, "Client name is required"),
+  clientEmail: z.string().email("Valid email is required"),
+}).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+
+export const insertSchedulerBlockedTimeSchema = createInsertSchema(schedulerBlockedTimes, {
+  startDate: z.date(),
+  endDate: z.date(),
+}).omit({ 
+  id: true, 
+  createdAt: true 
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -1837,6 +1980,14 @@ export type MessageCampaign = typeof messageCampaigns.$inferSelect;
 export type InsertMessageCampaign = z.infer<typeof insertMessageCampaignSchema>;
 export type SMSConfig = typeof smsConfig.$inferSelect;
 export type InsertSMSConfig = z.infer<typeof insertSMSConfigSchema>;
+
+// Scheduler types
+export type Scheduler = typeof schedulers.$inferSelect;
+export type InsertScheduler = z.infer<typeof insertSchedulerSchema>;
+export type SchedulerBooking = typeof schedulerBookings.$inferSelect;
+export type InsertSchedulerBooking = z.infer<typeof insertSchedulerBookingSchema>;
+export type SchedulerBlockedTime = typeof schedulerBlockedTimes.$inferSelect;
+export type InsertSchedulerBlockedTime = z.infer<typeof insertSchedulerBlockedTimeSchema>;
 
 // Backwards-compatible snake_case aliases for legacy imports
 export const photography_sessions = photographySessions as typeof photographySessions;

@@ -1048,6 +1048,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Questionnaire module (public + admin APIs)
   app.use(questionnairesRouter);
 
+  // Scheduler module - Client self-booking system
+  const schedulerRouter = require('./routes/scheduler').default;
+  app.use('/api/schedulers', schedulerRouter);
+  console.log('✅ /api/schedulers router registered');
+
   // Onboarding + Website Analyzer (dev parity with production full-server.js)
   app.use('/api/onboarding', onboardingRoutes);
 
