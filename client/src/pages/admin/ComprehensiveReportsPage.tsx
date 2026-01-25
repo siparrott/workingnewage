@@ -104,7 +104,8 @@ const ComprehensiveReportsPage: React.FC = () => {
           break;
       }
 
-      // Fetch all data from APIs in parallel
+      // Fetch all data from APIs in parallel (credentials required for authenticated endpoints)
+      const fetchOptions = { credentials: 'include' as RequestCredentials };
       const [
         invoicesResponse,
         clientsResponse,
@@ -112,12 +113,12 @@ const ComprehensiveReportsPage: React.FC = () => {
         vouchersResponse,
         blogResponse
       ] = await Promise.allSettled([
-        fetch(`/api/crm/invoices?from=${startDate.toISOString()}`),
-        fetch('/api/crm/clients'),
+        fetch(`/api/crm/invoices?from=${startDate.toISOString()}`, fetchOptions),
+        fetch('/api/crm/clients', fetchOptions),
         // Pull a window of leads server-side for efficiency
-        fetch(`/api/leads/list?status=any&limit=500&offset=0`),
-        fetch(`/api/vouchers/sales?from=${startDate.toISOString()}`),
-        fetch('/api/blog/posts')
+        fetch(`/api/leads/list?status=any&limit=500&offset=0`, fetchOptions),
+        fetch(`/api/vouchers/sales?from=${startDate.toISOString()}`, fetchOptions),
+        fetch('/api/blog/posts', fetchOptions)
       ]);
 
       // Process API responses
@@ -176,9 +177,9 @@ const ComprehensiveReportsPage: React.FC = () => {
       };
 
       setReportData(comprehensiveData);
-    } catch (err) {
-      // console.error removed
-      setError('Failed to load reports. Please try again.');
+    } catch (err: any) {
+      console.error('Reports fetch error:', err);
+      setError(err?.message || 'Failed to load reports. Please try again.');
     } finally {
       setLoading(false);
     }
