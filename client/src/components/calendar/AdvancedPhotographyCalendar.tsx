@@ -923,16 +923,6 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
           </div>
 
           <div className="flex items-center space-x-2">
-            {/* Calendar sync */}
-            <button
-              onClick={onSyncExternalCalendar}
-              className="flex items-center space-x-2 px-3 py-2 border rounded hover:bg-gray-50"
-              title="Sync with external calendars"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span className="text-sm">Sync</span>
-            </button>
-
             {/* Import/Export */}
             <button
               onClick={onExportCalendar}
