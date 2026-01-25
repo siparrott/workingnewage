@@ -131,8 +131,17 @@ const ComprehensiveReportsPage: React.FC = () => {
       const leads = Array.isArray(leadsPayload) ? leadsPayload : (leadsPayload.rows || []);
       const vouchers = vouchersResponse.status === 'fulfilled' && vouchersResponse.value.ok 
         ? await vouchersResponse.value.json() : [];
-      const blogPosts = blogResponse.status === 'fulfilled' && blogResponse.value.ok 
+      const blogPostsRaw = blogResponse.status === 'fulfilled' && blogResponse.value.ok 
         ? await blogResponse.value.json() : [];
+      // Handle both array and { posts: [] } formats
+      const blogPosts = Array.isArray(blogPostsRaw) ? blogPostsRaw : (blogPostsRaw?.posts || []);
+      
+      // Ensure all arrays are valid
+      const safeInvoices = Array.isArray(invoices) ? invoices : [];
+      const safeClients = Array.isArray(clients) ? clients : [];
+      const safeLeads = Array.isArray(leads) ? leads : [];
+      const safeVouchers = Array.isArray(vouchers) ? vouchers : [];
+      const safeBlogPosts = Array.isArray(blogPosts) ? blogPosts : [];
       
       // Note: bookings and email campaigns APIs not yet implemented
       const bookings = [];
@@ -140,26 +149,26 @@ const ComprehensiveReportsPage: React.FC = () => {
 
       // Create comprehensive report data
       const comprehensiveData: ComprehensiveReportData = {
-        revenueByMonth: processRevenueByMonth(invoices),
-        revenueByService: processRevenueByService(invoices),
-        profitability: processProfitability(invoices),
-        clientsBySource: processClientsBySource(clients),
-        clientRetention: processClientRetention(clients, invoices),
-        topClients: processTopClients(clients, invoices),
-        leadConversion: processLeadConversion(leads),
-        leadsBySource: processLeadsBySource(leads),
+        revenueByMonth: processRevenueByMonth(safeInvoices),
+        revenueByService: processRevenueByService(safeInvoices),
+        profitability: processProfitability(safeInvoices),
+        clientsBySource: processClientsBySource(safeClients),
+        clientRetention: processClientRetention(safeClients, safeInvoices),
+        topClients: processTopClients(safeClients, safeInvoices),
+        leadConversion: processLeadConversion(safeLeads),
+        leadsBySource: processLeadsBySource(safeLeads),
         bookingsByType: processBookingsByType(bookings),
         bookingsByMonth: processBookingsByMonth(bookings),
         seasonalTrends: processSeasonalTrends(bookings),
         emailCampaigns: [], // TODO: Add campaigns data when available
-        blogMetrics: blogPosts.map(p => ({
+        blogMetrics: safeBlogPosts.map(p => ({
           title: p.title || 'Untitled',
           views: p.view_count || 0,
           engagement: p.engagement_score || 0,
           leads: p.leads_generated || 0
         })),
-        averageOrderValue: calculateAverageOrderValue(invoices),
-        customerLifetimeValue: calculateCustomerLifetimeValue(clients, invoices),
+        averageOrderValue: calculateAverageOrderValue(safeInvoices),
+        customerLifetimeValue: calculateCustomerLifetimeValue(safeClients, safeInvoices),
         averageProjectDuration: calculateAverageProjectDuration(bookings),
         clientSatisfactionScore: 4.8,
         galleryViews: [
@@ -172,8 +181,8 @@ const ComprehensiveReportsPage: React.FC = () => {
           { category: 'Portraits', views: 1800, downloads: 65 },
           { category: 'Events', views: 950, downloads: 35 }
         ],
-        voucherSales: processVoucherSales(vouchers),
-        voucherTypes: processVoucherTypes(vouchers)
+        voucherSales: processVoucherSales(safeVouchers),
+        voucherTypes: processVoucherTypes(safeVouchers)
       };
 
       setReportData(comprehensiveData);
