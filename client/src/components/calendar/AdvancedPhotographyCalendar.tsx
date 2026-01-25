@@ -380,72 +380,114 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
     const calendarEnd = endOfWeek(monthEnd);
     const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-    return (
-      <div className="grid grid-cols-7 gap-1">
-        {/* Header */}
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} className="p-2 text-center font-medium text-gray-700 bg-gray-50">
-            {day}
-          </div>
-        ))}
-        
-        {/* Calendar Days */}
-        {calendarDays.map(day => {
-          const daysSessions = filteredSessions.filter(session => {
-            const st = session.startTime ? parseISO(session.startTime) : null;
-            const et = !st && session.endTime ? parseISO(session.endTime) : null;
-            return (st && isSameDay(st, day)) || (et && isSameDay(et, day));
-          });
-          const isCurrentMonth = isSameMonth(day, currentDate);
-          const isToday = isSameDay(day, new Date());
-          const isSelected = selectedDate && isSameDay(day, selectedDate);
+    // Get event dot color based on session type
+    const getEventDotColor = (sessionType: string) => {
+      const colors: Record<string, string> = {
+        'wedding': 'bg-pink-500',
+        'portrait': 'bg-blue-500',
+        'commercial': 'bg-green-500',
+        'event': 'bg-purple-500',
+        'family': 'bg-teal-500',
+        'fashion': 'bg-indigo-500',
+      };
+      return colors[sessionType] || 'bg-gray-500';
+    };
 
-          return (
-            <div
-              key={day.toISOString()}
-              className={`min-h-[120px] p-1 border border-gray-200 cursor-pointer transition-colors ${
-                !isCurrentMonth ? 'bg-gray-50 text-gray-400' : 'bg-white'
-              } ${isToday ? 'bg-blue-50' : ''} ${isSelected ? 'bg-blue-100' : ''} hover:bg-gray-50`}
-              onClick={() => setSelectedDate(day)}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, day)}
-              onDoubleClick={() => onCreateSession(day)}
+    return (
+      <div className="border border-gray-200 rounded-lg overflow-hidden">
+        {/* Day headers - Sprout style */}
+        <div className="grid grid-cols-7 bg-white border-b border-gray-200">
+          {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day, index) => (
+            <div 
+              key={day} 
+              className={`py-3 text-center text-xs font-semibold tracking-wider ${
+                index === 6 ? 'text-teal-600' : 'text-gray-500'
+              }`}
             >
-              <div className="flex justify-between items-center mb-1">
-                <span className={`text-sm ${isToday ? 'font-bold text-blue-600' : ''}`}>
-                  {format(day, 'd')}
-                </span>
-                {daysSessions.length > 3 && (
-                  <span className="text-xs text-gray-500">+{daysSessions.length - 3}</span>
-                )}
-              </div>
-              
-              <div className="space-y-1">
-                {daysSessions.slice(0, 3).map(session => (
-                  <div
-                    key={session.id}
-                    className={`text-xs p-1 rounded border cursor-pointer ${getSessionTypeColor(session.sessionType)}`}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, session)}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSessionClick(session);
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="truncate flex-1">{session.title}</span>
-                      <div className="flex items-center space-x-1">
-                        {getPriorityIndicator(session.priority)}
-                        {getStatusIcon(session.status)}
-                      </div>
-                    </div>
-                    <ClientChip session={session} />
-                  </div>
-                ))}
-              </div>
+              {day}
             </div>
-          );
-        })}
+          ))}
+        </div>
+        
+        {/* Calendar grid */}
+        <div className="grid grid-cols-7">
+          {calendarDays.map((day, index) => {
+            const daysSessions = filteredSessions.filter(session => {
+              const st = session.startTime ? parseISO(session.startTime) : null;
+              const et = !st && session.endTime ? parseISO(session.endTime) : null;
+              return (st && isSameDay(st, day)) || (et && isSameDay(et, day));
+            });
+            const isCurrentMonth = isSameMonth(day, currentDate);
+            const isToday = isSameDay(day, new Date());
+            const isSelected = selectedDate && isSameDay(day, selectedDate);
+            const isSaturday = day.getDay() === 6;
+            const rowIndex = Math.floor(index / 7);
+
+            return (
+              <div
+                key={day.toISOString()}
+                className={`min-h-[140px] border-b border-r border-gray-200 transition-colors ${
+                  !isCurrentMonth ? 'bg-gray-50' : 'bg-white'
+                } ${isSelected ? 'bg-blue-50' : ''} hover:bg-gray-50 cursor-pointer`}
+                onClick={() => setSelectedDate(day)}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, day)}
+                onDoubleClick={() => onCreateSession(day)}
+              >
+                {/* Day number */}
+                <div className="p-2 flex justify-start">
+                  <span 
+                    className={`inline-flex items-center justify-center w-8 h-8 text-sm font-medium rounded-full ${
+                      isToday 
+                        ? 'bg-teal-500 text-white' 
+                        : isSaturday && isCurrentMonth
+                          ? 'text-teal-600'
+                          : !isCurrentMonth 
+                            ? 'text-gray-400' 
+                            : 'text-gray-700'
+                    }`}
+                  >
+                    {format(day, 'd')}
+                  </span>
+                </div>
+                
+                {/* Events list - Sprout style */}
+                <div className="px-1 pb-2 space-y-1">
+                  {daysSessions.slice(0, 4).map(session => {
+                    const startTime = session.startTime ? parseISO(session.startTime) : null;
+                    const timeStr = startTime ? format(startTime, 'ha').toLowerCase() : '';
+                    const clientName = getDisplayClientName(session);
+                    const displayTitle = clientName 
+                      ? `${session.title} mit ${clientName.split(' ')[0]}`
+                      : session.title;
+                    
+                    return (
+                      <div
+                        key={session.id}
+                        className="flex items-center gap-1.5 text-xs cursor-pointer hover:bg-gray-100 rounded px-1 py-0.5 truncate"
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, session)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSessionClick(session);
+                        }}
+                      >
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getEventDotColor(session.sessionType)}`}></span>
+                        <span className="text-gray-500 flex-shrink-0">{timeStr}</span>
+                        <span className="font-medium text-gray-800 truncate">{displayTitle}</span>
+                      </div>
+                    );
+                  })}
+                  {daysSessions.length > 4 && (
+                    <div className="text-xs text-gray-500 px-1">
+                      +{daysSessions.length - 4} more
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   };
@@ -880,62 +922,79 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg">
-      {/* Header with controls */}
-      <div className="border-b p-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-4">
-            <h2 className="text-xl font-bold text-gray-900">Photography Calendar</h2>
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      {/* Header - Clean Sprout-style */}
+      <div className="p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          {/* Left side - Title and Navigation */}
+          <div className="flex items-center space-x-6">
+            <h2 className="text-2xl font-semibold text-gray-900">Calendar</h2>
+            
+            {/* Navigation */}
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => setCurrentDate(subMonths(currentDate, 1))}
-                className="p-2 hover:bg-gray-100 rounded"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
                 onClick={() => setCurrentDate(new Date())}
-                className="px-3 py-1 text-sm hover:bg-gray-100 rounded font-medium"
+                className="px-4 py-1.5 text-sm font-medium text-teal-600 bg-teal-50 border border-teal-200 rounded-full hover:bg-teal-100 transition-colors"
               >
                 Today
               </button>
               <button
-                onClick={() => setCurrentDate(addMonths(currentDate, 1))}
-                className="p-2 hover:bg-gray-100 rounded"
+                onClick={() => setCurrentDate(subMonths(currentDate, 1))}
+                className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronLeft className="w-5 h-5 text-gray-600" />
               </button>
-              {/* Quick jump between events */}
               <button
-                onClick={jumpToPrevEvent}
-                className="px-2 py-1 text-xs border rounded hover:bg-gray-100"
-                title="Jump to previous event"
-              >Prev event</button>
-              <button
-                onClick={jumpToNextEvent}
-                className="px-2 py-1 text-xs border rounded hover:bg-gray-100"
-                title="Jump to next or upcoming event"
-              >Next event</button>
+                onClick={() => setCurrentDate(addMonths(currentDate, 1))}
+                className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <ChevronRight className="w-5 h-5 text-gray-600" />
+              </button>
             </div>
-            <div className="text-lg font-medium">
+            
+            {/* Month/Year display */}
+            <h3 className="text-xl font-semibold text-gray-900">
               {format(currentDate, 'MMMM yyyy')}
-            </div>
+            </h3>
           </div>
 
-          <div className="flex items-center space-x-2">
-            {/* Import/Export */}
+          {/* Right side - View selector and actions */}
+          <div className="flex items-center space-x-3">
+            {/* View selector dropdown */}
+            <select
+              value={view}
+              onChange={(e) => setView(e.target.value as CalendarView)}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              <option value="month">Month</option>
+              <option value="week">Week</option>
+              <option value="day">Day</option>
+              <option value="agenda">Agenda</option>
+              <option value="list">List</option>
+            </select>
+            
+            {/* Sync button */}
+            <button
+              onClick={onSyncExternalCalendar}
+              className="flex items-center space-x-2 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Sync</span>
+            </button>
+
+            {/* Export button */}
             <button
               onClick={onExportCalendar}
-              className="flex items-center space-x-2 px-3 py-2 border rounded hover:bg-gray-50"
-              title="Export calendar"
+              className="flex items-center space-x-2 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
             >
               <Download className="w-4 h-4" />
-              <span className="text-sm">Export</span>
+              <span>Export</span>
             </button>
             
-            <label className="flex items-center space-x-2 px-3 py-2 border rounded hover:bg-gray-50 cursor-pointer">
+            {/* Import button */}
+            <label className="flex items-center space-x-2 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
               <Upload className="w-4 h-4" />
-              <span className="text-sm">Import</span>
+              <span>Import</span>
               <input
                 type="file"
                 accept=".ics,.csv"
@@ -944,10 +1003,10 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
               />
             </label>
 
-            {/* Create session */}
+            {/* New Session button - accent color */}
             <button
               onClick={() => onCreateSession()}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="flex items-center space-x-2 px-4 py-1.5 text-sm font-medium text-white bg-teal-500 rounded-md hover:bg-teal-600 transition-colors"
             >
               <Plus className="w-4 h-4" />
               <span>New Session</span>
@@ -955,19 +1014,19 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
           </div>
         </div>
 
-        {/* View selector and filters */}
-        <div className="flex items-center justify-between">
+        {/* Secondary row - View tabs, Search, Filters */}
+        <div className="flex items-center justify-between mt-4">
           <div className="flex items-center space-x-4">
-            {/* View selector */}
-            <div className="flex border rounded">
+            {/* View tabs - pill style */}
+            <div className="flex bg-gray-100 rounded-lg p-1">
               {(['month', 'week', 'day', 'agenda', 'list'] as CalendarView[]).map(viewType => (
                 <button
                   key={viewType}
                   onClick={() => setView(viewType)}
-                  className={`px-3 py-1 text-sm capitalize ${
+                  className={`px-3 py-1 text-sm font-medium rounded-md capitalize transition-colors ${
                     view === viewType 
-                      ? 'bg-blue-600 text-white' 
-                      : 'hover:bg-gray-100'
+                      ? 'bg-white text-gray-900 shadow-sm' 
+                      : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
                   {viewType}
@@ -983,54 +1042,53 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
                 placeholder="Search sessions..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-3 py-2 border rounded-md w-64 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="pl-9 pr-3 py-1.5 border border-gray-300 rounded-md w-48 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               />
             </div>
 
-            {/* Filter toggle */}
+            {/* Filter button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center space-x-2 px-3 py-2 border rounded ${
-                showFilters ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-50'
+              className={`flex items-center space-x-2 px-3 py-1.5 border rounded-md text-sm transition-colors ${
+                showFilters ? 'bg-teal-50 border-teal-300 text-teal-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'
               }`}
             >
               <Filter className="w-4 h-4" />
-              <span className="text-sm">Filters</span>
+              <span>Filters</span>
             </button>
+
             {/* Month/Year quick filters */}
-            <div className="flex items-center space-x-2">
-              <select
-                value={filterMonth}
-                onChange={(e) => setFilterMonth(e.target.value)}
-                className="px-2 py-1 border rounded text-sm"
-              >
-                <option value="">All months</option>
-                {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                  <option key={m} value={String(m).padStart(2, '0')}>{String(m).padStart(2, '0')}</option>
-                ))}
-              </select>
-              <select
-                value={filterYear}
-                onChange={(e) => setFilterYear(e.target.value)}
-                className="px-2 py-1 border rounded text-sm"
-              >
-                <option value="">All years</option>
-                {Array.from({ length: 7 }, (_, i) => new Date().getFullYear() - 3 + i).map(y => (
-                  <option key={y} value={String(y)}>{y}</option>
-                ))}
-              </select>
-            </div>
+            <select
+              value={filterMonth}
+              onChange={(e) => setFilterMonth(e.target.value)}
+              className="px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white"
+            >
+              <option value="">All months</option>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                <option key={m} value={String(m).padStart(2, '0')}>{format(new Date(2000, m - 1), 'MMMM')}</option>
+              ))}
+            </select>
+            <select
+              value={filterYear}
+              onChange={(e) => setFilterYear(e.target.value)}
+              className="px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white"
+            >
+              <option value="">All years</option>
+              {Array.from({ length: 7 }, (_, i) => new Date().getFullYear() - 3 + i).map(y => (
+                <option key={y} value={String(y)}>{y}</option>
+              ))}
+            </select>
           </div>
 
           {/* Session count */}
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-gray-500">
             {filteredSessions.length} of {sessions.length} sessions
           </div>
         </div>
 
         {/* Filters panel */}
         {showFilters && (
-          <div className="mt-4 p-4 bg-gray-50 rounded border">
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Filter by</label>
@@ -1040,7 +1098,7 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
                     setFilterType(e.target.value as FilterType);
                     setFilterValue('');
                   }}
-                  className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                 >
                   <option value="all">All</option>
                   <option value="sessionType">Session Type</option>
@@ -1057,7 +1115,7 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
                   <select
                     value={filterValue}
                     onChange={(e) => setFilterValue(e.target.value)}
-                    className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
                     <option value="">Select...</option>
                     {filterType === 'sessionType' && sessionTypes.map(type => (
@@ -1088,7 +1146,7 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
                     setFilterMonth('');
                     setFilterYear('');
                   }}
-                  className="px-3 py-2 border rounded text-sm hover:bg-gray-100"
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-100 transition-colors"
                 >
                   Clear Filters
                 </button>
@@ -1100,7 +1158,7 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
                 <select
                   value={listSortOrder}
                   onChange={(e) => setListSortOrder(e.target.value as 'asc' | 'desc')}
-                  className="px-2 py-1 border rounded text-sm"
+                  className="px-2 py-1 border border-gray-300 rounded-md text-sm"
                 >
                   <option value="asc">Ascending</option>
                   <option value="desc">Descending</option>
@@ -1118,6 +1176,14 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
         {view === 'day' && renderDayView()}
         {view === 'agenda' && renderAgendaView()}
         {view === 'list' && renderListView()}
+      </div>
+
+      {/* Footer - View Legend */}
+      <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
+        <button className="flex items-center space-x-2 text-sm text-teal-600 hover:text-teal-700">
+          <span className="w-4 h-4 rounded-full border-2 border-teal-500 flex items-center justify-center text-xs">?</span>
+          <span>View Legend</span>
+        </button>
       </div>
     </div>
   );
