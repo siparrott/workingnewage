@@ -56,6 +56,11 @@ export const studioConfigs = pgTable("studio_configs", {
   email: text("email"),
   website: text("website"),
   
+  // Location Coordinates (for Golden Hour, Weather, etc.)
+  latitude: decimal("latitude", { precision: 10, scale: 7 }), // e.g., 48.2082000 (Vienna)
+  longitude: decimal("longitude", { precision: 10, scale: 7 }), // e.g., 16.3738000 (Vienna)
+  timezone: text("timezone").default("Europe/Vienna"),
+  
   // Social Media
   facebookUrl: text("facebook_url"),
   instagramUrl: text("instagram_url"),

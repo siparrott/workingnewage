@@ -165,6 +165,25 @@ const PhotographyCalendarPage: React.FC = () => {
   const [analytics, setAnalytics] = useState<any>(null);
   const [period, setPeriod] = useState<'week' | 'month'>('week');
   
+  // Studio location for Golden Hour calculation
+  interface StudioLocation {
+    latitude: number;
+    longitude: number;
+    timezone: string;
+    city: string;
+    country: string;
+    address: string | null;
+  }
+  const [studioLocation, setStudioLocation] = useState<StudioLocation>({
+    latitude: 48.2082, // Default Vienna
+    longitude: 16.3738,
+    timezone: 'Europe/Vienna',
+    city: 'Vienna',
+    country: 'Austria',
+    address: null
+  });
+  const [weatherData, setWeatherData] = useState<{ temp?: number; conditions?: string; icon?: string } | null>(null);
+  
   // Map loaded clients to the shape expected by AdvancedPhotographyCalendar (id, name, email)
   const clientsForCalendar = clients.map(c => ({
     id: c.id,
@@ -179,11 +198,84 @@ const PhotographyCalendarPage: React.FC = () => {
     fetchDashboardStats();
     // Preload clients so calendar can resolve names from clientId
     fetchClients();
+    // Fetch studio location for Golden Hour calculation
+    fetchStudioLocation();
   }, []);
 
   useEffect(() => {
     fetchAnalytics(period);
   }, [period]);
+
+  // Fetch studio location for Golden Hour & Weather features
+  const fetchStudioLocation = async () => {
+    try {
+      const resp = await fetch('/api/admin/studio-location', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
+      });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      setStudioLocation({
+        latitude: data.latitude || 48.2082,
+        longitude: data.longitude || 16.3738,
+        timezone: data.timezone || 'Europe/Vienna',
+        city: data.city || 'Vienna',
+        country: data.country || 'Austria',
+        address: data.address || null
+      });
+      // Also fetch weather data using location
+      fetchWeatherData(data.latitude || 48.2082, data.longitude || 16.3738);
+    } catch (err) {
+      console.warn('[Calendar] Failed to fetch studio location, using defaults');
+    }
+  };
+
+  // Fetch weather data for the studio location
+  const fetchWeatherData = async (lat: number, lon: number) => {
+    try {
+      // Using Open-Meteo free API (no API key required)
+      const resp = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
+      );
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (data.current_weather) {
+        const wmo = data.current_weather.weathercode;
+        // Map WMO weather codes to conditions
+        const conditions = getWeatherConditions(wmo);
+        setWeatherData({
+          temp: data.current_weather.temperature,
+          conditions: conditions,
+          icon: getWeatherIcon(wmo)
+        });
+      }
+    } catch (err) {
+      console.warn('[Calendar] Failed to fetch weather data');
+    }
+  };
+
+  // Map WMO weather codes to human-readable conditions
+  const getWeatherConditions = (code: number): string => {
+    if (code === 0) return 'Clear sky';
+    if (code <= 3) return 'Partly cloudy';
+    if (code <= 49) return 'Foggy';
+    if (code <= 59) return 'Drizzle';
+    if (code <= 69) return 'Rain';
+    if (code <= 79) return 'Snow';
+    if (code <= 99) return 'Thunderstorm';
+    return 'Unknown';
+  };
+
+  // Map WMO codes to emoji icons
+  const getWeatherIcon = (code: number): string => {
+    if (code === 0) return '☀️';
+    if (code <= 3) return '⛅';
+    if (code <= 49) return '🌫️';
+    if (code <= 59) return '🌧️';
+    if (code <= 69) return '🌧️';
+    if (code <= 79) return '❄️';
+    if (code <= 99) return '⛈️';
+    return '🌤️';
+  };
 
   const fetchLeadsCount = async () => {
     try {
@@ -781,50 +873,94 @@ const PhotographyCalendarPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Feature Highlights */}
+        {/* Feature Highlights - Wired with Real Data */}
         <div className="bg-white p-6 rounded-lg border">
           <h3 className="text-lg font-medium text-gray-900 mb-4">New Photography Calendar Features</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="flex items-start space-x-3">
+            {/* Golden Hour - Using studio location */}
+            <div className="flex items-start space-x-3 p-3 bg-yellow-50 rounded-lg">
               <Sun className="w-5 h-5 text-yellow-600 mt-1" />
               <div>
                 <h4 className="font-medium text-gray-900">Golden Hour Optimization</h4>
-                <p className="text-sm text-gray-600">Automatically suggests optimal shooting times based on location and season</p>
+                <div className="text-sm text-gray-700 mt-1">
+                  <p className="text-xs text-gray-500">Today in {studioLocation.city}:</p>
+                  <p>🌅 Morning: <span className="font-medium">{calculateGoldenHour(new Date(), studioLocation.latitude, studioLocation.longitude).morning}</span></p>
+                  <p>🌇 Evening: <span className="font-medium">{calculateGoldenHour(new Date(), studioLocation.latitude, studioLocation.longitude).evening}</span></p>
+                </div>
               </div>
             </div>
-            <div className="flex items-start space-x-3">
+            {/* Weather Integration - Real weather data */}
+            <div className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
               <Cloud className="w-5 h-5 text-blue-600 mt-1" />
               <div>
                 <h4 className="font-medium text-gray-900">Weather Integration</h4>
-                <p className="text-sm text-gray-600">Real-time weather monitoring with automatic backup planning</p>
+                <div className="text-sm text-gray-700 mt-1">
+                  {weatherData ? (
+                    <>
+                      <p className="text-xs text-gray-500">Current in {studioLocation.city}:</p>
+                      <p>{weatherData.icon} {weatherData.temp}°C - {weatherData.conditions}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {weatherData.conditions?.toLowerCase().includes('rain') || weatherData.conditions?.toLowerCase().includes('storm') 
+                          ? '⚠️ Consider indoor backup' 
+                          : '✅ Good outdoor conditions'}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-gray-500">Loading weather data...</p>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="flex items-start space-x-3">
+            {/* Equipment Management - Show conflicts */}
+            <div className="flex items-start space-x-3 p-3 bg-purple-50 rounded-lg">
               <Camera className="w-5 h-5 text-purple-600 mt-1" />
               <div>
                 <h4 className="font-medium text-gray-900">Equipment Management</h4>
-                <p className="text-sm text-gray-600">Smart conflict detection and rental coordination</p>
+                <div className="text-sm text-gray-700 mt-1">
+                  {stats.equipmentConflicts > 0 ? (
+                    <p className="text-red-600">⚠️ {stats.equipmentConflicts} conflict{stats.equipmentConflicts > 1 ? 's' : ''} detected</p>
+                  ) : (
+                    <p className="text-green-600">✅ No equipment conflicts</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">{sessions.filter(s => s.equipmentList && s.equipmentList.length > 0).length} sessions with equipment</p>
+                </div>
               </div>
             </div>
-            <div className="flex items-start space-x-3">
+            {/* Portfolio Tracking - Show portfolio-worthy sessions */}
+            <div className="flex items-start space-x-3 p-3 bg-orange-50 rounded-lg">
               <Star className="w-5 h-5 text-orange-600 mt-1" />
               <div>
                 <h4 className="font-medium text-gray-900">Portfolio Tracking</h4>
-                <p className="text-sm text-gray-600">Identify portfolio gaps and high-value sessions</p>
+                <div className="text-sm text-gray-700 mt-1">
+                  <p>⭐ {sessions.filter(s => s.portfolioWorthy).length} portfolio-worthy sessions</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {sessions.filter(s => s.status === 'completed' && !s.portfolioWorthy).length} completed sessions to review
+                  </p>
+                </div>
               </div>
             </div>
-            <div className="flex items-start space-x-3">
+            {/* AI-Powered Analytics */}
+            <div className="flex items-start space-x-3 p-3 bg-green-50 rounded-lg">
               <TrendingUp className="w-5 h-5 text-green-600 mt-1" />
               <div>
                 <h4 className="font-medium text-gray-900">AI-Powered Analytics</h4>
-                <p className="text-sm text-gray-600">Booking patterns and revenue forecasting insights</p>
+                <div className="text-sm text-gray-700 mt-1">
+                  <p>📊 {stats.upcomingSessions} upcoming sessions</p>
+                  <p>💰 €{stats.totalRevenue.toLocaleString()} this month</p>
+                  <p className="text-xs text-gray-500 mt-1">{stats.completedSessions} sessions completed</p>
+                </div>
               </div>
             </div>
-            <div className="flex items-start space-x-3">
+            {/* Workflow Automation - Show delivery/editing status */}
+            <div className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
               <CheckCircle className="w-5 h-5 text-blue-600 mt-1" />
               <div>
                 <h4 className="font-medium text-gray-900">Workflow Automation</h4>
-                <p className="text-sm text-gray-600">Post-shoot pipeline with editing and delivery tracking</p>
+                <div className="text-sm text-gray-700 mt-1">
+                  <p>📸 {sessions.filter(s => s.editingStatus === 'pending' || s.editingStatus === 'in_progress').length} in editing queue</p>
+                  <p>📬 {sessions.filter(s => s.deliveryStatus === 'pending').length} pending delivery</p>
+                  <p className="text-xs text-gray-500 mt-1">{stats.pendingDeposits} deposits pending</p>
+                </div>
               </div>
             </div>
           </div>

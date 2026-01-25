@@ -12,7 +12,7 @@ async function runSql(query: string, params?: any[]) {
 }
 import { sql } from 'drizzle-orm';
 import { eq } from "drizzle-orm";
-import { priceListItems, emailCampaigns, emailTemplates, emailSegments, emailEvents, emailLinks, emailSubscribers, insertLeadSourceSchema, crmLeads } from "../shared/schema";
+import { priceListItems, emailCampaigns, emailTemplates, emailSegments, emailEvents, emailLinks, emailSubscribers, insertLeadSourceSchema, crmLeads, studioConfigs } from "../shared/schema";
 import path from 'path';
 import os from 'os';
 // Removed duplicate fs import (already imported earlier)
@@ -4839,6 +4839,86 @@ New Age Fotografie Team`;
     } catch (error) {
       console.error('Error fetching email settings:', error);
       res.status(500).json({ error: 'Failed to fetch email settings' });
+    }
+  });
+
+  // ==================== STUDIO LOCATION SETTINGS ====================
+  // Get studio location settings (for Golden Hour, Weather features)
+  app.get("/api/admin/studio-location", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      // Get the first studio config (single-tenant for now)
+      const studios = await db.select().from(studioConfigs).limit(1);
+      
+      if (studios.length === 0) {
+        // Return Vienna defaults if no studio configured
+        return res.json({
+          latitude: 48.2082,
+          longitude: 16.3738,
+          timezone: 'Europe/Vienna',
+          city: 'Vienna',
+          country: 'Austria',
+          address: null
+        });
+      }
+      
+      const studio = studios[0];
+      res.json({
+        latitude: studio.latitude ? parseFloat(studio.latitude) : 48.2082,
+        longitude: studio.longitude ? parseFloat(studio.longitude) : 16.3738,
+        timezone: studio.timezone || 'Europe/Vienna',
+        city: studio.city || 'Vienna',
+        country: studio.country || 'Austria',
+        address: studio.address || null
+      });
+    } catch (error) {
+      console.error('Error fetching studio location:', error);
+      // Return defaults on error
+      res.json({
+        latitude: 48.2082,
+        longitude: 16.3738,
+        timezone: 'Europe/Vienna',
+        city: 'Vienna',
+        country: 'Austria',
+        address: null
+      });
+    }
+  });
+
+  // Update studio location settings
+  app.put("/api/admin/studio-location", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { latitude, longitude, timezone, city, country, address } = req.body;
+      
+      // Get existing studio or create new one
+      const studios = await db.select().from(studioConfigs).limit(1);
+      
+      if (studios.length === 0) {
+        return res.status(400).json({ error: 'No studio configuration found. Please create one first.' });
+      }
+      
+      const studioId = studios[0].id;
+      
+      // Update studio location fields
+      await db.update(studioConfigs)
+        .set({
+          latitude: latitude?.toString() || null,
+          longitude: longitude?.toString() || null,
+          timezone: timezone || 'Europe/Vienna',
+          city: city || studios[0].city,
+          country: country || studios[0].country,
+          address: address || studios[0].address,
+          updatedAt: new Date()
+        })
+        .where(eq(studioConfigs.id, studioId));
+      
+      res.json({ 
+        success: true, 
+        message: 'Studio location updated successfully',
+        location: { latitude, longitude, timezone, city, country, address }
+      });
+    } catch (error) {
+      console.error('Error updating studio location:', error);
+      res.status(500).json({ error: 'Failed to update studio location' });
     }
   });
 
