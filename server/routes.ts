@@ -9700,23 +9700,61 @@ New Age Fotografie CRM System
       // Determine applicable subtotal: restrict to applicableProducts if provided
       let applicableSubtotal = 0;
       const allProducts = !coupon.applicableProducts || coupon.applicableProducts.length === 0 || coupon.applicableProducts.includes('all');
+      
+      console.log('[COUPON VALIDATE] Coupon:', coupon.code);
+      console.log('[COUPON VALIDATE] applicableProducts from DB:', coupon.applicableProducts);
+      console.log('[COUPON VALIDATE] allProducts allowed:', allProducts);
 
       if (Array.isArray(items) && items.length > 0) {
         for (const it of items) {
           const lineTotal = (Number(it.price) || 0) * (Number(it.quantity) || 1);
+          console.log('[COUPON VALIDATE] Checking item:', { 
+            productId: it.productId, 
+            productSlug: it.productSlug, 
+            sku: it.sku,
+            name: it.name, 
+            price: it.price,
+            lineTotal 
+          });
+          
           if (allProducts) {
             applicableSubtotal += lineTotal;
-          } else if (
-            (it.productId && coupon.applicableProducts?.includes(it.productId)) ||
-            (it.productSlug && coupon.applicableProducts?.includes(it.productSlug)) ||
-            (it.name && coupon.applicableProducts?.some(p => (p || '').toLowerCase() === (it.name || '').toLowerCase()))
-          ) {
-            applicableSubtotal += lineTotal;
+            console.log('[COUPON VALIDATE] -> Added (all products allowed)');
+          } else {
+            // More robust matching: check productId, productSlug, sku, and name variations
+            const applicableProds = coupon.applicableProducts || [];
+            const itemProductId = (it.productId || '').toLowerCase();
+            const itemProductSlug = (it.productSlug || '').toLowerCase();
+            const itemSku = (it.sku || '').toLowerCase();
+            const itemName = (it.name || '').toLowerCase();
+            
+            const matches = applicableProds.some(p => {
+              const prodLower = (p || '').toLowerCase();
+              return (
+                // Exact matches
+                (itemProductId && itemProductId === prodLower) ||
+                (itemProductSlug && itemProductSlug === prodLower) ||
+                (itemSku && itemSku === prodLower) ||
+                (itemName && itemName === prodLower) ||
+                // Partial matches (slug contains or is contained)
+                (itemProductSlug && prodLower && (itemProductSlug.includes(prodLower) || prodLower.includes(itemProductSlug))) ||
+                (itemSku && prodLower && (itemSku.includes(prodLower) || prodLower.includes(itemSku)))
+              );
+            });
+            
+            if (matches) {
+              applicableSubtotal += lineTotal;
+              console.log('[COUPON VALIDATE] -> Added (product matches restriction)');
+            } else {
+              console.log('[COUPON VALIDATE] -> Skipped (product does not match restriction)');
+            }
           }
         }
       } else {
         applicableSubtotal = parseFloat((orderAmount as any) || '0');
       }
+      
+      console.log('[COUPON VALIDATE] Final applicableSubtotal:', applicableSubtotal);
 
       let discountAmount = 0;
       if (coupon.discountType === 'percentage') {
