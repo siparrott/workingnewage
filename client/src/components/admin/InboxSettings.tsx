@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Settings, Server, Mail, Eye, EyeOff, TestTube, Save, RefreshCw, Lock, TestTube2, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Settings, Server, Mail, Eye, EyeOff, TestTube, Save, RefreshCw, Lock, TestTube2, CheckCircle, AlertCircle, Plane, FileSignature, Calendar } from 'lucide-react';
 import { getEmailSettings, saveEmailSettings } from '../../api/email';
 
 interface EmailSettings {
@@ -11,6 +11,14 @@ interface EmailSettings {
   useTLS: boolean;
   syncEnabled: boolean;
   syncInterval: number;
+  // Email Signature
+  emailSignature: string;
+  signatureEnabled: boolean;
+  // Out of Office Auto Responder
+  outOfOfficeEnabled: boolean;
+  outOfOfficeMessage: string;
+  outOfOfficeStartDate: string;
+  outOfOfficeEndDate: string;
 }
 
 interface InboxSettingsProps {
@@ -36,9 +44,18 @@ const InboxSettings: React.FC<InboxSettingsProps> = ({
       password: 'HoveBN41!',
       useTLS: true,
       syncEnabled: true,
-      syncInterval: 5
+      syncInterval: 5,
+      // Email Signature defaults
+      emailSignature: '',
+      signatureEnabled: false,
+      // Out of Office defaults
+      outOfOfficeEnabled: false,
+      outOfOfficeMessage: 'Vielen Dank für Ihre Nachricht. Ich bin derzeit nicht im Büro und werde mich nach meiner Rückkehr bei Ihnen melden.',
+      outOfOfficeStartDate: '',
+      outOfOfficeEndDate: ''
     }
   );
+  const [activeTab, setActiveTab] = useState<'connection' | 'signature' | 'outofoffice'>('connection');
   const [testing, setTesting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -120,7 +137,15 @@ const InboxSettings: React.FC<InboxSettingsProps> = ({
         smtpUser: settings.username,
         smtpPass: settings.password,
         fromEmail: settings.username, // Use username as from email
-        fromName: 'New Age Fotografie'
+        fromName: 'New Age Fotografie',
+        // Email Signature
+        emailSignature: settings.emailSignature,
+        signatureEnabled: settings.signatureEnabled,
+        // Out of Office
+        outOfOfficeEnabled: settings.outOfOfficeEnabled,
+        outOfOfficeMessage: settings.outOfOfficeMessage,
+        outOfOfficeStartDate: settings.outOfOfficeStartDate,
+        outOfOfficeEndDate: settings.outOfOfficeEndDate
       });
       
       setTestResult({
@@ -205,9 +230,49 @@ const InboxSettings: React.FC<InboxSettingsProps> = ({
               ×
             </button>
           </div>
+          
+          {/* Tabs */}
+          <div className="flex space-x-1 mt-4 border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab('connection')}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                activeTab === 'connection'
+                  ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <Server className="inline h-4 w-4 mr-2" />
+              Connection
+            </button>
+            <button
+              onClick={() => setActiveTab('signature')}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                activeTab === 'signature'
+                  ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <FileSignature className="inline h-4 w-4 mr-2" />
+              Signature
+            </button>
+            <button
+              onClick={() => setActiveTab('outofoffice')}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                activeTab === 'outofoffice'
+                  ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <Plane className="inline h-4 w-4 mr-2" />
+              Out of Office
+            </button>
+          </div>
         </div>
 
         <div className="p-6 space-y-6">
+          {/* Connection Tab */}
+          {activeTab === 'connection' && (
+            <>
           {/* Email Provider */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -413,6 +478,165 @@ const InboxSettings: React.FC<InboxSettingsProps> = ({
                 <p>3. Use your email address and the App Password above</p>
                 <p>4. Keep TLS encryption enabled</p>
               </div>
+            </div>
+          )}
+            </>
+          )}
+
+          {/* Signature Tab */}
+          {activeTab === 'signature' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                    <FileSignature className="h-5 w-5 mr-2 text-gray-600" />
+                    Email Signature
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Create a signature that will be automatically added to your outgoing emails
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.signatureEnabled}
+                    onChange={(e) => handleInputChange('signatureEnabled', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Signature Content
+                </label>
+                <textarea
+                  value={settings.emailSignature}
+                  onChange={(e) => handleInputChange('emailSignature', e.target.value)}
+                  disabled={!settings.signatureEnabled}
+                  rows={8}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!settings.signatureEnabled ? 'bg-gray-100 text-gray-400' : ''}`}
+                  placeholder={`Mit freundlichen Grüßen,
+
+Andrea Scheucher
+New Age Fotografie
+Tel: +43 XXX XXXXXXX
+Web: www.newagefotografie.com`}
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  Tip: Use line breaks to format your signature. HTML is not supported.
+                </p>
+              </div>
+
+              {settings.signatureEnabled && settings.emailSignature && (
+                <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Preview</h4>
+                  <div className="bg-white border border-gray-200 rounded p-3 text-sm text-gray-600 whitespace-pre-wrap">
+                    {settings.emailSignature}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Out of Office Tab */}
+          {activeTab === 'outofoffice' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                    <Plane className="h-5 w-5 mr-2 text-gray-600" />
+                    Out of Office Auto Responder
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Automatically reply to incoming emails when you're away
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.outOfOfficeEnabled}
+                    onChange={(e) => handleInputChange('outOfOfficeEnabled', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+
+              {settings.outOfOfficeEnabled && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex items-start space-x-2">
+                  <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                  <div className="text-sm text-yellow-800">
+                    <strong>Auto responder is active.</strong> Automatic replies will be sent to incoming emails.
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Calendar className="inline h-4 w-4 mr-1" />
+                    Start Date (optional)
+                  </label>
+                  <input
+                    type="date"
+                    value={settings.outOfOfficeStartDate}
+                    onChange={(e) => handleInputChange('outOfOfficeStartDate', e.target.value)}
+                    disabled={!settings.outOfOfficeEnabled}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!settings.outOfOfficeEnabled ? 'bg-gray-100 text-gray-400' : ''}`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Calendar className="inline h-4 w-4 mr-1" />
+                    End Date (optional)
+                  </label>
+                  <input
+                    type="date"
+                    value={settings.outOfOfficeEndDate}
+                    onChange={(e) => handleInputChange('outOfOfficeEndDate', e.target.value)}
+                    disabled={!settings.outOfOfficeEnabled}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!settings.outOfOfficeEnabled ? 'bg-gray-100 text-gray-400' : ''}`}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 -mt-2">
+                Leave dates empty to keep the auto responder active indefinitely (until manually disabled).
+              </p>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Auto Reply Message
+                </label>
+                <textarea
+                  value={settings.outOfOfficeMessage}
+                  onChange={(e) => handleInputChange('outOfOfficeMessage', e.target.value)}
+                  disabled={!settings.outOfOfficeEnabled}
+                  rows={6}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!settings.outOfOfficeEnabled ? 'bg-gray-100 text-gray-400' : ''}`}
+                  placeholder="Vielen Dank für Ihre Nachricht. Ich bin derzeit nicht im Büro und werde mich nach meiner Rückkehr bei Ihnen melden."
+                />
+              </div>
+
+              {settings.outOfOfficeEnabled && settings.outOfOfficeMessage && (
+                <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Message Preview</h4>
+                  <div className="bg-white border border-gray-200 rounded p-3">
+                    <div className="text-xs text-gray-500 mb-2">
+                      <strong>Subject:</strong> Re: [Original Subject] - Automatische Antwort
+                    </div>
+                    <div className="text-sm text-gray-600 whitespace-pre-wrap">
+                      {settings.outOfOfficeMessage}
+                    </div>
+                    {settings.outOfOfficeStartDate || settings.outOfOfficeEndDate ? (
+                      <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500">
+                        Active: {settings.outOfOfficeStartDate || 'Now'} → {settings.outOfOfficeEndDate || 'Until disabled'}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -6354,9 +6354,13 @@ New Age Fotografie Team`;
   // ==================== EMAIL SETTINGS ====================
   app.post("/api/email/settings/save", authenticateUser, async (req: Request, res: Response) => {
     try {
-      const { smtpHost, smtpPort, smtpUser, smtpPass, fromEmail, fromName } = req.body;
+      const { 
+        smtpHost, smtpPort, smtpUser, smtpPass, fromEmail, fromName,
+        emailSignature, signatureEnabled,
+        outOfOfficeEnabled, outOfOfficeMessage, outOfOfficeStartDate, outOfOfficeEndDate
+      } = req.body;
       
-      console.log('Saving email settings:', { smtpHost, smtpPort, smtpUser, fromEmail, fromName });
+      console.log('Saving email settings:', { smtpHost, smtpPort, smtpUser, fromEmail, fromName, signatureEnabled, outOfOfficeEnabled });
       
       // Save email settings to database
       const settingsData = {
@@ -6366,6 +6370,14 @@ New Age Fotografie Team`;
         smtp_pass: smtpPass, // In production, this should be encrypted
         from_email: fromEmail,
         from_name: fromName,
+        // Email Signature
+        email_signature: emailSignature || null,
+        signature_enabled: signatureEnabled || false,
+        // Out of Office
+        out_of_office_enabled: outOfOfficeEnabled || false,
+        out_of_office_message: outOfOfficeMessage || null,
+        out_of_office_start_date: outOfOfficeStartDate || null,
+        out_of_office_end_date: outOfOfficeEndDate || null,
         updated_at: new Date().toISOString()
       };
       
