@@ -95,14 +95,19 @@ const AdminInboxPage: React.FC = () => {
   // Load messages from API
   useEffect(() => {
     fetchMessages();
-  }, []);
+  }, [selectedFolder]);
 
   const fetchMessages = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('/api/inbox/emails?' + Date.now(), {
+      // Fetch from different endpoint based on selected folder
+      const endpoint = selectedFolder === 'sent' 
+        ? '/api/emails/sent?' + Date.now()
+        : '/api/inbox/emails?' + Date.now();
+      
+      const response = await fetch(endpoint, {
         headers: {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache',
@@ -120,17 +125,17 @@ const AdminInboxPage: React.FC = () => {
       const emailMessages: EmailMessage[] = data.map((msg: any) => ({
         id: msg.id,
         from: msg.senderEmail,
-        fromName: msg.senderName,
-        to: 'hallo@newagefotografie.com',
-        subject: msg.subject,
+        fromName: msg.senderName || msg.sender_name || 'New Age Fotografie',
+        to: msg.recipientEmail || msg.recipient_email || 'hallo@newagefotografie.com',
+        subject: msg.subject?.replace('[SENT] ', '') || '(No Subject)',
         body: msg.content,
-        timestamp: msg.createdAt,
-        isRead: msg.status === 'read' || msg.status === 'archived',
+        timestamp: msg.createdAt || msg.created_at || msg.sentAt || msg.sent_at,
+        isRead: msg.status === 'read' || msg.status === 'archived' || msg.status === 'sent' || msg.status === 'demo_sent',
         isStarred: false,
         isImportant: msg.status === 'unread',
         hasAttachments: false,
         labels: [],
-        folder: 'inbox' as const, // Show all messages in inbox for unified view
+        folder: (msg.direction === 'outbound' || msg.status === 'sent' || msg.status === 'demo_sent') ? 'sent' : 'inbox',
         threadId: msg.id
       }));
       
@@ -145,33 +150,21 @@ const AdminInboxPage: React.FC = () => {
 
   // Email folders with proper counts
   const folders: EmailFolder[] = [
-    { id: 'inbox', name: 'Inbox', count: messages.filter(m => !m.subject.startsWith('[SENT]')).length, icon: <Mail size={16} /> },
-    { id: 'sent', name: 'Sent', count: messages.filter(m => m.subject.startsWith('[SENT]')).length, icon: <Send size={16} /> },
+    { id: 'inbox', name: 'Inbox', count: selectedFolder === 'inbox' ? messages.length : 0, icon: <Mail size={16} /> },
+    { id: 'sent', name: 'Sent', count: selectedFolder === 'sent' ? messages.length : 0, icon: <Send size={16} /> },
     { id: 'archive', name: 'Archive', count: 0, icon: <Archive size={16} /> },
     { id: 'trash', name: 'Trash', count: 0, icon: <Trash2 size={16} /> }
   ];
 
   // Filter messages based on selected folder
   const filteredMessages = messages.filter(message => {
-    let matchesFolder = false;
-    
-    switch (selectedFolder) {
-      case 'inbox':
-        matchesFolder = !message.subject.startsWith('[SENT]'); // Show only received emails
-        break;
-      case 'sent':
-        matchesFolder = message.subject.startsWith('[SENT]'); // Show only sent emails
-        break;
-      default:
-        matchesFolder = message.folder === selectedFolder;
-    }
-    
+    // Since we fetch from the correct endpoint based on folder, just filter by search
     const matchesSearch = searchTerm === '' || 
       message.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
       message.fromName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       message.body.toLowerCase().includes(searchTerm.toLowerCase());
     
-    return matchesFolder && matchesSearch;
+    return matchesSearch;
   });
 
   const handleMessageSelect = (messageId: string) => {
