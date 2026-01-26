@@ -236,6 +236,7 @@ const PhotographyCalendarPage: React.FC = () => {
   const fetchStudioLocation = async () => {
     try {
       const resp = await fetch('/api/admin/studio-location', {
+        credentials: 'include',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
       });
       if (!resp.ok) return;
@@ -332,7 +333,9 @@ const PhotographyCalendarPage: React.FC = () => {
 
   const fetchLeadsCount = async () => {
     try {
-      const response = await fetch('/api/leads/list?status=new');
+      const response = await fetch('/api/leads/list?status=new', {
+        credentials: 'include'
+      });
       if (!response.ok) return;
       const data = await response.json();
       setNewLeadsCount(data.count || (data.rows?.length ?? 0));
@@ -380,6 +383,7 @@ const PhotographyCalendarPage: React.FC = () => {
   const useDebug = import.meta.env.VITE_USE_DEBUG_SESSIONS === 'true';
   const endpoint = useDebug ? '/api/debug/photography-sessions' : '/api/photography/sessions';
   const response = await fetch(endpoint, {
+    credentials: 'include',
     headers: {
       'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
     }
@@ -456,6 +460,7 @@ const PhotographyCalendarPage: React.FC = () => {
   const fetchDashboardStats = async () => {
     try {
       const resp = await fetch('/api/admin/dashboard-stats', {
+        credentials: 'include',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
       });
       if (!resp.ok) return;
@@ -479,6 +484,7 @@ const PhotographyCalendarPage: React.FC = () => {
   const fetchAnalytics = async (p: 'week' | 'month') => {
     try {
       const resp = await fetch(`/api/admin/calendar-analytics?period=${p}`, {
+        credentials: 'include',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
       });
       if (!resp.ok) return setAnalytics(null);
@@ -564,6 +570,7 @@ const PhotographyCalendarPage: React.FC = () => {
 
     const response = await fetch('/api/photography/sessions', {
         method: 'POST',
+        credentials: 'include',
         headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
@@ -1049,6 +1056,7 @@ const PhotographyCalendarPage: React.FC = () => {
               const params = new URLSearchParams({ includePast: 'true' });
               const resp = await fetch(`/api/calendar/import/ics?${params.toString()}`, {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                   'Content-Type': 'application/json',
                   'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
@@ -1077,6 +1085,7 @@ const PhotographyCalendarPage: React.FC = () => {
               const params = new URLSearchParams({ includePast: 'true' });
               const resp = await fetch(`/api/calendar/import/google?${params.toString()}`, {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                   'Content-Type': 'application/json',
                   'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
