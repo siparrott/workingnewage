@@ -390,18 +390,21 @@ export default function AdminVoucherSalesPageV3() {
   const updateProductMutation = useMutation({
     mutationFn: async (data: VoucherProductFormData & { id: string; _imageUrl?: string | null; _thumbnailUrl?: string | null; _existingImageUrl?: string | null; _existingThumbnailUrl?: string | null }) => {
       // CRITICAL: Use passed image URLs to avoid React closure issues
-      const finalImageUrl = data._imageUrl || data._existingImageUrl || null;
-      const finalThumbnailUrl = data._thumbnailUrl || data._existingThumbnailUrl || null;
-      
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log('🔵 [UPDATE PRODUCT] MUTATION STARTING');
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('[UPDATE PRODUCT] PASSED data._imageUrl:', data._imageUrl);
+      console.log('[UPDATE PRODUCT] PASSED data._thumbnailUrl:', data._thumbnailUrl);
+      console.log('[UPDATE PRODUCT] PASSED data._existingImageUrl:', data._existingImageUrl);
+      console.log('[UPDATE PRODUCT] PASSED data._existingThumbnailUrl:', data._existingThumbnailUrl);
+      
+      const finalImageUrl = data._imageUrl || data._existingImageUrl || null;
+      const finalThumbnailUrl = data._thumbnailUrl || data._existingThumbnailUrl || null;
+      
       console.log('[UPDATE PRODUCT] Product ID:', data.id);
       console.log('[UPDATE PRODUCT] Product name:', data.name);
-      console.log('[UPDATE PRODUCT] uploadedImage state:', uploadedImage);
-      console.log('[UPDATE PRODUCT] selectedProduct.imageUrl:', selectedProduct?.imageUrl);
-      console.log('[UPDATE PRODUCT] finalImageUrl to save:', finalImageUrl);
-      console.log('[UPDATE PRODUCT] finalThumbnailUrl to save:', finalThumbnailUrl);
+      console.log('[UPDATE PRODUCT] FINAL imageUrl to save:', finalImageUrl);
+      console.log('[UPDATE PRODUCT] FINAL thumbnailUrl to save:', finalThumbnailUrl);
       
       // Helper to convert empty strings to undefined for optional numeric fields
       const parseOptionalNumber = (value: string | undefined): number | undefined => {
