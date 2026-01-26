@@ -571,10 +571,10 @@ const InboxPage: React.FC = () => {
                         <div className="p-4">
                           <div className="flex justify-between items-start mb-1">
                             <div className="text-sm font-medium text-gray-900 truncate max-w-[200px]">
-                              To: {email.recipient || email.to_email}
+                              To: {email.recipientEmail || email.recipient_email || email.recipient || email.to_email || 'Unknown'}
                             </div>
                             <div className="text-xs text-gray-500">
-                              {formatDate(email.sent_at || email.createdAt)}
+                              {formatDate(email.sentAt || email.sent_at || email.createdAt)}
                             </div>
                           </div>
                           <div className="text-sm text-gray-900 font-medium truncate mb-1">
