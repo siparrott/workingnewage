@@ -9302,11 +9302,26 @@ New Age Fotografie CRM System
         const newThumbnailUrl = fixUrl(oldThumbnailUrl);
         
         if (newImageUrl !== oldImageUrl || newThumbnailUrl !== oldThumbnailUrl) {
-          const updates: any = {};
-          if (newImageUrl !== oldImageUrl) updates.imageUrl = newImageUrl;
-          if (newThumbnailUrl !== oldThumbnailUrl) updates.thumbnailUrl = newThumbnailUrl;
+          // Use direct SQL to ensure %20 is preserved (Drizzle might decode it)
+          const setClauses: string[] = [];
+          const params: any[] = [];
+          let paramIdx = 1;
           
-          await neonDb.updateVoucherProduct(product.id, updates);
+          if (newImageUrl !== oldImageUrl && newImageUrl) {
+            setClauses.push(`image_url = $${paramIdx++}`);
+            params.push(newImageUrl);
+          }
+          if (newThumbnailUrl !== oldThumbnailUrl && newThumbnailUrl) {
+            setClauses.push(`thumbnail_url = $${paramIdx++}`);
+            params.push(newThumbnailUrl);
+          }
+          setClauses.push(`updated_at = NOW()`);
+          params.push(product.id);
+          
+          const sql = `UPDATE voucher_products SET ${setClauses.join(', ')} WHERE id = $${paramIdx}`;
+          console.log('[FIX URLS] Executing SQL:', sql, 'with params:', params);
+          await runSql(sql, params);
+          
           fixed++;
           details.push({
             id: product.id,
