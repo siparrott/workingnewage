@@ -35,6 +35,8 @@ export class EnhancedEmailService {
         return false;
       }
 
+      console.log(`📧 Initializing SMTP: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
+      
       this.transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: parseInt(process.env.SMTP_PORT || '587'),
@@ -46,20 +48,18 @@ export class EnhancedEmailService {
         // Additional options for better compatibility
         tls: {
           rejectUnauthorized: false // Allow self-signed certificates
-        }
+        },
+        // Longer timeouts for slow servers
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000
       });
 
-      // Test connection with timeout
-      const testPromise = this.transporter.verify();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('SMTP connection timeout')), 5000)
-      );
-
-      await Promise.race([testPromise, timeoutPromise]);
-      
-      console.log('✅ Email service initialized successfully');
+      // Skip verify() to avoid timeout issues - we'll know if it works when we send
+      console.log('✅ Email transporter created successfully');
       console.log(`📧 SMTP Host: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
       console.log(`📧 SMTP User: ${process.env.SMTP_USER}`);
+      console.log(`📧 SMTP From: ${process.env.SMTP_FROM || process.env.SMTP_USER}`);
       return true;
 
     } catch (error) {
