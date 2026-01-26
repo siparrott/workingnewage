@@ -255,7 +255,7 @@ const Footer: React.FC = () => {
               </li>
               <li>
                 <Link 
-                  to="/galleries" 
+                  to="/portfolio" 
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
