@@ -36,6 +36,7 @@ export class EnhancedEmailService {
       }
 
       console.log(`📧 Initializing SMTP: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
+      console.log(`📧 SMTP User: ${process.env.SMTP_USER}`);
       
       this.transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
@@ -45,20 +46,25 @@ export class EnhancedEmailService {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
         },
+        // Force LOGIN auth method instead of PLAIN (better compatibility with some providers)
+        authMethod: 'LOGIN',
         // Additional options for better compatibility
         tls: {
-          rejectUnauthorized: false // Allow self-signed certificates
+          rejectUnauthorized: false, // Allow self-signed certificates
+          ciphers: 'SSLv3'
         },
         // Longer timeouts for slow servers
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 15000
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000,
+        // Debug mode to help troubleshoot
+        debug: process.env.SMTP_DEBUG === 'true',
+        logger: process.env.SMTP_DEBUG === 'true'
       });
 
       // Skip verify() to avoid timeout issues - we'll know if it works when we send
       console.log('✅ Email transporter created successfully');
       console.log(`📧 SMTP Host: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
-      console.log(`📧 SMTP User: ${process.env.SMTP_USER}`);
       console.log(`📧 SMTP From: ${process.env.SMTP_FROM || process.env.SMTP_USER}`);
       return true;
 

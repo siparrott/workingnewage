@@ -6,29 +6,27 @@ const pool = new Pool({
 
 async function main() {
   try {
-    // Check the test email in crm_messages
+    // Check latest sent/outbound emails with all fields
+    console.log('Most recent sent email details:');
     const result = await pool.query(`
-      SELECT id, sender_name, sender_email, recipient_email, subject, content, 
-             message_type, status, direction, created_at 
-      FROM crm_messages 
-      WHERE subject ILIKE '%test%' OR content ILIKE '%123%'
-      ORDER BY created_at DESC
-      LIMIT 10
-    `);
-    console.log('Test emails in crm_messages:');
-    console.log(JSON.stringify(result.rows, null, 2));
-    
-    // Also check sent emails
-    console.log('\\nRecent sent/outbound emails:');
-    const sent = await pool.query(`
-      SELECT id, sender_name, sender_email, recipient_email, subject, 
-             message_type, status, direction, created_at 
+      SELECT id, sender_name, sender_email, recipient_email, subject, content,
+             message_type, status, direction, email_message_id, created_at, sent_at
       FROM crm_messages 
       WHERE direction = 'outbound' OR status IN ('sent', 'demo_sent')
       ORDER BY created_at DESC
-      LIMIT 10
+      LIMIT 3
     `);
-    console.log(JSON.stringify(sent.rows, null, 2));
+    result.rows.forEach(row => {
+      console.log('---');
+      console.log('ID:', row.id);
+      console.log('To:', row.recipient_email);
+      console.log('Subject:', row.subject);
+      console.log('Status:', row.status);
+      console.log('Direction:', row.direction);
+      console.log('Message ID:', row.email_message_id);
+      console.log('Created:', row.created_at);
+      console.log('Sent:', row.sent_at);
+    });
     
   } catch (err) {
     console.error('Error:', err);
