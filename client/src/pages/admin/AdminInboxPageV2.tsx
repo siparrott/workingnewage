@@ -67,6 +67,40 @@ const AdminInboxPage: React.FC = () => {
   const [replyMode, setReplyMode] = useState<'reply' | 'forward' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [folderCounts, setFolderCounts] = useState({ inbox: 0, sent: 0, archive: 0, trash: 0 });
+
+  // Fetch folder counts separately
+  const fetchFolderCounts = async () => {
+    try {
+      // Fetch inbox count
+      const inboxResponse = await fetch('/api/inbox/emails?' + Date.now(), {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+      });
+      const inboxData = inboxResponse.ok ? await inboxResponse.json() : [];
+      
+      // Fetch sent count
+      const sentResponse = await fetch('/api/emails/sent?' + Date.now(), {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+      });
+      const sentData = sentResponse.ok ? await sentResponse.json() : [];
+      
+      setFolderCounts({
+        inbox: Array.isArray(inboxData) ? inboxData.length : 0,
+        sent: Array.isArray(sentData) ? sentData.length : 0,
+        archive: 0,
+        trash: 0
+      });
+    } catch (err) {
+      // Silently fail for count fetch
+    }
+  };
+
+  // Fetch folder counts on mount
+  useEffect(() => {
+    fetchFolderCounts();
+  }, []);
 
   const handleRefreshEmails = async () => {
     setIsRefreshing(true);
@@ -81,6 +115,7 @@ const AdminInboxPage: React.FC = () => {
         const result = await response.json();
         // console.log removed
         await fetchMessages(); // Reload messages
+        await fetchFolderCounts(); // Reload folder counts
         alert(`Email refresh completed: ${result.newEmails} new emails imported`);
       } else {
         throw new Error('Failed to refresh emails');
@@ -152,10 +187,10 @@ const AdminInboxPage: React.FC = () => {
 
   // Email folders with proper counts
   const folders: EmailFolder[] = [
-    { id: 'inbox', name: 'Inbox', count: selectedFolder === 'inbox' ? messages.length : 0, icon: <Mail size={16} /> },
-    { id: 'sent', name: 'Sent', count: selectedFolder === 'sent' ? messages.length : 0, icon: <Send size={16} /> },
-    { id: 'archive', name: 'Archive', count: 0, icon: <Archive size={16} /> },
-    { id: 'trash', name: 'Trash', count: 0, icon: <Trash2 size={16} /> }
+    { id: 'inbox', name: 'Inbox', count: folderCounts.inbox, icon: <Mail size={16} /> },
+    { id: 'sent', name: 'Sent', count: folderCounts.sent, icon: <Send size={16} /> },
+    { id: 'archive', name: 'Archive', count: folderCounts.archive, icon: <Archive size={16} /> },
+    { id: 'trash', name: 'Trash', count: folderCounts.trash, icon: <Trash2 size={16} /> }
   ];
 
   // Filter messages based on selected folder
