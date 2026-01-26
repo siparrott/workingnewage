@@ -315,7 +315,7 @@ export default function AdminVoucherSalesPageV3() {
 
   // Mutations
   const createProductMutation = useMutation({
-    mutationFn: async (data: VoucherProductFormData) => {
+    mutationFn: async (data: VoucherProductFormData & { _imageUrl?: string | null; _thumbnailUrl?: string | null }) => {
       // Helper to convert empty strings to undefined for optional numeric fields
       const parseOptionalNumber = (value: string | undefined): number | undefined => {
         if (!value || value.trim() === '') return undefined;
@@ -346,11 +346,11 @@ export default function AdminVoucherSalesPageV3() {
         slug: data.slug || undefined,
         metaTitle: data.metaTitle || undefined,
         metaDescription: data.metaDescription || undefined,
-        imageUrl: uploadedImage || null,
-        thumbnailUrl: uploadedThumbnail || null,
+        imageUrl: data._imageUrl || null,
+        thumbnailUrl: data._thumbnailUrl || null,
       };
-      console.log('[CREATE PRODUCT] Current uploadedImage state:', uploadedImage);
-      console.log('[CREATE PRODUCT] Current uploadedThumbnail state:', uploadedThumbnail);
+      console.log('[CREATE PRODUCT] Passed _imageUrl:', data._imageUrl);
+      console.log('[CREATE PRODUCT] Passed _thumbnailUrl:', data._thumbnailUrl);
       console.log('[CREATE PRODUCT] Full payload being sent:', JSON.stringify(payload, null, 2));
       const response = await fetch("/api/vouchers/products", {
         method: "POST",
@@ -388,10 +388,10 @@ export default function AdminVoucherSalesPageV3() {
   });
 
   const updateProductMutation = useMutation({
-    mutationFn: async (data: VoucherProductFormData & { id: string }) => {
-      // CRITICAL: Use uploadedImage state first, then fall back to existing product's imageUrl
-      const finalImageUrl = uploadedImage || (selectedProduct?.imageUrl) || null;
-      const finalThumbnailUrl = uploadedThumbnail || ((selectedProduct as any)?.thumbnailUrl) || null;
+    mutationFn: async (data: VoucherProductFormData & { id: string; _imageUrl?: string | null; _thumbnailUrl?: string | null; _existingImageUrl?: string | null; _existingThumbnailUrl?: string | null }) => {
+      // CRITICAL: Use passed image URLs to avoid React closure issues
+      const finalImageUrl = data._imageUrl || data._existingImageUrl || null;
+      const finalThumbnailUrl = data._thumbnailUrl || data._existingThumbnailUrl || null;
       
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log('🔵 [UPDATE PRODUCT] MUTATION STARTING');
@@ -791,11 +791,25 @@ export default function AdminVoucherSalesPageV3() {
     console.log('🟢 [HANDLE PRODUCT SUBMIT] Function called!');
     console.log('[HANDLE PRODUCT SUBMIT] Form data received:', data);
     console.log('[HANDLE PRODUCT SUBMIT] selectedProduct:', selectedProduct);
+    console.log('[HANDLE PRODUCT SUBMIT] uploadedImage state:', uploadedImage);
+    console.log('[HANDLE PRODUCT SUBMIT] uploadedThumbnail state:', uploadedThumbnail);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     if (selectedProduct) {
-      updateProductMutation.mutate({ ...data, id: selectedProduct.id });
+      // Pass image URLs directly to avoid closure issues
+      updateProductMutation.mutate({ 
+        ...data, 
+        id: selectedProduct.id,
+        _imageUrl: uploadedImage,
+        _thumbnailUrl: uploadedThumbnail,
+        _existingImageUrl: selectedProduct.imageUrl,
+        _existingThumbnailUrl: (selectedProduct as any).thumbnailUrl
+      });
     } else {
-      createProductMutation.mutate(data);
+      createProductMutation.mutate({
+        ...data,
+        _imageUrl: uploadedImage,
+        _thumbnailUrl: uploadedThumbnail
+      });
     }
   };
 
