@@ -483,9 +483,13 @@ const AdminInboxPage: React.FC = () => {
             <p className="text-gray-600">Manage client messages and inquiries</p>
           </div>
           <div className="flex items-center space-x-3">
-            <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-              <RefreshCw size={16} />
-              <span>Sync</span>
+            <button 
+              onClick={handleRefreshEmails}
+              disabled={isRefreshing}
+              className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+            >
+              <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+              <span>{isRefreshing ? 'Syncing...' : 'Sync'}</span>
             </button>            <button 
               onClick={() => setShowSettings(true)}
               className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
