@@ -5,7 +5,8 @@ import {
   FileText, Trash2, Image as ImageIcon, Sun, Moon, X, ChevronLeft, ChevronRight,
   Eye, EyeOff, Download, ShoppingCart, Clock, Calendar, Sparkles, Grid3X3, Grid2X2,
   LayoutGrid, ExternalLink, Plus, MoreVertical, Loader2, AlertCircle, Share2,
-  Mail, Clipboard, Phone
+  Mail, Clipboard, Phone, Play, Video, Lock, Link as LinkIcon, Users, Tag, 
+  CreditCard, Truck, Edit2, Copy, Info
 } from 'lucide-react';
 import { getGalleryById, deleteGallery, getGalleryImages } from '../../lib/gallery-api';
 
@@ -68,6 +69,40 @@ const GalleryDetailPage: React.FC = () => {
   // Cover images
   const [coverImages, setCoverImages] = useState<string[]>([]);
   const [selectedCover, setSelectedCover] = useState(0);
+  
+  // Experience settings
+  const [welcomeMessage, setWelcomeMessage] = useState('');
+  const [welcomeMessageEnabled, setWelcomeMessageEnabled] = useState(false);
+  const [slideshowEnabled, setSlideshowEnabled] = useState(true);
+  const [slideshowLocation, setSlideshowLocation] = useState<'pre-gallery' | 'nav-button' | 'both'>('both');
+  const [slideshowStyle, setSlideshowStyle] = useState<'simple' | 'ken-burns'>('ken-burns');
+  const [videoEnabled, setVideoEnabled] = useState(true);
+  const [videoLocation, setVideoLocation] = useState<'pre-gallery' | 'nav-button' | 'both'>('pre-gallery');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [registerToView, setRegisterToView] = useState(true);
+  const [registerRequirement, setRegisterRequirement] = useState<'email' | 'email-name'>('email-name');
+  
+  // Availability settings
+  const [galleryLink, setGalleryLink] = useState('');
+  const [attachedShoot, setAttachedShoot] = useState('');
+  const [restrictAccess, setRestrictAccess] = useState(false);
+  const [expirationEnabled, setExpirationEnabled] = useState(false);
+  const [expirationDate, setExpirationDate] = useState('');
+  const [placeholderEnabled, setPlaceholderEnabled] = useState(false);
+  const [includeOnCatalog, setIncludeOnCatalog] = useState(false);
+  
+  // Shopping settings
+  const [priceList, setPriceList] = useState('Online Shop');
+  const [taxSetting, setTaxSetting] = useState('UsT');
+  const [paymentMethods, setPaymentMethods] = useState(4);
+  const [shippingMethods, setShippingMethods] = useState(0);
+  const [allowCoupons, setAllowCoupons] = useState(true);
+  const [allowQuickBuy, setAllowQuickBuy] = useState(false);
+  
+  // Downloads settings
+  const [visitorDownloadResolution, setVisitorDownloadResolution] = useState('original');
+  const [clientDownloadResolution, setClientDownloadResolution] = useState('original');
+  const [showAdvancedDownloads, setShowAdvancedDownloads] = useState(false);
   
   // Sidebar panels
   const [expandedPanels, setExpandedPanels] = useState({
@@ -708,9 +743,9 @@ const GalleryDetailPage: React.FC = () => {
             </div>
 
             {/* Settings Sidebar */}
-            <div className="w-64 border-l border-gray-200 bg-gray-50">
+            <div className="w-80 border-l border-gray-200 bg-gray-50 overflow-y-auto">
               <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                <button onClick={() => setShowSettings(false)} className="text-red-500 hover:text-red-600">
+                <button onClick={() => setShowSettings(false)} className="flex items-center text-red-500 hover:text-red-600">
                   <X size={18} />
                   <span className="ml-1">Close</span>
                 </button>
@@ -730,7 +765,7 @@ const GalleryDetailPage: React.FC = () => {
                     onClick={() => setActiveSettingsTab(tab.id as SettingsTab)}
                     className={`w-full flex items-center px-4 py-3 rounded-lg text-left ${
                       activeSettingsTab === tab.id 
-                        ? 'bg-teal-50 text-teal-700' 
+                        ? 'bg-teal-500 text-white' 
                         : 'text-gray-600 hover:bg-gray-100'
                     }`}
                   >
@@ -880,68 +915,519 @@ const GalleryDetailPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Experience Settings */}
+              {/* Experience Settings - Full Featured */}
               {activeSettingsTab === 'experience' && (
-                <div className="p-4 space-y-4 border-t border-gray-200">
-                  <p className="text-sm text-gray-500">Configure client experience settings</p>
-                  <label className="flex items-center">
-                    <input type="checkbox" className="mr-2 rounded border-gray-300 text-teal-500" defaultChecked />
-                    <span className="text-sm text-gray-600">Allow favorites</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input type="checkbox" className="mr-2 rounded border-gray-300 text-teal-500" defaultChecked />
-                    <span className="text-sm text-gray-600">Allow sharing</span>
-                  </label>
-                </div>
-              )}
-
-              {/* Availability Settings */}
-              {activeSettingsTab === 'availability' && (
-                <div className="p-4 space-y-4 border-t border-gray-200">
-                  <p className="text-sm text-gray-500">Control gallery access</p>
-                  <label className="flex items-center">
-                    <input type="checkbox" className="mr-2 rounded border-gray-300 text-teal-500" />
-                    <span className="text-sm text-gray-600">Password protect</span>
-                  </label>
+                <div className="p-4 space-y-6 border-t border-gray-200">
+                  {/* Welcome Message */}
                   <div>
-                    <label className="text-xs text-gray-500">Expiration date</label>
-                    <input type="date" className="w-full mt-1 p-2 border border-gray-300 rounded text-sm" />
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Welcome message</h4>
+                    <div className="flex items-center bg-white border border-gray-300 rounded-lg px-3 py-2">
+                      <Mail size={16} className="text-gray-400 mr-2" />
+                      <input
+                        type="text"
+                        value={welcomeMessage}
+                        onChange={(e) => setWelcomeMessage(e.target.value)}
+                        placeholder="Gallery welcome message"
+                        className="flex-1 text-sm border-none focus:ring-0 p-0"
+                      />
+                      {welcomeMessage && (
+                        <button onClick={() => setWelcomeMessage('')} className="text-red-400 hover:text-red-500">
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Slideshow */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-700">Slideshow</h4>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={slideshowEnabled}
+                          onChange={(e) => setSlideshowEnabled(e.target.checked)}
+                          className="sr-only peer" 
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+                        <span className="ms-2 text-xs text-gray-500">{slideshowEnabled ? 'On' : 'Off'}</span>
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Add a slideshow of <span className="text-teal-600 cursor-pointer">all photos</span> or a <span className="text-teal-600 cursor-pointer">specific folder of photos</span>.
+                    </p>
+                    
+                    {slideshowEnabled && (
+                      <>
+                        <div className="mb-3">
+                          <div className="text-xs text-gray-500 mb-2">Show the slideshow...</div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { id: 'pre-gallery', label: 'Pre-gallery' },
+                              { id: 'nav-button', label: 'Nav button' },
+                              { id: 'both', label: 'Both' },
+                            ].map((opt) => (
+                              <button
+                                key={opt.id}
+                                onClick={() => setSlideshowLocation(opt.id as typeof slideshowLocation)}
+                                className={`px-2 py-2 rounded-lg text-xs ${
+                                  slideshowLocation === opt.id 
+                                    ? 'bg-teal-500 text-white' 
+                                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                                }`}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <div className="text-xs text-gray-500 mb-2">Slideshow style</div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => setSlideshowStyle('simple')}
+                              className={`px-3 py-2 rounded-lg text-xs ${
+                                slideshowStyle === 'simple' 
+                                  ? 'bg-teal-500 text-white' 
+                                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                              }`}
+                            >
+                              Simple
+                            </button>
+                            <button
+                              onClick={() => setSlideshowStyle('ken-burns')}
+                              className={`px-3 py-2 rounded-lg text-xs ${
+                                slideshowStyle === 'ken-burns' 
+                                  ? 'bg-teal-500 text-white' 
+                                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                              }`}
+                            >
+                              Ken Burns Effect
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Video */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-700">Video</h4>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={videoEnabled}
+                          onChange={(e) => setVideoEnabled(e.target.checked)}
+                          className="sr-only peer" 
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+                        <span className="ms-2 text-xs text-gray-500">{videoEnabled ? 'On' : 'Off'}</span>
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Add a <span className="text-teal-600 cursor-pointer">Youtube</span> or <span className="text-teal-600 cursor-pointer">Vimeo video</span> to your gallery.
+                    </p>
+                    
+                    {videoEnabled && (
+                      <>
+                        <div className="mb-3">
+                          <div className="text-xs text-gray-500 mb-2">Show the video...</div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { id: 'pre-gallery', label: 'Pre-gallery' },
+                              { id: 'nav-button', label: 'Nav button' },
+                              { id: 'both', label: 'Both' },
+                            ].map((opt) => (
+                              <button
+                                key={opt.id}
+                                onClick={() => setVideoLocation(opt.id as typeof videoLocation)}
+                                className={`px-2 py-2 rounded-lg text-xs ${
+                                  videoLocation === opt.id 
+                                    ? 'bg-teal-500 text-white' 
+                                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                                }`}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <div className="text-xs text-gray-500 mb-2">YouTube/Vimeo link</div>
+                          <input
+                            type="text"
+                            value={videoUrl}
+                            onChange={(e) => setVideoUrl(e.target.value)}
+                            placeholder="https://www.youtube.com"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-teal-500 focus:border-teal-500"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Register to view */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-700">Register to view</h4>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={registerToView}
+                          onChange={(e) => setRegisterToView(e.target.checked)}
+                          className="sr-only peer" 
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+                        <span className="ms-2 text-xs text-gray-500">{registerToView ? 'Yes' : 'No'}</span>
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Visitors must enter their personal details, like <span className="text-teal-600">email</span> or <span className="text-teal-600">name</span>, before viewing the gallery.
+                    </p>
+                    
+                    {registerToView && (
+                      <div>
+                        <div className="text-xs text-gray-500 mb-2">Require...</div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => setRegisterRequirement('email')}
+                            className={`px-3 py-2 rounded-lg text-xs ${
+                              registerRequirement === 'email' 
+                                ? 'bg-teal-500 text-white' 
+                                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                            }`}
+                          >
+                            Email only
+                          </button>
+                          <button
+                            onClick={() => setRegisterRequirement('email-name')}
+                            className={`px-3 py-2 rounded-lg text-xs ${
+                              registerRequirement === 'email-name' 
+                                ? 'bg-teal-500 text-white' 
+                                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                            }`}
+                          >
+                            Email and Name
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* Shopping Settings */}
-              {activeSettingsTab === 'shopping' && (
-                <div className="p-4 space-y-4 border-t border-gray-200">
-                  <p className="text-sm text-gray-500">Configure print sales</p>
-                  <label className="flex items-center">
-                    <input type="checkbox" className="mr-2 rounded border-gray-300 text-teal-500" />
-                    <span className="text-sm text-gray-600">Enable print ordering</span>
-                  </label>
+              {/* Availability Settings - Full Featured */}
+              {activeSettingsTab === 'availability' && (
+                <div className="p-4 space-y-6 border-t border-gray-200">
+                  {/* Gallery Link */}
+                  <div>
+                    <h4 className="text-xs text-gray-500 mb-2">Link</h4>
+                    <div className="flex items-center bg-white border border-gray-300 rounded-lg px-3 py-2">
+                      <input
+                        type="text"
+                        value={`${window.location.origin}/gallery/${id}`}
+                        readOnly
+                        className="flex-1 text-xs text-gray-600 border-none focus:ring-0 p-0 bg-transparent"
+                      />
+                      <button 
+                        onClick={copyGalleryLink}
+                        className="text-gray-400 hover:text-teal-500 ml-2"
+                        title="Copy link"
+                      >
+                        <Copy size={14} />
+                      </button>
+                      <button className="text-gray-400 hover:text-teal-500 ml-2" title="Edit link">
+                        <Edit2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Attached to */}
+                  <div>
+                    <h4 className="text-xs text-gray-500 mb-2">Attached to</h4>
+                    {attachedShoot ? (
+                      <div className="flex items-center bg-white border border-gray-300 rounded-lg px-3 py-2">
+                        <ImageIcon size={14} className="text-gray-400 mr-2" />
+                        <span className="flex-1 text-sm text-gray-700">{attachedShoot}</span>
+                        <button 
+                          onClick={() => setAttachedShoot('')}
+                          className="text-red-400 hover:text-red-500"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button className="w-full text-left px-3 py-2 border border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-teal-500 hover:text-teal-600">
+                        + Attach to a shoot
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Restrict Access */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-700">Restrict access</h4>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={restrictAccess}
+                          onChange={(e) => setRestrictAccess(e.target.checked)}
+                          className="sr-only peer" 
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+                        <span className="ms-2 text-xs text-gray-500">{restrictAccess ? 'Yes' : 'No'}</span>
+                      </label>
+                    </div>
+                    <div className="flex items-start bg-gray-50 rounded-lg p-3">
+                      <HelpCircle size={16} className="text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
+                      <p className="text-xs text-gray-500">
+                        Give access only to your <span className="text-teal-600">logged in client</span> or optionally add a <span className="text-teal-600">password</span> for visitors who aren't logged in.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Expiration */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-700">Expiration</h4>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={expirationEnabled}
+                          onChange={(e) => setExpirationEnabled(e.target.checked)}
+                          className="sr-only peer" 
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+                        <span className="ms-2 text-xs text-gray-500">{expirationEnabled ? 'Yes' : 'No'}</span>
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-2">Specify if the gallery expires, and when.</p>
+                    {expirationEnabled && (
+                      <input
+                        type="date"
+                        value={expirationDate}
+                        onChange={(e) => setExpirationDate(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-teal-500 focus:border-teal-500"
+                      />
+                    )}
+                  </div>
+
+                  {/* Placeholder */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-700">Placeholder</h4>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={placeholderEnabled}
+                          onChange={(e) => setPlaceholderEnabled(e.target.checked)}
+                          className="sr-only peer" 
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+                        <span className="ms-2 text-xs text-gray-500">{placeholderEnabled ? 'Yes' : 'No'}</span>
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-500">A placeholder gallery allows you to collect email addresses to notify once photos are available.</p>
+                  </div>
+
+                  {/* Include on Catalog */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-700">Include on catalog</h4>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={includeOnCatalog}
+                          onChange={(e) => setIncludeOnCatalog(e.target.checked)}
+                          className="sr-only peer" 
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+                        <span className="ms-2 text-xs text-gray-500">{includeOnCatalog ? 'Yes' : 'No'}</span>
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-500">Include this gallery on your brand gallery catalog page.</p>
+                  </div>
                 </div>
               )}
 
-              {/* Downloads Settings */}
-              {activeSettingsTab === 'downloads' && (
-                <div className="p-4 space-y-4 border-t border-gray-200">
-                  <p className="text-sm text-gray-500">Configure download options</p>
-                  <label className="flex items-center">
-                    <input 
-                      type="checkbox" 
-                      className="mr-2 rounded border-gray-300 text-teal-500" 
-                      defaultChecked={gallery.downloadEnabled}
-                    />
-                    <span className="text-sm text-gray-600">Allow downloads</span>
-                  </label>
+              {/* Shopping Settings - Full Featured */}
+              {activeSettingsTab === 'shopping' && (
+                <div className="p-4 space-y-6 border-t border-gray-200">
+                  {/* Price List */}
                   <div>
-                    <label className="text-xs text-gray-500">Download resolution</label>
-                    <select className="w-full mt-1 p-2 border border-gray-300 rounded text-sm">
-                      <option>Original</option>
-                      <option>High (3000px)</option>
-                      <option>Medium (2000px)</option>
-                      <option>Web (1200px)</option>
+                    <h4 className="text-xs text-gray-500 mb-2">Price list</h4>
+                    <div className="flex items-center bg-white border border-gray-300 rounded-lg px-3 py-2">
+                      <span className="flex-1 text-sm text-gray-700">{priceList}</span>
+                      <button className="text-red-400 hover:text-red-500">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Tax */}
+                  <div>
+                    <h4 className="text-xs text-gray-500 mb-2">Tax</h4>
+                    <div className="flex items-center bg-white border border-gray-300 rounded-lg px-3 py-2">
+                      <span className="flex-1 text-sm text-gray-700">{taxSetting}</span>
+                      <button className="text-red-400 hover:text-red-500">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Payment Methods */}
+                  <div>
+                    <h4 className="text-xs text-gray-500 mb-2">Payment methods</h4>
+                    <div className="flex items-center bg-white border border-gray-300 rounded-lg px-3 py-2">
+                      <CreditCard size={14} className="text-gray-400 mr-2" />
+                      <span className="flex-1 text-sm text-gray-500">{paymentMethods} methods selected</span>
+                      <button className="text-gray-400 hover:text-teal-500">
+                        <Edit2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Shipping Methods */}
+                  <div>
+                    <h4 className="text-xs text-gray-500 mb-2">Shipping Methods</h4>
+                    <div className="flex items-center bg-white border border-gray-300 rounded-lg px-3 py-2">
+                      <Truck size={14} className="text-gray-400 mr-2" />
+                      <span className="flex-1 text-sm text-gray-500">{shippingMethods} method selected</span>
+                      <button className="text-gray-400 hover:text-teal-500">
+                        <Edit2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Allow Coupons */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-700">Allow coupons</h4>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={allowCoupons}
+                          onChange={(e) => setAllowCoupons(e.target.checked)}
+                          className="sr-only peer" 
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+                        <span className="ms-2 text-xs text-gray-500">{allowCoupons ? 'Yes' : 'No'}</span>
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-500">Show or hide the coupon box when gallery visitors are purchasing items and checking out in your gallery.</p>
+                  </div>
+
+                  {/* Allow Quick Buy */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-700">Allow quick buy</h4>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={allowQuickBuy}
+                          onChange={(e) => setAllowQuickBuy(e.target.checked)}
+                          className="sr-only peer" 
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+                        <span className="ms-2 text-xs text-gray-500">{allowQuickBuy ? 'Yes' : 'No'}</span>
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-500">Allows gallery visitors to optionally skip the Shop and make purchases from the Quick Buy menu by clicking the <span className="text-teal-600">Order</span> button on a single photo.</p>
+                  </div>
+
+                  {/* Minimum Order Info */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
+                    <h5 className="text-sm font-medium text-blue-800 mb-1">Looking to set a minimum order?</h5>
+                    <p className="text-xs text-blue-600">
+                      Minimum order amount can be found in each of your <span className="text-blue-700 underline cursor-pointer">price lists</span> and applies to all galleries using that price list.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Downloads Settings - Full Featured */}
+              {activeSettingsTab === 'downloads' && (
+                <div className="p-4 space-y-6 border-t border-gray-200">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Download permissions</h4>
+                    <p className="text-xs text-gray-500 mb-4">Specify who can download photos from the gallery, and what size photos they should receive.</p>
+                  </div>
+
+                  {/* Gallery Visitor */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Users size={16} className="text-gray-400 mr-2" />
+                      <span className="text-sm text-gray-700">Gallery visitor</span>
+                    </div>
+                    <select
+                      value={visitorDownloadResolution}
+                      onChange={(e) => setVisitorDownloadResolution(e.target.value)}
+                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-teal-500 focus:border-teal-500"
+                    >
+                      <option value="original">Original Resolution download</option>
+                      <option value="high">High Resolution (3000px)</option>
+                      <option value="medium">Medium Resolution (2000px)</option>
+                      <option value="web">Web Resolution (1200px)</option>
+                      <option value="none">No download</option>
                     </select>
                   </div>
+
+                  {/* Logged-in Client */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Lock size={16} className="text-gray-400 mr-2" />
+                      <span className="text-sm text-gray-700">Logged-in client</span>
+                    </div>
+                    <select
+                      value={clientDownloadResolution}
+                      onChange={(e) => setClientDownloadResolution(e.target.value)}
+                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-teal-500 focus:border-teal-500"
+                    >
+                      <option value="original">Original Resolution download</option>
+                      <option value="high">High Resolution (3000px)</option>
+                      <option value="medium">Medium Resolution (2000px)</option>
+                      <option value="web">Web Resolution (1200px)</option>
+                      <option value="none">No download</option>
+                    </select>
+                  </div>
+
+                  {/* New Password-Protected Download */}
+                  <button className="w-full flex items-center justify-center px-4 py-2 border border-teal-500 text-teal-600 rounded-lg hover:bg-teal-50">
+                    <Plus size={16} className="mr-2" />
+                    New password-protected download
+                  </button>
+
+                  {/* Show Advanced Settings */}
+                  <button 
+                    onClick={() => setShowAdvancedDownloads(!showAdvancedDownloads)}
+                    className="text-teal-600 hover:text-teal-700 text-sm"
+                  >
+                    {showAdvancedDownloads ? 'Hide' : 'Show'} advanced settings {showAdvancedDownloads ? '↑' : '↓'}
+                  </button>
+
+                  {showAdvancedDownloads && (
+                    <div className="space-y-4 pt-4 border-t border-gray-200">
+                      <label className="flex items-center">
+                        <input type="checkbox" className="mr-2 rounded border-gray-300 text-teal-500" defaultChecked />
+                        <span className="text-sm text-gray-600">Allow downloading individual photos</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input type="checkbox" className="mr-2 rounded border-gray-300 text-teal-500" defaultChecked />
+                        <span className="text-sm text-gray-600">Allow downloading all photos as ZIP</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input type="checkbox" className="mr-2 rounded border-gray-300 text-teal-500" />
+                        <span className="text-sm text-gray-600">Require email before download</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input type="checkbox" className="mr-2 rounded border-gray-300 text-teal-500" />
+                        <span className="text-sm text-gray-600">Add watermark to downloads</span>
+                      </label>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
