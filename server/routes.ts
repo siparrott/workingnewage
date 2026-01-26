@@ -8021,19 +8021,22 @@ New Age Fotografie CRM System
       }));
 
       // Helper to build public URL (supports Backblaze B2 S3 & download endpoints)
+      // Properly URL encodes spaces and special characters in the path
       const buildPublicUrl = (key: string): string => {
         const bucket = process.env.AWS_S3_BUCKET || '';
         const endpoint = process.env.AWS_S3_ENDPOINT || '';
+        // URL encode each path segment, preserving slashes
+        const encodedKey = key.split('/').map(part => encodeURIComponent(part)).join('/');
         if (endpoint.includes('backblazeb2.com')) {
-          return `https://${bucket}.${endpoint.replace('https://', '').replace(/\/$/, '')}/${key}`;
+          return `https://${bucket}.${endpoint.replace('https://', '').replace(/\/$/, '')}/${encodedKey}`;
         }
         if (endpoint) {
           if (endpoint.includes('/file/')) {
-            return `${endpoint.replace(/\/$/, '')}/${key}`;
+            return `${endpoint.replace(/\/$/, '')}/${encodedKey}`;
           }
-          return `${endpoint.replace(/\/$/, '')}/${bucket}/${key}`;
+          return `${endpoint.replace(/\/$/, '')}/${bucket}/${encodedKey}`;
         }
-        return `https://${bucket}.s3.${process.env.AWS_REGION || 'eu-central-1'}.amazonaws.com/${key}`;
+        return `https://${bucket}.s3.${process.env.AWS_REGION || 'eu-central-1'}.amazonaws.com/${encodedKey}`;
       };
 
       // Upload thumbnail if created
@@ -9270,6 +9273,70 @@ New Age Fotografie CRM System
     }
   });
   
+  // ====== FIX VOUCHER PRODUCT IMAGE URLS (encode spaces) ======
+  app.post("/api/admin/vouchers/fix-image-urls", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      console.log('[FIX URLS] Starting URL fix for voucher products...');
+      const products = await neonDb.getVoucherProducts();
+      let fixed = 0;
+      let skipped = 0;
+      const details: any[] = [];
+      
+      for (const product of products) {
+        const oldImageUrl = product.imageUrl as string | null;
+        const oldThumbnailUrl = product.thumbnailUrl as string | null;
+        
+        // Helper to fix URL encoding (replace unencoded spaces with %20)
+        const fixUrl = (url: string | null): string | null => {
+          if (!url) return null;
+          // Check if URL contains unencoded spaces in path (not already encoded)
+          if (url.includes(' ') && !url.includes('%20')) {
+            // URL encode the path portion
+            try {
+              const urlObj = new URL(url);
+              const pathParts = urlObj.pathname.split('/');
+              urlObj.pathname = pathParts.map(part => encodeURIComponent(decodeURIComponent(part))).join('/');
+              return urlObj.toString();
+            } catch {
+              // Fallback: just replace spaces
+              return url.replace(/ /g, '%20');
+            }
+          }
+          return url;
+        };
+        
+        const newImageUrl = fixUrl(oldImageUrl);
+        const newThumbnailUrl = fixUrl(oldThumbnailUrl);
+        
+        if (newImageUrl !== oldImageUrl || newThumbnailUrl !== oldThumbnailUrl) {
+          const updates: any = {};
+          if (newImageUrl !== oldImageUrl) updates.imageUrl = newImageUrl;
+          if (newThumbnailUrl !== oldThumbnailUrl) updates.thumbnailUrl = newThumbnailUrl;
+          
+          await neonDb.updateVoucherProduct(product.id, updates);
+          fixed++;
+          details.push({
+            id: product.id,
+            name: product.name,
+            oldImageUrl,
+            newImageUrl,
+            oldThumbnailUrl,
+            newThumbnailUrl,
+          });
+          console.log(`[FIX URLS] Fixed: ${product.name}`);
+        } else {
+          skipped++;
+        }
+      }
+      
+      console.log(`[FIX URLS] Done. Fixed: ${fixed}, Skipped: ${skipped}`);
+      res.json({ success: true, fixed, skipped, details });
+    } catch (error) {
+      console.error('[FIX URLS] Error:', error);
+      res.status(500).json({ error: 'Failed to fix URLs', message: (error as any).message });
+    }
+  });
+
   // ====== COUPON ADMIN ROUTES (continuation) ======
 
   app.put("/api/admin/coupons/:id", authenticateUser, async (req: Request, res: Response) => {

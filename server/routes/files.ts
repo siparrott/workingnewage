@@ -22,14 +22,16 @@ const s3Client = new S3Client({
   },
 });
 
-// Helper to build public B2 URL
+// Helper to build public B2 URL with proper URL encoding for spaces and special chars
 const buildB2Url = (key: string): string => {
   const bucket = process.env.AWS_S3_BUCKET || '';
   const endpoint = process.env.AWS_S3_ENDPOINT || '';
+  // URL encode the key path, preserving slashes
+  const encodedKey = key.split('/').map(part => encodeURIComponent(part)).join('/');
   if (endpoint.includes('backblazeb2.com')) {
-    return `https://${bucket}.${endpoint.replace('https://', '').replace(/\/$/, '')}/${key}`;
+    return `https://${bucket}.${endpoint.replace('https://', '').replace(/\/$/, '')}/${encodedKey}`;
   }
-  return `${endpoint.replace(/\/$/, '')}/${bucket}/${key}`;
+  return `${endpoint.replace(/\/$/, '')}/${bucket}/${encodedKey}`;
 };
 
 // Debug route to test router is mounted

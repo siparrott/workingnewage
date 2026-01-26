@@ -22,10 +22,12 @@ export function getS3Client() {
 
 export function buildPublicUrl(bucket: string, endpoint: string, key: string): string {
   const ep = (endpoint || '').replace(/\/$/, '');
-  if (!ep) return `https://${bucket}.s3.amazonaws.com/${key}`;
+  // URL encode each path segment, preserving slashes for proper URL formatting
+  const encodedKey = key.split('/').map(part => encodeURIComponent(part)).join('/');
+  if (!ep) return `https://${bucket}.s3.amazonaws.com/${encodedKey}`;
   return ep.includes('backblazeb2.com')
-    ? `https://${bucket}.${ep.replace('https://', '')}/${key}`
-    : `${ep}/${bucket}/${key}`;
+    ? `https://${bucket}.${ep.replace('https://', '')}/${encodedKey}`
+    : `${ep}/${bucket}/${encodedKey}`;
 }
 
 export async function storageHealth() {
