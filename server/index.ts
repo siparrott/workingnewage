@@ -200,6 +200,31 @@ app.use((req, res, next) => {
       // Continue without routes - at least serve health endpoints
     }
     
+    // Manual Google Calendar sync endpoint (per-user) - does FULL import of all events
+    // MUST be registered BEFORE serveStatic to avoid catch-all interference
+    app.post('/api/calendar/manual-sync', requireAuth, async (req: Request, res: Response) => {
+      try {
+        const userId = (req as any).user?.id;
+        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+        
+        // Use full import function to get ALL events (past and future)
+        const results = await importGoogleCalendarEvents(undefined, userId);
+        res.json({ success: true, ...results });
+      } catch (e: any) {
+        console.error('Manual sync error:', e?.message || e);
+        res.status(500).json({ success: false, errors: [e?.message || 'Manual sync failed'] });
+      }
+    });
+
+    // Status endpoint for diagnostics
+    app.get('/api/status', (_req, res) => {
+      res.json({ 
+        status: 'ready',
+        uptime: process.uptime(),
+        message: 'Client database is accessible'
+      });
+    });
+    
     // Setup Vite BEFORE starting the server
     console.log('🔧 Setting up Vite frontend...');
     let viteReady = false;
@@ -307,31 +332,6 @@ app.use((req, res, next) => {
 
     // Keep reference to prevent GC
     (global as any).__healthzCheck = healthzCheck;
-
-
-    // Manual Google Calendar sync endpoint (per-user) - does FULL import of all events
-    app.post('/api/calendar/manual-sync', requireAuth, async (req: Request, res: Response) => {
-      try {
-        const userId = (req as any).user?.id;
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-        
-        // Use full import function to get ALL events (past and future)
-        const results = await importGoogleCalendarEvents(undefined, userId);
-        res.json({ success: true, ...results });
-      } catch (e: any) {
-        console.error('Manual sync error:', e?.message || e);
-        res.status(500).json({ success: false, errors: [e?.message || 'Manual sync failed'] });
-      }
-    });
-
-    // Status endpoint for diagnostics
-    app.get('/api/status', (_req, res) => {
-      res.json({ 
-        status: 'ready',
-        uptime: process.uptime(),
-        message: 'Client database is accessible'
-      });
-    });
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
