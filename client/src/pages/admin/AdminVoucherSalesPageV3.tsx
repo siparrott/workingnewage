@@ -1619,7 +1619,6 @@ const ProductsView: React.FC<{
                       <img
                         src={imageSrc}
                         alt={product.name}
-                        crossOrigin="anonymous"
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           console.error('[PRODUCT IMAGE] Failed to load:', imageSrc);
