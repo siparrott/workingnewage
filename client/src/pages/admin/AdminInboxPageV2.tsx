@@ -73,6 +73,7 @@ const AdminInboxPage: React.FC = () => {
     try {
       const response = await fetch('/api/email/refresh', {
         method: 'POST',
+        credentials: 'include', // Include auth cookies
         headers: { 'Content-Type': 'application/json' }
       });
       
@@ -108,6 +109,7 @@ const AdminInboxPage: React.FC = () => {
         : '/api/inbox/emails?' + Date.now();
       
       const response = await fetch(endpoint, {
+        credentials: 'include', // Include auth cookies
         headers: {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache',
