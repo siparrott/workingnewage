@@ -5,7 +5,7 @@ import ImageGrid from '../components/galleries/ImageGrid';
 import Slideshow from '../components/galleries/Slideshow';
 import { getGalleryBySlug, getPublicGalleryImages, authenticateGallery } from '../lib/gallery-api';
 import { Gallery, GalleryImage } from '../types/gallery';
-import { ArrowLeft, Download, Share2, Heart, Loader2, AlertCircle, Play, Lock, Mail } from 'lucide-react';
+import { ArrowLeft, Download, Share2, Heart, Loader2, AlertCircle, Play, Lock, Mail, Image, Grid, Settings, HelpCircle, Calendar, HardDrive, CheckSquare, Info } from 'lucide-react';
 
 const GalleryPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -415,19 +415,6 @@ const GalleryPage: React.FC = () => {
               </button>
             </form>
           </div>
-          
-          {/* Logo at bottom */}
-          <div className="mt-8">
-            <Link to="/" className="inline-block">
-              <div className="border-2 border-pink-500 p-2 inline-block">
-                <div className="text-white text-xs tracking-wider">
-                  <span className="text-pink-500 font-semibold">NEW AGE</span>
-                  <br />
-                  <span className="text-white">FOTOGRAFIE</span>
-                </div>
-              </div>
-            </Link>
-          </div>
         </div>
         
         {/* Loading overlay */}
@@ -479,130 +466,242 @@ const GalleryPage: React.FC = () => {
     );
   }
 
-  // Authenticated view - show gallery content
+  // Authenticated view - show gallery content (Sprout Studio inspired layout)
   return (
-    <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <Link to="/galleries" className="inline-flex items-center text-purple-600 hover:text-purple-800 mb-6 transition-colors">
-          <ArrowLeft size={16} className="mr-1" />
-          Zurück zu allen Galerien
-        </Link>
-        
-        {gallery && (
-          <>
-            {/* Gallery Header */}
-            <div className="mb-8 text-center">
-              <h1 className="text-4xl font-bold text-gray-900 mb-4">{gallery.title}</h1>
-              {gallery.description && (
-                <p className="text-lg text-gray-600 max-w-2xl mx-auto">{gallery.description}</p>
-              )}
-            </div>
-            
-            <div className="space-y-6">
-              {/* Action Bar */}
-              <div className="bg-white rounded-lg shadow-sm p-4 flex flex-wrap items-center justify-between gap-4 border border-gray-200">
-                <div className="flex items-center space-x-4">
-                  <button
-                    onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                    className={`inline-flex items-center px-4 py-2 border ${
-                      showFavoritesOnly
-                        ? 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100'
-                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                    } rounded-lg shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors`}
-                  >
-                    <Heart size={16} className={`mr-2 ${showFavoritesOnly ? 'fill-current' : ''}`} />
-                    {showFavoritesOnly ? 'Alle anzeigen' : 'Favoriten anzeigen'}
-                  </button>
+    <div className="min-h-screen bg-gray-50">
+      {/* Top Header Bar */}
+      <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link to="/galleries" className="text-gray-500 hover:text-gray-700">
+            <ArrowLeft size={20} />
+          </Link>
+          <div className="flex items-center gap-3">
+            {gallery?.coverImage && (
+              <img 
+                src={gallery.coverImage} 
+                alt="" 
+                className="w-10 h-10 rounded-lg object-cover"
+              />
+            )}
+            <h1 className="text-xl font-semibold text-gray-900">{gallery?.title}</h1>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <button className="text-gray-500 hover:text-gray-700 flex items-center gap-1 text-sm">
+            <HelpCircle size={16} />
+            <span className="hidden sm:inline">Get Help</span>
+          </button>
+        </div>
+      </div>
 
-                  {/* Rating Filter */}
-                  <select
-                    value={ratingFilter}
-                    onChange={(e) => setRatingFilter(e.target.value as any)}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors cursor-pointer"
-                  >
-                    <option value="all">All Ratings</option>
-                    <option value="love">😊 Love</option>
-                    <option value="maybe">😐 Maybe</option>
-                    <option value="reject">☹️ Reject</option>
-                  </select>
-                  
-                  {gallery.downloadEnabled && (
-                    <button
-                      onClick={handleDownloadAll}
-                      className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
-                    >
-                      <Download size={16} className="mr-2" />
-                      Alle herunterladen
-                    </button>
-                  )}
-                </div>
-                
-                <div className="flex items-center space-x-3">
-                  {selectedForSlideshow.size > 0 && (
-                    <button
-                      onClick={handleRunSlideshow}
-                      className="inline-flex items-center px-4 py-2 border-2 border-green-500 shadow-sm text-sm font-medium rounded-lg text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
-                    >
-                      <Play size={16} className="mr-2" />
-                      Run Slideshow ({selectedForSlideshow.size})
-                    </button>
-                  )}
-                  
-                  <button
-                    onClick={handleShare}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
-                  >
-                    <Share2 size={16} className="mr-2" />
-                    Galerie teilen
-                  </button>
-                </div>
-              </div>
+      <div className="flex">
+        {/* Left Sidebar */}
+        <div className="w-64 bg-white border-r border-gray-200 min-h-[calc(100vh-60px)] p-4 hidden lg:block">
+          {/* Gallery Cover Preview */}
+          {gallery?.coverImage && (
+            <div className="mb-6">
+              <img 
+                src={gallery.coverImage} 
+                alt={gallery.title}
+                className="w-full h-32 object-cover rounded-lg shadow-sm"
+              />
+            </div>
+          )}
+
+          {/* Quick Actions */}
+          <div className="mb-6">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Quick Actions</h3>
+            <div className="space-y-1">
+              <button
+                onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                  showFavoritesOnly 
+                    ? 'bg-pink-50 text-pink-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Heart size={16} className={showFavoritesOnly ? 'fill-current' : ''} />
+                {showFavoritesOnly ? 'Show All' : 'Favorites'}
+              </button>
               
-              {/* Image Grid */}
-              {loading ? (
-                <div className="flex items-center justify-center h-64">
-                  <Loader2 className="h-8 w-8 text-purple-600 animate-spin" />
-                  <span className="ml-2 text-gray-600">Loading images...</span>
-                </div>
-              ) : error ? (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start">
-                  <AlertCircle className="h-5 w-5 text-red-400 mt-0.5 mr-2" />
-                  <span>{error}</span>
-                </div>
-              ) : (
-                <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-                  <ImageGrid 
-                    images={filteredImages} 
-                    galleryId={gallery.id}
-                    isPublic={true}
-                    authToken={authToken}
-                    downloadEnabled={gallery.downloadEnabled}
-                    favorites={favorites}
-                    onToggleFavorite={toggleFavorite}
-                    selectedForSlideshow={selectedForSlideshow}
-                    onToggleSelection={handleToggleSelection}
-                  />
-                  
-                  {showFavoritesOnly && filteredImages.length === 0 && (
-                    <div className="text-center py-12">
-                      <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Noch keine Favoriten</h3>
-                      <p className="text-gray-500">
-                        Sie haben noch keine Bilder zu Ihren Favoriten hinzugefügt.
-                      </p>
-                      <button
-                        onClick={() => setShowFavoritesOnly(false)}
-                        className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 transition-colors"
-                      >
-                        Alle Bilder anzeigen
-                      </button>
-                    </div>
-                  )}
+              {gallery?.downloadEnabled && (
+                <button
+                  onClick={handleDownloadAll}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  <Download size={16} />
+                  Download All
+                </button>
+              )}
+              
+              <button
+                onClick={handleShare}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <Share2 size={16} />
+                Share Gallery
+              </button>
+
+              {selectedForSlideshow.size > 0 && (
+                <button
+                  onClick={handleRunSlideshow}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-green-500 text-white hover:bg-green-600 transition-colors"
+                >
+                  <Play size={16} />
+                  Slideshow ({selectedForSlideshow.size})
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Filter by Rating */}
+          <div className="mb-6">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Filter</h3>
+            <select
+              value={ratingFilter}
+              onChange={(e) => setRatingFilter(e.target.value as any)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="all">All Photos</option>
+              <option value="love">😊 Love</option>
+              <option value="maybe">😐 Maybe</option>
+              <option value="reject">☹️ Reject</option>
+            </select>
+          </div>
+
+          {/* Gallery Info */}
+          <div className="border-t border-gray-200 pt-4">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Gallery Info</h3>
+            <div className="space-y-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <Image size={14} />
+                <span>{filteredImages.length} photos</span>
+              </div>
+              {gallery?.createdAt && (
+                <div className="flex items-center gap-2">
+                  <Calendar size={14} />
+                  <span>Created {new Date(gallery.createdAt).toLocaleDateString()}</span>
                 </div>
               )}
             </div>
-          </>
-        )}
+          </div>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 p-6">
+          {/* Mobile Actions Bar */}
+          <div className="lg:hidden mb-4 flex flex-wrap gap-2">
+            <button
+              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm border ${
+                showFavoritesOnly 
+                  ? 'bg-pink-50 border-pink-200 text-pink-700' 
+                  : 'border-gray-200 text-gray-700'
+              }`}
+            >
+              <Heart size={16} className={showFavoritesOnly ? 'fill-current' : ''} />
+              Favorites
+            </button>
+            {gallery?.downloadEnabled && (
+              <button
+                onClick={handleDownloadAll}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm border border-gray-200 text-gray-700"
+              >
+                <Download size={16} />
+                Download
+              </button>
+            )}
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm border border-gray-200 text-gray-700"
+            >
+              <Share2 size={16} />
+              Share
+            </button>
+          </div>
+
+          {/* Selection Info Bar */}
+          <div className="bg-white rounded-lg border border-gray-200 p-3 mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-sm text-gray-600">
+                <input 
+                  type="checkbox" 
+                  checked={selectedForSlideshow.size === filteredImages.length && filteredImages.length > 0}
+                  onChange={() => {
+                    if (selectedForSlideshow.size === filteredImages.length) {
+                      setSelectedForSlideshow(new Set());
+                    } else {
+                      setSelectedForSlideshow(new Set(filteredImages.map(img => img.id)));
+                    }
+                  }}
+                  className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                />
+                Select all
+              </label>
+              {selectedForSlideshow.size > 0 && (
+                <span className="text-sm text-gray-500">
+                  {selectedForSlideshow.size} selected
+                </span>
+              )}
+            </div>
+            <div className="text-sm text-gray-500">
+              {filteredImages.length} photos
+            </div>
+          </div>
+
+          {/* Image Grid */}
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="h-8 w-8 text-purple-600 animate-spin" />
+              <span className="ml-2 text-gray-600">Loading images...</span>
+            </div>
+          ) : error ? (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start">
+              <AlertCircle className="h-5 w-5 text-red-400 mt-0.5 mr-2" />
+              <span>{error}</span>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <ImageGrid 
+                images={filteredImages} 
+                galleryId={gallery?.id || ''}
+                isPublic={true}
+                authToken={authToken}
+                downloadEnabled={gallery?.downloadEnabled}
+                favorites={favorites}
+                onToggleFavorite={toggleFavorite}
+                selectedForSlideshow={selectedForSlideshow}
+                onToggleSelection={handleToggleSelection}
+              />
+              
+              {showFavoritesOnly && filteredImages.length === 0 && (
+                <div className="text-center py-12">
+                  <Heart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No favorites yet</h3>
+                  <p className="text-gray-500 mb-4">
+                    You haven't added any photos to your favorites.
+                  </p>
+                  <button
+                    onClick={() => setShowFavoritesOnly(false)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 transition-colors"
+                  >
+                    Show all photos
+                  </button>
+                </div>
+              )}
+
+              {!showFavoritesOnly && filteredImages.length === 0 && (
+                <div className="text-center py-12">
+                  <Image className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No photos yet</h3>
+                  <p className="text-gray-500">
+                    This gallery doesn't have any photos yet.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
       
       {/* Slideshow Modal */}
@@ -620,7 +719,7 @@ const GalleryPage: React.FC = () => {
           galleryId={gallery.id}
         />
       )}
-    </Layout>
+    </div>
   );
 };
 
