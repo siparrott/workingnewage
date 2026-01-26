@@ -1,11 +1,27 @@
 import express from 'express';
 import session from 'express-session';
+import pgSession from 'connect-pg-simple';
+import { Pool } from 'pg';
 // Use bcryptjs for compatibility (pure JS) to avoid native binding issues
 import bcrypt from 'bcryptjs';
 import { storage } from './storage';
 
-// Session configuration with better settings
+// Create PostgreSQL session store for production persistence
+const PgStore = pgSession(session);
+
+// Database pool for session store
+const sessionPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
+
+// Session configuration with PostgreSQL store for production
 export const sessionConfig = session({
+  store: process.env.DATABASE_URL ? new PgStore({
+    pool: sessionPool,
+    tableName: 'user_sessions',
+    createTableIfMissing: true // Automatically create the session table
+  }) : undefined, // Use memory store in development if no DATABASE_URL
   secret: process.env.SESSION_SECRET || 'dev-secret-key-photography-crm-2024',
   resave: false,
   saveUninitialized: false,
