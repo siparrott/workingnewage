@@ -8122,6 +8122,18 @@ New Age Fotografie CRM System
           res.setHeader('Expires', '0');
           
           const language = (req.query.language as string) || 'de';
+          // Helper to properly encode URLs with spaces in path segments
+          const encodeImageUrl = (url: string | null | undefined): string | null => {
+            if (!url) return null;
+            try {
+              const urlObj = new URL(url);
+              // Encode each path segment individually to handle spaces
+              urlObj.pathname = urlObj.pathname.split('/').map(seg => encodeURIComponent(decodeURIComponent(seg))).join('/');
+              return urlObj.toString();
+            } catch {
+              return url;
+            }
+          };
           const toCamel = (p: any) => ({
             id: p.id,
             name: language === 'en' ? translateVoucherToEnglish(p.name) : p.name,
@@ -8135,9 +8147,9 @@ New Age Fotografie CRM System
             validityPeriod: p.validityPeriod ?? p.validity_period,
             redemptionInstructions: p.redemptionInstructions ?? p.redemption_instructions,
             termsAndConditions: (p.termsAndConditions ?? p.terms_and_conditions) ? (language === 'en' ? translateVoucherToEnglish(p.termsAndConditions ?? p.terms_and_conditions) : (p.termsAndConditions ?? p.terms_and_conditions)) : null,
-            imageUrl: p.imageUrl ?? p.image_url,
-            thumbnailUrl: p.thumbnailUrl ?? p.thumbnail_url,
-            promoImageUrl: p.promoImageUrl ?? p.promo_image_url,
+            imageUrl: encodeImageUrl(p.imageUrl ?? p.image_url),
+            thumbnailUrl: encodeImageUrl(p.thumbnailUrl ?? p.thumbnail_url),
+            promoImageUrl: encodeImageUrl(p.promoImageUrl ?? p.promo_image_url),
             displayOrder: p.displayOrder ?? p.display_order,
             featured: p.featured,
             badge: p.badge,
@@ -8176,6 +8188,18 @@ New Age Fotografie CRM System
       if (!product) {
         return res.status(404).json({ error: "Voucher product not found" });
       }
+      // Helper to properly encode URLs with spaces in path segments
+      const encodeImageUrl = (url: string | null | undefined): string | null => {
+        if (!url) return null;
+        try {
+          const urlObj = new URL(url);
+          // Encode each path segment individually to handle spaces
+          urlObj.pathname = urlObj.pathname.split('/').map(seg => encodeURIComponent(decodeURIComponent(seg))).join('/');
+          return urlObj.toString();
+        } catch {
+          return url;
+        }
+      };
       const p = product as any;
       const transformedProduct = {
         id: p.id,
@@ -8190,9 +8214,9 @@ New Age Fotografie CRM System
         validityPeriod: p.validityPeriod ?? p.validity_period,
         redemptionInstructions: p.redemptionInstructions ?? p.redemption_instructions,
         termsAndConditions: p.termsAndConditions ?? p.terms_and_conditions,
-        imageUrl: p.imageUrl ?? p.image_url,
-        thumbnailUrl: p.thumbnailUrl ?? p.thumbnail_url,
-        promoImageUrl: p.promoImageUrl ?? p.promo_image_url,
+        imageUrl: encodeImageUrl(p.imageUrl ?? p.image_url),
+        thumbnailUrl: encodeImageUrl(p.thumbnailUrl ?? p.thumbnail_url),
+        promoImageUrl: encodeImageUrl(p.promoImageUrl ?? p.promo_image_url),
         displayOrder: p.displayOrder ?? p.display_order,
         featured: p.featured,
         badge: p.badge,
@@ -9113,6 +9137,18 @@ New Age Fotografie CRM System
       if (!product) {
         return res.status(404).json({ error: 'Voucher product not found' });
       }
+      // Helper to properly encode URLs with spaces in path segments
+      const encodeImageUrl = (url: string | null | undefined): string | null => {
+        if (!url) return null;
+        try {
+          const urlObj = new URL(url);
+          // Encode each path segment individually to handle spaces
+          urlObj.pathname = urlObj.pathname.split('/').map(seg => encodeURIComponent(decodeURIComponent(seg))).join('/');
+          return urlObj.toString();
+        } catch {
+          return url;
+        }
+      };
       const p = product as any;
       return res.json({
         id: p.id,
@@ -9127,9 +9163,9 @@ New Age Fotografie CRM System
         validityPeriod: p.validityPeriod ?? p.validity_period,
         redemptionInstructions: p.redemptionInstructions ?? p.redemption_instructions,
         termsAndConditions: p.termsAndConditions ?? p.terms_and_conditions,
-        imageUrl: p.imageUrl ?? p.image_url,
-        thumbnailUrl: p.thumbnailUrl ?? p.thumbnail_url,
-        promoImageUrl: p.promoImageUrl ?? p.promo_image_url,
+        imageUrl: encodeImageUrl(p.imageUrl ?? p.image_url),
+        thumbnailUrl: encodeImageUrl(p.thumbnailUrl ?? p.thumbnail_url),
+        promoImageUrl: encodeImageUrl(p.promoImageUrl ?? p.promo_image_url),
         displayOrder: p.displayOrder ?? p.display_order,
         featured: p.featured,
         badge: p.badge,
