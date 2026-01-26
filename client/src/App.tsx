@@ -124,6 +124,7 @@ import QuestionnaireFormPage from './pages/QuestionnaireFormPage';
 import ImageTestPage from './pages/ImageTestPage';
 import PublicSchedulerPage from './pages/public/PublicSchedulerPage';
 import AdminSchedulersPage from './pages/admin/AdminSchedulersPage';
+import SetupWizard from './pages/setup/SetupWizard';
 import ScrollToTop from './components/ScrollToTop';
 
 function App() {
@@ -547,6 +548,10 @@ function App() {
                 />
                 {/* Public onboarding wizard entry */}
                 <Route path="/onboarding" element={<WebsiteWizard />} />
+                
+                {/* SmartTog Hub Setup Wizard */}
+                <Route path="/setup" element={<SetupWizard />} />
+                <Route path="/setup/*" element={<SetupWizard />} />
                 <Route
                   path="/"
                   element={<HomePage />}

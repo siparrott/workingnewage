@@ -76,6 +76,7 @@ let lastCalendarImportStatus: {
   stage?: string,
 } = {};
 import workflowWizardRoutes from './routes/workflow-wizard';
+import setupRoutes from './setup-routes';
 import questionnairesRouter from './routes/questionnaires';
 import galleryShopRouter from './routes/gallery-shop';
 import authRoutes from './routes/auth';
@@ -1061,6 +1062,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Workflow Wizard - Automated email sequences and workflow management
   app.use('/api/workflow-wizard', workflowWizardRoutes);
+
+  // Setup Wizard - SmartTog Hub onboarding integration
+  app.use('/api/setup', setupRoutes);
+  console.log('✅ /api/setup routes registered');
 
   // Health check endpoint for deployment
   app.get("/api/health", (req, res) => {
