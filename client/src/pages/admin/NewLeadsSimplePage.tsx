@@ -48,9 +48,14 @@ export default function NewLeadsSimplePage() {
         <h1 className="text-2xl font-semibold">New Leads</h1>
         <button onClick={() => load('any')} className="px-3 py-1 text-sm rounded bg-gray-200 hover:bg-gray-300">Show All</button>
       </div>
-      {loading && <div>Loading…</div>}
-      {error && <div className="text-red-600">{error}</div>}
-      {!loading && rows.length === 0 && <div>No leads yet.</div>}
+      {loading && (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+          <span className="ml-3 text-gray-600">Loading leads...</span>
+        </div>
+      )}
+      {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{error}</div>}
+      {!loading && rows.length === 0 && <div className="text-center py-12 text-gray-500">No leads yet.</div>}
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
