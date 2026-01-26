@@ -9607,17 +9607,19 @@ New Age Fotografie CRM System
           .filter(Boolean)
       );
 
-      // First: env-driven custom coupons (COUPONS_JSON) via coupons service
-      const envCoupon = findCoupon(codeUpper);
-
-      let coupon = null as any;
-      if (!envCoupon) {
-        coupon = await storage.getDiscountCouponByCode(codeTrimmed);
-      }
+      // IMPORTANT: Database coupons take priority over ENV coupons
+      // This allows admin to dynamically edit coupons without code changes
+      let coupon = await storage.getDiscountCouponByCode(codeTrimmed);
       
-      if (!envCoupon && !coupon) {
+      // Only fall back to ENV coupon if no DB coupon exists
+      const envCoupon = coupon ? null : findCoupon(codeUpper);
+      
+      if (!coupon && !envCoupon) {
         return res.status(404).json({ error: "Invalid coupon code" });
       }
+      
+      console.log('[COUPON VALIDATE] Using source:', coupon ? 'DATABASE' : 'ENV');
+      console.log('[COUPON VALIDATE] Coupon code:', codeUpper);
 
       // Validate coupon
       const now = new Date();
