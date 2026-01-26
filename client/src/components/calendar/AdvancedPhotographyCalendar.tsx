@@ -88,6 +88,7 @@ interface CalendarProps {
   onExportCalendar: () => void;
   onImportCalendar: (file: File) => void;
   onSyncExternalCalendar: () => void;
+  onOpenSettings?: () => void;
 }
 
 type CalendarView = 'month' | 'week' | 'day' | 'agenda' | 'list';
@@ -103,7 +104,8 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
   onDuplicateSession,
   onExportCalendar,
   onImportCalendar,
-  onSyncExternalCalendar
+  onSyncExternalCalendar,
+  onOpenSettings
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -981,6 +983,17 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
               <RefreshCw className="w-4 h-4" />
               <span>Sync</span>
             </button>
+
+            {/* Settings button - only show if callback provided */}
+            {onOpenSettings && (
+              <button
+                onClick={onOpenSettings}
+                className="flex items-center space-x-2 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                title="Calendar Settings"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            )}
 
             {/* Export button */}
             <button

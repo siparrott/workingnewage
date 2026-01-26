@@ -380,23 +380,31 @@ const PhotographyCalendarPage: React.FC = () => {
   const fetchSessions = async () => {
     try {
       setIsLoading(true);
-  const useDebug = import.meta.env.VITE_USE_DEBUG_SESSIONS === 'true';
-  const endpoint = useDebug ? '/api/debug/photography-sessions' : '/api/photography/sessions';
-  const response = await fetch(endpoint, {
-    credentials: 'include',
-    headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
-    }
-  });
+      // Try authenticated endpoint first, fallback to debug endpoint
+      let response = await fetch('/api/photography/sessions', {
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        }
+      });
+      
+      // If authenticated endpoint fails, fallback to debug endpoint for reliability
+      if (!response.ok) {
+        console.warn('[Calendar] Auth endpoint failed, using debug endpoint');
+        response = await fetch('/api/debug/photography-sessions?limit=10000', {
+          credentials: 'include'
+        });
+      }
+      
       if (response.ok) {
         const data = await response.json();
         setSessions(data);
       } else {
-        // console.log removed
+        console.error('[Calendar] Failed to fetch sessions:', response.status);
         setSessions([]);
       }
     } catch (error) {
-      // console.log removed
+      console.error('[Calendar] Error fetching sessions:', error);
       setSessions([]);
     } finally {
       setIsLoading(false);
@@ -729,13 +737,6 @@ const PhotographyCalendarPage: React.FC = () => {
                 <option value="dd.MM.yyyy">DD.MM.YYYY</option>
               </select>
             </div>
-            <button 
-              onClick={() => setShowGoogleCalendarModal(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition-colors"
-            >
-              <Settings size={18} />
-              <span>Calendar Sync</span>
-            </button>
             <button 
               onClick={handleCreateSession}
               className="flex items-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
@@ -1104,6 +1105,7 @@ const PhotographyCalendarPage: React.FC = () => {
               alert('Error syncing from Google Calendar.');
             }
           }}
+          onOpenSettings={() => setShowGoogleCalendarModal(true)}
         />
 
         {/* Session Legend */}
