@@ -738,6 +738,13 @@ const PhotographyCalendarPage: React.FC = () => {
               </select>
             </div>
             <button 
+              onClick={() => setShowGoogleCalendarModal(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition-colors"
+            >
+              <Settings size={18} />
+              <span>Calendar Sync</span>
+            </button>
+            <button 
               onClick={handleCreateSession}
               className="flex items-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
             >
@@ -1033,6 +1040,7 @@ const PhotographyCalendarPage: React.FC = () => {
         <AdvancedPhotographyCalendar 
           sessions={sessions}
           clients={clientsForCalendar}
+          isLoading={isLoading}
           onSessionClick={handleSessionClick}
           onCreateSession={handleCreateSession}
           onUpdateSession={() => {}} // Will be implemented
