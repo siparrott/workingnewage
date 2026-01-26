@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, CreditCard, Calendar, DollarSign, Trash2 } from 'lucide-react';
+import { X, Plus, CreditCard, Calendar, DollarSign, Trash2, ChevronDown, Mail, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { addInvoicePayment } from '../../api/invoices';
 
@@ -34,9 +34,12 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddPayment, setShowAddPayment] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
+  const [sendEmailReceipt, setSendEmailReceipt] = useState(false);
+  const [showActionDropdown, setShowActionDropdown] = useState(false);
   const [newPayment, setNewPayment] = useState({
     amount: 0,
-    payment_method: 'bank_transfer',
+    payment_method: '',
     payment_reference: '',
     payment_date: new Date().toISOString().split('T')[0],
     notes: ''
@@ -91,13 +94,15 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
       // Reset form
       setNewPayment({
         amount: 0,
-        payment_method: 'bank_transfer',
+        payment_method: '',
         payment_reference: '',
         payment_date: new Date().toISOString().split('T')[0],
         notes: ''
       });
       
       setShowAddPayment(false);
+      setShowNotes(false);
+      setSendEmailReceipt(false);
       await fetchPayments();
       onPaymentAdded();
     } catch (err) {
@@ -145,12 +150,17 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
 
   const getPaymentMethodLabel = (method: string) => {
     const methods: { [key: string]: string } = {
-      bank_transfer: 'Bank Transfer',
-      credit_card: 'Credit Card',
+      bank_transfer: 'E-Transfer / Banküberweisung',
+      credit_card: 'Bankkarte',
+      bankkarte: 'Bankkarte',
+      bar: 'Bar',
+      cash: 'Bar',
+      e_transfer: 'E-Transfer / Banküberweisung',
+      klarna: 'Klarna',
       paypal: 'PayPal',
       stripe: 'Stripe',
-      cash: 'Cash',
-      check: 'Check'
+      check: 'Scheck',
+      other: 'Andere'
     };
     return methods[method] || method;
   };
@@ -211,14 +221,39 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          {/* Add Payment Button */}
+          {/* Add Payment Button - Sprout Studio Style */}
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-medium text-gray-900">Payment History</h3>
+            <div className="flex items-center space-x-2">
+              <FileText className="h-5 w-5 text-gray-500" />
+              <h3 className="text-base font-semibold text-gray-800 uppercase tracking-wide">PAYMENTS</h3>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button className="px-3 py-1 text-sm font-medium text-white bg-cyan-500 rounded hover:bg-cyan-600">
+                Due Now
+              </button>
+              <button className="px-3 py-1 text-sm font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200">
+                Due In
+              </button>
+              <button className="px-3 py-1 text-sm font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200">
+                Schedule
+              </button>
+            </div>
+          </div>
+          
+          {/* Payments Table Header */}
+          <div className="grid grid-cols-3 gap-4 px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider border-b mb-2">
+            <div>PAID ON</div>
+            <div className="text-center">AMOUNT</div>
+            <div className="text-right">PAID VIA</div>
+          </div>
+          
+          {/* Add Payment Link */}
+          <div className="mb-6">
             <button
               onClick={() => setShowAddPayment(true)}
-              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center"
+              className="text-cyan-600 hover:text-cyan-700 font-medium flex items-center"
             >
-              <Plus size={16} className="mr-2" />
+              <Plus size={16} className="mr-1" />
               Add Payment
             </button>
           </div>
@@ -230,99 +265,174 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
             </div>
           )}
 
-          {/* Add Payment Form */}
+          {/* Add Payment Form - Sprout Studio Style Modal */}
           {showAddPayment && (
-            <div className="bg-gray-50 p-6 rounded-lg mb-6">
-              <h4 className="text-md font-medium text-gray-900 mb-4">Add New Payment</h4>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Amount *
-                  </label>
-                  <input
-                    type="number"
-                    value={newPayment.amount}
-                    onChange={(e) => setNewPayment(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
-                    step="0.01"
-                    min="0"
-                    max={remainingBalance}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    placeholder={`Max: ${formatCurrency(remainingBalance)}`}
-                  />
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between p-4 border-b">
+                  <h3 className="text-lg font-semibold text-gray-900">Add Payment</h3>
+                  <div className="flex items-center space-x-2">
+                    <button className="p-1.5 text-gray-400 hover:text-gray-600 rounded">
+                      <span className="text-lg">⊖</span>
+                    </button>
+                    <button 
+                      onClick={() => { setShowAddPayment(false); setShowNotes(false); }}
+                      className="p-1.5 text-gray-400 hover:text-gray-600 rounded"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Payment Method *
-                  </label>
-                  <select
-                    value={newPayment.payment_method}
-                    onChange={(e) => setNewPayment(prev => ({ ...prev, payment_method: e.target.value }))}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                {/* Modal Body */}
+                <div className="p-6 space-y-5">
+                  {/* Payment Date & Method Row */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-2">
+                        Payment Date
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="date"
+                          value={newPayment.payment_date}
+                          onChange={(e) => setNewPayment(prev => ({ ...prev, payment_date: e.target.value }))}
+                          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-700"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-2">
+                        Payment Method
+                      </label>
+                      <select
+                        value={newPayment.payment_method}
+                        onChange={(e) => setNewPayment(prev => ({ ...prev, payment_method: e.target.value }))}
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-700 appearance-none bg-white"
+                      >
+                        <option value="">Select a payment method ...</option>
+                        <option value="bankkarte">Bankkarte</option>
+                        <option value="bar">Bar</option>
+                        <option value="bank_transfer">E-Transfer / Banküberweisung</option>
+                        <option value="klarna">Klarna</option>
+                        <option value="stripe">Stripe</option>
+                        <option value="paypal">PayPal</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Payment Amount */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                      Payment Amount
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={newPayment.amount || ''}
+                        onChange={(e) => setNewPayment(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        className="w-full px-3 py-2.5 pr-8 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-700 text-right"
+                      />
+                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">€</span>
+                    </div>
+                  </div>
+
+                  {/* Show Notes Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => setShowNotes(!showNotes)}
+                    className="flex items-center text-cyan-600 hover:text-cyan-700 text-sm font-medium"
                   >
-                    <option value="bank_transfer">Bank Transfer</option>
-                    <option value="credit_card">Credit Card</option>
-                    <option value="paypal">PayPal</option>
-                    <option value="stripe">Stripe</option>
-                    <option value="cash">Cash</option>
-                    <option value="check">Check</option>
-                  </select>
+                    <Plus size={14} className="mr-1" />
+                    {showNotes ? 'Hide Notes' : 'Show Notes'}
+                  </button>
+
+                  {/* Notes Field (Conditional) */}
+                  {showNotes && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-2">
+                        Notes
+                      </label>
+                      <textarea
+                        value={newPayment.notes}
+                        onChange={(e) => setNewPayment(prev => ({ ...prev, notes: e.target.value }))}
+                        rows={3}
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-700"
+                        placeholder="Additional notes about this payment..."
+                      />
+                    </div>
+                  )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Payment Date *
-                  </label>
-                  <input
-                    type="date"
-                    value={newPayment.payment_date}
-                    onChange={(e) => setNewPayment(prev => ({ ...prev, payment_date: e.target.value }))}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  />
+                {/* Modal Footer */}
+                <div className="flex items-center justify-between p-4 border-t bg-gray-50 rounded-b-xl">
+                  <button
+                    onClick={() => { setShowAddPayment(false); setShowNotes(false); }}
+                    className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
+                  >
+                    Close
+                  </button>
+                  
+                  {/* Add Payment + Email Receipt Dropdown Button */}
+                  <div className="relative">
+                    <div className="flex">
+                      <button
+                        onClick={() => { setSendEmailReceipt(false); handleAddPayment(); }}
+                        disabled={loading || newPayment.amount <= 0 || !newPayment.payment_method}
+                        className="px-4 py-2 bg-cyan-500 text-white rounded-l-lg hover:bg-cyan-600 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium flex items-center"
+                      >
+                        {loading ? 'Adding...' : 'Add Payment'}
+                      </button>
+                      <button
+                        onClick={() => setShowActionDropdown(!showActionDropdown)}
+                        disabled={loading || newPayment.amount <= 0 || !newPayment.payment_method}
+                        className="px-2 py-2 bg-cyan-500 text-white rounded-r-lg hover:bg-cyan-600 disabled:bg-gray-300 disabled:cursor-not-allowed border-l border-cyan-400"
+                      >
+                        <ChevronDown size={18} />
+                      </button>
+                    </div>
+                    
+                    {showActionDropdown && (
+                      <div className="absolute right-0 bottom-full mb-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                        <button
+                          onClick={() => {
+                            setShowActionDropdown(false);
+                            setSendEmailReceipt(true);
+                            handleAddPayment();
+                          }}
+                          className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center text-gray-700"
+                        >
+                          <Mail size={16} className="mr-2 text-cyan-500" />
+                          Add Payment + Email Receipt
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowActionDropdown(false);
+                            setSendEmailReceipt(false);
+                            handleAddPayment();
+                          }}
+                          className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center text-gray-700 border-t"
+                        >
+                          <FileText size={16} className="mr-2 text-cyan-500" />
+                          Add Payment Only
+                        </button>
+                        <button
+                          onClick={() => setShowActionDropdown(false)}
+                          className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center text-red-500 border-t"
+                        >
+                          <X size={16} className="mr-2" />
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Reference
-                  </label>
-                  <input
-                    type="text"
-                    value={newPayment.payment_reference}
-                    onChange={(e) => setNewPayment(prev => ({ ...prev, payment_reference: e.target.value }))}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    placeholder="Transaction ID, Check #, etc."
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Notes
-                </label>
-                <textarea
-                  value={newPayment.notes}
-                  onChange={(e) => setNewPayment(prev => ({ ...prev, notes: e.target.value }))}
-                  rows={3}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="Additional notes about this payment..."
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => setShowAddPayment(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAddPayment}
-                  disabled={loading || newPayment.amount <= 0}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-400"
-                >
-                  {loading ? 'Adding...' : 'Add Payment'}
-                </button>
               </div>
             </div>
           )}
@@ -330,60 +440,43 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
           {/* Payments List */}
           {loading && !showAddPayment ? (
             <div className="flex items-center justify-center h-32">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500" />
               <span className="ml-2 text-gray-600">Loading payments...</span>
             </div>
           ) : payments.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-2">
               {payments.map((payment) => (
-                <div key={payment.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center">
-                          <CreditCard className="h-5 w-5 text-gray-400 mr-2" />
-                          <span className="font-medium text-gray-900">
-                            {formatCurrency(payment.amount)}
-                          </span>
-                        </div>
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 text-gray-400 mr-1" />
-                          <span className="text-sm text-gray-600">
-                            {new Date(payment.payment_date).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
-                          {getPaymentMethodLabel(payment.payment_method)}
-                        </span>
-                      </div>
-                      
-                      {payment.payment_reference && (
-                        <p className="text-sm text-gray-600 mt-1">
-                          Ref: {payment.payment_reference}
-                        </p>
-                      )}
-                      
-                      {payment.notes && (
-                        <p className="text-sm text-gray-600 mt-1">{payment.notes}</p>
-                      )}
-                    </div>
-                    
+                <div key={payment.id} className="grid grid-cols-3 gap-4 px-4 py-3 bg-white border border-gray-100 rounded-lg hover:bg-gray-50">
+                  <div className="text-sm text-gray-700">
+                    {new Date(payment.payment_date).toLocaleDateString('de-DE', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric'
+                    })}
+                  </div>
+                  <div className="text-center">
+                    <span className="font-medium text-gray-900">
+                      {formatCurrency(payment.amount)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-end space-x-2">
+                    <span className="text-sm text-gray-600">
+                      {getPaymentMethodLabel(payment.payment_method)}
+                    </span>
                     <button
                       onClick={() => handleDeletePayment(payment.id)}
-                      className="text-red-600 hover:text-red-800 p-1"
+                      className="text-red-400 hover:text-red-600 p-1"
                       title="Delete payment"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600">No payments recorded yet</p>
-              <p className="text-sm text-gray-500">Add the first payment to get started</p>
+            <div className="text-center py-8 text-gray-400">
+              <p className="text-sm">No payments recorded</p>
             </div>
           )}
         </div>
