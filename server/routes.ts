@@ -4636,7 +4636,7 @@ New Age Fotografie Team`;
   // ==================== EMAIL ROUTES ====================
   app.post("/api/email/import", authenticateUser, async (req: Request, res: Response) => {
     try {
-      const { provider, smtpHost, smtpPort, username, password, useTLS, imapHost } = req.body;
+      const { provider, smtpHost, smtpPort, username, password, useTLS, imapHost: providedImapHost } = req.body;
 
       // Basic validation
       if (!smtpHost || !smtpPort || !username || !password) {
@@ -6249,7 +6249,6 @@ New Age Fotografie Team`;
         try {
           // Actually test IMAP connection
           const testResult = await new Promise<boolean>((resolve) => {
-            const Imap = require('imap');
             const imap = new Imap({
               user: username,
               password: password,
