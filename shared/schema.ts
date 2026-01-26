@@ -424,6 +424,7 @@ export const crmMessages = pgTable("crm_messages", {
   id: uuid("id").primaryKey().defaultRandom(),
   senderName: text("sender_name").notNull(),
   senderEmail: text("sender_email").notNull(),
+  recipientEmail: text("recipient_email"), // for outbound emails - who we sent to
   subject: text("subject").notNull(),
   content: text("content").notNull(),
   messageType: text("message_type").notNull().default("email"), // "email", "sms", "note"

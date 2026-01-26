@@ -119,15 +119,16 @@ export class EnhancedEmailService {
         console.log('📧 Demo mode: Subject:', options.subject);
         console.log('📧 Demo mode: Content preview:', options.content.substring(0, 100) + '...');
         
-        // Save demo email to database (don't write `direction` — some DBs may not have this column)
-  // Avoid writing optional columns like 'direction' to maximize compatibility
+        // Save demo email to database
   await db.insert(crmMessages).values({
           senderName: process.env.BUSINESS_NAME || 'New Age Fotografie',
           senderEmail: process.env.SMTP_FROM || process.env.SMTP_USER || 'demo@example.com',
+          recipientEmail: options.to, // Store the recipient for sent emails view
           subject: options.subject,
           content: options.content,
           messageType: 'email',
           status: 'demo_sent',
+          direction: 'outbound',
           clientId: clientId,
           emailMessageId: 'demo_' + Date.now(),
           sentAt: new Date(),
@@ -152,14 +153,16 @@ export class EnhancedEmailService {
 
       const result = await this.transporter.sendMail(mailOptions);
 
-      // Save to database (avoid writing `direction` to be compatible with DBs missing that column)
+      // Save to database with recipient info for sent emails view
   await db.insert(crmMessages).values({
         senderName: process.env.BUSINESS_NAME || 'New Age Fotografie',
         senderEmail: process.env.SMTP_FROM || process.env.SMTP_USER || '',
+        recipientEmail: options.to, // Store the recipient for sent emails view
         subject: options.subject,
         content: options.content,
         messageType: 'email',
         status: 'sent',
+        direction: 'outbound',
         clientId: clientId,
         emailMessageId: result.messageId,
         attachments: options.attachments ? JSON.stringify(options.attachments.map(att => ({
@@ -196,14 +199,16 @@ export class EnhancedEmailService {
           }
         }
 
-        // Save demo email to database (avoid writing `direction`)
+        // Save demo email to database with recipient info
   await db.insert(crmMessages).values({
           senderName: process.env.BUSINESS_NAME || 'New Age Fotografie',
           senderEmail: process.env.SMTP_FROM || process.env.SMTP_USER || 'demo@example.com',
+          recipientEmail: options.to, // Store the recipient for sent emails view
           subject: options.subject,
           content: options.content,
           messageType: 'email',
           status: 'demo_sent',
+          direction: 'outbound',
           clientId: clientId,
           emailMessageId: 'demo_fallback_' + Date.now(),
           sentAt: new Date(),
