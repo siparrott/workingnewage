@@ -6,7 +6,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { submitNewsletterForm } from '../../lib/forms';
 
 const Footer: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { user, signOut } = useAuth();
   const [email, setEmail] = useState('');
 
@@ -21,14 +21,14 @@ const Footer: React.FC = () => {
     e.preventDefault();
     
     if (!email.trim()) {
-      setError('Bitte geben Sie eine gültige E-Mail-Adresse ein.');
+      setError(language === 'en' ? 'Please enter a valid email address.' : 'Bitte geben Sie eine gültige E-Mail-Adresse ein.');
       return;
     }
 
     // Simple email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      setError('Bitte geben Sie eine gültige E-Mail-Adresse ein.');
+      setError(language === 'en' ? 'Please enter a valid email address.' : 'Bitte geben Sie eine gültige E-Mail-Adresse ein.');
       return;
     }
     
@@ -47,7 +47,7 @@ const Footer: React.FC = () => {
         throw new Error(result.message || 'Signup failed');
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.';
+      const errorMessage = err instanceof Error ? err.message : (language === 'en' ? 'An error occurred. Please try again later.' : 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -68,7 +68,7 @@ const Footer: React.FC = () => {
               New Age Fotografie
             </Link>
             <p className="text-gray-300 mb-4">
-              Professionelle Fotografie in Wien. Wir halten Ihre schönsten Momente fest.
+              {t('footer.tagline')}
             </p>
             <div className="flex space-x-4">
               <a href="https://facebook.com/newagefotografie" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors">
@@ -82,7 +82,7 @@ const Footer: React.FC = () => {
           
           {/* Photography Services */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Fotoshootings</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('footer.photoshoots')}</h3>
             <ul className="space-y-2">
               <li>
                 <Link 
@@ -90,7 +90,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Familienfotos
+                  {t('footer.familyPhotos')}
                 </Link>
               </li>
               <li>
@@ -99,7 +99,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Neugeborenenfotos
+                  {t('footer.newbornPhotos')}
                 </Link>
               </li>
               <li>
@@ -108,7 +108,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Babyfotos (3-12 Monate)
+                  {t('footer.babyPhotos')}
                 </Link>
               </li>
               <li>
@@ -117,7 +117,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Schwangerschaftsfotos
+                  {t('footer.maternityPhotos')}
                 </Link>
               </li>
               <li>
@@ -126,7 +126,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Business-Portraits
+                  {t('footer.businessPortraits')}
                 </Link>
               </li>
               <li>
@@ -135,7 +135,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Team- & Mitarbeiterfotos
+                  {t('footer.teamPhotos')}
                 </Link>
               </li>
               <li>
@@ -144,7 +144,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Bewerbungsfotos & LinkedIn
+                  {t('footer.applicationPhotos')}
                 </Link>
               </li>
               <li>
@@ -153,7 +153,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Portraitfotografie
+                  {t('footer.portraitPhotography')}
                 </Link>
               </li>
               <li>
@@ -162,7 +162,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Produktfotografie
+                  {t('footer.productPhotography')}
                 </Link>
               </li>
               <li>
@@ -171,7 +171,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Immobilienfotografie
+                  {t('footer.realEstatePhotography')}
                 </Link>
               </li>
               <li>
@@ -180,7 +180,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Studio-Fotografie
+                  {t('footer.studioPhotography')}
                 </Link>
               </li>
               <li>
@@ -189,7 +189,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Hochzeitsfotografie
+                  {t('footer.weddingPhotography')}
                 </Link>
               </li>
               <li>
@@ -198,7 +198,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Eventfotografie
+                  {t('footer.eventPhotography')}
                 </Link>
               </li>
             </ul>
@@ -206,7 +206,7 @@ const Footer: React.FC = () => {
           
           {/* Support & Info */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Support & Info</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('footer.supportInfo')}</h3>
             <ul className="space-y-2">
               <li>
                 <Link 
@@ -214,7 +214,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Über uns
+                  {t('footer.aboutUs')}
                 </Link>
               </li>
               <li>
@@ -223,7 +223,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Kontakt
+                  {t('footer.contactUs')}
                 </Link>
               </li>
               <li>
@@ -232,7 +232,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Gutscheine
+                  {t('footer.vouchers')}
                 </Link>
               </li>
               <li>
@@ -241,7 +241,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Blog & Tipps
+                  {t('footer.blogTips')}
                 </Link>
               </li>
               <li>
@@ -250,7 +250,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Warteliste
+                  {t('footer.waitlist')}
                 </Link>
               </li>
               <li>
@@ -259,7 +259,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Portfolio
+                  {t('footer.portfolio')}
                 </Link>
               </li>
               <li>
@@ -268,7 +268,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Impressum & Datenschutz
+                  {t('footer.imprintPrivacy')}
                 </Link>
               </li>
               <li>
@@ -277,7 +277,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  AGB
+                  {t('footer.termsConditions')}
                 </Link>
               </li>
               <li>
@@ -286,7 +286,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Datenschutz
+                  {t('footer.privacyPolicy')}
                 </Link>
               </li>
               <li>
@@ -295,7 +295,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Model-Release
+                  {t('footer.modelRelease')}
                 </Link>
               </li>
             </ul>
@@ -303,7 +303,7 @@ const Footer: React.FC = () => {
           
           {/* Contact Info */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Kontakt</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('footer.contact')}</h3>
             <ul className="space-y-2 text-gray-300">
               <li className="text-sm">
                 {t('contact.studioAddress')}
@@ -359,7 +359,7 @@ const Footer: React.FC = () => {
                     className="text-purple-400 hover:text-purple-300 transition-colors flex items-center text-sm"
                   >
                     <User size={16} className="mr-2" />
-                    Client Login
+                    {t('footer.clientLogin')}
                   </Link>
                 </li>
               )}
@@ -392,7 +392,7 @@ const Footer: React.FC = () => {
                       loading ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
                   >
-                    {loading ? 'Wird gesendet...' : t('newsletter.button')}
+                    {loading ? t('footer.sending') : t('newsletter.button')}
                   </button>
                 </form>
               )}
@@ -405,14 +405,14 @@ const Footer: React.FC = () => {
         
         {/* Copyright */}
         <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-300">
-          <p>&copy; 2025 New Age Fotografie. Alle Rechte vorbehalten.</p>
+          <p>&copy; 2025 New Age Fotografie. {t('footer.copyright')}</p>
           <p className="mt-2 text-sm space-x-3">
             <button
               type="button"
               onClick={() => (window as any).openCookiePreferences?.()}
               className="text-gray-400 hover:text-purple-300 transition-colors underline hover:no-underline"
             >
-              Cookie-Einstellungen
+              {t('footer.cookieSettings')}
             </button>
             <span className="text-gray-600">·</span>
             <a 
