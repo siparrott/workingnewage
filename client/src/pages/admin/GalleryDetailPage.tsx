@@ -1,35 +1,87 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import AdminLayout from '../../components/admin/AdminLayout';
-import ImageUploader from '../../components/galleries/ImageUploader';
-import ImageGrid from '../../components/galleries/ImageGrid';
-import GalleryStats from '../../components/galleries/GalleryStats';
-import { Gallery, GalleryImage, GalleryStats as GalleryStatsType, GalleryVisitor, GalleryAccessLog } from '../../types/gallery';
-import { getGalleryById, getGalleryImages, getGalleryStats, deleteGallery, getGalleryVisitors, getGalleryAccessLogs, sendGalleryEmail, sendGalleryWhatsApp, sendGallerySms } from '../../lib/gallery-api';
-import { ArrowLeft, Upload, BarChart as ChartBar, Edit, Trash2, Share2, Loader2, AlertCircle, Users, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { 
+  ArrowLeft, HelpCircle, Upload, Check, Settings, FolderOpen, MessageSquare, 
+  FileText, Trash2, Image as ImageIcon, Sun, Moon, X, ChevronLeft, ChevronRight,
+  Eye, EyeOff, Download, ShoppingCart, Clock, Calendar, Sparkles, Grid3X3, Grid2X2,
+  LayoutGrid, ExternalLink, Plus, MoreVertical, Loader2, AlertCircle, Share2,
+  Mail, Clipboard, Phone
+} from 'lucide-react';
+import { getGalleryById, deleteGallery, getGalleryImages } from '../../lib/gallery-api';
+
+interface GalleryImage {
+  id: string;
+  filename: string;
+  original_url: string;
+  display_url: string;
+  thumb_url: string;
+  size_bytes?: number;
+}
+
+interface Gallery {
+  id: string;
+  title: string;
+  description?: string;
+  coverImage?: string;
+  isPublic?: boolean;
+  downloadEnabled?: boolean;
+  isPasswordProtected?: boolean;
+  createdAt?: string;
+  expiresAt?: string;
+  clientId?: string;
+  clientName?: string;
+}
+
+type SettingsTab = 'design' | 'experience' | 'availability' | 'shopping' | 'downloads';
+type ThumbnailStyle = 'masonry' | 'grid' | 'rows';
+type Theme = 'light' | 'dark';
+type NavigationType = 'icons' | 'text' | 'both';
 
 const GalleryDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  
+  // Gallery data
   const [gallery, setGallery] = useState<Gallery | null>(null);
   const [images, setImages] = useState<GalleryImage[]>([]);
-  const [stats, setStats] = useState<GalleryStatsType | null>(null);
-  const [visitors, setVisitors] = useState<GalleryVisitor[]>([]);
-  const [accessLogs, setAccessLogs] = useState<GalleryAccessLog[]>([]);
-  const [activeTab, setActiveTab] = useState<'images' | 'upload' | 'stats' | 'visitors'>('images');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [shareOpen, setShareOpen] = useState(false);
-  const [shareEmail, setShareEmail] = useState('');
-  const [sharePhone, setSharePhone] = useState('');
-  const [shareMessage, setShareMessage] = useState('');
-  const [shareBusy, setShareBusy] = useState(false);
   
-  // Refs for scroll position
-  const imagesTabRef = useRef<HTMLButtonElement>(null);
-  const uploadTabRef = useRef<HTMLButtonElement>(null);
-  const statsTabRef = useRef<HTMLButtonElement>(null);
-  const visitorsTabRef = useRef<HTMLButtonElement>(null);
+  // Selection
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  
+  // Settings panel
+  const [showSettings, setShowSettings] = useState(false);
+  const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>('design');
+  
+  // Design settings
+  const [galleryType, setGalleryType] = useState<'proofing' | 'virtual-ips'>('proofing');
+  const [coverView, setCoverView] = useState<'cover' | 'thumbnails'>('cover');
+  const [thumbnailStyle, setThumbnailStyle] = useState<ThumbnailStyle>('grid');
+  const [theme, setTheme] = useState<Theme>('light');
+  const [spacing, setSpacing] = useState(50);
+  const [thumbnailSize, setThumbnailSize] = useState(50);
+  const [showFilenames, setShowFilenames] = useState(true);
+  const [navigationType, setNavigationType] = useState<NavigationType>('icons');
+  const [showBrandLogo, setShowBrandLogo] = useState(true);
+  
+  // Cover images
+  const [coverImages, setCoverImages] = useState<string[]>([]);
+  const [selectedCover, setSelectedCover] = useState(0);
+  
+  // Sidebar panels
+  const [expandedPanels, setExpandedPanels] = useState({
+    settings: true,
+    folders: false,
+    activityFeed: false,
+    notes: false,
+    setupAssistant: false
+  });
+  
+  // Stats
+  const [storageUsed, setStorageUsed] = useState('0 MB');
+  const [photoCount, setPhotoCount] = useState(0);
+  const [publishedDate, setPublishedDate] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -40,469 +92,863 @@ const GalleryDetailPage: React.FC = () => {
   const fetchGalleryData = async (galleryId: string) => {
     try {
       setLoading(true);
-      
-      // Fetch gallery details
       const galleryData = await getGalleryById(galleryId);
       setGallery(galleryData);
       
-      // Fetch gallery images
+      // Fetch images
       const imagesData = await getGalleryImages(galleryId);
-      setImages(imagesData);
+      setImages(imagesData || []);
+      setPhotoCount(imagesData?.length || 0);
       
-      // Fetch gallery stats
-      try {
-        const statsData = await getGalleryStats(galleryId);
-        setStats(statsData);
-      } catch (statsError) {
-        // console.error removed
-        // Don't fail the whole page load if stats fail
-      }
+      // Calculate storage
+      const totalBytes = imagesData?.reduce((acc: number, img: any) => acc + (img.size_bytes || 0), 0) || 0;
+      setStorageUsed(formatBytes(totalBytes));
       
-      // Fetch gallery visitors
-      try {
-        const visitorsData = await getGalleryVisitors(galleryId);
-        setVisitors(visitorsData);
-      } catch (visitorsError) {
-        // console.error removed
-        // Don't fail the whole page load if visitors fetch fails
-      }
+      // Set cover images from first 4 images
+      const covers = imagesData?.slice(0, 4).map((img: any) => img.thumb_url || img.display_url) || [];
+      setCoverImages(covers);
       
-      // Fetch access logs
-      try {
-        const logsData = await getGalleryAccessLogs(galleryId);
-        setAccessLogs(logsData);
-      } catch (logsError) {
-        // console.error removed
-        // Don't fail the whole page load if logs fetch fails
+      // Set published date
+      if (galleryData.createdAt) {
+        setPublishedDate(new Date(galleryData.createdAt).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        }));
       }
     } catch (err) {
-      // console.error removed
-      setError('Failed to load gallery. Please try again.');
+      console.error('Error fetching gallery:', err);
+      setError('Failed to load gallery');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTabChange = (tab: 'images' | 'upload' | 'stats' | 'visitors') => {
-    setActiveTab(tab);
-    
-    // Scroll the active tab into view
-    if (tab === 'images' && imagesTabRef.current) {
-      imagesTabRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    } else if (tab === 'upload' && uploadTabRef.current) {
-      uploadTabRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    } else if (tab === 'stats' && statsTabRef.current) {
-      statsTabRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    } else if (tab === 'visitors' && visitorsTabRef.current) {
-      visitorsTabRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedImages.length === images.length) {
+      setSelectedImages([]);
+    } else {
+      setSelectedImages(images.map(img => img.id));
     }
   };
 
-  const handleUploadComplete = () => {
-    // Refresh images
-    if (id) {
-      getGalleryImages(id).then(imagesData => {
-        setImages(imagesData);
-        // Switch to images tab
-        setActiveTab('images');
-      }).catch(err => {
-        // console.error removed
+  const toggleImageSelection = (imageId: string) => {
+    setSelectedImages(prev =>
+      prev.includes(imageId) 
+        ? prev.filter(id => id !== imageId)
+        : [...prev, imageId]
+    );
+  };
+
+  const togglePanel = (panel: keyof typeof expandedPanels) => {
+    setExpandedPanels(prev => ({ ...prev, [panel]: !prev[panel] }));
+  };
+
+  const handlePublish = async () => {
+    try {
+      const response = await fetch(`/api/galleries/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ isPublic: !gallery?.isPublic })
       });
-    }
-  };
-
-  const handleImageDeleted = () => {
-    // Refresh images
-    if (id) {
-      getGalleryImages(id).then(imagesData => {
-        setImages(imagesData);
-      }).catch(err => {
-        // console.error removed
-      });
-    }
-  };
-
-  const handleSetCover = () => {
-    // Refresh gallery to get updated cover image
-    if (id) {
-      getGalleryById(id).then(galleryData => {
-        setGallery(galleryData);
-      }).catch(err => {
-        // console.error removed
-      });
-    }
-  };
-
-  const handleDeleteGallery = async () => {
-    if (!gallery) return;
-    
-    if (window.confirm(`Are you sure you want to delete the gallery "${gallery.title}"? This action cannot be undone and will delete all images.`)) {
-      try {
-        setLoading(true);
-        await deleteGallery(gallery.id);
-        navigate('/admin/galleries');
-      } catch (err) {
-        // console.error removed
-        setError('Failed to delete gallery. Please try again.');
-        setLoading(false);
+      if (response.ok) {
+        const updated = await response.json();
+        setGallery(updated);
       }
+    } catch (err) {
+      console.error('Error updating gallery:', err);
     }
   };
 
-  const handleShareGallery = () => setShareOpen(true);
+  const copyGalleryLink = () => {
+    const link = `${window.location.origin}/gallery/${id}`;
+    navigator.clipboard.writeText(link);
+    alert('Gallery link copied to clipboard!');
+  };
 
-  const doSendEmail = async () => {
-    if (!gallery || !shareEmail) return;
-    try { setShareBusy(true);
-      const resp = await sendGalleryEmail({ galleryId: gallery.id, to: shareEmail, message: shareMessage });
-      alert(`Email sent. Link: ${resp.link}`);
-      setShareOpen(false); setShareEmail(''); setShareMessage('');
-    } catch (e: any) { alert(e?.message || 'Failed to send email'); } finally { setShareBusy(false); }
-  };
-  const doSendWhatsApp = async () => {
-    if (!gallery) return;
-    try { setShareBusy(true);
-      const resp = await sendGalleryWhatsApp({ galleryId: gallery.id, toPhone: sharePhone });
-      if (resp.sent) alert('WhatsApp sent.'); else if (resp.share) window.open(resp.share, '_blank'); else alert(`Link: ${resp.link}`);
-      setShareOpen(false); setSharePhone('');
-    } catch (e: any) { alert(e?.message || 'Failed to send WhatsApp'); } finally { setShareBusy(false); }
-  };
-  const doSendSms = async () => {
-    if (!gallery || !sharePhone) return;
-    try { setShareBusy(true);
-      const resp = await sendGallerySms({ galleryId: gallery.id, toPhone: sharePhone });
-      alert(resp.sent ? 'SMS sent.' : 'SMS provider not configured. Link copied.');
-      setShareOpen(false); setSharePhone('');
-    } catch (e: any) { alert(e?.message || 'Failed to send SMS'); } finally { setShareBusy(false); }
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <Loader2 className="h-12 w-12 text-teal-500 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error || !gallery) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
+        <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+        <p className="text-gray-600">{error || 'Gallery not found'}</p>
+        <Link to="/admin/galleries" className="mt-4 text-teal-600 hover:text-teal-700">
+          ← Back to Galleries
+        </Link>
+      </div>
+    );
+  }
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <Link to="/admin/galleries" className="inline-flex items-center text-gray-600 hover:text-gray-900">
-            <ArrowLeft size={16} className="mr-1" />
-            <span>Back to Galleries</span>
+    <div className="min-h-screen bg-gray-100 flex">
+      {/* Left Sidebar - Shoot Navigation */}
+      <div className="w-64 bg-white border-r border-gray-200 flex-shrink-0 relative">
+        <div className="p-4">
+          {/* Back to Galleries */}
+          <Link to="/admin/galleries" className="flex items-center text-gray-500 hover:text-gray-700 text-sm mb-4">
+            <ChevronLeft size={16} className="mr-1" />
+            GALLERIES
           </Link>
           
-          {loading ? (
-            <h1 className="text-2xl font-semibold text-gray-900 mt-2">Loading gallery...</h1>
-          ) : gallery ? (
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-2">
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-900">{gallery.title}</h1>
-                <p className="text-gray-600">
-                  {images.length} {images.length === 1 ? 'image' : 'images'} • Created {new Date(gallery.createdAt).toLocaleDateString()}
-                </p>
+          {/* Date Badge */}
+          <div className="bg-teal-500 text-white rounded-lg p-2 w-14 text-center mb-4">
+            <div className="text-xs font-medium">
+              {new Date(gallery.createdAt || '').toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}
+            </div>
+            <div className="text-xl font-bold">
+              {new Date(gallery.createdAt || '').getDate()}
+            </div>
+            <div className="text-xs">
+              {new Date(gallery.createdAt || '').getFullYear()}
+            </div>
+          </div>
+          
+          {/* Gallery Title */}
+          <h2 className="font-semibold text-gray-900 mb-1">{gallery.title}</h2>
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+            Gallery
+          </span>
+          
+          {/* Quick Actions */}
+          <div className="mt-6">
+            <div className="flex items-center text-teal-600 font-medium text-sm mb-4">
+              <Plus size={16} className="mr-2" />
+              Quick Actions
+            </div>
+            
+            <nav className="space-y-1">
+              <button 
+                className="w-full flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
+              >
+                <HelpCircle size={18} className="mr-3" />
+                Overview
+              </button>
+              <button 
+                className="w-full flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
+              >
+                <Check size={18} className="mr-3" />
+                Design Proofs
+              </button>
+              <div className="flex items-center px-3 py-2 text-sm text-teal-600 bg-teal-50 rounded-lg font-medium">
+                <ImageIcon size={18} className="mr-3" />
+                Galleries
               </div>
-              
-              <div className="flex mt-4 sm:mt-0 space-x-2">
-                <button
-                  onClick={handleShareGallery}
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                >
-                  <Share2 size={16} className="mr-2" />
-                  Share
-                </button>
-                <Link
-                  to={`/admin/galleries/${gallery.id}/edit`}
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                >
-                  <Edit size={16} className="mr-2" />
-                  Edit
-                </Link>
-                <button
-                  onClick={handleDeleteGallery}
-                  className="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                >
-                  <Trash2 size={16} className="mr-2" />
-                  Delete
-                </button>
+              <button 
+                className="w-full flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
+              >
+                <Mail size={18} className="mr-3" />
+                Emails
+              </button>
+              <button 
+                className="w-full flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
+              >
+                <FileText size={18} className="mr-3" />
+                Questionnaires
+              </button>
+              <button 
+                className="w-full flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
+              >
+                <FileText size={18} className="mr-3" />
+                Contracts
+              </button>
+              <button 
+                className="w-full flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
+              >
+                <ShoppingCart size={18} className="mr-3" />
+                Orders & Quotes
+              </button>
+              <button 
+                className="w-full flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
+              >
+                <Clipboard size={18} className="mr-3" />
+                Credits & Coupons
+              </button>
+              <button 
+                className="w-full flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
+              >
+                <MessageSquare size={18} className="mr-3" />
+                Clients & Contacts
+              </button>
+              <button 
+                className="w-full flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
+              >
+                <FileText size={18} className="mr-3" />
+                Documents
+              </button>
+              <button 
+                className="w-full flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
+              >
+                <Calendar size={18} className="mr-3" />
+                Dates & Tasks
+              </button>
+            </nav>
+          </div>
+        </div>
+        
+        {/* User Info at Bottom */}
+        <div className="absolute bottom-0 left-0 w-full p-4 border-t border-gray-200 bg-white">
+          <div className="text-xs text-gray-500 mb-2">Users</div>
+          <div className="flex items-center">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white text-xs font-medium">
+              {gallery.clientName?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'NA'}
+            </div>
+            <button className="ml-2 w-6 h-6 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-gray-400">
+              <Plus size={12} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              {/* Gallery Thumbnail */}
+              <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
+                {gallery.coverImage ? (
+                  <img src={gallery.coverImage} alt={gallery.title} className="w-full h-full object-cover" />
+                ) : images[0]?.thumb_url ? (
+                  <img src={images[0].thumb_url} alt={gallery.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ImageIcon size={24} className="text-gray-400" />
+                  </div>
+                )}
+              </div>
+              {/* Title */}
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900 flex items-center">
+                  {gallery.title}
+                  <button 
+                    onClick={() => navigate(`/admin/galleries/${id}/edit`)}
+                    className="ml-2 text-teal-500 hover:text-teal-600"
+                  >
+                    ✏️
+                  </button>
+                </h1>
               </div>
             </div>
+            
+            <div className="flex items-center space-x-3">
+              <button className="flex items-center text-teal-600 hover:text-teal-700 text-sm">
+                <HelpCircle size={16} className="mr-1" />
+                Get Help
+              </button>
+              <button 
+                onClick={() => navigate(`/admin/galleries/${id}/upload`)}
+                className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
+              >
+                Upload Photos
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Photo Grid Area */}
+        <div className="flex-1 overflow-auto p-6">
+          {/* Select All Bar */}
+          <div className="flex items-center justify-between mb-4">
+            <label className="flex items-center text-sm text-gray-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedImages.length === images.length && images.length > 0}
+                onChange={toggleSelectAll}
+                className="mr-2 rounded border-gray-300 text-teal-500 focus:ring-teal-500"
+              />
+              Select all
+            </label>
+            <button className="text-gray-400 hover:text-gray-600">
+              <MoreVertical size={20} />
+            </button>
+          </div>
+
+          {/* Photo Grid */}
+          {images.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 bg-white rounded-lg border-2 border-dashed border-gray-300">
+              <ImageIcon size={48} className="text-gray-400 mb-4" />
+              <p className="text-gray-600 mb-4">No photos uploaded yet</p>
+              <button 
+                onClick={() => navigate(`/admin/galleries/${id}/upload`)}
+                className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg"
+              >
+                Upload Photos
+              </button>
+            </div>
           ) : (
-            <h1 className="text-2xl font-semibold text-gray-900 mt-2">Gallery not found</h1>
+            <div className={`grid gap-2 ${
+              thumbnailStyle === 'masonry' ? 'grid-cols-6 md:grid-cols-8 lg:grid-cols-10' :
+              thumbnailStyle === 'grid' ? 'grid-cols-5 md:grid-cols-8 lg:grid-cols-10' :
+              'grid-cols-4 md:grid-cols-6 lg:grid-cols-8'
+            }`}>
+              {images.map((image) => (
+                <div 
+                  key={image.id}
+                  className={`relative aspect-square rounded overflow-hidden cursor-pointer group ${
+                    selectedImages.includes(image.id) ? 'ring-2 ring-teal-500 ring-offset-2' : ''
+                  }`}
+                  onClick={() => toggleImageSelection(image.id)}
+                >
+                  <img 
+                    src={image.thumb_url || image.display_url} 
+                    alt={image.filename}
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Selection overlay */}
+                  <div className={`absolute inset-0 transition-opacity ${
+                    selectedImages.includes(image.id) ? 'bg-teal-500/30' : 'bg-black/0 group-hover:bg-black/10'
+                  }`}>
+                    {selectedImages.includes(image.id) && (
+                      <div className="absolute top-1 right-1 w-5 h-5 bg-teal-500 rounded-full flex items-center justify-center">
+                        <Check size={12} className="text-white" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Right Sidebar */}
+      <div className="w-80 bg-white border-l border-gray-200 flex-shrink-0 overflow-y-auto">
+        {/* Publish Controls */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center justify-end space-x-2">
+            <button 
+              onClick={copyGalleryLink}
+              className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600"
+              title="Copy Link"
+            >
+              <Share2 size={18} />
+            </button>
+            <button 
+              onClick={() => window.open(`/gallery/${id}`, '_blank')}
+              className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600"
+              title="Preview"
+            >
+              <Eye size={18} />
+            </button>
+            <button 
+              onClick={handlePublish}
+              className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                gallery.isPublic 
+                  ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+                  : 'bg-teal-500 text-white hover:bg-teal-600'
+              }`}
+            >
+              {gallery.isPublic ? 'Unpublish' : 'Publish'}
+            </button>
+          </div>
+        </div>
+
+        {/* Settings Panel */}
+        <div className="border-b border-gray-200">
+          <button 
+            onClick={() => setShowSettings(true)}
+            className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50"
+          >
+            <div className="flex items-center">
+              <Settings size={18} className="mr-3 text-gray-500" />
+              <span className="font-medium text-gray-900">SETTINGS</span>
+            </div>
+            <ChevronRight size={18} className="text-gray-400" />
+          </button>
+        </div>
+
+        {/* Folders Panel */}
+        <div className="border-b border-gray-200">
+          <button 
+            onClick={() => togglePanel('folders')}
+            className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50"
+          >
+            <div className="flex items-center">
+              <FolderOpen size={18} className="mr-3 text-gray-500" />
+              <span className="font-medium text-gray-900">FOLDERS</span>
+            </div>
+            <ChevronRight size={18} className={`text-gray-400 transition-transform ${expandedPanels.folders ? 'rotate-90' : ''}`} />
+          </button>
+          {expandedPanels.folders && (
+            <div className="px-4 pb-4">
+              <button className="text-teal-600 hover:text-teal-700 text-sm flex items-center">
+                <Plus size={14} className="mr-1" />
+                Add Folder
+              </button>
+            </div>
           )}
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start">
-            <AlertCircle className="h-5 w-5 text-red-400 mt-0.5 mr-2" />
-            <span>{error}</span>
-          </div>
-        )}
+        {/* Activity Feed Panel */}
+        <div className="border-b border-gray-200">
+          <button 
+            onClick={() => togglePanel('activityFeed')}
+            className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50"
+          >
+            <div className="flex items-center">
+              <MessageSquare size={18} className="mr-3 text-gray-500" />
+              <span className="font-medium text-gray-900">ACTIVITY FEED</span>
+              <span className="ml-2 px-2 py-0.5 bg-orange-500 text-white text-xs rounded-full">Unread</span>
+            </div>
+            <ChevronRight size={18} className={`text-gray-400 transition-transform ${expandedPanels.activityFeed ? 'rotate-90' : ''}`} />
+          </button>
+          {expandedPanels.activityFeed && (
+            <div className="px-4 pb-4 text-sm text-gray-500">
+              No recent activity
+            </div>
+          )}
+        </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 text-purple-600 animate-spin" />
-            <span className="ml-2 text-gray-600">Loading gallery...</span>
-          </div>
-        ) : gallery ? (
-          <>
-            {/* Tabs */}
-            <div className="border-b border-gray-200 overflow-x-auto">
-              <nav className="-mb-px flex space-x-8">
-                <button
-                  ref={imagesTabRef}
-                  onClick={() => handleTabChange('images')}
-                  className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === 'images'
-                      ? 'border-purple-500 text-purple-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  Images ({images.length})
-                </button>
-                <button
-                  ref={uploadTabRef}
-                  onClick={() => handleTabChange('upload')}
-                  className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === 'upload'
-                      ? 'border-purple-500 text-purple-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <Upload size={16} className="inline mr-1" />
-                  Upload Images
-                </button>
-                <button
-                  ref={statsTabRef}
-                  onClick={() => handleTabChange('stats')}
-                  className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === 'stats'
-                      ? 'border-purple-500 text-purple-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <ChartBar size={16} className="inline mr-1" />
-                  Analytics
-                </button>
-                <button
-                  ref={visitorsTabRef}
-                  onClick={() => handleTabChange('visitors')}
-                  className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === 'visitors'
-                      ? 'border-purple-500 text-purple-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <Users size={16} className="inline mr-1" />
-                  Visitors ({visitors.length})
-                </button>
-              </nav>
+        {/* Notes Panel */}
+        <div className="border-b border-gray-200">
+          <button 
+            onClick={() => togglePanel('notes')}
+            className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50"
+          >
+            <div className="flex items-center">
+              <FileText size={18} className="mr-3 text-gray-500" />
+              <span className="font-medium text-gray-900">NOTES</span>
             </div>
+            <ChevronRight size={18} className={`text-gray-400 transition-transform ${expandedPanels.notes ? 'rotate-90' : ''}`} />
+          </button>
+          {expandedPanels.notes && (
+            <div className="px-4 pb-4">
+              <textarea 
+                placeholder="Add a note..."
+                className="w-full p-2 border border-gray-300 rounded text-sm resize-none"
+                rows={3}
+              />
+            </div>
+          )}
+        </div>
 
-            {/* Tab Content */}
-            <div className="bg-white rounded-lg shadow p-6">
-              {activeTab === 'images' && (
-                <ImageGrid 
-                  images={images} 
-                  galleryId={gallery.id}
-                  isAdmin={true}
-                  onImageDeleted={handleImageDeleted}
-                  onSetCover={handleSetCover}
-                />
-              )}
-              
-              {activeTab === 'upload' && (
-                <ImageUploader 
-                  galleryId={gallery.id}
-                  onUploadComplete={handleUploadComplete}
-                />
-              )}
-              
-              {activeTab === 'stats' && (
-                stats ? (
-                  <GalleryStats stats={stats} />
-                ) : (
-                  <div className="flex items-center justify-center h-64">
-                    <Loader2 className="h-8 w-8 text-purple-600 animate-spin" />
-                    <span className="ml-2 text-gray-600">Loading analytics...</span>
-                  </div>
-                )
-              )}
-              
-              {activeTab === 'visitors' && (
-                <div className="space-y-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Gallery Visitors</h3>
-                  
-                  {visitors.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Email
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Name
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              First Access
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Last Access
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {visitors.map((visitor) => (
-                            <tr key={visitor.id}>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {visitor.email}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {visitor.firstName && visitor.lastName 
-                                  ? `${visitor.firstName} ${visitor.lastName}`
-                                  : 'Not provided'}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {new Date(visitor.createdAt).toLocaleString()}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {new Date(visitor.createdAt).toLocaleString()}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 bg-gray-50 rounded-lg">
-                      <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No Visitors Yet</h3>
-                      <p className="text-gray-500">
-                        This gallery hasn't been viewed by any visitors yet.
-                      </p>
-                    </div>
-                  )}
-                  
-                  {/* Access Logs */}
-                  <h3 className="text-lg font-medium text-gray-900 mt-8 mb-4">Recent Access Logs</h3>
-                  
-                  {accessLogs && accessLogs.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Email
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Name
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Access Time
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Browser
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {accessLogs.map((log) => (
-                            <tr key={log.id}>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {log.email}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {log.firstName && log.lastName 
-                                  ? `${log.firstName} ${log.lastName}`
-                                  : 'Not provided'}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {new Date(log.accessedAt).toLocaleString()}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs">
-                                {log.userAgent ? log.userAgent.split(' ')[0] : 'Unknown'}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 bg-gray-50 rounded-lg">
-                      <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No Access Logs</h3>
-                      <p className="text-gray-500">
-                        No access logs have been recorded for this gallery yet.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+        {/* Setup Assistant Panel */}
+        <div className="border-b border-gray-200">
+          <button 
+            onClick={() => togglePanel('setupAssistant')}
+            className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50"
+          >
+            <div className="flex items-center">
+              <Sparkles size={18} className="mr-3 text-teal-500" />
+              <span className="font-medium text-gray-900">SETUP ASSISTANT</span>
+              <span className="ml-2 text-sm text-gray-500">5 emails</span>
             </div>
-          </>
-        ) : (
-          <div className="text-center py-12 bg-white rounded-lg shadow">
-            <div className="mx-auto h-12 w-12 text-gray-400">
-              <svg
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
-                />
-              </svg>
+            <ChevronRight size={18} className={`text-gray-400 transition-transform ${expandedPanels.setupAssistant ? 'rotate-90' : ''}`} />
+          </button>
+        </div>
+
+        {/* Trash */}
+        <div className="border-b border-gray-200">
+          <button className="w-full px-4 py-3 flex items-center text-left hover:bg-gray-50">
+            <Trash2 size={18} className="mr-3 text-red-500" />
+            <span className="font-medium text-red-600">Trash</span>
+          </button>
+        </div>
+
+        {/* Gallery Stats */}
+        <div className="p-4 space-y-2 text-sm text-gray-600">
+          {publishedDate && gallery.isPublic && (
+            <div className="flex items-center">
+              <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+              Live on {publishedDate}
             </div>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">Gallery not found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              The gallery you're looking for doesn't exist or has been deleted.
-            </p>
-            <div className="mt-6">
-              <Link
-                to="/admin/galleries"
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-              >
-                Return to galleries
-              </Link>
-            </div>
+          )}
+          <div className="flex items-center">
+            <ImageIcon size={14} className="mr-2 text-gray-400" />
+            {photoCount} photos / {storageUsed} storage
           </div>
-        )}
-        {/* Share Modal */}
-        {shareOpen && gallery && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-              <h3 className="text-lg font-semibold mb-2">Share Gallery</h3>
-              <p className="text-sm text-gray-600 mb-4">Send the gallery link to a recipient via Email, WhatsApp, or SMS.</p>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Recipient email</label>
-                  <input className="w-full border rounded px-3 py-2" value={shareEmail} onChange={e=>setShareEmail(e.target.value)} placeholder="name@example.com" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Recipient phone (for WhatsApp/SMS)</label>
-                  <input className="w-full border rounded px-3 py-2" value={sharePhone} onChange={e=>setSharePhone(e.target.value)} placeholder="+43..." />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Message (optional)</label>
-                  <textarea className="w-full border rounded px-3 py-2" rows={3} value={shareMessage} onChange={e=>setShareMessage(e.target.value)} placeholder={`Gallery: ${gallery.title}`} />
-                </div>
-              </div>
-              <div className="flex items-center justify-between mt-4">
-                <div className="text-sm text-gray-500 truncate">Link: {`${window.location.origin}/gallery/${gallery.slug}`}</div>
-              </div>
-              <div className="flex gap-2 mt-4">
-                <button disabled={shareBusy || !shareEmail} onClick={doSendEmail} className="flex-1 inline-flex items-center justify-center px-3 py-2 rounded bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50">Email</button>
-                <button disabled={shareBusy} onClick={doSendWhatsApp} className="flex-1 inline-flex items-center justify-center px-3 py-2 rounded border">WhatsApp</button>
-                <button disabled={shareBusy || !sharePhone} onClick={doSendSms} className="flex-1 inline-flex items-center justify-center px-3 py-2 rounded border">SMS</button>
-              </div>
-              <div className="flex justify-end mt-3">
-                <button onClick={()=>setShareOpen(false)} className="px-3 py-2 text-sm text-gray-600">Close</button>
-              </div>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
-    </AdminLayout>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex">
+            {/* Settings Content */}
+            <div className="flex-1 p-6 overflow-y-auto">
+              {/* Gallery Type */}
+              <div className="mb-8">
+                <h3 className="text-sm font-medium text-gray-700 mb-4">Gallery Type</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => setGalleryType('proofing')}
+                    className={`p-4 rounded-lg border-2 text-center ${
+                      galleryType === 'proofing' 
+                        ? 'border-teal-500 bg-teal-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <Check size={24} className="mx-auto mb-2 text-gray-600" />
+                    <div className="font-medium">Proofing Gallery</div>
+                  </button>
+                  <button
+                    onClick={() => setGalleryType('virtual-ips')}
+                    className={`p-4 rounded-lg border-2 text-center ${
+                      galleryType === 'virtual-ips' 
+                        ? 'border-teal-500 bg-teal-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <Eye size={24} className="mx-auto mb-2 text-gray-600" />
+                    <div className="font-medium">Virtual IPS</div>
+                  </button>
+                </div>
+                <p className="text-sm text-gray-500 mt-2">Perfect for presenting photos and selling items.</p>
+              </div>
+
+              {/* Gallery Cover Preview */}
+              <div className="mb-8">
+                <div className="relative rounded-lg overflow-hidden bg-gray-900 aspect-video">
+                  {coverView === 'cover' ? (
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-1/2 p-8 text-white">
+                        <h2 className="text-3xl font-bold mb-4">{gallery.title.toUpperCase()}</h2>
+                        <button className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm">
+                          OPEN GALLERY
+                        </button>
+                        <div className="mt-4 text-xs opacity-60">NEW AGE FOTOGRAFIE</div>
+                      </div>
+                      <div className="w-1/2 h-full">
+                        {(gallery.coverImage || images[0]?.display_url) && (
+                          <img 
+                            src={gallery.coverImage || images[0]?.display_url} 
+                            alt="Cover" 
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 grid grid-cols-4 gap-2">
+                      {images.slice(0, 8).map((img, i) => (
+                        <div key={i} className="aspect-square rounded overflow-hidden">
+                          <img src={img.thumb_url} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Cover/Thumbnails Toggle */}
+                <div className="flex justify-center mt-4 space-x-2">
+                  <button
+                    onClick={() => setCoverView('cover')}
+                    className={`flex items-center px-4 py-2 rounded-lg text-sm ${
+                      coverView === 'cover' 
+                        ? 'bg-teal-100 text-teal-700' 
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    <ImageIcon size={16} className="mr-2" />
+                    Cover
+                  </button>
+                  <button
+                    onClick={() => setCoverView('thumbnails')}
+                    className={`flex items-center px-4 py-2 rounded-lg text-sm ${
+                      coverView === 'thumbnails' 
+                        ? 'bg-teal-100 text-teal-700' 
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    <Grid3X3 size={16} className="mr-2" />
+                    Thumbnails
+                  </button>
+                </div>
+              </div>
+
+              {/* Gallery Cover Selection */}
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-medium text-gray-700">Gallery Cover</h3>
+                  <button className="text-teal-600 hover:text-teal-700 text-sm font-medium">
+                    + ADD NEW
+                  </button>
+                </div>
+                <div className="flex space-x-3">
+                  {coverImages.map((url, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedCover(index)}
+                      className={`w-24 h-16 rounded-lg overflow-hidden border-2 ${
+                        selectedCover === index ? 'border-teal-500' : 'border-transparent'
+                      }`}
+                    >
+                      <img src={url} alt={`Cover ${index + 1}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+                {coverImages.length > 0 && (
+                  <div className="flex mt-3 space-x-2">
+                    <button className="p-2 rounded-full bg-teal-500 text-white">
+                      <ChevronLeft size={16} />
+                    </button>
+                    <button className="p-2 rounded-full bg-teal-500 text-white">
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Settings Sidebar */}
+            <div className="w-64 border-l border-gray-200 bg-gray-50">
+              <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+                <button onClick={() => setShowSettings(false)} className="text-red-500 hover:text-red-600">
+                  <X size={18} />
+                  <span className="ml-1">Close</span>
+                </button>
+                <span className="font-medium">Settings</span>
+              </div>
+              
+              <nav className="p-2">
+                {[
+                  { id: 'design', label: 'DESIGN', icon: Sparkles },
+                  { id: 'experience', label: 'EXPERIENCE', icon: Eye },
+                  { id: 'availability', label: 'AVAILABILITY', icon: Clock },
+                  { id: 'shopping', label: 'SHOPPING', icon: ShoppingCart },
+                  { id: 'downloads', label: 'DOWNLOADS', icon: Download },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveSettingsTab(tab.id as SettingsTab)}
+                    className={`w-full flex items-center px-4 py-3 rounded-lg text-left ${
+                      activeSettingsTab === tab.id 
+                        ? 'bg-teal-50 text-teal-700' 
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <tab.icon size={18} className="mr-3" />
+                    {tab.label}
+                  </button>
+                ))}
+              </nav>
+
+              {/* Design Settings */}
+              {activeSettingsTab === 'design' && (
+                <div className="p-4 space-y-6 border-t border-gray-200">
+                  {/* Thumbnails Style */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">Thumbnails</h4>
+                    <div className="text-xs text-gray-500 mb-2">Style</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'masonry', icon: Grid2X2 },
+                        { id: 'grid', icon: Grid3X3 },
+                        { id: 'rows', icon: LayoutGrid },
+                      ].map((style) => (
+                        <button
+                          key={style.id}
+                          onClick={() => setThumbnailStyle(style.id as ThumbnailStyle)}
+                          className={`p-3 rounded border ${
+                            thumbnailStyle === style.id 
+                              ? 'border-teal-500 bg-teal-50' 
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <style.icon size={20} className="mx-auto text-gray-600" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Theme */}
+                  <div>
+                    <div className="text-xs text-gray-500 mb-2">Theme</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => setTheme('light')}
+                        className={`p-3 rounded ${
+                          theme === 'light' 
+                            ? 'bg-teal-500 text-white' 
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        <Sun size={20} className="mx-auto" />
+                      </button>
+                      <button
+                        onClick={() => setTheme('dark')}
+                        className={`p-3 rounded ${
+                          theme === 'dark' 
+                            ? 'bg-teal-500 text-white' 
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        <Moon size={20} className="mx-auto" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Spacing */}
+                  <div>
+                    <div className="flex justify-between text-xs text-gray-500 mb-2">
+                      <span>Spacing</span>
+                      <span>{spacing}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={spacing}
+                      onChange={(e) => setSpacing(parseInt(e.target.value))}
+                      className="w-full accent-teal-500"
+                    />
+                  </div>
+
+                  {/* Size */}
+                  <div>
+                    <div className="flex justify-between text-xs text-gray-500 mb-2">
+                      <span>Size</span>
+                      <span>{thumbnailSize}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={thumbnailSize}
+                      onChange={(e) => setThumbnailSize(parseInt(e.target.value))}
+                      className="w-full accent-teal-500"
+                    />
+                  </div>
+
+                  {/* Show Filenames */}
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={showFilenames}
+                      onChange={(e) => setShowFilenames(e.target.checked)}
+                      className="mr-2 rounded border-gray-300 text-teal-500 focus:ring-teal-500"
+                    />
+                    <span className="text-sm text-gray-600">Show filenames on photos</span>
+                  </label>
+
+                  {/* Navigation */}
+                  <div>
+                    <div className="text-xs text-gray-500 mb-2">Navigation</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['icons', 'text', 'both'].map((nav) => (
+                        <button
+                          key={nav}
+                          onClick={() => setNavigationType(nav as NavigationType)}
+                          className={`px-3 py-2 rounded text-xs font-medium ${
+                            navigationType === nav 
+                              ? 'bg-teal-500 text-white' 
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          {nav.charAt(0).toUpperCase() + nav.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Show Brand Logo */}
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={showBrandLogo}
+                      onChange={(e) => setShowBrandLogo(e.target.checked)}
+                      className="mr-2 rounded border-gray-300 text-teal-500 focus:ring-teal-500"
+                    />
+                    <span className="text-sm text-gray-600">Show brand logo in header</span>
+                  </label>
+
+                  {/* Watermark */}
+                  <div>
+                    <div className="text-xs text-gray-500 mb-2">Watermark</div>
+                    <button className="w-full flex items-center justify-center px-4 py-2 border border-teal-500 text-teal-600 rounded-lg hover:bg-teal-50">
+                      <Plus size={16} className="mr-2" />
+                      Select a watermark
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Experience Settings */}
+              {activeSettingsTab === 'experience' && (
+                <div className="p-4 space-y-4 border-t border-gray-200">
+                  <p className="text-sm text-gray-500">Configure client experience settings</p>
+                  <label className="flex items-center">
+                    <input type="checkbox" className="mr-2 rounded border-gray-300 text-teal-500" defaultChecked />
+                    <span className="text-sm text-gray-600">Allow favorites</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input type="checkbox" className="mr-2 rounded border-gray-300 text-teal-500" defaultChecked />
+                    <span className="text-sm text-gray-600">Allow sharing</span>
+                  </label>
+                </div>
+              )}
+
+              {/* Availability Settings */}
+              {activeSettingsTab === 'availability' && (
+                <div className="p-4 space-y-4 border-t border-gray-200">
+                  <p className="text-sm text-gray-500">Control gallery access</p>
+                  <label className="flex items-center">
+                    <input type="checkbox" className="mr-2 rounded border-gray-300 text-teal-500" />
+                    <span className="text-sm text-gray-600">Password protect</span>
+                  </label>
+                  <div>
+                    <label className="text-xs text-gray-500">Expiration date</label>
+                    <input type="date" className="w-full mt-1 p-2 border border-gray-300 rounded text-sm" />
+                  </div>
+                </div>
+              )}
+
+              {/* Shopping Settings */}
+              {activeSettingsTab === 'shopping' && (
+                <div className="p-4 space-y-4 border-t border-gray-200">
+                  <p className="text-sm text-gray-500">Configure print sales</p>
+                  <label className="flex items-center">
+                    <input type="checkbox" className="mr-2 rounded border-gray-300 text-teal-500" />
+                    <span className="text-sm text-gray-600">Enable print ordering</span>
+                  </label>
+                </div>
+              )}
+
+              {/* Downloads Settings */}
+              {activeSettingsTab === 'downloads' && (
+                <div className="p-4 space-y-4 border-t border-gray-200">
+                  <p className="text-sm text-gray-500">Configure download options</p>
+                  <label className="flex items-center">
+                    <input 
+                      type="checkbox" 
+                      className="mr-2 rounded border-gray-300 text-teal-500" 
+                      defaultChecked={gallery.downloadEnabled}
+                    />
+                    <span className="text-sm text-gray-600">Allow downloads</span>
+                  </label>
+                  <div>
+                    <label className="text-xs text-gray-500">Download resolution</label>
+                    <select className="w-full mt-1 p-2 border border-gray-300 rounded text-sm">
+                      <option>Original</option>
+                      <option>High (3000px)</option>
+                      <option>Medium (2000px)</option>
+                      <option>Web (1200px)</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
