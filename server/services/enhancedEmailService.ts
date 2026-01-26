@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer';
 import { db } from '../db';
 import { crmMessages, crmClients } from '@shared/schema';
 import { eq, or, ilike } from 'drizzle-orm';
+import { BrevoService } from './brevoService';
 
 export interface EmailAttachment {
   filename: string;
@@ -22,13 +23,24 @@ export interface SendEmailOptions {
 
 export class EnhancedEmailService {
   private static transporter: nodemailer.Transporter | null = null;
+  private static useBrevo: boolean = false;
 
   /**
    * Initialize email transporter
    */
   static async initialize() {
     try {
-      // Check if required SMTP settings are available
+      // Check if Brevo is configured (preferred)
+      if (process.env.BREVO_API_KEY || process.env.EMAIL_PROVIDER === 'brevo') {
+        const brevoInitialized = BrevoService.initialize();
+        if (brevoInitialized) {
+          this.useBrevo = true;
+          console.log('✅ Email service using Brevo API');
+          return true;
+        }
+      }
+
+      // Fall back to SMTP if Brevo not available
       if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
         console.warn('⚠️ SMTP configuration incomplete. Required: SMTP_HOST, SMTP_USER, SMTP_PASS');
         console.warn('📧 Email service will work in demo mode');
@@ -105,10 +117,27 @@ export class EnhancedEmailService {
   }> {
     try {
       // Initialize if not already done
-      if (!this.transporter) {
+      if (!this.transporter && !this.useBrevo) {
         console.log('📧 Transporter not initialized, initializing now...');
         const initResult = await this.initialize();
-        console.log('📧 Initialize result:', initResult, 'Transporter exists:', !!this.transporter);
+        console.log('📧 Initialize result:', initResult, 'Using Brevo:', this.useBrevo, 'Transporter exists:', !!this.transporter);
+      }
+
+      // Use Brevo if available (preferred)
+      if (this.useBrevo || process.env.EMAIL_PROVIDER === 'brevo' || process.env.BREVO_API_KEY) {
+        console.log('📧 Routing email through Brevo API');
+        return await BrevoService.sendEmail({
+          to: options.to,
+          subject: options.subject,
+          htmlContent: options.html,
+          textContent: options.content,
+          clientId: options.clientId,
+          autoLinkClient: options.autoLinkClient,
+          attachments: options.attachments?.map(att => ({
+            name: att.filename,
+            content: att.content ? att.content.toString('base64') : '',
+          })),
+        });
       }
 
       // Auto-link to client if requested

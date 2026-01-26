@@ -6561,6 +6561,176 @@ New Age Fotografie Team`;
   });
 
   // ==================== EMAIL MARKETING CAMPAIGNS ====================
+
+  // ==================== SMS & WHATSAPP (Brevo) ====================
+  
+  // Send SMS via Brevo
+  app.post("/api/sms/send", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { to, content, senderName, clientId } = req.body;
+      
+      if (!to || !content) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Phone number (to) and content are required' 
+        });
+      }
+
+      console.log('📱 SMS send request:', { to, content: content.substring(0, 50) + '...' });
+      
+      const { BrevoService } = await import('./services/brevoService');
+      const result = await BrevoService.sendSms({
+        to,
+        content,
+        senderName: senderName || 'NewAge',
+        clientId,
+        autoLinkClient: true,
+      });
+
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          message: 'SMS sent successfully',
+          messageId: result.messageId,
+          clientId: result.clientId
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          error: result.error || 'Failed to send SMS' 
+        });
+      }
+    } catch (error) {
+      console.error('SMS send error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to send SMS: ' + (error as Error).message 
+      });
+    }
+  });
+
+  // Send WhatsApp via Brevo
+  app.post("/api/whatsapp/send", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { to, templateId, templateParams, clientId } = req.body;
+      
+      if (!to || !templateId) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Phone number (to) and templateId are required' 
+        });
+      }
+
+      console.log('💬 WhatsApp send request:', { to, templateId });
+      
+      const { BrevoService } = await import('./services/brevoService');
+      const result = await BrevoService.sendWhatsApp({
+        to,
+        templateId,
+        templateParams: templateParams || [],
+        clientId,
+        autoLinkClient: true,
+      });
+
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          message: 'WhatsApp message sent successfully',
+          messageId: result.messageId,
+          clientId: result.clientId
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          error: result.error || 'Failed to send WhatsApp message' 
+        });
+      }
+    } catch (error) {
+      console.error('WhatsApp send error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to send WhatsApp: ' + (error as Error).message 
+      });
+    }
+  });
+
+  // Get Brevo account info (credits, etc.)
+  app.get("/api/brevo/account", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { BrevoService } = await import('./services/brevoService');
+      BrevoService.initialize();
+      const result = await BrevoService.getAccountInfo();
+
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          account: {
+            email: result.email,
+            credits: result.credits,
+            plan: result.plan
+          }
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          error: result.error || 'Failed to get account info' 
+        });
+      }
+    } catch (error) {
+      console.error('Brevo account error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to get Brevo account info: ' + (error as Error).message 
+      });
+    }
+  });
+
+  // Test email via Brevo
+  app.post("/api/brevo/test-email", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { to, subject, content } = req.body;
+      
+      if (!to) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Recipient email (to) is required' 
+        });
+      }
+
+      console.log('📧 Testing Brevo email to:', to);
+      
+      const { BrevoService } = await import('./services/brevoService');
+      BrevoService.initialize();
+      
+      const result = await BrevoService.sendEmail({
+        to,
+        subject: subject || 'Test Email from New Age Fotografie CRM',
+        textContent: content || 'This is a test email sent via Brevo to verify the email configuration is working correctly.',
+        htmlContent: content ? content.replace(/\n/g, '<br>') : '<p>This is a test email sent via Brevo to verify the email configuration is working correctly.</p>',
+        autoLinkClient: false,
+      });
+
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          message: 'Test email sent successfully via Brevo!',
+          messageId: result.messageId
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          error: result.error || 'Failed to send test email' 
+        });
+      }
+    } catch (error) {
+      console.error('Brevo test email error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to send test email: ' + (error as Error).message 
+      });
+    }
+  });
+
   
   // Email campaigns endpoints
   app.get("/api/admin/email/campaigns", authenticateUser, async (req: Request, res: Response) => {
