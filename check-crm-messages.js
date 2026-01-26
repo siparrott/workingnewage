@@ -6,34 +6,29 @@ const pool = new Pool({
 
 async function main() {
   try {
-    // Fix the VWELT50 coupon - it should target "Family Classic" which has slug "weihnachten-family-basic"
-    // Also fix VCWIEN to use the correct slug
-    
-    // First, let's see all products to understand the mapping
-    const products = await pool.query(`
-      SELECT id, name, slug FROM voucher_products ORDER BY name
+    // Check the test email in crm_messages
+    const result = await pool.query(`
+      SELECT id, sender_name, sender_email, recipient_email, subject, content, 
+             message_type, status, direction, created_at 
+      FROM crm_messages 
+      WHERE subject ILIKE '%test%' OR content ILIKE '%123%'
+      ORDER BY created_at DESC
+      LIMIT 10
     `);
-    console.log('All voucher products:');
-    products.rows.forEach(p => console.log(`  ${p.name} -> slug: ${p.slug}`));
+    console.log('Test emails in crm_messages:');
+    console.log(JSON.stringify(result.rows, null, 2));
     
-    // Update VWELT50 to use correct slug for Family Classic
-    console.log('\\nUpdating VWELT50 coupon...');
-    const result1 = await pool.query(`
-      UPDATE discount_coupons 
-      SET applicable_products = $1
-      WHERE code = 'VWELT50'
-      RETURNING code, name, applicable_products
-    `, [['weihnachten-family-basic']]);
-    console.log('VWELT50 updated:', result1.rows[0]);
-    
-    // Verify the fix
-    console.log('\\nVerifying coupons after fix:');
-    const coupons = await pool.query(`
-      SELECT code, name, applicable_products 
-      FROM discount_coupons 
-      WHERE code IN ('VWELT50', 'VCWIEN')
+    // Also check sent emails
+    console.log('\\nRecent sent/outbound emails:');
+    const sent = await pool.query(`
+      SELECT id, sender_name, sender_email, recipient_email, subject, 
+             message_type, status, direction, created_at 
+      FROM crm_messages 
+      WHERE direction = 'outbound' OR status IN ('sent', 'demo_sent')
+      ORDER BY created_at DESC
+      LIMIT 10
     `);
-    console.log(JSON.stringify(coupons.rows, null, 2));
+    console.log(JSON.stringify(sent.rows, null, 2));
     
   } catch (err) {
     console.error('Error:', err);

@@ -4798,8 +4798,17 @@ New Age Fotografie Team`;
       const unreadOnly = req.query.unread === 'true';
       const messages = await storage.getCrmMessages();
       
+      // Filter to only show INBOUND messages (received emails)
+      // Sent emails (outbound) should only appear in the Sent folder
+      const inboundMessages = messages.filter(message => {
+        // Exclude outbound/sent messages from inbox
+        if (message.direction === 'outbound') return false;
+        if (message.status === 'sent' || message.status === 'demo_sent') return false;
+        return true;
+      });
+      
       // Sort messages by creation date (newest first)
-      const sortedMessages = messages.sort((a, b) => {
+      const sortedMessages = inboundMessages.sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return dateB - dateA;
@@ -4809,7 +4818,6 @@ New Age Fotografie Team`;
         const unreadMessages = sortedMessages.filter(message => message.status === 'unread');
         res.json(unreadMessages);
       } else {
-        // Show all messages including sent ones for complete inbox view
         res.json(sortedMessages);
       }
     } catch (error) {
@@ -6394,12 +6402,13 @@ New Age Fotografie Team`;
   app.get("/api/emails/sent", authenticateUser, async (req: Request, res: Response) => {
     try {
       // Get sent emails from crm_messages table
-      // These are marked with status='sent', 'demo_sent', or messageType='sent'
+      // These are emails that were sent OUT (direction='outbound' OR status='sent'/'demo_sent')
       const sentEmails = await db
         .select()
         .from(crmMessages)
         .where(
           or(
+            eq(crmMessages.direction, 'outbound'),
             eq(crmMessages.status, 'sent'),
             eq(crmMessages.status, 'demo_sent'),
             eq(crmMessages.messageType, 'sent')
