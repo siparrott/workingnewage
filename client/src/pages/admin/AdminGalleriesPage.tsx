@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
-import { Plus, Search, Filter, Eye, Edit, Trash2, Upload, Download, Share2, Calendar, X } from 'lucide-react';
+import { Plus, Search, Filter, Eye, Edit, Trash2, Clock, MoreVertical, Mail, Flag, Image, ChevronLeft, ChevronRight, HelpCircle, BookOpen, X } from 'lucide-react';
 import { getGalleries, deleteGallery } from '../../lib/gallery-api';
 import AdvancedGalleryForm from '../../components/admin/AdvancedGalleryForm';
 
@@ -13,9 +13,12 @@ interface Gallery {
   clientId: string;
   photoCount: number;
   coverImage: string;
-  status: 'active' | 'archived' | 'shared';
+  status: 'active' | 'draft' | 'archived' | 'expired';
   createdAt: string;
   expiresAt?: string;
+  attachedShoot?: string;
+  brand?: string;
+  type?: string;
 }
 
 const AdminGalleriesPage: React.FC = () => {
@@ -24,8 +27,14 @@ const AdminGalleriesPage: React.FC = () => {
   const [filteredGalleries, setFilteredGalleries] = useState<Gallery[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [showExpired, setShowExpired] = useState(false);
+  const [showTrash, setShowTrash] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [selectedGalleries, setSelectedGalleries] = useState<string[]>([]);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
   useEffect(() => {
     fetchGalleries();
@@ -33,25 +42,34 @@ const AdminGalleriesPage: React.FC = () => {
 
   useEffect(() => {
     filterGalleries();
-  }, [galleries, searchTerm, statusFilter]);
+  }, [galleries, searchTerm, statusFilter, showExpired, showTrash]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setOpenMenuId(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   const fetchGalleries = async () => {
     try {
       setLoading(true);
       const data = await getGalleries();
       
-      // Transform API data to match Gallery interface
       const transformedGalleries: Gallery[] = data.map((g: any) => ({
         id: g.id,
         title: g.title,
         description: g.description || '',
         clientName: g.client_name || 'No client assigned',
         clientId: g.client_id || '',
-        photoCount: 0, // Will be updated when we fetch images
+        photoCount: g.photo_count || 0,
         coverImage: g.cover_image || g.coverImage || '',
-        status: g.is_public ? 'active' : 'archived',
+        status: g.is_public ? 'active' : (g.status || 'draft'),
         createdAt: g.created_at || g.createdAt,
-        expiresAt: g.expires_at || g.expiresAt
+        expiresAt: g.expires_at || g.expiresAt,
+        attachedShoot: g.attached_shoot || g.attachedShoot || '',
+        brand: 'New Age Fotografie',
+        type: 'Gallery'
       }));
       
       setGalleries(transformedGalleries);
@@ -68,6 +86,7 @@ const AdminGalleriesPage: React.FC = () => {
     try {
       await deleteGallery(id);
       setGalleries(galleries.filter(g => g.id !== id));
+      setOpenMenuId(null);
     } catch (error) {
       console.error('Error deleting gallery:', error);
       alert('Failed to delete gallery');
@@ -90,36 +109,51 @@ const AdminGalleriesPage: React.FC = () => {
     }
 
     setFilteredGalleries(filtered);
+    setCurrentPage(1);
   };
 
-  const getStatusBadge = (status: Gallery['status']) => {
-    const statusConfig = {
-      active: { bg: 'bg-green-100', text: 'text-green-800', label: 'Active' },
-      shared: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Shared' },
-      archived: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Archived' }
-    };
+  const calculateAge = (createdAt: string) => {
+    const created = new Date(createdAt);
+    const now = new Date();
+    const days = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+    return `${days} days old`;
+  };
 
-    const config = statusConfig[status];
-    return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
-        {config.label}
-      </span>
+  const formatExpiry = (expiresAt?: string) => {
+    if (!expiresAt) return '--';
+    return new Date(expiresAt).toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedGalleries.length === paginatedGalleries.length) {
+      setSelectedGalleries([]);
+    } else {
+      setSelectedGalleries(paginatedGalleries.map(g => g.id));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedGalleries(prev => 
+      prev.includes(id) ? prev.filter(gid => gid !== id) : [...prev, id]
     );
   };
 
-  const isExpiringSoon = (expiresAt?: string) => {
-    if (!expiresAt) return false;
-    const expiryDate = new Date(expiresAt);
-    const now = new Date();
-    const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    return daysUntilExpiry <= 30 && daysUntilExpiry > 0;
-  };
+  // Pagination
+  const totalPages = Math.ceil(filteredGalleries.length / itemsPerPage);
+  const paginatedGalleries = filteredGalleries.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   if (loading) {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500"></div>
         </div>
       </AdminLayout>
     );
@@ -127,156 +161,317 @@ const AdminGalleriesPage: React.FC = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Galleries Management</h1>
-            <p className="text-gray-600">Manage client photo galleries and sharing</p>
+          <div className="flex items-center space-x-4">
+            <h1 className="text-2xl font-semibold text-gray-900">Galleries</h1>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-1.5 rounded text-sm font-medium"
+            >
+              ADD NEW
+            </button>
+            <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-1.5 rounded text-sm font-medium border border-gray-300">
+              VIEW CATALOG
+            </button>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center"
-          >
-            <Plus size={20} className="mr-2" />
-            Create Gallery
+          <button className="flex items-center text-teal-600 hover:text-teal-700 text-sm font-medium">
+            <HelpCircle size={16} className="mr-1" />
+            Get Help
           </button>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Filters Bar */}
+        <div className="flex items-center justify-between bg-white rounded-lg shadow px-4 py-3">
+          <div className="flex items-center space-x-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
               <input
                 type="text"
-                placeholder="Search galleries..."
+                placeholder="Search ..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
               />
             </div>
-            
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <button className="flex items-center text-gray-600 hover:text-gray-800 text-sm">
+              <Filter size={16} className="mr-1" />
+              Filter
+            </button>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-teal-500"
             >
-              <option value="all">All Statuses</option>
+              <option value="all">All Galleries</option>
               <option value="active">Active</option>
-              <option value="shared">Shared</option>
+              <option value="draft">Draft</option>
               <option value="archived">Archived</option>
             </select>
-
-            <button className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-              <Filter size={20} className="mr-2" />
-              More Filters
-            </button>
+            <label className="flex items-center text-sm text-gray-600">
+              <input
+                type="checkbox"
+                checked={showExpired}
+                onChange={(e) => setShowExpired(e.target.checked)}
+                className="mr-2 rounded border-gray-300 text-teal-500 focus:ring-teal-500"
+              />
+              Expired
+            </label>
+            <label className="flex items-center text-sm text-gray-600">
+              <input
+                type="checkbox"
+                checked={showTrash}
+                onChange={(e) => setShowTrash(e.target.checked)}
+                className="mr-2 rounded border-gray-300 text-teal-500 focus:ring-teal-500"
+              />
+              Trash
+            </label>
           </div>
         </div>
 
-        {/* Galleries Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredGalleries.map((gallery) => (
-            <div key={gallery.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden">
-              <div className="aspect-w-16 aspect-h-9">
-                <img
-                  src={gallery.coverImage}
-                  alt={gallery.title}
-                  className="w-full h-48 object-cover"
-                />
-              </div>
-              
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{gallery.title}</h3>
-                    <p className="text-sm text-gray-600">{gallery.clientName}</p>
-                  </div>
-                  {getStatusBadge(gallery.status)}
-                </div>
-
-                <p className="text-sm text-gray-600 mb-3">{gallery.description}</p>
-
-                <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                  <span>{gallery.photoCount} photos</span>
-                  <span>Created {new Date(gallery.createdAt).toLocaleDateString()}</span>
-                </div>
-
-                {gallery.expiresAt && (
-                  <div className={`text-xs mb-4 flex items-center ${
-                    isExpiringSoon(gallery.expiresAt) ? 'text-orange-600' : 'text-gray-500'
-                  }`}>
-                    <Calendar size={12} className="mr-1" />
-                    Expires {new Date(gallery.expiresAt).toLocaleDateString()}
-                    {isExpiringSoon(gallery.expiresAt) && (
-                      <span className="ml-2 px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs">
-                        Expiring Soon
+        {/* Table */}
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={selectedGalleries.length === paginatedGalleries.length && paginatedGalleries.length > 0}
+                    onChange={toggleSelectAll}
+                    className="rounded border-gray-300 text-teal-500 focus:ring-teal-500"
+                  />
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Name
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Attached
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  User
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Age
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Expires
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Brand
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Type
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {paginatedGalleries.map((gallery) => (
+                <tr key={gallery.id} className="hover:bg-gray-50">
+                  {/* Checkbox */}
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedGalleries.includes(gallery.id)}
+                      onChange={() => toggleSelect(gallery.id)}
+                      className="rounded border-gray-300 text-teal-500 focus:ring-teal-500"
+                    />
+                  </td>
+                  
+                  {/* Name with thumbnail */}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-shrink-0 w-10 h-10 rounded overflow-hidden bg-gray-100">
+                        {gallery.coverImage ? (
+                          <img 
+                            src={gallery.coverImage} 
+                            alt={gallery.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Image size={16} className="text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span 
+                            className="text-teal-600 hover:text-teal-800 font-medium cursor-pointer"
+                            onClick={() => navigate(`/admin/galleries/${gallery.id}/edit`)}
+                          >
+                            {gallery.title}
+                          </span>
+                          <Mail size={14} className="text-gray-400" />
+                        </div>
+                        <div className="flex items-center space-x-1 text-gray-400">
+                          <Flag size={12} />
+                          <Image size={12} />
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  
+                  {/* Attached Shoot */}
+                  <td className="px-4 py-3">
+                    {gallery.attachedShoot ? (
+                      <span className="text-teal-600 text-sm hover:underline cursor-pointer">
+                        ⚙ {gallery.attachedShoot}
                       </span>
+                    ) : (
+                      <span className="text-gray-400 text-sm">--</span>
                     )}
-                  </div>
-                )}
-
-                <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-                  <div className="flex space-x-2">
+                  </td>
+                  
+                  {/* User Avatar */}
+                  <td className="px-4 py-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white text-xs font-medium">
+                      {gallery.clientName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                    </div>
+                  </td>
+                  
+                  {/* Age */}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Clock size={14} className="mr-1 text-gray-400" />
+                      {calculateAge(gallery.createdAt)}
+                    </div>
+                  </td>
+                  
+                  {/* Expires */}
+                  <td className="px-4 py-3 text-sm text-gray-600">
+                    {formatExpiry(gallery.expiresAt)}
+                  </td>
+                  
+                  {/* Brand */}
+                  <td className="px-4 py-3">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
+                      {gallery.brand}
+                    </span>
+                  </td>
+                  
+                  {/* Type */}
+                  <td className="px-4 py-3">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                      <Image size={12} className="mr-1" />
+                      {gallery.type}
+                    </span>
+                  </td>
+                  
+                  {/* Status */}
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium ${
+                      gallery.status === 'active' 
+                        ? 'bg-green-500 text-white' 
+                        : gallery.status === 'draft'
+                        ? 'bg-gray-200 text-gray-700'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {gallery.status.charAt(0).toUpperCase() + gallery.status.slice(1)}
+                    </span>
+                  </td>
+                  
+                  {/* Actions Menu */}
+                  <td className="px-4 py-3 relative">
                     <button 
-                      onClick={() => navigate(`/gallery/${gallery.id}`)}
-                      className="text-blue-600 hover:text-blue-900" 
-                      title="View Gallery"
-                    >
-                      <Eye size={16} />
-                    </button>
-                    <button 
-                      onClick={() => navigate(`/admin/galleries/${gallery.id}/edit`)}
-                      className="text-green-600 hover:text-green-900" 
-                      title="Edit Gallery"
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button 
-                      onClick={() => navigate(`/admin/galleries/${gallery.id}/upload`)}
-                      className="text-purple-600 hover:text-purple-900" 
-                      title="Upload Photos"
-                    >
-                      <Upload size={16} />
-                    </button>
-                  </div>
-                  <div className="flex space-x-2">
-                    <button 
-                      onClick={() => window.open(`/api/galleries/${gallery.id}/download`, '_blank')}
-                      className="text-gray-600 hover:text-gray-900" 
-                      title="Download"
-                    >
-                      <Download size={16} />
-                    </button>
-                    <button 
-                      onClick={() => {
-                        const shareUrl = `${window.location.origin}/gallery/${gallery.id}`;
-                        navigator.clipboard.writeText(shareUrl);
-                        alert('Gallery link copied to clipboard!');
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenuId(openMenuId === gallery.id ? null : gallery.id);
                       }}
-                      className="text-indigo-600 hover:text-indigo-900" 
-                      title="Share"
+                      className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100"
                     >
-                      <Share2 size={16} />
+                      <MoreVertical size={18} />
                     </button>
-                    <button 
-                      onClick={() => handleDeleteGallery(gallery.id)}
-                      className="text-red-600 hover:text-red-900" 
-                      title="Delete"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              </div>
+                    
+                    {openMenuId === gallery.id && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                        <button
+                          onClick={() => {
+                            navigate(`/admin/galleries/${gallery.id}/edit`);
+                            setOpenMenuId(null);
+                          }}
+                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          <Edit size={16} className="mr-2" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => {
+                            navigate(`/gallery/${gallery.id}`);
+                            setOpenMenuId(null);
+                          }}
+                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          <Eye size={16} className="mr-2" />
+                          View
+                        </button>
+                        <button
+                          onClick={() => setOpenMenuId(null)}
+                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          <Clock size={16} className="mr-2" />
+                          Set Expiration
+                        </button>
+                        <button
+                          onClick={() => setOpenMenuId(null)}
+                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          <BookOpen size={16} className="mr-2" />
+                          Add to Catalog
+                        </button>
+                        <hr className="my-1" />
+                        <button
+                          onClick={() => handleDeleteGallery(gallery.id)}
+                          className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 size={16} className="mr-2" />
+                          Trash
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          
+          {filteredGalleries.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No galleries found matching your criteria.</p>
             </div>
-          ))}
+          )}
         </div>
 
-        {filteredGalleries.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No galleries found matching your criteria.</p>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-end space-x-2 text-sm text-gray-600">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-1 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <span>
+              {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="p-1 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronRight size={18} />
+            </button>
           </div>
         )}
 
