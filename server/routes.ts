@@ -9286,21 +9286,14 @@ New Age Fotografie CRM System
         const oldImageUrl = product.imageUrl as string | null;
         const oldThumbnailUrl = product.thumbnailUrl as string | null;
         
-        // Helper to fix URL encoding (replace unencoded spaces with %20)
+        // Helper to fix URL encoding - replace all spaces with %20
         const fixUrl = (url: string | null): string | null => {
           if (!url) return null;
-          // Check if URL contains unencoded spaces in path (not already encoded)
-          if (url.includes(' ') && !url.includes('%20')) {
-            // URL encode the path portion
-            try {
-              const urlObj = new URL(url);
-              const pathParts = urlObj.pathname.split('/');
-              urlObj.pathname = pathParts.map(part => encodeURIComponent(decodeURIComponent(part))).join('/');
-              return urlObj.toString();
-            } catch {
-              // Fallback: just replace spaces
-              return url.replace(/ /g, '%20');
-            }
+          // Simple and reliable: just replace spaces with %20
+          if (url.includes(' ')) {
+            const fixed = url.replace(/ /g, '%20');
+            console.log('[FIX URLS] Encoding space in URL:', url, '->', fixed);
+            return fixed;
           }
           return url;
         };
