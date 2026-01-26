@@ -10,9 +10,9 @@ async function runSql(query: string, params?: any[]) {
   const result = await pool.query(query, params || []);
   return result.rows;
 }
-import { sql } from 'drizzle-orm';
+import { sql, or, desc } from 'drizzle-orm';
 import { eq } from "drizzle-orm";
-import { priceListItems, emailCampaigns, emailTemplates, emailSegments, emailEvents, emailLinks, emailSubscribers, insertLeadSourceSchema, crmLeads, studioConfigs } from "../shared/schema";
+import { priceListItems, emailCampaigns, emailTemplates, emailSegments, emailEvents, emailLinks, emailSubscribers, insertLeadSourceSchema, crmLeads, studioConfigs, crmMessages } from "../shared/schema";
 import path from 'path';
 import os from 'os';
 // Removed duplicate fs import (already imported earlier)
@@ -46,7 +46,7 @@ const insertKnowledgeBaseSchema = {
 const insertOpenaiAssistantSchema = { parse: (v: any) => v, safeParse: (v: any) => ({ success: true, data: v }) } as any;
 // Drizzle table placeholders for routes not yet wired in this environment
 // These are typed as any to avoid compile errors when optional modules are absent
-const crmMessages: any = { id: 'crm_messages.id', createdAt: 'crm_messages.created_at', senderEmail: 'crm_messages.sender_email', subject: 'crm_messages.subject' };
+// crmMessages is now properly imported from schema
 const knowledgeBase: any = { id: 'knowledge_base.id' };
 const openaiAssistants: any = { id: 'openai_assistants.id' };
 const z = { ZodError: class {} } as any;
@@ -6385,6 +6385,36 @@ New Age Fotografie Team`;
       res.status(500).json({ 
         success: false, 
         error: 'Failed to get email settings: ' + (error as Error).message 
+      });
+    }
+  });
+
+  // ==================== SENT EMAILS ENDPOINT ====================
+  // Fetch all sent emails from crm_messages
+  app.get("/api/emails/sent", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      // Get sent emails from crm_messages table
+      // These are marked with status='sent', 'demo_sent', or messageType='sent'
+      const sentEmails = await db
+        .select()
+        .from(crmMessages)
+        .where(
+          or(
+            eq(crmMessages.status, 'sent'),
+            eq(crmMessages.status, 'demo_sent'),
+            eq(crmMessages.messageType, 'sent')
+          )
+        )
+        .orderBy(desc(crmMessages.createdAt))
+        .limit(100);
+
+      console.log(`Fetched ${sentEmails.length} sent emails from database`);
+      res.json(sentEmails);
+    } catch (error) {
+      console.error('Error fetching sent emails:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch sent emails',
+        message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
