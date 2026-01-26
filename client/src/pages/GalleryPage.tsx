@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
-import GalleryAuthForm from '../components/galleries/GalleryAuthForm';
 import ImageGrid from '../components/galleries/ImageGrid';
 import Slideshow from '../components/galleries/Slideshow';
-import { getGalleryBySlug, getPublicGalleryImages } from '../lib/gallery-api';
+import { getGalleryBySlug, getPublicGalleryImages, authenticateGallery } from '../lib/gallery-api';
 import { Gallery, GalleryImage } from '../types/gallery';
-import { ArrowLeft, Download, Share2, Heart, Loader2, AlertCircle, Play } from 'lucide-react';
+import { ArrowLeft, Download, Share2, Heart, Loader2, AlertCircle, Play, Lock, Mail } from 'lucide-react';
 
 const GalleryPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -22,6 +21,14 @@ const GalleryPage: React.FC = () => {
   const [ratingFilter, setRatingFilter] = useState<'all' | 'love' | 'maybe' | 'reject'>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Auth form state
+  const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [password, setPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     if (slug) {
@@ -111,6 +118,43 @@ const GalleryPage: React.FC = () => {
     
     // Log access event
     logGalleryAccess(token);
+  };
+
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email) {
+      setAuthError('Email is required');
+      return;
+    }
+    
+    const isPasswordProtected = gallery?.isPasswordProtected || !!gallery?.password;
+    if (isPasswordProtected && !password) {
+      setAuthError('Password is required');
+      return;
+    }
+    
+    try {
+      setAuthLoading(true);
+      setAuthError(null);
+      
+      const { token } = await authenticateGallery(slug || '', { 
+        email, 
+        firstName,
+        lastName,
+        password: isPasswordProtected ? password : undefined 
+      });
+      
+      // Store token in localStorage for persistence
+      localStorage.setItem(`gallery_token_${slug}`, token);
+      
+      // Notify parent component
+      handleAuthenticated(token);
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : 'Authentication failed. Please try again.');
+    } finally {
+      setAuthLoading(false);
+    }
   };
 
   const logGalleryAccess = async (token: string) => {
@@ -259,174 +303,152 @@ const GalleryPage: React.FC = () => {
     return <Navigate to="/galleries" replace />;
   }
 
-  return (
-    <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <Link to="/galleries" className="inline-flex items-center text-purple-600 hover:text-purple-800 mb-6 transition-colors">
-          <ArrowLeft size={16} className="mr-1" />
-          Zurück zu allen Galerien
-        </Link>
+  // Full-screen login view (not authenticated)
+  if (!isAuthenticated && gallery) {
+    const isPasswordProtected = gallery.isPasswordProtected || !!gallery.password;
+    
+    return (
+      <div className="fixed inset-0 w-full h-full">
+        {/* Full-screen background image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ 
+            backgroundImage: gallery.coverImage 
+              ? `url(${gallery.coverImage})` 
+              : 'linear-gradient(to right, #4a044e, #701a75)'
+          }}
+        />
         
-        {loading && !gallery ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 text-purple-600 animate-spin" />
-            <span className="ml-2 text-gray-600">Loading gallery...</span>
-          </div>
-        ) : error && !gallery ? (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start">
-            <AlertCircle className="h-5 w-5 text-red-400 mt-0.5 mr-2" />
-            <span>{error}</span>
-          </div>
-        ) : gallery ? (
-          <>
-            {/* Gallery Header */}
-            <div className="mb-8 text-center">
-              <h1 className="text-4xl font-bold text-gray-900 mb-4">{gallery.title}</h1>
-              {gallery.description && (
-                <p className="text-lg text-gray-600 max-w-2xl mx-auto">{gallery.description}</p>
+        {/* Left side overlay with login form */}
+        <div className="absolute left-0 top-0 bottom-0 w-full md:w-[45%] lg:w-[40%] bg-black/50 backdrop-blur-sm flex flex-col justify-between p-8 md:p-12">
+          {/* Gallery Title */}
+          <div className="flex-1 flex flex-col justify-center">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-light text-white tracking-[0.3em] uppercase mb-2">
+              {gallery.title.split(' ').slice(0, -1).join(' ')}
+            </h1>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-light text-white tracking-[0.3em] uppercase">
+              {gallery.title.split(' ').slice(-1)[0]}
+            </h2>
+            
+            {/* Divider line */}
+            <div className="w-16 h-0.5 bg-white/50 my-8" />
+            
+            {/* Auth Form */}
+            <form onSubmit={handleAuthSubmit} className="space-y-4 max-w-sm">
+              {authError && (
+                <div className="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-3 rounded flex items-start text-sm">
+                  <AlertCircle className="h-4 w-4 mt-0.5 mr-2 flex-shrink-0" />
+                  <span>{authError}</span>
+                </div>
               )}
-            </div>
-
-            {/* Cover Image Hero */}
-            {gallery.coverImage && (
-              <div className="mb-8 rounded-2xl overflow-hidden shadow-2xl max-w-5xl mx-auto">
-                <img 
-                  src={gallery.coverImage} 
-                  alt={gallery.title}
-                  className="w-full h-auto object-cover"
-                  style={{ maxHeight: '600px', objectFit: 'cover' }}
+              
+              <div>
+                <label className="block text-xs text-white/70 uppercase tracking-wider mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-transparent border-b border-white/30 text-white placeholder-white/40 py-2 px-0 focus:outline-none focus:border-white/70 transition-colors"
+                  placeholder=""
+                  required
                 />
               </div>
-            )}
-            
-            {/* Authentication Form or Gallery Content */}
-            {!isAuthenticated ? (
-              <GalleryAuthForm 
-                gallerySlug={slug || ''} 
-                isPasswordProtected={gallery.isPasswordProtected || !!gallery.password}
-                onAuthenticated={handleAuthenticated}
-              />
-            ) : (
-              <div className="space-y-6">
-                {/* Action Bar */}
-                <div className="bg-white rounded-lg shadow-sm p-4 flex flex-wrap items-center justify-between gap-4 border border-gray-200">
-                  <div className="flex items-center space-x-4">
-                    <button
-                      onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                      className={`inline-flex items-center px-4 py-2 border ${
-                        showFavoritesOnly
-                          ? 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100'
-                          : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                      } rounded-lg shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors`}
-                    >
-                      <Heart size={16} className={`mr-2 ${showFavoritesOnly ? 'fill-current' : ''}`} />
-                      {showFavoritesOnly ? 'Alle anzeigen' : 'Favoriten anzeigen'}
-                    </button>
-
-                    {/* Rating Filter */}
-                    <select
-                      value={ratingFilter}
-                      onChange={(e) => setRatingFilter(e.target.value as any)}
-                      className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors cursor-pointer"
-                    >
-                      <option value="all">All Ratings</option>
-                      <option value="love">😊 Love</option>
-                      <option value="maybe">😐 Maybe</option>
-                      <option value="reject">☹️ Reject</option>
-                    </select>
-                    
-                    {gallery.downloadEnabled && (
-                      <button
-                        onClick={handleDownloadAll}
-                        className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
-                      >
-                        <Download size={16} className="mr-2" />
-                        Alle herunterladen
-                      </button>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center space-x-3">
-                    {selectedForSlideshow.size > 0 && (
-                      <button
-                        onClick={handleRunSlideshow}
-                        className="inline-flex items-center px-4 py-2 border-2 border-green-500 shadow-sm text-sm font-medium rounded-lg text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
-                      >
-                        <Play size={16} className="mr-2" />
-                        Run Slideshow ({selectedForSlideshow.size})
-                      </button>
-                    )}
-                    
-                    <button
-                      onClick={handleShare}
-                      className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
-                    >
-                      <Share2 size={16} className="mr-2" />
-                      Galerie teilen
-                    </button>
-                  </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-white/70 uppercase tracking-wider mb-2">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className="w-full bg-transparent border-b border-white/30 text-white placeholder-white/40 py-2 px-0 focus:outline-none focus:border-white/70 transition-colors"
+                    placeholder=""
+                  />
                 </div>
-                
-                {/* Image Grid */}
-                {loading ? (
-                  <div className="flex items-center justify-center h-64">
-                    <Loader2 className="h-8 w-8 text-purple-600 animate-spin" />
-                    <span className="ml-2 text-gray-600">Loading images...</span>
-                  </div>
-                ) : error ? (
-                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start">
-                    <AlertCircle className="h-5 w-5 text-red-400 mt-0.5 mr-2" />
-                    <span>{error}</span>
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-                    <ImageGrid 
-                      images={filteredImages} 
-                      galleryId={gallery.id}
-                      isPublic={true}
-                      authToken={authToken}
-                      downloadEnabled={gallery.downloadEnabled}
-                      favorites={favorites}
-                      onToggleFavorite={toggleFavorite}
-                      selectedForSlideshow={selectedForSlideshow}
-                      onToggleSelection={handleToggleSelection}
-                    />
-                    
-                    {showFavoritesOnly && filteredImages.length === 0 && (
-                      <div className="text-center py-12">
-                        <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">Noch keine Favoriten</h3>
-                        <p className="text-gray-500">
-                          Sie haben noch keine Bilder zu Ihren Favoriten hinzugefügt.
-                        </p>
-                        <button
-                          onClick={() => setShowFavoritesOnly(false)}
-                          className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 transition-colors"
-                        >
-                          Alle Bilder anzeigen
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div>
+                  <label className="block text-xs text-white/70 uppercase tracking-wider mb-2">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className="w-full bg-transparent border-b border-white/30 text-white placeholder-white/40 py-2 px-0 focus:outline-none focus:border-white/70 transition-colors"
+                    placeholder=""
+                  />
+                </div>
               </div>
-            )}
-          </>
-        ) : (
+              
+              {isPasswordProtected && (
+                <div>
+                  <label className="block text-xs text-white/70 uppercase tracking-wider mb-2">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full bg-transparent border-b border-white/30 text-white placeholder-white/40 py-2 px-0 focus:outline-none focus:border-white/70 transition-colors"
+                    placeholder=""
+                    required
+                  />
+                </div>
+              )}
+              
+              <button
+                type="submit"
+                disabled={authLoading}
+                className="mt-6 w-full bg-white/20 hover:bg-white/30 border border-white/30 text-white uppercase tracking-[0.2em] py-3 px-6 text-sm font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {authLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Open Gallery'
+                )}
+              </button>
+            </form>
+          </div>
+          
+          {/* Logo at bottom */}
+          <div className="mt-8">
+            <Link to="/" className="inline-block">
+              <div className="border-2 border-pink-500 p-2 inline-block">
+                <div className="text-white text-xs tracking-wider">
+                  <span className="text-pink-500 font-semibold">NEW AGE</span>
+                  <br />
+                  <span className="text-white">FOTOGRAFIE</span>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </div>
+        
+        {/* Loading overlay */}
+        {loading && (
+          <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 text-white animate-spin" />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Gallery not found view
+  if (!gallery && !loading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
           <div className="text-center py-12 bg-white rounded-lg shadow">
             <div className="mx-auto h-12 w-12 text-gray-400">
-              <svg
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
-                />
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
               </svg>
             </div>
             <h3 className="mt-2 text-sm font-medium text-gray-900">Gallery not found</h3>
@@ -436,12 +458,150 @@ const GalleryPage: React.FC = () => {
             <div className="mt-6">
               <Link
                 to="/"
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
               >
                 Return to home
               </Link>
             </div>
           </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Loading state
+  if (loading && !gallery) {
+    return (
+      <div className="fixed inset-0 w-full h-full bg-gray-900 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 text-white animate-spin" />
+        <span className="ml-2 text-white">Loading gallery...</span>
+      </div>
+    );
+  }
+
+  // Authenticated view - show gallery content
+  return (
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
+        <Link to="/galleries" className="inline-flex items-center text-purple-600 hover:text-purple-800 mb-6 transition-colors">
+          <ArrowLeft size={16} className="mr-1" />
+          Zurück zu allen Galerien
+        </Link>
+        
+        {gallery && (
+          <>
+            {/* Gallery Header */}
+            <div className="mb-8 text-center">
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">{gallery.title}</h1>
+              {gallery.description && (
+                <p className="text-lg text-gray-600 max-w-2xl mx-auto">{gallery.description}</p>
+              )}
+            </div>
+            
+            <div className="space-y-6">
+              {/* Action Bar */}
+              <div className="bg-white rounded-lg shadow-sm p-4 flex flex-wrap items-center justify-between gap-4 border border-gray-200">
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                    className={`inline-flex items-center px-4 py-2 border ${
+                      showFavoritesOnly
+                        ? 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100'
+                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                    } rounded-lg shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors`}
+                  >
+                    <Heart size={16} className={`mr-2 ${showFavoritesOnly ? 'fill-current' : ''}`} />
+                    {showFavoritesOnly ? 'Alle anzeigen' : 'Favoriten anzeigen'}
+                  </button>
+
+                  {/* Rating Filter */}
+                  <select
+                    value={ratingFilter}
+                    onChange={(e) => setRatingFilter(e.target.value as any)}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors cursor-pointer"
+                  >
+                    <option value="all">All Ratings</option>
+                    <option value="love">😊 Love</option>
+                    <option value="maybe">😐 Maybe</option>
+                    <option value="reject">☹️ Reject</option>
+                  </select>
+                  
+                  {gallery.downloadEnabled && (
+                    <button
+                      onClick={handleDownloadAll}
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+                    >
+                      <Download size={16} className="mr-2" />
+                      Alle herunterladen
+                    </button>
+                  )}
+                </div>
+                
+                <div className="flex items-center space-x-3">
+                  {selectedForSlideshow.size > 0 && (
+                    <button
+                      onClick={handleRunSlideshow}
+                      className="inline-flex items-center px-4 py-2 border-2 border-green-500 shadow-sm text-sm font-medium rounded-lg text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                    >
+                      <Play size={16} className="mr-2" />
+                      Run Slideshow ({selectedForSlideshow.size})
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={handleShare}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+                  >
+                    <Share2 size={16} className="mr-2" />
+                    Galerie teilen
+                  </button>
+                </div>
+              </div>
+              
+              {/* Image Grid */}
+              {loading ? (
+                <div className="flex items-center justify-center h-64">
+                  <Loader2 className="h-8 w-8 text-purple-600 animate-spin" />
+                  <span className="ml-2 text-gray-600">Loading images...</span>
+                </div>
+              ) : error ? (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start">
+                  <AlertCircle className="h-5 w-5 text-red-400 mt-0.5 mr-2" />
+                  <span>{error}</span>
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                  <ImageGrid 
+                    images={filteredImages} 
+                    galleryId={gallery.id}
+                    isPublic={true}
+                    authToken={authToken}
+                    downloadEnabled={gallery.downloadEnabled}
+                    favorites={favorites}
+                    onToggleFavorite={toggleFavorite}
+                    selectedForSlideshow={selectedForSlideshow}
+                    onToggleSelection={handleToggleSelection}
+                  />
+                  
+                  {showFavoritesOnly && filteredImages.length === 0 && (
+                    <div className="text-center py-12">
+                      <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Noch keine Favoriten</h3>
+                      <p className="text-gray-500">
+                        Sie haben noch keine Bilder zu Ihren Favoriten hinzugefügt.
+                      </p>
+                      <button
+                        onClick={() => setShowFavoritesOnly(false)}
+                        className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 transition-colors"
+                      >
+                        Alle Bilder anzeigen
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
       
