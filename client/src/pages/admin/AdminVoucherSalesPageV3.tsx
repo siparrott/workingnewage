@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "../../components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -149,6 +149,9 @@ export default function AdminVoucherSalesPageV3() {
   // State for image upload
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedThumbnail, setUploadedThumbnail] = useState<string | null>(null);
+  // CRITICAL: Use refs to always have the latest value (avoids React closure issues)
+  const uploadedImageRef = useRef<string | null>(null);
+  const uploadedThumbnailRef = useRef<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isImportingPackages, setIsImportingPackages] = useState(false);
   const [isImportingNewborn, setIsImportingNewborn] = useState(false);
@@ -374,6 +377,9 @@ export default function AdminVoucherSalesPageV3() {
       // Reset query cache entirely for voucher products
       queryClient.removeQueries({ queryKey: ["/api/vouchers/products"] });
       setIsProductDialogOpen(false);
+      // CRITICAL: Clear both refs and state
+      uploadedImageRef.current = null;
+      uploadedThumbnailRef.current = null;
       setUploadedImage(null);
       setUploadedThumbnail(null);
       productForm.reset();
@@ -471,6 +477,9 @@ export default function AdminVoucherSalesPageV3() {
       queryClient.removeQueries({ queryKey: ["/api/vouchers/products"] });
       setIsProductDialogOpen(false);
       setSelectedProduct(null);
+      // CRITICAL: Clear both refs and state
+      uploadedImageRef.current = null;
+      uploadedThumbnailRef.current = null;
       setUploadedImage(null);
       setUploadedThumbnail(null);
       productForm.reset();
@@ -615,6 +624,10 @@ export default function AdminVoucherSalesPageV3() {
       console.log('[IMAGE UPLOAD] ✅ Upload successful!');
       console.log('[IMAGE UPLOAD] Full URL:', data.url);
       console.log('[IMAGE UPLOAD] Thumbnail URL:', data.thumbnailUrl);
+      // CRITICAL: Set ref FIRST (synchronous, no closure issues)
+      uploadedImageRef.current = data.url;
+      uploadedThumbnailRef.current = data.thumbnailUrl || null;
+      // Then set state for UI updates
       setUploadedImage(data.url);
       setUploadedThumbnail(data.thumbnailUrl || null);
       // If editing an existing product, store temp image to show immediately on product card
@@ -642,6 +655,9 @@ export default function AdminVoucherSalesPageV3() {
   // Handlers
   const handleCreateProduct = () => {
     setSelectedProduct(null);
+    // CRITICAL: Clear both ref and state
+    uploadedImageRef.current = null;
+    uploadedThumbnailRef.current = null;
     setUploadedImage(null);
     setUploadedThumbnail(null);
     setIsProductDialogOpen(false); // Close first
@@ -667,6 +683,9 @@ export default function AdminVoucherSalesPageV3() {
     console.log('[EDIT PRODUCT] Existing thumbnailUrl:', (product as any).thumbnailUrl || (product as any).thumbnail_url || null);
     
     setSelectedProduct(product);
+    // CRITICAL: Set both ref and state
+    uploadedImageRef.current = product.imageUrl;
+    uploadedThumbnailRef.current = (product as any).thumbnailUrl || (product as any).thumbnail_url || null;
     setUploadedImage(product.imageUrl);
     setUploadedThumbnail((product as any).thumbnailUrl || (product as any).thumbnail_url || null);
     
@@ -795,23 +814,33 @@ export default function AdminVoucherSalesPageV3() {
     console.log('[HANDLE PRODUCT SUBMIT] Form data received:', data);
     console.log('[HANDLE PRODUCT SUBMIT] selectedProduct:', selectedProduct);
     console.log('[HANDLE PRODUCT SUBMIT] uploadedImage state:', uploadedImage);
+    console.log('[HANDLE PRODUCT SUBMIT] uploadedImageRef.current:', uploadedImageRef.current);
     console.log('[HANDLE PRODUCT SUBMIT] uploadedThumbnail state:', uploadedThumbnail);
+    console.log('[HANDLE PRODUCT SUBMIT] uploadedThumbnailRef.current:', uploadedThumbnailRef.current);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    
+    // CRITICAL: Use refs instead of state to get the LATEST value (avoids React closure issues)
+    const currentImageUrl = uploadedImageRef.current;
+    const currentThumbnailUrl = uploadedThumbnailRef.current;
+    
+    console.log('[HANDLE PRODUCT SUBMIT] Using currentImageUrl:', currentImageUrl);
+    console.log('[HANDLE PRODUCT SUBMIT] Using currentThumbnailUrl:', currentThumbnailUrl);
+    
     if (selectedProduct) {
-      // Pass image URLs directly to avoid closure issues
+      // Pass image URLs directly from refs
       updateProductMutation.mutate({ 
         ...data, 
         id: selectedProduct.id,
-        _imageUrl: uploadedImage,
-        _thumbnailUrl: uploadedThumbnail,
+        _imageUrl: currentImageUrl,
+        _thumbnailUrl: currentThumbnailUrl,
         _existingImageUrl: selectedProduct.imageUrl,
         _existingThumbnailUrl: (selectedProduct as any).thumbnailUrl
       });
     } else {
       createProductMutation.mutate({
         ...data,
-        _imageUrl: uploadedImage,
-        _thumbnailUrl: uploadedThumbnail
+        _imageUrl: currentImageUrl,
+        _thumbnailUrl: currentThumbnailUrl
       });
     }
   };
