@@ -100,7 +100,9 @@ export class EnhancedEmailService {
     try {
       // Initialize if not already done
       if (!this.transporter) {
-        await this.initialize();
+        console.log('📧 Transporter not initialized, initializing now...');
+        const initResult = await this.initialize();
+        console.log('📧 Initialize result:', initResult, 'Transporter exists:', !!this.transporter);
       }
 
       // Auto-link to client if requested
@@ -185,6 +187,13 @@ export class EnhancedEmailService {
 
     } catch (error) {
       console.error('❌ Failed to send email:', error);
+      console.error('❌ SMTP Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        code: (error as any)?.code,
+        command: (error as any)?.command,
+        responseCode: (error as any)?.responseCode,
+        response: (error as any)?.response,
+      });
       
       // Fallback to demo mode on SMTP errors
       console.log('📧 Falling back to demo mode due to SMTP error');
