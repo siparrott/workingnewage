@@ -352,16 +352,28 @@ const Footer: React.FC = () => {
                   </li>
                 </>
               ) : (
-                <li className="pt-2">
-                  <Link 
-                    to="/gallery"
-                    onClick={scrollToTop}
-                    className="text-purple-400 hover:text-purple-300 transition-colors flex items-center text-sm"
-                  >
-                    <User size={16} className="mr-2" />
-                    {t('footer.clientLogin')}
-                  </Link>
-                </li>
+                <>
+                  <li className="pt-2">
+                    <Link 
+                      to="/galleries"
+                      onClick={scrollToTop}
+                      className="text-gray-300 hover:text-white transition-colors flex items-center text-sm"
+                    >
+                      <User size={16} className="mr-2" />
+                      {t('footer.clientGallery')}
+                    </Link>
+                  </li>
+                  <li className="pt-2">
+                    <Link 
+                      to="/admin"
+                      onClick={scrollToTop}
+                      className="text-purple-400 hover:text-purple-300 transition-colors flex items-center text-sm"
+                    >
+                      <LogIn size={16} className="mr-2" />
+                      {t('footer.adminLogin')}
+                    </Link>
+                  </li>
+                </>
               )}
             </ul>
           </div>
