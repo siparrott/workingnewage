@@ -7598,77 +7598,118 @@ New Age Fotografie Team`;
   });
 
   // ==================== AUTOMATIC EMAIL IMPORT SERVICE ====================
-  // Background email import service
+  // Background email import service with rate limiting and crash protection
   let emailImportInterval: NodeJS.Timeout | null = null;
   let lastEmailImportTime = 0;
+  let isEmailImportRunning = false; // Mutex to prevent concurrent imports
+  
+  const EMAIL_IMPORT_INTERVAL_MS = 2 * 60 * 60 * 1000; // 2 hours (safe interval)
+  const EMAIL_IMPORT_TIMEOUT_MS = 90 * 1000; // 90 second timeout per import
   
   const startBackgroundEmailImport = () => {
-    // DON'T START if in demo mode or no SMTP configured
+    // DON'T START if in demo mode
     if (process.env.DEMO_MODE === 'true') {
       console.log('📧 Email import disabled in demo mode');
       return;
     }
     
-    if (!process.env.EMAIL_PASSWORD && !process.env.SMTP_PASS) {
-      console.log('📧 Email import disabled - no SMTP credentials configured');
+    // Check for either EMAIL_PASSWORD or SMTP_PASS
+    const emailPassword = process.env.EMAIL_PASSWORD || process.env.SMTP_PASS;
+    if (!emailPassword) {
+      console.log('📧 Email import disabled - no email credentials configured');
       return;
     }
     
-    // Smart email import with duplicate prevention
+    // Clear any existing interval
     if (emailImportInterval) {
       clearInterval(emailImportInterval);
     }
     
+    // Initial import after 30 seconds (give server time to start)
+    setTimeout(() => {
+      if (!isEmailImportRunning) {
+        runSafeEmailImport();
+      }
+    }, 30 * 1000);
+    
+    // Set up recurring import every 2 hours
     emailImportInterval = setInterval(async () => {
-      try {
-        // Get last import timestamp to only fetch new emails
-        const lastImportTime = await getLastEmailImportTime();
+      await runSafeEmailImport();
+    }, EMAIL_IMPORT_INTERVAL_MS);
+    
+    console.log('✅ Background email import service started (every 2 hours)');
+  };
+  
+  // Safe email import with mutex, timeout, and error handling
+  const runSafeEmailImport = async () => {
+    // Mutex check - skip if already running
+    if (isEmailImportRunning) {
+      console.log('📧 Email import already in progress, skipping...');
+      return;
+    }
+    
+    isEmailImportRunning = true;
+    const importStartTime = Date.now();
+    
+    try {
+      console.log('📧 Starting scheduled email import...');
+      
+      // Set a timeout for the entire import operation
+      const importPromise = importEmailsFromIMAP({
+        host: 'imap.easyname.com',
+        port: 993,
+        username: '30840mail10',
+        password: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || '',
+        useTLS: true
+      });
+      
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Email import timeout')), EMAIL_IMPORT_TIMEOUT_MS);
+      });
+      
+      const importedEmails = await Promise.race([importPromise, timeoutPromise]);
+      
+      // Store only genuinely new emails with duplicate prevention
+      let newEmailCount = 0;
+      
+      for (const email of importedEmails) {
+        const isDuplicate = await checkEmailExists(email);
         
-        const importedEmails = await importEmailsFromIMAP({
-          host: 'imap.easyname.com',
-          port: 993,
-          username: '30840mail10',
-          password: process.env.EMAIL_PASSWORD || 'HoveBN41!',
-          useTLS: true,
-          since: lastImportTime // Only fetch emails since last import
-        } as any);
-
-        // Store only genuinely new emails with advanced duplicate prevention
-        let newEmailCount = 0;
-        
-        for (const email of importedEmails) {
-          // Advanced duplicate check using multiple criteria
-          const isDuplicate = await checkEmailExists(email);
-          
-          if (!isDuplicate) {
-            try {
-              await storage.createCrmMessage({
-                senderName: email.fromName,
-                senderEmail: email.from,
-                subject: email.subject,
-                content: email.body,
-                status: email.isRead ? 'read' : 'unread'
-              });
-              newEmailCount++;
-            } catch (error) {
-              // Skip email if database constraint violation (duplicate)
-              if (!error.message.includes('unique') && !error.message.includes('duplicate')) {
-                console.error('Failed to save email:', error);
-              }
+        if (!isDuplicate) {
+          try {
+            await storage.createCrmMessage({
+              senderName: email.fromName,
+              senderEmail: email.from,
+              subject: email.subject,
+              content: email.body,
+              status: email.isRead ? 'read' : 'unread'
+            });
+            newEmailCount++;
+          } catch (error: any) {
+            // Skip silently on duplicate constraint violations
+            if (!error.message?.includes('unique') && !error.message?.includes('duplicate')) {
+              console.error('📧 Failed to save email:', error.message);
             }
           }
         }
-        
-        if (newEmailCount > 0) {
-          lastEmailImportTime = Date.now();
-          await updateLastEmailImportTime(lastEmailImportTime);
-        }
-      } catch (error) {
-        // Background email import failed: error
       }
-    }, 30 * 60 * 1000); // Run every 30 minutes (reduced from 2 min to prevent server overload)
-    
-    console.log('✅ Background email import service started (every 30 minutes)');
+      
+      const duration = ((Date.now() - importStartTime) / 1000).toFixed(1);
+      
+      if (newEmailCount > 0) {
+        lastEmailImportTime = Date.now();
+        console.log(`📧 Email import complete: ${newEmailCount} new emails imported in ${duration}s`);
+      } else {
+        console.log(`📧 Email import complete: no new emails (checked ${importedEmails.length} emails in ${duration}s)`);
+      }
+      
+    } catch (error: any) {
+      const duration = ((Date.now() - importStartTime) / 1000).toFixed(1);
+      console.error(`📧 Email import failed after ${duration}s:`, error.message);
+      // Don't throw - let the server continue running
+    } finally {
+      isEmailImportRunning = false;
+    }
   };
 
   // Helper functions for smart email import
@@ -7719,15 +7760,23 @@ New Age Fotografie Team`;
     }
   }
 
-  // Disabled background email import to prevent server overload
-  // startBackgroundEmailImport();
+  // Enable background email import with safe rate limiting
+  startBackgroundEmailImport();
 
   // Endpoint to get email import status
   app.get("/api/email/import-status", authenticateUser, async (req: Request, res: Response) => {
+    const now = Date.now();
+    const nextImportIn = lastEmailImportTime 
+      ? Math.max(0, EMAIL_IMPORT_INTERVAL_MS - (now - lastEmailImportTime))
+      : EMAIL_IMPORT_INTERVAL_MS;
+      
     res.json({ 
       isRunning: emailImportInterval !== null,
-      lastImportTime: lastEmailImportTime,
-      nextImportIn: lastEmailImportTime ? (5 * 60 * 1000) - (Date.now() - lastEmailImportTime) : 0
+      isCurrentlyImporting: isEmailImportRunning,
+      lastImportTime: lastEmailImportTime ? new Date(lastEmailImportTime).toISOString() : null,
+      nextImportIn: nextImportIn,
+      nextImportInMinutes: Math.round(nextImportIn / 60000),
+      intervalHours: EMAIL_IMPORT_INTERVAL_MS / (60 * 60 * 1000)
     });
   });
 
