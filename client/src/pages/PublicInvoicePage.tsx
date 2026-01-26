@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Download, MessageCircle, Printer } from 'lucide-react';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { Download, MessageCircle, Printer, CheckCircle, XCircle } from 'lucide-react';
 import InvoiceTemplate from '../components/invoice/InvoiceTemplate';
 
 interface Invoice {
@@ -17,13 +17,18 @@ interface Invoice {
   due_date: string;
   payment_terms: string;
   notes?: string;
+  footer_text?: string;
+  paid_amount?: number;
   created_at: string;
   client?: {
     name: string;
     email: string;
     address1?: string;
+    address2?: string;
+    zip?: string;
     city?: string;
     country?: string;
+    phone?: string;
   };
   items?: Array<{
     description: string;
@@ -31,44 +36,144 @@ interface Invoice {
     unit_price: number;
     tax_rate: number;
     line_total: number;
+    note?: string;
   }>;
 }
 
 const PublicInvoicePage: React.FC = () => {
   const { invoiceId } = useParams<{ invoiceId: string }>();
+  const [searchParams] = useSearchParams();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<'success' | 'cancelled' | null>(null);
+
+  // Check for payment result from URL params
+  useEffect(() => {
+    const payment = searchParams.get('payment');
+    const sessionId = searchParams.get('session_id');
+    
+    if (payment === 'success' && sessionId && invoiceId) {
+      setPaymentStatus('success');
+      // Verify payment with backend
+      verifyPayment(invoiceId, sessionId);
+    } else if (payment === 'cancelled') {
+      setPaymentStatus('cancelled');
+    }
+  }, [searchParams, invoiceId]);
+
+  const verifyPayment = async (invId: string, sessionId: string) => {
+    try {
+      const response = await fetch(`/api/invoices/${invId}/payment-status?session_id=${sessionId}`);
+      if (response.ok) {
+        // Refresh invoice data to show updated status
+        fetchInvoice();
+      }
+    } catch (err) {
+      console.error('Error verifying payment:', err);
+    }
+  };
+
+  const fetchInvoice = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/invoices/public/${invoiceId}`);
+      
+      if (!response.ok) {
+        throw new Error('Invoice not found');
+      }
+      
+      const data = await response.json();
+      
+      // Map the API response to our Invoice interface
+      const mappedInvoice: Invoice = {
+        id: data.id,
+        invoice_number: data.invoiceNumber || data.invoice_number,
+        client_id: data.clientId || data.client_id,
+        amount: parseFloat(data.subtotal || '0'),
+        tax_amount: parseFloat(data.taxAmount || data.tax_amount || '0'),
+        total_amount: parseFloat(data.total || data.total_amount || '0'),
+        subtotal_amount: parseFloat(data.subtotal || data.subtotal_amount || '0'),
+        discount_amount: parseFloat(data.discountAmount || data.discount_amount || '0'),
+        currency: data.currency || 'EUR',
+        status: data.status || 'draft',
+        due_date: data.dueDate || data.due_date,
+        payment_terms: data.paymentTerms || data.payment_terms || 'Net 30',
+        notes: data.notes,
+        footer_text: data.footerText || data.footer_text,
+        paid_amount: parseFloat(data.paidAmount || data.paid_amount || '0'),
+        created_at: data.createdAt || data.created_at || data.issueDate,
+        client: data.client ? {
+          name: `${data.client.firstName || ''} ${data.client.lastName || ''}`.trim() || data.client.name || 'Customer',
+          email: data.client.email || '',
+          address1: data.client.address || data.client.address1,
+          address2: data.client.address2,
+          zip: data.client.zip,
+          city: data.client.city,
+          country: data.client.country,
+          phone: data.client.phone,
+        } : undefined,
+        items: data.items?.map((item: any) => ({
+          description: item.description,
+          quantity: parseFloat(item.quantity || '1'),
+          unit_price: parseFloat(item.unitPrice || item.unit_price || '0'),
+          tax_rate: parseFloat(item.taxRate || item.tax_rate || '0'),
+          line_total: parseFloat(item.unitPrice || item.unit_price || '0') * parseFloat(item.quantity || '1'),
+          note: item.note,
+        })) || [],
+      };
+      
+      setInvoice(mappedInvoice);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load invoice');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchInvoice = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/invoices/public/${invoiceId}`);
-        
-        if (!response.ok) {
-          throw new Error('Invoice not found');
-        }
-        
-        const data = await response.json();
-        setInvoice(data);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load invoice');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (invoiceId) {
       fetchInvoice();
     }
   }, [invoiceId]);
 
+  const handlePayNow = async () => {
+    if (!invoice || isProcessingPayment) return;
+    
+    try {
+      setIsProcessingPayment(true);
+      
+      const response = await fetch(`/api/invoices/${invoice.id}/create-payment-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to create payment session');
+      }
+      
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No payment URL returned');
+      }
+    } catch (err: any) {
+      console.error('Payment error:', err);
+      alert(err.message || 'Failed to initiate payment. Please try again.');
+      setIsProcessingPayment(false);
+    }
+  };
+
   const handleDownloadPDF = async () => {
     if (!invoice) return;
     
     try {
-      // Use the public-accessible PDF endpoint without authentication
       const response = await fetch(`/api/crm/invoices/${invoice.id}/pdf`, {
         method: 'GET',
         credentials: 'include',
@@ -83,7 +188,6 @@ const PublicInvoicePage: React.FC = () => {
       
       const blob = await response.blob();
       
-      // Create download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.style.display = 'none';
@@ -92,11 +196,8 @@ const PublicInvoicePage: React.FC = () => {
       document.body.appendChild(a);
       a.click();
       
-      // Cleanup
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
-      alert('PDF downloaded successfully!');
     } catch (error) {
       console.error('PDF download failed:', error);
       alert('PDF download failed. Please try again.');
@@ -117,7 +218,7 @@ const PublicInvoicePage: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading invoice...</p>
         </div>
       </div>
@@ -135,7 +236,7 @@ const PublicInvoicePage: React.FC = () => {
           </p>
           <a 
             href="https://newagefotografie.com" 
-            className="text-blue-600 hover:text-blue-800 underline"
+            className="text-purple-600 hover:text-purple-800 underline"
           >
             Return to New Age Fotografie
           </a>
@@ -146,10 +247,29 @@ const PublicInvoicePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Payment Status Banner */}
+      {paymentStatus === 'success' && (
+        <div className="bg-green-600 text-white py-4">
+          <div className="max-w-4xl mx-auto px-4 flex items-center justify-center">
+            <CheckCircle className="w-6 h-6 mr-2" />
+            <span className="font-medium">Payment successful! Thank you for your payment.</span>
+          </div>
+        </div>
+      )}
+      
+      {paymentStatus === 'cancelled' && (
+        <div className="bg-yellow-500 text-white py-4">
+          <div className="max-w-4xl mx-auto px-4 flex items-center justify-center">
+            <XCircle className="w-6 h-6 mr-2" />
+            <span className="font-medium">Payment was cancelled. You can try again using the Pay Now button.</span>
+          </div>
+        </div>
+      )}
+
       {/* Header with Actions */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-white shadow-sm border-b no-print">
         <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h1 className="text-xl font-semibold text-gray-900">
                 Invoice #{invoice.invoice_number}
@@ -159,7 +279,7 @@ const PublicInvoicePage: React.FC = () => {
               </p>
             </div>
             
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 flex-wrap gap-2">
               <button
                 onClick={handleWhatsAppContact}
                 className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -191,25 +311,30 @@ const PublicInvoicePage: React.FC = () => {
       {/* Invoice Content */}
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          <InvoiceTemplate invoice={invoice} />
+          <InvoiceTemplate 
+            invoice={invoice}
+            showPayButton={true}
+            onPayNow={handlePayNow}
+            isProcessingPayment={isProcessingPayment}
+          />
         </div>
       </div>
 
       {/* Footer */}
-      <div className="bg-white border-t">
+      <div className="bg-white border-t no-print">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="text-center text-sm text-gray-600">
             <p className="mb-2">
               Questions about this invoice? Contact us on WhatsApp or email us at{' '}
               <a 
                 href="mailto:hallo@newagefotografie.com"
-                className="text-blue-600 hover:text-blue-800"
+                className="text-purple-600 hover:text-purple-800"
               >
                 hallo@newagefotografie.com
               </a>
             </p>
             <p>
-              © 2025 New Age Fotografie - Professional Photography Services in Vienna
+              © 2026 New Age Fotografie - Professional Photography Services in Vienna
             </p>
           </div>
         </div>

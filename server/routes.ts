@@ -4638,6 +4638,229 @@ New Age Fotografie Team`;
     }
   });
 
+  // ==================== INVOICE STRIPE PAYMENT ROUTES ====================
+  
+  // Create Stripe Checkout Session for invoice payment
+  app.post("/api/invoices/:id/create-payment-session", async (req: Request, res: Response) => {
+    try {
+      if (!stripe || !stripeConfigured) {
+        return res.status(503).json({ 
+          success: false, 
+          error: "Payment service not configured" 
+        });
+      }
+
+      const invoiceId = req.params.id;
+      const invoice = await storage.getCrmInvoice(invoiceId);
+      
+      if (!invoice) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Invoice not found" 
+        });
+      }
+
+      // Check if already paid
+      if (invoice.status === 'paid') {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Invoice already paid" 
+        });
+      }
+
+      // Get client details
+      const client = await storage.getCrmClient(invoice.clientId);
+      const clientEmail = client?.email || 'customer@example.com';
+      const clientName = client ? `${client.firstName || ''} ${client.lastName || ''}`.trim() : 'Customer';
+
+      // Calculate amount (convert to cents for Stripe)
+      const paidAmount = parseFloat(invoice.paidAmount?.toString() || '0');
+      const totalAmount = parseFloat(invoice.total?.toString() || '0');
+      const balanceDue = totalAmount - paidAmount;
+      
+      if (balanceDue <= 0) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "No balance due on this invoice" 
+        });
+      }
+
+      const amountInCents = Math.round(balanceDue * 100);
+
+      // Determine base URL for redirect
+      const baseUrl = process.env.BASE_URL || process.env.FRONTEND_URL || req.get('origin') || 'https://workingnewage-2eecd723a444.herokuapp.com';
+
+      // Create Stripe Checkout Session
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        customer_email: clientEmail,
+        line_items: [
+          {
+            price_data: {
+              currency: (invoice.currency || 'EUR').toLowerCase(),
+              product_data: {
+                name: `Invoice ${invoice.invoiceNumber}`,
+                description: `Payment for invoice ${invoice.invoiceNumber} - ${clientName}`,
+              },
+              unit_amount: amountInCents,
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'payment',
+        success_url: `${baseUrl}/invoice/${invoiceId}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/invoice/${invoiceId}?payment=cancelled`,
+        metadata: {
+          invoiceId: invoiceId,
+          invoiceNumber: invoice.invoiceNumber || '',
+          clientId: invoice.clientId || '',
+        },
+      });
+
+      // Store the payment intent/session ID
+      await storage.updateCrmInvoice(invoiceId, {
+        stripePaymentIntentId: session.id,
+        stripePaymentUrl: session.url,
+      });
+
+      res.json({
+        success: true,
+        sessionId: session.id,
+        url: session.url,
+      });
+
+    } catch (error) {
+      console.error("Error creating payment session:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Failed to create payment session" 
+      });
+    }
+  });
+
+  // Verify payment status and update invoice
+  app.get("/api/invoices/:id/payment-status", async (req: Request, res: Response) => {
+    try {
+      const invoiceId = req.params.id;
+      const sessionId = req.query.session_id as string;
+
+      if (!stripe || !stripeConfigured) {
+        return res.status(503).json({ 
+          success: false, 
+          error: "Payment service not configured" 
+        });
+      }
+
+      const invoice = await storage.getCrmInvoice(invoiceId);
+      if (!invoice) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Invoice not found" 
+        });
+      }
+
+      // If session_id provided, check with Stripe
+      if (sessionId) {
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+        
+        if (session.payment_status === 'paid') {
+          // Update invoice status to paid
+          const totalAmount = parseFloat(invoice.total?.toString() || '0');
+          await storage.updateCrmInvoice(invoiceId, {
+            status: 'paid',
+            paidAmount: totalAmount.toString(),
+          });
+
+          // Record payment
+          await storage.createCrmInvoicePayment({
+            invoiceId: invoiceId,
+            amount: totalAmount.toString(),
+            paymentMethod: 'stripe',
+            paymentReference: session.payment_intent as string,
+            notes: `Stripe payment - Session: ${sessionId}`,
+          });
+
+          return res.json({
+            success: true,
+            status: 'paid',
+            message: 'Payment confirmed',
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        status: invoice.status,
+        paidAmount: invoice.paidAmount,
+      });
+
+    } catch (error) {
+      console.error("Error checking payment status:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Failed to check payment status" 
+      });
+    }
+  });
+
+  // Stripe webhook for invoice payments
+  app.post("/api/invoices/webhook", async (req: Request, res: Response) => {
+    if (!stripe || !stripeConfigured) {
+      return res.status(503).json({ error: "Payment service not configured" });
+    }
+
+    const sig = req.headers['stripe-signature'];
+    const webhookSecret = process.env.STRIPE_INVOICE_WEBHOOK_SECRET || process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!sig || !webhookSecret) {
+      console.warn('Missing Stripe signature or webhook secret for invoice payment');
+      return res.status(400).send('Missing signature');
+    }
+
+    let event: Stripe.Event;
+
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    } catch (err: any) {
+      console.error('Invoice webhook signature verification failed:', err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    // Handle checkout session completed
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const invoiceId = session.metadata?.invoiceId;
+
+      if (invoiceId && session.payment_status === 'paid') {
+        try {
+          const invoice = await storage.getCrmInvoice(invoiceId);
+          if (invoice) {
+            const totalAmount = parseFloat(invoice.total?.toString() || '0');
+            
+            await storage.updateCrmInvoice(invoiceId, {
+              status: 'paid',
+              paidAmount: totalAmount.toString(),
+            });
+
+            await storage.createCrmInvoicePayment({
+              invoiceId: invoiceId,
+              amount: totalAmount.toString(),
+              paymentMethod: 'stripe',
+              paymentReference: session.payment_intent as string,
+              notes: `Stripe checkout completed - Session: ${session.id}`,
+            });
+
+            console.log(`✅ Invoice ${invoiceId} marked as paid via Stripe webhook`);
+          }
+        } catch (err) {
+          console.error('Error processing invoice payment webhook:', err);
+        }
+      }
+    }
+
+    res.json({ received: true });
+  });
+
   // ==================== EMAIL ROUTES ====================
   app.post("/api/email/import", authenticateUser, async (req: Request, res: Response) => {
     try {

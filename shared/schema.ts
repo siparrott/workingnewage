@@ -201,6 +201,10 @@ export const crmInvoices = pgTable("crm_invoices", {
   paymentTerms: text("payment_terms").default("Net 30"),
   notes: text("notes"),
   termsAndConditions: text("terms_and_conditions"),
+  footerText: text("footer_text"),
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  stripePaymentUrl: text("stripe_payment_url"),
+  paidAmount: decimal("paid_amount", { precision: 10, scale: 2 }).default("0"),
   createdBy: uuid("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -1086,8 +1090,12 @@ export const insertCrmInvoiceSchema = createInsertSchema(crmInvoices).pick({
   paymentTerms: true,
   notes: true,
   termsAndConditions: true,
+  footerText: true,
+  stripePaymentIntentId: true,
+  stripePaymentUrl: true,
+  paidAmount: true,
   createdBy: true,
-}).partial({ invoiceNumber: true, createdBy: true, discountAmount: true, currency: true, paymentTerms: true }); // Make optional fields
+}).partial({ invoiceNumber: true, createdBy: true, discountAmount: true, currency: true, paymentTerms: true, footerText: true, stripePaymentIntentId: true, stripePaymentUrl: true, paidAmount: true }); // Make optional fields
 
 export const insertCrmInvoiceItemSchema = createInsertSchema(crmInvoiceItems).pick({
   invoiceId: true,

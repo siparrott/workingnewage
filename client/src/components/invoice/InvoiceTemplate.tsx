@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Lock } from 'lucide-react';
 
 interface InvoiceTemplateProps {
   invoice: {
@@ -15,11 +16,15 @@ interface InvoiceTemplateProps {
     due_date: string;
     payment_terms: string;
     notes?: string;
+    footer_text?: string;
+    paid_amount?: number;
     created_at: string;
     client?: {
       name: string;
       email: string;
       address1?: string;
+      address2?: string;
+      zip?: string;
       city?: string;
       country?: string;
       phone?: string;
@@ -30,13 +35,21 @@ interface InvoiceTemplateProps {
       unit_price: number;
       tax_rate: number;
       line_total: number;
+      note?: string;
     }>;
   };
+  showPayButton?: boolean;
+  onPayNow?: () => void;
+  isProcessingPayment?: boolean;
 }
 
-const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice }) => {
+const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButton = false, onPayNow, isProcessingPayment = false }) => {
   // Debug: Log what the template receives
   console.log('📄 INVOICE TEMPLATE RECEIVED:', invoice);
+  
+  // Calculate balance
+  const paidAmount = invoice.paid_amount || 0;
+  const balanceDue = invoice.total_amount - paidAmount;
   
   const formatDate = (dateString: string) => {
     if (!dateString) return 'No Date';
@@ -397,42 +410,138 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice }) => {
           }}>
             <span>Paid to Date:</span>
             <span style={{ fontWeight: '500', color: '#2c3e50' }}>
-              {formatCurrency(invoice.status === 'paid' ? invoice.total_amount : 0, invoice.currency)}
+              {formatCurrency(paidAmount, invoice.currency)}
             </span>
           </div>
 
-          {/* Invoice Balance */}
+          {/* Balance */}
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
-            padding: '15px 20px',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            borderRadius: '4px'
+            padding: '12px 20px',
+            fontSize: '13px',
+            color: '#666'
           }}>
-            <span>Invoice Total:</span>
-            <span>
-              {formatCurrency(invoice.status === 'paid' ? 0 : invoice.total_amount, invoice.currency)}
-            </span>
-          </div>
-
-          {/* Invoice Balance Label */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            padding: '8px 20px',
-            fontSize: '11px',
-            color: '#999'
-          }}>
-            <span>Invoice Balance:</span>
-            <span>
-              {formatCurrency(invoice.status === 'paid' ? 0 : invoice.total_amount, invoice.currency)}
+            <span>Balance:</span>
+            <span style={{ fontWeight: '500', color: '#2c3e50' }}>
+              {formatCurrency(balanceDue, invoice.currency)}
             </span>
           </div>
         </div>
       </div>
+
+      {/* Payment Summary Box - matches screenshot design */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'flex-end',
+        marginBottom: '30px'
+      }}>
+        <div style={{
+          width: '350px',
+          border: '1px solid #e0e0e0',
+          borderRadius: '8px',
+          padding: '20px',
+          backgroundColor: '#fafafa'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            marginBottom: '8px',
+            fontSize: '13px',
+            color: '#666'
+          }}>
+            <span>Invoice Subtotal:</span>
+            <span>{formatCurrency(invoice.subtotal_amount, invoice.currency)}</span>
+          </div>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            marginBottom: '12px',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#2c3e50'
+          }}>
+            <span>Invoice Total:</span>
+            <span>{formatCurrency(invoice.total_amount, invoice.currency)}</span>
+          </div>
+          
+          {paidAmount > 0 && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginBottom: '8px',
+              fontSize: '13px',
+              color: '#27ae60'
+            }}>
+              <span>Paid {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}:</span>
+              <span>{formatCurrency(paidAmount, invoice.currency)}</span>
+            </div>
+          )}
+          
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            paddingTop: '12px',
+            borderTop: '1px solid #e0e0e0',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            color: balanceDue > 0 ? '#e74c3c' : '#27ae60'
+          }}>
+            <span>Invoice Balance:</span>
+            <span>{formatCurrency(balanceDue, invoice.currency)}</span>
+          </div>
+          
+          {/* Pay Now Button */}
+          {showPayButton && balanceDue > 0 && invoice.status !== 'paid' && (
+            <button
+              onClick={onPayNow}
+              disabled={isProcessingPayment}
+              style={{
+                width: '100%',
+                marginTop: '16px',
+                padding: '12px 24px',
+                backgroundColor: isProcessingPayment ? '#95a5a6' : '#667eea',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: isProcessingPayment ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseOver={(e) => !isProcessingPayment && (e.currentTarget.style.backgroundColor = '#5a6fd6')}
+              onMouseOut={(e) => !isProcessingPayment && (e.currentTarget.style.backgroundColor = '#667eea')}
+            >
+              <Lock size={16} />
+              {isProcessingPayment ? 'Processing...' : 'PAY NOW'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Custom Footer Text (Terms, Bank Details, etc.) */}
+      {invoice.footer_text && (
+        <div style={{
+          marginBottom: '30px',
+          padding: '20px',
+          backgroundColor: '#f8f9fa',
+          borderRadius: '8px',
+          borderLeft: '4px solid #667eea'
+        }}>
+          <div style={{
+            fontSize: '12px',
+            color: '#666',
+            whiteSpace: 'pre-wrap',
+            lineHeight: '1.6'
+          }}>
+            {invoice.footer_text}
+          </div>
+        </div>
+      )}
 
       {/* Footer Contact */}
       <div style={{

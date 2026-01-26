@@ -46,6 +46,7 @@ interface InvoiceFormData {
   payment_terms: string;
   currency: string;
   notes?: string;
+  footer_text?: string;
   discount_amount: number;
   items: InvoiceItem[];
 }
@@ -103,6 +104,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
     payment_terms: 'Net 30',
     currency: 'EUR',
     notes: '',
+    footer_text: '',
     discount_amount: 0,
     items: [
       {
@@ -429,6 +431,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
         total: total.toString(),
         status: markAsPaid ? 'paid' : 'draft',
         notes: formData.notes,
+        footerText: formData.footer_text,
         items: formData.items.map(item => ({
           description: item.description,
           quantity: item.quantity,
@@ -870,10 +873,26 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                rows={4}
+                rows={3}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 placeholder="Additional notes for this invoice..."
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Invoice Footer (Terms, Bank Details, etc.)
+              </label>
+              <textarea
+                value={formData.footer_text}
+                onChange={(e) => setFormData(prev => ({ ...prev, footer_text: e.target.value }))}
+                rows={4}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                placeholder="Add terms & conditions, payment instructions, bank details, delivery terms, etc. This text will appear at the bottom of the invoice."
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Example: Bank: Erste Bank | IBAN: AT12 3456 7890 1234 5678 | BIC: GIBAATWWXXX
+              </p>
             </div>          </div>
         );
       }
