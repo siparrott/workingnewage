@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
-import { Calendar, Mail, Phone, User } from 'lucide-react';
+import { Calendar, Mail, Phone, User, Camera, Gift, ChevronRight } from 'lucide-react';
 import { submitWaitlistForm } from '../lib/forms';
 import { useManualPageContent } from '../hooks/useManualPageContent';
 import { SEOHead } from '../components/SEO/SEOHead';
@@ -165,6 +166,34 @@ const WartelistePage: React.FC = () => {
               <span className="text-purple-600">*</span> Pflichtfelder
             </p>
           </form>
+        </div>
+
+        {/* Services Sidebar/Section */}
+        <div className="max-w-4xl mx-auto mt-12">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-6 text-center">Während Sie warten - Entdecken Sie unsere Services</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link to="/fotoshooting/familienfotos-wien/" className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow text-center group">
+              <Camera className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+              <h3 className="font-medium text-gray-900 group-hover:text-purple-600">Familienfotos</h3>
+            </Link>
+            <Link to="/fotoshooting/neugeborenenfotos-wien/" className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow text-center group">
+              <Camera className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+              <h3 className="font-medium text-gray-900 group-hover:text-purple-600">Neugeborene</h3>
+            </Link>
+            <Link to="/fotoshooting/schwangerschaftsfotos-wien/" className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow text-center group">
+              <Camera className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+              <h3 className="font-medium text-gray-900 group-hover:text-purple-600">Schwangerschaft</h3>
+            </Link>
+            <Link to="/gutscheine" className="bg-purple-600 text-white p-4 rounded-lg shadow hover:bg-purple-700 transition-colors text-center">
+              <Gift className="w-8 h-8 mx-auto mb-2" />
+              <h3 className="font-medium">Gutscheine</h3>
+            </Link>
+          </div>
+          <p className="text-center text-gray-600 mt-6">
+            <Link to="/blog" className="text-purple-600 hover:text-purple-800 font-medium inline-flex items-center">
+              Lesen Sie unseren Blog für Fotografie-Tipps <ChevronRight className="w-4 h-4 ml-1" />
+            </Link>
+          </p>
         </div>
       </div>
     </Layout>

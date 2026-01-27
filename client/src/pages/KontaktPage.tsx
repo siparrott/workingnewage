@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
-import { Mail, Phone, Clock, MapPin, Train, Car, MessageCircle } from 'lucide-react';
+import { Mail, Phone, Clock, MapPin, Train, Car, MessageCircle, Camera, Gift, ChevronRight } from 'lucide-react';
 import { submitContactForm } from '../lib/forms';
 import { useManualPageContent } from '../hooks/useManualPageContent';
 import { SEOHead } from '../components/SEO/SEOHead';
@@ -232,6 +233,48 @@ const KontaktPage: React.FC = () => {
                 </button>
               </form>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* Services CTA Section */}
+      <div className="bg-gray-50 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-6 text-center">Unsere Beliebten Services</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Link to="/fotoshooting/familienfotos-wien/" className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow group">
+              <div className="flex items-center mb-3">
+                <Camera className="w-6 h-6 text-purple-600 mr-3" />
+                <h3 className="font-semibold text-gray-900 group-hover:text-purple-600">Familienfotos</h3>
+              </div>
+              <p className="text-gray-600 text-sm mb-2">Professionelle Familienportraits in Wien</p>
+              <span className="text-purple-600 text-sm flex items-center">Mehr erfahren <ChevronRight className="w-4 h-4 ml-1" /></span>
+            </Link>
+            <Link to="/fotoshooting/neugeborenenfotos-wien/" className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow group">
+              <div className="flex items-center mb-3">
+                <Camera className="w-6 h-6 text-purple-600 mr-3" />
+                <h3 className="font-semibold text-gray-900 group-hover:text-purple-600">Neugeborenenfotos</h3>
+              </div>
+              <p className="text-gray-600 text-sm mb-2">Zarte Babyfotografie für die ersten Tage</p>
+              <span className="text-purple-600 text-sm flex items-center">Mehr erfahren <ChevronRight className="w-4 h-4 ml-1" /></span>
+            </Link>
+            <Link to="/fotoshooting/business-portrait-wien/" className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow group">
+              <div className="flex items-center mb-3">
+                <Camera className="w-6 h-6 text-purple-600 mr-3" />
+                <h3 className="font-semibold text-gray-900 group-hover:text-purple-600">Business Portraits</h3>
+              </div>
+              <p className="text-gray-600 text-sm mb-2">Professionelle Bewerbungs- und Businessfotos</p>
+              <span className="text-purple-600 text-sm flex items-center">Mehr erfahren <ChevronRight className="w-4 h-4 ml-1" /></span>
+            </Link>
+          </div>
+          <div className="text-center mt-8">
+            <Link 
+              to="/gutscheine" 
+              className="inline-flex items-center bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              <Gift className="w-5 h-5 mr-2" />
+              Geschenkgutscheine kaufen
+            </Link>
           </div>
         </div>
       </div>

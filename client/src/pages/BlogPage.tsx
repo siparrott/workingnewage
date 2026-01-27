@@ -465,7 +465,7 @@ const BlogPage: React.FC = () => {
             </div>
 
             {/* Newsletter Signup */}
-            <div className="bg-purple-50 rounded-lg shadow-lg p-6">
+            <div className="bg-purple-50 rounded-lg shadow-lg p-6 mb-8">
               <h2 className="text-xl font-bold text-gray-800 mb-4">Newsletter</h2>
               <p className="text-gray-600 mb-4">
                 Stay updated with our latest photography tips and special offers.
@@ -483,6 +483,57 @@ const BlogPage: React.FC = () => {
                   Subscribe
                 </button>
               </form>
+            </div>
+
+            {/* Popular Services */}
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Beliebte Services</h2>
+              <ul className="space-y-3">
+                <li>
+                  <Link to="/fotoshooting/familienfotos-wien/" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
+                    <ChevronRight size={16} className="mr-2 text-purple-600" />
+                    Familienfotos Wien
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/fotoshooting/neugeborenenfotos-wien/" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
+                    <ChevronRight size={16} className="mr-2 text-purple-600" />
+                    Neugeborenenfotos
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/fotoshooting/babyfotos-wien/" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
+                    <ChevronRight size={16} className="mr-2 text-purple-600" />
+                    Babyfotos Wien
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/fotoshooting/business-portrait-wien/" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
+                    <ChevronRight size={16} className="mr-2 text-purple-600" />
+                    Business Portraits
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/fotoshooting/hochzeitsfotografie-wien/" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
+                    <ChevronRight size={16} className="mr-2 text-purple-600" />
+                    Hochzeitsfotografie
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Voucher CTA */}
+            <div className="bg-gradient-to-br from-purple-600 to-purple-800 rounded-lg shadow-lg p-6 text-white">
+              <h2 className="text-xl font-bold mb-3">Geschenkidee</h2>
+              <p className="text-purple-100 mb-4 text-sm">
+                Schenken Sie unvergessliche Momente mit unseren Fotoshooting-Gutscheinen.
+              </p>
+              <Link 
+                to="/gutscheine" 
+                className="inline-block bg-white text-purple-600 px-4 py-2 rounded-lg font-medium hover:bg-purple-50 transition-colors"
+              >
+                Gutscheine entdecken
+              </Link>
             </div>
           </div>
         </div>
