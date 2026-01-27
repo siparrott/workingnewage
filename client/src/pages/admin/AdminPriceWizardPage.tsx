@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
-import { Search, TrendingUp, DollarSign, Eye, CheckCircle, XCircle, RefreshCw, ExternalLink, Filter, X, Loader2, MapPin } from 'lucide-react';
+import { Search, TrendingUp, DollarSign, Eye, CheckCircle, XCircle, RefreshCw, ExternalLink, Filter, X, Loader2, MapPin, Plus } from 'lucide-react';
 
 // Available services for price research
 const AVAILABLE_SERVICES = [
@@ -73,6 +73,14 @@ const AdminPriceWizardPage: React.FC = () => {
   const [newResearchServices, setNewResearchServices] = useState<string[]>(['family', 'portrait']);
   const [isResearching, setIsResearching] = useState(false);
   const [researchProgress, setResearchProgress] = useState<string>('');
+
+  // Manual Price Entry Modal State
+  const [showManualPriceModal, setShowManualPriceModal] = useState(false);
+  const [manualPriceCompetitor, setManualPriceCompetitor] = useState<Competitor | null>(null);
+  const [manualPriceService, setManualPriceService] = useState('');
+  const [manualPriceAmount, setManualPriceAmount] = useState('');
+  const [manualPriceNotes, setManualPriceNotes] = useState('');
+  const [isAddingPrice, setIsAddingPrice] = useState(false);
 
   useEffect(() => {
     fetchSessions();
@@ -215,6 +223,64 @@ const AdminPriceWizardPage: React.FC = () => {
         ? prev.filter(s => s !== serviceId)
         : [...prev, serviceId]
     );
+  };
+
+  /**
+   * Open the manual price entry modal for a competitor
+   */
+  const openManualPriceModal = (competitor: Competitor) => {
+    setManualPriceCompetitor(competitor);
+    setManualPriceService('family');
+    setManualPriceAmount('');
+    setManualPriceNotes('');
+    setShowManualPriceModal(true);
+  };
+
+  /**
+   * Add a manual price entry for a competitor
+   */
+  const addManualPrice = async () => {
+    if (!manualPriceCompetitor || !manualPriceService || !manualPriceAmount) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    const amount = parseFloat(manualPriceAmount);
+    if (isNaN(amount) || amount <= 0) {
+      alert('Please enter a valid price amount');
+      return;
+    }
+
+    setIsAddingPrice(true);
+    try {
+      const response = await fetch('/api/price-wizard/add-manual-price', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          competitorId: manualPriceCompetitor.id,
+          serviceType: manualPriceService,
+          priceAmount: amount,
+          currency: 'EUR',
+          notes: manualPriceNotes || null
+        })
+      });
+
+      if (response.ok) {
+        alert('Price added successfully!');
+        setShowManualPriceModal(false);
+        if (selectedSession) {
+          fetchSessionDetails(selectedSession);
+        }
+      } else {
+        const data = await response.json();
+        alert(`Failed to add price: ${data.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Error adding manual price:', err);
+      alert('Failed to add price');
+    } finally {
+      setIsAddingPrice(false);
+    }
   };
 
   const activateSuggestion = async (suggestionId: string, adjustedPrice?: number) => {
@@ -411,6 +477,114 @@ const AdminPriceWizardPage: React.FC = () => {
                     <>
                       <Search className="w-4 h-4" />
                       Start Research
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Manual Price Entry Modal */}
+        {showManualPriceModal && manualPriceCompetitor && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+              <div className="bg-gradient-to-r from-green-600 to-teal-600 px-6 py-4">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-bold text-white">Add Price Manually</h2>
+                  <button
+                    onClick={() => setShowManualPriceModal(false)}
+                    disabled={isAddingPrice}
+                    className="text-white hover:bg-white/20 rounded-full p-1 transition-colors disabled:opacity-50"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <p className="text-green-100 text-sm mt-1">
+                  {manualPriceCompetitor.competitor_name}
+                </p>
+              </div>
+
+              <div className="p-6 space-y-5">
+                {/* Service Type */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Service Type
+                  </label>
+                  <select
+                    value={manualPriceService}
+                    onChange={(e) => setManualPriceService(e.target.value)}
+                    disabled={isAddingPrice}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all disabled:bg-gray-100"
+                  >
+                    {AVAILABLE_SERVICES.map(service => (
+                      <option key={service.id} value={service.id}>{service.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Price Amount */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Price (EUR)
+                  </label>
+                  <input
+                    type="number"
+                    value={manualPriceAmount}
+                    onChange={(e) => setManualPriceAmount(e.target.value)}
+                    disabled={isAddingPrice}
+                    placeholder="e.g., 350"
+                    min="0"
+                    step="10"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all disabled:bg-gray-100"
+                  />
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Notes (optional)
+                  </label>
+                  <textarea
+                    value={manualPriceNotes}
+                    onChange={(e) => setManualPriceNotes(e.target.value)}
+                    disabled={isAddingPrice}
+                    placeholder="e.g., Includes 10 edited photos, 1 hour session"
+                    rows={3}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all disabled:bg-gray-100 resize-none"
+                  />
+                </div>
+
+                {/* Info Note */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-gray-600">
+                  <strong>Tip:</strong> Visit the competitor's website to find their pricing. 
+                  Look for "Preise", "Pakete", or "Investment" pages.
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                <button
+                  onClick={() => setShowManualPriceModal(false)}
+                  disabled={isAddingPrice}
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={addManualPrice}
+                  disabled={isAddingPrice || !manualPriceAmount}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isAddingPrice ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      Add Price
                     </>
                   )}
                 </button>
@@ -618,15 +792,23 @@ const AdminPriceWizardPage: React.FC = () => {
                                 </span>
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-600">{comp.price_count}</td>
-                              <td className="px-4 py-3">
+                              <td className="px-4 py-3 flex items-center gap-2">
                                 <a
                                   href={comp.website_url}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-purple-600 hover:text-purple-700"
+                                  title="Visit website"
                                 >
                                   <ExternalLink className="w-4 h-4" />
                                 </a>
+                                <button
+                                  onClick={() => openManualPriceModal(comp)}
+                                  className="text-green-600 hover:text-green-700"
+                                  title="Add price manually"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </button>
                               </td>
                             </tr>
                           ))}

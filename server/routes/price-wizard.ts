@@ -596,4 +596,113 @@ router.post('/reject-suggestion', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/price-wizard/add-manual-price
+ * Add competitor price manually (when scraping fails)
+ */
+router.post('/add-manual-price', async (req, res) => {
+  try {
+    const { competitorId, serviceType, priceAmount, currency = 'EUR', notes } = req.body;
+
+    if (!competitorId || !serviceType || priceAmount === undefined) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: competitorId, serviceType, priceAmount' 
+      });
+    }
+
+    // Insert manual price
+    const result = await pool.query(`
+      INSERT INTO competitor_prices (
+        competitor_id, service_type, price_amount, currency, 
+        confidence_score, url_source, notes
+      ) VALUES ($1, $2, $3, $4, 1.0, 'manual_entry', $5)
+      RETURNING id
+    `, [competitorId, serviceType, priceAmount, currency, notes || null]);
+
+    // Update competitor status to 'scraped' (we now have data)
+    await pool.query(`
+      UPDATE competitor_research 
+      SET status = 'scraped', scraped_at = NOW() 
+      WHERE id = $1
+    `, [competitorId]);
+
+    // Get session ID to update prices count
+    const sessionResult = await pool.query(`
+      SELECT session_id FROM competitor_research WHERE id = $1
+    `, [competitorId]);
+
+    if (sessionResult.rows.length > 0) {
+      await pool.query(`
+        UPDATE price_wizard_sessions
+        SET prices_extracted = prices_extracted + 1, updated_at = NOW()
+        WHERE id = $1
+      `, [sessionResult.rows[0].session_id]);
+    }
+
+    res.json({
+      success: true,
+      priceId: result.rows[0].id,
+      message: 'Manual price added successfully'
+    });
+
+  } catch (error: any) {
+    console.error('Error adding manual price:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/price-wizard/competitor/:competitorId/prices
+ * Get all prices for a competitor
+ */
+router.get('/competitor/:competitorId/prices', async (req, res) => {
+  try {
+    const { competitorId } = req.params;
+
+    const result = await pool.query(`
+      SELECT 
+        id,
+        service_type,
+        price_amount,
+        currency,
+        confidence_score,
+        url_source,
+        notes,
+        created_at
+      FROM competitor_prices
+      WHERE competitor_id = $1
+      ORDER BY created_at DESC
+    `, [competitorId]);
+
+    res.json({
+      success: true,
+      prices: result.rows
+    });
+
+  } catch (error: any) {
+    console.error('Error fetching competitor prices:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/price-wizard/price/:priceId
+ * Delete a competitor price entry
+ */
+router.delete('/price/:priceId', async (req, res) => {
+  try {
+    const { priceId } = req.params;
+
+    await pool.query(`
+      DELETE FROM competitor_prices WHERE id = $1
+    `, [priceId]);
+
+    res.json({ success: true });
+
+  } catch (error: any) {
+    console.error('Error deleting price:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
