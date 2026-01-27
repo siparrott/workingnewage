@@ -2418,8 +2418,8 @@ const ProductDialog: React.FC<{
                   />
                 ) : imagePreview ? (
                   <div className="space-y-4">
-                    <div className="relative">
-                      <img src={imagePreview} alt="Product preview" className="w-full h-48 object-cover rounded-lg" />
+                    <div className="relative flex justify-center bg-gray-100 rounded-lg p-2">
+                      <img src={imagePreview} alt="Product preview" className="max-w-full max-h-48 object-contain rounded-lg" />
                       <button
                         onClick={() => { setSelectedImage(null); setImagePreview(null); }}
                         className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
