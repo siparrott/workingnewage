@@ -92,6 +92,20 @@ const AdminPriceWizardPage: React.FC = () => {
     }
   }, [selectedSession]);
 
+  // Auto-refresh for active sessions
+  useEffect(() => {
+    const selectedSessionData = sessions.find(s => s.id === selectedSession);
+    if (selectedSessionData && ['discovering', 'scraping', 'analyzing'].includes(selectedSessionData.status)) {
+      const interval = setInterval(() => {
+        fetchSessions();
+        if (selectedSession) {
+          fetchSessionDetails(selectedSession);
+        }
+      }, 3000); // Refresh every 3 seconds
+      return () => clearInterval(interval);
+    }
+  }, [selectedSession, sessions]);
+
   const fetchSessions = async () => {
     try {
       setLoading(true);
@@ -280,6 +294,32 @@ const AdminPriceWizardPage: React.FC = () => {
       alert('Failed to add price');
     } finally {
       setIsAddingPrice(false);
+    }
+  };
+
+  /**
+   * Retry scraping for pending/failed competitors
+   */
+  const retryScrape = async (sessionId: string) => {
+    try {
+      const response = await fetch('/api/price-wizard/scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Scraping retry complete!\nPrices extracted: ${data.pricesExtracted}`);
+        fetchSessionDetails(sessionId);
+        fetchSessions();
+      } else {
+        const data = await response.json();
+        alert(`Scrape failed: ${data.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Error retrying scrape:', err);
+      alert('Failed to retry scrape');
     }
   };
 
@@ -668,6 +708,38 @@ const AdminPriceWizardPage: React.FC = () => {
                       </div>
                       {getStatusBadge(selectedSessionData.status)}
                     </div>
+
+                    {/* Progress Indicator for active sessions */}
+                    {['discovering', 'scraping', 'analyzing'].includes(selectedSessionData.status) && (
+                      <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-center gap-3 mb-3">
+                          <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                          <span className="font-medium text-blue-800">
+                            {selectedSessionData.status === 'discovering' && 'Discovering competitors...'}
+                            {selectedSessionData.status === 'scraping' && 'Scraping competitor websites...'}
+                            {selectedSessionData.status === 'analyzing' && 'Analyzing market prices...'}
+                          </span>
+                        </div>
+                        <div className="flex gap-2 mb-2">
+                          <div className={`h-2 flex-1 rounded-full ${selectedSessionData.status === 'discovering' || selectedSessionData.status === 'scraping' || selectedSessionData.status === 'analyzing' ? 'bg-blue-600' : 'bg-gray-300'}`} />
+                          <div className={`h-2 flex-1 rounded-full ${selectedSessionData.status === 'scraping' || selectedSessionData.status === 'analyzing' ? 'bg-blue-600' : 'bg-gray-300'}`} />
+                          <div className={`h-2 flex-1 rounded-full ${selectedSessionData.status === 'analyzing' ? 'bg-blue-600' : 'bg-gray-300'}`} />
+                          <div className={`h-2 flex-1 rounded-full ${selectedSessionData.status === 'completed' ? 'bg-green-600' : 'bg-gray-300'}`} />
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-600">
+                          <span>Discover</span>
+                          <span>Scrape</span>
+                          <span>Analyze</span>
+                          <span>Done</span>
+                        </div>
+                        {selectedSessionData.status === 'scraping' && (
+                          <p className="text-xs text-blue-700 mt-3">
+                            ⚠️ Web scraping may fail for some sites. You can add prices manually using the + button next to each competitor.
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-3 gap-4">
                       <div className="text-center p-3 bg-blue-50 rounded-lg">
                         <div className="text-2xl font-bold text-blue-600">{selectedSessionData.competitors_found}</div>
@@ -763,8 +835,27 @@ const AdminPriceWizardPage: React.FC = () => {
                 {/* Competitors */}
                 {competitors.length > 0 && (
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                    <div className="p-4 border-b border-gray-200">
+                    <div className="p-4 border-b border-gray-200 flex justify-between items-center">
                       <h3 className="font-semibold text-gray-900">Discovered Competitors</h3>
+                      <div className="flex gap-2 items-center">
+                        {competitors.filter(c => c.status === 'pending').length > 0 && (
+                          <span className="text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
+                            {competitors.filter(c => c.status === 'pending').length} pending
+                          </span>
+                        )}
+                        {competitors.filter(c => c.status === 'failed').length > 0 && (
+                          <span className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
+                            {competitors.filter(c => c.status === 'failed').length} failed - add prices manually
+                          </span>
+                        )}
+                        <button
+                          onClick={() => retryScrape(selectedSession!)}
+                          className="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 flex items-center gap-1"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          Retry Scrape
+                        </button>
+                      </div>
                     </div>
                     <div className="overflow-x-auto">
                       <table className="w-full">
