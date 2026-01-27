@@ -189,7 +189,7 @@ router.post('/scrape', async (req, res) => {
           // Mark as failed
           await pool.query(`
             UPDATE competitor_research 
-            SET status = 'failed', error_message = $2 
+            SET status = 'failed', scrape_error = $2 
             WHERE id = $1
           `, [competitor.id, scrapeResult.error || 'No prices found']);
         }
@@ -198,7 +198,7 @@ router.post('/scrape', async (req, res) => {
         console.error(`Error scraping ${competitor.website_url}:`, error);
         await pool.query(`
           UPDATE competitor_research 
-          SET status = 'failed', error_message = $2 
+          SET status = 'failed', scrape_error = $2 
           WHERE id = $1
         `, [competitor.id, error.message]);
       }

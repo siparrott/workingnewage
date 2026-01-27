@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
-import { Search, TrendingUp, DollarSign, Eye, CheckCircle, XCircle, RefreshCw, ExternalLink, Filter } from 'lucide-react';
+import { Search, TrendingUp, DollarSign, Eye, CheckCircle, XCircle, RefreshCw, ExternalLink, Filter, X, Loader2, MapPin } from 'lucide-react';
+
+// Available services for price research
+const AVAILABLE_SERVICES = [
+  { id: 'family', label: 'Family Photography' },
+  { id: 'wedding', label: 'Wedding Photography' },
+  { id: 'newborn', label: 'Newborn Photography' },
+  { id: 'portrait', label: 'Portrait Photography' },
+  { id: 'corporate', label: 'Corporate / Business' },
+  { id: 'event', label: 'Event Photography' },
+];
 
 interface PriceSession {
   id: string;
@@ -57,6 +67,13 @@ const AdminPriceWizardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
+  // New Research Modal State
+  const [showNewResearchModal, setShowNewResearchModal] = useState(false);
+  const [newResearchLocation, setNewResearchLocation] = useState('Wien');
+  const [newResearchServices, setNewResearchServices] = useState<string[]>(['family', 'portrait']);
+  const [isResearching, setIsResearching] = useState(false);
+  const [researchProgress, setResearchProgress] = useState<string>('');
+
   useEffect(() => {
     fetchSessions();
   }, []);
@@ -96,6 +113,108 @@ const AdminPriceWizardPage: React.FC = () => {
     } catch (err) {
       console.error('Failed to fetch session details:', err);
     }
+  };
+
+  /**
+   * Start a new competitive pricing research session
+   * This will:
+   * 1. Create a session
+   * 2. Discover competitors via web search
+   * 3. Scrape their websites for prices
+   * 4. Analyze and generate 3-tier recommendations
+   */
+  const startNewResearch = async () => {
+    if (newResearchServices.length === 0) {
+      alert('Please select at least one service type');
+      return;
+    }
+
+    setIsResearching(true);
+    let sessionId: string | null = null;
+
+    try {
+      // Step 1: Start session
+      setResearchProgress('Creating research session...');
+      const startRes = await fetch('/api/price-wizard/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: newResearchLocation,
+          services: newResearchServices
+        })
+      });
+
+      if (!startRes.ok) throw new Error('Failed to start session');
+      const startData = await startRes.json();
+      sessionId = startData.sessionId;
+      console.log('✅ Session started:', sessionId);
+
+      // Step 2: Discover competitors
+      setResearchProgress('Discovering competitors in ' + newResearchLocation + '...');
+      const discoverRes = await fetch('/api/price-wizard/discover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, maxResults: 15 })
+      });
+
+      if (!discoverRes.ok) throw new Error('Failed to discover competitors');
+      const discoverData = await discoverRes.json();
+      console.log('✅ Found competitors:', discoverData.competitorsFound);
+
+      // Step 3: Scrape prices
+      setResearchProgress(`Scraping prices from ${discoverData.competitorsFound} competitors...`);
+      const scrapeRes = await fetch('/api/price-wizard/scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId })
+      });
+
+      if (!scrapeRes.ok) throw new Error('Failed to scrape prices');
+      const scrapeData = await scrapeRes.json();
+      console.log('✅ Prices extracted:', scrapeData.pricesExtracted);
+
+      // Step 4: Analyze and generate suggestions
+      setResearchProgress('Analyzing market prices and generating recommendations...');
+      const analyzeRes = await fetch('/api/price-wizard/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId })
+      });
+
+      if (!analyzeRes.ok) throw new Error('Failed to analyze prices');
+      const analyzeData = await analyzeRes.json();
+      console.log('✅ Suggestions generated:', analyzeData.suggestionsGenerated);
+
+      // Success - refresh and select the new session
+      setShowNewResearchModal(false);
+      setNewResearchLocation('Wien');
+      setNewResearchServices(['family', 'portrait']);
+      await fetchSessions();
+      setSelectedSession(sessionId);
+
+      alert(`Research complete!\n\nCompetitors found: ${discoverData.competitorsFound}\nPrices extracted: ${scrapeData.pricesExtracted}\nSuggestions generated: ${analyzeData.suggestionsGenerated}`);
+
+    } catch (error: any) {
+      console.error('Research failed:', error);
+      alert(`Research failed: ${error.message}`);
+      
+      // Refresh to show partial results if any
+      if (sessionId) {
+        await fetchSessions();
+        setSelectedSession(sessionId);
+      }
+    } finally {
+      setIsResearching(false);
+      setResearchProgress('');
+    }
+  };
+
+  const toggleService = (serviceId: string) => {
+    setNewResearchServices(prev =>
+      prev.includes(serviceId)
+        ? prev.filter(s => s !== serviceId)
+        : [...prev, serviceId]
+    );
   };
 
   const activateSuggestion = async (suggestionId: string, adjustedPrice?: number) => {
@@ -181,14 +300,124 @@ const AdminPriceWizardPage: React.FC = () => {
             <p className="text-gray-600">Competitive pricing intelligence and recommendations</p>
           </div>
           <button
-            disabled
-            aria-disabled="true"
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg flex items-center gap-2 opacity-50 cursor-not-allowed"
+            onClick={() => setShowNewResearchModal(true)}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg flex items-center gap-2 hover:bg-purple-700 transition-colors"
           >
             <TrendingUp className="w-4 h-4" />
-            New Research (disabled)
+            New Research
           </button>
         </div>
+
+        {/* New Research Modal */}
+        {showNewResearchModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+              <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-bold text-white">New Price Research</h2>
+                  <button
+                    onClick={() => setShowNewResearchModal(false)}
+                    disabled={isResearching}
+                    className="text-white hover:bg-white/20 rounded-full p-1 transition-colors disabled:opacity-50"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <p className="text-purple-100 text-sm mt-1">
+                  Discover competitors and analyze market prices
+                </p>
+              </div>
+
+              <div className="p-6 space-y-5">
+                {/* Location Input */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <MapPin className="w-4 h-4 inline mr-1" />
+                    Location / City
+                  </label>
+                  <input
+                    type="text"
+                    value={newResearchLocation}
+                    onChange={(e) => setNewResearchLocation(e.target.value)}
+                    disabled={isResearching}
+                    placeholder="e.g., Wien, Graz, Salzburg"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:bg-gray-100"
+                  />
+                </div>
+
+                {/* Services Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <DollarSign className="w-4 h-4 inline mr-1" />
+                    Services to Research
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {AVAILABLE_SERVICES.map(service => (
+                      <button
+                        key={service.id}
+                        type="button"
+                        onClick={() => toggleService(service.id)}
+                        disabled={isResearching}
+                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                          newResearchServices.includes(service.id)
+                            ? 'bg-purple-100 text-purple-700 border-2 border-purple-400'
+                            : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
+                        } disabled:opacity-50`}
+                      >
+                        {service.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Progress Indicator */}
+                {isResearching && researchProgress && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center gap-3">
+                      <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                      <span className="text-sm text-blue-700">{researchProgress}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Info Note */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600">
+                  <strong>How it works:</strong> The wizard will search for photographers in your area, 
+                  scrape their pricing pages, and generate 3-tier pricing recommendations (basic, standard, premium) 
+                  based on market analysis.
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                <button
+                  onClick={() => setShowNewResearchModal(false)}
+                  disabled={isResearching}
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={startNewResearch}
+                  disabled={isResearching || newResearchServices.length === 0 || !newResearchLocation.trim()}
+                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isResearching ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Researching...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4" />
+                      Start Research
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Sessions List */}
