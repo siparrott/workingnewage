@@ -122,7 +122,7 @@ router.post('/discover', async (req, res) => {
 
 /**
  * POST /api/price-wizard/scrape
- * Scrape prices from discovered competitors
+ * Scrape prices from discovered competitors (runs in background)
  */
 router.post('/scrape', async (req, res) => {
   try {
@@ -131,6 +131,11 @@ router.post('/scrape', async (req, res) => {
     if (!sessionId) {
       return res.status(400).json({ error: 'Missing sessionId' });
     }
+
+    // Update session to scraping status
+    await pool.query(`
+      UPDATE price_wizard_sessions SET status = 'scraping', updated_at = NOW() WHERE id = $1
+    `, [sessionId]);
 
     // Get pending competitors
     const result = await pool.query(`
@@ -143,99 +148,102 @@ router.post('/scrape', async (req, res) => {
     const competitors = result.rows;
 
     if (competitors.length === 0) {
+      // No pending - move directly to analyzing
+      await pool.query(`
+        UPDATE price_wizard_sessions SET status = 'analyzing', updated_at = NOW() WHERE id = $1
+      `, [sessionId]);
       return res.json({ 
         success: true, 
         message: 'No pending competitors to scrape',
         scrapedCount: 0,
+        pricesExtracted: 0,
       });
     }
 
-    let scrapedCount = 0;
-    let pricesExtracted = 0;
+    // Return immediately - scraping happens in background
+    res.json({
+      success: true,
+      message: `Scraping ${competitors.length} competitors in background...`,
+      scrapedCount: 0,
+      pricesExtracted: 0,
+      status: 'processing'
+    });
 
-    // Process competitors in parallel (batch of 3 at a time) for speed
-    const processBatch = async (batch: typeof competitors) => {
-      const results = await Promise.allSettled(
-        batch.map(async (competitor) => {
-          try {
-            console.log(`🔍 Scraping: ${competitor.website_url}`);
-            const scrapeResult = await scraper.scrapeWebsite(competitor.website_url);
+    // Background scraping process
+    (async () => {
+      let scrapedCount = 0;
+      let pricesExtracted = 0;
 
-            if (scrapeResult.success && scrapeResult.prices.length > 0) {
-              // Save prices
-              for (const price of scrapeResult.prices) {
+      try {
+        // Process all competitors in parallel for speed
+        const results = await Promise.allSettled(
+          competitors.map(async (competitor) => {
+            try {
+              console.log(`🔍 Scraping: ${competitor.website_url}`);
+              const scrapeResult = await scraper.scrapeWebsite(competitor.website_url);
+
+              if (scrapeResult.success && scrapeResult.prices.length > 0) {
+                for (const price of scrapeResult.prices) {
+                  await pool.query(`
+                    INSERT INTO competitor_prices (
+                      competitor_id, service_type, price_amount, currency, 
+                      confidence_score, url_source
+                    ) VALUES ($1, $2, $3, $4, $5, $6)
+                  `, [
+                    competitor.id,
+                    price.serviceType,
+                    price.amount,
+                    price.currency,
+                    price.confidence,
+                    price.url,
+                  ]);
+                  pricesExtracted++;
+                }
+
                 await pool.query(`
-                  INSERT INTO competitor_prices (
-                    competitor_id, service_type, price_amount, currency, 
-                    confidence_score, url_source
-                  ) VALUES ($1, $2, $3, $4, $5, $6)
-                `, [
-                  competitor.id,
-                  price.serviceType,
-                  price.amount,
-                  price.currency,
-                  price.confidence,
-                  price.url,
-                ]);
-                pricesExtracted++;
+                  UPDATE competitor_research 
+                  SET status = 'scraped', scraped_at = NOW() 
+                  WHERE id = $1
+                `, [competitor.id]);
+
+                scrapedCount++;
+              } else {
+                await pool.query(`
+                  UPDATE competitor_research 
+                  SET status = 'failed', scrape_error = $2 
+                  WHERE id = $1
+                `, [competitor.id, scrapeResult.error || 'No prices found']);
               }
-
-              await pool.query(`
-                UPDATE competitor_research 
-                SET status = 'scraped', scraped_at = NOW() 
-                WHERE id = $1
-              `, [competitor.id]);
-
-              scrapedCount++;
-              return { success: true };
-            } else {
+            } catch (error: any) {
+              console.error(`❌ Scrape failed for ${competitor.website_url}:`, error.message);
               await pool.query(`
                 UPDATE competitor_research 
                 SET status = 'failed', scrape_error = $2 
                 WHERE id = $1
-              `, [competitor.id, scrapeResult.error || 'No prices found on page']);
-              return { success: false };
+              `, [competitor.id, error.message?.substring(0, 200) || 'Network error']);
             }
-          } catch (error: any) {
-            console.error(`❌ Scrape failed for ${competitor.website_url}:`, error.message);
-            await pool.query(`
-              UPDATE competitor_research 
-              SET status = 'failed', scrape_error = $2 
-              WHERE id = $1
-            `, [competitor.id, error.message?.substring(0, 200) || 'Network error']);
-            return { success: false };
-          }
-        })
-      );
-      return results;
-    };
+          })
+        );
 
-    // Process in batches of 3
-    for (let i = 0; i < competitors.length; i += 3) {
-      const batch = competitors.slice(i, i + 3);
-      await processBatch(batch);
-      // Brief pause between batches
-      if (i + 3 < competitors.length) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        console.log(`✅ Scraping complete: ${scrapedCount} scraped, ${pricesExtracted} prices`);
+
+        // Update session to analyzing
+        await pool.query(`
+          UPDATE price_wizard_sessions
+          SET status = 'analyzing', prices_extracted = prices_extracted + $2, updated_at = NOW()
+          WHERE id = $1
+        `, [sessionId, pricesExtracted]);
+
+      } catch (error: any) {
+        console.error('Background scraping error:', error);
+        await pool.query(`
+          UPDATE price_wizard_sessions SET status = 'failed', updated_at = NOW() WHERE id = $1
+        `, [sessionId]);
       }
-    }
-
-    // Update session
-    await pool.query(`
-      UPDATE price_wizard_sessions
-      SET status = 'analyzing', prices_extracted = prices_extracted + $2, updated_at = NOW()
-      WHERE id = $1
-    `, [sessionId, pricesExtracted]);
-
-    res.json({
-      success: true,
-      sessionId,
-      scrapedCount,
-      pricesExtracted,
-    });
+    })();
 
   } catch (error: any) {
-    console.error('Error scraping competitors:', error);
+    console.error('Error starting scrape:', error);
     res.status(500).json({ error: error.message });
   }
 });
