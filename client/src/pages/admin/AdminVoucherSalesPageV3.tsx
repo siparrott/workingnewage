@@ -1650,7 +1650,8 @@ const ProductsView: React.FC<{
             const thumb = (product as any).thumbnailUrl || (product as any).thumbnail_url;
             const imgUrl = product.imageUrl || (product as any).image_url;
             const overrideImage = tempImageMap ? (tempImageMap[product.id] || tempImageMap['new']) : undefined;
-            const imageSrc = overrideImage || thumb || imgUrl;
+            // Use main image (imgUrl) first, fall back to thumbnail only if no main image
+            const imageSrc = overrideImage || imgUrl || thumb;
             console.log('[PRODUCT CARD]', product.name, '- RAW product object keys:', Object.keys(product));
             console.log('[PRODUCT CARD]', product.name, '- imageUrl:', product.imageUrl, 'image_url:', (product as any).image_url);
             console.log('[PRODUCT CARD]', product.name, '- thumbnailUrl:', (product as any).thumbnailUrl, 'thumbnail_url:', (product as any).thumbnail_url);
