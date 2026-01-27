@@ -490,7 +490,10 @@ export default function AdminVoucherSalesPageV3() {
       setUploadedImage(null);
       setUploadedThumbnail(null);
       productForm.reset();
-      alert(`✅ Product "${data.name}" saved!\n\nImage URL saved: ${data.imageUrl ? 'Yes' : 'No'}\n\nThe frontend will now display this image.`);
+      
+      // Show detailed confirmation
+      const imgSaved = data.imageUrl ? `✅ ${data.imageUrl.substring(0, 60)}...` : '❌ None';
+      alert(`Product "${data.name}" saved to database!\n\nImage URL in database:\n${imgSaved}\n\nRefresh the frontend /vouchers page to see the change.`);
       // Stay on products tab - no page reload
     },
     onError: (error) => {
@@ -690,13 +693,16 @@ export default function AdminVoucherSalesPageV3() {
     console.log('[EDIT PRODUCT] Existing thumbnailUrl:', (product as any).thumbnailUrl || (product as any).thumbnail_url || null);
     
     setSelectedProduct(product);
-    // CRITICAL: Set both ref and state
-    uploadedImageRef.current = product.imageUrl;
-    uploadedThumbnailRef.current = (product as any).thumbnailUrl || (product as any).thumbnail_url || null;
+    // CRITICAL FIX: Set refs to NULL to indicate no NEW upload yet
+    // The existing image URLs will be passed separately via _existingImageUrl
+    uploadedImageRef.current = null;
+    uploadedThumbnailRef.current = null;
+    // Set state to existing URLs for display in the dialog
     setUploadedImage(product.imageUrl);
     setUploadedThumbnail((product as any).thumbnailUrl || (product as any).thumbnail_url || null);
     
-    console.log('[EDIT PRODUCT] State initialized - uploadedImage:', product.imageUrl);
+    console.log('[EDIT PRODUCT] Refs set to NULL (no new upload yet)');
+    console.log('[EDIT PRODUCT] State set to existing URLs for display');
     
     // Populate ALL form fields from the product
     productForm.reset({
@@ -826,28 +832,29 @@ export default function AdminVoucherSalesPageV3() {
     console.log('[HANDLE PRODUCT SUBMIT] uploadedThumbnailRef.current:', uploadedThumbnailRef.current);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     
-    // CRITICAL: Use refs instead of state to get the LATEST value (avoids React closure issues)
-    const currentImageUrl = uploadedImageRef.current;
-    const currentThumbnailUrl = uploadedThumbnailRef.current;
+    // CRITICAL: uploadedImageRef.current is ONLY set when a NEW image is uploaded
+    // If it's null, we keep the existing image from selectedProduct
+    const newImageUrl = uploadedImageRef.current;
+    const newThumbnailUrl = uploadedThumbnailRef.current;
     
-    console.log('[HANDLE PRODUCT SUBMIT] Using currentImageUrl:', currentImageUrl);
-    console.log('[HANDLE PRODUCT SUBMIT] Using currentThumbnailUrl:', currentThumbnailUrl);
+    console.log('[HANDLE PRODUCT SUBMIT] New image uploaded?', newImageUrl ? 'YES: ' + newImageUrl : 'NO');
+    console.log('[HANDLE PRODUCT SUBMIT] New thumbnail uploaded?', newThumbnailUrl ? 'YES: ' + newThumbnailUrl : 'NO');
     
     if (selectedProduct) {
-      // Pass image URLs directly from refs
+      // Pass image URLs - newImageUrl will be null if no new upload, mutation will use existing
       updateProductMutation.mutate({ 
         ...data, 
         id: selectedProduct.id,
-        _imageUrl: currentImageUrl,
-        _thumbnailUrl: currentThumbnailUrl,
+        _imageUrl: newImageUrl,
+        _thumbnailUrl: newThumbnailUrl,
         _existingImageUrl: selectedProduct.imageUrl,
         _existingThumbnailUrl: (selectedProduct as any).thumbnailUrl
       });
     } else {
       createProductMutation.mutate({
         ...data,
-        _imageUrl: currentImageUrl,
-        _thumbnailUrl: currentThumbnailUrl
+        _imageUrl: newImageUrl,
+        _thumbnailUrl: newThumbnailUrl
       });
     }
   };
