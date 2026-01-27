@@ -627,11 +627,11 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
           {/* Gallery Header */}
           <div className="mb-6">
             {formData.coverImage && (
-              <div className="mb-4">
+              <div className="mb-4 flex justify-center bg-gray-100 rounded-lg overflow-hidden">
                 <img
                   src={formData.coverImage}
                   alt="Cover"
-                  className="w-full h-48 object-cover rounded-lg"
+                  className="max-w-full max-h-64 object-contain"
                 />
               </div>
             )}
