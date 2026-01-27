@@ -48,6 +48,7 @@ import {
   Baby,
   FileText,
   Folder,
+  Search,
   Image,
   MessageSquare,
   Calendar as CalendarIcon,
@@ -1193,68 +1194,64 @@ export default function AdminVoucherSalesPageV3() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Voucher & Sales Management</h1>
-              <p className="text-gray-600 mt-1">Manage voucher products, discount codes, and track sales performance</p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm" onClick={handleExportProducts} title="Export products CSV">
-                <Download className="h-4 w-4 mr-2" />
-                Export Products
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleExportSales} title="Export sales CSV">
-                <Download className="h-4 w-4 mr-2" />
-                Export Sales
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleSyncStripe} 
-                disabled={isSyncingStripe} 
-                title="Sync missing sales from Stripe"
-                className="border-purple-300 hover:bg-purple-50"
-              >
-                <CreditCard className="h-4 w-4 mr-2" />
-                {isSyncingStripe ? 'Syncing...' : '🔄 Sync from Stripe'}
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleImportFamilyPackages} disabled={isImportingPackages} title="Import Family Packages">
-                <Users className="h-4 w-4 mr-2" />
-                {isImportingPackages ? 'Importing...' : 'Import Family Packages'}
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleImportNewbornPackages} disabled={isImportingNewborn} title="Import Newborn Packages">
-                <Baby className="h-4 w-4 mr-2" />
-                {isImportingNewborn ? 'Importing...' : 'Import Newborn Packages'}
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => handleImportAllPackages()} title="Import All Service Packages">
-                <Package className="h-4 w-4 mr-2" />
-                Import All Packages
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleShowAnalytics} title="Coupon usage analytics">
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Analytics
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleOpenSettings} title="Voucher defaults & image settings">
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </Button>
-            </div>
+      <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
+        {/* Page Header - Galleries style */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <h1 className="text-2xl font-bold text-gray-900">Online Voucher Sales</h1>
+          </div>
+          <div className="flex items-center space-x-2 text-sm">
+            <Button variant="outline" size="sm" onClick={handleExportProducts} className="border-gray-200 hover:bg-gray-100">
+              <Download className="h-4 w-4 mr-1.5" />
+              Export Products
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportSales} className="border-gray-200 hover:bg-gray-100">
+              <Download className="h-4 w-4 mr-1.5" />
+              Export Sales
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleSyncStripe} 
+              disabled={isSyncingStripe} 
+              className="border-purple-200 hover:bg-purple-50 text-purple-700"
+            >
+              <CreditCard className="h-4 w-4 mr-1.5" />
+              {isSyncingStripe ? 'Syncing...' : 'Sync from Stripe'}
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleImportFamilyPackages} disabled={isImportingPackages} className="border-gray-200 hover:bg-gray-100">
+              <Users className="h-4 w-4 mr-1.5" />
+              {isImportingPackages ? 'Importing...' : 'Import Family Packages'}
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleImportNewbornPackages} disabled={isImportingNewborn} className="border-gray-200 hover:bg-gray-100">
+              <Baby className="h-4 w-4 mr-1.5" />
+              {isImportingNewborn ? 'Importing...' : 'Import Newborn Packages'}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleImportAllPackages()} className="border-gray-200 hover:bg-gray-100">
+              <Package className="h-4 w-4 mr-1.5" />
+              Import All Packages
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleShowAnalytics} className="border-gray-200 hover:bg-gray-100">
+              <BarChart3 className="h-4 w-4 mr-1.5" />
+              Analytics
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleOpenSettings} className="border-gray-200 hover:bg-gray-100">
+              <Settings className="h-4 w-4 mr-1.5" />
+              Settings
+            </Button>
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="border-b border-gray-200 bg-gray-50">
-            <nav className="flex space-x-8 px-6" aria-label="Voucher Management">
+        {/* Navigation Tabs - Cleaner style */}
+        <div className="bg-white rounded-lg border border-gray-200">
+          <div className="border-b border-gray-200">
+            <nav className="flex space-x-1 px-4" aria-label="Voucher Management">
               <button
                 onClick={() => setActiveView("dashboard")}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`py-3 px-4 text-sm font-medium transition-colors rounded-t-lg ${
                   activeView === "dashboard"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    ? "bg-teal-50 text-teal-700 border-b-2 border-teal-500"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                 }`}
               >
                 <div className="flex items-center">
@@ -1264,10 +1261,10 @@ export default function AdminVoucherSalesPageV3() {
               </button>
               <button
                 onClick={() => setActiveView("products")}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`py-3 px-4 text-sm font-medium transition-colors rounded-t-lg ${
                   activeView === "products"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    ? "bg-teal-50 text-teal-700 border-b-2 border-teal-500"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                 }`}
               >
                 <div className="flex items-center">
@@ -1277,10 +1274,10 @@ export default function AdminVoucherSalesPageV3() {
               </button>
               <button
                 onClick={() => setActiveView("coupons")}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`py-3 px-4 text-sm font-medium transition-colors rounded-t-lg ${
                   activeView === "coupons"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    ? "bg-teal-50 text-teal-700 border-b-2 border-teal-500"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                 }`}
               >
                 <div className="flex items-center">
@@ -1290,10 +1287,10 @@ export default function AdminVoucherSalesPageV3() {
               </button>
               <button
                 onClick={() => setActiveView("sales")}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`py-3 px-4 text-sm font-medium transition-colors rounded-t-lg ${
                   activeView === "sales"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    ? "bg-teal-50 text-teal-700 border-b-2 border-teal-500"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                 }`}
               >
                 <div className="flex items-center">
@@ -1617,7 +1614,7 @@ const DashboardView: React.FC<{
   );
 };
 
-// Products View Component
+// Products View Component - Table Layout (matches Galleries page style)
 const ProductsView: React.FC<{
   products: VoucherProduct[];
   isLoading: boolean;
@@ -1627,159 +1624,222 @@ const ProductsView: React.FC<{
   tempImageMap?: Record<string, string>;
   onPreviewProduct?: (product: any) => void;
 }> = ({ products, isLoading, onCreateProduct, onEditProduct, onDeleteProduct, tempImageMap, onPreviewProduct }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const isActive = product.isActive !== false && (product as any).is_active !== false;
+    const matchesStatus = statusFilter === 'all' || 
+      (statusFilter === 'active' && isActive) || 
+      (statusFilter === 'inactive' && !isActive);
+    return matchesSearch && matchesStatus;
+  });
+
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <Card key={i} className="animate-pulse">
-            <CardHeader>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-16 bg-gray-200 rounded"></div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="bg-white rounded-lg border">
+        <div className="p-6 space-y-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="animate-pulse flex items-center space-x-4">
+              <div className="h-12 w-12 bg-gray-200 rounded"></div>
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-semibold">Product Catalog</h2>
-          <p className="text-gray-600">Manage your photography voucher offerings</p>
+    <div className="space-y-4">
+      {/* Header with search and actions - matches Galleries style */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <h2 className="text-2xl font-bold text-gray-900">Products</h2>
+          <Button onClick={onCreateProduct} className="bg-teal-500 hover:bg-teal-600 text-white">
+            ADD NEW
+          </Button>
         </div>
-        <Button onClick={onCreateProduct}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Product
-        </Button>
+        <div className="flex items-center space-x-3">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search ..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+            />
+          </div>
+          {/* Filter dropdown */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+            className="px-4 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+          >
+            <option value="all">All Products</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
       </div>
 
-      {products.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {products.map((product) => {
-            const thumb = (product as any).thumbnailUrl || (product as any).thumbnail_url;
-            const imgUrl = product.imageUrl || (product as any).image_url;
-            const overrideImage = tempImageMap ? (tempImageMap[product.id] || tempImageMap['new']) : undefined;
-            // Use main image (imgUrl) first, fall back to thumbnail only if no main image
-            const imageSrc = overrideImage || imgUrl || thumb;
-            const hasUnsavedImage = overrideImage && overrideImage !== imgUrl;
-            console.log('[PRODUCT CARD]', product.name, '- RAW product object keys:', Object.keys(product));
-            console.log('[PRODUCT CARD]', product.name, '- imageUrl:', product.imageUrl, 'image_url:', (product as any).image_url);
-            console.log('[PRODUCT CARD]', product.name, '- thumbnailUrl:', (product as any).thumbnailUrl, 'thumbnail_url:', (product as any).thumbnail_url);
-            console.log('[PRODUCT CARD]', product.name, '- FINAL imageSrc:', imageSrc, hasUnsavedImage ? '(UNSAVED)' : '');
-            return (
-            <Card key={product.id} className={`hover:shadow-lg transition-shadow overflow-hidden ${hasUnsavedImage ? 'ring-2 ring-yellow-500' : ''}`}>
-              {/* Product Image */}
-              {hasUnsavedImage && (
-                <div className="bg-yellow-500 text-white text-xs px-2 py-1 text-center font-medium">
-                  ⚠️ Unsaved image - Click Edit → Update Product to save
-                </div>
-              )}
-              {(() => {
-                if (imageSrc) {
-                  return (
-                    <div className="w-full h-48 overflow-hidden bg-gray-100">
-                      <img
-                        src={imageSrc}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          console.error('[PRODUCT IMAGE] Failed to load:', imageSrc);
-                          const imgEl = e.target as HTMLImageElement;
-                          imgEl.style.display = 'none';
-                          // Insert graceful fallback element without nuking parent innerHTML
-                          const fallback = document.createElement('div');
-                          fallback.className = 'w-full h-full flex items-center justify-center text-gray-400';
-                          fallback.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-16 w-16"><path d="M21 15V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9"/><path d="M3 15l4-4a2 2 0 0 1 3 0l5 5"/><path d="M14 13l4-4a2 2 0 0 1 3 0"/><path d="M2 20h20"/></svg><span class="ml-2">No Image</span>';
-                          imgEl.parentElement?.appendChild(fallback);
-                        }}
-                      />
-                    </div>
-                  );
-                }
+      {/* Products Table */}
+      <div className="bg-white rounded-lg border overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-gray-50 border-b">
+            <tr>
+              <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                <input type="checkbox" className="rounded border-gray-300" />
+              </th>
+              <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">NAME</th>
+              <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">PRICE</th>
+              <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">CATEGORY</th>
+              <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">VALIDITY</th>
+              <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">STATUS</th>
+              <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((product) => {
+                const thumb = (product as any).thumbnailUrl || (product as any).thumbnail_url;
+                const imgUrl = product.imageUrl || (product as any).image_url;
+                const overrideImage = tempImageMap ? (tempImageMap[product.id] || tempImageMap['new']) : undefined;
+                const imageSrc = overrideImage || imgUrl || thumb;
+                const hasUnsavedImage = overrideImage && overrideImage !== imgUrl;
+                const isActive = product.isActive !== false && (product as any).is_active !== false;
+                const validityMonths = product.validityPeriod || (product as any).validity_period 
+                  ? Math.floor((product.validityPeriod || (product as any).validity_period) / 30) 
+                  : 12;
+
                 return (
-                  <div className="w-full h-48 bg-gray-100 flex items-center justify-center text-gray-400">
-                    <Package className="h-16 w-16" />
-                  </div>
+                  <tr key={product.id} className={`hover:bg-gray-50 ${hasUnsavedImage ? 'bg-yellow-50' : ''}`}>
+                    <td className="py-3 px-4">
+                      <input type="checkbox" className="rounded border-gray-300" />
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center space-x-3">
+                        {/* Thumbnail */}
+                        <div className="h-12 w-12 rounded overflow-hidden bg-gray-100 flex-shrink-0">
+                          {imageSrc ? (
+                            <img 
+                              src={imageSrc} 
+                              alt={product.name}
+                              className="h-full w-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center">
+                              <Package className="h-6 w-6 text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+                        {/* Name and description */}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium text-gray-900 truncate">{product.name}</span>
+                            {hasUnsavedImage && (
+                              <span className="text-xs bg-yellow-500 text-white px-1.5 py-0.5 rounded">Unsaved</span>
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-500 truncate max-w-xs">
+                            {product.description?.substring(0, 50)}{product.description && product.description.length > 50 ? '...' : ''}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="font-semibold text-gray-900">€{product.price}</span>
+                      {product.originalPrice && parseFloat(String(product.originalPrice)) > parseFloat(String(product.price)) && (
+                        <span className="text-xs text-gray-400 line-through ml-2">€{product.originalPrice}</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="text-sm text-gray-600 capitalize">{product.category || '—'}</span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="text-sm text-gray-600">{validityMonths} months</span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        isActive 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center justify-end space-x-1">
+                        <button
+                          onClick={() => onEditProduct(product)}
+                          className="p-1.5 text-gray-500 hover:text-teal-600 hover:bg-teal-50 rounded"
+                          title="Edit"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            const hasTemp = tempImageMap && (tempImageMap[product.id] || tempImageMap['new']);
+                            if (hasTemp && onPreviewProduct) {
+                              onPreviewProduct({ ...product, imageUrl: hasTemp });
+                              return;
+                            }
+                            window.open(`/gutschein/${product.slug || product.id}`, '_blank');
+                          }}
+                          className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
+                          title="Preview"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => onDeleteProduct(product)}
+                          className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 );
-              })()}
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg">{product.name}</CardTitle>
-                    <div className="flex items-center space-x-2 mt-2">
-                      <Badge variant={(product.isActive || (product as any).is_active) ? "default" : "secondary"}>
-                        {(product.isActive || (product as any).is_active) ? "Active" : "Inactive"}
-                      </Badge>
-                      <Badge variant="outline">
-                        {product.validityPeriod || (product as any).validity_period ? Math.floor(((product.validityPeriod || (product as any).validity_period) / 30)) : 12} months
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-green-600">€{product.price}</div>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 text-sm line-clamp-3 mb-4">{product.description}</p>
-                <div className="flex justify-between">
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onEditProduct(product)}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
+              })
+            ) : (
+              <tr>
+                <td colSpan={7} className="py-12 text-center">
+                  <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">
+                    {searchTerm || statusFilter !== 'all' 
+                      ? 'No products match your search criteria' 
+                      : 'No voucher products yet'}
+                  </p>
+                  {!searchTerm && statusFilter === 'all' && (
+                    <Button onClick={onCreateProduct} className="mt-4 bg-teal-500 hover:bg-teal-600">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Your First Product
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => onDeleteProduct(product)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Delete
-                    </Button>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      // If there's an unsaved temp image for this product, open admin preview modal
-                      const hasTemp = tempImageMap && (tempImageMap[product.id] || tempImageMap['new']);
-                      if (hasTemp && onPreviewProduct) {
-                        onPreviewProduct({ ...product, imageUrl: hasTemp });
-                        return;
-                      }
-                      window.open(`/gutschein/${product.slug || product.id}`, '_blank');
-                    }}
-                  >
-                    <Eye className="h-4 w-4 mr-1" />
-                    Preview
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )})}
+                  )}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Footer info */}
+      {filteredProducts.length > 0 && (
+        <div className="text-sm text-gray-500">
+          Showing {filteredProducts.length} of {products.length} products
         </div>
-      ) : (
-        <Card className="text-center py-12">
-          <CardContent>
-            <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No voucher products yet</h3>
-            <p className="text-gray-600 mb-6">Create your first voucher product to start selling photography packages</p>
-            <Button onClick={onCreateProduct}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Your First Product
-            </Button>
-          </CardContent>
-        </Card>
       )}
     </div>
   );
