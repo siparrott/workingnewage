@@ -153,58 +153,71 @@ router.post('/scrape', async (req, res) => {
     let scrapedCount = 0;
     let pricesExtracted = 0;
 
-    // Scrape each competitor
-    for (const competitor of competitors) {
-      try {
-        const scrapeResult = await scraper.scrapeWebsite(competitor.website_url);
+    // Process competitors in parallel (batch of 3 at a time) for speed
+    const processBatch = async (batch: typeof competitors) => {
+      const results = await Promise.allSettled(
+        batch.map(async (competitor) => {
+          try {
+            console.log(`🔍 Scraping: ${competitor.website_url}`);
+            const scrapeResult = await scraper.scrapeWebsite(competitor.website_url);
 
-        if (scrapeResult.success && scrapeResult.prices.length > 0) {
-          // Save prices
-          for (const price of scrapeResult.prices) {
+            if (scrapeResult.success && scrapeResult.prices.length > 0) {
+              // Save prices
+              for (const price of scrapeResult.prices) {
+                await pool.query(`
+                  INSERT INTO competitor_prices (
+                    competitor_id, service_type, price_amount, currency, 
+                    confidence_score, url_source
+                  ) VALUES ($1, $2, $3, $4, $5, $6)
+                `, [
+                  competitor.id,
+                  price.serviceType,
+                  price.amount,
+                  price.currency,
+                  price.confidence,
+                  price.url,
+                ]);
+                pricesExtracted++;
+              }
+
+              await pool.query(`
+                UPDATE competitor_research 
+                SET status = 'scraped', scraped_at = NOW() 
+                WHERE id = $1
+              `, [competitor.id]);
+
+              scrapedCount++;
+              return { success: true };
+            } else {
+              await pool.query(`
+                UPDATE competitor_research 
+                SET status = 'failed', scrape_error = $2 
+                WHERE id = $1
+              `, [competitor.id, scrapeResult.error || 'No prices found on page']);
+              return { success: false };
+            }
+          } catch (error: any) {
+            console.error(`❌ Scrape failed for ${competitor.website_url}:`, error.message);
             await pool.query(`
-              INSERT INTO competitor_prices (
-                competitor_id, service_type, price_amount, currency, 
-                confidence_score, source_url
-              ) VALUES ($1, $2, $3, $4, $5, $6)
-            `, [
-              competitor.id,
-              price.serviceType,
-              price.amount,
-              price.currency,
-              price.confidence,
-              price.url,
-            ]);
-            pricesExtracted++;
+              UPDATE competitor_research 
+              SET status = 'failed', scrape_error = $2 
+              WHERE id = $1
+            `, [competitor.id, error.message?.substring(0, 200) || 'Network error']);
+            return { success: false };
           }
+        })
+      );
+      return results;
+    };
 
-          // Update competitor status
-          await pool.query(`
-            UPDATE competitor_research 
-            SET status = 'scraped', scraped_at = NOW() 
-            WHERE id = $1
-          `, [competitor.id]);
-
-          scrapedCount++;
-        } else {
-          // Mark as failed
-          await pool.query(`
-            UPDATE competitor_research 
-            SET status = 'failed', scrape_error = $2 
-            WHERE id = $1
-          `, [competitor.id, scrapeResult.error || 'No prices found']);
-        }
-
-      } catch (error: any) {
-        console.error(`Error scraping ${competitor.website_url}:`, error);
-        await pool.query(`
-          UPDATE competitor_research 
-          SET status = 'failed', scrape_error = $2 
-          WHERE id = $1
-        `, [competitor.id, error.message]);
+    // Process in batches of 3
+    for (let i = 0; i < competitors.length; i += 3) {
+      const batch = competitors.slice(i, i + 3);
+      await processBatch(batch);
+      // Brief pause between batches
+      if (i + 3 < competitors.length) {
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
-
-      // Rate limiting
-      await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
     // Update session

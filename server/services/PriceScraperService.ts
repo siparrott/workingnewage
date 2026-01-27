@@ -34,8 +34,8 @@ interface ExtractedPrice {
 }
 
 export class PriceScraperService {
-  private readonly MAX_RETRIES = 3;
-  private readonly TIMEOUT_MS = 30000;
+  private readonly MAX_RETRIES = 1;
+  private readonly TIMEOUT_MS = 8000; // 8 seconds - fail fast for non-existent URLs
   
   // Common price patterns for Austrian/German markets
   private readonly PRICE_PATTERNS = [
