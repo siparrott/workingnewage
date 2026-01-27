@@ -304,9 +304,20 @@ router.post('/analyze', async (req, res) => {
 
     const prices = pricesResult.rows;
 
+    // If no prices yet, mark session as ready for manual entry
     if (prices.length === 0) {
-      return res.status(400).json({ 
-        error: 'No prices found to analyze. Run scraping first.' 
+      await pool.query(`
+        UPDATE price_wizard_sessions
+        SET status = 'completed', suggestions_generated = 0, updated_at = NOW()
+        WHERE id = $1
+      `, [sessionId]);
+
+      return res.json({ 
+        success: true,
+        sessionId,
+        suggestionsCount: 0,
+        suggestions: [],
+        message: 'No prices to analyze. Add competitor prices manually using the + button, then click "Retry Scrape" to re-analyze.'
       });
     }
 
