@@ -471,10 +471,17 @@ export default function AdminVoucherSalesPageV3() {
     },
     onSuccess: (data) => {
       console.log('[UPDATE PRODUCT] Success callback - updated product:', data);
+      console.log('[UPDATE PRODUCT] ✅ Database now has imageUrl:', data.imageUrl);
       // Force refresh all voucher-related queries
       queryClient.invalidateQueries({ queryKey: ["/api/vouchers/products"] });
       queryClient.refetchQueries({ queryKey: ["/api/vouchers/products"] });
       queryClient.removeQueries({ queryKey: ["/api/vouchers/products"] });
+      // Clear tempImageMap for this product since database is now updated
+      setTempImageMap((m) => {
+        const newMap = { ...m };
+        delete newMap[data.id];
+        return newMap;
+      });
       setIsProductDialogOpen(false);
       setSelectedProduct(null);
       // CRITICAL: Clear both refs and state
@@ -483,7 +490,7 @@ export default function AdminVoucherSalesPageV3() {
       setUploadedImage(null);
       setUploadedThumbnail(null);
       productForm.reset();
-      alert("Voucher product updated successfully!");
+      alert(`✅ Product "${data.name}" saved!\n\nImage URL saved: ${data.imageUrl ? 'Yes' : 'No'}\n\nThe frontend will now display this image.`);
       // Stay on products tab - no page reload
     },
     onError: (error) => {
@@ -1652,13 +1659,19 @@ const ProductsView: React.FC<{
             const overrideImage = tempImageMap ? (tempImageMap[product.id] || tempImageMap['new']) : undefined;
             // Use main image (imgUrl) first, fall back to thumbnail only if no main image
             const imageSrc = overrideImage || imgUrl || thumb;
+            const hasUnsavedImage = overrideImage && overrideImage !== imgUrl;
             console.log('[PRODUCT CARD]', product.name, '- RAW product object keys:', Object.keys(product));
             console.log('[PRODUCT CARD]', product.name, '- imageUrl:', product.imageUrl, 'image_url:', (product as any).image_url);
             console.log('[PRODUCT CARD]', product.name, '- thumbnailUrl:', (product as any).thumbnailUrl, 'thumbnail_url:', (product as any).thumbnail_url);
-            console.log('[PRODUCT CARD]', product.name, '- FINAL imageSrc:', imageSrc);
+            console.log('[PRODUCT CARD]', product.name, '- FINAL imageSrc:', imageSrc, hasUnsavedImage ? '(UNSAVED)' : '');
             return (
-            <Card key={product.id} className="hover:shadow-lg transition-shadow overflow-hidden">
+            <Card key={product.id} className={`hover:shadow-lg transition-shadow overflow-hidden ${hasUnsavedImage ? 'ring-2 ring-yellow-500' : ''}`}>
               {/* Product Image */}
+              {hasUnsavedImage && (
+                <div className="bg-yellow-500 text-white text-xs px-2 py-1 text-center font-medium">
+                  ⚠️ Unsaved image - Click Edit → Update Product to save
+                </div>
+              )}
               {(() => {
                 if (imageSrc) {
                   return (
