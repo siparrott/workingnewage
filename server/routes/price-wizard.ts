@@ -122,8 +122,7 @@ router.post('/discover', async (req, res) => {
 
 /**
  * POST /api/price-wizard/scrape
- * Scrape prices from discovered competitors
- * Note: Currently marks all as failed quickly since fallback URLs are fictional
+ * Mark competitors for manual price entry (scraping disabled - URLs are fictional)
  */
 router.post('/scrape', async (req, res) => {
   try {
@@ -133,112 +132,43 @@ router.post('/scrape', async (req, res) => {
       return res.status(400).json({ error: 'Missing sessionId' });
     }
 
-    // Update session to scraping status
-    await pool.query(`
-      UPDATE price_wizard_sessions SET status = 'scraping', updated_at = NOW() WHERE id = $1
-    `, [sessionId]);
+    console.log(`📋 Processing scrape for session ${sessionId}`);
 
     // Get pending competitors
     const result = await pool.query(`
       SELECT id, website_url 
       FROM competitor_research 
       WHERE session_id = $1 AND status = 'pending'
-      LIMIT 10
     `, [sessionId]);
 
     const competitors = result.rows;
+    console.log(`Found ${competitors.length} pending competitors`);
 
-    if (competitors.length === 0) {
-      await pool.query(`
-        UPDATE price_wizard_sessions SET status = 'analyzing', updated_at = NOW() WHERE id = $1
-      `, [sessionId]);
-      return res.json({ 
-        success: true, 
-        message: 'No pending competitors to scrape',
-        scrapedCount: 0,
-        pricesExtracted: 0,
-      });
-    }
-
-    let scrapedCount = 0;
-    let pricesExtracted = 0;
-
-    // Process each competitor with a very short timeout
+    // Mark all as failed immediately (scraping disabled - fallback URLs are fictional)
+    // Users can add prices manually using the + button
     for (const competitor of competitors) {
-      try {
-        console.log(`🔍 Attempting to scrape: ${competitor.website_url}`);
-        
-        // Quick check - try to fetch with 3 second timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
-        
-        try {
-          const response = await fetch(competitor.website_url, {
-            signal: controller.signal,
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            },
-          });
-          clearTimeout(timeoutId);
-          
-          if (response.ok) {
-            // If we got a response, try to scrape
-            const scrapeResult = await scraper.scrapeWebsite(competitor.website_url);
-            
-            if (scrapeResult.success && scrapeResult.prices.length > 0) {
-              for (const price of scrapeResult.prices) {
-                await pool.query(`
-                  INSERT INTO competitor_prices (
-                    competitor_id, service_type, price_amount, currency, 
-                    confidence_score, url_source
-                  ) VALUES ($1, $2, $3, $4, $5, $6)
-                `, [competitor.id, price.serviceType, price.amount, price.currency, price.confidence, price.url]);
-                pricesExtracted++;
-              }
-              
-              await pool.query(`
-                UPDATE competitor_research SET status = 'scraped', scraped_at = NOW() WHERE id = $1
-              `, [competitor.id]);
-              scrapedCount++;
-            } else {
-              await pool.query(`
-                UPDATE competitor_research SET status = 'failed', scrape_error = $2 WHERE id = $1
-              `, [competitor.id, 'No pricing found on page']);
-            }
-          } else {
-            await pool.query(`
-              UPDATE competitor_research SET status = 'failed', scrape_error = $2 WHERE id = $1
-            `, [competitor.id, `HTTP ${response.status}`]);
-          }
-        } catch (fetchError: any) {
-          clearTimeout(timeoutId);
-          console.log(`❌ Quick fail for ${competitor.website_url}: ${fetchError.message}`);
-          await pool.query(`
-            UPDATE competitor_research SET status = 'failed', scrape_error = $2 WHERE id = $1
-          `, [competitor.id, fetchError.name === 'AbortError' ? 'Timeout' : 'Connection failed']);
-        }
-      } catch (error: any) {
-        console.error(`❌ Error processing ${competitor.website_url}:`, error.message);
-        await pool.query(`
-          UPDATE competitor_research SET status = 'failed', scrape_error = $2 WHERE id = $1
-        `, [competitor.id, error.message?.substring(0, 100) || 'Unknown error']);
-      }
+      await pool.query(`
+        UPDATE competitor_research 
+        SET status = 'failed', scrape_error = 'Manual entry required - click + to add prices' 
+        WHERE id = $1
+      `, [competitor.id]);
     }
 
     // Update session to analyzing
     await pool.query(`
       UPDATE price_wizard_sessions
-      SET status = 'analyzing', prices_extracted = prices_extracted + $2, updated_at = NOW()
+      SET status = 'analyzing', updated_at = NOW()
       WHERE id = $1
-    `, [sessionId, pricesExtracted]);
+    `, [sessionId]);
 
-    console.log(`✅ Scraping complete: ${scrapedCount} scraped, ${pricesExtracted} prices extracted`);
+    console.log(`✅ Marked ${competitors.length} competitors for manual entry, session moved to analyzing`);
 
     res.json({
       success: true,
       sessionId,
-      scrapedCount,
-      pricesExtracted,
+      scrapedCount: 0,
+      pricesExtracted: 0,
+      message: 'Competitors marked for manual price entry'
     });
 
   } catch (error: any) {
