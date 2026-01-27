@@ -8632,17 +8632,23 @@ New Age Fotografie CRM System
   app.get("/api/vouchers/products/:id", async (req: Request, res: Response) => {
     try {
       const idOrSlug = req.params.id;
+      console.log('[VOUCHER] Fetching product by id/slug:', idOrSlug);
       let product = await neonDb.getVoucherProduct(idOrSlug);
+      console.log('[VOUCHER] Direct ID lookup result:', product ? 'found' : 'not found');
       if (!product) {
         // Fallback: attempt slug lookup
         try {
+          console.log('[VOUCHER] Attempting slug fallback for:', idOrSlug);
           const all = await neonDb.getVoucherProducts();
+          console.log('[VOUCHER] Got', all.length, 'products for slug search');
           product = all.find((p: any) => p.slug === idOrSlug);
+          console.log('[VOUCHER] Slug lookup result:', product ? 'found' : 'not found');
         } catch (e) {
           console.warn('[VOUCHER] Slug fallback failed:', e);
         }
       }
       if (!product) {
+        console.log('[VOUCHER] Product not found for:', idOrSlug);
         return res.status(404).json({ error: "Voucher product not found" });
       }
       // Helper to properly encode URLs with spaces in path segments
@@ -8689,6 +8695,7 @@ New Age Fotografie CRM System
       res.json(transformedProduct);
     } catch (error) {
       console.error("Error fetching voucher product:", error);
+      console.error("[VOUCHER] Full error stack:", (error as Error).stack);
       res.status(500).json({ error: "Internal server error" });
     }
   });
