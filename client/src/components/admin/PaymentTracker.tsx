@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, CreditCard, Calendar, DollarSign, Trash2, ChevronDown, Mail, FileText } from 'lucide-react';
+import { X, Plus, CreditCard, Calendar, DollarSign, Trash2, ChevronDown, Mail, FileText, Settings, PlusCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { addInvoicePayment } from '../../api/invoices';
 
@@ -11,6 +11,14 @@ interface Payment {
   payment_date: string;
   notes?: string;
   created_at: string;
+}
+
+interface CustomPaymentMethod {
+  id: string;
+  name: string;
+  label: string;
+  is_active: boolean;
+  sort_order: number;
 }
 
 interface PaymentTrackerProps {
@@ -37,6 +45,11 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
   const [showNotes, setShowNotes] = useState(false);
   const [sendEmailReceipt, setSendEmailReceipt] = useState(false);
   const [showActionDropdown, setShowActionDropdown] = useState(false);
+  const [customMethods, setCustomMethods] = useState<CustomPaymentMethod[]>([]);
+  const [showAddCustomMethod, setShowAddCustomMethod] = useState(false);
+  const [newCustomMethodLabel, setNewCustomMethodLabel] = useState('');
+  const [useCustomMethod, setUseCustomMethod] = useState(false);
+  const [customMethodInput, setCustomMethodInput] = useState('');
   const [newPayment, setNewPayment] = useState({
     amount: 0,
     payment_method: '',
@@ -48,6 +61,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
   useEffect(() => {
     if (isOpen) {
       fetchPayments();
+      fetchCustomMethods();
     }
   }, [isOpen, invoiceId]);
 
@@ -73,10 +87,61 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
     }
   };
 
+  const fetchCustomMethods = async () => {
+    try {
+      const response = await fetch('/api/settings/payment-methods', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCustomMethods(data.methods || []);
+      }
+    } catch (err) {
+      // Silently fail - custom methods are optional
+    }
+  };
+
+  const handleAddCustomMethod = async () => {
+    if (!newCustomMethodLabel.trim()) return;
+    try {
+      const response = await fetch('/api/settings/payment-methods', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ 
+          name: newCustomMethodLabel.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+          label: newCustomMethodLabel.trim()
+        })
+      });
+      if (response.ok) {
+        setNewCustomMethodLabel('');
+        setShowAddCustomMethod(false);
+        await fetchCustomMethods();
+      }
+    } catch (err) {
+      setError('Failed to add custom payment method');
+    }
+  };
+
+  const handleDeleteCustomMethod = async (methodId: string) => {
+    try {
+      await fetch(`/api/settings/payment-methods/${methodId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      await fetchCustomMethods();
+    } catch (err) {
+      setError('Failed to delete payment method');
+    }
+  };
+
   const handleAddPayment = async () => {
     try {
       setLoading(true);
       setError(null);
+
+      // Use custom method input if in custom mode
+      const paymentMethod = useCustomMethod ? customMethodInput : newPayment.payment_method;
 
       const response = await fetch(`/api/crm/invoices/${invoiceId}/payments`, {
         method: 'POST',
@@ -84,7 +149,10 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(newPayment)
+        body: JSON.stringify({
+          ...newPayment,
+          payment_method: paymentMethod
+        })
       });
       
       if (!response.ok) {
@@ -99,7 +167,8 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
         payment_date: new Date().toISOString().split('T')[0],
         notes: ''
       });
-      
+      setUseCustomMethod(false);
+      setCustomMethodInput('');
       setShowAddPayment(false);
       setShowNotes(false);
       setSendEmailReceipt(false);
@@ -149,7 +218,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
   };
 
   const getPaymentMethodLabel = (method: string) => {
-    const methods: { [key: string]: string } = {
+    const standardMethods: { [key: string]: string } = {
       bank_transfer: 'E-Transfer / Banküberweisung',
       credit_card: 'Bankkarte',
       bankkarte: 'Bankkarte',
@@ -162,7 +231,17 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
       check: 'Scheck',
       other: 'Andere'
     };
-    return methods[method] || method;
+    // Check standard methods first
+    if (standardMethods[method]) {
+      return standardMethods[method];
+    }
+    // Check custom methods
+    const customMethod = customMethods.find(m => m.name === method);
+    if (customMethod) {
+      return customMethod.label;
+    }
+    // Return the method name as-is (for custom free-text entries)
+    return method;
   };
 
   if (!isOpen) return null;
@@ -307,20 +386,94 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
                       <label className="block text-sm font-medium text-gray-600 mb-2">
                         Payment Method
                       </label>
-                      <select
-                        value={newPayment.payment_method}
-                        onChange={(e) => setNewPayment(prev => ({ ...prev, payment_method: e.target.value }))}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-700 appearance-none bg-white"
-                      >
-                        <option value="">Select a payment method ...</option>
-                        <option value="bankkarte">Bankkarte</option>
-                        <option value="bar">Bar</option>
-                        <option value="bank_transfer">E-Transfer / Banküberweisung</option>
-                        <option value="klarna">Klarna</option>
-                        <option value="stripe">Stripe</option>
-                        <option value="paypal">PayPal</option>
-                        <option value="other">Other</option>
-                      </select>
+                      {!useCustomMethod ? (
+                        <div className="space-y-2">
+                          <select
+                            value={newPayment.payment_method}
+                            onChange={(e) => {
+                              if (e.target.value === '__custom__') {
+                                setUseCustomMethod(true);
+                                setNewPayment(prev => ({ ...prev, payment_method: '' }));
+                              } else {
+                                setNewPayment(prev => ({ ...prev, payment_method: e.target.value }));
+                              }
+                            }}
+                            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-700 appearance-none bg-white"
+                          >
+                            <option value="">Select a payment method ...</option>
+                            <optgroup label="Standard Methods">
+                              <option value="bankkarte">Bankkarte</option>
+                              <option value="bar">Bar</option>
+                              <option value="bank_transfer">E-Transfer / Banküberweisung</option>
+                              <option value="klarna">Klarna</option>
+                              <option value="stripe">Stripe</option>
+                              <option value="paypal">PayPal</option>
+                            </optgroup>
+                            {customMethods.length > 0 && (
+                              <optgroup label="Custom Methods">
+                                {customMethods.map(method => (
+                                  <option key={method.id} value={method.name}>{method.label}</option>
+                                ))}
+                              </optgroup>
+                            )}
+                            <optgroup label="Other">
+                              <option value="__custom__">+ Add custom method...</option>
+                            </optgroup>
+                          </select>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={customMethodInput}
+                              onChange={(e) => setCustomMethodInput(e.target.value)}
+                              placeholder="Enter payment method name..."
+                              className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-700"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setUseCustomMethod(false);
+                                setCustomMethodInput('');
+                              }}
+                              className="px-3 py-2 text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (customMethodInput.trim()) {
+                                  // Save as new custom method for future use
+                                  try {
+                                    const response = await fetch('/api/settings/payment-methods', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      credentials: 'include',
+                                      body: JSON.stringify({ 
+                                        name: customMethodInput.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+                                        label: customMethodInput.trim()
+                                      })
+                                    });
+                                    if (response.ok) {
+                                      await fetchCustomMethods();
+                                    }
+                                  } catch (err) {
+                                    // Silently fail
+                                  }
+                                }
+                              }}
+                              className="text-xs text-cyan-600 hover:text-cyan-700 flex items-center"
+                            >
+                              <PlusCircle size={12} className="mr-1" />
+                              Save for future use
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -384,14 +537,14 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
                     <div className="flex">
                       <button
                         onClick={() => { setSendEmailReceipt(false); handleAddPayment(); }}
-                        disabled={loading || newPayment.amount <= 0 || !newPayment.payment_method}
+                        disabled={loading || newPayment.amount <= 0 || (!newPayment.payment_method && !customMethodInput)}
                         className="px-4 py-2 bg-cyan-500 text-white rounded-l-lg hover:bg-cyan-600 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium flex items-center"
                       >
                         {loading ? 'Adding...' : 'Add Payment'}
                       </button>
                       <button
                         onClick={() => setShowActionDropdown(!showActionDropdown)}
-                        disabled={loading || newPayment.amount <= 0 || !newPayment.payment_method}
+                        disabled={loading || newPayment.amount <= 0 || (!newPayment.payment_method && !customMethodInput)}
                         className="px-2 py-2 bg-cyan-500 text-white rounded-r-lg hover:bg-cyan-600 disabled:bg-gray-300 disabled:cursor-not-allowed border-l border-cyan-400"
                       >
                         <ChevronDown size={18} />

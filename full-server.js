@@ -8809,6 +8809,98 @@ New Age Fotografie Team`;
         return;
       }
 
+      // Custom Payment Methods API endpoints
+      // GET /api/settings/payment-methods - List custom payment methods
+      if (pathname === '/api/settings/payment-methods' && req.method === 'GET') {
+        try {
+          // Ensure the table exists
+          await sql`
+            CREATE TABLE IF NOT EXISTS custom_payment_methods (
+              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              name TEXT NOT NULL,
+              label TEXT NOT NULL,
+              is_active BOOLEAN DEFAULT TRUE,
+              sort_order INTEGER DEFAULT 0,
+              created_at TIMESTAMP DEFAULT NOW()
+            )
+          `;
+          const methods = await sql`
+            SELECT id, name, label, is_active, sort_order
+            FROM custom_payment_methods
+            WHERE is_active = TRUE
+            ORDER BY sort_order, name
+          `;
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, methods: methods || [] }));
+        } catch (error) {
+          console.error('❌ Get custom payment methods error:', error.message);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: error.message }));
+        }
+        return;
+      }
+
+      // POST /api/settings/payment-methods - Add custom payment method
+      if (pathname === '/api/settings/payment-methods' && req.method === 'POST') {
+        try {
+          let body = '';
+          req.on('data', chunk => { body += chunk.toString(); });
+          req.on('end', async () => {
+            try {
+              const data = JSON.parse(body);
+              if (!data.name || !data.label) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: 'name and label are required' }));
+                return;
+              }
+              // Ensure the table exists
+              await sql`
+                CREATE TABLE IF NOT EXISTS custom_payment_methods (
+                  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                  name TEXT NOT NULL,
+                  label TEXT NOT NULL,
+                  is_active BOOLEAN DEFAULT TRUE,
+                  sort_order INTEGER DEFAULT 0,
+                  created_at TIMESTAMP DEFAULT NOW()
+                )
+              `;
+              const result = await sql`
+                INSERT INTO custom_payment_methods (name, label, sort_order)
+                VALUES (${data.name.toLowerCase().replace(/[^a-z0-9_]/g, '_')}, ${data.label}, ${data.sort_order || 0})
+                RETURNING id, name, label, is_active, sort_order
+              `;
+              res.writeHead(201, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: true, method: result[0] }));
+            } catch (error) {
+              console.error('❌ Add custom payment method error:', error.message);
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: false, error: error.message }));
+            }
+          });
+        } catch (error) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: error.message }));
+        }
+        return;
+      }
+
+      // DELETE /api/settings/payment-methods/:id - Delete custom payment method
+      if (pathname.match(/^\/api\/settings\/payment-methods\/[^\/]+$/) && req.method === 'DELETE') {
+        try {
+          const methodId = pathname.split('/')[4];
+          await sql`
+            UPDATE custom_payment_methods SET is_active = FALSE WHERE id = ${methodId}
+          `;
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, deleted: methodId }));
+        } catch (error) {
+          console.error('❌ Delete custom payment method error:', error.message);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: error.message }));
+        }
+        return;
+      }
+
       // Stripe Checkout API endpoints
       if ((pathname === '/api/checkout/create-session' || pathname === '/api/vouchers/create-session') && req.method === 'POST') {
         try {
