@@ -1,4 +1,5 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
+import { RelatedServices } from '../../components/SEO/RelatedServices';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
@@ -846,6 +847,8 @@ export default function EventfotografieWienPage() {
           </div>
         </div>
       </section>
+
+      <RelatedServices currentPath="/eventfotografie-wien/" />
 
     </div>
     </Layout>

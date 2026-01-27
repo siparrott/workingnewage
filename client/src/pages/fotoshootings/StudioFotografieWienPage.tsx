@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { Camera, Check, ArrowRight, Lightbulb, Users, Sparkles } from 'lucide-react';
 import Layout from '../../components/layout/Layout';
+import { RelatedServices } from '../../components/SEO/RelatedServices';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
@@ -944,6 +945,8 @@ const StudioFotografieWienPage: React.FC = () => {
           </Link>
         </div>
       </section>
+
+      <RelatedServices currentPath="/studio-fotografie-wien/" />
     </div>
     </Layout>
   );

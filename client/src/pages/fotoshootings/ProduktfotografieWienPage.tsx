@@ -1,4 +1,5 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
+import { RelatedServices } from '../../components/SEO/RelatedServices';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link } from 'react-router-dom';
@@ -436,6 +437,8 @@ export default function ProduktfotografieWienPage() {
             </div>
           </div>
         </section>
+
+        <RelatedServices currentPath="/produkt-fotografie-wien/" />
       </div>
     </Layout>
   );

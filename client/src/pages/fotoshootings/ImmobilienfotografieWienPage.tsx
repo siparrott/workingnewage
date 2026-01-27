@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate } from 'react-router-dom';
 import { Camera, Check, ArrowRight, Building2, Sparkles, Home } from 'lucide-react';
 import Layout from '../../components/layout/Layout';
+import { RelatedServices } from '../../components/SEO/RelatedServices';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import { useCart } from '../../context/CartContext';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
@@ -853,6 +854,8 @@ const ImmobilienfotografieWienPage: React.FC = () => {
           </Link>
         </div>
       </section>
+
+      <RelatedServices currentPath="/immobilien-fotografie-wien/" />
     </div>
     </Layout>
   );
