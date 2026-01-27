@@ -3054,7 +3054,20 @@ Bitte versuchen Sie es später noch einmal.`;
 
   app.get("/api/galleries/:slug", async (req: Request, res: Response) => {
     try {
-      const gallery = await storage.getGalleryBySlug(req.params.slug);
+      const idOrSlug = req.params.slug;
+      
+      // First try to find by slug
+      let gallery = await storage.getGalleryBySlug(idOrSlug);
+      
+      // If not found by slug, try finding by ID
+      if (!gallery) {
+        try {
+          gallery = await storage.getGallery(idOrSlug);
+        } catch (e) {
+          // ID lookup might fail if not a valid UUID, ignore
+        }
+      }
+      
       if (!gallery) {
         return res.status(404).json({ error: "Gallery not found" });
       }
