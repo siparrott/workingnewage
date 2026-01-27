@@ -17,6 +17,8 @@ interface InvoiceTemplateProps {
     subtotal_amount: number;
     tax_amount: number;
     discount_amount: number;
+    discount_type?: 'fixed' | 'percentage';
+    discount_value?: number;
     total_amount: number;
     items: Array<{
       description: string;
@@ -171,7 +173,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
             </div>
             {invoice.discount_amount > 0 && (
               <div className="flex justify-between text-green-600">
-                <span>Discount:</span>
+                <span>Discount{invoice.discount_type === 'percentage' && invoice.discount_value ? ` (${invoice.discount_value}%)` : ''}:</span>
                 <span>-{formatCurrency(invoice.discount_amount)}</span>
               </div>
             )}

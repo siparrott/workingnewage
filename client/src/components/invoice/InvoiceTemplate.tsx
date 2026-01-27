@@ -11,6 +11,8 @@ interface InvoiceTemplateProps {
     total_amount: number;
     subtotal_amount: number;
     discount_amount: number;
+    discount_type?: 'fixed' | 'percentage';
+    discount_value?: number;
     currency: string;
     status: string;
     due_date: string;
@@ -383,6 +385,24 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             </span>
           </div>
 
+          {/* Discount - only show if discount is applied */}
+          {invoice.discount_amount > 0 && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              padding: '12px 20px',
+              fontSize: '13px',
+              color: '#28a745'
+            }}>
+              <span>
+                Discount{invoice.discount_type === 'percentage' && invoice.discount_value ? ` (${invoice.discount_value}%)` : ''}:
+              </span>
+              <span style={{ fontWeight: '500' }}>
+                -{formatCurrency(invoice.discount_amount, invoice.currency)}
+              </span>
+            </div>
+          )}
+
           {/* Total */}
           <div style={{
             display: 'flex',
@@ -453,6 +473,23 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             <span>Invoice Subtotal:</span>
             <span>{formatCurrency(invoice.subtotal_amount, invoice.currency)}</span>
           </div>
+          
+          {/* Discount in payment summary */}
+          {invoice.discount_amount > 0 && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginBottom: '8px',
+              fontSize: '13px',
+              color: '#28a745'
+            }}>
+              <span>
+                Discount{invoice.discount_type === 'percentage' && invoice.discount_value ? ` (${invoice.discount_value}%)` : ''}:
+              </span>
+              <span>-{formatCurrency(invoice.discount_amount, invoice.currency)}</span>
+            </div>
+          )}
+          
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',

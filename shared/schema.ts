@@ -194,7 +194,9 @@ export const crmInvoices = pgTable("crm_invoices", {
   dueDate: date("due_date").notNull(),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }).default("0"),
-  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0"),
+  discountType: text("discount_type").default("fixed"), // "fixed" or "percentage"
+  discountValue: decimal("discount_value", { precision: 10, scale: 2 }).default("0"), // The input value (amount or percent)
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0"), // The calculated discount amount
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   currency: text("currency").default("EUR"),
   status: text("status").default("draft"),

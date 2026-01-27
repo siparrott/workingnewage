@@ -8250,6 +8250,8 @@ Due: ${esc(i.due_date)}</div>
             total_amount: parseFloat(invoice.total) || 0,
             subtotal_amount: parseFloat(invoice.subtotal) || 0,
             discount_amount: parseFloat(invoice.discount_amount) || 0,
+            discount_type: invoice.discount_type || 'fixed',
+            discount_value: parseFloat(invoice.discount_value) || 0,
             currency: invoice.currency || 'EUR',
             status: invoice.status,
             due_date: invoice.due_date,
@@ -8289,59 +8291,104 @@ Due: ${esc(i.due_date)}</div>
           req.on('end', async () => {
             try {
               const invoiceData = JSON.parse(body);
-              console.log('📄 Creating invoice for client:', invoiceData.client_id);
+              console.log('📄 Creating invoice for client:', invoiceData.clientId || invoiceData.client_id);
               
               // Generate invoice number
               const invoiceNumber = `INV-${Date.now()}`;
               
-              // Calculate totals
-              const subtotal = invoiceData.items.reduce((sum, item) => 
-                sum + (item.quantity * item.unit_price), 0
-              );
-              const discountAmount = (subtotal * (invoiceData.discount_amount || 0)) / 100;
-              const afterDiscount = subtotal - discountAmount;
-              const taxAmount = afterDiscount * 0.19; // 19% VAT
-              const total = afterDiscount + taxAmount;
+              // Get values from payload (support both camelCase and snake_case)
+              const clientId = invoiceData.clientId || invoiceData.client_id;
+              const issueDate = invoiceData.issueDate || invoiceData.issue_date || new Date().toISOString().split('T')[0];
+              const dueDate = invoiceData.dueDate || invoiceData.due_date;
+              const currency = invoiceData.currency || 'EUR';
+              const notes = invoiceData.notes || '';
+              const footerText = invoiceData.footerText || invoiceData.footer_text || '';
               
-              // Create invoice record
+              // Calculate totals from items
+              const items = invoiceData.items || [];
+              const subtotal = items.reduce((sum, item) => 
+                sum + ((item.quantity || 0) * (item.unitPrice || item.unit_price || 0)), 0
+              );
+              
+              // Handle discount - support both old discount_amount (percentage) and new discountType/discountValue
+              const discountType = invoiceData.discountType || invoiceData.discount_type || 'fixed';
+              const discountValue = parseFloat(invoiceData.discountValue || invoiceData.discount_value || 0);
+              let discountAmount = 0;
+              
+              if (discountType === 'percentage') {
+                discountAmount = subtotal * (discountValue / 100);
+              } else {
+                discountAmount = discountValue;
+              }
+              
+              // Calculate tax from items
+              const taxAmount = items.reduce((sum, item) => {
+                const itemTotal = (item.quantity || 0) * (item.unitPrice || item.unit_price || 0);
+                const itemTax = itemTotal * ((item.taxRate || item.tax_rate || 0) / 100);
+                return sum + itemTax;
+              }, 0);
+              
+              const total = subtotal + taxAmount - discountAmount;
+              
+              console.log('📄 Invoice calculations:', { subtotal, taxAmount, discountType, discountValue, discountAmount, total });
+              
+              // Create invoice record with new discount columns
               const invoiceResult = await sql`
                 INSERT INTO crm_invoices (
                   invoice_number, client_id, issue_date, due_date, subtotal, 
-                  tax_amount, total, status, notes, created_at, updated_at
+                  tax_amount, discount_type, discount_value, discount_amount, total, 
+                  status, notes, footer_text, currency, created_at, updated_at
                 ) VALUES (
-                  ${invoiceNumber}, ${invoiceData.client_id}, ${new Date().toISOString().split('T')[0]}, ${invoiceData.due_date},
-                  ${subtotal}, ${taxAmount}, ${total}, 'draft', ${invoiceData.notes || ''}, NOW(), NOW()
+                  ${invoiceNumber}, ${clientId}, ${issueDate}, ${dueDate},
+                  ${subtotal}, ${taxAmount}, ${discountType}, ${discountValue}, ${discountAmount}, ${total}, 
+                  ${invoiceData.status || 'draft'}, ${notes}, ${footerText}, ${currency}, NOW(), NOW()
                 ) RETURNING *
               `;
               
               const invoice = invoiceResult[0];
+              const public_id = `${invoice.id}-${Date.now().toString(36)}`;
+              
+              // Update with public_id
+              await sql`UPDATE crm_invoices SET public_id = ${public_id} WHERE id = ${invoice.id}`;
               
               // Create invoice items
-              for (const [index, item] of invoiceData.items.entries()) {
+              for (const [index, item] of items.entries()) {
+                const itemUnitPrice = item.unitPrice || item.unit_price || 0;
+                const itemTaxRate = item.taxRate || item.tax_rate || 0;
                 await sql`
                   INSERT INTO crm_invoice_items (
                     invoice_id, description, quantity, unit_price, tax_rate, sort_order, created_at
                   ) VALUES (
-                    ${invoice.id}, ${item.description}, ${item.quantity}, ${item.unit_price}, ${item.tax_rate || 0}, ${index}, NOW()
+                    ${invoice.id}, ${item.description}, ${item.quantity}, ${itemUnitPrice}, ${itemTaxRate}, ${index}, NOW()
                   )
                 `;
               }
               
               // Log invoice creation in client record
-              await sql`
-                INSERT INTO crm_client_activity_log (
-                  client_id, activity_type, description, metadata, created_at
-                ) VALUES (
-                  ${invoiceData.client_id}, 'invoice_created', 
-                  ${`Invoice ${invoiceNumber} created for €${total.toFixed(2)}`},
-                  ${JSON.stringify({ invoice_id: invoice.id, amount: total })},
-                  NOW()
-                )
-              `;
+              if (clientId) {
+                try {
+                  await sql`
+                    INSERT INTO crm_client_activity_log (
+                      client_id, activity_type, description, metadata, created_at
+                    ) VALUES (
+                      ${clientId}, 'invoice_created', 
+                      ${`Invoice ${invoiceNumber} created for ${currency} ${total.toFixed(2)}`},
+                      ${JSON.stringify({ invoice_id: invoice.id, amount: total, discountType, discountValue, discountAmount })},
+                      NOW()
+                    )
+                  `;
+                } catch (logErr) {
+                  console.warn('⚠️ Could not log invoice creation:', logErr.message);
+                }
+              }
               
               res.writeHead(201, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ 
+                ok: true,
                 success: true, 
+                invoice_id: invoice.id,
+                invoice_no: invoiceNumber,
+                public_id: public_id,
                 invoice: invoice,
                 message: 'Invoice created successfully'
               }));

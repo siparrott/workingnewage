@@ -47,6 +47,8 @@ interface InvoiceFormData {
   currency: string;
   notes?: string;
   footer_text?: string;
+  discount_type: 'fixed' | 'percentage';
+  discount_value: number;
   discount_amount: number;
   items: InvoiceItem[];
 }
@@ -66,6 +68,8 @@ interface Invoice {
   payment_terms: string;
   currency: string;
   notes?: string;
+  discount_type?: 'fixed' | 'percentage';
+  discount_value?: number;
   discount_amount: number;
   items: InvoiceItem[];
 }
@@ -105,6 +109,8 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
     currency: 'EUR',
     notes: '',
     footer_text: '',
+    discount_type: 'fixed',
+    discount_value: 0,
     discount_amount: 0,
     items: [
       {
@@ -325,10 +331,20 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
       sum + (item.quantity * item.unit_price), 0);
     const totalTax = formData.items.reduce((sum, item) => 
       sum + (item.quantity * item.unit_price * item.tax_rate / 100), 0);
-    const discount = formData.discount_amount;
+    
+    // Calculate discount based on type
+    let discount = 0;
+    if (formData.discount_type === 'percentage') {
+      // Percentage discount applied to subtotal (before tax)
+      discount = subtotal * (formData.discount_value / 100);
+    } else {
+      // Fixed amount discount
+      discount = formData.discount_value;
+    }
+    
     const total = subtotal + totalTax - discount;
 
-    return { subtotal, totalTax, discount, total };
+    return { subtotal, totalTax, discount, total, discountValue: formData.discount_value, discountType: formData.discount_type };
   };
 
   const addItem = () => {
@@ -419,7 +435,16 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
         const itemTax = (item.quantity * item.unit_price) * (item.tax_rate / 100);
         return sum + itemTax;
       }, 0);
-      const total = subtotal + taxAmount - formData.discount_amount;
+      
+      // Calculate discount amount based on type
+      let discountAmount = 0;
+      if (formData.discount_type === 'percentage') {
+        discountAmount = subtotal * (formData.discount_value / 100);
+      } else {
+        discountAmount = formData.discount_value;
+      }
+      
+      const total = subtotal + taxAmount - discountAmount;
 
       // Prepare payload for our invoices API
       const payload = {
@@ -428,6 +453,9 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
         dueDate: formData.due_date,
         subtotal: subtotal.toString(),
         taxAmount: taxAmount.toString(),
+        discountType: formData.discount_type,
+        discountValue: formData.discount_value.toString(),
+        discountAmount: discountAmount.toString(),
         total: total.toString(),
         status: markAsPaid ? 'paid' : 'draft',
         notes: formData.notes,
@@ -779,17 +807,38 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Discount Amount
+                  Discount
                 </label>
-                <input
-                  type="number"
-                  value={formData.discount_amount}
-                  onChange={(e) => setFormData(prev => ({ ...prev, discount_amount: parseFloat(e.target.value) || 0 }))}
-                  min="0"
-                  step="0.01"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="0.00"
-                />
+                <div className="flex gap-2">
+                  <select
+                    value={formData.discount_type}
+                    onChange={(e) => setFormData(prev => ({ ...prev, discount_type: e.target.value as 'fixed' | 'percentage' }))}
+                    className="w-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  >
+                    <option value="fixed">Fixed €</option>
+                    <option value="percentage">Percent %</option>
+                  </select>
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      value={formData.discount_value}
+                      onChange={(e) => setFormData(prev => ({ ...prev, discount_value: parseFloat(e.target.value) || 0 }))}
+                      min="0"
+                      step="0.01"
+                      max={formData.discount_type === 'percentage' ? 100 : undefined}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 pr-10"
+                      placeholder={formData.discount_type === 'percentage' ? '0' : '0.00'}
+                    />
+                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                      {formData.discount_type === 'percentage' ? '%' : '€'}
+                    </span>
+                  </div>
+                </div>
+                {formData.discount_type === 'percentage' && formData.discount_value > 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    = {formData.currency} {(formData.items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0) * formData.discount_value / 100).toFixed(2)} discount
+                  </p>
+                )}
               </div>
             </div>
 
@@ -944,7 +993,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
                   </div>
                   {totals.discount > 0 && (
                     <div className="flex justify-between text-green-600">
-                      <span>Discount:</span>
+                      <span>Discount {formData.discount_type === 'percentage' ? `(${formData.discount_value}%)` : ''}:</span>
                       <span>-{formData.currency} {(totals.discount || 0).toFixed(2)}</span>
                     </div>
                   )}
