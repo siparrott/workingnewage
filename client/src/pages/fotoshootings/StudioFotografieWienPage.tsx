@@ -87,7 +87,11 @@ const StudioFotografieWienPage: React.FC = () => {
         title={newageCopyMap['studio-fotografie-wien'].title}
         description={newageCopyMap['studio-fotografie-wien'].metaDescription}
         keywords="studio fotografie wien, fotostudio wien, portrait studio, headshot fotografie wien, studiofotografie, studio shooting wien"
-        canonical="https://workingnewage-2eecd723a444.herokuapp.com/studio-fotografie-wien/"
+        canonical="/studio-fotografie-wien/"
+        hreflang={{
+          de: '/studio-fotografie-wien/',
+          en: '/en/studio-photography-vienna/'
+        }}
       />
 
       <Helmet>

@@ -101,7 +101,11 @@ const ImmobilienfotografieWienPage: React.FC = () => {
         title={newageCopyMap['immobilien-fotografie-wien'].title}
         description={newageCopyMap['immobilien-fotografie-wien'].metaDescription}
         keywords="immobilienfotograf wien, architektur fotografie wien, interieur fotografie, grundrisse, real estate fotograf, immobilienfoto, makler fotografie wien"
-        canonical="https://workingnewage-2eecd723a444.herokuapp.com/immobilien-fotografie-wien/"
+        canonical="/immobilien-fotografie-wien/"
+        hreflang={{
+          de: '/immobilien-fotografie-wien/',
+          en: '/en/real-estate-photography-vienna/'
+        }}
       />
 
       <Helmet>
