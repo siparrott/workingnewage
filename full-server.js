@@ -1817,6 +1817,7 @@ async function handleGalleryAPI(req, res, pathname, query) {
 
     // GET /api/galleries/[slug_or_id] - Get gallery by slug or id
     if (req.method === 'GET' && gallerySlug && !action) {
+      console.log('📷 Gallery lookup - slug/id:', gallerySlug);
       let gallery = await sql`
         SELECT id, title, slug, description, cover_image, is_public, 
                is_password_protected, password, client_id, created_by, 
@@ -1824,8 +1825,10 @@ async function handleGalleryAPI(req, res, pathname, query) {
         FROM galleries
         WHERE slug = ${gallerySlug}
       `;
+      console.log('📷 Gallery by slug result:', gallery?.length || 0, 'rows');
       if (!gallery || gallery.length === 0) {
         // Fallback: try by id (cast to uuid explicitly)
+        console.log('📷 Trying by ID...');
         gallery = await sql`
           SELECT id, title, slug, description, cover_image, is_public, 
                  is_password_protected, password, client_id, created_by, 
@@ -1833,8 +1836,10 @@ async function handleGalleryAPI(req, res, pathname, query) {
           FROM galleries
           WHERE id::text = ${gallerySlug}
         `;
+        console.log('📷 Gallery by ID result:', gallery?.length || 0, 'rows');
       }
       if (!gallery || gallery.length === 0) {
+        console.log('📷 Gallery not found for:', gallerySlug);
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Gallery not found' }));
         return;
