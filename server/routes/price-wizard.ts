@@ -122,7 +122,8 @@ router.post('/discover', async (req, res) => {
 
 /**
  * POST /api/price-wizard/scrape
- * Scrape prices from discovered competitors (runs in background)
+ * Scrape prices from discovered competitors
+ * Note: Currently marks all as failed quickly since fallback URLs are fictional
  */
 router.post('/scrape', async (req, res) => {
   try {
@@ -148,7 +149,6 @@ router.post('/scrape', async (req, res) => {
     const competitors = result.rows;
 
     if (competitors.length === 0) {
-      // No pending - move directly to analyzing
       await pool.query(`
         UPDATE price_wizard_sessions SET status = 'analyzing', updated_at = NOW() WHERE id = $1
       `, [sessionId]);
@@ -160,90 +160,89 @@ router.post('/scrape', async (req, res) => {
       });
     }
 
-    // Return immediately - scraping happens in background
+    let scrapedCount = 0;
+    let pricesExtracted = 0;
+
+    // Process each competitor with a very short timeout
+    for (const competitor of competitors) {
+      try {
+        console.log(`🔍 Attempting to scrape: ${competitor.website_url}`);
+        
+        // Quick check - try to fetch with 3 second timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
+        try {
+          const response = await fetch(competitor.website_url, {
+            signal: controller.signal,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            },
+          });
+          clearTimeout(timeoutId);
+          
+          if (response.ok) {
+            // If we got a response, try to scrape
+            const scrapeResult = await scraper.scrapeWebsite(competitor.website_url);
+            
+            if (scrapeResult.success && scrapeResult.prices.length > 0) {
+              for (const price of scrapeResult.prices) {
+                await pool.query(`
+                  INSERT INTO competitor_prices (
+                    competitor_id, service_type, price_amount, currency, 
+                    confidence_score, url_source
+                  ) VALUES ($1, $2, $3, $4, $5, $6)
+                `, [competitor.id, price.serviceType, price.amount, price.currency, price.confidence, price.url]);
+                pricesExtracted++;
+              }
+              
+              await pool.query(`
+                UPDATE competitor_research SET status = 'scraped', scraped_at = NOW() WHERE id = $1
+              `, [competitor.id]);
+              scrapedCount++;
+            } else {
+              await pool.query(`
+                UPDATE competitor_research SET status = 'failed', scrape_error = $2 WHERE id = $1
+              `, [competitor.id, 'No pricing found on page']);
+            }
+          } else {
+            await pool.query(`
+              UPDATE competitor_research SET status = 'failed', scrape_error = $2 WHERE id = $1
+            `, [competitor.id, `HTTP ${response.status}`]);
+          }
+        } catch (fetchError: any) {
+          clearTimeout(timeoutId);
+          console.log(`❌ Quick fail for ${competitor.website_url}: ${fetchError.message}`);
+          await pool.query(`
+            UPDATE competitor_research SET status = 'failed', scrape_error = $2 WHERE id = $1
+          `, [competitor.id, fetchError.name === 'AbortError' ? 'Timeout' : 'Connection failed']);
+        }
+      } catch (error: any) {
+        console.error(`❌ Error processing ${competitor.website_url}:`, error.message);
+        await pool.query(`
+          UPDATE competitor_research SET status = 'failed', scrape_error = $2 WHERE id = $1
+        `, [competitor.id, error.message?.substring(0, 100) || 'Unknown error']);
+      }
+    }
+
+    // Update session to analyzing
+    await pool.query(`
+      UPDATE price_wizard_sessions
+      SET status = 'analyzing', prices_extracted = prices_extracted + $2, updated_at = NOW()
+      WHERE id = $1
+    `, [sessionId, pricesExtracted]);
+
+    console.log(`✅ Scraping complete: ${scrapedCount} scraped, ${pricesExtracted} prices extracted`);
+
     res.json({
       success: true,
-      message: `Scraping ${competitors.length} competitors in background...`,
-      scrapedCount: 0,
-      pricesExtracted: 0,
-      status: 'processing'
+      sessionId,
+      scrapedCount,
+      pricesExtracted,
     });
 
-    // Background scraping process
-    (async () => {
-      let scrapedCount = 0;
-      let pricesExtracted = 0;
-
-      try {
-        // Process all competitors in parallel for speed
-        const results = await Promise.allSettled(
-          competitors.map(async (competitor) => {
-            try {
-              console.log(`🔍 Scraping: ${competitor.website_url}`);
-              const scrapeResult = await scraper.scrapeWebsite(competitor.website_url);
-
-              if (scrapeResult.success && scrapeResult.prices.length > 0) {
-                for (const price of scrapeResult.prices) {
-                  await pool.query(`
-                    INSERT INTO competitor_prices (
-                      competitor_id, service_type, price_amount, currency, 
-                      confidence_score, url_source
-                    ) VALUES ($1, $2, $3, $4, $5, $6)
-                  `, [
-                    competitor.id,
-                    price.serviceType,
-                    price.amount,
-                    price.currency,
-                    price.confidence,
-                    price.url,
-                  ]);
-                  pricesExtracted++;
-                }
-
-                await pool.query(`
-                  UPDATE competitor_research 
-                  SET status = 'scraped', scraped_at = NOW() 
-                  WHERE id = $1
-                `, [competitor.id]);
-
-                scrapedCount++;
-              } else {
-                await pool.query(`
-                  UPDATE competitor_research 
-                  SET status = 'failed', scrape_error = $2 
-                  WHERE id = $1
-                `, [competitor.id, scrapeResult.error || 'No prices found']);
-              }
-            } catch (error: any) {
-              console.error(`❌ Scrape failed for ${competitor.website_url}:`, error.message);
-              await pool.query(`
-                UPDATE competitor_research 
-                SET status = 'failed', scrape_error = $2 
-                WHERE id = $1
-              `, [competitor.id, error.message?.substring(0, 200) || 'Network error']);
-            }
-          })
-        );
-
-        console.log(`✅ Scraping complete: ${scrapedCount} scraped, ${pricesExtracted} prices`);
-
-        // Update session to analyzing
-        await pool.query(`
-          UPDATE price_wizard_sessions
-          SET status = 'analyzing', prices_extracted = prices_extracted + $2, updated_at = NOW()
-          WHERE id = $1
-        `, [sessionId, pricesExtracted]);
-
-      } catch (error: any) {
-        console.error('Background scraping error:', error);
-        await pool.query(`
-          UPDATE price_wizard_sessions SET status = 'failed', updated_at = NOW() WHERE id = $1
-        `, [sessionId]);
-      }
-    })();
-
   } catch (error: any) {
-    console.error('Error starting scrape:', error);
+    console.error('Error in scrape endpoint:', error);
     res.status(500).json({ error: error.message });
   }
 });

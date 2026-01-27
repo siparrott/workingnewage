@@ -183,7 +183,7 @@ const AdminPriceWizardPage: React.FC = () => {
       const discoverData = await discoverRes.json();
       console.log('✅ Found competitors:', discoverData.competitorsFound);
 
-      // Step 3: Scrape prices (runs in background)
+      // Step 3: Scrape prices (with 3s timeout per site)
       setResearchProgress(`Scraping prices from ${discoverData.competitorsFound} competitors...`);
       const scrapeRes = await fetch('/api/price-wizard/scrape', {
         method: 'POST',
@@ -191,32 +191,9 @@ const AdminPriceWizardPage: React.FC = () => {
         body: JSON.stringify({ sessionId })
       });
 
-      if (!scrapeRes.ok) throw new Error('Failed to start scraping');
-      console.log('✅ Scraping started in background');
-
-      // Poll for scraping completion (check every 2 seconds, max 60 seconds)
-      setResearchProgress('Waiting for scraping to complete...');
-      let attempts = 0;
-      const maxAttempts = 30;
-      
-      while (attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        attempts++;
-        
-        const statusRes = await fetch(`/api/price-wizard/status/${sessionId}`);
-        if (statusRes.ok) {
-          const statusData = await statusRes.json();
-          setResearchProgress(`Scraping... (${statusData.session?.status || 'processing'})`);
-          
-          if (statusData.session?.status === 'analyzing' || statusData.session?.status === 'completed') {
-            console.log('✅ Scraping complete, proceeding to analyze');
-            break;
-          }
-          if (statusData.session?.status === 'failed') {
-            throw new Error('Scraping failed');
-          }
-        }
-      }
+      if (!scrapeRes.ok) throw new Error('Failed to scrape prices');
+      const scrapeData = await scrapeRes.json();
+      console.log('✅ Scraping complete:', scrapeData);
 
       // Step 4: Analyze and generate suggestions
       setResearchProgress('Analyzing market prices and generating recommendations...');
