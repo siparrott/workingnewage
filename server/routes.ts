@@ -8633,8 +8633,24 @@ New Age Fotografie CRM System
     try {
       const idOrSlug = req.params.id;
       console.log('[VOUCHER] Fetching product by id/slug:', idOrSlug);
-      let product = await neonDb.getVoucherProduct(idOrSlug);
-      console.log('[VOUCHER] Direct ID lookup result:', product ? 'found' : 'not found');
+      
+      // UUID regex pattern to validate before querying by ID
+      const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      
+      let product = null;
+      
+      // Only try ID lookup if it looks like a valid UUID
+      if (uuidPattern.test(idOrSlug)) {
+        try {
+          product = await neonDb.getVoucherProduct(idOrSlug);
+          console.log('[VOUCHER] Direct ID lookup result:', product ? 'found' : 'not found');
+        } catch (idError) {
+          console.log('[VOUCHER] ID lookup failed, will try slug:', idError);
+        }
+      } else {
+        console.log('[VOUCHER] Input is not a UUID, skipping ID lookup');
+      }
+      
       if (!product) {
         // Fallback: attempt slug lookup
         try {
