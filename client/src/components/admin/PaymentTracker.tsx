@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, Plus, CreditCard, Calendar, DollarSign, Trash2, ChevronDown, Mail, FileText, Settings, PlusCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { addInvoicePayment } from '../../api/invoices';
@@ -20,6 +20,116 @@ interface CustomPaymentMethod {
   is_active: boolean;
   sort_order: number;
 }
+
+// Localized payment method labels
+const PAYMENT_METHOD_LABELS = {
+  de: {
+    bank_transfer: 'E-Transfer / Banküberweisung',
+    credit_card: 'Bankkarte',
+    bankkarte: 'Bankkarte',
+    bar: 'Bar',
+    cash: 'Bar',
+    e_transfer: 'E-Transfer / Banküberweisung',
+    klarna: 'Klarna',
+    paypal: 'PayPal',
+    stripe: 'Stripe',
+    check: 'Scheck',
+    other: 'Andere',
+    // UI labels
+    selectPlaceholder: 'Zahlungsmethode auswählen ...',
+    standardMethods: 'Standard-Methoden',
+    customMethods: 'Eigene Methoden',
+    otherGroup: 'Sonstiges',
+    addCustom: '+ Eigene Methode hinzufügen...',
+    paymentMethod: 'Zahlungsmethode',
+    paymentDate: 'Zahlungsdatum',
+    paymentAmount: 'Zahlungsbetrag',
+    showNotes: 'Notizen anzeigen',
+    hideNotes: 'Notizen ausblenden',
+    notes: 'Notizen',
+    notesPlaceholder: 'Zusätzliche Notizen zu dieser Zahlung...',
+    enterMethodName: 'Zahlungsmethode eingeben...',
+    saveForFuture: 'Für künftige Verwendung speichern',
+    addPayment: 'Zahlung hinzufügen',
+    adding: 'Wird hinzugefügt...',
+    addPaymentEmailReceipt: 'Zahlung hinzufügen + Beleg senden',
+    addPaymentOnly: 'Nur Zahlung hinzufügen',
+    cancel: 'Abbrechen',
+    close: 'Schließen',
+    paymentTracker: 'Zahlungsverfolgung',
+    trackPayments: 'Zahlungen für diese Rechnung verfolgen',
+    invoiceTotal: 'Rechnungsbetrag',
+    totalPaid: 'Bezahlt',
+    remaining: 'Offen',
+    payments: 'ZAHLUNGEN',
+    dueNow: 'Fällig',
+    dueIn: 'Demnächst',
+    schedule: 'Zeitplan',
+    paidOn: 'BEZAHLT AM',
+    amount: 'BETRAG',
+    paidVia: 'BEZAHLT MIT',
+    noPayments: 'Keine Zahlungen erfasst',
+    loadingPayments: 'Zahlungen werden geladen...',
+  },
+  en: {
+    bank_transfer: 'Bank Transfer',
+    credit_card: 'Credit Card',
+    bankkarte: 'Bank Card',
+    bar: 'Cash',
+    cash: 'Cash',
+    e_transfer: 'E-Transfer',
+    klarna: 'Klarna',
+    paypal: 'PayPal',
+    stripe: 'Stripe',
+    check: 'Check',
+    other: 'Other',
+    // UI labels
+    selectPlaceholder: 'Select a payment method ...',
+    standardMethods: 'Standard Methods',
+    customMethods: 'Custom Methods',
+    otherGroup: 'Other',
+    addCustom: '+ Add custom method...',
+    paymentMethod: 'Payment Method',
+    paymentDate: 'Payment Date',
+    paymentAmount: 'Payment Amount',
+    showNotes: 'Show Notes',
+    hideNotes: 'Hide Notes',
+    notes: 'Notes',
+    notesPlaceholder: 'Additional notes about this payment...',
+    enterMethodName: 'Enter payment method name...',
+    saveForFuture: 'Save for future use',
+    addPayment: 'Add Payment',
+    adding: 'Adding...',
+    addPaymentEmailReceipt: 'Add Payment + Email Receipt',
+    addPaymentOnly: 'Add Payment Only',
+    cancel: 'Cancel',
+    close: 'Close',
+    paymentTracker: 'Payment Tracker',
+    trackPayments: 'Track payments for this invoice',
+    invoiceTotal: 'Invoice Total',
+    totalPaid: 'Total Paid',
+    remaining: 'Remaining',
+    payments: 'PAYMENTS',
+    dueNow: 'Due Now',
+    dueIn: 'Due In',
+    schedule: 'Schedule',
+    paidOn: 'PAID ON',
+    amount: 'AMOUNT',
+    paidVia: 'PAID VIA',
+    noPayments: 'No payments recorded',
+    loadingPayments: 'Loading payments...',
+  }
+};
+
+// Standard payment methods with their keys
+const STANDARD_PAYMENT_METHODS = [
+  { key: 'bankkarte', deLabel: 'Bankkarte', enLabel: 'Bank Card' },
+  { key: 'bar', deLabel: 'Bar', enLabel: 'Cash' },
+  { key: 'bank_transfer', deLabel: 'E-Transfer / Banküberweisung', enLabel: 'Bank Transfer' },
+  { key: 'klarna', deLabel: 'Klarna', enLabel: 'Klarna' },
+  { key: 'stripe', deLabel: 'Stripe', enLabel: 'Stripe' },
+  { key: 'paypal', deLabel: 'PayPal', enLabel: 'PayPal' },
+];
 
 interface PaymentTrackerProps {
   invoiceId: string;
@@ -57,6 +167,28 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
     payment_date: new Date().toISOString().split('T')[0],
     notes: ''
   });
+
+  // Detect language from currency or browser locale
+  // EUR in German-speaking regions (Austria, Germany, Switzerland uses CHF) → German
+  // Also check browser language as fallback
+  const language = useMemo(() => {
+    const browserLang = navigator.language?.toLowerCase() || '';
+    const isGermanBrowser = browserLang.startsWith('de');
+    // EUR is used in Germany, Austria - default to German for EUR
+    // CHF is Switzerland (multilingual, but often German)
+    if (currency === 'EUR' || currency === 'CHF') {
+      return 'de';
+    }
+    // For USD, GBP, AUD - English
+    if (currency === 'USD' || currency === 'GBP' || currency === 'AUD') {
+      return 'en';
+    }
+    // Fall back to browser language
+    return isGermanBrowser ? 'de' : 'en';
+  }, [currency]);
+
+  // Get localized labels
+  const t = PAYMENT_METHOD_LABELS[language];
 
   useEffect(() => {
     if (isOpen) {
@@ -211,29 +343,16 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
   const remainingBalance = invoiceTotal - totalPaid;
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('de-DE', {
+    return new Intl.NumberFormat(language === 'de' ? 'de-DE' : 'en-US', {
       style: 'currency',
       currency: currency
     }).format(amount);
   };
 
   const getPaymentMethodLabel = (method: string) => {
-    const standardMethods: { [key: string]: string } = {
-      bank_transfer: 'E-Transfer / Banküberweisung',
-      credit_card: 'Bankkarte',
-      bankkarte: 'Bankkarte',
-      bar: 'Bar',
-      cash: 'Bar',
-      e_transfer: 'E-Transfer / Banküberweisung',
-      klarna: 'Klarna',
-      paypal: 'PayPal',
-      stripe: 'Stripe',
-      check: 'Scheck',
-      other: 'Andere'
-    };
-    // Check standard methods first
-    if (standardMethods[method]) {
-      return standardMethods[method];
+    // Check standard methods first using localized labels
+    if (t[method as keyof typeof t]) {
+      return t[method as keyof typeof t];
     }
     // Check custom methods
     const customMethod = customMethods.find(m => m.name === method);
@@ -252,8 +371,8 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Payment Tracker</h2>
-            <p className="text-gray-600">Track payments for this invoice</p>
+            <h2 className="text-xl font-semibold text-gray-900">{t.paymentTracker}</h2>
+            <p className="text-gray-600">{t.trackPayments}</p>
           </div>
           <button
             onClick={onClose}
@@ -270,7 +389,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
               <div className="flex items-center">
                 <DollarSign className="h-8 w-8 text-blue-600 mr-3" />
                 <div>
-                  <p className="text-sm text-gray-600">Invoice Total</p>
+                  <p className="text-sm text-gray-600">{t.invoiceTotal}</p>
                   <p className="text-lg font-semibold">{formatCurrency(invoiceTotal)}</p>
                 </div>
               </div>
@@ -280,7 +399,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
               <div className="flex items-center">
                 <DollarSign className="h-8 w-8 text-green-600 mr-3" />
                 <div>
-                  <p className="text-sm text-gray-600">Total Paid</p>
+                  <p className="text-sm text-gray-600">{t.totalPaid}</p>
                   <p className="text-lg font-semibold text-green-600">{formatCurrency(totalPaid)}</p>
                 </div>
               </div>
@@ -290,7 +409,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
               <div className="flex items-center">
                 <DollarSign className="h-8 w-8 text-red-600 mr-3" />
                 <div>
-                  <p className="text-sm text-gray-600">Remaining</p>
+                  <p className="text-sm text-gray-600">{t.remaining}</p>
                   <p className="text-lg font-semibold text-red-600">{formatCurrency(remainingBalance)}</p>
                 </div>
               </div>
@@ -304,26 +423,26 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center space-x-2">
               <FileText className="h-5 w-5 text-gray-500" />
-              <h3 className="text-base font-semibold text-gray-800 uppercase tracking-wide">PAYMENTS</h3>
+              <h3 className="text-base font-semibold text-gray-800 uppercase tracking-wide">{t.payments}</h3>
             </div>
             <div className="flex items-center space-x-2">
               <button className="px-3 py-1 text-sm font-medium text-white bg-cyan-500 rounded hover:bg-cyan-600">
-                Due Now
+                {t.dueNow}
               </button>
               <button className="px-3 py-1 text-sm font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200">
-                Due In
+                {t.dueIn}
               </button>
               <button className="px-3 py-1 text-sm font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200">
-                Schedule
+                {t.schedule}
               </button>
             </div>
           </div>
           
           {/* Payments Table Header */}
           <div className="grid grid-cols-3 gap-4 px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider border-b mb-2">
-            <div>PAID ON</div>
-            <div className="text-center">AMOUNT</div>
-            <div className="text-right">PAID VIA</div>
+            <div>{t.paidOn}</div>
+            <div className="text-center">{t.amount}</div>
+            <div className="text-right">{t.paidVia}</div>
           </div>
           
           {/* Add Payment Link */}
@@ -333,7 +452,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
               className="text-cyan-600 hover:text-cyan-700 font-medium flex items-center"
             >
               <Plus size={16} className="mr-1" />
-              Add Payment
+              {t.addPayment}
             </button>
           </div>
 
@@ -350,7 +469,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
               <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
                 {/* Modal Header */}
                 <div className="flex items-center justify-between p-4 border-b">
-                  <h3 className="text-lg font-semibold text-gray-900">Add Payment</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">{t.addPayment}</h3>
                   <div className="flex items-center space-x-2">
                     <button className="p-1.5 text-gray-400 hover:text-gray-600 rounded">
                       <span className="text-lg">⊖</span>
@@ -370,7 +489,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-2">
-                        Payment Date
+                        {t.paymentDate}
                       </label>
                       <div className="relative">
                         <input
@@ -384,7 +503,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
 
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-2">
-                        Payment Method
+                        {t.paymentMethod}
                       </label>
                       {!useCustomMethod ? (
                         <div className="space-y-2">
@@ -400,24 +519,23 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
                             }}
                             className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-700 appearance-none bg-white"
                           >
-                            <option value="">Select a payment method ...</option>
-                            <optgroup label="Standard Methods">
-                              <option value="bankkarte">Bankkarte</option>
-                              <option value="bar">Bar</option>
-                              <option value="bank_transfer">E-Transfer / Banküberweisung</option>
-                              <option value="klarna">Klarna</option>
-                              <option value="stripe">Stripe</option>
-                              <option value="paypal">PayPal</option>
+                            <option value="">{t.selectPlaceholder}</option>
+                            <optgroup label={t.standardMethods}>
+                              {STANDARD_PAYMENT_METHODS.map(method => (
+                                <option key={method.key} value={method.key}>
+                                  {language === 'de' ? method.deLabel : method.enLabel}
+                                </option>
+                              ))}
                             </optgroup>
                             {customMethods.length > 0 && (
-                              <optgroup label="Custom Methods">
+                              <optgroup label={t.customMethods}>
                                 {customMethods.map(method => (
                                   <option key={method.id} value={method.name}>{method.label}</option>
                                 ))}
                               </optgroup>
                             )}
-                            <optgroup label="Other">
-                              <option value="__custom__">+ Add custom method...</option>
+                            <optgroup label={t.otherGroup}>
+                              <option value="__custom__">{t.addCustom}</option>
                             </optgroup>
                           </select>
                         </div>
@@ -428,7 +546,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
                               type="text"
                               value={customMethodInput}
                               onChange={(e) => setCustomMethodInput(e.target.value)}
-                              placeholder="Enter payment method name..."
+                              placeholder={t.enterMethodName}
                               className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-700"
                             />
                             <button
@@ -469,7 +587,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
                               className="text-xs text-cyan-600 hover:text-cyan-700 flex items-center"
                             >
                               <PlusCircle size={12} className="mr-1" />
-                              Save for future use
+                              {t.saveForFuture}
                             </button>
                           </div>
                         </div>
@@ -480,7 +598,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
                   {/* Payment Amount */}
                   <div>
                     <label className="block text-sm font-medium text-gray-600 mb-2">
-                      Payment Amount
+                      {t.paymentAmount}
                     </label>
                     <div className="relative">
                       <input
@@ -492,7 +610,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
                         placeholder="0.00"
                         className="w-full px-3 py-2.5 pr-8 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-700 text-right"
                       />
-                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">€</span>
+                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">{currency === 'EUR' || currency === 'CHF' ? '€' : currency === 'GBP' ? '£' : '$'}</span>
                     </div>
                   </div>
 
@@ -503,21 +621,21 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
                     className="flex items-center text-cyan-600 hover:text-cyan-700 text-sm font-medium"
                   >
                     <Plus size={14} className="mr-1" />
-                    {showNotes ? 'Hide Notes' : 'Show Notes'}
+                    {showNotes ? t.hideNotes : t.showNotes}
                   </button>
 
                   {/* Notes Field (Conditional) */}
                   {showNotes && (
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-2">
-                        Notes
+                        {t.notes}
                       </label>
                       <textarea
                         value={newPayment.notes}
                         onChange={(e) => setNewPayment(prev => ({ ...prev, notes: e.target.value }))}
                         rows={3}
                         className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-700"
-                        placeholder="Additional notes about this payment..."
+                        placeholder={t.notesPlaceholder}
                       />
                     </div>
                   )}
@@ -529,7 +647,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
                     onClick={() => { setShowAddPayment(false); setShowNotes(false); }}
                     className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
                   >
-                    Close
+                    {t.close}
                   </button>
                   
                   {/* Add Payment + Email Receipt Dropdown Button */}
@@ -540,7 +658,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
                         disabled={loading || newPayment.amount <= 0 || (!newPayment.payment_method && !customMethodInput)}
                         className="px-4 py-2 bg-cyan-500 text-white rounded-l-lg hover:bg-cyan-600 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium flex items-center"
                       >
-                        {loading ? 'Adding...' : 'Add Payment'}
+                        {loading ? t.adding : t.addPayment}
                       </button>
                       <button
                         onClick={() => setShowActionDropdown(!showActionDropdown)}
@@ -562,7 +680,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
                           className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center text-gray-700"
                         >
                           <Mail size={16} className="mr-2 text-cyan-500" />
-                          Add Payment + Email Receipt
+                          {t.addPaymentEmailReceipt}
                         </button>
                         <button
                           onClick={() => {
@@ -573,14 +691,14 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
                           className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center text-gray-700 border-t"
                         >
                           <FileText size={16} className="mr-2 text-cyan-500" />
-                          Add Payment Only
+                          {t.addPaymentOnly}
                         </button>
                         <button
                           onClick={() => setShowActionDropdown(false)}
                           className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center text-red-500 border-t"
                         >
                           <X size={16} className="mr-2" />
-                          Cancel
+                          {t.cancel}
                         </button>
                       </div>
                     )}
@@ -594,14 +712,14 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
           {loading && !showAddPayment ? (
             <div className="flex items-center justify-center h-32">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500" />
-              <span className="ml-2 text-gray-600">Loading payments...</span>
+              <span className="ml-2 text-gray-600">{t.loadingPayments}</span>
             </div>
           ) : payments.length > 0 ? (
             <div className="space-y-2">
               {payments.map((payment) => (
                 <div key={payment.id} className="grid grid-cols-3 gap-4 px-4 py-3 bg-white border border-gray-100 rounded-lg hover:bg-gray-50">
                   <div className="text-sm text-gray-700">
-                    {new Date(payment.payment_date).toLocaleDateString('de-DE', {
+                    {new Date(payment.payment_date).toLocaleDateString(language === 'de' ? 'de-DE' : 'en-US', {
                       day: 'numeric',
                       month: 'short',
                       year: 'numeric'
@@ -629,7 +747,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
             </div>
           ) : (
             <div className="text-center py-8 text-gray-400">
-              <p className="text-sm">No payments recorded</p>
+              <p className="text-sm">{t.noPayments}</p>
             </div>
           )}
         </div>
