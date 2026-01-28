@@ -10487,23 +10487,16 @@ New Age Fotografie Team`;
             console.log('📩 Request body received, length:', body.length);
             try {
               const data = body ? JSON.parse(body) : {};
-              console.log('📝 Update invoice request:', invoiceId, JSON.stringify(data, null, 2));
+              console.log('📝 Update invoice request:', invoiceId);
+              console.log('📝 Data keys:', Object.keys(data));
               
-              // Validate client_id - only use it if it's a valid UUID format
-              const clientId = data.clientId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.clientId) 
-                ? data.clientId 
-                : null;
-              
-              // Handle date - ensure it's in proper format
-              const dueDate = data.dueDate || null;
-              
-              // Update the invoice - conditionally include client_id
-              if (clientId) {
+              // Step 1: Update invoice basic fields only
+              console.log('Step 1: Updating basic invoice fields...');
+              try {
                 await sql`
                   UPDATE crm_invoices 
                   SET 
-                    client_id = ${clientId}::uuid,
-                    due_date = ${dueDate},
+                    due_date = ${data.dueDate || null},
                     subtotal = ${parseFloat(data.subtotal) || 0},
                     tax_amount = ${parseFloat(data.taxAmount) || 0},
                     discount_type = ${data.discountType || 'fixed'},
@@ -10516,53 +10509,57 @@ New Age Fotografie Team`;
                     updated_at = NOW()
                   WHERE id = ${invoiceId}::uuid
                 `;
-              } else {
-                await sql`
-                  UPDATE crm_invoices 
-                  SET 
-                    due_date = ${dueDate},
-                    subtotal = ${parseFloat(data.subtotal) || 0},
-                    tax_amount = ${parseFloat(data.taxAmount) || 0},
-                    discount_type = ${data.discountType || 'fixed'},
-                    discount_value = ${parseFloat(data.discountValue) || 0},
-                    discount_amount = ${parseFloat(data.discountAmount) || 0},
-                    total = ${parseFloat(data.total) || 0},
-                    status = ${data.status || 'draft'},
-                    notes = ${data.notes || ''},
-                    footer_text = ${data.footerText || ''},
-                    updated_at = NOW()
-                  WHERE id = ${invoiceId}::uuid
-                `;
+                console.log('✅ Step 1 complete');
+              } catch (step1Err) {
+                console.error('❌ Step 1 failed:', step1Err.message);
+                throw new Error('Failed to update invoice: ' + step1Err.message);
               }
               
-              console.log('✅ Invoice updated, now updating items...');
+              // Step 2: Delete existing items
+              console.log('Step 2: Deleting existing items...');
+              try {
+                await sql`DELETE FROM crm_invoice_items WHERE invoice_id = ${invoiceId}::uuid`;
+                console.log('✅ Step 2 complete');
+              } catch (step2Err) {
+                console.error('❌ Step 2 failed:', step2Err.message);
+                throw new Error('Failed to delete items: ' + step2Err.message);
+              }
               
-              // Delete existing items and re-insert (cast to uuid)
-              await sql`DELETE FROM crm_invoice_items WHERE invoice_id = ${invoiceId}::uuid`;
-              
-              // Insert updated items
+              // Step 3: Insert new items
+              console.log('Step 3: Inserting items, count:', data.items?.length || 0);
               if (data.items && data.items.length > 0) {
                 for (let i = 0; i < data.items.length; i++) {
                   const item = data.items[i];
-                  console.log('📦 Inserting item:', item);
-                  await sql`
-                    INSERT INTO crm_invoice_items (
-                      invoice_id, description, quantity, unit_price, tax_rate, sort_order
-                    ) VALUES (
-                      ${invoiceId}::uuid, ${item.description || ''}, ${parseFloat(item.quantity) || 1}, 
-                      ${parseFloat(item.unitPrice) || 0}, ${parseFloat(item.taxRate) || 0}, ${i}
-                    )
-                  `;
+                  try {
+                    await sql`
+                      INSERT INTO crm_invoice_items (
+                        invoice_id, description, quantity, unit_price, tax_rate, sort_order
+                      ) VALUES (
+                        ${invoiceId}::uuid, 
+                        ${String(item.description || '')}, 
+                        ${parseFloat(item.quantity) || 1}, 
+                        ${parseFloat(item.unitPrice) || 0}, 
+                        ${parseFloat(item.taxRate) || 0}, 
+                        ${i}
+                      )
+                    `;
+                  } catch (itemErr) {
+                    console.error('❌ Step 3 failed on item', i, ':', itemErr.message);
+                    throw new Error('Failed to insert item ' + i + ': ' + itemErr.message);
+                  }
                 }
+                console.log('✅ Step 3 complete');
               }
               
-              console.log('✅ Invoice update complete');
+              console.log('✅ Invoice update complete!');
               res.writeHead(200, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ success: true, ok: true, invoice_id: invoiceId }));
             } catch (err) {
-              console.error('❌ Update invoice error:', err.message, err.stack);
-              res.writeHead(500, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ success: false, error: err.message }));
+              console.error('❌ Update invoice error:', err.message);
+              if (!res.headersSent) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: err.message }));
+              }
             }
           });
           return;
