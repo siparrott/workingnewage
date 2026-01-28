@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import AdvancedInvoiceForm from '../../components/admin/AdvancedInvoiceForm';
-import InvoiceViewer from '../../components/admin/InvoiceViewer';
 import PaymentTracker from '../../components/admin/PaymentTracker';
 import { 
   Plus, 
@@ -46,7 +45,6 @@ const InvoicesPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);  const [showCreateModal, setShowCreateModal] = useState(Boolean(prefillClientId));
-  const [viewingInvoiceId, setViewingInvoiceId] = useState<string | null>(null);
   const [paymentTrackingInvoice, setPaymentTrackingInvoice] = useState<{ id: string; total: number; currency: string } | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
@@ -454,13 +452,15 @@ const InvoicesPage: React.FC = () => {
                           </div>
                         )}
                       </td>                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">                        <div className="flex space-x-2">
-                          <button 
-                            onClick={() => setViewingInvoiceId(invoice.id)}
+                          <a 
+                            href={`/inv/${invoice.id || ''}`}
+                            target="_blank"
+                            rel="noreferrer"
                             className="text-blue-600 hover:text-blue-900" 
-                            title="View"
+                            title="View Invoice"
                           >
                             <Eye size={16} />
-                          </button>                          <button 
+                          </a>                          <button 
                             onClick={() => setEditingInvoiceId(invoice.id)}
                             className="text-yellow-600 hover:text-yellow-900" 
                             title="Edit Invoice"
@@ -485,9 +485,17 @@ const InvoicesPage: React.FC = () => {
                           >
                             <Download size={16} />
                           </button>
-                          <a href={`/inv/${invoice.id || ''}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-900" title="Open public link">
+                          <button 
+                            onClick={() => {
+                              const link = `${window.location.origin}/inv/${invoice.id}`;
+                              navigator.clipboard.writeText(link);
+                              alert('Invoice link copied to clipboard!');
+                            }} 
+                            className="text-cyan-600 hover:text-cyan-900" 
+                            title="Copy Invoice Link"
+                          >
                             <FileText size={16} />
-                          </a>
+                          </button>
                           <button onClick={() => sendEmail(invoice.id)} className="text-indigo-600 hover:text-indigo-900" title="Send Email">
                             <Send size={16} />
                           </button>
@@ -554,15 +562,6 @@ const InvoicesPage: React.FC = () => {
           onPaymentAdded={() => {
             fetchInvoices();
           }}
-        />
-      )}
-
-      {/* Invoice Viewer */}
-      {viewingInvoiceId && (
-        <InvoiceViewer
-          invoiceId={viewingInvoiceId}
-          isOpen={Boolean(viewingInvoiceId)}
-          onClose={() => setViewingInvoiceId(null)}
         />
       )}
 
