@@ -140,6 +140,11 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
     includeAttachment: true
   });
 
+  // Edit description before adding to invoice
+  const [showEditDescriptionModal, setShowEditDescriptionModal] = useState(false);
+  const [pendingPriceItem, setPendingPriceItem] = useState<PriceListItem | null>(null);
+  const [editableDescription, setEditableDescription] = useState('');
+
   const steps = [
     { id: 1, title: 'Client & Details', icon: User },
     { id: 2, title: 'Line Items', icon: FileText },
@@ -1273,15 +1278,9 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
                       </div>
                       <button
                         onClick={() => {
-                          const newItem: InvoiceItem = {
-                            id: Date.now().toString(),
-                            description: item.name + (item.description ? ` - ${item.description}` : ''),
-                            quantity: 1,
-                            unit_price: item.price || 0,
-                            tax_rate: item.tax_rate || 0
-                          };
-                          setFormData(prev => ({...prev, items: [...prev.items, newItem]}));
-                          setShowPriceList(false);
+                          setPendingPriceItem(item);
+                          setEditableDescription(item.name + (item.description ? ` - ${item.description}` : ''));
+                          setShowEditDescriptionModal(true);
                         }}
                         className="w-full bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded text-sm"
                       >
@@ -1294,6 +1293,91 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
                     Loading price list...
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Description Modal */}
+      <AnimatePresence>
+        {showEditDescriptionModal && pendingPriceItem && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4"
+            onClick={() => setShowEditDescriptionModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-xl shadow-2xl w-full max-w-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Edit Invoice Description</h3>
+                  <button
+                    onClick={() => setShowEditDescriptionModal(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Item: {pendingPriceItem.name}
+                    </label>
+                    <p className="text-sm text-gray-500 mb-2">Price: €{(pendingPriceItem.price || 0).toFixed(2)}</p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Description (editable)
+                    </label>
+                    <textarea
+                      value={editableDescription}
+                      onChange={(e) => setEditableDescription(e.target.value)}
+                      rows={4}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      placeholder="Enter description for the invoice line item..."
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      This description will appear on the invoice
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    onClick={() => setShowEditDescriptionModal(false)}
+                    className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      const newItem: InvoiceItem = {
+                        id: Date.now().toString(),
+                        description: editableDescription,
+                        quantity: 1,
+                        unit_price: pendingPriceItem.price || 0,
+                        tax_rate: pendingPriceItem.tax_rate || 0
+                      };
+                      setFormData(prev => ({...prev, items: [...prev.items, newItem]}));
+                      setShowEditDescriptionModal(false);
+                      setShowPriceList(false);
+                      setPendingPriceItem(null);
+                    }}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                  >
+                    Add to Invoice
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

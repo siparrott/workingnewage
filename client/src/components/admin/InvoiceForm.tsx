@@ -66,6 +66,11 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
 
+  // Edit description before adding to invoice
+  const [showEditDescriptionModal, setShowEditDescriptionModal] = useState(false);
+  const [pendingPriceItem, setPendingPriceItem] = useState<PriceListItem | null>(null);
+  const [editableDescription, setEditableDescription] = useState('');
+
   const selectedClient = clients.find(c => c.id === formData.client_id);
   const filteredPriceList = priceList.filter(item =>
     item.name?.toLowerCase().includes(priceListSearch.toLowerCase()) ||
@@ -130,9 +135,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
     }));
   };
 
-  const addPriceListItem = (priceItem: PriceListItem) => {
+  const addPriceListItem = (priceItem: PriceListItem, customDescription?: string) => {
     const newItem: InvoiceItem = {
-      description: priceItem.name + (priceItem.description ? ` - ${priceItem.description}` : ''),
+      description: customDescription || priceItem.name + (priceItem.description ? ` - ${priceItem.description}` : ''),
       quantity: 1,
       rate: priceItem.price,
       amount: priceItem.price,
@@ -147,6 +152,12 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
 
     setShowPriceList(false);
     setPriceListSearch('');
+  };
+
+  const openEditDescriptionModal = (item: PriceListItem) => {
+    setPendingPriceItem(item);
+    setEditableDescription(item.name + (item.description ? ` - ${item.description}` : ''));
+    setShowEditDescriptionModal(true);
   };
 
   const updateItem = (index: number, field: keyof InvoiceItem, value: any) => {
@@ -634,7 +645,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                 {filteredPriceList.map(item => (
                   <div
                     key={item.id}
-                    onClick={() => addPriceListItem(item)}
+                    onClick={() => openEditDescriptionModal(item)}
                     className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex justify-between items-start">
@@ -660,6 +671,72 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                     No items found matching your search.
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Description Modal */}
+      {showEditDescriptionModal && pendingPriceItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-lg mx-4">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">Edit Invoice Description</h3>
+                <button
+                  onClick={() => setShowEditDescriptionModal(false)}
+                  className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium">Item:</span> {pendingPriceItem.name}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium">Price:</span> €{(pendingPriceItem.price || 0).toFixed(2)}
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description (editable)
+                  </label>
+                  <textarea
+                    value={editableDescription}
+                    onChange={(e) => setEditableDescription(e.target.value)}
+                    rows={4}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Enter description for the invoice line item..."
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    This description will appear on the invoice
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowEditDescriptionModal(false)}
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    addPriceListItem(pendingPriceItem, editableDescription);
+                    setShowEditDescriptionModal(false);
+                    setPendingPriceItem(null);
+                  }}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                >
+                  Add to Invoice
+                </button>
               </div>
             </div>
           </div>
