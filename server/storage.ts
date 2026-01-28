@@ -538,7 +538,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getGalleryBySlug(slug: string): Promise<Gallery | undefined> {
-    const result = await db.select().from(galleries).where(eq(galleries.slug, slug)).limit(1);
+    // First try to find by slug
+    let result = await db.select().from(galleries).where(eq(galleries.slug, slug)).limit(1);
+    if (result.length > 0) {
+      return result[0];
+    }
+    // If not found by slug, try by ID (for UUID-based URLs)
+    result = await db.select().from(galleries).where(eq(galleries.id, slug)).limit(1);
     return result[0];
   }
 
