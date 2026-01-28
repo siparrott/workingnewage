@@ -540,15 +540,28 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
 
       // Check if we're editing or creating
       const isEditing = !!editingInvoice?.id;
-      const url = isEditing ? `/api/crm/invoices/${editingInvoice.id}` : '/api/crm/invoices';
-      const method = isEditing ? 'PUT' : 'POST';
+      
+      // Use the simple update endpoint for edits to avoid routing issues
+      let url: string;
+      let method: string;
+      let bodyPayload: any;
+      
+      if (isEditing) {
+        url = '/api/invoices/update';
+        method = 'POST';
+        bodyPayload = { ...payload, invoiceId: editingInvoice.id };
+      } else {
+        url = '/api/crm/invoices';
+        method = 'POST';
+        bodyPayload = payload;
+      }
 
-      console.log('📝 Submitting invoice:', { isEditing, url, method, payload });
+      console.log('📝 Submitting invoice:', { isEditing, url, method, bodyPayload });
 
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(bodyPayload)
       });
       console.log('📨 Response status:', response.status, response.ok);
       const result = await response.json();
