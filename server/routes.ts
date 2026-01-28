@@ -3122,15 +3122,7 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
-  app.put("/api/galleries/:id", authenticateUser, async (req: Request, res: Response) => {
-    try {
-      const gallery = await storage.updateGallery(req.params.id, req.body);
-      res.json(gallery);
-    } catch (error) {
-      console.error("Error updating gallery:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
+  // NOTE: Gallery PUT endpoint moved to line ~4000 with better field mapping
 
   app.delete("/api/galleries/:id", authenticateUser, async (req: Request, res: Response) => {
     try {
