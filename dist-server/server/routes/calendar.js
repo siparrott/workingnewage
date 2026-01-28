@@ -4,7 +4,20 @@ const express_1 = require("express");
 const db_1 = require("../db");
 const schema_1 = require("../../shared/schema");
 const drizzle_orm_1 = require("drizzle-orm");
+const calendarService_1 = require("../services/calendarService");
 const router = (0, express_1.Router)();
+// POST /api/calendar/import-google-events - Import all Google Calendar events (past and future) into CRM
+router.post('/import-google-events', async (req, res) => {
+    try {
+        const { fromDate } = req.body;
+        const result = await (0, calendarService_1.importGoogleCalendarEvents)(fromDate ? new Date(fromDate) : undefined);
+        res.json({ success: true, ...result });
+    }
+    catch (error) {
+        console.error('Failed to import Google Calendar events:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 // GET /api/calendar/sessions - Retrieve calendar sessions with filters
 router.get('/sessions', async (req, res) => {
     try {

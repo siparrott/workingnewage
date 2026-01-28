@@ -8,18 +8,30 @@ const nodemailer_1 = __importDefault(require("nodemailer"));
 const db_1 = require("../db");
 const schema_1 = require("@shared/schema");
 const drizzle_orm_1 = require("drizzle-orm");
+const brevoService_1 = require("./brevoService");
 class EnhancedEmailService {
     /**
      * Initialize email transporter
      */
     static async initialize() {
         try {
-            // Check if required SMTP settings are available
+            // Check if Brevo is configured (preferred)
+            if (process.env.BREVO_API_KEY || process.env.EMAIL_PROVIDER === 'brevo') {
+                const brevoInitialized = brevoService_1.BrevoService.initialize();
+                if (brevoInitialized) {
+                    this.useBrevo = true;
+                    console.log('✅ Email service using Brevo API');
+                    return true;
+                }
+            }
+            // Fall back to SMTP if Brevo not available
             if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
                 console.warn('⚠️ SMTP configuration incomplete. Required: SMTP_HOST, SMTP_USER, SMTP_PASS');
                 console.warn('📧 Email service will work in demo mode');
                 return false;
             }
+            console.log(`📧 Initializing SMTP: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
+            console.log(`📧 SMTP User: ${process.env.SMTP_USER}`);
             this.transporter = nodemailer_1.default.createTransport({
                 host: process.env.SMTP_HOST,
                 port: parseInt(process.env.SMTP_PORT || '587'),
@@ -28,18 +40,25 @@ class EnhancedEmailService {
                     user: process.env.SMTP_USER,
                     pass: process.env.SMTP_PASS,
                 },
+                // Force LOGIN auth method instead of PLAIN (better compatibility with some providers)
+                authMethod: 'LOGIN',
                 // Additional options for better compatibility
                 tls: {
-                    rejectUnauthorized: false // Allow self-signed certificates
-                }
+                    rejectUnauthorized: false, // Allow self-signed certificates
+                    ciphers: 'SSLv3'
+                },
+                // Longer timeouts for slow servers
+                connectionTimeout: 15000,
+                greetingTimeout: 15000,
+                socketTimeout: 20000,
+                // Debug mode to help troubleshoot
+                debug: process.env.SMTP_DEBUG === 'true',
+                logger: process.env.SMTP_DEBUG === 'true'
             });
-            // Test connection with timeout
-            const testPromise = this.transporter.verify();
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP connection timeout')), 5000));
-            await Promise.race([testPromise, timeoutPromise]);
-            console.log('✅ Email service initialized successfully');
+            // Skip verify() to avoid timeout issues - we'll know if it works when we send
+            console.log('✅ Email transporter created successfully');
             console.log(`📧 SMTP Host: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
-            console.log(`📧 SMTP User: ${process.env.SMTP_USER}`);
+            console.log(`📧 SMTP From: ${process.env.SMTP_FROM || process.env.SMTP_USER}`);
             return true;
         }
         catch (error) {
@@ -72,8 +91,26 @@ class EnhancedEmailService {
     static async sendEmail(options) {
         try {
             // Initialize if not already done
-            if (!this.transporter) {
-                await this.initialize();
+            if (!this.transporter && !this.useBrevo) {
+                console.log('📧 Transporter not initialized, initializing now...');
+                const initResult = await this.initialize();
+                console.log('📧 Initialize result:', initResult, 'Using Brevo:', this.useBrevo, 'Transporter exists:', !!this.transporter);
+            }
+            // Use Brevo if available (preferred)
+            if (this.useBrevo || process.env.EMAIL_PROVIDER === 'brevo' || process.env.BREVO_API_KEY) {
+                console.log('📧 Routing email through Brevo API');
+                return await brevoService_1.BrevoService.sendEmail({
+                    to: options.to,
+                    subject: options.subject,
+                    htmlContent: options.html,
+                    textContent: options.content,
+                    clientId: options.clientId,
+                    autoLinkClient: options.autoLinkClient,
+                    attachments: options.attachments?.map(att => ({
+                        name: att.filename,
+                        content: att.content ? att.content.toString('base64') : '',
+                    })),
+                });
             }
             // Auto-link to client if requested
             let clientId = options.clientId;
@@ -89,15 +126,16 @@ class EnhancedEmailService {
                 console.log('📧 Demo mode: Email would be sent to:', options.to);
                 console.log('📧 Demo mode: Subject:', options.subject);
                 console.log('📧 Demo mode: Content preview:', options.content.substring(0, 100) + '...');
-                // Save demo email to database (don't write `direction` — some DBs may not have this column)
-                // Avoid writing optional columns like 'direction' to maximize compatibility
+                // Save demo email to database
                 await db_1.db.insert(schema_1.crmMessages).values({
                     senderName: process.env.BUSINESS_NAME || 'New Age Fotografie',
                     senderEmail: process.env.SMTP_FROM || process.env.SMTP_USER || 'demo@example.com',
+                    recipientEmail: options.to, // Store the recipient for sent emails view
                     subject: options.subject,
                     content: options.content,
                     messageType: 'email',
                     status: 'demo_sent',
+                    direction: 'outbound',
                     clientId: clientId,
                     emailMessageId: 'demo_' + Date.now(),
                     sentAt: new Date(),
@@ -118,14 +156,16 @@ class EnhancedEmailService {
                 attachments: options.attachments,
             };
             const result = await this.transporter.sendMail(mailOptions);
-            // Save to database (avoid writing `direction` to be compatible with DBs missing that column)
+            // Save to database with recipient info for sent emails view
             await db_1.db.insert(schema_1.crmMessages).values({
                 senderName: process.env.BUSINESS_NAME || 'New Age Fotografie',
                 senderEmail: process.env.SMTP_FROM || process.env.SMTP_USER || '',
+                recipientEmail: options.to, // Store the recipient for sent emails view
                 subject: options.subject,
                 content: options.content,
                 messageType: 'email',
                 status: 'sent',
+                direction: 'outbound',
                 clientId: clientId,
                 emailMessageId: result.messageId,
                 attachments: options.attachments ? JSON.stringify(options.attachments.map(att => ({
@@ -146,6 +186,13 @@ class EnhancedEmailService {
         }
         catch (error) {
             console.error('❌ Failed to send email:', error);
+            console.error('❌ SMTP Error details:', {
+                message: error instanceof Error ? error.message : String(error),
+                code: error?.code,
+                command: error?.command,
+                responseCode: error?.responseCode,
+                response: error?.response,
+            });
             // Fallback to demo mode on SMTP errors
             console.log('📧 Falling back to demo mode due to SMTP error');
             try {
@@ -157,14 +204,16 @@ class EnhancedEmailService {
                         clientId = client.id;
                     }
                 }
-                // Save demo email to database (avoid writing `direction`)
+                // Save demo email to database with recipient info
                 await db_1.db.insert(schema_1.crmMessages).values({
                     senderName: process.env.BUSINESS_NAME || 'New Age Fotografie',
                     senderEmail: process.env.SMTP_FROM || process.env.SMTP_USER || 'demo@example.com',
+                    recipientEmail: options.to, // Store the recipient for sent emails view
                     subject: options.subject,
                     content: options.content,
                     messageType: 'email',
                     status: 'demo_sent',
+                    direction: 'outbound',
                     clientId: clientId,
                     emailMessageId: 'demo_fallback_' + Date.now(),
                     sentAt: new Date(),
@@ -250,6 +299,7 @@ class EnhancedEmailService {
 }
 exports.EnhancedEmailService = EnhancedEmailService;
 EnhancedEmailService.transporter = null;
+EnhancedEmailService.useBrevo = false;
 // Email templates for common scenarios
 exports.EmailTemplates = {
     /**

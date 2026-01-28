@@ -37,11 +37,13 @@ function getS3Client() {
 }
 function buildPublicUrl(bucket, endpoint, key) {
     const ep = (endpoint || '').replace(/\/$/, '');
+    // URL encode each path segment, preserving slashes for proper URL formatting
+    const encodedKey = key.split('/').map(part => encodeURIComponent(part)).join('/');
     if (!ep)
-        return `https://${bucket}.s3.amazonaws.com/${key}`;
+        return `https://${bucket}.s3.amazonaws.com/${encodedKey}`;
     return ep.includes('backblazeb2.com')
-        ? `https://${bucket}.${ep.replace('https://', '')}/${key}`
-        : `${ep}/${bucket}/${key}`;
+        ? `https://${bucket}.${ep.replace('https://', '')}/${encodedKey}`
+        : `${ep}/${bucket}/${encodedKey}`;
 }
 async function storageHealth() {
     const cfg = getS3Config();

@@ -43,8 +43,8 @@ exports.PriceScraperService = void 0;
 const cheerio = __importStar(require("cheerio"));
 class PriceScraperService {
     constructor() {
-        this.MAX_RETRIES = 3;
-        this.TIMEOUT_MS = 30000;
+        this.MAX_RETRIES = 1;
+        this.TIMEOUT_MS = 8000; // 8 seconds - fail fast for non-existent URLs
         // Common price patterns for Austrian/German markets
         this.PRICE_PATTERNS = [
             // €500, € 500, EUR 500

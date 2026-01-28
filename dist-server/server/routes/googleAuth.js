@@ -9,9 +9,19 @@ const googleapis_1 = require("googleapis");
 const db_1 = require("../db");
 const schema_1 = require("@shared/schema");
 const drizzle_orm_1 = require("drizzle-orm");
+const auth_1 = require("../auth");
 const router = (0, express_1.Router)();
+// Determine the correct redirect URI based on environment
+const getRedirectUri = () => {
+    // In production, always use the www subdomain
+    if (process.env.NODE_ENV === 'production') {
+        return 'https://www.newagefotografie.com/api/auth/google/callback';
+    }
+    // In development, use BASE_URL or localhost
+    return `${process.env.BASE_URL || 'http://localhost:3001'}/api/auth/google/callback`;
+};
 // OAuth2 client setup
-const oauth2Client = new googleapis_1.google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET, `${process.env.BASE_URL || 'http://localhost:3001'}/api/auth/google/callback`);
+const oauth2Client = new googleapis_1.google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET, getRedirectUri());
 // Scopes required for calendar access
 const SCOPES = [
     'https://www.googleapis.com/auth/calendar',
@@ -20,12 +30,20 @@ const SCOPES = [
 /**
  * Start OAuth flow - redirect user to Google consent screen
  */
-router.get('/google/connect', (req, res) => {
+router.get('/google/connect', auth_1.requireAuth, (req, res) => {
+    console.log('[GOOGLE-OAUTH] Connect endpoint hit');
     try {
         const userId = req.user?.id;
+        console.log('[GOOGLE-OAUTH] User ID:', userId);
         if (!userId) {
+            console.log('[GOOGLE-OAUTH] No user ID found');
             return res.status(401).json({ error: 'Not authenticated' });
         }
+        console.log('[GOOGLE-OAUTH] Generating auth URL with credentials:', {
+            hasClientId: !!process.env.GOOGLE_CLIENT_ID,
+            hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+            baseUrl: process.env.BASE_URL
+        });
         // Generate authorization URL
         const authUrl = oauth2Client.generateAuthUrl({
             access_type: 'offline', // Request refresh token
@@ -33,6 +51,7 @@ router.get('/google/connect', (req, res) => {
             state: userId.toString(), // Pass user ID through state
             prompt: 'consent', // Force consent screen to get refresh token
         });
+        console.log('[GOOGLE-OAUTH] Generated auth URL:', authUrl.substring(0, 100) + '...');
         res.json({ authUrl });
     }
     catch (error) {
@@ -175,6 +194,11 @@ router.get('/google/callback', async (req, res) => {
     }
     catch (error) {
         console.error('OAuth callback error:', error);
+        // Always return JSON for API requests
+        if (req.headers.accept && req.headers.accept.includes('application/json')) {
+            return res.status(500).json({ error: 'OAuth callback failed', message: error.message });
+        }
+        // Otherwise, fallback to HTML for browser
         res.status(500).send(`
       <!DOCTYPE html>
       <html>
@@ -227,7 +251,7 @@ router.get('/google/callback', async (req, res) => {
 /**
  * Get current sync status
  */
-router.get('/google/status', async (req, res) => {
+router.get('/google/status', auth_1.requireAuth, async (req, res) => {
     try {
         const userId = req.user?.id;
         if (!userId) {
@@ -257,7 +281,7 @@ router.get('/google/status', async (req, res) => {
 /**
  * Disconnect Google Calendar
  */
-router.post('/google/disconnect', async (req, res) => {
+router.post('/google/disconnect', auth_1.requireAuth, async (req, res) => {
     try {
         const userId = req.user?.id;
         if (!userId) {
@@ -277,7 +301,7 @@ router.post('/google/disconnect', async (req, res) => {
 /**
  * Toggle sync on/off
  */
-router.post('/google/toggle-sync', async (req, res) => {
+router.post('/google/toggle-sync', auth_1.requireAuth, async (req, res) => {
     try {
         const userId = req.user?.id;
         const { enabled } = req.body;

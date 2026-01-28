@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.insertCrmInvoiceItemSchema = exports.insertCrmInvoiceSchema = exports.insertGallerySchema = exports.insertLeadSourceSchema = exports.insertCrmLeadSchema = exports.insertCrmClientSchema = exports.insertBlogPostSchema = exports.insertUserSchema = exports.insertPhotographySessionSchema = exports.questionnaireResponses = exports.questionnaires = exports.onlineBookings = exports.bookingForms = exports.calendarSyncLogs = exports.calendarSyncSettings = exports.availabilityOverrides = exports.availabilityTemplates = exports.businessInsights = exports.weatherData = exports.sessionCommunications = exports.sessionTasks = exports.sessionEquipment = exports.photographySessions = exports.photoFolders = exports.digitalFiles = exports.galleryImages = exports.galleries = exports.smsConfig = exports.googleCalendarConfig = exports.studioAppointments = exports.messageCampaigns = exports.crmMessages = exports.couponUsage = exports.voucherSales = exports.priceListItems = exports.discountCoupons = exports.voucherProducts = exports.manualPageContent = exports.studioAvailableSlots = exports.crmInvoicePayments = exports.crmInvoiceItems = exports.crmInvoices = exports.crmLeads = exports.crmClients = exports.leadSources = exports.blogPosts = exports.adminUsers = exports.templateDefinitions = exports.studioConfigs = exports.users = void 0;
-exports.emailEvents = exports.insertEmailSegmentSchema = exports.emailSegments = exports.insertEmailSubscriberSchema = exports.emailSubscribers = exports.insertEmailTemplateSchema = exports.emailTemplates = exports.insertEmailCampaignSchema = exports.emailCampaigns = exports.insertGalleryTransferLogSchema = exports.insertArchivedFolderSchema = exports.insertArchivedFileSchema = exports.insertStorageUsageSchema = exports.insertStorageSubscriptionSchema = exports.galleryTransferLog = exports.archivedFiles = exports.archivedFolders = exports.storageUsage = exports.storageSubscriptions = exports.storageSubscriptionStatus = exports.storageSubscriptionTier = exports.insertPriceListItemSchema = exports.insertAgentAuditDiffSchema = exports.insertAgentAuditSchema = exports.insertAgentMessageSchema = exports.insertAgentSessionSchema = exports.insertAgentActionLogSchema = exports.insertAiPolicySchema = exports.insertStudioIntegrationSchema = exports.insertStudioSchema = exports.agentAuditDiff = exports.agentAudit = exports.agentMessage = exports.agentSession = exports.agentActionLog = exports.aiPolicies = exports.studioIntegrations = exports.studios = exports.insertAdminUserSchema = exports.insertOpenaiAssistantSchema = exports.insertKnowledgeBaseSchema = exports.openaiAssistants = exports.knowledgeBase = exports.insertCouponUsageSchema = exports.insertVoucherSaleSchema = exports.insertDiscountCouponSchema = exports.insertVoucherProductSchema = exports.insertSMSConfigSchema = exports.insertMessageCampaignSchema = exports.insertCrmMessageSchema = void 0;
-exports.gallery_images = exports.photography_sessions = exports.emailLinks = void 0;
+exports.insertLeadSourceSchema = exports.insertCrmLeadSchema = exports.insertCrmClientSchema = exports.insertBlogPostSchema = exports.insertUserSchema = exports.insertPhotographySessionSchema = exports.questionnaireResponses = exports.questionnaires = exports.schedulerBlockedTimes = exports.schedulerBookings = exports.schedulers = exports.onlineBookings = exports.bookingForms = exports.calendarSyncLogs = exports.calendarSyncSettings = exports.availabilityOverrides = exports.availabilityTemplates = exports.businessInsights = exports.weatherData = exports.sessionCommunications = exports.sessionTasks = exports.sessionEquipment = exports.photographySessions = exports.photoFolders = exports.digitalFiles = exports.galleryImages = exports.galleries = exports.smsConfig = exports.googleCalendarConfig = exports.studioAppointments = exports.messageCampaigns = exports.crmMessages = exports.couponUsage = exports.voucherSales = exports.priceListItems = exports.discountCoupons = exports.voucherProducts = exports.manualPageContent = exports.studioAvailableSlots = exports.crmInvoicePayments = exports.crmInvoiceItems = exports.crmInvoices = exports.crmLeads = exports.crmClients = exports.leadSources = exports.blogPosts = exports.adminUsers = exports.templateDefinitions = exports.studioConfigs = exports.users = void 0;
+exports.emailTemplates = exports.insertEmailCampaignSchema = exports.emailCampaigns = exports.insertGalleryTransferLogSchema = exports.insertArchivedFolderSchema = exports.insertArchivedFileSchema = exports.insertStorageUsageSchema = exports.insertStorageSubscriptionSchema = exports.galleryTransferLog = exports.archivedFiles = exports.archivedFolders = exports.storageUsage = exports.storageSubscriptions = exports.storageSubscriptionStatus = exports.storageSubscriptionTier = exports.insertPriceListItemSchema = exports.insertAgentAuditDiffSchema = exports.insertAgentAuditSchema = exports.insertAgentMessageSchema = exports.insertAgentSessionSchema = exports.insertAgentActionLogSchema = exports.insertAiPolicySchema = exports.insertStudioIntegrationSchema = exports.insertStudioSchema = exports.agentAuditDiff = exports.agentAudit = exports.agentMessage = exports.agentSession = exports.agentActionLog = exports.aiPolicies = exports.studioIntegrations = exports.studios = exports.insertAdminUserSchema = exports.insertOpenaiAssistantSchema = exports.insertKnowledgeBaseSchema = exports.openaiAssistants = exports.knowledgeBase = exports.insertCouponUsageSchema = exports.insertVoucherSaleSchema = exports.insertDiscountCouponSchema = exports.insertVoucherProductSchema = exports.insertSchedulerBlockedTimeSchema = exports.insertSchedulerBookingSchema = exports.insertSchedulerSchema = exports.insertSMSConfigSchema = exports.insertMessageCampaignSchema = exports.insertCrmMessageSchema = exports.insertCrmInvoiceItemSchema = exports.insertCrmInvoiceSchema = exports.insertGallerySchema = void 0;
+exports.gallery_images = exports.photography_sessions = exports.emailLinks = exports.emailEvents = exports.insertEmailSegmentSchema = exports.emailSegments = exports.insertEmailSubscriberSchema = exports.emailSubscribers = exports.insertEmailTemplateSchema = void 0;
 const pg_core_1 = require("drizzle-orm/pg-core");
 const drizzle_zod_1 = require("drizzle-zod");
 const zod_1 = require("zod");
@@ -42,6 +42,10 @@ exports.studioConfigs = (0, pg_core_1.pgTable)("studio_configs", {
     phone: (0, pg_core_1.text)("phone"),
     email: (0, pg_core_1.text)("email"),
     website: (0, pg_core_1.text)("website"),
+    // Location Coordinates (for Golden Hour, Weather, etc.)
+    latitude: (0, pg_core_1.decimal)("latitude", { precision: 10, scale: 7 }), // e.g., 48.2082000 (Vienna)
+    longitude: (0, pg_core_1.decimal)("longitude", { precision: 10, scale: 7 }), // e.g., 16.3738000 (Vienna)
+    timezone: (0, pg_core_1.text)("timezone").default("Europe/Vienna"),
     // Social Media
     facebookUrl: (0, pg_core_1.text)("facebook_url"),
     instagramUrl: (0, pg_core_1.text)("instagram_url"),
@@ -163,13 +167,19 @@ exports.crmInvoices = (0, pg_core_1.pgTable)("crm_invoices", {
     dueDate: (0, pg_core_1.date)("due_date").notNull(),
     subtotal: (0, pg_core_1.decimal)("subtotal", { precision: 10, scale: 2 }).notNull(),
     taxAmount: (0, pg_core_1.decimal)("tax_amount", { precision: 10, scale: 2 }).default("0"),
-    discountAmount: (0, pg_core_1.decimal)("discount_amount", { precision: 10, scale: 2 }).default("0"),
+    discountType: (0, pg_core_1.text)("discount_type").default("fixed"), // "fixed" or "percentage"
+    discountValue: (0, pg_core_1.decimal)("discount_value", { precision: 10, scale: 2 }).default("0"), // The input value (amount or percent)
+    discountAmount: (0, pg_core_1.decimal)("discount_amount", { precision: 10, scale: 2 }).default("0"), // The calculated discount amount
     total: (0, pg_core_1.decimal)("total", { precision: 10, scale: 2 }).notNull(),
     currency: (0, pg_core_1.text)("currency").default("EUR"),
     status: (0, pg_core_1.text)("status").default("draft"),
     paymentTerms: (0, pg_core_1.text)("payment_terms").default("Net 30"),
     notes: (0, pg_core_1.text)("notes"),
     termsAndConditions: (0, pg_core_1.text)("terms_and_conditions"),
+    footerText: (0, pg_core_1.text)("footer_text"),
+    stripePaymentIntentId: (0, pg_core_1.text)("stripe_payment_intent_id"),
+    stripePaymentUrl: (0, pg_core_1.text)("stripe_payment_url"),
+    paidAmount: (0, pg_core_1.decimal)("paid_amount", { precision: 10, scale: 2 }).default("0"),
     createdBy: (0, pg_core_1.uuid)("created_by").references(() => exports.users.id),
     createdAt: (0, pg_core_1.timestamp)("created_at").defaultNow(),
     updatedAt: (0, pg_core_1.timestamp)("updated_at").defaultNow(),
@@ -358,6 +368,7 @@ exports.crmMessages = (0, pg_core_1.pgTable)("crm_messages", {
     id: (0, pg_core_1.uuid)("id").primaryKey().defaultRandom(),
     senderName: (0, pg_core_1.text)("sender_name").notNull(),
     senderEmail: (0, pg_core_1.text)("sender_email").notNull(),
+    recipientEmail: (0, pg_core_1.text)("recipient_email"), // for outbound emails - who we sent to
     subject: (0, pg_core_1.text)("subject").notNull(),
     content: (0, pg_core_1.text)("content").notNull(),
     messageType: (0, pg_core_1.text)("message_type").notNull().default("email"), // "email", "sms", "note"
@@ -461,6 +472,20 @@ exports.galleries = (0, pg_core_1.pgTable)("galleries", {
     slug: (0, pg_core_1.text)("slug").unique().notNull(),
     description: (0, pg_core_1.text)("description"),
     coverImage: (0, pg_core_1.text)("cover_image"),
+    coverPosition: (0, pg_core_1.jsonb)("cover_position").$type().default({ x: 50, y: 50 }),
+    coverScale: (0, pg_core_1.integer)("cover_scale").default(100),
+    coverTemplate: (0, pg_core_1.jsonb)("cover_template").$type().default({
+        templateId: 'classic-center',
+        textPosition: 'center',
+        textAlignment: 'center',
+        overlay: 'dark',
+        titleSize: 'large',
+        showSubtitle: true,
+        showButton: true,
+        buttonStyle: 'outline',
+        fontStyle: 'elegant',
+        imageStyle: 'full'
+    }),
     isPublic: (0, pg_core_1.boolean)("is_public").default(true),
     isPasswordProtected: (0, pg_core_1.boolean)("is_password_protected").default(false),
     password: (0, pg_core_1.text)("password"),
@@ -724,6 +749,98 @@ exports.onlineBookings = (0, pg_core_1.pgTable)("online_bookings", {
     createdAt: (0, pg_core_1.timestamp)("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: (0, pg_core_1.timestamp)("updated_at", { withTimezone: true }).defaultNow(),
 });
+// ==================== SCHEDULER SYSTEM ====================
+// Client Self-Booking Schedulers (like Sprout Studio)
+// Scheduler templates - defines booking types available to clients
+exports.schedulers = (0, pg_core_1.pgTable)("schedulers", {
+    id: (0, pg_core_1.text)("id").primaryKey(),
+    name: (0, pg_core_1.text)("name").notNull(), // e.g., "Shooting", "Consultation", "Mini Session"
+    slug: (0, pg_core_1.text)("slug").notNull().unique(), // URL-friendly slug for public link
+    description: (0, pg_core_1.text)("description"),
+    // Session configuration
+    sessionType: (0, pg_core_1.text)("session_type").notNull().default("portrait"), // portrait, wedding, event, etc.
+    duration: (0, pg_core_1.integer)("duration").notNull().default(60), // Duration in minutes
+    location: (0, pg_core_1.text)("location"), // Default location
+    price: (0, pg_core_1.decimal)("price", { precision: 10, scale: 2 }).default("0"), // Price for this session type
+    // Availability configuration
+    availabilityType: (0, pg_core_1.text)("availability_type").default("ongoing"), // "ongoing", "date_range", "specific_dates"
+    startDate: (0, pg_core_1.timestamp)("start_date", { withTimezone: true }), // For date_range
+    endDate: (0, pg_core_1.timestamp)("end_date", { withTimezone: true }), // For date_range
+    timezone: (0, pg_core_1.text)("timezone").default("Europe/Vienna"),
+    // Weekly availability (JSON: { monday: [{start: "09:00", end: "17:00"}], ... })
+    weeklyAvailability: (0, pg_core_1.jsonb)("weekly_availability"),
+    // Specific available dates (for specific_dates type)
+    specificDates: (0, pg_core_1.jsonb)("specific_dates"),
+    // Booking rules
+    bufferBefore: (0, pg_core_1.integer)("buffer_before").default(0), // Minutes buffer before appointment
+    bufferAfter: (0, pg_core_1.integer)("buffer_after").default(0), // Minutes buffer after appointment
+    minNotice: (0, pg_core_1.integer)("min_notice").default(24), // Minimum hours notice required
+    maxAdvance: (0, pg_core_1.integer)("max_advance").default(90), // Maximum days in advance to book
+    maxPerDay: (0, pg_core_1.integer)("max_per_day"), // Max appointments per day (null = unlimited)
+    availabilityIncrements: (0, pg_core_1.integer)("availability_increments").default(60), // 15, 30, 60 mins
+    // Communication settings
+    confirmationMessage: (0, pg_core_1.text)("confirmation_message"),
+    questionnaireId: (0, pg_core_1.integer)("questionnaire_id").references(() => exports.questionnaires.id),
+    autoApprove: (0, pg_core_1.boolean)("auto_approve").default(true), // Auto-confirm or require manual approval
+    sendReminders: (0, pg_core_1.boolean)("send_reminders").default(true),
+    reminderHours: (0, pg_core_1.integer)("reminder_hours").default(24),
+    // Branding
+    brandName: (0, pg_core_1.text)("brand_name"),
+    brandColor: (0, pg_core_1.text)("brand_color").default("#0d9488"), // Teal
+    // Status
+    isActive: (0, pg_core_1.boolean)("is_active").default(true),
+    createdBy: (0, pg_core_1.text)("created_by"),
+    createdAt: (0, pg_core_1.timestamp)("created_at", { withTimezone: true }).defaultNow(),
+    updatedAt: (0, pg_core_1.timestamp)("updated_at", { withTimezone: true }).defaultNow(),
+});
+// Scheduler bookings - when a client books through a scheduler
+exports.schedulerBookings = (0, pg_core_1.pgTable)("scheduler_bookings", {
+    id: (0, pg_core_1.text)("id").primaryKey(),
+    schedulerId: (0, pg_core_1.text)("scheduler_id").notNull().references(() => exports.schedulers.id),
+    // Client info (may or may not link to existing CRM client)
+    clientId: (0, pg_core_1.text)("client_id").references(() => exports.crmClients.id),
+    clientName: (0, pg_core_1.text)("client_name").notNull(),
+    clientEmail: (0, pg_core_1.text)("client_email").notNull(),
+    clientPhone: (0, pg_core_1.text)("client_phone"),
+    // Booking details
+    scheduledDate: (0, pg_core_1.timestamp)("scheduled_date", { withTimezone: true }).notNull(),
+    scheduledEndDate: (0, pg_core_1.timestamp)("scheduled_end_date", { withTimezone: true }).notNull(),
+    timezone: (0, pg_core_1.text)("timezone").default("Europe/Vienna"),
+    // Status: pending, confirmed, cancelled, completed, no_show
+    status: (0, pg_core_1.text)("status").default("pending"),
+    // Linked session (created when booking is confirmed)
+    sessionId: (0, pg_core_1.text)("session_id"),
+    // Client notes & questionnaire responses
+    clientNotes: (0, pg_core_1.text)("client_notes"),
+    questionnaireResponses: (0, pg_core_1.jsonb)("questionnaire_responses"),
+    // Confirmation & reminders
+    confirmationSent: (0, pg_core_1.boolean)("confirmation_sent").default(false),
+    confirmationSentAt: (0, pg_core_1.timestamp)("confirmation_sent_at", { withTimezone: true }),
+    reminderSent: (0, pg_core_1.boolean)("reminder_sent").default(false),
+    reminderSentAt: (0, pg_core_1.timestamp)("reminder_sent_at", { withTimezone: true }),
+    // Cancellation
+    cancelledAt: (0, pg_core_1.timestamp)("cancelled_at", { withTimezone: true }),
+    cancellationReason: (0, pg_core_1.text)("cancellation_reason"),
+    // Metadata
+    ipAddress: (0, pg_core_1.text)("ip_address"),
+    userAgent: (0, pg_core_1.text)("user_agent"),
+    source: (0, pg_core_1.text)("source").default("scheduler"), // scheduler, admin, import
+    createdAt: (0, pg_core_1.timestamp)("created_at", { withTimezone: true }).defaultNow(),
+    updatedAt: (0, pg_core_1.timestamp)("updated_at", { withTimezone: true }).defaultNow(),
+});
+// Blocked times - times when scheduler is unavailable (holidays, personal time)
+exports.schedulerBlockedTimes = (0, pg_core_1.pgTable)("scheduler_blocked_times", {
+    id: (0, pg_core_1.text)("id").primaryKey(),
+    schedulerId: (0, pg_core_1.text)("scheduler_id").references(() => exports.schedulers.id), // null = applies to all
+    title: (0, pg_core_1.text)("title"),
+    startDate: (0, pg_core_1.timestamp)("start_date", { withTimezone: true }).notNull(),
+    endDate: (0, pg_core_1.timestamp)("end_date", { withTimezone: true }).notNull(),
+    isAllDay: (0, pg_core_1.boolean)("is_all_day").default(false),
+    isRecurring: (0, pg_core_1.boolean)("is_recurring").default(false),
+    recurrenceRule: (0, pg_core_1.text)("recurrence_rule"), // iCal RRULE format
+    reason: (0, pg_core_1.text)("reason"),
+    createdAt: (0, pg_core_1.timestamp)("created_at", { withTimezone: true }).defaultNow(),
+});
 // Questionnaires table
 exports.questionnaires = (0, pg_core_1.pgTable)("questionnaires", {
     id: (0, pg_core_1.serial)("id").primaryKey(),
@@ -857,8 +974,12 @@ exports.insertCrmInvoiceSchema = (0, drizzle_zod_1.createInsertSchema)(exports.c
     paymentTerms: true,
     notes: true,
     termsAndConditions: true,
+    footerText: true,
+    stripePaymentIntentId: true,
+    stripePaymentUrl: true,
+    paidAmount: true,
     createdBy: true,
-}).partial({ invoiceNumber: true, createdBy: true, discountAmount: true, currency: true, paymentTerms: true }); // Make optional fields
+}).partial({ invoiceNumber: true, createdBy: true, discountAmount: true, currency: true, paymentTerms: true, footerText: true, stripePaymentIntentId: true, stripePaymentUrl: true, paidAmount: true }); // Make optional fields
 exports.insertCrmInvoiceItemSchema = (0, drizzle_zod_1.createInsertSchema)(exports.crmInvoiceItems).pick({
     invoiceId: true,
     description: true,
@@ -897,6 +1018,33 @@ exports.insertSMSConfigSchema = (0, drizzle_zod_1.createInsertSchema)(exports.sm
     authToken: true,
     fromNumber: true,
     isActive: true,
+});
+// Scheduler insert schemas
+exports.insertSchedulerSchema = (0, drizzle_zod_1.createInsertSchema)(exports.schedulers, {
+    name: zod_1.z.string().min(1, "Scheduler name is required"),
+    slug: zod_1.z.string().min(1, "URL slug is required"),
+    sessionType: zod_1.z.string().min(1, "Session type is required"),
+    duration: zod_1.z.number().min(15, "Duration must be at least 15 minutes"),
+}).omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true
+});
+exports.insertSchedulerBookingSchema = (0, drizzle_zod_1.createInsertSchema)(exports.schedulerBookings, {
+    schedulerId: zod_1.z.string().min(1, "Scheduler ID is required"),
+    clientName: zod_1.z.string().min(1, "Client name is required"),
+    clientEmail: zod_1.z.string().email("Valid email is required"),
+}).omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true
+});
+exports.insertSchedulerBlockedTimeSchema = (0, drizzle_zod_1.createInsertSchema)(exports.schedulerBlockedTimes, {
+    startDate: zod_1.z.date(),
+    endDate: zod_1.z.date(),
+}).omit({
+    id: true,
+    createdAt: true
 });
 // Voucher Product schemas - Using manual schema instead of createInsertSchema to avoid field name conflicts
 exports.insertVoucherProductSchema = zod_1.z.object({

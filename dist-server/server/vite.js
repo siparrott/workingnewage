@@ -92,7 +92,13 @@ function serveStatic(app) {
         }
     });
     // fall through to index.html if the file doesn't exist
-    app.use("*", (_req, res) => {
+    // BUT exclude /api/* routes - those should return 404 JSON, not HTML
+    app.use("*", (req, res) => {
+        // If it's an API request that wasn't handled, return JSON 404
+        if (req.originalUrl.startsWith('/api/')) {
+            return res.status(404).json({ error: 'API endpoint not found', path: req.originalUrl });
+        }
+        // For all other requests (frontend routes), serve the SPA
         res.sendFile(path_1.default.resolve(distPath, "index.html"));
     });
 }

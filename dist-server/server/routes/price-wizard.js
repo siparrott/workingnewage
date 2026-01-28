@@ -3,15 +3,18 @@
  * Price Wizard API Routes
  *
  * Endpoints for autonomous competitive pricing research
+ * Uses Tavily API for search + OpenAI for price extraction
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const db_js_1 = require("../db.js");
 const PriceScraperService_js_1 = require("../services/PriceScraperService.js");
 const CompetitorDiscoveryService_js_1 = require("../services/CompetitorDiscoveryService.js");
+const PriceResearchService_js_1 = require("../services/PriceResearchService.js");
 const router = (0, express_1.Router)();
 const scraper = new PriceScraperService_js_1.PriceScraperService();
 const discovery = new CompetitorDiscoveryService_js_1.CompetitorDiscoveryService();
+const priceResearch = new PriceResearchService_js_1.PriceResearchService();
 /**
  * POST /api/price-wizard/start
  * Start a new price research session
@@ -106,7 +109,7 @@ router.post('/discover', async (req, res) => {
 });
 /**
  * POST /api/price-wizard/scrape
- * Scrape prices from discovered competitors
+ * Mark competitors for manual price entry (scraping disabled - URLs are fictional)
  */
 router.post('/scrape', async (req, res) => {
     try {
@@ -114,88 +117,41 @@ router.post('/scrape', async (req, res) => {
         if (!sessionId) {
             return res.status(400).json({ error: 'Missing sessionId' });
         }
+        console.log(`📋 Processing scrape for session ${sessionId}`);
         // Get pending competitors
         const result = await db_js_1.pool.query(`
       SELECT id, website_url 
       FROM competitor_research 
       WHERE session_id = $1 AND status = 'pending'
-      LIMIT 10
     `, [sessionId]);
         const competitors = result.rows;
-        if (competitors.length === 0) {
-            return res.json({
-                success: true,
-                message: 'No pending competitors to scrape',
-                scrapedCount: 0,
-            });
-        }
-        let scrapedCount = 0;
-        let pricesExtracted = 0;
-        // Scrape each competitor
+        console.log(`Found ${competitors.length} pending competitors`);
+        // Mark all as failed immediately (scraping disabled - fallback URLs are fictional)
+        // Users can add prices manually using the + button
         for (const competitor of competitors) {
-            try {
-                const scrapeResult = await scraper.scrapeWebsite(competitor.website_url);
-                if (scrapeResult.success && scrapeResult.prices.length > 0) {
-                    // Save prices
-                    for (const price of scrapeResult.prices) {
-                        await db_js_1.pool.query(`
-              INSERT INTO competitor_prices (
-                competitor_id, service_type, price_amount, currency, 
-                confidence_score, source_url
-              ) VALUES ($1, $2, $3, $4, $5, $6)
-            `, [
-                            competitor.id,
-                            price.serviceType,
-                            price.amount,
-                            price.currency,
-                            price.confidence,
-                            price.url,
-                        ]);
-                        pricesExtracted++;
-                    }
-                    // Update competitor status
-                    await db_js_1.pool.query(`
-            UPDATE competitor_research 
-            SET status = 'scraped', scraped_at = NOW() 
-            WHERE id = $1
-          `, [competitor.id]);
-                    scrapedCount++;
-                }
-                else {
-                    // Mark as failed
-                    await db_js_1.pool.query(`
-            UPDATE competitor_research 
-            SET status = 'failed', error_message = $2 
-            WHERE id = $1
-          `, [competitor.id, scrapeResult.error || 'No prices found']);
-                }
-            }
-            catch (error) {
-                console.error(`Error scraping ${competitor.website_url}:`, error);
-                await db_js_1.pool.query(`
-          UPDATE competitor_research 
-          SET status = 'failed', error_message = $2 
-          WHERE id = $1
-        `, [competitor.id, error.message]);
-            }
-            // Rate limiting
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await db_js_1.pool.query(`
+        UPDATE competitor_research 
+        SET status = 'failed', scrape_error = 'Manual entry required - click + to add prices' 
+        WHERE id = $1
+      `, [competitor.id]);
         }
-        // Update session
+        // Update session to analyzing
         await db_js_1.pool.query(`
       UPDATE price_wizard_sessions
-      SET status = 'analyzing', prices_extracted = prices_extracted + $2, updated_at = NOW()
+      SET status = 'analyzing', updated_at = NOW()
       WHERE id = $1
-    `, [sessionId, pricesExtracted]);
+    `, [sessionId]);
+        console.log(`✅ Marked ${competitors.length} competitors for manual entry, session moved to analyzing`);
         res.json({
             success: true,
             sessionId,
-            scrapedCount,
-            pricesExtracted,
+            scrapedCount: 0,
+            pricesExtracted: 0,
+            message: 'Competitors marked for manual price entry'
         });
     }
     catch (error) {
-        console.error('Error scraping competitors:', error);
+        console.error('Error in scrape endpoint:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -312,9 +268,19 @@ router.post('/analyze', async (req, res) => {
       WHERE cr.session_id = $1 AND cp.confidence_score >= 0.5
     `, [sessionId]);
         const prices = pricesResult.rows;
+        // If no prices yet, mark session as ready for manual entry
         if (prices.length === 0) {
-            return res.status(400).json({
-                error: 'No prices found to analyze. Run scraping first.'
+            await db_js_1.pool.query(`
+        UPDATE price_wizard_sessions
+        SET status = 'completed', suggestions_generated = 0, updated_at = NOW()
+        WHERE id = $1
+      `, [sessionId]);
+            return res.json({
+                success: true,
+                sessionId,
+                suggestionsCount: 0,
+                suggestions: [],
+                message: 'No prices to analyze. Add competitor prices manually using the + button, then click "Retry Scrape" to re-analyze.'
             });
         }
         // Group by service type and calculate statistics
@@ -444,7 +410,7 @@ router.get('/sessions', async (req, res) => {
 });
 /**
  * POST /api/price-wizard/activate-suggestion
- * Activate a single suggestion to price list
+ * Activate a single suggestion - creates a price list entry and marks it as activated
  */
 router.post('/activate-suggestion', async (req, res) => {
     try {
@@ -464,7 +430,8 @@ router.post('/activate-suggestion', async (req, res) => {
             return res.status(400).json({ error: 'Suggestion is not pending review' });
         }
         const finalPrice = adjustedPrice || suggestion.suggested_price;
-        // Create price list entry
+        // Create price list entry so it appears in Invoice "Select from Price List"
+        const serviceName = `${suggestion.service_type} (${suggestion.tier})`;
         const priceListResult = await db_js_1.pool.query(`
       INSERT INTO price_lists (
         service_name,
@@ -475,25 +442,30 @@ router.post('/activate-suggestion', async (req, res) => {
       ) VALUES ($1, $2, $3, $4, true)
       RETURNING id, service_name, price
     `, [
-            `${suggestion.service_type} (${suggestion.tier})`,
+            serviceName,
             'Photography',
             finalPrice,
-            suggestion.reasoning
+            suggestion.reasoning || `AI-recommended ${suggestion.tier} tier pricing based on competitive market analysis`
         ]);
         const priceListItem = priceListResult.rows[0];
-        // Mark suggestion as activated
+        // Mark suggestion as activated with the final price and link to price list item
         await db_js_1.pool.query(`
       UPDATE price_list_suggestions
       SET 
         status = 'activated',
-        activated_product_id = $2,
+        user_adjusted_price = $2,
+        activated_product_id = $3,
+        activated_at = NOW(),
         updated_at = NOW()
       WHERE id = $1
-    `, [suggestionId, priceListItem.id]);
+    `, [suggestionId, finalPrice, priceListItem.id]);
         res.json({
             success: true,
+            suggestion_id: suggestionId,
             price_list_id: priceListItem.id,
-            activated_price: finalPrice
+            service_name: priceListItem.service_name,
+            activated_price: finalPrice,
+            message: 'Price activated and added to your Price List successfully'
         });
     }
     catch (error) {
@@ -520,6 +492,212 @@ router.post('/reject-suggestion', async (req, res) => {
     }
     catch (error) {
         console.error('Error rejecting suggestion:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+/**
+ * POST /api/price-wizard/add-manual-price
+ * Add competitor price manually (when scraping fails)
+ */
+router.post('/add-manual-price', async (req, res) => {
+    try {
+        const { competitorId, serviceType, priceAmount, currency = 'EUR', notes } = req.body;
+        if (!competitorId || !serviceType || priceAmount === undefined) {
+            return res.status(400).json({
+                error: 'Missing required fields: competitorId, serviceType, priceAmount'
+            });
+        }
+        // Insert manual price
+        const result = await db_js_1.pool.query(`
+      INSERT INTO competitor_prices (
+        competitor_id, service_type, price_amount, currency, 
+        confidence_score, url_source, notes
+      ) VALUES ($1, $2, $3, $4, 1.0, 'manual_entry', $5)
+      RETURNING id
+    `, [competitorId, serviceType, priceAmount, currency, notes || null]);
+        // Update competitor status to 'scraped' (we now have data)
+        await db_js_1.pool.query(`
+      UPDATE competitor_research 
+      SET status = 'scraped', scraped_at = NOW() 
+      WHERE id = $1
+    `, [competitorId]);
+        // Get session ID to update prices count
+        const sessionResult = await db_js_1.pool.query(`
+      SELECT session_id FROM competitor_research WHERE id = $1
+    `, [competitorId]);
+        if (sessionResult.rows.length > 0) {
+            await db_js_1.pool.query(`
+        UPDATE price_wizard_sessions
+        SET prices_extracted = prices_extracted + 1, updated_at = NOW()
+        WHERE id = $1
+      `, [sessionResult.rows[0].session_id]);
+        }
+        res.json({
+            success: true,
+            priceId: result.rows[0].id,
+            message: 'Manual price added successfully'
+        });
+    }
+    catch (error) {
+        console.error('Error adding manual price:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+/**
+ * GET /api/price-wizard/competitor/:competitorId/prices
+ * Get all prices for a competitor
+ */
+router.get('/competitor/:competitorId/prices', async (req, res) => {
+    try {
+        const { competitorId } = req.params;
+        const result = await db_js_1.pool.query(`
+      SELECT 
+        id,
+        service_type,
+        price_amount,
+        currency,
+        confidence_score,
+        url_source,
+        notes,
+        created_at
+      FROM competitor_prices
+      WHERE competitor_id = $1
+      ORDER BY created_at DESC
+    `, [competitorId]);
+        res.json({
+            success: true,
+            prices: result.rows
+        });
+    }
+    catch (error) {
+        console.error('Error fetching competitor prices:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+/**
+ * DELETE /api/price-wizard/price/:priceId
+ * Delete a competitor price entry
+ */
+router.delete('/price/:priceId', async (req, res) => {
+    try {
+        const { priceId } = req.params;
+        await db_js_1.pool.query(`
+      DELETE FROM competitor_prices WHERE id = $1
+    `, [priceId]);
+        res.json({ success: true });
+    }
+    catch (error) {
+        console.error('Error deleting price:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+/**
+ * POST /api/price-wizard/research
+ * Run FULL automated research using Tavily + OpenAI
+ * This is the new production endpoint for real competitor research
+ */
+router.post('/research', async (req, res) => {
+    try {
+        const { sessionId } = req.body;
+        if (!sessionId) {
+            return res.status(400).json({ error: 'Missing sessionId' });
+        }
+        // Get session details
+        const sessionResult = await db_js_1.pool.query(`
+      SELECT id, location, services, status FROM price_wizard_sessions WHERE id = $1
+    `, [sessionId]);
+        if (sessionResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Session not found' });
+        }
+        const session = sessionResult.rows[0];
+        // Check if API keys are configured
+        if (!process.env.TAVILY_API_KEY || !process.env.OPENAI_API_KEY) {
+            return res.status(500).json({
+                error: 'API keys not configured. Set TAVILY_API_KEY and OPENAI_API_KEY.'
+            });
+        }
+        // Clear any previous data for this session (in case of retry)
+        await db_js_1.pool.query(`
+      DELETE FROM price_list_suggestions WHERE session_id = $1
+    `, [sessionId]);
+        const competitorIds = await db_js_1.pool.query(`
+      SELECT id FROM competitor_research WHERE session_id = $1
+    `, [sessionId]);
+        for (const row of competitorIds.rows) {
+            await db_js_1.pool.query(`DELETE FROM competitor_prices WHERE competitor_id = $1`, [row.id]);
+        }
+        await db_js_1.pool.query(`
+      DELETE FROM competitor_research WHERE session_id = $1
+    `, [sessionId]);
+        // Run research in background (don't await)
+        // Return immediately so the frontend can poll for status
+        res.json({
+            success: true,
+            sessionId,
+            message: 'Research started. Poll /status endpoint for updates.',
+        });
+        // Run the actual research
+        priceResearch.runResearch({
+            sessionId,
+            location: session.location,
+            services: session.services,
+            maxCompetitors: 12,
+        }).catch(error => {
+            console.error('Background research failed:', error);
+        });
+    }
+    catch (error) {
+        console.error('Error starting research:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+/**
+ * POST /api/price-wizard/quick-start
+ * Combined endpoint: Create session AND start research in one call
+ */
+router.post('/quick-start', async (req, res) => {
+    try {
+        const { location, services, userId } = req.body;
+        if (!location || !services || !Array.isArray(services)) {
+            return res.status(400).json({
+                error: 'Missing required fields: location, services (array)'
+            });
+        }
+        // Check if API keys are configured
+        if (!process.env.TAVILY_API_KEY || !process.env.OPENAI_API_KEY) {
+            return res.status(500).json({
+                error: 'API keys not configured. Set TAVILY_API_KEY and OPENAI_API_KEY.'
+            });
+        }
+        // Create session
+        const result = await db_js_1.pool.query(`
+      INSERT INTO price_wizard_sessions (user_id, location, services, status)
+      VALUES ($1, $2, $3, 'discovering')
+      RETURNING id, created_at
+    `, [userId || null, location, services]);
+        const session = result.rows[0];
+        // Return immediately
+        res.json({
+            success: true,
+            sessionId: session.id,
+            location,
+            services,
+            status: 'discovering',
+            createdAt: session.created_at,
+            message: 'Research started. Poll /status endpoint for updates.',
+        });
+        // Run the actual research in background
+        priceResearch.runResearch({
+            sessionId: session.id,
+            location,
+            services,
+            maxCompetitors: 12,
+        }).catch(error => {
+            console.error('Background research failed:', error);
+        });
+    }
+    catch (error) {
+        console.error('Error in quick-start:', error);
         res.status(500).json({ error: error.message });
     }
 });

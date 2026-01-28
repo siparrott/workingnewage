@@ -55,9 +55,15 @@ class DatabaseStorage {
     // Blog management
     async getBlogPosts(published) {
         const baseQuery = db_1.db.select().from(schema_js_1.blogPosts);
-        const filtered = published !== undefined
-            ? baseQuery.where((0, drizzle_orm_1.eq)(schema_js_1.blogPosts.published, published))
-            : baseQuery;
+        let filtered = baseQuery;
+        // If filtering for published posts, also check that publishedAt <= now
+        if (published === true) {
+            filtered = filtered.where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_js_1.blogPosts.published, true), (0, drizzle_orm_1.sql) `${schema_js_1.blogPosts.publishedAt} <= NOW()`));
+        }
+        else if (published === false) {
+            filtered = filtered.where((0, drizzle_orm_1.eq)(schema_js_1.blogPosts.published, false));
+        }
+        // If published is undefined, return all posts regardless of date (for admin)
         return await filtered.orderBy((0, drizzle_orm_1.desc)(schema_js_1.blogPosts.createdAt));
     }
     async getBlogPost(id) {
@@ -670,10 +676,28 @@ class DatabaseStorage {
         smtp_pass VARCHAR(255),
         from_email VARCHAR(255),
         from_name VARCHAR(255),
+        email_signature TEXT,
+        signature_enabled BOOLEAN DEFAULT FALSE,
+        out_of_office_enabled BOOLEAN DEFAULT FALSE,
+        out_of_office_message TEXT,
+        out_of_office_start_date DATE,
+        out_of_office_end_date DATE,
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       )
     `);
+        // Add new columns if they don't exist (for existing tables)
+        try {
+            await db_1.db.execute((0, drizzle_orm_1.sql) `ALTER TABLE email_settings ADD COLUMN IF NOT EXISTS email_signature TEXT`);
+            await db_1.db.execute((0, drizzle_orm_1.sql) `ALTER TABLE email_settings ADD COLUMN IF NOT EXISTS signature_enabled BOOLEAN DEFAULT FALSE`);
+            await db_1.db.execute((0, drizzle_orm_1.sql) `ALTER TABLE email_settings ADD COLUMN IF NOT EXISTS out_of_office_enabled BOOLEAN DEFAULT FALSE`);
+            await db_1.db.execute((0, drizzle_orm_1.sql) `ALTER TABLE email_settings ADD COLUMN IF NOT EXISTS out_of_office_message TEXT`);
+            await db_1.db.execute((0, drizzle_orm_1.sql) `ALTER TABLE email_settings ADD COLUMN IF NOT EXISTS out_of_office_start_date DATE`);
+            await db_1.db.execute((0, drizzle_orm_1.sql) `ALTER TABLE email_settings ADD COLUMN IF NOT EXISTS out_of_office_end_date DATE`);
+        }
+        catch (err) {
+            // Columns might already exist, ignore error
+        }
         // Check if settings exist
         const existing = await db_1.db.execute((0, drizzle_orm_1.sql) `SELECT id FROM email_settings LIMIT 1`);
         const existingRows = existing?.rows ?? (Array.isArray(existing) ? existing : undefined);
@@ -686,7 +710,13 @@ class DatabaseStorage {
             smtp_user = ${settings.smtp_user}, 
             smtp_pass = ${settings.smtp_pass}, 
             from_email = ${settings.from_email}, 
-            from_name = ${settings.from_name}, 
+            from_name = ${settings.from_name},
+            email_signature = ${settings.email_signature || null},
+            signature_enabled = ${settings.signature_enabled || false},
+            out_of_office_enabled = ${settings.out_of_office_enabled || false},
+            out_of_office_message = ${settings.out_of_office_message || null},
+            out_of_office_start_date = ${settings.out_of_office_start_date || null},
+            out_of_office_end_date = ${settings.out_of_office_end_date || null},
             updated_at = NOW()
         WHERE id = ${existingRows[0].id}
         RETURNING *
@@ -697,8 +727,16 @@ class DatabaseStorage {
         else {
             // Insert new settings
             const result = await db_1.db.execute((0, drizzle_orm_1.sql) `
-        INSERT INTO email_settings (smtp_host, smtp_port, smtp_user, smtp_pass, from_email, from_name)
-        VALUES (${settings.smtp_host}, ${settings.smtp_port}, ${settings.smtp_user}, ${settings.smtp_pass}, ${settings.from_email}, ${settings.from_name})
+        INSERT INTO email_settings (
+          smtp_host, smtp_port, smtp_user, smtp_pass, from_email, from_name,
+          email_signature, signature_enabled,
+          out_of_office_enabled, out_of_office_message, out_of_office_start_date, out_of_office_end_date
+        )
+        VALUES (
+          ${settings.smtp_host}, ${settings.smtp_port}, ${settings.smtp_user}, ${settings.smtp_pass}, ${settings.from_email}, ${settings.from_name},
+          ${settings.email_signature || null}, ${settings.signature_enabled || false},
+          ${settings.out_of_office_enabled || false}, ${settings.out_of_office_message || null}, ${settings.out_of_office_start_date || null}, ${settings.out_of_office_end_date || null}
+        )
         RETURNING *
       `);
             const insertRows = result?.rows ?? (Array.isArray(result) ? result : undefined);
@@ -721,7 +759,15 @@ class DatabaseStorage {
                     smtp_user: process.env.SMTP_USER || '',
                     smtp_pass: process.env.SMTP_PASS || process.env.EMAIL_PASSWORD || '',
                     from_email: envFrom,
-                    from_name: process.env.EMAIL_FROM_NAME || 'New Age Fotografie'
+                    from_name: process.env.EMAIL_FROM_NAME || 'New Age Fotografie',
+                    // Signature defaults
+                    email_signature: '',
+                    signature_enabled: false,
+                    // Out of office defaults
+                    out_of_office_enabled: false,
+                    out_of_office_message: '',
+                    out_of_office_start_date: null,
+                    out_of_office_end_date: null
                 };
             }
         }
@@ -735,7 +781,15 @@ class DatabaseStorage {
                 smtp_user: process.env.SMTP_USER || '',
                 smtp_pass: process.env.SMTP_PASS || process.env.EMAIL_PASSWORD || '',
                 from_email: envFrom,
-                from_name: process.env.EMAIL_FROM_NAME || 'New Age Fotografie'
+                from_name: process.env.EMAIL_FROM_NAME || 'New Age Fotografie',
+                // Signature defaults
+                email_signature: '',
+                signature_enabled: false,
+                // Out of office defaults
+                out_of_office_enabled: false,
+                out_of_office_message: '',
+                out_of_office_start_date: null,
+                out_of_office_end_date: null
             };
         }
     }

@@ -24,14 +24,16 @@ const s3Client = new client_s3_1.S3Client({
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
     },
 });
-// Helper to build public B2 URL
+// Helper to build public B2 URL with proper URL encoding for spaces and special chars
 const buildB2Url = (key) => {
     const bucket = process.env.AWS_S3_BUCKET || '';
     const endpoint = process.env.AWS_S3_ENDPOINT || '';
+    // URL encode the key path, preserving slashes
+    const encodedKey = key.split('/').map(part => encodeURIComponent(part)).join('/');
     if (endpoint.includes('backblazeb2.com')) {
-        return `https://${bucket}.${endpoint.replace('https://', '').replace(/\/$/, '')}/${key}`;
+        return `https://${bucket}.${endpoint.replace('https://', '').replace(/\/$/, '')}/${encodedKey}`;
     }
-    return `${endpoint.replace(/\/$/, '')}/${bucket}/${key}`;
+    return `${endpoint.replace(/\/$/, '')}/${bucket}/${encodedKey}`;
 };
 // Debug route to test router is mounted
 router.get('/test', (req, res) => {
@@ -60,6 +62,61 @@ router.get('/serve/:filename', (req, res) => {
     catch (error) {
         console.error('Error serving file:', error);
         res.status(500).json({ error: 'Failed to serve file' });
+    }
+});
+// GET /api/files/thumbnail/:id - Generate and serve low-res thumbnail from B2
+router.get('/thumbnail/:id', async (req, res) => {
+    try {
+        const fileId = req.params.id;
+        // Fetch file from database
+        const [file] = await db_1.db.select().from(schema_1.digitalFiles).where((0, drizzle_orm_1.eq)(schema_1.digitalFiles.id, fileId));
+        if (!file) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+        const folderName = file.folderName || 'Manual Website Images';
+        const fileExt = path_1.default.extname(file.fileName).toLowerCase();
+        // Try to fetch thumbnail from B2
+        const thumbnailKey = `${folderName}/${fileId}_thumb.webp`;
+        const thumbnailUrl = buildB2Url(thumbnailKey);
+        try {
+            // Fetch thumbnail from B2
+            const response = await fetch(thumbnailUrl);
+            if (response.ok) {
+                const buffer = Buffer.from(await response.arrayBuffer());
+                res.setHeader('Content-Type', 'image/webp');
+                res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+                return res.send(buffer);
+            }
+        }
+        catch (error) {
+            console.log(`Thumbnail not found in B2 for ${fileId}, generating...`);
+        }
+        // If thumbnail doesn't exist, fetch original and generate low-res version
+        const originalKey = `${folderName}/${fileId}${fileExt}`;
+        const originalUrl = buildB2Url(originalKey);
+        try {
+            const response = await fetch(originalUrl);
+            if (!response.ok) {
+                return res.status(404).json({ error: 'Original file not found in B2' });
+            }
+            const originalBuffer = Buffer.from(await response.arrayBuffer());
+            // Generate low-res thumbnail (200x200)
+            const thumbnailBuffer = await (0, sharp_1.default)(originalBuffer)
+                .resize(200, 200, { fit: 'cover', position: 'center' })
+                .webp({ quality: 60 })
+                .toBuffer();
+            res.setHeader('Content-Type', 'image/webp');
+            res.setHeader('Cache-Control', 'public, max-age=86400');
+            res.send(thumbnailBuffer);
+        }
+        catch (error) {
+            console.error(`Failed to fetch/generate thumbnail for ${fileId}:`, error);
+            res.status(500).json({ error: 'Failed to generate thumbnail' });
+        }
+    }
+    catch (error) {
+        console.error('Error serving thumbnail:', error);
+        res.status(500).json({ error: 'Failed to serve thumbnail' });
     }
 });
 // GET /api/files - Retrieve digital files with filters
@@ -114,20 +171,22 @@ router.get('/', async (req, res) => {
             const fileExt = path_1.default.extname(file.file_name).toLowerCase();
             const imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
             const isImage = file.file_type === 'image' || imageExts.includes(fileExt);
-            // Check if thumbnail exists, otherwise fall back to original
-            const thumbnailFilename = `${file.id}_thumb.webp`;
-            const thumbnailPath = path_1.default.join(process.cwd(), 'uploads', thumbnailFilename);
-            const hasThumbnail = fs_1.default.existsSync(thumbnailPath);
+            // Build B2 URLs for thumbnails (assuming they were generated during upload)
+            const folderName = file.folder_name || 'Manual Website Images';
+            const thumbnailKey = `${folderName}/${file.id}_thumb.webp`;
+            const originalKey = `${folderName}/${file.id}${fileExt}`;
+            // Generate low-res thumbnail URL using B2 or proxy endpoint
+            let thumbnailUrl;
+            if (isImage) {
+                // Use thumbnail proxy endpoint that will fetch from B2 and resize on-the-fly
+                thumbnailUrl = `/api/files/thumbnail/${file.id}`;
+            }
             return {
                 id: file.id,
                 fileName: file.file_name,
                 fileSize: file.file_size,
                 mimeType: isImage ? 'image/' + fileExt.substring(1) : 'application/octet-stream',
-                thumbnailUrl: isImage
-                    ? (hasThumbnail
-                        ? `/api/files/serve/${thumbnailFilename}`
-                        : `/api/files/serve/${file.id}${fileExt}`)
-                    : undefined,
+                thumbnailUrl,
                 createdAt: file.created_at,
             };
         });

@@ -54,41 +54,41 @@ Returns: Filtered list of invoices with detailed information`,
             let paramIndex = 1;
             if (args.status && args.status !== "any") {
                 if (args.status === "overdue") {
-                    whereClauses.push(`status != 'paid' AND due_date < CURRENT_DATE`);
+                    whereClauses.push(`i.status != 'paid' AND i.due_date < CURRENT_DATE`);
                 }
                 else {
-                    whereClauses.push(`status = $${paramIndex}`);
+                    whereClauses.push(`i.status = $${paramIndex}`);
                     queryParams.push(args.status);
                     paramIndex++;
                 }
             }
             if (args.clientId) {
-                whereClauses.push(`client_id = $${paramIndex}`);
+                whereClauses.push(`i.client_id = $${paramIndex}`);
                 queryParams.push(args.clientId);
                 paramIndex++;
             }
             if (args.minAmount !== undefined) {
-                whereClauses.push(`total::numeric >= $${paramIndex}`);
+                whereClauses.push(`i.total::numeric >= $${paramIndex}`);
                 queryParams.push(args.minAmount);
                 paramIndex++;
             }
             if (args.maxAmount !== undefined) {
-                whereClauses.push(`total::numeric <= $${paramIndex}`);
+                whereClauses.push(`i.total::numeric <= $${paramIndex}`);
                 queryParams.push(args.maxAmount);
                 paramIndex++;
             }
             if (args.startDate) {
-                whereClauses.push(`issue_date >= $${paramIndex}`);
+                whereClauses.push(`i.issue_date >= $${paramIndex}`);
                 queryParams.push(args.startDate);
                 paramIndex++;
             }
             if (args.endDate) {
-                whereClauses.push(`issue_date <= $${paramIndex}`);
+                whereClauses.push(`i.issue_date <= $${paramIndex}`);
                 queryParams.push(args.endDate);
                 paramIndex++;
             }
             if (args.overdueDays !== undefined) {
-                whereClauses.push(`status != 'paid' AND due_date < CURRENT_DATE - INTERVAL '${args.overdueDays} days'`);
+                whereClauses.push(`i.status != 'paid' AND i.due_date < CURRENT_DATE - INTERVAL '${args.overdueDays} days'`);
             }
             const whereClause = whereClauses.length > 0
                 ? `WHERE ${whereClauses.join(' AND ')}`
@@ -128,14 +128,14 @@ Returns: Filtered list of invoices with detailed information`,
             const summaryQuery = `
         SELECT 
           COUNT(*) as total_count,
-          COUNT(*) FILTER (WHERE status = 'draft') as draft_count,
-          COUNT(*) FILTER (WHERE status = 'sent') as sent_count,
-          COUNT(*) FILTER (WHERE status = 'paid') as paid_count,
-          COUNT(*) FILTER (WHERE status != 'paid' AND due_date < CURRENT_DATE) as overdue_count,
-          SUM(total::numeric) as total_amount,
-          SUM(total::numeric) FILTER (WHERE status = 'paid') as paid_amount,
-          SUM(total::numeric) FILTER (WHERE status != 'paid') as outstanding_amount,
-          SUM(total::numeric) FILTER (WHERE status != 'paid' AND due_date < CURRENT_DATE) as overdue_amount
+          COUNT(*) FILTER (WHERE i.status = 'draft') as draft_count,
+          COUNT(*) FILTER (WHERE i.status = 'sent') as sent_count,
+          COUNT(*) FILTER (WHERE i.status = 'paid') as paid_count,
+          COUNT(*) FILTER (WHERE i.status != 'paid' AND i.due_date < CURRENT_DATE) as overdue_count,
+          SUM(i.total::numeric) as total_amount,
+          SUM(i.total::numeric) FILTER (WHERE i.status = 'paid') as paid_amount,
+          SUM(i.total::numeric) FILTER (WHERE i.status != 'paid') as outstanding_amount,
+          SUM(i.total::numeric) FILTER (WHERE i.status != 'paid' AND i.due_date < CURRENT_DATE) as overdue_amount
         FROM crm_invoices i
         ${whereClause}
       `;

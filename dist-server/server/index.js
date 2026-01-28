@@ -17,6 +17,7 @@ const auth_1 = __importDefault(require("./routes/auth"));
 // Google Calendar 2-way sync: OAuth routes and scheduler
 const googleAuth_1 = __importDefault(require("./routes/googleAuth"));
 const syncScheduler_1 = require("./services/syncScheduler");
+const calendarService_1 = require("./services/calendarService");
 // Agent V2: Modern ToolBus architecture
 const agent_v2_1 = __importDefault(require("./routes/agent-v2"));
 const agent_shadow_1 = __importDefault(require("./routes/agent-shadow"));
@@ -178,6 +179,30 @@ app.use((req, res, next) => {
             console.error('Route registration stack:', routeError.stack);
             // Continue without routes - at least serve health endpoints
         }
+        // Manual Google Calendar sync endpoint (per-user) - does FULL import of all events
+        // MUST be registered BEFORE serveStatic to avoid catch-all interference
+        app.post('/api/calendar/manual-sync', auth_2.requireAuth, async (req, res) => {
+            try {
+                const userId = req.user?.id;
+                if (!userId)
+                    return res.status(401).json({ error: 'Not authenticated' });
+                // Use full import function to get ALL events (past and future)
+                const results = await (0, calendarService_1.importGoogleCalendarEvents)(undefined, userId);
+                res.json({ success: true, ...results });
+            }
+            catch (e) {
+                console.error('Manual sync error:', e?.message || e);
+                res.status(500).json({ success: false, errors: [e?.message || 'Manual sync failed'] });
+            }
+        });
+        // Status endpoint for diagnostics
+        app.get('/api/status', (_req, res) => {
+            res.json({
+                status: 'ready',
+                uptime: process.uptime(),
+                message: 'Client database is accessible'
+            });
+        });
         // Setup Vite BEFORE starting the server
         console.log('🔧 Setting up Vite frontend...');
         let viteReady = false;
@@ -282,28 +307,6 @@ app.use((req, res, next) => {
         }, 10000);
         // Keep reference to prevent GC
         global.__healthzCheck = healthzCheck;
-        // Manual Google Calendar sync endpoint (per-user)
-        app.post('/api/calendar/manual-sync', auth_2.requireAuth, async (req, res) => {
-            try {
-                const userId = req.user?.id;
-                if (!userId)
-                    return res.status(401).json({ error: 'Not authenticated' });
-                const results = await (0, syncScheduler_1.triggerManualSync)(userId);
-                res.json(results);
-            }
-            catch (e) {
-                console.error('Manual sync error:', e?.message || e);
-                res.status(500).json({ success: false, errors: [e?.message || 'Manual sync failed'] });
-            }
-        });
-        // Status endpoint for diagnostics
-        app.get('/api/status', (_req, res) => {
-            res.json({
-                status: 'ready',
-                uptime: process.uptime(),
-                message: 'Client database is accessible'
-            });
-        });
         app.use((err, _req, res, _next) => {
             const status = err.status || err.statusCode || 500;
             const message = err.message || "Internal Server Error";

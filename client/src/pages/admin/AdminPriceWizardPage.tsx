@@ -341,7 +341,8 @@ const AdminPriceWizardPage: React.FC = () => {
       });
 
       if (response.ok) {
-        alert('Price activated successfully!');
+        const data = await response.json();
+        alert(`Price activated and added to your Price List!\n\nService: ${data.service_name}\nPrice: €${data.activated_price}\n\nYou can now use this price when creating invoices.`);
         if (selectedSession) fetchSessionDetails(selectedSession);
       }
     } catch (err) {

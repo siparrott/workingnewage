@@ -50,8 +50,7 @@ const insertKnowledgeBaseSchema = {
 const insertOpenaiAssistantSchema = { parse: (v) => v, safeParse: (v) => ({ success: true, data: v }) };
 // Drizzle table placeholders for routes not yet wired in this environment
 // These are typed as any to avoid compile errors when optional modules are absent
-const crmMessages = { id: 'crm_messages.id', createdAt: 'crm_messages.created_at', senderEmail: 'crm_messages.sender_email', subject: 'crm_messages.subject' };
-const crmLeads = { id: 'crm_leads.id' };
+// crmMessages is now properly imported from schema
 const knowledgeBase = { id: 'knowledge_base.id' };
 const openaiAssistants = { id: 'openai_assistants.id' };
 const z = { ZodError: class {
@@ -71,6 +70,7 @@ const price_wizard_1 = __importDefault(require("./routes/price-wizard"));
 // Simple in-memory status for last calendar import
 let lastCalendarImportStatus = {};
 const workflow_wizard_1 = __importDefault(require("./routes/workflow-wizard"));
+const setup_routes_1 = __importDefault(require("./setup-routes"));
 const questionnaires_1 = __importDefault(require("./routes/questionnaires"));
 const gallery_shop_1 = __importDefault(require("./routes/gallery-shop"));
 const files_1 = __importDefault(require("./routes/files"));
@@ -387,6 +387,24 @@ const authenticateUser = async (req, res, next) => {
         // If session exists, defer to original requireAuth for user resolution
         if (req.session && req.session.userId) {
             return (0, auth_1.requireAuth)(req, res, next);
+        }
+        // Check for JWT token in Authorization header (Bearer token)
+        const authHeader = req.headers['authorization'];
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+            try {
+                const jwt = await import('jsonwebtoken');
+                const secret = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'default-secret';
+                const decoded = jwt.default.verify(token, secret);
+                if (decoded && decoded.userId) {
+                    req.user = { id: decoded.userId, role: decoded.role || 'admin' };
+                    return next();
+                }
+            }
+            catch (jwtErr) {
+                // JWT verification failed, continue to other auth methods
+                console.warn('[auth] JWT verification failed:', jwtErr?.message);
+            }
         }
         // Legacy / headless token header fallback
         const token = req.headers['x-admin-token'] || '';
@@ -929,12 +947,19 @@ async function registerRoutes(app) {
     console.log('✅ /api/files router registered');
     // Questionnaire module (public + admin APIs)
     app.use(questionnaires_1.default);
+    // Scheduler module - Client self-booking system
+    const schedulerRouter = require('./routes/scheduler').default;
+    app.use('/api/schedulers', schedulerRouter);
+    console.log('✅ /api/schedulers router registered');
     // Onboarding + Website Analyzer (dev parity with production full-server.js)
     app.use('/api/onboarding', onboarding_1.default);
     // Price Wizard - AI-powered competitive pricing research
     app.use('/api/price-wizard', price_wizard_1.default);
     // Workflow Wizard - Automated email sequences and workflow management
     app.use('/api/workflow-wizard', workflow_wizard_1.default);
+    // Setup Wizard - SmartTog Hub onboarding integration
+    app.use('/api/setup', setup_routes_1.default);
+    console.log('✅ /api/setup routes registered');
     // Health check endpoint for deployment
     app.get("/api/health", (req, res) => {
         res.json({ status: "ok", timestamp: new Date().toISOString() });
@@ -2030,6 +2055,38 @@ Bitte versuchen Sie es später noch einmal.`;
             res.status(500).json({ error: 'Failed to delete lead' });
         }
     });
+    // High-value clients endpoint for reports dashboard
+    app.get("/api/reports/high-value-clients", authenticateUser, async (req, res) => {
+        try {
+            const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+            // Query to get clients with their total booking revenue and count
+            const query = `
+        SELECT 
+          c.id,
+          c.name,
+          COALESCE(SUM(CAST(i.total AS DECIMAL(10,2))), 0) as total_revenue,
+          COUNT(DISTINCT b.id) as booking_count
+        FROM crm_clients c
+        LEFT JOIN bookings b ON b.client_id = c.id
+        LEFT JOIN invoices i ON i.client_id = c.id AND i.status = 'paid'
+        GROUP BY c.id, c.name
+        HAVING COALESCE(SUM(CAST(i.total AS DECIMAL(10,2))), 0) > 0
+        ORDER BY total_revenue DESC
+        LIMIT $1
+      `;
+            const result = await db_1.db.execute(drizzle_orm_1.sql.raw(query), [limit]);
+            const clients = result.rows || [];
+            res.json(clients.map((row) => ({
+                name: row.name || 'Unknown Client',
+                revenue: parseFloat(row.total_revenue || 0),
+                bookings: parseInt(row.booking_count || 0)
+            })));
+        }
+        catch (error) {
+            console.error('Error fetching high-value clients:', error);
+            res.status(500).json({ error: 'Failed to fetch high-value clients', details: error instanceof Error ? error.message : 'Unknown error' });
+        }
+    });
     // Alias route for frontend compatibility (/api/leads/list)
     app.get("/api/leads/list", authenticateUser, async (req, res) => {
         try {
@@ -2066,6 +2123,26 @@ Bitte versuchen Sie es später noch einmal.`;
         catch (error) {
             console.error('Error fetching leads:', error);
             res.status(500).json({ error: 'Failed to fetch leads', rows: [], total: 0 });
+        }
+    });
+    // Bulk mark new leads as contacted
+    app.post("/api/leads/bulk/mark-new-contacted", authenticateUser, async (req, res) => {
+        try {
+            const result = await runSql(`
+        UPDATE crm_leads 
+        SET status = 'contacted', updated_at = NOW()
+        WHERE status = 'new'
+        RETURNING id
+      `, []);
+            res.json({
+                success: true,
+                message: `${result.length} leads marked as contacted`,
+                count: result.length
+            });
+        }
+        catch (error) {
+            console.error('Error bulk updating leads:', error);
+            res.status(500).json({ error: 'Failed to bulk update leads' });
         }
     });
     // Create new lead endpoint
@@ -2683,7 +2760,18 @@ Bitte versuchen Sie es später noch einmal.`;
     });
     app.get("/api/galleries/:slug", async (req, res) => {
         try {
-            const gallery = await storage_1.storage.getGalleryBySlug(req.params.slug);
+            const idOrSlug = req.params.slug;
+            // First try to find by slug
+            let gallery = await storage_1.storage.getGalleryBySlug(idOrSlug);
+            // If not found by slug, try finding by ID
+            if (!gallery) {
+                try {
+                    gallery = await storage_1.storage.getGallery(idOrSlug);
+                }
+                catch (e) {
+                    // ID lookup might fail if not a valid UUID, ignore
+                }
+            }
             if (!gallery) {
                 return res.status(404).json({ error: "Gallery not found" });
             }
@@ -3460,13 +3548,13 @@ Bitte versuchen Sie es später noch einmal.`;
     });
     app.post("/api/galleries", authenticateUser, async (req, res) => {
         try {
-            const { title, description, clientId, isPublic = true, isPasswordProtected = false, password, slug } = req.body;
+            const { title, description, clientId, isPublic = true, isPasswordProtected = false, password, slug, coverImage, coverPosition, coverScale, coverTemplate } = req.body;
             // Generate slug if not provided
             const gallerySlug = slug || title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').trim('-');
             const query = `
-        INSERT INTO galleries (title, description, client_id, is_public, is_password_protected, password, slug, created_by)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING id, title, slug, description, is_public, created_at
+        INSERT INTO galleries (title, description, client_id, is_public, is_password_protected, password, slug, cover_image, cover_position, cover_scale, cover_template, created_by)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        RETURNING id, title, slug, description, cover_image, cover_position, cover_scale, cover_template, is_public, created_at
       `;
             const result = await runSql(query, [
                 title,
@@ -3476,9 +3564,23 @@ Bitte versuchen Sie es später noch einmal.`;
                 isPasswordProtected,
                 password || null,
                 gallerySlug,
+                coverImage || null,
+                coverPosition ? JSON.stringify(coverPosition) : JSON.stringify({ x: 50, y: 50 }),
+                coverScale || 100,
+                coverTemplate ? JSON.stringify(coverTemplate) : null,
                 req.user?.id || null
             ]);
-            res.status(201).json(result[0]);
+            // Transform response for frontend
+            const gallery = result[0];
+            res.status(201).json({
+                ...gallery,
+                coverImage: gallery.cover_image,
+                coverPosition: gallery.cover_position || { x: 50, y: 50 },
+                coverScale: gallery.cover_scale || 100,
+                coverTemplate: gallery.cover_template || null,
+                isPublic: gallery.is_public,
+                createdAt: gallery.created_at
+            });
         }
         catch (error) {
             console.error('Error creating gallery:', error);
@@ -3491,14 +3593,23 @@ Bitte versuchen Sie es später noch einmal.`;
             const updates = [];
             const values = [];
             let paramIndex = 1;
-            const allowedFields = ['title', 'description', 'isPublic', 'isPasswordProtected', 'password', 'coverImage'];
+            const allowedFields = ['title', 'description', 'isPublic', 'isPasswordProtected', 'password', 'coverImage', 'coverPosition', 'coverScale', 'coverTemplate'];
             for (const [key, value] of Object.entries(req.body)) {
                 if (allowedFields.includes(key) && value !== undefined) {
                     const dbField = key === 'isPublic' ? 'is_public' :
                         key === 'isPasswordProtected' ? 'is_password_protected' :
-                            key === 'coverImage' ? 'cover_image' : key;
+                            key === 'coverImage' ? 'cover_image' :
+                                key === 'coverPosition' ? 'cover_position' :
+                                    key === 'coverScale' ? 'cover_scale' :
+                                        key === 'coverTemplate' ? 'cover_template' : key;
                     updates.push(`${dbField} = $${paramIndex}`);
-                    values.push(value);
+                    // For coverPosition and coverTemplate, ensure they're stored as JSON
+                    if (key === 'coverPosition' || key === 'coverTemplate') {
+                        values.push(JSON.stringify(value));
+                    }
+                    else {
+                        values.push(value);
+                    }
                     paramIndex++;
                 }
             }
@@ -3510,14 +3621,24 @@ Bitte versuchen Sie es später noch einmal.`;
         UPDATE galleries 
         SET ${updates.join(', ')}
         WHERE id = $${paramIndex}
-        RETURNING id, title, slug, description, is_public, updated_at
+        RETURNING id, title, slug, description, cover_image, cover_position, cover_scale, cover_template, is_public, updated_at
       `;
             values.push(galleryId);
             const result = await runSql(query, values);
             if (result.length === 0) {
                 return res.status(404).json({ error: "Gallery not found" });
             }
-            res.json(result[0]);
+            // Transform response for frontend
+            const gallery = result[0];
+            res.json({
+                ...gallery,
+                coverImage: gallery.cover_image,
+                coverPosition: gallery.cover_position || { x: 50, y: 50 },
+                coverScale: gallery.cover_scale || 100,
+                coverTemplate: gallery.cover_template || null,
+                isPublic: gallery.is_public,
+                updatedAt: gallery.updated_at
+            });
         }
         catch (error) {
             console.error('Error updating gallery:', error);
@@ -3565,7 +3686,27 @@ Bitte versuchen Sie es später noch einmal.`;
             if (result.length === 0) {
                 return res.status(404).json({ error: "Gallery not found" });
             }
-            res.json(result[0]);
+            // Transform snake_case to camelCase for frontend
+            const gallery = result[0];
+            const transformedGallery = {
+                ...gallery,
+                coverImage: gallery.cover_image,
+                coverPosition: gallery.cover_position || { x: 50, y: 50 },
+                coverScale: gallery.cover_scale || 100,
+                coverTemplate: gallery.cover_template || null,
+                isPublic: gallery.is_public,
+                isPasswordProtected: gallery.is_password_protected,
+                clientId: gallery.client_id,
+                createdBy: gallery.created_by,
+                sortOrder: gallery.sort_order,
+                createdAt: gallery.created_at,
+                updatedAt: gallery.updated_at,
+                clientName: gallery.client_name,
+                clientEmail: gallery.client_email,
+                imageCount: gallery.image_count,
+                downloadEnabled: gallery.download_enabled ?? true
+            };
+            res.json(transformedGallery);
         }
         catch (error) {
             console.error('Error fetching gallery:', error);
@@ -4079,10 +4220,203 @@ New Age Fotografie Team`;
             });
         }
     });
+    // ==================== INVOICE STRIPE PAYMENT ROUTES ====================
+    // Create Stripe Checkout Session for invoice payment
+    app.post("/api/invoices/:id/create-payment-session", async (req, res) => {
+        try {
+            if (!stripe || !stripeConfigured) {
+                return res.status(503).json({
+                    success: false,
+                    error: "Payment service not configured"
+                });
+            }
+            const invoiceId = req.params.id;
+            const invoice = await storage_1.storage.getCrmInvoice(invoiceId);
+            if (!invoice) {
+                return res.status(404).json({
+                    success: false,
+                    error: "Invoice not found"
+                });
+            }
+            // Check if already paid
+            if (invoice.status === 'paid') {
+                return res.status(400).json({
+                    success: false,
+                    error: "Invoice already paid"
+                });
+            }
+            // Get client details
+            const client = await storage_1.storage.getCrmClient(invoice.clientId);
+            const clientEmail = client?.email || 'customer@example.com';
+            const clientName = client ? `${client.firstName || ''} ${client.lastName || ''}`.trim() : 'Customer';
+            // Calculate amount (convert to cents for Stripe)
+            const paidAmount = parseFloat(invoice.paidAmount?.toString() || '0');
+            const totalAmount = parseFloat(invoice.total?.toString() || '0');
+            const balanceDue = totalAmount - paidAmount;
+            if (balanceDue <= 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: "No balance due on this invoice"
+                });
+            }
+            const amountInCents = Math.round(balanceDue * 100);
+            // Determine base URL for redirect
+            const baseUrl = process.env.BASE_URL || process.env.FRONTEND_URL || req.get('origin') || 'https://workingnewage-2eecd723a444.herokuapp.com';
+            // Create Stripe Checkout Session
+            const session = await stripe.checkout.sessions.create({
+                payment_method_types: ['card'],
+                customer_email: clientEmail,
+                line_items: [
+                    {
+                        price_data: {
+                            currency: (invoice.currency || 'EUR').toLowerCase(),
+                            product_data: {
+                                name: `Invoice ${invoice.invoiceNumber}`,
+                                description: `Payment for invoice ${invoice.invoiceNumber} - ${clientName}`,
+                            },
+                            unit_amount: amountInCents,
+                        },
+                        quantity: 1,
+                    },
+                ],
+                mode: 'payment',
+                success_url: `${baseUrl}/invoice/${invoiceId}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: `${baseUrl}/invoice/${invoiceId}?payment=cancelled`,
+                metadata: {
+                    invoiceId: invoiceId,
+                    invoiceNumber: invoice.invoiceNumber || '',
+                    clientId: invoice.clientId || '',
+                },
+            });
+            // Store the payment intent/session ID
+            await storage_1.storage.updateCrmInvoice(invoiceId, {
+                stripePaymentIntentId: session.id,
+                stripePaymentUrl: session.url,
+            });
+            res.json({
+                success: true,
+                sessionId: session.id,
+                url: session.url,
+            });
+        }
+        catch (error) {
+            console.error("Error creating payment session:", error);
+            res.status(500).json({
+                success: false,
+                error: "Failed to create payment session"
+            });
+        }
+    });
+    // Verify payment status and update invoice
+    app.get("/api/invoices/:id/payment-status", async (req, res) => {
+        try {
+            const invoiceId = req.params.id;
+            const sessionId = req.query.session_id;
+            if (!stripe || !stripeConfigured) {
+                return res.status(503).json({
+                    success: false,
+                    error: "Payment service not configured"
+                });
+            }
+            const invoice = await storage_1.storage.getCrmInvoice(invoiceId);
+            if (!invoice) {
+                return res.status(404).json({
+                    success: false,
+                    error: "Invoice not found"
+                });
+            }
+            // If session_id provided, check with Stripe
+            if (sessionId) {
+                const session = await stripe.checkout.sessions.retrieve(sessionId);
+                if (session.payment_status === 'paid') {
+                    // Update invoice status to paid
+                    const totalAmount = parseFloat(invoice.total?.toString() || '0');
+                    await storage_1.storage.updateCrmInvoice(invoiceId, {
+                        status: 'paid',
+                        paidAmount: totalAmount.toString(),
+                    });
+                    // Record payment
+                    await storage_1.storage.createCrmInvoicePayment({
+                        invoiceId: invoiceId,
+                        amount: totalAmount.toString(),
+                        paymentMethod: 'stripe',
+                        paymentReference: session.payment_intent,
+                        notes: `Stripe payment - Session: ${sessionId}`,
+                    });
+                    return res.json({
+                        success: true,
+                        status: 'paid',
+                        message: 'Payment confirmed',
+                    });
+                }
+            }
+            res.json({
+                success: true,
+                status: invoice.status,
+                paidAmount: invoice.paidAmount,
+            });
+        }
+        catch (error) {
+            console.error("Error checking payment status:", error);
+            res.status(500).json({
+                success: false,
+                error: "Failed to check payment status"
+            });
+        }
+    });
+    // Stripe webhook for invoice payments
+    app.post("/api/invoices/webhook", async (req, res) => {
+        if (!stripe || !stripeConfigured) {
+            return res.status(503).json({ error: "Payment service not configured" });
+        }
+        const sig = req.headers['stripe-signature'];
+        const webhookSecret = process.env.STRIPE_INVOICE_WEBHOOK_SECRET || process.env.STRIPE_WEBHOOK_SECRET;
+        if (!sig || !webhookSecret) {
+            console.warn('Missing Stripe signature or webhook secret for invoice payment');
+            return res.status(400).send('Missing signature');
+        }
+        let event;
+        try {
+            event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+        }
+        catch (err) {
+            console.error('Invoice webhook signature verification failed:', err.message);
+            return res.status(400).send(`Webhook Error: ${err.message}`);
+        }
+        // Handle checkout session completed
+        if (event.type === 'checkout.session.completed') {
+            const session = event.data.object;
+            const invoiceId = session.metadata?.invoiceId;
+            if (invoiceId && session.payment_status === 'paid') {
+                try {
+                    const invoice = await storage_1.storage.getCrmInvoice(invoiceId);
+                    if (invoice) {
+                        const totalAmount = parseFloat(invoice.total?.toString() || '0');
+                        await storage_1.storage.updateCrmInvoice(invoiceId, {
+                            status: 'paid',
+                            paidAmount: totalAmount.toString(),
+                        });
+                        await storage_1.storage.createCrmInvoicePayment({
+                            invoiceId: invoiceId,
+                            amount: totalAmount.toString(),
+                            paymentMethod: 'stripe',
+                            paymentReference: session.payment_intent,
+                            notes: `Stripe checkout completed - Session: ${session.id}`,
+                        });
+                        console.log(`✅ Invoice ${invoiceId} marked as paid via Stripe webhook`);
+                    }
+                }
+                catch (err) {
+                    console.error('Error processing invoice payment webhook:', err);
+                }
+            }
+        }
+        res.json({ received: true });
+    });
     // ==================== EMAIL ROUTES ====================
     app.post("/api/email/import", authenticateUser, async (req, res) => {
         try {
-            const { provider, smtpHost, smtpPort, username, password, useTLS } = req.body;
+            const { provider, smtpHost, smtpPort, username, password, useTLS, imapHost: providedImapHost } = req.body;
             // Basic validation
             if (!smtpHost || !smtpPort || !username || !password) {
                 return res.status(400).json({
@@ -4091,12 +4425,16 @@ New Age Fotografie Team`;
                 });
             }
             console.log(`Attempting to import emails from ${username} via ${smtpHost}:${smtpPort}`);
-            // Special handling for business email with EasyName IMAP settings
-            // If this looks like the studio's business address, prefer environment-configured mailbox credentials
-            if (username === (process.env.STUDIO_NOTIFY_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER) || username === process.env.BUSINESS_MAILBOX_USER) {
+            // Special handling for EasyName/business email
+            // Check for EasyName SMTP host or known business mailbox usernames
+            const isEasyNameHost = smtpHost.includes('easyname');
+            const isBusinessMailbox = username === '30840mail10' ||
+                username === (process.env.STUDIO_NOTIFY_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER) ||
+                username === process.env.BUSINESS_MAILBOX_USER;
+            if (isEasyNameHost || isBusinessMailbox) {
                 console.log('Using EasyName IMAP settings for business email');
-                const mailboxUser = process.env.BUSINESS_MAILBOX_USER || username;
-                const mailboxPass = process.env.EMAIL_PASSWORD || password;
+                const mailboxUser = username;
+                const mailboxPass = password;
                 const importedEmails = await importEmailsFromIMAP({
                     host: 'imap.easyname.com',
                     port: 993,
@@ -4220,8 +4558,18 @@ New Age Fotografie Team`;
         try {
             const unreadOnly = req.query.unread === 'true';
             const messages = await storage_1.storage.getCrmMessages();
+            // Filter to only show INBOUND messages (received emails)
+            // Sent emails (outbound) should only appear in the Sent folder
+            const inboundMessages = messages.filter(message => {
+                // Exclude outbound/sent messages from inbox
+                if (message.direction === 'outbound')
+                    return false;
+                if (message.status === 'sent' || message.status === 'demo_sent')
+                    return false;
+                return true;
+            });
             // Sort messages by creation date (newest first)
-            const sortedMessages = messages.sort((a, b) => {
+            const sortedMessages = inboundMessages.sort((a, b) => {
                 const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
                 const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
                 return dateB - dateA;
@@ -4231,7 +4579,6 @@ New Age Fotografie Team`;
                 res.json(unreadMessages);
             }
             else {
-                // Show all messages including sent ones for complete inbox view
                 res.json(sortedMessages);
             }
         }
@@ -4299,6 +4646,79 @@ New Age Fotografie Team`;
         catch (error) {
             console.error('Error fetching email settings:', error);
             res.status(500).json({ error: 'Failed to fetch email settings' });
+        }
+    });
+    // ==================== STUDIO LOCATION SETTINGS ====================
+    // Get studio location settings (for Golden Hour, Weather features)
+    app.get("/api/admin/studio-location", authenticateUser, async (req, res) => {
+        try {
+            // Get the first studio config (single-tenant for now)
+            const studios = await db_1.db.select().from(schema_1.studioConfigs).limit(1);
+            if (studios.length === 0) {
+                // Return Vienna defaults if no studio configured
+                return res.json({
+                    latitude: 48.2082,
+                    longitude: 16.3738,
+                    timezone: 'Europe/Vienna',
+                    city: 'Vienna',
+                    country: 'Austria',
+                    address: null
+                });
+            }
+            const studio = studios[0];
+            res.json({
+                latitude: studio.latitude ? parseFloat(studio.latitude) : 48.2082,
+                longitude: studio.longitude ? parseFloat(studio.longitude) : 16.3738,
+                timezone: studio.timezone || 'Europe/Vienna',
+                city: studio.city || 'Vienna',
+                country: studio.country || 'Austria',
+                address: studio.address || null
+            });
+        }
+        catch (error) {
+            console.error('Error fetching studio location:', error);
+            // Return defaults on error
+            res.json({
+                latitude: 48.2082,
+                longitude: 16.3738,
+                timezone: 'Europe/Vienna',
+                city: 'Vienna',
+                country: 'Austria',
+                address: null
+            });
+        }
+    });
+    // Update studio location settings
+    app.put("/api/admin/studio-location", authenticateUser, async (req, res) => {
+        try {
+            const { latitude, longitude, timezone, city, country, address } = req.body;
+            // Get existing studio or create new one
+            const studios = await db_1.db.select().from(schema_1.studioConfigs).limit(1);
+            if (studios.length === 0) {
+                return res.status(400).json({ error: 'No studio configuration found. Please create one first.' });
+            }
+            const studioId = studios[0].id;
+            // Update studio location fields
+            await db_1.db.update(schema_1.studioConfigs)
+                .set({
+                latitude: latitude?.toString() || null,
+                longitude: longitude?.toString() || null,
+                timezone: timezone || 'Europe/Vienna',
+                city: city || studios[0].city,
+                country: country || studios[0].country,
+                address: address || studios[0].address,
+                updatedAt: new Date()
+            })
+                .where((0, drizzle_orm_2.eq)(schema_1.studioConfigs.id, studioId));
+            res.json({
+                success: true,
+                message: 'Studio location updated successfully',
+                location: { latitude, longitude, timezone, city, country, address }
+            });
+        }
+        catch (error) {
+            console.error('Error updating studio location:', error);
+            res.status(500).json({ error: 'Failed to update studio location' });
         }
     });
     // Admin questionnaire responses endpoint
@@ -5560,12 +5980,61 @@ New Age Fotografie Team`;
                     message: "Missing required connection parameters"
                 });
             }
-            // For the business email, provide guidance
-            if (username === (process.env.STUDIO_NOTIFY_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER)) {
-                return res.json({
-                    success: true,
-                    message: "Business email configuration ready. Contact your hosting provider to set up SMTP authentication for your studio email to enable full inbox functionality."
-                });
+            // Check for EasyName/business email - actually test the IMAP connection
+            const isEasyNameHost = smtpHost.includes('easyname');
+            const isBusinessMailbox = username === '30840mail10' ||
+                username === (process.env.STUDIO_NOTIFY_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER) ||
+                username === process.env.BUSINESS_MAILBOX_USER;
+            if (isEasyNameHost || isBusinessMailbox) {
+                try {
+                    // Actually test IMAP connection
+                    const testResult = await new Promise((resolve) => {
+                        const imap = new Imap({
+                            user: username,
+                            password: password,
+                            host: 'imap.easyname.com',
+                            port: 993,
+                            tls: true,
+                            tlsOptions: { rejectUnauthorized: false },
+                            connTimeout: 10000,
+                            authTimeout: 10000
+                        });
+                        const timeout = setTimeout(() => {
+                            imap.end();
+                            resolve(false);
+                        }, 15000);
+                        imap.once('ready', () => {
+                            clearTimeout(timeout);
+                            imap.end();
+                            resolve(true);
+                        });
+                        imap.once('error', (err) => {
+                            clearTimeout(timeout);
+                            console.error('IMAP test error:', err.message);
+                            resolve(false);
+                        });
+                        imap.connect();
+                    });
+                    if (testResult) {
+                        return res.json({
+                            success: true,
+                            message: "Connection successful! IMAP credentials verified for EasyName mailbox."
+                        });
+                    }
+                    else {
+                        return res.json({
+                            success: false,
+                            message: "Connection failed. Please check your username and password."
+                        });
+                    }
+                }
+                catch (testError) {
+                    console.error('IMAP test exception:', testError);
+                    return res.json({
+                        success: false,
+                        message: "Connection test failed: " + testError.message
+                    });
+                }
             }
             // For other emails, provide standard configuration guidance
             const providerSettings = {
@@ -5605,8 +6074,8 @@ New Age Fotografie Team`;
     // ==================== EMAIL SETTINGS ====================
     app.post("/api/email/settings/save", authenticateUser, async (req, res) => {
         try {
-            const { smtpHost, smtpPort, smtpUser, smtpPass, fromEmail, fromName } = req.body;
-            console.log('Saving email settings:', { smtpHost, smtpPort, smtpUser, fromEmail, fromName });
+            const { smtpHost, smtpPort, smtpUser, smtpPass, fromEmail, fromName, emailSignature, signatureEnabled, outOfOfficeEnabled, outOfOfficeMessage, outOfOfficeStartDate, outOfOfficeEndDate } = req.body;
+            console.log('Saving email settings:', { smtpHost, smtpPort, smtpUser, fromEmail, fromName, signatureEnabled, outOfOfficeEnabled });
             // Save email settings to database
             const settingsData = {
                 smtp_host: smtpHost,
@@ -5615,6 +6084,14 @@ New Age Fotografie Team`;
                 smtp_pass: smtpPass, // In production, this should be encrypted
                 from_email: fromEmail,
                 from_name: fromName,
+                // Email Signature
+                email_signature: emailSignature || null,
+                signature_enabled: signatureEnabled || false,
+                // Out of Office
+                out_of_office_enabled: outOfOfficeEnabled || false,
+                out_of_office_message: outOfOfficeMessage || null,
+                out_of_office_start_date: outOfOfficeStartDate || null,
+                out_of_office_end_date: outOfOfficeEndDate || null,
                 updated_at: new Date().toISOString()
             };
             await storage_1.storage.saveEmailSettings(settingsData);
@@ -5641,6 +6118,29 @@ New Age Fotografie Team`;
             res.status(500).json({
                 success: false,
                 error: 'Failed to get email settings: ' + error.message
+            });
+        }
+    });
+    // ==================== SENT EMAILS ENDPOINT ====================
+    // Fetch all sent emails from crm_messages
+    app.get("/api/emails/sent", authenticateUser, async (req, res) => {
+        try {
+            // Get sent emails from crm_messages table
+            // These are emails that were sent OUT (direction='outbound' OR status='sent'/'demo_sent')
+            const sentEmails = await db_1.db
+                .select()
+                .from(schema_1.crmMessages)
+                .where((0, drizzle_orm_1.or)((0, drizzle_orm_2.eq)(schema_1.crmMessages.direction, 'outbound'), (0, drizzle_orm_2.eq)(schema_1.crmMessages.status, 'sent'), (0, drizzle_orm_2.eq)(schema_1.crmMessages.status, 'demo_sent'), (0, drizzle_orm_2.eq)(schema_1.crmMessages.messageType, 'sent')))
+                .orderBy((0, drizzle_orm_1.desc)(schema_1.crmMessages.createdAt))
+                .limit(100);
+            console.log(`Fetched ${sentEmails.length} sent emails from database`);
+            res.json(sentEmails);
+        }
+        catch (error) {
+            console.error('Error fetching sent emails:', error);
+            res.status(500).json({
+                error: 'Failed to fetch sent emails',
+                message: error instanceof Error ? error.message : 'Unknown error'
             });
         }
     });
@@ -5759,6 +6259,164 @@ New Age Fotografie Team`;
         }
     });
     // ==================== EMAIL MARKETING CAMPAIGNS ====================
+    // ==================== SMS & WHATSAPP (Brevo) ====================
+    // Send SMS via Brevo
+    app.post("/api/sms/send", authenticateUser, async (req, res) => {
+        try {
+            const { to, content, senderName, clientId } = req.body;
+            if (!to || !content) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Phone number (to) and content are required'
+                });
+            }
+            console.log('📱 SMS send request:', { to, content: content.substring(0, 50) + '...' });
+            const { BrevoService } = await import('./services/brevoService');
+            const result = await BrevoService.sendSms({
+                to,
+                content,
+                senderName: senderName || 'NewAge',
+                clientId,
+                autoLinkClient: true,
+            });
+            if (result.success) {
+                res.json({
+                    success: true,
+                    message: 'SMS sent successfully',
+                    messageId: result.messageId,
+                    clientId: result.clientId
+                });
+            }
+            else {
+                res.status(500).json({
+                    success: false,
+                    error: result.error || 'Failed to send SMS'
+                });
+            }
+        }
+        catch (error) {
+            console.error('SMS send error:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to send SMS: ' + error.message
+            });
+        }
+    });
+    // Send WhatsApp via Brevo
+    app.post("/api/whatsapp/send", authenticateUser, async (req, res) => {
+        try {
+            const { to, templateId, templateParams, clientId } = req.body;
+            if (!to || !templateId) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Phone number (to) and templateId are required'
+                });
+            }
+            console.log('💬 WhatsApp send request:', { to, templateId });
+            const { BrevoService } = await import('./services/brevoService');
+            const result = await BrevoService.sendWhatsApp({
+                to,
+                templateId,
+                templateParams: templateParams || [],
+                clientId,
+                autoLinkClient: true,
+            });
+            if (result.success) {
+                res.json({
+                    success: true,
+                    message: 'WhatsApp message sent successfully',
+                    messageId: result.messageId,
+                    clientId: result.clientId
+                });
+            }
+            else {
+                res.status(500).json({
+                    success: false,
+                    error: result.error || 'Failed to send WhatsApp message'
+                });
+            }
+        }
+        catch (error) {
+            console.error('WhatsApp send error:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to send WhatsApp: ' + error.message
+            });
+        }
+    });
+    // Get Brevo account info (credits, etc.)
+    app.get("/api/brevo/account", authenticateUser, async (req, res) => {
+        try {
+            const { BrevoService } = await import('./services/brevoService');
+            BrevoService.initialize();
+            const result = await BrevoService.getAccountInfo();
+            if (result.success) {
+                res.json({
+                    success: true,
+                    account: {
+                        email: result.email,
+                        credits: result.credits,
+                        plan: result.plan
+                    }
+                });
+            }
+            else {
+                res.status(500).json({
+                    success: false,
+                    error: result.error || 'Failed to get account info'
+                });
+            }
+        }
+        catch (error) {
+            console.error('Brevo account error:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to get Brevo account info: ' + error.message
+            });
+        }
+    });
+    // Test email via Brevo
+    app.post("/api/brevo/test-email", authenticateUser, async (req, res) => {
+        try {
+            const { to, subject, content } = req.body;
+            if (!to) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Recipient email (to) is required'
+                });
+            }
+            console.log('📧 Testing Brevo email to:', to);
+            const { BrevoService } = await import('./services/brevoService');
+            BrevoService.initialize();
+            const result = await BrevoService.sendEmail({
+                to,
+                subject: subject || 'Test Email from New Age Fotografie CRM',
+                textContent: content || 'This is a test email sent via Brevo to verify the email configuration is working correctly.',
+                htmlContent: content ? content.replace(/\n/g, '<br>') : '<p>This is a test email sent via Brevo to verify the email configuration is working correctly.</p>',
+                autoLinkClient: false,
+            });
+            if (result.success) {
+                res.json({
+                    success: true,
+                    message: 'Test email sent successfully via Brevo!',
+                    messageId: result.messageId
+                });
+            }
+            else {
+                res.status(500).json({
+                    success: false,
+                    error: result.error || 'Failed to send test email'
+                });
+            }
+        }
+        catch (error) {
+            console.error('Brevo test email error:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Failed to send test email: ' + error.message
+            });
+        }
+    });
     // Email campaigns endpoints
     app.get("/api/admin/email/campaigns", authenticateUser, async (req, res) => {
         try {
@@ -6746,77 +7404,111 @@ New Age Fotografie Team`;
         }
     });
     // ==================== AUTOMATIC EMAIL IMPORT SERVICE ====================
-    // Background email import service
+    // Background email import service with rate limiting and crash protection
     let emailImportInterval = null;
     let lastEmailImportTime = 0;
+    let isEmailImportRunning = false; // Mutex to prevent concurrent imports
+    const EMAIL_IMPORT_INTERVAL_MS = 2 * 60 * 60 * 1000; // 2 hours (safe interval)
+    const EMAIL_IMPORT_TIMEOUT_MS = 90 * 1000; // 90 second timeout per import
     const startBackgroundEmailImport = () => {
-        // DON'T START if in demo mode or no SMTP configured
+        // DON'T START if in demo mode
         if (process.env.DEMO_MODE === 'true') {
             console.log('📧 Email import disabled in demo mode');
             return;
         }
-        if (!process.env.EMAIL_PASSWORD && !process.env.SMTP_PASS) {
-            console.log('📧 Email import disabled - no SMTP credentials configured');
+        // Check for either EMAIL_PASSWORD or SMTP_PASS
+        const emailPassword = process.env.EMAIL_PASSWORD || process.env.SMTP_PASS;
+        if (!emailPassword) {
+            console.log('📧 Email import disabled - no email credentials configured');
             return;
         }
-        // Smart email import with duplicate prevention
+        // Clear any existing interval
         if (emailImportInterval) {
             clearInterval(emailImportInterval);
         }
+        // Initial import after 30 seconds (give server time to start)
+        setTimeout(() => {
+            if (!isEmailImportRunning) {
+                runSafeEmailImport();
+            }
+        }, 30 * 1000);
+        // Set up recurring import every 2 hours
         emailImportInterval = setInterval(async () => {
-            try {
-                // Get last import timestamp to only fetch new emails
-                const lastImportTime = await getLastEmailImportTime();
-                const importedEmails = await importEmailsFromIMAP({
-                    host: 'imap.easyname.com',
-                    port: 993,
-                    username: '30840mail10',
-                    password: process.env.EMAIL_PASSWORD || 'HoveBN41!',
-                    useTLS: true,
-                    since: lastImportTime // Only fetch emails since last import
-                });
-                // Store only genuinely new emails with advanced duplicate prevention
-                let newEmailCount = 0;
-                for (const email of importedEmails) {
-                    // Advanced duplicate check using multiple criteria
-                    const isDuplicate = await checkEmailExists(email);
-                    if (!isDuplicate) {
-                        try {
-                            await storage_1.storage.createCrmMessage({
-                                senderName: email.fromName,
-                                senderEmail: email.from,
-                                subject: email.subject,
-                                content: email.body,
-                                status: email.isRead ? 'read' : 'unread'
-                            });
-                            newEmailCount++;
-                        }
-                        catch (error) {
-                            // Skip email if database constraint violation (duplicate)
-                            if (!error.message.includes('unique') && !error.message.includes('duplicate')) {
-                                console.error('Failed to save email:', error);
-                            }
+            await runSafeEmailImport();
+        }, EMAIL_IMPORT_INTERVAL_MS);
+        console.log('✅ Background email import service started (every 2 hours)');
+    };
+    // Safe email import with mutex, timeout, and error handling
+    const runSafeEmailImport = async () => {
+        // Mutex check - skip if already running
+        if (isEmailImportRunning) {
+            console.log('📧 Email import already in progress, skipping...');
+            return;
+        }
+        isEmailImportRunning = true;
+        const importStartTime = Date.now();
+        try {
+            console.log('📧 Starting scheduled email import...');
+            // Set a timeout for the entire import operation
+            const importPromise = importEmailsFromIMAP({
+                host: 'imap.easyname.com',
+                port: 993,
+                username: '30840mail10',
+                password: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || '',
+                useTLS: true
+            });
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Email import timeout')), EMAIL_IMPORT_TIMEOUT_MS);
+            });
+            const importedEmails = await Promise.race([importPromise, timeoutPromise]);
+            // Store only genuinely new emails with duplicate prevention
+            let newEmailCount = 0;
+            for (const email of importedEmails) {
+                const isDuplicate = await checkEmailExists(email);
+                if (!isDuplicate) {
+                    try {
+                        await storage_1.storage.createCrmMessage({
+                            senderName: email.fromName,
+                            senderEmail: email.from,
+                            subject: email.subject,
+                            content: email.body,
+                            status: email.isRead ? 'read' : 'unread'
+                        });
+                        newEmailCount++;
+                    }
+                    catch (error) {
+                        // Skip silently on duplicate constraint violations
+                        if (!error.message?.includes('unique') && !error.message?.includes('duplicate')) {
+                            console.error('📧 Failed to save email:', error.message);
                         }
                     }
                 }
-                if (newEmailCount > 0) {
-                    lastEmailImportTime = Date.now();
-                    await updateLastEmailImportTime(lastEmailImportTime);
-                }
             }
-            catch (error) {
-                // Background email import failed: error
+            const duration = ((Date.now() - importStartTime) / 1000).toFixed(1);
+            if (newEmailCount > 0) {
+                lastEmailImportTime = Date.now();
+                console.log(`📧 Email import complete: ${newEmailCount} new emails imported in ${duration}s`);
             }
-        }, 30 * 60 * 1000); // Run every 30 minutes (reduced from 2 min to prevent server overload)
-        console.log('✅ Background email import service started (every 30 minutes)');
+            else {
+                console.log(`📧 Email import complete: no new emails (checked ${importedEmails.length} emails in ${duration}s)`);
+            }
+        }
+        catch (error) {
+            const duration = ((Date.now() - importStartTime) / 1000).toFixed(1);
+            console.error(`📧 Email import failed after ${duration}s:`, error.message);
+            // Don't throw - let the server continue running
+        }
+        finally {
+            isEmailImportRunning = false;
+        }
     };
     // Helper functions for smart email import
     async function getLastEmailImportTime() {
         try {
             const result = await db_1.db
-                .select({ createdAt: crmMessages.createdAt })
-                .from(crmMessages)
-                .orderBy(crmMessages.createdAt)
+                .select({ createdAt: schema_1.crmMessages.createdAt })
+                .from(schema_1.crmMessages)
+                .orderBy(schema_1.crmMessages.createdAt)
                 .limit(1);
             // Return date 1 hour ago to catch any recent emails we might have missed
             const lastTime = result[0]?.createdAt;
@@ -6840,9 +7532,9 @@ New Age Fotografie Team`;
         try {
             const { and } = await import('drizzle-orm');
             const existing = await db_1.db
-                .select({ id: crmMessages.id })
-                .from(crmMessages)
-                .where(and((0, drizzle_orm_2.eq)(crmMessages.senderEmail, email.from), (0, drizzle_orm_2.eq)(crmMessages.subject, email.subject)))
+                .select({ id: schema_1.crmMessages.id })
+                .from(schema_1.crmMessages)
+                .where(and((0, drizzle_orm_2.eq)(schema_1.crmMessages.senderEmail, email.from), (0, drizzle_orm_2.eq)(schema_1.crmMessages.subject, email.subject)))
                 .limit(1);
             return existing.length > 0;
         }
@@ -6851,14 +7543,21 @@ New Age Fotografie Team`;
             return false;
         }
     }
-    // Disabled background email import to prevent server overload
-    // startBackgroundEmailImport();
+    // Enable background email import with safe rate limiting
+    startBackgroundEmailImport();
     // Endpoint to get email import status
     app.get("/api/email/import-status", authenticateUser, async (req, res) => {
+        const now = Date.now();
+        const nextImportIn = lastEmailImportTime
+            ? Math.max(0, EMAIL_IMPORT_INTERVAL_MS - (now - lastEmailImportTime))
+            : EMAIL_IMPORT_INTERVAL_MS;
         res.json({
             isRunning: emailImportInterval !== null,
-            lastImportTime: lastEmailImportTime,
-            nextImportIn: lastEmailImportTime ? (5 * 60 * 1000) - (Date.now() - lastEmailImportTime) : 0
+            isCurrentlyImporting: isEmailImportRunning,
+            lastImportTime: lastEmailImportTime ? new Date(lastEmailImportTime).toISOString() : null,
+            nextImportIn: nextImportIn,
+            nextImportInMinutes: Math.round(nextImportIn / 60000),
+            intervalHours: EMAIL_IMPORT_INTERVAL_MS / (60 * 60 * 1000)
         });
     });
     // ==================== HEALTH CHECK ====================
@@ -7076,19 +7775,22 @@ New Age Fotografie CRM System
                 },
             }));
             // Helper to build public URL (supports Backblaze B2 S3 & download endpoints)
+            // Properly URL encodes spaces and special characters in the path
             const buildPublicUrl = (key) => {
                 const bucket = process.env.AWS_S3_BUCKET || '';
                 const endpoint = process.env.AWS_S3_ENDPOINT || '';
+                // URL encode each path segment, preserving slashes
+                const encodedKey = key.split('/').map(part => encodeURIComponent(part)).join('/');
                 if (endpoint.includes('backblazeb2.com')) {
-                    return `https://${bucket}.${endpoint.replace('https://', '').replace(/\/$/, '')}/${key}`;
+                    return `https://${bucket}.${endpoint.replace('https://', '').replace(/\/$/, '')}/${encodedKey}`;
                 }
                 if (endpoint) {
                     if (endpoint.includes('/file/')) {
-                        return `${endpoint.replace(/\/$/, '')}/${key}`;
+                        return `${endpoint.replace(/\/$/, '')}/${encodedKey}`;
                     }
-                    return `${endpoint.replace(/\/$/, '')}/${bucket}/${key}`;
+                    return `${endpoint.replace(/\/$/, '')}/${bucket}/${encodedKey}`;
                 }
-                return `https://${bucket}.s3.${process.env.AWS_REGION || 'eu-central-1'}.amazonaws.com/${key}`;
+                return `https://${bucket}.s3.${process.env.AWS_REGION || 'eu-central-1'}.amazonaws.com/${encodedKey}`;
             };
             // Upload thumbnail if created
             let thumbUrl = null;
@@ -7161,7 +7863,25 @@ New Age Fotografie CRM System
     // ==================== VOUCHER ROUTES ====================
     app.get("/api/vouchers/products", async (req, res) => {
         try {
+            // Ensure no caching to always get fresh product data
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
             const language = req.query.language || 'de';
+            // Helper to properly encode URLs with spaces in path segments
+            const encodeImageUrl = (url) => {
+                if (!url)
+                    return null;
+                try {
+                    const urlObj = new URL(url);
+                    // Encode each path segment individually to handle spaces
+                    urlObj.pathname = urlObj.pathname.split('/').map(seg => encodeURIComponent(decodeURIComponent(seg))).join('/');
+                    return urlObj.toString();
+                }
+                catch {
+                    return url;
+                }
+            };
             const toCamel = (p) => ({
                 id: p.id,
                 name: language === 'en' ? translateVoucherToEnglish(p.name) : p.name,
@@ -7175,9 +7895,9 @@ New Age Fotografie CRM System
                 validityPeriod: p.validityPeriod ?? p.validity_period,
                 redemptionInstructions: p.redemptionInstructions ?? p.redemption_instructions,
                 termsAndConditions: (p.termsAndConditions ?? p.terms_and_conditions) ? (language === 'en' ? translateVoucherToEnglish(p.termsAndConditions ?? p.terms_and_conditions) : (p.termsAndConditions ?? p.terms_and_conditions)) : null,
-                imageUrl: p.imageUrl ?? p.image_url,
-                thumbnailUrl: p.thumbnailUrl ?? p.thumbnail_url,
-                promoImageUrl: p.promoImageUrl ?? p.promo_image_url,
+                imageUrl: encodeImageUrl(p.imageUrl ?? p.image_url),
+                thumbnailUrl: encodeImageUrl(p.thumbnailUrl ?? p.thumbnail_url),
+                promoImageUrl: encodeImageUrl(p.promoImageUrl ?? p.promo_image_url),
                 displayOrder: p.displayOrder ?? p.display_order,
                 featured: p.featured,
                 badge: p.badge,
@@ -7203,20 +7923,54 @@ New Age Fotografie CRM System
     app.get("/api/vouchers/products/:id", async (req, res) => {
         try {
             const idOrSlug = req.params.id;
-            let product = await neonDb.getVoucherProduct(idOrSlug);
+            console.log('[VOUCHER] Fetching product by id/slug:', idOrSlug);
+            // UUID regex pattern to validate before querying by ID
+            const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            let product = null;
+            // Only try ID lookup if it looks like a valid UUID
+            if (uuidPattern.test(idOrSlug)) {
+                try {
+                    product = await neonDb.getVoucherProduct(idOrSlug);
+                    console.log('[VOUCHER] Direct ID lookup result:', product ? 'found' : 'not found');
+                }
+                catch (idError) {
+                    console.log('[VOUCHER] ID lookup failed, will try slug:', idError);
+                }
+            }
+            else {
+                console.log('[VOUCHER] Input is not a UUID, skipping ID lookup');
+            }
             if (!product) {
                 // Fallback: attempt slug lookup
                 try {
+                    console.log('[VOUCHER] Attempting slug fallback for:', idOrSlug);
                     const all = await neonDb.getVoucherProducts();
+                    console.log('[VOUCHER] Got', all.length, 'products for slug search');
                     product = all.find((p) => p.slug === idOrSlug);
+                    console.log('[VOUCHER] Slug lookup result:', product ? 'found' : 'not found');
                 }
                 catch (e) {
                     console.warn('[VOUCHER] Slug fallback failed:', e);
                 }
             }
             if (!product) {
+                console.log('[VOUCHER] Product not found for:', idOrSlug);
                 return res.status(404).json({ error: "Voucher product not found" });
             }
+            // Helper to properly encode URLs with spaces in path segments
+            const encodeImageUrl = (url) => {
+                if (!url)
+                    return null;
+                try {
+                    const urlObj = new URL(url);
+                    // Encode each path segment individually to handle spaces
+                    urlObj.pathname = urlObj.pathname.split('/').map(seg => encodeURIComponent(decodeURIComponent(seg))).join('/');
+                    return urlObj.toString();
+                }
+                catch {
+                    return url;
+                }
+            };
             const p = product;
             const transformedProduct = {
                 id: p.id,
@@ -7231,9 +7985,9 @@ New Age Fotografie CRM System
                 validityPeriod: p.validityPeriod ?? p.validity_period,
                 redemptionInstructions: p.redemptionInstructions ?? p.redemption_instructions,
                 termsAndConditions: p.termsAndConditions ?? p.terms_and_conditions,
-                imageUrl: p.imageUrl ?? p.image_url,
-                thumbnailUrl: p.thumbnailUrl ?? p.thumbnail_url,
-                promoImageUrl: p.promoImageUrl ?? p.promo_image_url,
+                imageUrl: encodeImageUrl(p.imageUrl ?? p.image_url),
+                thumbnailUrl: encodeImageUrl(p.thumbnailUrl ?? p.thumbnail_url),
+                promoImageUrl: encodeImageUrl(p.promoImageUrl ?? p.promo_image_url),
                 displayOrder: p.displayOrder ?? p.display_order,
                 featured: p.featured,
                 badge: p.badge,
@@ -7250,6 +8004,7 @@ New Age Fotografie CRM System
         }
         catch (error) {
             console.error("Error fetching voucher product:", error);
+            console.error("[VOUCHER] Full error stack:", error.stack);
             res.status(500).json({ error: "Internal server error" });
         }
     });
@@ -7444,6 +8199,192 @@ New Age Fotografie CRM System
             });
         }
     });
+    // ===========================
+    // Portfolio Images API Routes
+    // ===========================
+    // Get all portfolio images (public, filterable by category)
+    app.get("/api/portfolio/images", async (req, res) => {
+        try {
+            const category = req.query.category;
+            let query = `
+        SELECT id, category, url, alt, title, description, sort_order, is_active, created_at, updated_at
+        FROM portfolio_images
+        WHERE is_active = true
+      `;
+            const params = [];
+            if (category) {
+                query += ` AND category = $1`;
+                params.push(category);
+            }
+            query += ` ORDER BY category, sort_order ASC, created_at DESC`;
+            const images = await runSql(query, params);
+            res.set('Cache-Control', 'no-store');
+            res.json(images);
+        }
+        catch (error) {
+            console.error("Error fetching portfolio images:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    });
+    // Get single portfolio image
+    app.get("/api/portfolio/images/:id", authenticateUser, async (req, res) => {
+        try {
+            const { id } = req.params;
+            const result = await runSql(`
+        SELECT id, category, url, alt, title, description, sort_order, is_active, created_at, updated_at
+        FROM portfolio_images
+        WHERE id = $1
+      `, [id]);
+            if (result.length === 0) {
+                return res.status(404).json({ error: "Image not found" });
+            }
+            res.json(result[0]);
+        }
+        catch (error) {
+            console.error("Error fetching portfolio image:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    });
+    // Create portfolio image (admin only)
+    app.post("/api/portfolio/images", authenticateUser, async (req, res) => {
+        try {
+            const { category, url, alt, title, description, sortOrder, isActive } = req.body;
+            if (!category || !url) {
+                return res.status(400).json({ error: "Category and URL are required" });
+            }
+            const result = await runSql(`
+        INSERT INTO portfolio_images (category, url, alt, title, description, sort_order, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING id, category, url, alt, title, description, sort_order, is_active, created_at, updated_at
+      `, [category, url, alt || null, title || null, description || null, sortOrder || 0, isActive !== false]);
+            console.log(`✅ Created portfolio image: ${result[0].id}`);
+            res.json(result[0]);
+        }
+        catch (error) {
+            console.error("Error creating portfolio image:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    });
+    // Update portfolio image (admin only)
+    app.put("/api/portfolio/images/:id", authenticateUser, async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { category, url, alt, title, description, sortOrder, isActive } = req.body;
+            const result = await runSql(`
+        UPDATE portfolio_images
+        SET 
+          category = COALESCE($2, category),
+          url = COALESCE($3, url),
+          alt = COALESCE($4, alt),
+          title = COALESCE($5, title),
+          description = COALESCE($6, description),
+          sort_order = COALESCE($7, sort_order),
+          is_active = COALESCE($8, is_active),
+          updated_at = NOW()
+        WHERE id = $1
+        RETURNING id, category, url, alt, title, description, sort_order, is_active, created_at, updated_at
+      `, [id, category, url, alt, title, description, sortOrder, isActive]);
+            if (result.length === 0) {
+                return res.status(404).json({ error: "Image not found" });
+            }
+            console.log(`✅ Updated portfolio image: ${id}`);
+            res.json(result[0]);
+        }
+        catch (error) {
+            console.error("Error updating portfolio image:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    });
+    // Delete portfolio image (admin only)
+    app.delete("/api/portfolio/images/:id", authenticateUser, async (req, res) => {
+        try {
+            const { id } = req.params;
+            const result = await runSql(`
+        DELETE FROM portfolio_images
+        WHERE id = $1
+        RETURNING id
+      `, [id]);
+            if (result.length === 0) {
+                return res.status(404).json({ error: "Image not found" });
+            }
+            console.log(`✅ Deleted portfolio image: ${id}`);
+            res.json({ success: true, message: "Image deleted successfully" });
+        }
+        catch (error) {
+            console.error("Error deleting portfolio image:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    });
+    // Upload portfolio image to Backblaze B2 (admin only)
+    app.post("/api/portfolio/images/upload", authenticateUser, upload.single('image'), async (req, res) => {
+        try {
+            console.log('[PORTFOLIO IMAGE UPLOAD] Request received');
+            console.log('[PORTFOLIO IMAGE UPLOAD] File:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'NO FILE');
+            console.log('[PORTFOLIO IMAGE UPLOAD] Category:', req.body.category);
+            if (!req.file) {
+                return res.status(400).json({ error: "No file uploaded", message: "No file was provided in the upload request" });
+            }
+            const { category } = req.body;
+            if (!category) {
+                return res.status(400).json({ error: "Category is required", message: "Please specify a category for this image" });
+            }
+            const { bucket, endpoint, isConfigured } = (0, s3_storage_1.getS3Config)();
+            if (!isConfigured) {
+                console.error('❌ S3/B2 credentials or bucket not configured');
+                return res.status(503).json({
+                    error: "Storage service not configured",
+                    message: "Storage service not configured. Please set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_BUCKET."
+                });
+            }
+            console.log('[PORTFOLIO IMAGE UPLOAD] Optimizing image...');
+            const optimizedBuffer = await (0, sharp_1.default)(req.file.buffer)
+                .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
+                .jpeg({ quality: 85, progressive: true })
+                .toBuffer();
+            const timestamp = Date.now();
+            const randomString = Math.random().toString(36).substring(7);
+            const filename = `portfolio/${category}-${timestamp}-${randomString}.jpg`;
+            console.log('[PORTFOLIO IMAGE UPLOAD] Uploading to B2:', filename);
+            const uploadCommand = new client_s3_1.PutObjectCommand({
+                Bucket: bucket,
+                Key: filename,
+                Body: optimizedBuffer,
+                ContentType: 'image/jpeg',
+                CacheControl: 'public, max-age=31536000',
+            });
+            await (0, s3_storage_1.getS3Client)().send(uploadCommand);
+            const publicUrl = (0, s3_storage_1.buildPublicUrl)(bucket, endpoint, filename);
+            console.log('[PORTFOLIO IMAGE UPLOAD] Public URL:', publicUrl);
+            console.log('[PORTFOLIO IMAGE UPLOAD] Saving to database...');
+            const result = await runSql(`
+        INSERT INTO portfolio_images (category, url, alt, title, sort_order, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id, category, url, alt, title, description, sort_order, is_active, created_at, updated_at
+      `, [
+                category,
+                publicUrl,
+                req.body.alt || `Portfolio image for ${category}`,
+                req.body.title || category,
+                req.body.sortOrder || 0,
+                true
+            ]);
+            console.log(`✅ Uploaded and saved portfolio image: ${result[0].id}`);
+            console.log(`📸 Image URL: ${publicUrl}`);
+            res.json({
+                success: true,
+                image: result[0],
+                message: "Image uploaded successfully"
+            });
+        }
+        catch (error) {
+            console.error("[PORTFOLIO IMAGE UPLOAD] ❌ Error:", error);
+            console.error("[PORTFOLIO IMAGE UPLOAD] Error stack:", error.stack);
+            res.status(500).json({
+                error: "Failed to upload image",
+                message: error.message || "An unknown error occurred during upload"
+            });
+        }
+    });
     // Public upload endpoint for voucher custom photos (returns URL only; no DB write)
     app.post("/api/vouchers/upload-photo", upload.single('image'), async (req, res) => {
         try {
@@ -7526,7 +8467,81 @@ New Age Fotografie CRM System
             if (event?.type === 'checkout.session.completed') {
                 const session = event.data?.object;
                 console.log('[WEBHOOK] checkout.session.completed', session?.id);
-                // You could create a voucher sale here using session.metadata
+                // Extract metadata from the Stripe session
+                const metadata = session?.metadata || {};
+                const isPaid = session?.payment_status === 'paid';
+                if (isPaid) {
+                    // Extract coupon code from metadata (key is voucher_used)
+                    const appliedCouponCode = metadata.voucher_used && metadata.voucher_used !== 'none' ? metadata.voucher_used : null;
+                    // Extract billing address from customer_details
+                    const customerAddress = session.customer_details?.address || {};
+                    const billingAddress = customerAddress.line1 || '';
+                    const billingCity = customerAddress.city || '';
+                    const billingZip = customerAddress.postal_code || '';
+                    const billingCountry = customerAddress.country || '';
+                    // Create voucher sale record from Stripe session
+                    const voucherSale = {
+                        stripe_session_id: session.id,
+                        stripe_payment_intent_id: session.payment_intent,
+                        product_id: metadata.product_id || metadata.sku || null,
+                        purchaser_name: metadata.purchaser_name || session.customer_details?.name || 'Unknown',
+                        purchaser_email: metadata.purchaser_email || session.customer_email || session.customer_details?.email || '',
+                        purchaser_phone: session.customer_details?.phone || '',
+                        recipient_name: metadata.recipient_name || '',
+                        recipient_email: metadata.recipient_email || '',
+                        gift_message: metadata.gift_message || metadata.message || '',
+                        custom_image: metadata.custom_image || null,
+                        design_image: metadata.design_image || null,
+                        voucher_code: metadata.voucher_code || `VOUCHER-${session.id.substring(0, 12).toUpperCase()}`,
+                        original_amount: session.amount_total ? (session.amount_total / 100).toString() : '0',
+                        discount_amount: metadata.discount_cents ? (parseFloat(metadata.discount_cents) / 100).toString() : metadata.discount_amount || '0',
+                        final_amount: session.amount_total ? (session.amount_total / 100).toString() : '0',
+                        currency: session.currency?.toUpperCase() || 'EUR',
+                        coupon_code: appliedCouponCode,
+                        payment_intent_id: session.payment_intent,
+                        payment_status: 'paid',
+                        payment_method: metadata.payment_method || 'stripe_card',
+                        billing_address: billingAddress,
+                        billing_city: billingCity,
+                        billing_zip: billingZip,
+                        billing_country: billingCountry,
+                        is_redeemed: false,
+                        valid_from: new Date(),
+                        valid_until: metadata.valid_until ? new Date(metadata.valid_until) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year default
+                    };
+                    try {
+                        const createdSale = await storage_1.storage.createVoucherSale(voucherSale);
+                        console.log('[WEBHOOK] ✅ Voucher sale created:', createdSale.id, 'Code:', voucherSale.voucher_code);
+                        // Try to get card details from payment intent
+                        if (session.payment_intent) {
+                            try {
+                                const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+                                if (stripeSecretKey) {
+                                    const StripeLib = (await import('stripe')).default;
+                                    const stripe = new StripeLib(stripeSecretKey, { apiVersion: '2025-08-27.basil' });
+                                    const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent, {
+                                        expand: ['payment_method']
+                                    });
+                                    const pm = paymentIntent.payment_method;
+                                    if (pm && typeof pm === 'object' && 'card' in pm) {
+                                        const card = pm.card;
+                                        if (card) {
+                                            await runSql(`UPDATE voucher_sales SET card_brand = $1, card_last4 = $2 WHERE id = $3`, [card.brand || '', card.last4 || '', createdSale.id]);
+                                            console.log('[WEBHOOK] ✅ Card details saved:', card.brand, '****' + card.last4);
+                                        }
+                                    }
+                                }
+                            }
+                            catch (cardErr) {
+                                console.log('[WEBHOOK] Could not fetch card details:', cardErr.message);
+                            }
+                        }
+                    }
+                    catch (saleError) {
+                        console.error('[WEBHOOK] ⚠️ Failed to create voucher sale:', saleError.message);
+                        // Don't fail the webhook - Stripe expects 200 OK
+                    }
+                }
             }
             else {
                 console.log('[WEBHOOK] Unhandled event type:', event?.type);
@@ -7828,6 +8843,20 @@ New Age Fotografie CRM System
             if (!product) {
                 return res.status(404).json({ error: 'Voucher product not found' });
             }
+            // Helper to properly encode URLs with spaces in path segments
+            const encodeImageUrl = (url) => {
+                if (!url)
+                    return null;
+                try {
+                    const urlObj = new URL(url);
+                    // Encode each path segment individually to handle spaces
+                    urlObj.pathname = urlObj.pathname.split('/').map(seg => encodeURIComponent(decodeURIComponent(seg))).join('/');
+                    return urlObj.toString();
+                }
+                catch {
+                    return url;
+                }
+            };
             const p = product;
             return res.json({
                 id: p.id,
@@ -7842,9 +8871,9 @@ New Age Fotografie CRM System
                 validityPeriod: p.validityPeriod ?? p.validity_period,
                 redemptionInstructions: p.redemptionInstructions ?? p.redemption_instructions,
                 termsAndConditions: p.termsAndConditions ?? p.terms_and_conditions,
-                imageUrl: p.imageUrl ?? p.image_url,
-                thumbnailUrl: p.thumbnailUrl ?? p.thumbnail_url,
-                promoImageUrl: p.promoImageUrl ?? p.promo_image_url,
+                imageUrl: encodeImageUrl(p.imageUrl ?? p.image_url),
+                thumbnailUrl: encodeImageUrl(p.thumbnailUrl ?? p.thumbnail_url),
+                promoImageUrl: encodeImageUrl(p.promoImageUrl ?? p.promo_image_url),
                 displayOrder: p.displayOrder ?? p.display_order,
                 featured: p.featured,
                 badge: p.badge,
@@ -8072,6 +9101,72 @@ New Age Fotografie CRM System
             res.status(500).json({ error: 'Internal server error' });
         }
     });
+    // ====== FIX VOUCHER PRODUCT IMAGE URLS (encode spaces) ======
+    app.post("/api/admin/vouchers/fix-image-urls", authenticateUser, async (req, res) => {
+        try {
+            console.log('[FIX URLS] Starting URL fix for voucher products...');
+            const products = await neonDb.getVoucherProducts();
+            let fixed = 0;
+            let skipped = 0;
+            const details = [];
+            for (const product of products) {
+                const oldImageUrl = product.imageUrl;
+                const oldThumbnailUrl = product.thumbnailUrl;
+                // Helper to fix URL encoding - replace all spaces with %20
+                const fixUrl = (url) => {
+                    if (!url)
+                        return null;
+                    // Simple and reliable: just replace spaces with %20
+                    if (url.includes(' ')) {
+                        const fixed = url.replace(/ /g, '%20');
+                        console.log('[FIX URLS] Encoding space in URL:', url, '->', fixed);
+                        return fixed;
+                    }
+                    return url;
+                };
+                const newImageUrl = fixUrl(oldImageUrl);
+                const newThumbnailUrl = fixUrl(oldThumbnailUrl);
+                if (newImageUrl !== oldImageUrl || newThumbnailUrl !== oldThumbnailUrl) {
+                    // Use direct SQL to ensure %20 is preserved (Drizzle might decode it)
+                    const setClauses = [];
+                    const params = [];
+                    let paramIdx = 1;
+                    if (newImageUrl !== oldImageUrl && newImageUrl) {
+                        setClauses.push(`image_url = $${paramIdx++}`);
+                        params.push(newImageUrl);
+                    }
+                    if (newThumbnailUrl !== oldThumbnailUrl && newThumbnailUrl) {
+                        setClauses.push(`thumbnail_url = $${paramIdx++}`);
+                        params.push(newThumbnailUrl);
+                    }
+                    setClauses.push(`updated_at = NOW()`);
+                    params.push(product.id);
+                    const sql = `UPDATE voucher_products SET ${setClauses.join(', ')} WHERE id = $${paramIdx}`;
+                    console.log('[FIX URLS] Executing SQL:', sql, 'with params:', params);
+                    await runSql(sql, params);
+                    fixed++;
+                    details.push({
+                        id: product.id,
+                        name: product.name,
+                        oldImageUrl,
+                        newImageUrl,
+                        oldThumbnailUrl,
+                        newThumbnailUrl,
+                    });
+                    console.log(`[FIX URLS] Fixed: ${product.name}`);
+                }
+                else {
+                    skipped++;
+                }
+            }
+            console.log(`[FIX URLS] Done. Fixed: ${fixed}, Skipped: ${skipped}`);
+            res.json({ success: true, fixed, skipped, details });
+        }
+        catch (error) {
+            console.error('[FIX URLS] Error:', error);
+            res.status(500).json({ error: 'Failed to fix URLs', message: error.message });
+        }
+    });
     // ====== COUPON ADMIN ROUTES (continuation) ======
     app.put("/api/admin/coupons/:id", authenticateUser, async (req, res) => {
         try {
@@ -8252,15 +9347,16 @@ New Age Fotografie CRM System
                 .split(',')
                 .map(s => s.trim().toUpperCase())
                 .filter(Boolean));
-            // First: env-driven custom coupons (COUPONS_JSON) via coupons service
-            const envCoupon = (0, coupons_1.findCoupon)(codeUpper);
-            let coupon = null;
-            if (!envCoupon) {
-                coupon = await storage_1.storage.getDiscountCouponByCode(codeTrimmed);
-            }
-            if (!envCoupon && !coupon) {
+            // IMPORTANT: Database coupons take priority over ENV coupons
+            // This allows admin to dynamically edit coupons without code changes
+            let coupon = await storage_1.storage.getDiscountCouponByCode(codeTrimmed);
+            // Only fall back to ENV coupon if no DB coupon exists
+            const envCoupon = coupon ? null : (0, coupons_1.findCoupon)(codeUpper);
+            if (!coupon && !envCoupon) {
                 return res.status(404).json({ error: "Invalid coupon code" });
             }
+            console.log('[COUPON VALIDATE] Using source:', coupon ? 'DATABASE' : 'ENV');
+            console.log('[COUPON VALIDATE] Coupon code:', codeUpper);
             // Validate coupon
             const now = new Date();
             const errors = [];
@@ -8337,22 +9433,57 @@ New Age Fotografie CRM System
             // Determine applicable subtotal: restrict to applicableProducts if provided
             let applicableSubtotal = 0;
             const allProducts = !coupon.applicableProducts || coupon.applicableProducts.length === 0 || coupon.applicableProducts.includes('all');
+            console.log('[COUPON VALIDATE] Coupon:', coupon.code);
+            console.log('[COUPON VALIDATE] applicableProducts from DB:', coupon.applicableProducts);
+            console.log('[COUPON VALIDATE] allProducts allowed:', allProducts);
             if (Array.isArray(items) && items.length > 0) {
                 for (const it of items) {
                     const lineTotal = (Number(it.price) || 0) * (Number(it.quantity) || 1);
+                    console.log('[COUPON VALIDATE] Checking item:', {
+                        productId: it.productId,
+                        productSlug: it.productSlug,
+                        sku: it.sku,
+                        name: it.name,
+                        price: it.price,
+                        lineTotal
+                    });
                     if (allProducts) {
                         applicableSubtotal += lineTotal;
+                        console.log('[COUPON VALIDATE] -> Added (all products allowed)');
                     }
-                    else if ((it.productId && coupon.applicableProducts?.includes(it.productId)) ||
-                        (it.productSlug && coupon.applicableProducts?.includes(it.productSlug)) ||
-                        (it.name && coupon.applicableProducts?.some(p => (p || '').toLowerCase() === (it.name || '').toLowerCase()))) {
-                        applicableSubtotal += lineTotal;
+                    else {
+                        // More robust matching: check productId, productSlug, sku, and name variations
+                        const applicableProds = coupon.applicableProducts || [];
+                        const itemProductId = (it.productId || '').toLowerCase();
+                        const itemProductSlug = (it.productSlug || '').toLowerCase();
+                        const itemSku = (it.sku || '').toLowerCase();
+                        const itemName = (it.name || '').toLowerCase();
+                        const matches = applicableProds.some(p => {
+                            const prodLower = (p || '').toLowerCase();
+                            return (
+                            // Exact matches
+                            (itemProductId && itemProductId === prodLower) ||
+                                (itemProductSlug && itemProductSlug === prodLower) ||
+                                (itemSku && itemSku === prodLower) ||
+                                (itemName && itemName === prodLower) ||
+                                // Partial matches (slug contains or is contained)
+                                (itemProductSlug && prodLower && (itemProductSlug.includes(prodLower) || prodLower.includes(itemProductSlug))) ||
+                                (itemSku && prodLower && (itemSku.includes(prodLower) || prodLower.includes(itemSku))));
+                        });
+                        if (matches) {
+                            applicableSubtotal += lineTotal;
+                            console.log('[COUPON VALIDATE] -> Added (product matches restriction)');
+                        }
+                        else {
+                            console.log('[COUPON VALIDATE] -> Skipped (product does not match restriction)');
+                        }
                     }
                 }
             }
             else {
                 applicableSubtotal = parseFloat(orderAmount || '0');
             }
+            console.log('[COUPON VALIDATE] Final applicableSubtotal:', applicableSubtotal);
             let discountAmount = 0;
             if (coupon.discountType === 'percentage') {
                 discountAmount = (applicableSubtotal * parseFloat(coupon.discountValue)) / 100;
@@ -8551,6 +9682,240 @@ New Age Fotografie CRM System
             res.status(500).json({ error: "Internal server error" });
         }
     });
+    // ========= Create Client from Voucher Sale =========
+    // Convert a voucher purchaser into a CRM client
+    app.post("/api/vouchers/sales/:id/create-client", authenticateUser, async (req, res) => {
+        try {
+            const saleId = req.params.id;
+            // Get the voucher sale with all data
+            const saleResult = await runSql(`
+        SELECT vs.*, vp.name as product_name
+        FROM voucher_sales vs
+        LEFT JOIN voucher_products vp ON vs.product_id = vp.id
+        WHERE vs.id = $1
+      `, [saleId]);
+            if (saleResult.length === 0) {
+                return res.status(404).json({ error: "Voucher sale not found" });
+            }
+            const sale = saleResult[0];
+            // Check if already linked to a client
+            if (sale.client_id) {
+                return res.status(400).json({
+                    error: "Already linked to a client",
+                    clientId: sale.client_id
+                });
+            }
+            // Check if client already exists with this email
+            const existingClientResult = await runSql('SELECT id, first_name, last_name, email FROM crm_clients WHERE LOWER(email) = LOWER($1) LIMIT 1', [sale.purchaser_email]);
+            if (existingClientResult.length > 0) {
+                // Link existing client to this sale
+                const existingClient = existingClientResult[0];
+                await runSql('UPDATE voucher_sales SET client_id = $1 WHERE id = $2', [existingClient.id, saleId]);
+                // Update client's lifetime_value
+                const currentLifetimeValue = await runSql('SELECT COALESCE(lifetime_value, 0) as lv FROM crm_clients WHERE id = $1', [existingClient.id]);
+                const newLifetimeValue = parseFloat(currentLifetimeValue[0]?.lv || 0) + parseFloat(sale.final_amount || 0);
+                await runSql('UPDATE crm_clients SET lifetime_value = $1 WHERE id = $2', [newLifetimeValue.toFixed(2), existingClient.id]);
+                return res.json({
+                    success: true,
+                    message: "Linked to existing client",
+                    client: existingClient,
+                    isNew: false
+                });
+            }
+            // Parse purchaser name into first/last name
+            const fullName = sale.purchaser_name || 'Unknown';
+            const nameParts = fullName.trim().split(/\s+/);
+            const firstName = nameParts[0] || 'Unknown';
+            const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+            // Build notes with purchase info
+            const paymentInfo = [];
+            if (sale.card_brand && sale.card_last4) {
+                paymentInfo.push(`Payment: ${sale.card_brand} ****${sale.card_last4}`);
+            }
+            if (sale.coupon_code) {
+                paymentInfo.push(`Coupon used: ${sale.coupon_code}`);
+            }
+            const notes = [
+                `Added from voucher purchase`,
+                `Voucher Code: ${sale.voucher_code}`,
+                `Product: ${sale.product_name || 'Unknown'}`,
+                `Amount: €${parseFloat(sale.final_amount || 0).toFixed(2)}`,
+                ...paymentInfo,
+                `Purchase Date: ${new Date(sale.created_at).toLocaleDateString('de-DE')}`
+            ].join('\n');
+            // Create the new client
+            const newClientData = {
+                firstName,
+                lastName,
+                email: sale.purchaser_email,
+                phone: sale.purchaser_phone || '',
+                address: sale.billing_address || '',
+                city: sale.billing_city || '',
+                zip: sale.billing_zip || '',
+                country: sale.billing_country || '',
+                notes,
+                status: 'active',
+                source: 'voucher_purchase',
+                clientSince: new Date(sale.created_at),
+                lifetimeValue: sale.final_amount || '0'
+            };
+            const createdClient = await storage_1.storage.createCrmClient(newClientData);
+            // Link client to the voucher sale
+            await runSql('UPDATE voucher_sales SET client_id = $1 WHERE id = $2', [createdClient.id, saleId]);
+            console.log(`[Client] Created client from voucher sale: ${createdClient.id} - ${firstName} ${lastName}`);
+            res.json({
+                success: true,
+                message: "Client created successfully",
+                client: createdClient,
+                isNew: true
+            });
+        }
+        catch (error) {
+            console.error("Error creating client from voucher sale:", error);
+            res.status(500).json({ error: error.message || "Failed to create client" });
+        }
+    });
+    // ========= Stripe Sales Sync Endpoint =========
+    // Manually sync voucher sales from Stripe checkout sessions
+    app.post("/api/vouchers/sync-stripe", authenticateUser, async (req, res) => {
+        try {
+            const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+            if (!stripeSecretKey) {
+                return res.status(500).json({ error: "Stripe not configured" });
+            }
+            const StripeLib = (await import('stripe')).default;
+            const stripe = new StripeLib(stripeSecretKey, { apiVersion: '2025-08-27.basil' });
+            // Fetch all checkout sessions from the last 90 days
+            const ninetyDaysAgo = Math.floor(Date.now() / 1000) - (90 * 24 * 60 * 60);
+            const sessions = await stripe.checkout.sessions.list({
+                limit: 100,
+                created: { gte: ninetyDaysAgo },
+                expand: ['data.line_items']
+            });
+            let synced = 0;
+            let skipped = 0;
+            let errors = [];
+            for (const session of sessions.data) {
+                // Only process paid sessions
+                if (session.payment_status !== 'paid') {
+                    skipped++;
+                    continue;
+                }
+                // Check if already exists in database
+                const existingCheck = await runSql('SELECT id FROM voucher_sales WHERE stripe_session_id = $1 LIMIT 1', [session.id]);
+                if (existingCheck.length > 0) {
+                    skipped++;
+                    continue;
+                }
+                try {
+                    // Extract voucher info from metadata or line items
+                    const metadata = session.metadata || {};
+                    const lineItems = session.line_items?.data || [];
+                    // Generate voucher code if not in metadata
+                    const voucherCode = metadata.voucher_code ||
+                        metadata.voucher_id ||
+                        `SYNC-${session.id.slice(-8).toUpperCase()}`;
+                    // Get product info
+                    const productName = lineItems[0]?.description || metadata.product_name || 'Unknown Product';
+                    const productId = metadata.product_id || null;
+                    // Get customer info
+                    const customerEmail = session.customer_email || session.customer_details?.email || '';
+                    const customerName = session.customer_details?.name || metadata.purchaser_name || '';
+                    // Get recipient info from metadata
+                    const recipientName = metadata.recipient_name || metadata.to_name || '';
+                    const recipientEmail = metadata.recipient_email || '';
+                    const giftMessage = metadata.message || metadata.gift_message || '';
+                    // Extract coupon code from metadata (voucher_used is the key from checkout)
+                    const couponCode = metadata.voucher_used && metadata.voucher_used !== 'none'
+                        ? metadata.voucher_used
+                        : metadata.coupon_code || metadata.discount_code || null;
+                    // Extract billing address from customer_details
+                    const customerAddress = session.customer_details?.address || {};
+                    const billingAddress = customerAddress.line1 || '';
+                    const billingCity = customerAddress.city || '';
+                    const billingZip = customerAddress.postal_code || '';
+                    const billingCountry = customerAddress.country || '';
+                    const customerPhone = session.customer_details?.phone || '';
+                    // Calculate amounts - use amount_total, fallback to amount_subtotal
+                    const amountInCents = session.amount_total || session.amount_subtotal || 0;
+                    const finalAmount = amountInCents / 100;
+                    // Try to get original amount from metadata, otherwise use final amount
+                    const origAmountFromMeta = metadata.original_amount ? parseFloat(metadata.original_amount) : null;
+                    const originalAmount = origAmountFromMeta || finalAmount;
+                    const discountAmount = originalAmount - finalAmount;
+                    const currency = (session.currency || 'EUR').toUpperCase();
+                    // Insert the voucher sale with billing data
+                    const insertResult = await runSql(`
+            INSERT INTO voucher_sales (
+              voucher_code, product_id, purchaser_email, purchaser_name, purchaser_phone,
+              recipient_name, recipient_email, gift_message, original_amount, discount_amount, final_amount,
+              currency, payment_status, stripe_session_id, stripe_payment_intent_id,
+              coupon_code, billing_address, billing_city, billing_zip, billing_country, created_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+            RETURNING id
+          `, [
+                        voucherCode,
+                        productId,
+                        customerEmail,
+                        customerName,
+                        customerPhone,
+                        recipientName,
+                        recipientEmail,
+                        giftMessage,
+                        originalAmount.toFixed(2),
+                        discountAmount > 0 ? discountAmount.toFixed(2) : '0',
+                        finalAmount.toFixed(2),
+                        currency,
+                        'paid',
+                        session.id,
+                        typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id || null,
+                        couponCode,
+                        billingAddress,
+                        billingCity,
+                        billingZip,
+                        billingCountry,
+                        new Date(session.created * 1000).toISOString()
+                    ]);
+                    // Try to get card details from payment intent
+                    const saleId = insertResult[0]?.id;
+                    const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id;
+                    if (saleId && paymentIntentId) {
+                        try {
+                            const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+                                expand: ['payment_method']
+                            });
+                            const pm = paymentIntent.payment_method;
+                            if (pm && typeof pm === 'object' && 'card' in pm) {
+                                const card = pm.card;
+                                if (card) {
+                                    await runSql(`UPDATE voucher_sales SET card_brand = $1, card_last4 = $2 WHERE id = $3`, [card.brand || '', card.last4 || '', saleId]);
+                                }
+                            }
+                        }
+                        catch (cardErr) {
+                            // Card details are optional, don't fail sync
+                        }
+                    }
+                    synced++;
+                }
+                catch (insertError) {
+                    console.error(`[Stripe Sync] Error inserting session ${session.id}:`, insertError);
+                    errors.push(`${session.id}: ${insertError.message}`);
+                }
+            }
+            res.json({
+                success: true,
+                synced,
+                skipped,
+                total: sessions.data.length,
+                errors: errors.length > 0 ? errors : undefined
+            });
+        }
+        catch (error) {
+            console.error("[Stripe Sync] Error:", error);
+            res.status(500).json({ error: error.message || "Sync failed" });
+        }
+    });
     // ========= Voucher PDF Generation (no webhook required) =========
     app.get('/voucher/pdf', async (req, res) => {
         try {
@@ -8596,45 +9961,24 @@ New Age Fotografie CRM System
             res.setHeader('Content-Disposition', `attachment; filename="${vId}.pdf"`);
             const doc = new pdfkit_1.default({ size: 'A4', margin: 50 });
             doc.pipe(res);
-            // Add company logo centered at top (compact)
+            // NEW LAYOUT: Image at top, then user message as heading, logo in footer
             const pageWidth = 595.28;
+            const pageHeight = 841.89;
             const pageMargin = 50;
             const contentWidth = pageWidth - (pageMargin * 2);
             let currentY = 40;
-            try {
-                const logoUrl = process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
-                const resp = await fetch(logoUrl);
-                if (resp && resp.ok) {
-                    const arr = await resp.arrayBuffer();
-                    const imgBuf = Buffer.from(arr);
-                    const logoWidth = 140;
-                    const centerX = (pageWidth - logoWidth) / 2;
-                    doc.image(imgBuf, centerX, currentY, { fit: [logoWidth, 50] });
-                    currentY += 55; // Logo height (50) + small spacing
-                }
-            }
-            catch (e) {
-                console.warn('Voucher logo fetch error:', e);
-                currentY += 55; // Reserve space even if logo fails
-            }
-            // Add spacing after logo
-            currentY += 10;
-            // Heading centered below logo
-            doc.fontSize(22).text('PERSONALISIERTER GUTSCHEIN', pageMargin, currentY, { align: 'center', width: contentWidth });
-            doc.moveDown(0.4);
-            // Hero image (customer-selected or template) - compact
-            // Priority: custom_image > design_image > product_hero_image (fallback)
+            // 1. HERO IMAGE AT THE TOP (customer-selected or template photo)
             let heroRendered = false;
             try {
                 const artUrl = String(m.custom_image || m.design_image || m.product_hero_image || '').trim();
                 if (artUrl) {
-                    const pageWidth = 595.28;
                     const respImg = await fetch(artUrl);
                     if (respImg && respImg.ok) {
                         const artArr = await respImg.arrayBuffer();
                         const artBuf = Buffer.from(artArr);
-                        const imgWidth = pageWidth - 100;
-                        doc.image(artBuf, 50, undefined, { fit: [imgWidth, 320], align: 'center' });
+                        const imgWidth = contentWidth;
+                        doc.image(artBuf, pageMargin, currentY, { fit: [imgWidth, 280], align: 'center' });
+                        currentY += 290;
                         heroRendered = true;
                     }
                 }
@@ -8642,29 +9986,40 @@ New Age Fotografie CRM System
             catch (e) {
                 console.warn('Voucher art fetch error:', e);
             }
-            if (heroRendered)
-                doc.moveDown(0.4);
-            // Red banner "Gutschein"
+            if (!heroRendered) {
+                currentY += 20; // Small gap if no image
+            }
+            // 2. USER'S PERSONAL MESSAGE AS MAIN HEADING (instead of generic "PERSONALISIERTER GUTSCHEIN")
+            if (note && note.trim()) {
+                doc.fontSize(22).fillColor('#222222').text(note, pageMargin, currentY, {
+                    align: 'center',
+                    width: contentWidth
+                });
+                currentY = doc.y + 15;
+            }
+            else {
+                // Fallback if no message provided
+                doc.fontSize(22).fillColor('#222222').text('Gutschein', pageMargin, currentY, {
+                    align: 'center',
+                    width: contentWidth
+                });
+                currentY = doc.y + 15;
+            }
+            // 3. RED BANNER with product title
             try {
-                const pageWidth = 595.28;
-                const bannerY = doc.y + 4;
-                const bannerX = 50;
-                const bannerW = pageWidth - 100;
+                const bannerY = currentY;
+                const bannerX = pageMargin;
+                const bannerW = contentWidth;
                 const bannerH = 32;
                 doc.save();
                 doc.rect(bannerX, bannerY, bannerW, bannerH).fill('#b3202e');
-                doc.fillColor('#ffffff').fontSize(18).text('Gutschein', bannerX + 14, bannerY + 7, { width: bannerW - 28, align: 'left' });
+                doc.fillColor('#ffffff').fontSize(16).text(title, bannerX + 14, bannerY + 8, { width: bannerW - 28, align: 'left' });
                 doc.restore();
-                doc.moveDown(1.8);
+                currentY = bannerY + bannerH + 20;
             }
             catch { }
-            // Personal message RIGHT BELOW RED BANNER
-            if (note && note.trim()) {
-                doc.fillColor('#222222').fontSize(11).text('Nachricht:', { underline: true });
-                doc.moveDown(0.2);
-                doc.fontSize(11).text(note, { align: 'left', width: 595.28 - 100 });
-                doc.moveDown(0.6);
-            }
+            // 4. VOUCHER DETAILS
+            doc.fillColor('#222222');
             // Dynamic product description
             try {
                 let product = null;
@@ -8690,33 +10045,49 @@ New Age Fotografie CRM System
                 }
                 const dynamicSub = (product?.description || product?.detailedDescription || product?.detailed_description || '').toString();
                 if (dynamicSub && dynamicSub.trim()) {
-                    doc.fillColor('#222222').fontSize(10).text(dynamicSub, { width: 595.28 - 100, align: 'left' });
-                    doc.moveDown(0.6);
+                    doc.fontSize(10).text(dynamicSub, pageMargin, currentY, { width: contentWidth, align: 'left' });
+                    currentY = doc.y + 10;
                 }
             }
             catch (e) {
                 console.warn('Voucher description block render error:', e);
             }
-            // Voucher meta (compact)
-            doc.fillColor('#222222').fontSize(9);
-            doc.text(`Gutschein-ID: ${vId}  |  SKU: ${sku}`);
+            // Voucher meta
+            doc.fontSize(9);
+            doc.text(`Gutschein-ID: ${vId}  |  SKU: ${sku}`, pageMargin, currentY);
             doc.text(`Empfänger/in: ${name}`);
             doc.text(`Von: ${from}`);
             doc.text(`Gültig bis: ${exp}`);
-            doc.moveDown(0.5);
-            // Terms (compact)
-            doc.fontSize(8).fillColor('#444444').text('Einlösbar für die oben genannte Leistung in unserem Studio. Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.', { align: 'justify', width: 595.28 - 100 });
-            doc.moveDown(0.8);
+            currentY = doc.y + 10;
+            // Terms
+            doc.fontSize(8).fillColor('#444444').text('Einlösbar für die oben genannte Leistung in unserem Studio. Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.', pageMargin, currentY, { align: 'justify', width: contentWidth });
+            currentY = doc.y + 10;
+            // Payment info
             const paid = ((session.amount_total || 0) / 100).toFixed(2) + ' ' + String(session.currency || 'EUR').toUpperCase();
             const paymentDate = new Date((session.created || Date.now() / 1000) * 1000);
             const formattedDate = `${String(paymentDate.getDate()).padStart(2, '0')}/${String(paymentDate.getMonth() + 1).padStart(2, '0')}/${String(paymentDate.getFullYear()).slice(-2)}`;
-            doc.fontSize(8).fillColor('#222222').text(`Belegt durch Zahlung: ${paid} | Datum: ${formattedDate}`);
-            // Contact details footer
-            doc.moveDown(1.5);
+            doc.fontSize(8).fillColor('#222222').text(`Belegt durch Zahlung: ${paid} | Datum: ${formattedDate}`, pageMargin, currentY);
+            // 5. FOOTER WITH LOGO AND CONTACT DETAILS (positioned at bottom of page)
+            const footerY = pageHeight - 120;
+            // Logo centered in footer
+            try {
+                const logoUrl = process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
+                const resp = await fetch(logoUrl);
+                if (resp && resp.ok) {
+                    const arr = await resp.arrayBuffer();
+                    const imgBuf = Buffer.from(arr);
+                    const logoWidth = 120;
+                    const centerX = (pageWidth - logoWidth) / 2;
+                    doc.image(imgBuf, centerX, footerY, { fit: [logoWidth, 40] });
+                }
+            }
+            catch (e) {
+                console.warn('Voucher logo fetch error:', e);
+            }
+            // Contact details below logo
             doc.fontSize(9).fillColor('#222222');
-            doc.text('www.newagefotografie.com', { align: 'center' });
+            doc.text('www.newagefotografie.com', pageMargin, footerY + 50, { align: 'center', width: contentWidth });
             doc.text('hallo@newagefotografie.com', { align: 'center' });
-            doc.moveDown(0.3);
             doc.text('WhatsApp: 0043 677 633 99210', { align: 'center' });
             doc.end();
         }
@@ -8766,34 +10137,13 @@ New Age Fotografie CRM System
             res.setHeader('Content-Disposition', `attachment; filename="${vId}.pdf"`);
             const doc = new pdfkit_1.default({ size: 'A4', margin: 50 });
             doc.pipe(res);
-            // SINGLE-PAGE COMPACT LAYOUT - matches main endpoint
-            // Logo centered at top (compact)
+            // NEW LAYOUT: Image at top, then user message as heading, logo in footer
             const pageWidth = 595.28;
+            const pageHeight = 841.89;
             const pageMargin = 50;
             const contentWidth = pageWidth - (pageMargin * 2);
             let currentY = 40;
-            try {
-                const logoUrl = process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
-                const resp = await fetch(logoUrl);
-                if (resp && resp.ok) {
-                    const arr = await resp.arrayBuffer();
-                    const imgBuf = Buffer.from(arr);
-                    const logoWidth = 140;
-                    const centerX = (pageWidth - logoWidth) / 2;
-                    doc.image(imgBuf, centerX, currentY, { fit: [logoWidth, 50] });
-                    currentY += 55; // Logo height (50) + small spacing
-                }
-            }
-            catch (e) {
-                console.warn('Logo fetch error:', e);
-                currentY += 55; // Reserve space even if logo fails
-            }
-            // Add spacing after logo
-            currentY += 10;
-            // Heading centered below logo
-            doc.fontSize(22).text('PERSONALISIERTER GUTSCHEIN', pageMargin, currentY, { align: 'center', width: contentWidth });
-            doc.moveDown(0.4);
-            // Hero image (compact 160px height)
+            // 1. HERO IMAGE AT THE TOP (customer-selected or template photo)
             let heroRendered = false;
             if (customImageUrl) {
                 try {
@@ -8801,8 +10151,9 @@ New Age Fotografie CRM System
                     if (respImg && respImg.ok) {
                         const imgArr = await respImg.arrayBuffer();
                         const imgBuf = Buffer.from(imgArr);
-                        const imgWidth = 595.28 - 100;
-                        doc.image(imgBuf, 50, undefined, { fit: [imgWidth, 320], align: 'center' });
+                        const imgWidth = contentWidth;
+                        doc.image(imgBuf, pageMargin, currentY, { fit: [imgWidth, 280], align: 'center' });
+                        currentY += 290;
                         heroRendered = true;
                     }
                 }
@@ -8810,29 +10161,40 @@ New Age Fotografie CRM System
                     console.warn('Preview image error:', err);
                 }
             }
-            if (heroRendered)
-                doc.moveDown(0.4);
-            // Red banner "Gutschein"
+            if (!heroRendered) {
+                currentY += 20; // Small gap if no image
+            }
+            // 2. USER'S PERSONAL MESSAGE AS MAIN HEADING (instead of generic "PERSONALISIERTER GUTSCHEIN")
+            if (note && note.trim()) {
+                doc.fontSize(22).fillColor('#222222').text(note, pageMargin, currentY, {
+                    align: 'center',
+                    width: contentWidth
+                });
+                currentY = doc.y + 15;
+            }
+            else {
+                // Fallback if no message provided
+                doc.fontSize(22).fillColor('#222222').text('Gutschein', pageMargin, currentY, {
+                    align: 'center',
+                    width: contentWidth
+                });
+                currentY = doc.y + 15;
+            }
+            // 3. RED BANNER with product title
             try {
-                const pageWidth = 595.28;
-                const bannerY = doc.y + 4;
-                const bannerX = 50;
-                const bannerW = pageWidth - 100;
+                const bannerY = currentY;
+                const bannerX = pageMargin;
+                const bannerW = contentWidth;
                 const bannerH = 32;
                 doc.save();
                 doc.rect(bannerX, bannerY, bannerW, bannerH).fill('#b3202e');
-                doc.fillColor('#ffffff').fontSize(18).text('Gutschein', bannerX + 14, bannerY + 7, { width: bannerW - 28, align: 'left' });
+                doc.fillColor('#ffffff').fontSize(16).text(title, bannerX + 14, bannerY + 8, { width: bannerW - 28, align: 'left' });
                 doc.restore();
-                doc.moveDown(1.8);
+                currentY = bannerY + bannerH + 20;
             }
             catch { }
-            // Personal message RIGHT BELOW RED BANNER
-            if (note && note.trim()) {
-                doc.fillColor('#222222').fontSize(11).text('Nachricht:', { underline: true });
-                doc.moveDown(0.2);
-                doc.fontSize(11).text(note, { align: 'left', width: 595.28 - 100 });
-                doc.moveDown(0.6);
-            }
+            // 4. VOUCHER DETAILS
+            doc.fillColor('#222222');
             // Dynamic product description (preview mode - fetch from DB if available)
             try {
                 let product = null;
@@ -8858,33 +10220,49 @@ New Age Fotografie CRM System
                 }
                 const dynamicSub = (product?.description || product?.detailedDescription || product?.detailed_description || '').toString();
                 if (dynamicSub && dynamicSub.trim()) {
-                    doc.fillColor('#222222').fontSize(10).text(dynamicSub, { width: 595.28 - 100, align: 'left' });
-                    doc.moveDown(0.6);
+                    doc.fontSize(10).text(dynamicSub, pageMargin, currentY, { width: contentWidth, align: 'left' });
+                    currentY = doc.y + 10;
                 }
             }
             catch (e) {
                 console.warn('Preview description render error:', e);
             }
-            // Voucher meta (compact)
-            doc.fillColor('#222222').fontSize(9);
-            doc.text(`Gutschein-ID: ${vId}  |  SKU: ${sku}`);
+            // Voucher meta
+            doc.fontSize(9);
+            doc.text(`Gutschein-ID: ${vId}  |  SKU: ${sku}`, pageMargin, currentY);
             doc.text(`Empfänger/in: ${name}`);
             doc.text(`Von: ${from}`);
             doc.text(`Gültig bis: ${exp}`);
-            doc.moveDown(0.5);
-            // Terms (compact)
-            doc.fontSize(8).fillColor('#444444').text('Einlösbar für die oben genannte Leistung in unserem Studio. Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.', { align: 'justify', width: 595.28 - 100 });
-            doc.moveDown(0.8);
+            currentY = doc.y + 10;
+            // Terms
+            doc.fontSize(8).fillColor('#444444').text('Einlösbar für die oben genannte Leistung in unserem Studio. Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.', pageMargin, currentY, { align: 'justify', width: contentWidth });
+            currentY = doc.y + 10;
+            // Payment info
             const paid = amount.toFixed(2) + ' ' + currency.toUpperCase();
             const previewDate = new Date();
             const formattedPreviewDate = `${String(previewDate.getDate()).padStart(2, '0')}/${String(previewDate.getMonth() + 1).padStart(2, '0')}/${String(previewDate.getFullYear()).slice(-2)}`;
-            doc.fontSize(8).fillColor('#222222').text(`Vorschau der Zahlung: ${paid} | Datum: ${formattedPreviewDate}`);
-            // Contact details footer
-            doc.moveDown(1.5);
+            doc.fontSize(8).fillColor('#222222').text(`Vorschau der Zahlung: ${paid} | Datum: ${formattedPreviewDate}`, pageMargin, currentY);
+            // 5. FOOTER WITH LOGO AND CONTACT DETAILS (positioned at bottom of page)
+            const footerY = pageHeight - 120;
+            // Logo centered in footer
+            try {
+                const logoUrl = process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
+                const resp = await fetch(logoUrl);
+                if (resp && resp.ok) {
+                    const arr = await resp.arrayBuffer();
+                    const imgBuf = Buffer.from(arr);
+                    const logoWidth = 120;
+                    const centerX = (pageWidth - logoWidth) / 2;
+                    doc.image(imgBuf, centerX, footerY, { fit: [logoWidth, 40] });
+                }
+            }
+            catch (e) {
+                console.warn('Logo fetch error:', e);
+            }
+            // Contact details below logo
             doc.fontSize(9).fillColor('#222222');
-            doc.text('www.newagefotografie.com', { align: 'center' });
+            doc.text('www.newagefotografie.com', pageMargin, footerY + 50, { align: 'center', width: contentWidth });
             doc.text('hallo@newagefotografie.com', { align: 'center' });
-            doc.moveDown(0.3);
             doc.text('WhatsApp: 0043 677 633 99210', { align: 'center' });
             doc.end();
         }
@@ -9811,7 +11189,7 @@ Was interessiert Sie am meisten?`;
     app.post("/api/chat/save-lead", async (req, res) => {
         try {
             const { name, email, phone, message, conversation } = req.body;
-            const leadInsertRes = await db_1.db.insert(crmLeads).values({
+            const leadInsertRes = await db_1.db.insert(schema_1.crmLeads).values({
                 name: name || 'Chat Visitor',
                 email: email || '',
                 phone: phone || '',
@@ -9827,7 +11205,7 @@ Was interessiert Sie am meisten?`;
             // If conversation history exists, save it as a message
             if (conversation && conversation.length > 0) {
                 const conversationText = conversation.map((msg) => `${msg.isUser ? 'Kunde' : 'Alex'}: ${msg.text}`).join('\n');
-                await db_1.db.insert(crmMessages).values({
+                await db_1.db.insert(schema_1.crmMessages).values({
                     senderName: name || 'Chat Visitor',
                     senderEmail: email || 'chat@website.com',
                     subject: 'Website Chat Conversation',
@@ -10294,7 +11672,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
                 notes: message,
                 status: 'new'
             };
-            const newLead = await db_1.db.insert(crmLeads).values(leadData).returning();
+            const newLead = await db_1.db.insert(schema_1.crmLeads).values(leadData).returning();
             // Send email notification to business
             try {
                 const transporter = nodemailer_1.default.createTransport({
@@ -10373,7 +11751,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
                 notes: `Preferred Date: ${preferredDate}${message ? '\n\nAdditional Message: ' + message : ''}`,
                 status: 'new'
             };
-            const newLead = await db_1.db.insert(crmLeads).values(leadData).returning();
+            const newLead = await db_1.db.insert(schema_1.crmLeads).values(leadData).returning();
             // Send appointment request email to business
             try {
                 const transporter = nodemailer_1.default.createTransport({
@@ -10541,14 +11919,13 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
             }
             // Save to database as a lead
             const leadData = {
-                firstName: '',
-                lastName: '',
+                name: email.split('@')[0] || 'Newsletter Subscriber',
                 email: email,
                 source: 'Newsletter Signup (50 EUR Voucher)',
-                notes: 'Signed up for 50 EUR voucher offer',
+                message: 'Signed up for 50 EUR voucher offer',
                 status: 'new'
             };
-            const newLead = await db_1.db.insert(crmLeads).values(leadData).returning();
+            const newLead = await db_1.db.insert(schema_1.crmLeads).values(leadData).returning();
             // Send voucher email to customer
             try {
                 const transporter = nodemailer_1.default.createTransport({

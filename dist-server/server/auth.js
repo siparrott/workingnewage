@@ -5,17 +5,31 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.requireUserOrAdmin = exports.requireAdmin = exports.requireSuperAdmin = exports.requireRole = exports.createAdminUser = exports.logoutUser = exports.loginUser = exports.verifyPassword = exports.hashPassword = exports.getCurrentUser = exports.isAuthenticated = exports.optionalAuth = exports.requireAuth = exports.sessionConfig = void 0;
 const express_session_1 = __importDefault(require("express-session"));
+const connect_pg_simple_1 = __importDefault(require("connect-pg-simple"));
+const pg_1 = require("pg");
 // Use bcryptjs for compatibility (pure JS) to avoid native binding issues
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const storage_1 = require("./storage");
-// Session configuration with better settings
+// Create PostgreSQL session store for production persistence
+const PgStore = (0, connect_pg_simple_1.default)(express_session_1.default);
+// Database pool for session store
+const sessionPool = new pg_1.Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
+// Session configuration with PostgreSQL store for production
 exports.sessionConfig = (0, express_session_1.default)({
+    store: process.env.DATABASE_URL ? new PgStore({
+        pool: sessionPool,
+        tableName: 'user_sessions',
+        createTableIfMissing: true // Automatically create the session table
+    }) : undefined, // Use memory store in development if no DATABASE_URL
     secret: process.env.SESSION_SECRET || 'dev-secret-key-photography-crm-2024',
     resave: false,
     saveUninitialized: false,
     name: 'admin.session.id',
     cookie: {
-        secure: false,
+        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production (HTTPS)
         httpOnly: true,
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         sameSite: 'lax'

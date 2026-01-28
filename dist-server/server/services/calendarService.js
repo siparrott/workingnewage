@@ -4,10 +4,186 @@
  * Handles appointment scheduling and Google Calendar integration
  */
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.importGoogleCalendarEvents = importGoogleCalendarEvents;
 const db_1 = require("../db");
 const schema_1 = require("@shared/schema");
 const drizzle_orm_1 = require("drizzle-orm");
 const googleapis_1 = require("googleapis");
+/**
+ * Import all Google Calendar events (past and future) into the CRM
+ * Uses the calendarSyncSettings table for OAuth tokens (set by OAuth flow)
+ * This is a standalone function that can be called from routes
+ * @param {Date} [fromDate] - Optional: Only import events from this date forward
+ * @param {string} [userId] - Optional: User ID to get OAuth tokens for
+ * @returns {Promise<{imported: number, updated: number, deleted: number, skipped: number, errors: any[]}>}
+ */
+async function importGoogleCalendarEvents(fromDate, userId) {
+    // Find an active sync config (if userId provided, filter by it)
+    let configs;
+    if (userId) {
+        configs = await db_1.db
+            .select()
+            .from(schema_1.calendarSyncSettings)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.calendarSyncSettings.userId, userId), (0, drizzle_orm_1.eq)(schema_1.calendarSyncSettings.syncEnabled, true)))
+            .limit(1);
+    }
+    else {
+        configs = await db_1.db
+            .select()
+            .from(schema_1.calendarSyncSettings)
+            .where((0, drizzle_orm_1.eq)(schema_1.calendarSyncSettings.syncEnabled, true))
+            .limit(1);
+    }
+    if (configs.length === 0) {
+        throw new Error('No Google Calendar sync configured. Please connect your Google Calendar first.');
+    }
+    const syncConfig = configs[0];
+    if (!syncConfig.accessToken || !syncConfig.refreshToken) {
+        throw new Error('Google Calendar OAuth tokens missing. Please reconnect your Google Calendar.');
+    }
+    // Initialize OAuth client with tokens from calendarSyncSettings
+    const oauth2Client = new googleapis_1.google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET, process.env.NODE_ENV === 'production'
+        ? 'https://www.newagefotografie.com/api/auth/google/callback'
+        : `${process.env.BASE_URL || 'http://localhost:3001'}/api/auth/google/callback`);
+    oauth2Client.setCredentials({
+        access_token: syncConfig.accessToken,
+        refresh_token: syncConfig.refreshToken,
+    });
+    const calendar = googleapis_1.google.calendar({ version: 'v3', auth: oauth2Client });
+    // Fetch events from 1 year ago to 2 years in future to ensure past AND future events
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    const twoYearsAhead = new Date();
+    twoYearsAhead.setFullYear(twoYearsAhead.getFullYear() + 2);
+    const timeMin = fromDate ? fromDate.toISOString() : oneYearAgo.toISOString();
+    const timeMax = twoYearsAhead.toISOString();
+    console.log(`📅 Fetching Google Calendar events from ${timeMin} to ${timeMax}`);
+    const events = [];
+    let pageToken = undefined;
+    do {
+        const response = await calendar.events.list({
+            calendarId: syncConfig.calendarId || 'primary',
+            timeMin,
+            timeMax,
+            maxResults: 2500,
+            singleEvents: true,
+            orderBy: 'startTime',
+            pageToken,
+        });
+        if (response.data.items)
+            events.push(...response.data.items);
+        pageToken = response.data.nextPageToken ?? undefined;
+    } while (pageToken);
+    console.log(`📅 Found ${events.length} events in Google Calendar`);
+    let imported = 0, updated = 0, deleted = 0, skipped = 0;
+    const errors = [];
+    for (const event of events) {
+        // Skip all-day events that don't have dateTime (only have date)
+        const startDateTime = event.start?.dateTime || event.start?.date;
+        const endDateTime = event.end?.dateTime || event.end?.date;
+        if (!event.id || !startDateTime || !endDateTime) {
+            skipped++;
+            continue;
+        }
+        // Check if event already exists in photographySessions (by google_calendar_event_id)
+        const existingSession = await db_1.db
+            .select()
+            .from(schema_1.photographySessions)
+            .where((0, drizzle_orm_1.eq)(schema_1.photographySessions.googleCalendarEventId, event.id))
+            .limit(1);
+        if (existingSession.length > 0) {
+            // Update existing session if it changed
+            const existing = existingSession[0];
+            const newStart = new Date(startDateTime);
+            const newEnd = new Date(endDateTime);
+            if (existing.title !== (event.summary || 'Google Event') ||
+                existing.startTime.getTime() !== newStart.getTime() ||
+                existing.endTime.getTime() !== newEnd.getTime() ||
+                existing.locationName !== (event.location || null)) {
+                try {
+                    await db_1.db
+                        .update(schema_1.photographySessions)
+                        .set({
+                        title: event.summary || 'Google Event',
+                        description: event.description || null,
+                        startTime: newStart,
+                        endTime: newEnd,
+                        locationName: event.location || null,
+                        updatedAt: new Date(),
+                    })
+                        .where((0, drizzle_orm_1.eq)(schema_1.photographySessions.id, existing.id));
+                    updated++;
+                }
+                catch (err) {
+                    errors.push({ eventId: event.id, error: err });
+                }
+            }
+            else {
+                skipped++;
+            }
+            continue;
+        }
+        // Insert new event as photography session
+        try {
+            // Parse client name from event summary (often in format "Familienshooting mit Name")
+            const summary = event.summary || 'Google Event';
+            let clientName = null;
+            const mitMatch = summary.match(/mit\s+(.+)$/i);
+            if (mitMatch) {
+                clientName = mitMatch[1].trim();
+            }
+            // Determine session type from summary
+            let sessionType = 'portrait';
+            const lowerSummary = summary.toLowerCase();
+            if (lowerSummary.includes('familie') || lowerSummary.includes('family'))
+                sessionType = 'family';
+            else if (lowerSummary.includes('hochzeit') || lowerSummary.includes('wedding'))
+                sessionType = 'wedding';
+            else if (lowerSummary.includes('baby') || lowerSummary.includes('newborn'))
+                sessionType = 'portrait';
+            else if (lowerSummary.includes('business') || lowerSummary.includes('commercial'))
+                sessionType = 'commercial';
+            else if (lowerSummary.includes('event'))
+                sessionType = 'event';
+            const newStart = new Date(startDateTime);
+            const newEnd = new Date(endDateTime);
+            const isPast = newStart < new Date();
+            // Generate a unique ID using crypto
+            const sessionId = `gcal_${event.id}_${Date.now()}`;
+            await db_1.db.insert(schema_1.photographySessions).values({
+                id: sessionId,
+                title: summary,
+                description: event.description || null,
+                sessionType: sessionType,
+                status: isPast ? 'completed' : 'scheduled',
+                startTime: newStart,
+                endTime: newEnd,
+                clientName: clientName,
+                locationName: event.location || null,
+                googleCalendarEventId: event.id,
+                icalUid: event.iCalUID || null,
+                externalCalendarSync: true,
+                deliveryStatus: isPast ? 'delivered' : 'pending',
+                editingStatus: isPast ? 'completed' : 'pending',
+                priority: 'medium',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+            imported++;
+        }
+        catch (err) {
+            console.error(`Failed to import event ${event.id}:`, err.message || err);
+            errors.push({ eventId: event.id, error: err.message || String(err) });
+        }
+    }
+    // Update last sync time
+    await db_1.db
+        .update(schema_1.calendarSyncSettings)
+        .set({ lastSyncAt: new Date(), updatedAt: new Date() })
+        .where((0, drizzle_orm_1.eq)(schema_1.calendarSyncSettings.id, syncConfig.id));
+    console.log(`✅ Sync complete: ${imported} imported, ${updated} updated, ${skipped} skipped, ${errors.length} errors`);
+    return { imported, updated, deleted, skipped, errors };
+}
 class StudioCalendarService {
     /**
      * Initialize Google Calendar integration
