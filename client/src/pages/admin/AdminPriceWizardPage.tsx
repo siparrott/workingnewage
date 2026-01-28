@@ -771,70 +771,162 @@ const AdminPriceWizardPage: React.FC = () => {
                       <h3 className="font-semibold text-gray-900">Price Recommendations</h3>
                     </div>
                     <div className="divide-y divide-gray-200">
-                      {suggestions.map((suggestion) => (
-                        <div key={suggestion.id} className="p-4">
-                          <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="font-medium text-gray-900 capitalize">
-                                  {suggestion.service_type}
+                      {suggestions.map((suggestion) => {
+                        // Parse reasoning into structured parts
+                        const parseReasoning = (reasoning: string) => {
+                          const parts = {
+                            positioning: '',
+                            competitiveAdvantage: '',
+                            marketInsight: ''
+                          };
+                          
+                          // Extract different sections from the reasoning
+                          const posMatch = reasoning.match(/^(.*?)(?:Competitive advantage:|$)/is);
+                          const advMatch = reasoning.match(/Competitive advantage:\s*(.*?)(?:Market insight:|$)/is);
+                          const insMatch = reasoning.match(/Market insight:\s*(.*?)$/is);
+                          
+                          if (posMatch) parts.positioning = posMatch[1].trim();
+                          if (advMatch) parts.competitiveAdvantage = advMatch[1].trim();
+                          if (insMatch) parts.marketInsight = insMatch[1].trim();
+                          
+                          // If no structured format, just use the whole thing as positioning
+                          if (!parts.positioning && !parts.competitiveAdvantage && !parts.marketInsight) {
+                            parts.positioning = reasoning;
+                          }
+                          
+                          return parts;
+                        };
+                        
+                        const reasoningParts = parseReasoning(suggestion.reasoning || '');
+                        const percentilePosition = suggestion.market_median > 0 
+                          ? Math.round(((suggestion.suggested_price - suggestion.market_min) / (suggestion.market_max - suggestion.market_min)) * 100)
+                          : 50;
+                        
+                        return (
+                          <div key={suggestion.id} className="p-5">
+                            {/* Header with service type, tier, and price */}
+                            <div className="flex justify-between items-start mb-4">
+                              <div className="flex items-center gap-3">
+                                <span className="text-lg font-semibold text-gray-900 capitalize">
+                                  {suggestion.service_type.replace(/_/g, ' ')}
                                 </span>
                                 {getTierBadge(suggestion.tier)}
                               </div>
-                              <div className="text-sm text-gray-600">{suggestion.reasoning}</div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-2xl font-bold text-purple-600">
-                                €{suggestion.suggested_price}
+                              <div className="text-right">
+                                <div className="text-3xl font-bold text-purple-600">
+                                  €{Number(suggestion.suggested_price).toFixed(2)}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  Recommended price
+                                </div>
                               </div>
                             </div>
-                          </div>
 
-                          <div className="flex gap-4 text-xs text-gray-600 mb-3">
-                            <span>Min: €{suggestion.market_min}</span>
-                            <span>Median: €{suggestion.market_median}</span>
-                            <span>Max: €{suggestion.market_max}</span>
-                          </div>
+                            {/* Market Position Bar */}
+                            <div className="mb-4 bg-gray-50 rounded-lg p-3">
+                              <div className="flex justify-between text-xs text-gray-500 mb-2">
+                                <span>Min: €{suggestion.market_min}</span>
+                                <span className="font-medium text-gray-700">Median: €{suggestion.market_median}</span>
+                                <span>Max: €{suggestion.market_max}</span>
+                              </div>
+                              <div className="relative h-2 bg-gray-200 rounded-full">
+                                <div 
+                                  className="absolute h-2 bg-gradient-to-r from-green-400 via-yellow-400 to-red-400 rounded-full"
+                                  style={{ width: '100%' }}
+                                />
+                                <div 
+                                  className="absolute w-3 h-3 bg-purple-600 rounded-full border-2 border-white shadow-md transform -translate-y-0.5"
+                                  style={{ left: `${Math.min(Math.max(percentilePosition, 0), 100)}%`, marginLeft: '-6px' }}
+                                  title={`Your price: €${suggestion.suggested_price}`}
+                                />
+                              </div>
+                              <div className="text-center text-xs text-purple-600 font-medium mt-2">
+                                Positioned at {percentilePosition}th percentile
+                              </div>
+                            </div>
 
-                          {suggestion.status === 'pending_review' && (
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => activateSuggestion(suggestion.id)}
-                                className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 text-sm"
-                              >
+                            {/* Structured Reasoning */}
+                            <div className="space-y-3 text-sm">
+                              {reasoningParts.positioning && (
+                                <div className="flex gap-2">
+                                  <div className="flex-shrink-0 w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center mt-0.5">
+                                    <span className="text-blue-600 text-xs">📍</span>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-gray-700">Positioning: </span>
+                                    <span className="text-gray-600">{reasoningParts.positioning}</span>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {reasoningParts.competitiveAdvantage && (
+                                <div className="flex gap-2">
+                                  <div className="flex-shrink-0 w-5 h-5 bg-green-100 rounded-full flex items-center justify-center mt-0.5">
+                                    <span className="text-green-600 text-xs">✨</span>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-gray-700">Competitive Advantage: </span>
+                                    <span className="text-gray-600">{reasoningParts.competitiveAdvantage}</span>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {reasoningParts.marketInsight && (
+                                <div className="flex gap-2">
+                                  <div className="flex-shrink-0 w-5 h-5 bg-purple-100 rounded-full flex items-center justify-center mt-0.5">
+                                    <span className="text-purple-600 text-xs">📊</span>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-gray-700">Market Insight: </span>
+                                    <span className="text-gray-600">{reasoningParts.marketInsight}</span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Action Buttons */}
+                            {suggestion.status === 'pending_review' && (
+                              <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
+                                <button
+                                  onClick={() => activateSuggestion(suggestion.id)}
+                                  className="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 text-sm font-medium transition-colors"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                  Activate
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const price = prompt('Enter adjusted price:', suggestion.suggested_price.toString());
+                                    if (price) activateSuggestion(suggestion.id, parseFloat(price));
+                                  }}
+                                  className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
+                                >
+                                  Adjust & Activate
+                                </button>
+                                <button
+                                  onClick={() => rejectSuggestion(suggestion.id)}
+                                  className="px-3 py-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-red-100 hover:text-red-600 flex items-center gap-2 text-sm transition-colors"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
+
+                            {suggestion.status === 'activated' && (
+                              <div className="flex items-center gap-2 text-sm text-green-600 mt-4 pt-4 border-t border-gray-100 bg-green-50 -mx-5 -mb-5 px-5 py-3 rounded-b-lg">
                                 <CheckCircle className="w-4 h-4" />
-                                Activate
-                              </button>
-                              <button
-                                onClick={() => {
-                                  const price = prompt('Enter adjusted price:', suggestion.suggested_price.toString());
-                                  if (price) activateSuggestion(suggestion.id, parseFloat(price));
-                                }}
-                                className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-                              >
-                                Adjust & Activate
-                              </button>
-                              <button
-                                onClick={() => rejectSuggestion(suggestion.id)}
-                                className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 text-sm"
-                              >
-                                <XCircle className="w-4 h-4" />
-                              </button>
-                            </div>
-                          )}
+                                <span className="font-medium">Activated to price list</span>
+                              </div>
+                            )}
 
-                          {suggestion.status === 'activated' && (
-                            <div className="flex items-center gap-2 text-sm text-green-600">
-                              <CheckCircle className="w-4 h-4" />
-                              Activated to price list
-                            </div>
-                          )}
-
-                          {suggestion.status === 'rejected' && (
-                            <div className="text-sm text-red-600">Rejected</div>
-                          )}
-                        </div>
-                      ))}
+                            {suggestion.status === 'rejected' && (
+                              <div className="text-sm text-red-600 mt-4 pt-4 border-t border-gray-100 bg-red-50 -mx-5 -mb-5 px-5 py-3 rounded-b-lg font-medium">
+                                Rejected
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
