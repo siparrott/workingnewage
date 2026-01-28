@@ -285,7 +285,6 @@ const AVAILABLE_SERVICES = [
                     )}
                   </button>
                 </div>
-              {/* Modal content ends */}
             </div>
           </div>
         )}
