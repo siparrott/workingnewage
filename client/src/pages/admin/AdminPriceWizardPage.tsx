@@ -1,17 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Search, TrendingUp, DollarSign, Eye, CheckCircle, XCircle, RefreshCw, ExternalLink, Filter, X, Loader2, MapPin, Plus } from 'lucide-react';
-
-// Utility to summarize reasoning (first sentence or up to 180 chars)
-function summarizeReasoning(reasoning: string): string {
-  if (!reasoning) return '';
-  // Try to get first sentence
-  const match = reasoning.match(/^(.*?[.!?])\s/);
-  if (match && match[1].length < 180) return match[1];
-  // Otherwise, truncate
-  return reasoning.length > 180 ? reasoning.slice(0, 177) + '…' : reasoning;
-}
 
 // Available services for price research
 const AVAILABLE_SERVICES = [
@@ -20,9 +9,133 @@ const AVAILABLE_SERVICES = [
   { id: 'newborn', label: 'Newborn Photography' },
   { id: 'portrait', label: 'Portrait Photography' },
   { id: 'corporate', label: 'Corporate / Business' },
-
   { id: 'event', label: 'Event Photography' },
 ];
+
+interface PriceSession {
+  id: string;
+  location: string;
+  services: string[];
+  status: 'discovering' | 'scraping' | 'analyzing' | 'completed' | 'failed';
+  competitors_found: number;
+  prices_extracted: number;
+  suggestions_generated: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Competitor {
+  id: string;
+  competitor_name: string;
+  website_url: string;
+  location: string;
+  status: 'pending' | 'scraped' | 'failed';
+  price_count: number;
+  scraped_at?: string;
+}
+
+interface Price {
+  id: string;
+  competitor_name: string;
+  service_type: string;
+  price_amount: number;
+  currency: string;
+  confidence_score: number;
+  package_name?: string;
+  website_url: string;
+}
+
+interface Suggestion {
+  id: string;
+  service_type: string;
+  tier: 'basic' | 'standard' | 'premium';
+  suggested_price: number;
+  market_min: number;
+  market_median: number;
+  market_max: number;
+  reasoning: string;
+  status: 'pending_review' | 'activated' | 'rejected';
+  activated_product_id?: string;
+}
+
+const AdminPriceWizardPage: React.FC = () => {
+  const [sessions, setSessions] = useState<PriceSession[]>([]);
+  const [selectedSession, setSelectedSession] = useState<string | null>(null);
+  const [competitors, setCompetitors] = useState<Competitor[]>([]);
+  const [prices, setPrices] = useState<Price[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  // New Research Modal State
+  const [showNewResearchModal, setShowNewResearchModal] = useState(false);
+  const [newResearchLocation, setNewResearchLocation] = useState('Wien');
+  const [newResearchServices, setNewResearchServices] = useState<string[]>(['family', 'portrait']);
+  const [isResearching, setIsResearching] = useState(false);
+  const [researchProgress, setResearchProgress] = useState<string>('');
+
+  // Manual Price Entry Modal State
+  const [showManualPriceModal, setShowManualPriceModal] = useState(false);
+  const [manualPriceCompetitor, setManualPriceCompetitor] = useState<Competitor | null>(null);
+  const [manualPriceService, setManualPriceService] = useState('');
+  const [manualPriceAmount, setManualPriceAmount] = useState('');
+  const [manualPriceNotes, setManualPriceNotes] = useState('');
+  const [isAddingPrice, setIsAddingPrice] = useState(false);
+
+  useEffect(() => {
+    fetchSessions();
+  }, []);
+
+  useEffect(() => {
+    if (selectedSession) {
+      fetchSessionDetails(selectedSession);
+    }
+  }, [selectedSession]);
+
+  // Auto-refresh for active sessions
+  useEffect(() => {
+    const selectedSessionData = sessions.find(s => s.id === selectedSession);
+    if (selectedSessionData && ['discovering', 'scraping', 'analyzing'].includes(selectedSessionData.status)) {
+      const interval = setInterval(() => {
+        fetchSessions();
+        if (selectedSession) {
+          fetchSessionDetails(selectedSession);
+        }
+      }, 3000); // Refresh every 3 seconds
+      return () => clearInterval(interval);
+    }
+  }, [selectedSession, sessions]);
+
+  const fetchSessions = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/price-wizard/sessions');
+      if (response.ok) {
+        const data = await response.json();
+        setSessions(data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch sessions:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSessionDetails = async (sessionId: string) => {
+    try {
+      const [competitorsRes, pricesRes, suggestionsRes] = await Promise.all([
+        fetch(`/api/price-wizard/competitors/${sessionId}`),
+        fetch(`/api/price-wizard/prices/${sessionId}`),
+        fetch(`/api/price-wizard/suggestions/${sessionId}`)
+      ]);
+
+      if (competitorsRes.ok) setCompetitors(await competitorsRes.json());
+      if (pricesRes.ok) setPrices(await pricesRes.json());
+      if (suggestionsRes.ok) setSuggestions(await suggestionsRes.json());
+    } catch (err) {
+      console.error('Failed to fetch session details:', err);
+    }
+  };
 
   /**
    * Start a new competitive pricing research session
@@ -182,113 +295,242 @@ const AVAILABLE_SERVICES = [
         fetchSessions();
       } else {
         const data = await response.json();
+        alert(`Research failed: ${data.error || 'Unknown error'}`);
       }
     } catch (err) {
-      console.error('Error retrying with AI:', err);
+      console.error('Error starting AI research:', err);
       alert('Failed to start AI research');
     }
   };
 
-  // --- Price Recommendations Section ---
-  // (Moved out of retryWithAI)
-  // --- Visual Card Layout ---
-  // --- Rendered in main return block ---
+  /**
+   * Retry scraping for pending/failed competitors (legacy method)
+   */
+  const retryScrape = async (sessionId: string) => {
+    try {
+      const response = await fetch('/api/price-wizard/scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId })
+      });
 
-  // ...rest of the component code...
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Scraping retry complete!\nPrices extracted: ${data.pricesExtracted}`);
+        fetchSessionDetails(sessionId);
+        fetchSessions();
+      } else {
+        const data = await response.json();
+        alert(`Scrape failed: ${data.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Error retrying scrape:', err);
+      alert('Failed to retry scrape');
+    }
+  };
 
-              {/* New Research Modal Content - properly wrapped */}
-              {/* Modal content starts */}
-                <div className="p-6 space-y-5">
-                  {/* Location Input */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <MapPin className="w-4 h-4 inline mr-1" />
-                      Location / City
-                    </label>
-                    <input
-                      type="text"
-                      value={newResearchLocation}
-                      onChange={(e) => setNewResearchLocation(e.target.value)}
-                      disabled={isResearching}
-                      placeholder="e.g., Wien, Graz, Salzburg"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:bg-gray-100"
-                    />
-                  </div>
+  const activateSuggestion = async (suggestionId: string, adjustedPrice?: number) => {
+    try {
+      const response = await fetch('/api/price-wizard/activate-suggestion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          suggestionId,
+          adjustedPrice
+        })
+      });
 
-                  {/* Services Selection */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <DollarSign className="w-4 h-4 inline mr-1" />
-                      Services to Research
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {AVAILABLE_SERVICES.map(service => (
-                        <button
-                          key={service.id}
-                          type="button"
-                          onClick={() => toggleService(service.id)}
-                          disabled={isResearching}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                            newResearchServices.includes(service.id)
-                              ? 'bg-purple-100 text-purple-700 border-2 border-purple-400'
-                              : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
-                          } disabled:opacity-50`}
-                        >
-                          {service.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Price activated and added to your Price List!\n\nService: ${data.service_name}\nPrice: €${data.activated_price}\n\nYou can now use this price when creating invoices.`);
+        if (selectedSession) fetchSessionDetails(selectedSession);
+      }
+    } catch (err) {
+      alert('Failed to activate price');
+    }
+  };
 
-                  {/* Progress Indicator */}
-                  {isResearching && researchProgress && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <div className="flex items-center gap-3">
-                        <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-                        <span className="text-sm text-blue-700">{researchProgress}</span>
-                      </div>
-                    </div>
-                  )}
+  const rejectSuggestion = async (suggestionId: string) => {
+    try {
+      const response = await fetch('/api/price-wizard/reject-suggestion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ suggestionId })
+      });
 
-                  {/* Info Note */}
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600">
-                    <strong>How it works:</strong> The wizard will search for photographers in your area, 
-                    scrape their pricing pages, and generate 3-tier pricing recommendations (basic, standard, premium) 
-                    based on market analysis.
-                  </div>
-                </div>
+      if (response.ok) {
+        if (selectedSession) fetchSessionDetails(selectedSession);
+      }
+    } catch (err) {
+      alert('Failed to reject suggestion');
+    }
+  };
 
-                {/* Footer Actions */}
-                <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+  const getStatusBadge = (status: string) => {
+    const config: Record<string, { bg: string; text: string }> = {
+      discovering: { bg: 'bg-blue-100', text: 'text-blue-800' },
+      scraping: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+      analyzing: { bg: 'bg-purple-100', text: 'text-purple-800' },
+      completed: { bg: 'bg-green-100', text: 'text-green-800' },
+      failed: { bg: 'bg-red-100', text: 'text-red-800' }
+    };
+
+    const c = config[status] || config.completed;
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${c.bg} ${c.text}`}>
+        {status}
+      </span>
+    );
+  };
+
+  const getTierBadge = (tier: string) => {
+    const config: Record<string, { bg: string; text: string }> = {
+      basic: { bg: 'bg-gray-100', text: 'text-gray-800' },
+      standard: { bg: 'bg-blue-100', text: 'text-blue-800' },
+      premium: { bg: 'bg-purple-100', text: 'text-purple-800' }
+    };
+
+    const c = config[tier];
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${c.bg} ${c.text}`}>
+        {tier}
+      </span>
+    );
+  };
+
+  const filteredSessions = sessions.filter(s => 
+    statusFilter === 'all' || s.status === statusFilter
+  );
+
+  const selectedSessionData = sessions.find(s => s.id === selectedSession);
+
+  return (
+    <AdminLayout>
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Price Wizard</h1>
+            <p className="text-gray-600">Competitive pricing intelligence and recommendations</p>
+          </div>
+          <button
+            onClick={() => setShowNewResearchModal(true)}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg flex items-center gap-2 hover:bg-purple-700 transition-colors"
+          >
+            <TrendingUp className="w-4 h-4" />
+            New Research
+          </button>
+        </div>
+
+        {/* New Research Modal */}
+        {showNewResearchModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+              <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-bold text-white">New Price Research</h2>
                   <button
                     onClick={() => setShowNewResearchModal(false)}
                     disabled={isResearching}
-                    className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                    className="text-white hover:bg-white/20 rounded-full p-1 transition-colors disabled:opacity-50"
                   >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={startNewResearch}
-                    disabled={isResearching || newResearchServices.length === 0 || !newResearchLocation.trim()}
-                    className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  >
-                    {isResearching ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Researching...
-                      </>
-                    ) : (
-                      <>
-                        <Search className="w-4 h-4" />
-                        Start Research
-                      </>
-                    )}
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
+                <p className="text-purple-100 text-sm mt-1">
+                  Discover competitors and analyze market prices
+                </p>
+              </div>
+
+              <div className="p-6 space-y-5">
+                {/* Location Input */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <MapPin className="w-4 h-4 inline mr-1" />
+                    Location / City
+                  </label>
+                  <input
+                    type="text"
+                    value={newResearchLocation}
+                    onChange={(e) => setNewResearchLocation(e.target.value)}
+                    disabled={isResearching}
+                    placeholder="e.g., Wien, Graz, Salzburg"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:bg-gray-100"
+                  />
+                </div>
+
+                {/* Services Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <DollarSign className="w-4 h-4 inline mr-1" />
+                    Services to Research
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {AVAILABLE_SERVICES.map(service => (
+                      <button
+                        key={service.id}
+                        type="button"
+                        onClick={() => toggleService(service.id)}
+                        disabled={isResearching}
+                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                          newResearchServices.includes(service.id)
+                            ? 'bg-purple-100 text-purple-700 border-2 border-purple-400'
+                            : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
+                        } disabled:opacity-50`}
+                      >
+                        {service.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Progress Indicator */}
+                {isResearching && researchProgress && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center gap-3">
+                      <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                      <span className="text-sm text-blue-700">{researchProgress}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Info Note */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600">
+                  <strong>How it works:</strong> The wizard will search for photographers in your area, 
+                  scrape their pricing pages, and generate 3-tier pricing recommendations (basic, standard, premium) 
+                  based on market analysis.
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                <button
+                  onClick={() => setShowNewResearchModal(false)}
+                  disabled={isResearching}
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={startNewResearch}
+                  disabled={isResearching || newResearchServices.length === 0 || !newResearchLocation.trim()}
+                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isResearching ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Researching...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4" />
+                      Start Research
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>
-        }
+        )}
 
         {/* Manual Price Entry Modal */}
         {showManualPriceModal && manualPriceCompetitor && (
@@ -646,7 +888,7 @@ const AVAILABLE_SERVICES = [
                             {suggestion.status === 'pending_review' && (
                               <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
                                 <button
-                                  onClick={() => openActivateModal(suggestion)}
+                                  onClick={() => activateSuggestion(suggestion.id)}
                                   className="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 text-sm font-medium transition-colors"
                                 >
                                   <CheckCircle className="w-4 h-4" />
@@ -655,64 +897,12 @@ const AVAILABLE_SERVICES = [
                                 <button
                                   onClick={() => {
                                     const price = prompt('Enter adjusted price:', suggestion.suggested_price.toString());
-                                    if (price) openActivateModal(suggestion, parseFloat(price));
+                                    if (price) activateSuggestion(suggestion.id, parseFloat(price));
                                   }}
                                   className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
                                 >
                                   Adjust & Activate
                                 </button>
-                                      {/* Activate Modal */}
-                                      {showActivateModal && activateModalData.suggestion && (
-                                        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-                                          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
-                                            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                                              <h2 className="text-lg font-bold text-gray-900">Add to Price List</h2>
-                                              <button
-                                                onClick={() => setShowActivateModal(false)}
-                                                className="text-gray-400 hover:text-gray-700"
-                                              >
-                                                <X className="w-5 h-5" />
-                                              </button>
-                                            </div>
-                                            <div className="px-6 py-4 space-y-4">
-                                              <div>
-                                                <div className="text-xs text-gray-500 mb-1">Service</div>
-                                                <div className="font-semibold text-gray-900">{activateModalData.suggestion.service_type.replace(/_/g, ' ')} ({activateModalData.suggestion.tier})</div>
-                                              </div>
-                                              <div>
-                                                <div className="text-xs text-gray-500 mb-1">Price</div>
-                                                <div className="font-semibold text-purple-700 text-lg">€{activateModalData.price?.toFixed(2)}</div>
-                                              </div>
-                                              <div>
-                                                <div className="text-xs text-gray-500 mb-1">Description (edit before saving)</div>
-                                                <textarea
-                                                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-                                                  rows={3}
-                                                  value={activateModalData.description}
-                                                  onChange={e => setActivateModalData(d => ({ ...d, description: e.target.value }))}
-                                                  maxLength={300}
-                                                />
-                                                <div className="text-xs text-gray-400 text-right">{activateModalData.description.length}/300</div>
-                                              </div>
-                                              <div className="flex gap-2 mt-2">
-                                                <button
-                                                  onClick={confirmActivateSuggestion}
-                                                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
-                                                >
-                                                  <CheckCircle className="w-4 h-4 inline-block mr-1" />
-                                                  Confirm & Add
-                                                </button>
-                                                <button
-                                                  onClick={() => setShowActivateModal(false)}
-                                                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium"
-                                                >
-                                                  Cancel
-                                                </button>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      )}
                                 <button
                                   onClick={() => rejectSuggestion(suggestion.id)}
                                   className="px-3 py-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-red-100 hover:text-red-600 flex items-center gap-2 text-sm transition-colors"
