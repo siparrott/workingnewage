@@ -4186,6 +4186,51 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
+  // Get invoice status by IDs
+  app.get("/api/invoices/status", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const ids = req.query.ids as string;
+      if (!ids) {
+        return res.json({ statuses: {} });
+      }
+      const idList = ids.split(',').filter(Boolean);
+      const statuses: Record<string, string> = {};
+      
+      for (const id of idList) {
+        try {
+          const result = await runSql('SELECT status FROM crm_invoices WHERE id = $1::uuid', [id]);
+          if (result && result.length > 0) {
+            statuses[id] = result[0].status || 'draft';
+          }
+        } catch (e) {
+          // Skip invalid IDs
+        }
+      }
+      
+      res.json({ statuses });
+    } catch (error) {
+      console.error("Error fetching invoice statuses:", error);
+      res.status(500).json({ error: "Internal server error", statuses: {} });
+    }
+  });
+
+  // Update invoice status
+  app.post("/api/invoices/update-status", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { invoice_id, status } = req.body;
+      if (!invoice_id || !status) {
+        return res.status(400).json({ ok: false, error: 'Missing invoice_id or status' });
+      }
+      
+      await runSql('UPDATE crm_invoices SET status = $1, updated_at = NOW() WHERE id = $2::uuid', [status, invoice_id]);
+      
+      res.json({ ok: true, success: true });
+    } catch (error) {
+      console.error("Error updating invoice status:", error);
+      res.status(500).json({ ok: false, error: "Internal server error" });
+    }
+  });
+
   app.get("/api/crm/invoices/:id", authenticateUser, async (req: Request, res: Response) => {
     try {
       const invoice = await storage.getCrmInvoice(req.params.id);
