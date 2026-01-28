@@ -470,7 +470,7 @@ router.get('/sessions', async (req, res) => {
  */
 router.post('/activate-suggestion', async (req, res) => {
   try {
-    const { suggestionId, adjustedPrice } = req.body;
+    const { suggestionId, adjustedPrice, description } = req.body;
 
     if (!suggestionId) {
       return res.status(400).json({ error: 'Missing suggestionId' });
@@ -509,7 +509,7 @@ router.post('/activate-suggestion', async (req, res) => {
       serviceName,
       'Photography',
       finalPrice,
-      suggestion.reasoning || `AI-recommended ${suggestion.tier} tier pricing based on competitive market analysis`,
+      description || suggestion.reasoning || `AI-recommended ${suggestion.tier} tier pricing based on competitive market analysis`,
       suggestion.currency || 'EUR'
     ]);
 

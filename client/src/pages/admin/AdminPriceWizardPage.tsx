@@ -1,4 +1,20 @@
 import React, { useState, useEffect } from 'react';
+// Utility to summarize reasoning (first sentence or up to 180 chars)
+function summarizeReasoning(reasoning: string): string {
+  if (!reasoning) return '';
+  // Try to get first sentence
+  const match = reasoning.match(/^(.*?[.!?])\s/);
+  if (match && match[1].length < 180) return match[1];
+  // Otherwise, truncate
+  return reasoning.length > 180 ? reasoning.slice(0, 177) + '…' : reasoning;
+}
+  // Modal state for activating suggestion
+  const [showActivateModal, setShowActivateModal] = useState(false);
+  const [activateModalData, setActivateModalData] = useState<{
+    suggestion: Suggestion | null;
+    price: number | null;
+    description: string;
+  }>({ suggestion: null, price: null, description: '' });
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Search, TrendingUp, DollarSign, Eye, CheckCircle, XCircle, RefreshCw, ExternalLink, Filter, X, Loader2, MapPin, Plus } from 'lucide-react';
 
@@ -329,20 +345,34 @@ const AdminPriceWizardPage: React.FC = () => {
     }
   };
 
-  const activateSuggestion = async (suggestionId: string, adjustedPrice?: number) => {
+  // Open modal to activate suggestion
+  const openActivateModal = (suggestion: Suggestion, price?: number) => {
+    setActivateModalData({
+      suggestion,
+      price: price ?? suggestion.suggested_price,
+      description: summarizeReasoning(suggestion.reasoning)
+    });
+    setShowActivateModal(true);
+  };
+
+  // Actually activate after user confirms
+  const confirmActivateSuggestion = async () => {
+    const { suggestion, price, description } = activateModalData;
+    if (!suggestion) return;
     try {
       const response = await fetch('/api/price-wizard/activate-suggestion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          suggestionId,
-          adjustedPrice
+          suggestionId: suggestion.id,
+          adjustedPrice: price,
+          description
         })
       });
-
       if (response.ok) {
         const data = await response.json();
         alert(`Price activated and added to your Price List!\n\nService: ${data.service_name}\nPrice: €${data.activated_price}\n\nYou can now use this price when creating invoices.`);
+        setShowActivateModal(false);
         if (selectedSession) fetchSessionDetails(selectedSession);
       }
     } catch (err) {
@@ -888,7 +918,7 @@ const AdminPriceWizardPage: React.FC = () => {
                             {suggestion.status === 'pending_review' && (
                               <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
                                 <button
-                                  onClick={() => activateSuggestion(suggestion.id)}
+                                  onClick={() => openActivateModal(suggestion)}
                                   className="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 text-sm font-medium transition-colors"
                                 >
                                   <CheckCircle className="w-4 h-4" />
@@ -897,12 +927,64 @@ const AdminPriceWizardPage: React.FC = () => {
                                 <button
                                   onClick={() => {
                                     const price = prompt('Enter adjusted price:', suggestion.suggested_price.toString());
-                                    if (price) activateSuggestion(suggestion.id, parseFloat(price));
+                                    if (price) openActivateModal(suggestion, parseFloat(price));
                                   }}
                                   className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
                                 >
                                   Adjust & Activate
                                 </button>
+                                      {/* Activate Modal */}
+                                      {showActivateModal && activateModalData.suggestion && (
+                                        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                                          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+                                            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                                              <h2 className="text-lg font-bold text-gray-900">Add to Price List</h2>
+                                              <button
+                                                onClick={() => setShowActivateModal(false)}
+                                                className="text-gray-400 hover:text-gray-700"
+                                              >
+                                                <X className="w-5 h-5" />
+                                              </button>
+                                            </div>
+                                            <div className="px-6 py-4 space-y-4">
+                                              <div>
+                                                <div className="text-xs text-gray-500 mb-1">Service</div>
+                                                <div className="font-semibold text-gray-900">{activateModalData.suggestion.service_type.replace(/_/g, ' ')} ({activateModalData.suggestion.tier})</div>
+                                              </div>
+                                              <div>
+                                                <div className="text-xs text-gray-500 mb-1">Price</div>
+                                                <div className="font-semibold text-purple-700 text-lg">€{activateModalData.price?.toFixed(2)}</div>
+                                              </div>
+                                              <div>
+                                                <div className="text-xs text-gray-500 mb-1">Description (edit before saving)</div>
+                                                <textarea
+                                                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                                                  rows={3}
+                                                  value={activateModalData.description}
+                                                  onChange={e => setActivateModalData(d => ({ ...d, description: e.target.value }))}
+                                                  maxLength={300}
+                                                />
+                                                <div className="text-xs text-gray-400 text-right">{activateModalData.description.length}/300</div>
+                                              </div>
+                                              <div className="flex gap-2 mt-2">
+                                                <button
+                                                  onClick={confirmActivateSuggestion}
+                                                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                                                >
+                                                  <CheckCircle className="w-4 h-4 inline-block mr-1" />
+                                                  Confirm & Add
+                                                </button>
+                                                <button
+                                                  onClick={() => setShowActivateModal(false)}
+                                                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium"
+                                                >
+                                                  Cancel
+                                                </button>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
                                 <button
                                   onClick={() => rejectSuggestion(suggestion.id)}
                                   className="px-3 py-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-red-100 hover:text-red-600 flex items-center gap-2 text-sm transition-colors"
