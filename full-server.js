@@ -5241,6 +5241,7 @@ When users ask about "this week", "this month", "today", "yesterday", etc., alwa
 
     // SIMPLE INVOICE UPDATE - direct endpoint without legacy routing
     if (pathname === '/api/invoices/update' && req.method === 'POST') {
+      console.log('🎯 Hit /api/invoices/update endpoint');
       let body = '';
       req.on('data', chunk => { body += chunk.toString(); });
       req.on('end', async () => {
@@ -10505,7 +10506,8 @@ New Age Fotografie Team`;
             }
             
             const invoice = invoices[0];
-            console.log('📄 Invoice data:', JSON.stringify(invoice, null, 2));
+            console.log('📄 Invoice raw data keys:', Object.keys(invoice));
+            console.log('📄 Invoice client_id:', invoice.client_id);
             
             // Get invoice items
             const items = await sql`
