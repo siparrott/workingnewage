@@ -4071,9 +4071,11 @@ Bitte versuchen Sie es später noch einmal.`;
         isPublic: gallery.is_public,
         updatedAt: gallery.updated_at
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating gallery:', error);
-      res.status(500).json({ error: "Failed to update gallery" });
+      console.error('Error message:', error?.message);
+      console.error('Error stack:', error?.stack);
+      res.status(500).json({ error: error?.message || "Failed to update gallery" });
     }
   });
 
