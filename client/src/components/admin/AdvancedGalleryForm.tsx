@@ -723,15 +723,54 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
         <h3 className="text-lg font-medium text-gray-900 mb-4">Gallery Preview</h3>
         
         <div className="bg-white border border-gray-200 rounded-lg p-6">
-          {/* Gallery Header */}
+          {/* Gallery Cover Preview - Shows exactly how the cover will look */}
           <div className="mb-6">            {coverImageUrl && (
-              <div className="mb-4 flex justify-center bg-gray-100 rounded-lg overflow-hidden">
+              <div className="mb-4 relative bg-gray-100 rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}>
                 <img
                   src={coverImageUrl}
                   alt="Cover"
-                  className="max-w-full max-h-64 object-cover"
-                  style={{ objectPosition: `${coverPosition.x}% ${coverPosition.y}%` }}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{ 
+                    objectPosition: `${coverPosition.x}% ${coverPosition.y}%`,
+                    transform: `scale(${coverScale / 100})`,
+                    transformOrigin: `${coverPosition.x}% ${coverPosition.y}%`
+                  }}
                 />
+                {/* Cover overlay with title - shows template styling */}
+                {coverTemplate && (
+                  <div className={`absolute inset-0 flex items-center justify-center ${
+                    coverTemplate.overlay === 'dark' ? 'bg-black/40' :
+                    coverTemplate.overlay === 'light' ? 'bg-white/30' :
+                    coverTemplate.overlay === 'gradient-bottom' ? 'bg-gradient-to-t from-black/70 via-transparent to-transparent' :
+                    coverTemplate.overlay === 'gradient-top' ? 'bg-gradient-to-b from-black/70 via-transparent to-transparent' : ''
+                  }`}>
+                    <div className="text-center">
+                      <h2 className={`text-white font-medium drop-shadow-lg ${
+                        coverTemplate.titleSize === 'xlarge' ? 'text-3xl md:text-4xl' :
+                        coverTemplate.titleSize === 'large' ? 'text-2xl md:text-3xl' :
+                        coverTemplate.titleSize === 'medium' ? 'text-xl md:text-2xl' : 'text-lg md:text-xl'
+                      } ${
+                        coverTemplate.fontStyle === 'elegant' ? 'tracking-widest uppercase' :
+                        coverTemplate.fontStyle === 'bold' ? 'font-bold' :
+                        coverTemplate.fontStyle === 'minimal' ? 'font-light tracking-[0.2em]' : ''
+                      }`}>
+                        {formData.title}
+                      </h2>
+                      {coverTemplate.showSubtitle && coverTemplate.subtitle && (
+                        <p className="text-white/80 text-sm mt-2 tracking-wider">{coverTemplate.subtitle}</p>
+                      )}
+                      {coverTemplate.showButton && (
+                        <button className={`mt-4 ${
+                          coverTemplate.buttonStyle === 'solid' ? 'bg-white text-gray-900 px-6 py-2' :
+                          coverTemplate.buttonStyle === 'outline' ? 'border-2 border-white text-white px-6 py-2' :
+                          'bg-white text-gray-900 px-6 py-2 rounded-full'
+                        } text-sm font-medium`}>
+                          OPEN GALLERY
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             
