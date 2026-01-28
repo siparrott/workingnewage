@@ -20,130 +20,113 @@ import { Search, TrendingUp, DollarSign, Eye, CheckCircle, XCircle, RefreshCw, E
 
 // Available services for price research
 const AVAILABLE_SERVICES = [
-  { id: 'family', label: 'Family Photography' },
-  { id: 'wedding', label: 'Wedding Photography' },
-  { id: 'newborn', label: 'Newborn Photography' },
-  { id: 'portrait', label: 'Portrait Photography' },
-  { id: 'corporate', label: 'Corporate / Business' },
-  { id: 'event', label: 'Event Photography' },
-];
+                        return (
+                          <div key={suggestion.id} className="p-6 mb-6 bg-gradient-to-br from-white via-gray-50 to-purple-50 rounded-2xl shadow-lg border border-gray-100">
+                            {/* Header with service type, tier, and price */}
+                            <div className="flex justify-between items-center mb-4">
+                              <div className="flex items-center gap-3">
+                                <span className="text-xl font-bold text-gray-900 capitalize tracking-tight">
+                                  {suggestion.service_type.replace(/_/g, ' ')}
+                                </span>
+                                {getTierBadge(suggestion.tier)}
+                              </div>
+                              <div className="text-right">
+                                <div className="text-4xl font-extrabold text-purple-700 drop-shadow-sm">
+                                  €{Number(suggestion.suggested_price).toFixed(2)}
+                                </div>
+                                <div className="text-xs text-gray-400 mt-1 font-medium">
+                                  Recommended price
+                                </div>
+                              </div>
+                            </div>
 
-interface PriceSession {
-  id: string;
-  location: string;
-  services: string[];
-  status: 'discovering' | 'scraping' | 'analyzing' | 'completed' | 'failed';
-  competitors_found: number;
-  prices_extracted: number;
-  suggestions_generated: number;
-  created_at: string;
-  updated_at: string;
-}
+                            {/* Market Position Bar */}
+                            <div className="mb-5 bg-gray-100 rounded-lg p-3 shadow-inner">
+                              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                <span>Min: €{suggestion.market_min}</span>
+                                <span className="font-semibold text-gray-700">Median: €{suggestion.market_median}</span>
+                                <span>Max: €{suggestion.market_max}</span>
+                              </div>
+                              <div className="relative h-2 bg-gray-300 rounded-full">
+                                <div 
+                                  className="absolute h-2 bg-gradient-to-r from-green-400 via-yellow-400 to-red-400 rounded-full"
+                                  style={{ width: '100%' }}
+                                />
+                                <div 
+                                  className="absolute w-4 h-4 bg-purple-600 rounded-full border-2 border-white shadow-md transform -translate-y-1/4"
+                                  style={{ left: `${Math.min(Math.max(percentilePosition, 0), 100)}%`, marginLeft: '-8px' }}
+                                  title={`Your price: €${suggestion.suggested_price}`}
+                                />
+                              </div>
+                              <div className="text-center text-xs text-purple-700 font-semibold mt-2">
+                                Positioned at {percentilePosition}th percentile
+                              </div>
+                            </div>
 
-interface Competitor {
-  id: string;
-  competitor_name: string;
-  website_url: string;
-  location: string;
-  status: 'pending' | 'scraped' | 'failed';
-  price_count: number;
-  scraped_at?: string;
-}
+                            {/* Prioritized Bullet Points */}
+                            <ul className="space-y-2 text-base">
+                              {reasoningParts.positioning && (
+                                <li className="flex items-start gap-2">
+                                  <span className="mt-1 text-blue-500">•</span>
+                                  <span><span className="font-semibold text-gray-800">Positioning:</span> <span className="text-gray-700">{reasoningParts.positioning}</span></span>
+                                </li>
+                              )}
+                              {reasoningParts.competitiveAdvantage && (
+                                <li className="flex items-start gap-2">
+                                  <span className="mt-1 text-green-500">•</span>
+                                  <span><span className="font-semibold text-gray-800">Competitive Advantage:</span> <span className="text-gray-700">{reasoningParts.competitiveAdvantage}</span></span>
+                                </li>
+                              )}
+                              {reasoningParts.marketInsight && (
+                                <li className="flex items-start gap-2">
+                                  <span className="mt-1 text-purple-500">•</span>
+                                  <span><span className="font-semibold text-gray-800">Market Insight:</span> <span className="text-gray-700">{reasoningParts.marketInsight}</span></span>
+                                </li>
+                              )}
+                            </ul>
 
-interface Price {
-  id: string;
-  competitor_name: string;
-  service_type: string;
-  price_amount: number;
-  currency: string;
-  confidence_score: number;
-  package_name?: string;
-  website_url: string;
-}
+                            {/* Action Buttons */}
+                            {suggestion.status === 'pending_review' && (
+                              <div className="flex gap-2 mt-6 pt-4 border-t border-gray-200">
+                                <button
+                                  onClick={() => openActivateModal(suggestion)}
+                                  className="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 text-base font-semibold transition-colors shadow"
+                                >
+                                  <CheckCircle className="w-5 h-5" />
+                                  Activate
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const price = prompt('Enter adjusted price:', suggestion.suggested_price.toString());
+                                    if (price) openActivateModal(suggestion, parseFloat(price));
+                                  }}
+                                  className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-base font-semibold transition-colors shadow"
+                                >
+                                  Adjust & Activate
+                                </button>
+                                <button
+                                  onClick={() => rejectSuggestion(suggestion.id)}
+                                  className="px-3 py-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-red-100 hover:text-red-600 flex items-center gap-2 text-base transition-colors shadow"
+                                >
+                                  <XCircle className="w-5 h-5" />
+                                </button>
+                              </div>
+                            )}
 
-interface Suggestion {
-  id: string;
-  service_type: string;
-  tier: 'basic' | 'standard' | 'premium';
-  suggested_price: number;
-  market_min: number;
-  market_median: number;
-  market_max: number;
-  reasoning: string;
-  status: 'pending_review' | 'activated' | 'rejected';
-  activated_product_id?: string;
-}
+                            {suggestion.status === 'activated' && (
+                              <div className="flex items-center gap-2 text-base text-green-700 mt-6 pt-4 border-t border-gray-200 bg-green-50 -mx-6 -mb-6 px-6 py-3 rounded-b-2xl font-semibold">
+                                <CheckCircle className="w-5 h-5" />
+                                <span>Activated to price list</span>
+                              </div>
+                            )}
 
-const AdminPriceWizardPage: React.FC = () => {
-  const [sessions, setSessions] = useState<PriceSession[]>([]);
-  const [selectedSession, setSelectedSession] = useState<string | null>(null);
-  const [competitors, setCompetitors] = useState<Competitor[]>([]);
-  const [prices, setPrices] = useState<Price[]>([]);
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-
-  // New Research Modal State
-  const [showNewResearchModal, setShowNewResearchModal] = useState(false);
-  const [newResearchLocation, setNewResearchLocation] = useState('Wien');
-  const [newResearchServices, setNewResearchServices] = useState<string[]>(['family', 'portrait']);
-  const [isResearching, setIsResearching] = useState(false);
-  const [researchProgress, setResearchProgress] = useState<string>('');
-
-  // Manual Price Entry Modal State
-  const [showManualPriceModal, setShowManualPriceModal] = useState(false);
-  const [manualPriceCompetitor, setManualPriceCompetitor] = useState<Competitor | null>(null);
-  const [manualPriceService, setManualPriceService] = useState('');
-  const [manualPriceAmount, setManualPriceAmount] = useState('');
-  const [manualPriceNotes, setManualPriceNotes] = useState('');
-  const [isAddingPrice, setIsAddingPrice] = useState(false);
-
-  useEffect(() => {
-    fetchSessions();
-  }, []);
-
-  useEffect(() => {
-    if (selectedSession) {
-      fetchSessionDetails(selectedSession);
-    }
-  }, [selectedSession]);
-
-  // Auto-refresh for active sessions
-  useEffect(() => {
-    const selectedSessionData = sessions.find(s => s.id === selectedSession);
-    if (selectedSessionData && ['discovering', 'scraping', 'analyzing'].includes(selectedSessionData.status)) {
-      const interval = setInterval(() => {
-        fetchSessions();
-        if (selectedSession) {
-          fetchSessionDetails(selectedSession);
-        }
-      }, 3000); // Refresh every 3 seconds
-      return () => clearInterval(interval);
-    }
-  }, [selectedSession, sessions]);
-
-  const fetchSessions = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/price-wizard/sessions');
-      if (response.ok) {
-        const data = await response.json();
-        setSessions(data || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch sessions:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchSessionDetails = async (sessionId: string) => {
-    try {
-      const [competitorsRes, pricesRes, suggestionsRes] = await Promise.all([
-        fetch(`/api/price-wizard/competitors/${sessionId}`),
-        fetch(`/api/price-wizard/prices/${sessionId}`),
-        fetch(`/api/price-wizard/suggestions/${sessionId}`)
-      ]);
+                            {suggestion.status === 'rejected' && (
+                              <div className="text-base text-red-700 mt-6 pt-4 border-t border-gray-200 bg-red-50 -mx-6 -mb-6 px-6 py-3 rounded-b-2xl font-semibold">
+                                Rejected
+                              </div>
+                            )}
+                          </div>
+                        );
 
       if (competitorsRes.ok) setCompetitors(await competitorsRes.json());
       if (pricesRes.ok) setPrices(await pricesRes.json());
