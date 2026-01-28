@@ -4203,14 +4203,105 @@ Bitte versuchen Sie es später noch einmal.`;
       }
       
       // Return complete invoice with items and client
+      // Include both camelCase and snake_case for client_id for frontend compatibility
       res.json({
         ...invoice,
+        client_id: invoice.clientId, // Add snake_case version for frontend
         items,
         client
       });
     } catch (error) {
       console.error("Error fetching invoice:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Invoice edit endpoint - handles full invoice updates including items
+  app.post("/api/invoice-edit", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { invoiceId, clientId, invoiceNumber, status, dueDate, notes, footerText, items } = req.body;
+      console.log('[INVOICE-EDIT] Received update request for invoice:', invoiceId);
+      console.log('[INVOICE-EDIT] Request body:', JSON.stringify(req.body, null, 2));
+      
+      if (!invoiceId) {
+        return res.status(400).json({ ok: false, error: 'Missing invoiceId' });
+      }
+
+      // Update main invoice record
+      const updateQuery = `
+        UPDATE crm_invoices 
+        SET 
+          client_id = COALESCE($1::uuid, client_id),
+          invoice_number = COALESCE($2, invoice_number),
+          status = COALESCE($3, status),
+          due_date = COALESCE($4::timestamp, due_date),
+          notes = COALESCE($5, notes),
+          footer_text = COALESCE($6, footer_text),
+          updated_at = NOW()
+        WHERE id = $7::uuid
+        RETURNING *
+      `;
+      
+      const updateResult = await runSql(updateQuery, [
+        clientId || null,
+        invoiceNumber || null,
+        status || null,
+        dueDate || null,
+        notes || null,
+        footerText || null,
+        invoiceId
+      ]);
+      
+      if (!updateResult || updateResult.length === 0) {
+        console.log('[INVOICE-EDIT] Invoice not found:', invoiceId);
+        return res.status(404).json({ ok: false, error: 'Invoice not found' });
+      }
+      
+      console.log('[INVOICE-EDIT] Updated invoice record:', updateResult[0]);
+
+      // Update invoice items if provided
+      if (items && Array.isArray(items) && items.length > 0) {
+        console.log('[INVOICE-EDIT] Updating', items.length, 'items');
+        
+        // Delete existing items
+        await runSql('DELETE FROM crm_invoice_items WHERE invoice_id = $1::uuid', [invoiceId]);
+        
+        // Calculate totals
+        let subtotal = 0;
+        let totalTax = 0;
+        
+        // Insert new items
+        for (const item of items) {
+          const quantity = parseFloat(item.quantity) || 1;
+          const unitPrice = parseFloat(item.unitPrice) || 0;
+          const taxRate = parseFloat(item.taxRate) || 0;
+          const amount = quantity * unitPrice;
+          const taxAmount = amount * (taxRate / 100);
+          
+          subtotal += amount;
+          totalTax += taxAmount;
+          
+          await runSql(`
+            INSERT INTO crm_invoice_items (invoice_id, description, quantity, unit_price, tax_rate, amount)
+            VALUES ($1::uuid, $2, $3, $4, $5, $6)
+          `, [invoiceId, item.description || '', quantity, unitPrice, taxRate, amount]);
+        }
+        
+        // Update invoice totals
+        const total = subtotal + totalTax;
+        await runSql(`
+          UPDATE crm_invoices 
+          SET subtotal = $1, tax_amount = $2, total = $3, updated_at = NOW()
+          WHERE id = $4::uuid
+        `, [subtotal, totalTax, total, invoiceId]);
+        
+        console.log('[INVOICE-EDIT] Updated totals - subtotal:', subtotal, 'tax:', totalTax, 'total:', total);
+      }
+
+      res.json({ ok: true, success: true, invoice_id: invoiceId });
+    } catch (error: any) {
+      console.error('[INVOICE-EDIT] Error updating invoice:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Internal server error' });
     }
   });
 
