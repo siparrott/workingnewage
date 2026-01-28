@@ -10462,11 +10462,15 @@ New Age Fotografie Team`;
           req.on('end', async () => {
             try {
               const data = body ? JSON.parse(body) : {};
+              console.log('📝 Update invoice request:', invoiceId, JSON.stringify(data, null, 2));
               
               // Validate client_id - only use it if it's a valid UUID format
               const clientId = data.clientId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.clientId) 
                 ? data.clientId 
                 : null;
+              
+              // Handle date - ensure it's in proper format
+              const dueDate = data.dueDate || null;
               
               // Update the invoice - conditionally include client_id
               if (clientId) {
@@ -10474,7 +10478,7 @@ New Age Fotografie Team`;
                   UPDATE crm_invoices 
                   SET 
                     client_id = ${clientId}::uuid,
-                    due_date = ${data.dueDate},
+                    due_date = ${dueDate},
                     subtotal = ${parseFloat(data.subtotal) || 0},
                     tax_amount = ${parseFloat(data.taxAmount) || 0},
                     discount_type = ${data.discountType || 'fixed'},
@@ -10491,7 +10495,7 @@ New Age Fotografie Team`;
                 await sql`
                   UPDATE crm_invoices 
                   SET 
-                    due_date = ${data.dueDate},
+                    due_date = ${dueDate},
                     subtotal = ${parseFloat(data.subtotal) || 0},
                     tax_amount = ${parseFloat(data.taxAmount) || 0},
                     discount_type = ${data.discountType || 'fixed'},
@@ -10506,6 +10510,8 @@ New Age Fotografie Team`;
                 `;
               }
               
+              console.log('✅ Invoice updated, now updating items...');
+              
               // Delete existing items and re-insert (cast to uuid)
               await sql`DELETE FROM crm_invoice_items WHERE invoice_id = ${invoiceId}::uuid`;
               
@@ -10513,21 +10519,23 @@ New Age Fotografie Team`;
               if (data.items && data.items.length > 0) {
                 for (let i = 0; i < data.items.length; i++) {
                   const item = data.items[i];
+                  console.log('📦 Inserting item:', item);
                   await sql`
                     INSERT INTO crm_invoice_items (
                       invoice_id, description, quantity, unit_price, tax_rate, sort_order
                     ) VALUES (
-                      ${invoiceId}::uuid, ${item.description}, ${parseFloat(item.quantity) || 1}, 
+                      ${invoiceId}::uuid, ${item.description || ''}, ${parseFloat(item.quantity) || 1}, 
                       ${parseFloat(item.unitPrice) || 0}, ${parseFloat(item.taxRate) || 0}, ${i}
                     )
                   `;
                 }
               }
               
+              console.log('✅ Invoice update complete');
               res.writeHead(200, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ success: true, ok: true, invoice_id: invoiceId }));
             } catch (err) {
-              console.error('❌ Update invoice error:', err.message);
+              console.error('❌ Update invoice error:', err.message, err.stack);
               res.writeHead(500, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ success: false, error: err.message }));
             }

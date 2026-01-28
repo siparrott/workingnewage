@@ -527,12 +527,16 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
       const url = isEditing ? `/api/crm/invoices/${editingInvoice.id}` : '/api/crm/invoices';
       const method = isEditing ? 'PUT' : 'POST';
 
+      console.log('📝 Submitting invoice:', { isEditing, url, method, payload });
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+      console.log('📨 Response status:', response.status, response.ok);
       const result = await response.json();
+      console.log('📦 Response data:', result);
       if (!response.ok || (!result?.ok && !result?.success)) {
         throw new Error(result?.error || `Failed to ${isEditing ? 'update' : 'create'} invoice`);
       }
