@@ -288,7 +288,7 @@ const AVAILABLE_SERVICES = [
               </div>
             </div>
           </div>
-        )
+        );
 
         {/* Manual Price Entry Modal */}
         {showManualPriceModal && manualPriceCompetitor && (
