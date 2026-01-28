@@ -5250,29 +5250,30 @@ When users ask about "this week", "this month", "today", "yesterday", etc., alwa
         const ids = idsParam ? idsParam.split(',').map(s=>s.trim()).filter(Boolean) : [];
         const pubIds = publicIdsParam ? publicIdsParam.split(',').map(s=>s.trim()).filter(Boolean) : [];
         if (!ids.length && !pubIds.length) { res.writeHead(400, {'Content-Type':'application/json'}); res.end(JSON.stringify({ error: 'ids or public_ids required'})); return; }
-        const clauses = [];
-        const params = [];
-        if (ids.length) clauses.push(`id::text = ANY($${params.push(ids)}::text[])`);
-        if (pubIds.length) clauses.push(`public_id = ANY($${params.push(pubIds)}::text[])`);
-        const where = clauses.length ? clauses.join(' OR ') : 'FALSE';
-        const query = {
-          text: `SELECT id::text, public_id, status, payment_status, paid_at, checkout_url FROM invoices WHERE ${where}`,
-          values: params
-        };
-        // neon/sql tagged template may not accept parameterized object; fallback to dynamic IN if needed
+        
+        // Query both tables and merge results
         let rows = [];
+        
+        // Try crm_invoices first (legacy table used by /api/crm/invoices)
         try {
-          // Attempt direct sql interpolation (safe because arrays already sanitized and limited length)
-          if (ids.length || pubIds.length) {
-            rows = await sql`SELECT id::text, public_id, status, payment_status, paid_at, checkout_url FROM invoices WHERE ${ ids.length ? sql`id = ANY (${ids})` : sql`` } ${ ids.length && pubIds.length ? sql`OR` : sql`` } ${ pubIds.length ? sql`public_id = ANY (${pubIds})` : sql`` }`;
+          if (ids.length) {
+            const inIds = ids.map(v=>`'${v.replace(/'/g,"''")}'`).join(',');
+            const crmRows = await sql(`SELECT id::text, id::text as public_id, status, status as payment_status, updated_at as paid_at, NULL as checkout_url FROM crm_invoices WHERE id::text IN (${inIds})`);
+            if (crmRows && crmRows.length) rows = rows.concat(crmRows);
           }
-        } catch {
-          // Fallback naive approach (NOT recommended for huge lists; here lists are small for polling)
-          const inIds = ids.length ? `id::text IN (${ids.map(v=>`'${v.replace(/'/g,"''")}'`).join(',')})` : '';
-          const inPub = pubIds.length ? `public_id IN (${pubIds.map(v=>`'${v.replace(/'/g,"''")}'`).join(',')})` : '';
-          const where2 = [inIds,inPub].filter(Boolean).join(' OR ') || 'FALSE';
-          rows = await sql(`SELECT id::text, public_id, status, payment_status, paid_at, checkout_url FROM invoices WHERE ${where2}`);
-        }
+        } catch {}
+        
+        // Also try the new invoices table
+        try {
+          if (ids.length || pubIds.length) {
+            const inIds = ids.length ? `id::text IN (${ids.map(v=>`'${v.replace(/'/g,"''")}'`).join(',')})` : '';
+            const inPub = pubIds.length ? `public_id IN (${pubIds.map(v=>`'${v.replace(/'/g,"''")}'`).join(',')})` : '';
+            const where2 = [inIds,inPub].filter(Boolean).join(' OR ') || 'FALSE';
+            const newRows = await sql(`SELECT id::text, public_id, status, payment_status, paid_at, checkout_url FROM invoices WHERE ${where2}`);
+            if (newRows && newRows.length) rows = rows.concat(newRows);
+          }
+        } catch {}
+        
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ rows }));
       } catch (e) {
@@ -5648,7 +5649,23 @@ When users ask about "this week", "this month", "today", "yesterday", etc., alwa
             const invoice_id = body.invoice_id;
             const status = body.status;
             if (!invoice_id || !status) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'invoice_id and status required' })); return; }
-            await sql`UPDATE invoices SET status = ${status} WHERE id = ${invoice_id}`;
+            // Try updating both tables - crm_invoices (legacy) and invoices (new)
+            // The ID may exist in either table depending on how the invoice was created
+            let updated = false;
+            try {
+              const result1 = await sql`UPDATE crm_invoices SET status = ${status}, updated_at = NOW() WHERE id = ${invoice_id} RETURNING id`;
+              if (result1 && result1.length > 0) updated = true;
+            } catch {}
+            try {
+              const result2 = await sql`UPDATE invoices SET status = ${status} WHERE id = ${invoice_id} RETURNING id`;
+              if (result2 && result2.length > 0) updated = true;
+            } catch {}
+            if (!updated) {
+              // If neither table had a matching ID, return error
+              res.writeHead(404, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Invoice not found' }));
+              return;
+            }
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ ok: true }));
           } catch (e) {
