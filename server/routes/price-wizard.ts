@@ -466,7 +466,7 @@ router.get('/sessions', async (req, res) => {
 
 /**
  * POST /api/price-wizard/activate-suggestion
- * Activate a single suggestion to price list
+ * Activate a single suggestion - marks it as activated with the final price
  */
 router.post('/activate-suggestion', async (req, res) => {
   try {
@@ -493,39 +493,22 @@ router.post('/activate-suggestion', async (req, res) => {
 
     const finalPrice = adjustedPrice || suggestion.suggested_price;
 
-    // Create price list entry
-    const priceListResult = await pool.query(`
-      INSERT INTO price_lists (
-        service_name,
-        category,
-        price,
-        description,
-        active
-      ) VALUES ($1, $2, $3, $4, true)
-      RETURNING id, service_name, price
-    `, [
-      `${suggestion.service_type} (${suggestion.tier})`,
-      'Photography',
-      finalPrice,
-      suggestion.reasoning
-    ]);
-
-    const priceListItem = priceListResult.rows[0];
-
-    // Mark suggestion as activated
+    // Mark suggestion as activated with the final price
     await pool.query(`
       UPDATE price_list_suggestions
       SET 
         status = 'activated',
-        activated_product_id = $2,
+        user_adjusted_price = $2,
+        activated_at = NOW(),
         updated_at = NOW()
       WHERE id = $1
-    `, [suggestionId, priceListItem.id]);
+    `, [suggestionId, finalPrice]);
 
     res.json({
       success: true,
-      price_list_id: priceListItem.id,
-      activated_price: finalPrice
+      suggestion_id: suggestionId,
+      activated_price: finalPrice,
+      message: 'Price suggestion activated successfully'
     });
 
   } catch (error: any) {
