@@ -1,4 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
+import AdminLayout from '../../components/admin/AdminLayout';
+import { Search, TrendingUp, DollarSign, Eye, CheckCircle, XCircle, RefreshCw, ExternalLink, Filter, X, Loader2, MapPin, Plus } from 'lucide-react';
+
 // Utility to summarize reasoning (first sentence or up to 180 chars)
 function summarizeReasoning(reasoning: string): string {
   if (!reasoning) return '';
@@ -8,15 +12,6 @@ function summarizeReasoning(reasoning: string): string {
   // Otherwise, truncate
   return reasoning.length > 180 ? reasoning.slice(0, 177) + '…' : reasoning;
 }
-  // Modal state for activating suggestion
-  const [showActivateModal, setShowActivateModal] = useState(false);
-  const [activateModalData, setActivateModalData] = useState<{
-    suggestion: Suggestion | null;
-    price: number | null;
-    description: string;
-  }>({ suggestion: null, price: null, description: '' });
-import AdminLayout from '../../components/admin/AdminLayout';
-import { Search, TrendingUp, DollarSign, Eye, CheckCircle, XCircle, RefreshCw, ExternalLink, Filter, X, Loader2, MapPin, Plus } from 'lucide-react';
 
 // Available services for price research
 const AVAILABLE_SERVICES = [
@@ -27,49 +22,6 @@ const AVAILABLE_SERVICES = [
   { id: 'corporate', label: 'Corporate / Business' },
   { id: 'event', label: 'Event Photography' },
 ];
-
-                            {/* Action Buttons */}
-                            {suggestion.status === 'pending_review' && (
-                              <div className="flex gap-2 mt-6 pt-4 border-t border-gray-200">
-                                <button
-                                  onClick={() => openActivateModal(suggestion)}
-                                  className="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 text-base font-semibold transition-colors shadow"
-                                >
-                                  <CheckCircle className="w-5 h-5" />
-                                  Activate
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    const price = prompt('Enter adjusted price:', suggestion.suggested_price.toString());
-                                    if (price) openActivateModal(suggestion, parseFloat(price));
-                                  }}
-                                  className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-base font-semibold transition-colors shadow"
-                                >
-                                  Adjust & Activate
-                                </button>
-                                <button
-                                  onClick={() => rejectSuggestion(suggestion.id)}
-                                  className="px-3 py-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-red-100 hover:text-red-600 flex items-center gap-2 text-base transition-colors shadow"
-                                >
-                                  <XCircle className="w-5 h-5" />
-                                </button>
-                              </div>
-                            )}
-
-                            {suggestion.status === 'activated' && (
-                              <div className="flex items-center gap-2 text-base text-green-700 mt-6 pt-4 border-t border-gray-200 bg-green-50 -mx-6 -mb-6 px-6 py-3 rounded-b-2xl font-semibold">
-                                <CheckCircle className="w-5 h-5" />
-                                <span>Activated to price list</span>
-                              </div>
-                            )}
-
-                            {suggestion.status === 'rejected' && (
-                              <div className="text-base text-red-700 mt-6 pt-4 border-t border-gray-200 bg-red-50 -mx-6 -mb-6 px-6 py-3 rounded-b-2xl font-semibold">
-                                Rejected
-                              </div>
-                            )}
-                          </div>
-                        );
 
       if (competitorsRes.ok) setCompetitors(await competitorsRes.json());
       if (pricesRes.ok) setPrices(await pricesRes.json());
