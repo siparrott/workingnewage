@@ -49,6 +49,7 @@ const InvoicesPage: React.FC = () => {
   const [viewingInvoiceId, setViewingInvoiceId] = useState<string | null>(null);
   const [paymentTrackingInvoice, setPaymentTrackingInvoice] = useState<{ id: string; total: number; currency: string } | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
+  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchInvoices();
@@ -472,9 +473,9 @@ const InvoicesPage: React.FC = () => {
                           >
                             <Eye size={16} />
                           </button>                          <button 
-                            onClick={() => handleStatusChange(invoice.id, invoice.status === 'draft' ? 'sent' : invoice.status === 'sent' ? 'paid' : 'draft')}
-                            className="text-green-600 hover:text-green-900" 
-                            title="Change Status"
+                            onClick={() => setEditingInvoiceId(invoice.id)}
+                            className="text-yellow-600 hover:text-yellow-900" 
+                            title="Edit Invoice"
                           >
                             <Edit size={16} />
                           </button>
@@ -587,6 +588,30 @@ const InvoicesPage: React.FC = () => {
         }}
         prefillClientId={prefillClientId}
       />
+
+      {/* Edit Invoice Modal */}
+      {editingInvoiceId && (
+        <AdvancedInvoiceForm
+          isOpen={true}
+          onClose={() => setEditingInvoiceId(null)}
+          onSuccess={() => {
+            fetchInvoices();
+            setEditingInvoiceId(null);
+          }}
+          editingInvoice={invoices.find(inv => inv.id === editingInvoiceId) ? {
+            id: editingInvoiceId,
+            client_id: invoices.find(inv => inv.id === editingInvoiceId)?.client_id || '',
+            due_date: invoices.find(inv => inv.id === editingInvoiceId)?.due_date || '',
+            payment_terms: 'Net 30',
+            currency: 'EUR',
+            notes: invoices.find(inv => inv.id === editingInvoiceId)?.notes || '',
+            discount_type: 'fixed',
+            discount_value: 0,
+            discount_amount: 0,
+            items: []
+          } : undefined}
+        />
+      )}
     </AdminLayout>
   );
 };

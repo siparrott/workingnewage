@@ -10395,6 +10395,122 @@ New Age Fotografie Team`;
     // Compatibility shim for legacy CRM invoice routes
     if (pathname.startsWith('/api/crm/invoices')) {
       try {
+        // GET single invoice with items: /api/crm/invoices/:id
+        const singleIdMatch = pathname.match(/^\/api\/crm\/invoices\/([^\/]+)$/);
+        if (singleIdMatch && req.method === 'GET') {
+          const invoiceId = singleIdMatch[1];
+          try {
+            const invoices = await sql`
+              SELECT 
+                ci.*,
+                COALESCE(NULLIF(TRIM(CONCAT(cc.first_name, ' ', cc.last_name)), ''), 'Unknown Client') as client_name,
+                cc.email as client_email
+              FROM crm_invoices ci
+              LEFT JOIN crm_clients cc ON ci.client_id::text = cc.id::text
+              WHERE ci.id = ${invoiceId}
+            `;
+            
+            if (invoices.length === 0) {
+              res.writeHead(404, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Invoice not found' }));
+              return;
+            }
+            
+            const invoice = invoices[0];
+            
+            // Get invoice items
+            const items = await sql`
+              SELECT * FROM crm_invoice_items 
+              WHERE invoice_id = ${invoiceId}
+              ORDER BY sort_order
+            `;
+            
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ 
+              invoice: {
+                ...invoice,
+                due_date: invoice.due_date,
+                payment_terms: invoice.payment_terms || 'Net 30',
+                currency: invoice.currency || 'EUR',
+                notes: invoice.notes || '',
+                footer_text: invoice.footer_text || '',
+                discount_type: invoice.discount_type || 'fixed',
+                discount_value: invoice.discount_value || 0,
+                discount_amount: invoice.discount_amount || 0
+              },
+              items: items.map(item => ({
+                id: item.id,
+                description: item.description,
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                tax_rate: item.tax_rate || 0
+              }))
+            }));
+          } catch (err) {
+            console.error('❌ Get single invoice error:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: err.message }));
+          }
+          return;
+        }
+        
+        // PUT update invoice: /api/crm/invoices/:id
+        if (singleIdMatch && req.method === 'PUT') {
+          const invoiceId = singleIdMatch[1];
+          let body = '';
+          req.on('data', chunk => { body += chunk.toString(); });
+          req.on('end', async () => {
+            try {
+              const data = body ? JSON.parse(body) : {};
+              
+              // Update the invoice
+              await sql`
+                UPDATE crm_invoices 
+                SET 
+                  client_id = ${data.clientId || null},
+                  due_date = ${data.dueDate},
+                  subtotal = ${parseFloat(data.subtotal) || 0},
+                  tax_amount = ${parseFloat(data.taxAmount) || 0},
+                  discount_type = ${data.discountType || 'fixed'},
+                  discount_value = ${parseFloat(data.discountValue) || 0},
+                  discount_amount = ${parseFloat(data.discountAmount) || 0},
+                  total = ${parseFloat(data.total) || 0},
+                  status = ${data.status || 'draft'},
+                  notes = ${data.notes || ''},
+                  footer_text = ${data.footerText || ''},
+                  updated_at = NOW()
+                WHERE id = ${invoiceId}
+              `;
+              
+              // Delete existing items and re-insert
+              await sql`DELETE FROM crm_invoice_items WHERE invoice_id = ${invoiceId}`;
+              
+              // Insert updated items
+              if (data.items && data.items.length > 0) {
+                for (let i = 0; i < data.items.length; i++) {
+                  const item = data.items[i];
+                  await sql`
+                    INSERT INTO crm_invoice_items (
+                      invoice_id, description, quantity, unit_price, tax_rate, sort_order
+                    ) VALUES (
+                      ${invoiceId}, ${item.description}, ${parseFloat(item.quantity) || 1}, 
+                      ${parseFloat(item.unitPrice) || 0}, ${parseFloat(item.taxRate) || 0}, ${i}
+                    )
+                  `;
+                }
+              }
+              
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: true, ok: true, invoice_id: invoiceId }));
+            } catch (err) {
+              console.error('❌ Update invoice error:', err.message);
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          });
+          return;
+        }
+        
         // Map legacy paths to new endpoints
         // POST /api/crm/invoices -> /api/invoices
         if (pathname === '/api/crm/invoices' && req.method === 'POST') {

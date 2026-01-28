@@ -320,9 +320,58 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
     ];
   };
 
-  const loadInvoiceData = () => {
-    // This would load invoice data for editing
-    // Implementation depends on the editing flow
+  const loadInvoiceData = async () => {
+    if (!editingInvoice?.id) return;
+    
+    try {
+      setLoading(true);
+      // Fetch invoice details including items from the API
+      const response = await fetch(`/api/crm/invoices/${editingInvoice.id}`, {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const invoice = data.invoice || data;
+        const items = data.items || invoice.items || [];
+        
+        // Find the client for this invoice
+        const client = clients.find(c => c.id === invoice.client_id);
+        if (client) {
+          setClientSearch(client.name);
+        }
+        
+        // Load invoice data into form
+        setFormData({
+          client_id: invoice.client_id || '',
+          due_date: invoice.due_date ? new Date(invoice.due_date).toISOString().split('T')[0] : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          payment_terms: invoice.payment_terms || 'Net 30',
+          currency: invoice.currency || 'EUR',
+          notes: invoice.notes || '',
+          footer_text: invoice.footer_text || '',
+          discount_type: invoice.discount_type || 'fixed',
+          discount_value: parseFloat(invoice.discount_value || '0') || 0,
+          discount_amount: parseFloat(invoice.discount_amount || '0') || 0,
+          items: items.length > 0 ? items.map((item: any, index: number) => ({
+            id: item.id || String(index + 1),
+            description: item.description || '',
+            quantity: parseFloat(item.quantity) || 1,
+            unit_price: parseFloat(item.unit_price) || 0,
+            tax_rate: parseFloat(item.tax_rate) || 0
+          })) : [{
+            id: '1',
+            description: '',
+            quantity: 1,
+            unit_price: 0,
+            tax_rate: getLastUsedVatRate()
+          }]
+        });
+      }
+    } catch (err) {
+      console.error('Error loading invoice data:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const calculateItemTotal = (item: InvoiceItem) => {
@@ -473,22 +522,28 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
         }))
       };
 
-      const response = await fetch('/api/crm/invoices', {
-        method: 'POST',
+      // Check if we're editing or creating
+      const isEditing = !!editingInvoice?.id;
+      const url = isEditing ? `/api/crm/invoices/${editingInvoice.id}` : '/api/crm/invoices';
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      const created = await response.json();
-      if (!response.ok || !created?.ok) {
-        throw new Error(created?.error || 'Failed to create invoice');
+      const result = await response.json();
+      if (!response.ok || (!result?.ok && !result?.success)) {
+        throw new Error(result?.error || `Failed to ${isEditing ? 'update' : 'create'} invoice`);
       }
-      setCreatedInvoice(created);
+      setCreatedInvoice(result);
 
       // Mark as paid immediately via status update if selected
-      if (markAsPaid && created?.invoice_id) {
+      const invoiceId = isEditing ? editingInvoice.id : result?.invoice_id;
+      if (markAsPaid && invoiceId) {
         await fetch('/api/invoices/update-status', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ invoice_id: created.invoice_id, status: 'paid' })
+          body: JSON.stringify({ invoice_id: invoiceId, status: 'paid' })
         }).catch(()=>{});
       }
 
@@ -496,7 +551,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
       onClose();
     } catch (err) {
       // console.error removed
-      setError('Failed to create invoice. Please try again.');
+      setError(`Failed to ${editingInvoice?.id ? 'update' : 'create'} invoice. Please try again.`);
     } finally {
       setLoading(false);
     }
@@ -1206,12 +1261,12 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
                     {loading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                        Creating...
+                        {editingInvoice?.id ? 'Updating...' : 'Creating...'}
                       </>
                     ) : (
                       <>
                         <Check size={16} className="mr-2" />
-                        Create Invoice
+                        {editingInvoice?.id ? 'Update Invoice' : 'Create Invoice'}
                       </>
                     )}
                   </button>
