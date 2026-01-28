@@ -196,93 +196,96 @@ const AVAILABLE_SERVICES = [
 
   // ...rest of the component code...
 
-              <div className="p-6 space-y-5">
-                {/* Location Input */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <MapPin className="w-4 h-4 inline mr-1" />
-                    Location / City
-                  </label>
-                  <input
-                    type="text"
-                    value={newResearchLocation}
-                    onChange={(e) => setNewResearchLocation(e.target.value)}
-                    disabled={isResearching}
-                    placeholder="e.g., Wien, Graz, Salzburg"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:bg-gray-100"
-                  />
-                </div>
-
-                {/* Services Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <DollarSign className="w-4 h-4 inline mr-1" />
-                    Services to Research
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {AVAILABLE_SERVICES.map(service => (
-                      <button
-                        key={service.id}
-                        type="button"
-                        onClick={() => toggleService(service.id)}
-                        disabled={isResearching}
-                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                          newResearchServices.includes(service.id)
-                            ? 'bg-purple-100 text-purple-700 border-2 border-purple-400'
-                            : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
-                        } disabled:opacity-50`}
-                      >
-                        {service.label}
-                      </button>
-                    ))}
+              {/* New Research Modal Content - properly wrapped */}
+              <>
+                <div className="p-6 space-y-5">
+                  {/* Location Input */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <MapPin className="w-4 h-4 inline mr-1" />
+                      Location / City
+                    </label>
+                    <input
+                      type="text"
+                      value={newResearchLocation}
+                      onChange={(e) => setNewResearchLocation(e.target.value)}
+                      disabled={isResearching}
+                      placeholder="e.g., Wien, Graz, Salzburg"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:bg-gray-100"
+                    />
                   </div>
-                </div>
 
-                {/* Progress Indicator */}
-                {isResearching && researchProgress && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-center gap-3">
-                      <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-                      <span className="text-sm text-blue-700">{researchProgress}</span>
+                  {/* Services Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <DollarSign className="w-4 h-4 inline mr-1" />
+                      Services to Research
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {AVAILABLE_SERVICES.map(service => (
+                        <button
+                          key={service.id}
+                          type="button"
+                          onClick={() => toggleService(service.id)}
+                          disabled={isResearching}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                            newResearchServices.includes(service.id)
+                              ? 'bg-purple-100 text-purple-700 border-2 border-purple-400'
+                              : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
+                          } disabled:opacity-50`}
+                        >
+                          {service.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                )}
 
-                {/* Info Note */}
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600">
-                  <strong>How it works:</strong> The wizard will search for photographers in your area, 
-                  scrape their pricing pages, and generate 3-tier pricing recommendations (basic, standard, premium) 
-                  based on market analysis.
-                </div>
-              </div>
-
-              {/* Footer Actions */}
-              <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
-                <button
-                  onClick={() => setShowNewResearchModal(false)}
-                  disabled={isResearching}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={startNewResearch}
-                  disabled={isResearching || newResearchServices.length === 0 || !newResearchLocation.trim()}
-                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {isResearching ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Researching...
-                    </>
-                  ) : (
-                    <>
-                      <Search className="w-4 h-4" />
-                      Start Research
-                    </>
+                  {/* Progress Indicator */}
+                  {isResearching && researchProgress && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center gap-3">
+                        <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                        <span className="text-sm text-blue-700">{researchProgress}</span>
+                      </div>
+                    </div>
                   )}
-                </button>
-              </div>
+
+                  {/* Info Note */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600">
+                    <strong>How it works:</strong> The wizard will search for photographers in your area, 
+                    scrape their pricing pages, and generate 3-tier pricing recommendations (basic, standard, premium) 
+                    based on market analysis.
+                  </div>
+                </div>
+
+                {/* Footer Actions */}
+                <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                  <button
+                    onClick={() => setShowNewResearchModal(false)}
+                    disabled={isResearching}
+                    className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={startNewResearch}
+                    disabled={isResearching || newResearchServices.length === 0 || !newResearchLocation.trim()}
+                    className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {isResearching ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Researching...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="w-4 h-4" />
+                        Start Research
+                      </>
+                    )}
+                  </button>
+                </div>
+              </>
             </div>
           </div>
         )}
