@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gallery, GalleryFormData } from '../../types/gallery';
+import { Gallery, GalleryFormData, CoverTemplateSettings } from '../../types/gallery';
 import { createGallery, updateGallery, uploadGalleryImages } from '../../lib/gallery-api';
 import CoverImagePositioner from '../galleries/CoverImagePositioner';
+import GalleryCoverDesigner, { CoverSettings, COVER_TEMPLATES } from '../galleries/GalleryCoverDesigner';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -20,7 +21,8 @@ import {
   Download,
   Calendar,
   Share2,
-  Move
+  Move,
+  Palette
 } from 'lucide-react';
 
 interface GalleryFormProps {
@@ -71,7 +73,10 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [coverImageUrl, setCoverImageUrl] = useState<string>('');
   const [coverPosition, setCoverPosition] = useState<{ x: number; y: number }>({ x: 50, y: 50 });
+  const [coverScale, setCoverScale] = useState<number>(100);
+  const [coverTemplate, setCoverTemplate] = useState<CoverTemplateSettings | null>(null);
   const [showPositioner, setShowPositioner] = useState(false);
+  const [showCoverDesigner, setShowCoverDesigner] = useState(false);
 
   const steps = [
     { id: 'details', label: 'Details', icon: FileText, description: 'Gallery title and description' },
@@ -97,6 +102,8 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
       setIsPasswordProtected(gallery.isPasswordProtected || false);
       setCoverImageUrl(gallery.coverImage || '');
       setCoverPosition(gallery.coverPosition || { x: 50, y: 50 });
+      setCoverScale(gallery.coverScale || 100);
+      setCoverTemplate(gallery.coverTemplate || null);
       if (gallery.id) {
         fetchUploadedImages(gallery.id);
       }
@@ -247,6 +254,8 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
         downloadEnabled: formData.downloadEnabled,
         coverImage: coverImage,
         coverPosition: coverPosition,
+        coverScale: coverScale,
+        coverTemplate: coverTemplate || undefined,
         isPublic: true,
       };
       
@@ -387,7 +396,40 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
           Cover Image <span className="text-gray-400">(optional)</span>
         </label>        {coverImageUrl ? (
           <div className="space-y-4">
-            {showPositioner ? (
+            {showCoverDesigner ? (
+              <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 overflow-auto">
+                <GalleryCoverDesigner
+                  imageUrl={coverImageUrl}
+                  galleryTitle={formData.title || 'Gallery Title'}
+                  initialSettings={{
+                    template: coverTemplate ? COVER_TEMPLATES.find(t => t.id === coverTemplate.templateId) || COVER_TEMPLATES[0] : COVER_TEMPLATES[0],
+                    imagePosition: coverPosition,
+                    imageScale: coverScale,
+                    title: formData.title,
+                    subtitle: coverTemplate?.subtitle || 'NEW AGE FOTOGRAFIE'
+                  }}
+                  onSave={(settings: CoverSettings) => {
+                    setCoverPosition(settings.imagePosition);
+                    setCoverScale(settings.imageScale);
+                    setCoverTemplate({
+                      templateId: settings.template.id,
+                      textPosition: settings.template.textPosition,
+                      textAlignment: settings.template.textAlignment,
+                      overlay: settings.template.overlay,
+                      titleSize: settings.template.titleSize,
+                      showSubtitle: settings.template.showSubtitle,
+                      showButton: settings.template.showButton,
+                      buttonStyle: settings.template.buttonStyle,
+                      fontStyle: settings.template.fontStyle,
+                      imageStyle: settings.template.imageStyle,
+                      subtitle: settings.subtitle
+                    });
+                    setShowCoverDesigner(false);
+                  }}
+                  onCancel={() => setShowCoverDesigner(false)}
+                />
+              </div>
+            ) : showPositioner ? (
               <CoverImagePositioner
                 imageUrl={coverImageUrl}
                 initialPosition={coverPosition}
@@ -403,9 +445,21 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
                   src={coverImageUrl}
                   alt="Cover preview"
                   className="w-full h-64 object-cover rounded-lg"
-                  style={{ objectPosition: `${coverPosition.x}% ${coverPosition.y}%` }}
+                  style={{ 
+                    objectPosition: `${coverPosition.x}% ${coverPosition.y}%`,
+                    transform: `scale(${coverScale / 100})`,
+                    transformOrigin: `${coverPosition.x}% ${coverPosition.y}%`
+                  }}
                 />
                 <div className="absolute top-2 right-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCoverDesigner(true)}
+                    className="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 shadow-lg"
+                    title="Design cover layout"
+                  >
+                    <Palette size={16} />
+                  </button>
                   <button
                     type="button"
                     onClick={() => setShowPositioner(true)}
@@ -419,6 +473,8 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
                     onClick={() => {
                       setCoverImageUrl('');
                       setCoverPosition({ x: 50, y: 50 });
+                      setCoverScale(100);
+                      setCoverTemplate(null);
                     }}
                     className="p-2 bg-red-600 text-white rounded-full hover:bg-red-700 shadow-lg"
                     title="Remove cover image"
@@ -426,8 +482,16 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
                     <X size={16} />
                   </button>
                 </div>
-                <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
-                  Position: {Math.round(coverPosition.x)}%, {Math.round(coverPosition.y)}%
+                <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded flex gap-2">
+                  <span>Position: {Math.round(coverPosition.x)}%, {Math.round(coverPosition.y)}%</span>
+                  <span>•</span>
+                  <span>Scale: {coverScale}%</span>
+                  {coverTemplate && (
+                    <>
+                      <span>•</span>
+                      <span>Template: {coverTemplate.templateId}</span>
+                    </>
+                  )}
                 </div>
               </div>
             )}

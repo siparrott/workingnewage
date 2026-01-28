@@ -1,3 +1,17 @@
+export interface CoverTemplateSettings {
+  templateId: string;
+  textPosition: 'top-left' | 'top-center' | 'top-right' | 'center' | 'bottom-left' | 'bottom-center' | 'bottom-right' | 'left-center' | 'right-center';
+  textAlignment: 'left' | 'center' | 'right';
+  overlay: 'none' | 'dark' | 'light' | 'gradient-bottom' | 'gradient-top';
+  titleSize: 'small' | 'medium' | 'large' | 'xlarge';
+  showSubtitle: boolean;
+  showButton: boolean;
+  buttonStyle: 'solid' | 'outline' | 'pill';
+  fontStyle: 'modern' | 'elegant' | 'bold' | 'minimal';
+  imageStyle: 'full' | 'left-half' | 'right-half' | 'top-half' | 'bottom-half' | 'inset';
+  subtitle?: string;
+}
+
 export interface Gallery {
   id: string;
   title: string;
@@ -5,6 +19,8 @@ export interface Gallery {
   description?: string;
   coverImage: string | null;
   coverPosition?: { x: number; y: number };
+  coverScale?: number;
+  coverTemplate?: CoverTemplateSettings;
   featuredImage?: GalleryImage | null;
   isPublic?: boolean;
   isPasswordProtected?: boolean;
@@ -118,6 +134,8 @@ export interface GalleryFormData {
   sortOrder?: number;
   coverImage?: File | null;
   coverPosition?: { x: number; y: number };
+  coverScale?: number;
+  coverTemplate?: CoverTemplateSettings;
   clientId?: string;
   isPublic?: boolean;
   isPasswordProtected?: boolean;

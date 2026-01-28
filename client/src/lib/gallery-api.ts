@@ -105,6 +105,8 @@ export async function createGallery(galleryData: GalleryFormData): Promise<Galle
       slug: slug,
       coverImage: coverImageUrl,
       coverPosition: galleryData.coverPosition || { x: 50, y: 50 },
+      coverScale: galleryData.coverScale || 100,
+      coverTemplate: galleryData.coverTemplate || null,
       client_id: galleryData.clientId,
       is_public: galleryData.isPublic,
       is_password_protected: galleryData.isPasswordProtected,

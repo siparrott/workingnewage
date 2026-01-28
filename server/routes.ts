@@ -3952,15 +3952,15 @@ Bitte versuchen Sie es später noch einmal.`;
 
   app.post("/api/galleries", authenticateUser, async (req: Request, res: Response) => {
     try {
-      const { title, description, clientId, isPublic = true, isPasswordProtected = false, password, slug, coverImage, coverPosition } = req.body;
+      const { title, description, clientId, isPublic = true, isPasswordProtected = false, password, slug, coverImage, coverPosition, coverScale, coverTemplate } = req.body;
       
       // Generate slug if not provided
       const gallerySlug = slug || title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').trim('-');
       
       const query = `
-        INSERT INTO galleries (title, description, client_id, is_public, is_password_protected, password, slug, cover_image, cover_position, created_by)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        RETURNING id, title, slug, description, cover_image, cover_position, is_public, created_at
+        INSERT INTO galleries (title, description, client_id, is_public, is_password_protected, password, slug, cover_image, cover_position, cover_scale, cover_template, created_by)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        RETURNING id, title, slug, description, cover_image, cover_position, cover_scale, cover_template, is_public, created_at
       `;
       
   const result = await runSql(query, [
@@ -3973,6 +3973,8 @@ Bitte versuchen Sie es später noch einmal.`;
         gallerySlug,
         coverImage || null,
         coverPosition ? JSON.stringify(coverPosition) : JSON.stringify({ x: 50, y: 50 }),
+        coverScale || 100,
+        coverTemplate ? JSON.stringify(coverTemplate) : null,
         req.user?.id || null
       ]);
       
@@ -3982,6 +3984,8 @@ Bitte versuchen Sie es später noch einmal.`;
         ...gallery,
         coverImage: gallery.cover_image,
         coverPosition: gallery.cover_position || { x: 50, y: 50 },
+        coverScale: gallery.cover_scale || 100,
+        coverTemplate: gallery.cover_template || null,
         isPublic: gallery.is_public,
         createdAt: gallery.created_at
       });
@@ -3998,17 +4002,19 @@ Bitte versuchen Sie es später noch einmal.`;
       const values = [];
       let paramIndex = 1;
       
-      const allowedFields = ['title', 'description', 'isPublic', 'isPasswordProtected', 'password', 'coverImage', 'coverPosition'];
+      const allowedFields = ['title', 'description', 'isPublic', 'isPasswordProtected', 'password', 'coverImage', 'coverPosition', 'coverScale', 'coverTemplate'];
       
       for (const [key, value] of Object.entries(req.body)) {
         if (allowedFields.includes(key) && value !== undefined) {
           const dbField = key === 'isPublic' ? 'is_public' : 
                          key === 'isPasswordProtected' ? 'is_password_protected' :
                          key === 'coverImage' ? 'cover_image' :
-                         key === 'coverPosition' ? 'cover_position' : key;
+                         key === 'coverPosition' ? 'cover_position' :
+                         key === 'coverScale' ? 'cover_scale' :
+                         key === 'coverTemplate' ? 'cover_template' : key;
           updates.push(`${dbField} = $${paramIndex}`);
-          // For coverPosition, ensure it's stored as JSON
-          if (key === 'coverPosition') {
+          // For coverPosition and coverTemplate, ensure they're stored as JSON
+          if (key === 'coverPosition' || key === 'coverTemplate') {
             values.push(JSON.stringify(value));
           } else {
             values.push(value);
@@ -4027,7 +4033,7 @@ Bitte versuchen Sie es später noch einmal.`;
         UPDATE galleries 
         SET ${updates.join(', ')}
         WHERE id = $${paramIndex}
-        RETURNING id, title, slug, description, cover_image, cover_position, is_public, updated_at
+        RETURNING id, title, slug, description, cover_image, cover_position, cover_scale, cover_template, is_public, updated_at
       `;
       values.push(galleryId);
       
@@ -4043,6 +4049,8 @@ Bitte versuchen Sie es später noch einmal.`;
         ...gallery,
         coverImage: gallery.cover_image,
         coverPosition: gallery.cover_position || { x: 50, y: 50 },
+        coverScale: gallery.cover_scale || 100,
+        coverTemplate: gallery.cover_template || null,
         isPublic: gallery.is_public,
         updatedAt: gallery.updated_at
       });
@@ -4108,6 +4116,8 @@ Bitte versuchen Sie es später noch einmal.`;
         ...gallery,
         coverImage: gallery.cover_image,
         coverPosition: gallery.cover_position || { x: 50, y: 50 },
+        coverScale: gallery.cover_scale || 100,
+        coverTemplate: gallery.cover_template || null,
         isPublic: gallery.is_public,
         isPasswordProtected: gallery.is_password_protected,
         clientId: gallery.client_id,

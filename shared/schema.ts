@@ -548,6 +548,31 @@ export const galleries = pgTable("galleries", {
   description: text("description"),
   coverImage: text("cover_image"),
   coverPosition: jsonb("cover_position").$type<{ x: number; y: number }>().default({ x: 50, y: 50 }),
+  coverScale: integer("cover_scale").default(100),
+  coverTemplate: jsonb("cover_template").$type<{
+    templateId: string;
+    textPosition: string;
+    textAlignment: string;
+    overlay: string;
+    titleSize: string;
+    showSubtitle: boolean;
+    showButton: boolean;
+    buttonStyle: string;
+    fontStyle: string;
+    imageStyle: string;
+    subtitle?: string;
+  }>().default({
+    templateId: 'classic-center',
+    textPosition: 'center',
+    textAlignment: 'center',
+    overlay: 'dark',
+    titleSize: 'large',
+    showSubtitle: true,
+    showButton: true,
+    buttonStyle: 'outline',
+    fontStyle: 'elegant',
+    imageStyle: 'full'
+  }),
   isPublic: boolean("is_public").default(true),
   isPasswordProtected: boolean("is_password_protected").default(false),
   password: text("password"),
