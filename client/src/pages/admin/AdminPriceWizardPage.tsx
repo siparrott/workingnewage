@@ -82,6 +82,13 @@ const AdminPriceWizardPage: React.FC = () => {
   const [manualPriceNotes, setManualPriceNotes] = useState('');
   const [isAddingPrice, setIsAddingPrice] = useState(false);
 
+  // Activation Modal State (for adding marketing description)
+  const [showActivationModal, setShowActivationModal] = useState(false);
+  const [activationSuggestion, setActivationSuggestion] = useState<Suggestion | null>(null);
+  const [activationPrice, setActivationPrice] = useState('');
+  const [activationDescription, setActivationDescription] = useState('');
+  const [isActivating, setIsActivating] = useState(false);
+
   useEffect(() => {
     fetchSessions();
   }, []);
@@ -329,14 +336,16 @@ const AdminPriceWizardPage: React.FC = () => {
     }
   };
 
-  const activateSuggestion = async (suggestionId: string, adjustedPrice?: number) => {
+  const activateSuggestion = async (suggestionId: string, adjustedPrice?: number, description?: string) => {
     try {
+      setIsActivating(true);
       const response = await fetch('/api/price-wizard/activate-suggestion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           suggestionId,
-          adjustedPrice
+          adjustedPrice,
+          description
         })
       });
 
@@ -344,10 +353,30 @@ const AdminPriceWizardPage: React.FC = () => {
         const data = await response.json();
         alert(`Price activated and added to your Price List!\n\nService: ${data.service_name}\nPrice: €${data.activated_price}\n\nYou can now use this price when creating invoices.`);
         if (selectedSession) fetchSessionDetails(selectedSession);
+        setShowActivationModal(false);
+        setActivationSuggestion(null);
+        setActivationPrice('');
+        setActivationDescription('');
       }
     } catch (err) {
       alert('Failed to activate price');
+    } finally {
+      setIsActivating(false);
     }
+  };
+
+  // Open activation modal with pre-filled data
+  const openActivationModal = (suggestion: Suggestion, withAdjust?: boolean) => {
+    setActivationSuggestion(suggestion);
+    setActivationPrice(suggestion.suggested_price.toString());
+    // Generate a simple marketing description based on tier
+    const tierDescriptions: Record<string, string> = {
+      basic: `Professional ${suggestion.service_type.replace(/_/g, ' ')} session - perfect for those seeking quality photography at an accessible price point.`,
+      standard: `Our most popular ${suggestion.service_type.replace(/_/g, ' ')} package - ideal balance of quality, service, and value.`,
+      premium: `Luxury ${suggestion.service_type.replace(/_/g, ' ')} experience - comprehensive service with premium features and dedicated attention.`
+    };
+    setActivationDescription(tierDescriptions[suggestion.tier] || `Professional ${suggestion.service_type.replace(/_/g, ' ')} service`);
+    setShowActivationModal(true);
   };
 
   const rejectSuggestion = async (suggestionId: string) => {
@@ -888,17 +917,14 @@ const AdminPriceWizardPage: React.FC = () => {
                             {suggestion.status === 'pending_review' && (
                               <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
                                 <button
-                                  onClick={() => activateSuggestion(suggestion.id)}
+                                  onClick={() => openActivationModal(suggestion)}
                                   className="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 text-sm font-medium transition-colors"
                                 >
                                   <CheckCircle className="w-4 h-4" />
                                   Activate
                                 </button>
                                 <button
-                                  onClick={() => {
-                                    const price = prompt('Enter adjusted price:', suggestion.suggested_price.toString());
-                                    if (price) activateSuggestion(suggestion.id, parseFloat(price));
-                                  }}
+                                  onClick={() => openActivationModal(suggestion, true)}
                                   className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
                                 >
                                   Adjust & Activate
@@ -1103,6 +1129,121 @@ const AdminPriceWizardPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Activation Modal - Add Marketing Description */}
+      {showActivationModal && activationSuggestion && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full">
+            <div className="bg-gradient-to-r from-green-600 to-teal-600 px-6 py-4 rounded-t-xl">
+              <h2 className="text-xl font-bold text-white">Activate Price</h2>
+              <p className="text-green-100 text-sm mt-1">
+                Add to your price list for invoicing
+              </p>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* Service Info */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="font-semibold text-gray-900 capitalize">
+                      {activationSuggestion.service_type.replace(/_/g, ' ')}
+                    </h3>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      activationSuggestion.tier === 'basic' ? 'bg-gray-200 text-gray-700' :
+                      activationSuggestion.tier === 'standard' ? 'bg-blue-100 text-blue-700' :
+                      'bg-purple-100 text-purple-700'
+                    }`}>
+                      {activationSuggestion.tier}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">Recommended</p>
+                    <p className="text-xl font-bold text-green-600">€{Number(activationSuggestion.suggested_price).toFixed(2)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Price Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Final Price (EUR)
+                </label>
+                <input
+                  type="number"
+                  value={activationPrice}
+                  onChange={(e) => setActivationPrice(e.target.value)}
+                  disabled={isActivating}
+                  min="0"
+                  step="10"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all disabled:bg-gray-100"
+                />
+              </div>
+
+              {/* Marketing Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Client-Facing Description
+                </label>
+                <textarea
+                  value={activationDescription}
+                  onChange={(e) => setActivationDescription(e.target.value)}
+                  disabled={isActivating}
+                  rows={3}
+                  placeholder="Enter a short marketing description for your clients..."
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all disabled:bg-gray-100 resize-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  This description will be shown to clients in invoices. The market research data stays private.
+                </p>
+              </div>
+
+              {/* Info Note */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
+                <strong>Note:</strong> The competitive analysis and market insights will remain private in the Price Wizard. Only the description above will be visible to clients.
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 rounded-b-xl">
+              <button
+                onClick={() => {
+                  setShowActivationModal(false);
+                  setActivationSuggestion(null);
+                }}
+                disabled={isActivating}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const price = parseFloat(activationPrice);
+                  if (isNaN(price) || price <= 0) {
+                    alert('Please enter a valid price');
+                    return;
+                  }
+                  activateSuggestion(activationSuggestion.id, price, activationDescription);
+                }}
+                disabled={isActivating || !activationPrice || !activationDescription.trim()}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isActivating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Activating...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    Activate & Add to Price List
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 };
