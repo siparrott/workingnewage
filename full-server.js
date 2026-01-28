@@ -10463,24 +10463,48 @@ New Age Fotografie Team`;
             try {
               const data = body ? JSON.parse(body) : {};
               
-              // Update the invoice (cast to uuid)
-              await sql`
-                UPDATE crm_invoices 
-                SET 
-                  client_id = ${data.clientId || null}::uuid,
-                  due_date = ${data.dueDate},
-                  subtotal = ${parseFloat(data.subtotal) || 0},
-                  tax_amount = ${parseFloat(data.taxAmount) || 0},
-                  discount_type = ${data.discountType || 'fixed'},
-                  discount_value = ${parseFloat(data.discountValue) || 0},
-                  discount_amount = ${parseFloat(data.discountAmount) || 0},
-                  total = ${parseFloat(data.total) || 0},
-                  status = ${data.status || 'draft'},
-                  notes = ${data.notes || ''},
-                  footer_text = ${data.footerText || ''},
-                  updated_at = NOW()
-                WHERE id = ${invoiceId}::uuid
-              `;
+              // Validate client_id - only use it if it's a valid UUID format
+              const clientId = data.clientId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.clientId) 
+                ? data.clientId 
+                : null;
+              
+              // Update the invoice - conditionally include client_id
+              if (clientId) {
+                await sql`
+                  UPDATE crm_invoices 
+                  SET 
+                    client_id = ${clientId}::uuid,
+                    due_date = ${data.dueDate},
+                    subtotal = ${parseFloat(data.subtotal) || 0},
+                    tax_amount = ${parseFloat(data.taxAmount) || 0},
+                    discount_type = ${data.discountType || 'fixed'},
+                    discount_value = ${parseFloat(data.discountValue) || 0},
+                    discount_amount = ${parseFloat(data.discountAmount) || 0},
+                    total = ${parseFloat(data.total) || 0},
+                    status = ${data.status || 'draft'},
+                    notes = ${data.notes || ''},
+                    footer_text = ${data.footerText || ''},
+                    updated_at = NOW()
+                  WHERE id = ${invoiceId}::uuid
+                `;
+              } else {
+                await sql`
+                  UPDATE crm_invoices 
+                  SET 
+                    due_date = ${data.dueDate},
+                    subtotal = ${parseFloat(data.subtotal) || 0},
+                    tax_amount = ${parseFloat(data.taxAmount) || 0},
+                    discount_type = ${data.discountType || 'fixed'},
+                    discount_value = ${parseFloat(data.discountValue) || 0},
+                    discount_amount = ${parseFloat(data.discountAmount) || 0},
+                    total = ${parseFloat(data.total) || 0},
+                    status = ${data.status || 'draft'},
+                    notes = ${data.notes || ''},
+                    footer_text = ${data.footerText || ''},
+                    updated_at = NOW()
+                  WHERE id = ${invoiceId}::uuid
+                `;
+              }
               
               // Delete existing items and re-insert (cast to uuid)
               await sql`DELETE FROM crm_invoice_items WHERE invoice_id = ${invoiceId}::uuid`;

@@ -6,16 +6,25 @@ const sql = neon.neon(process.env.DATABASE_URL);
 
 (async () => {
   try {
-    // Clean up the Family Portrait item description - keep only the marketing description
+    // Test invoice update with a sample ID
+    const testId = '8cadb2f2-055a-4306-98c6-ff10b75b0b6d'; // From the URL in screenshot
+    
+    // Try to update
+    console.log('Testing update for invoice:', testId);
+    
     const result = await sql`
-      UPDATE price_list_items 
-      SET description = 'Professional family portrait session with high-quality prints included'
-      WHERE name = 'Family Portrait (standard)'
-      RETURNING name, description
+      UPDATE crm_invoices 
+      SET 
+        notes = ${'Test update'},
+        updated_at = NOW()
+      WHERE id = ${testId}::uuid
+      RETURNING id, notes
     `;
-    console.log('Updated:', JSON.stringify(result, null, 2));
+    
+    console.log('Update result:', JSON.stringify(result, null, 2));
     
   } catch (e) {
     console.log('Error:', e.message);
+    console.log('Full error:', e);
   }
 })();
