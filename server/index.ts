@@ -58,9 +58,9 @@ let serverInstance: any = null;
 
 // Behind reverse proxies (Heroku/Render/etc.) trust the first proxy so secure cookies work when appropriate
 app.set('trust proxy', 1);
-// Increase body size limits to accommodate large ICS payloads
-app.use(express.json({ limit: '5mb' }));
-app.use(express.urlencoded({ extended: false, limit: '5mb' }));
+// Increase body size limits to accommodate large image payloads (base64 encoded images can be 10MB+)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
 // Add CORS headers for API requests
 app.use((req, res, next) => {
