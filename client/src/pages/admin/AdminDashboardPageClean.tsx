@@ -450,9 +450,52 @@ const AdminDashboardPage: React.FC = () => {
   if (loading) {
     return (
       <AdminLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+        <div className="flex flex-col items-center justify-center min-h-[60vh]">
+          {/* Animated Logo/Icon */}
+          <div className="relative mb-8">
+            <div className="w-20 h-20 rounded-full bg-purple-100 flex items-center justify-center">
+              <Camera className="w-10 h-10 text-purple-600 animate-pulse" />
+            </div>
+            <div className="absolute inset-0 w-20 h-20 rounded-full border-4 border-purple-200 border-t-purple-600 animate-spin"></div>
+          </div>
+          
+          {/* Loading Text */}
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Dashboard</h2>
+          <p className="text-gray-500 mb-6">Gathering your business insights...</p>
+          
+          {/* Progress Bar */}
+          <div className="w-64 h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-purple-500 to-purple-600 rounded-full animate-loading-bar"></div>
+          </div>
+          
+          {/* Loading Steps */}
+          <div className="mt-8 space-y-2 text-sm text-gray-500">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
+              <span>Fetching revenue data</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+              <span>Loading client information</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-purple-300 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+              <span>Preparing charts</span>
+            </div>
+          </div>
         </div>
+        
+        {/* Add the animation keyframes as inline style */}
+        <style>{`
+          @keyframes loading-bar {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+          }
+          .animate-loading-bar {
+            animation: loading-bar 2s ease-in-out infinite;
+          }
+        `}</style>
       </AdminLayout>
     );
   }
