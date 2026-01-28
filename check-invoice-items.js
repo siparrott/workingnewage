@@ -6,9 +6,12 @@ const sql = neon.neon(process.env.DATABASE_URL);
 
 (async () => {
   try {
-    // Check crm_invoice_items columns
-    const cols = await sql`SELECT column_name, data_type, column_default FROM information_schema.columns WHERE table_name='crm_invoice_items'`;
-    console.log('crm_invoice_items structure:', JSON.stringify(cols, null, 2));
+    // Check all price list items
+    const items = await sql`SELECT name, LEFT(description, 100) as desc_preview, LENGTH(description) as desc_length FROM price_list_items WHERE is_active = true ORDER BY LENGTH(description) DESC LIMIT 10`;
+    console.log('Price list items by description length:');
+    items.forEach(item => {
+      console.log(`- ${item.name}: ${item.desc_length} chars - "${item.desc_preview}..."`);
+    });
     
   } catch (e) {
     console.log('Error:', e.message);

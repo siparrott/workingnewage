@@ -220,28 +220,16 @@ const InvoicesPage: React.FC = () => {
     try {
       if (!invoiceId) throw new Error('Missing invoice ID');
       
-      // Use the PDF generation endpoint
-      const response = await fetch(`/api/crm/invoices/${invoiceId}/pdf`, {
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('PDF download error:', errorText);
-        throw new Error('Failed to generate PDF');
+      // Open the invoice page in a new window - user can print to PDF from there
+      const printWindow = window.open(`/inv/${invoiceId}`, '_blank');
+      if (printWindow) {
+        // Give the page time to load, then trigger print dialog
+        printWindow.onload = () => {
+          setTimeout(() => {
+            printWindow.print();
+          }, 500);
+        };
       }
-      
-      // Get the HTML content and trigger download
-      const htmlContent = await response.text();
-      const blob = new Blob([htmlContent], { type: 'text/html' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Invoice-${invoiceNumber || invoiceId}.html`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      a.remove();
       
     } catch (error) {
       alert('PDF download failed. Please try again.');
