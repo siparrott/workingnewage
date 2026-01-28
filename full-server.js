@@ -10400,15 +10400,34 @@ New Age Fotografie Team`;
         if (singleIdMatch && req.method === 'GET') {
           const invoiceId = singleIdMatch[1];
           try {
+            console.log('📥 Fetching invoice:', invoiceId);
             const invoices = await sql`
               SELECT 
-                ci.*,
+                ci.id,
+                ci.invoice_number,
+                ci.client_id,
+                ci.issue_date,
+                ci.due_date,
+                ci.subtotal,
+                ci.tax_amount,
+                ci.total,
+                ci.status,
+                ci.notes,
+                ci.currency,
+                ci.payment_terms,
+                ci.discount_amount,
+                ci.discount_type,
+                ci.discount_value,
+                ci.footer_text,
+                ci.public_id,
                 COALESCE(NULLIF(TRIM(CONCAT(cc.first_name, ' ', cc.last_name)), ''), 'Unknown Client') as client_name,
                 cc.email as client_email
               FROM crm_invoices ci
               LEFT JOIN crm_clients cc ON ci.client_id::text = cc.id::text
               WHERE ci.id = ${invoiceId}::uuid
             `;
+            
+            console.log('📦 Invoice query result:', invoices.length, 'rows');
             
             if (invoices.length === 0) {
               res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -10417,6 +10436,7 @@ New Age Fotografie Team`;
             }
             
             const invoice = invoices[0];
+            console.log('📄 Invoice data:', JSON.stringify(invoice, null, 2));
             
             // Get invoice items
             const items = await sql`
@@ -10425,10 +10445,10 @@ New Age Fotografie Team`;
               ORDER BY sort_order
             `;
             
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ 
+            const responseData = { 
               invoice: {
                 ...invoice,
+                client_id: invoice.client_id, // Explicitly include client_id
                 due_date: invoice.due_date,
                 payment_terms: invoice.payment_terms || 'Net 30',
                 currency: invoice.currency || 'EUR',
@@ -10445,7 +10465,10 @@ New Age Fotografie Team`;
                 unit_price: item.unit_price,
                 tax_rate: item.tax_rate || 0
               }))
-            }));
+            };
+            console.log('📤 Sending response with client_id:', responseData.invoice.client_id);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(responseData));
           } catch (err) {
             console.error('❌ Get single invoice error:', err.message);
             res.writeHead(500, { 'Content-Type': 'application/json' });
