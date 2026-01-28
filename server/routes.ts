@@ -4021,8 +4021,6 @@ Bitte versuchen Sie es später noch einmal.`;
         'cover_template': 'cover_template',
         'clientId': 'client_id',
         'client_id': 'client_id',
-        'downloadEnabled': 'download_enabled',
-        'download_enabled': 'download_enabled',
       };
       
       const processedFields = new Set<string>(); // Avoid duplicate updates
@@ -4052,7 +4050,7 @@ Bitte versuchen Sie es später noch einmal.`;
         UPDATE galleries 
         SET ${updates.join(', ')}
         WHERE id = $${paramIndex}
-        RETURNING id, title, slug, description, cover_image, cover_position, cover_scale, cover_template, is_public, download_enabled, updated_at
+        RETURNING id, title, slug, description, cover_image, cover_position, cover_scale, cover_template, is_public, updated_at
       `;
       values.push(galleryId);
       
