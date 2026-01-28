@@ -133,6 +133,7 @@ export interface GalleryFormData {
   isFeatured?: boolean;
   sortOrder?: number;
   coverImage?: File | null;
+  coverImageUrl?: string; // Existing cover image URL (for updates without new file)
   coverPosition?: { x: number; y: number };
   coverScale?: number;
   coverTemplate?: CoverTemplateSettings;

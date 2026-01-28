@@ -254,10 +254,12 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
         isPasswordProtected: isPasswordProtected,
         downloadEnabled: formData.downloadEnabled,
         coverImage: coverImage,
+        coverImageUrl: coverImageUrl, // Send existing URL if no new file
         coverPosition: coverPosition,
         coverScale: coverScale,
         coverTemplate: coverTemplate || undefined,
         isPublic: true,
+        clientId: formData.clientId || undefined,
       };
       
       let galleryId: string;

@@ -141,12 +141,46 @@ export async function createGallery(galleryData: GalleryFormData): Promise<Galle
 // Update an existing gallery (admin only)
 export async function updateGallery(id: string, galleryData: GalleryFormData): Promise<Gallery> {
   try {
+    // Handle cover image conversion to data URL if a new file is provided
+    let coverImageUrl = galleryData.coverImageUrl || null; // Use existing URL by default
+    
+    if (galleryData.coverImage) {
+      try {
+        const reader = new FileReader();
+        const dataUrlPromise = new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(galleryData.coverImage!);
+        });
+        
+        coverImageUrl = await dataUrlPromise;
+      } catch (uploadError) {
+        console.error('Cover image conversion error:', uploadError);
+      }
+    }
+
+    // Prepare the data for the backend API
+    const apiData = {
+      title: galleryData.title,
+      description: galleryData.description || null,
+      coverImage: coverImageUrl,
+      coverPosition: galleryData.coverPosition || { x: 50, y: 50 },
+      coverScale: galleryData.coverScale || 100,
+      coverTemplate: galleryData.coverTemplate || null,
+      client_id: galleryData.clientId,
+      is_public: galleryData.isPublic,
+      is_password_protected: galleryData.isPasswordProtected,
+      password: galleryData.password,
+      download_enabled: galleryData.downloadEnabled,
+    };
+
     const response = await fetch(`/api/galleries/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(galleryData),
+      credentials: 'include',
+      body: JSON.stringify(apiData),
     });
 
     if (!response.ok) {
