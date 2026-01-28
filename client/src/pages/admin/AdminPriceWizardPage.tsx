@@ -147,7 +147,7 @@ const AVAILABLE_SERVICES = [
         setShowManualPriceModal(false);
         if (selectedSession) {
           fetchSessionDetails(selectedSession);
-        }
+        )
       } else {
         const data = await response.json();
         alert(`Failed to add price: ${data.error || 'Unknown error'}`);
