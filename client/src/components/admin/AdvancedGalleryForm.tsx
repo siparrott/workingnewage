@@ -23,7 +23,9 @@ import {
   Calendar,
   Share2,
   Move,
-  Palette
+  Palette,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 
 interface GalleryFormProps {
@@ -78,6 +80,7 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
   const [coverTemplate, setCoverTemplate] = useState<CoverTemplateSettings | null>(null);
   const [showPositioner, setShowPositioner] = useState(false);
   const [showCoverDesigner, setShowCoverDesigner] = useState(false);
+  const [coverViewMode, setCoverViewMode] = useState<'fit' | 'fill'>('fit'); // 'fit' = see entire photo, 'fill' = cropped
 
   const steps = [
     { id: 'details', label: 'Details', icon: FileText, description: 'Gallery title and description' },
@@ -438,17 +441,32 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
               />
             ) : (
               <div className="relative">
-                <img
-                  src={coverImageUrl}
-                  alt="Cover preview"
-                  className="w-full h-64 object-cover rounded-lg"
-                  style={{ 
-                    objectPosition: `${coverPosition.x}% ${coverPosition.y}%`,
-                    transform: `scale(${coverScale / 100})`,
-                    transformOrigin: `${coverPosition.x}% ${coverPosition.y}%`
-                  }}
-                />
+                <div className={`relative bg-gray-100 rounded-lg overflow-hidden ${
+                  coverViewMode === 'fit' ? 'flex items-center justify-center min-h-64' : 'h-64'
+                }`}>
+                  <img
+                    src={coverImageUrl}
+                    alt="Cover preview"
+                    className={coverViewMode === 'fit' 
+                      ? 'max-w-full max-h-96 object-contain' 
+                      : 'w-full h-full object-cover'
+                    }
+                    style={coverViewMode === 'fill' ? { 
+                      objectPosition: `${coverPosition.x}% ${coverPosition.y}%`,
+                      transform: `scale(${coverScale / 100})`,
+                      transformOrigin: `${coverPosition.x}% ${coverPosition.y}%`
+                    } : {}}
+                  />
+                </div>
                 <div className="absolute top-2 right-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCoverViewMode(coverViewMode === 'fit' ? 'fill' : 'fit')}
+                    className="p-2 bg-gray-800 text-white rounded-full hover:bg-gray-700 shadow-lg"
+                    title={coverViewMode === 'fit' ? 'Show cropped preview' : 'Show full image'}
+                  >
+                    {coverViewMode === 'fit' ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
+                  </button>
                   <button
                     type="button"
                     onClick={() => setShowCoverDesigner(true)}
