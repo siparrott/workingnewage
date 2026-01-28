@@ -3998,24 +3998,43 @@ Bitte versuchen Sie es später noch einmal.`;
   app.put("/api/galleries/:id", authenticateUser, async (req: Request, res: Response) => {
     try {
       const galleryId = req.params.id;
-      const updates = [];
-      const values = [];
+      const updates: string[] = [];
+      const values: any[] = [];
       let paramIndex = 1;
       
-      const allowedFields = ['title', 'description', 'isPublic', 'isPasswordProtected', 'password', 'coverImage', 'coverPosition', 'coverScale', 'coverTemplate'];
+      // Map from both camelCase and snake_case to database column names
+      const fieldMapping: Record<string, string> = {
+        'title': 'title',
+        'description': 'description',
+        'isPublic': 'is_public',
+        'is_public': 'is_public',
+        'isPasswordProtected': 'is_password_protected',
+        'is_password_protected': 'is_password_protected',
+        'password': 'password',
+        'coverImage': 'cover_image',
+        'cover_image': 'cover_image',
+        'coverPosition': 'cover_position',
+        'cover_position': 'cover_position',
+        'coverScale': 'cover_scale',
+        'cover_scale': 'cover_scale',
+        'coverTemplate': 'cover_template',
+        'cover_template': 'cover_template',
+        'clientId': 'client_id',
+        'client_id': 'client_id',
+        'downloadEnabled': 'download_enabled',
+        'download_enabled': 'download_enabled',
+      };
+      
+      const processedFields = new Set<string>(); // Avoid duplicate updates
       
       for (const [key, value] of Object.entries(req.body)) {
-        if (allowedFields.includes(key) && value !== undefined) {
-          const dbField = key === 'isPublic' ? 'is_public' : 
-                         key === 'isPasswordProtected' ? 'is_password_protected' :
-                         key === 'coverImage' ? 'cover_image' :
-                         key === 'coverPosition' ? 'cover_position' :
-                         key === 'coverScale' ? 'cover_scale' :
-                         key === 'coverTemplate' ? 'cover_template' : key;
+        const dbField = fieldMapping[key];
+        if (dbField && value !== undefined && !processedFields.has(dbField)) {
+          processedFields.add(dbField);
           updates.push(`${dbField} = $${paramIndex}`);
           // For coverPosition and coverTemplate, ensure they're stored as JSON
-          if (key === 'coverPosition' || key === 'coverTemplate') {
-            values.push(JSON.stringify(value));
+          if (dbField === 'cover_position' || dbField === 'cover_template') {
+            values.push(typeof value === 'string' ? value : JSON.stringify(value));
           } else {
             values.push(value);
           }
@@ -4033,11 +4052,11 @@ Bitte versuchen Sie es später noch einmal.`;
         UPDATE galleries 
         SET ${updates.join(', ')}
         WHERE id = $${paramIndex}
-        RETURNING id, title, slug, description, cover_image, cover_position, cover_scale, cover_template, is_public, updated_at
+        RETURNING id, title, slug, description, cover_image, cover_position, cover_scale, cover_template, is_public, download_enabled, updated_at
       `;
       values.push(galleryId);
       
-  const result = await runSql(query, values);
+      const result = await runSql(query, values);
       
       if (result.length === 0) {
         return res.status(404).json({ error: "Gallery not found" });
