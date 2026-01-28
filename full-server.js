@@ -10479,10 +10479,12 @@ New Age Fotografie Team`;
         
         // PUT update invoice: /api/crm/invoices/:id
         if (singleIdMatch && req.method === 'PUT') {
+          console.log('🔧 PUT handler matched for invoice:', singleIdMatch[1]);
           const invoiceId = singleIdMatch[1];
           let body = '';
           req.on('data', chunk => { body += chunk.toString(); });
           req.on('end', async () => {
+            console.log('📩 Request body received, length:', body.length);
             try {
               const data = body ? JSON.parse(body) : {};
               console.log('📝 Update invoice request:', invoiceId, JSON.stringify(data, null, 2));
@@ -10713,7 +10715,13 @@ New Age Fotografie Team`;
           parsedUrl.pathname = req.url;
         }
       } catch (shimErr) {
-        console.error('❌ CRM invoices compatibility shim error:', shimErr.message);
+        console.error('❌ CRM invoices compatibility shim error:', shimErr.message, shimErr.stack);
+        // Make sure to send a response if we haven't already
+        if (!res.headersSent) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Server error: ' + shimErr.message }));
+        }
+        return;
       }
       // Continue processing after URL rewrite; fall through
     }
