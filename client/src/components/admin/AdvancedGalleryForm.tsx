@@ -4,6 +4,7 @@ import { Gallery, GalleryFormData, CoverTemplateSettings } from '../../types/gal
 import { createGallery, updateGallery, uploadGalleryImages } from '../../lib/gallery-api';
 import CoverImagePositioner from '../galleries/CoverImagePositioner';
 import GalleryCoverDesigner, { CoverSettings, COVER_TEMPLATES } from '../galleries/GalleryCoverDesigner';
+import SearchableClientDropdown from './SearchableClientDropdown';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -361,18 +362,12 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Client <span className="text-gray-400">(optional)</span>
         </label>
-        <select
-          value={formData.clientId || ''}
-          onChange={(e) => handleChange('clientId', e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-        >
-          <option value="">Select a client...</option>
-          {clients.map(client => (
-            <option key={client.id} value={client.id}>
-              {client.firstName} {client.lastName} ({client.email})
-            </option>
-          ))}
-        </select>
+        <SearchableClientDropdown
+          clients={clients}
+          selectedClientId={formData.clientId || ''}
+          onSelect={(clientId) => handleChange('clientId', clientId)}
+          placeholder="Select a client..."
+        />
         <p className="mt-1 text-sm text-gray-500">
           Link this gallery to a specific client in your CRM
         </p>
