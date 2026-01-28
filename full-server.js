@@ -3420,6 +3420,78 @@ When users ask about "this week", "this month", "today", "yesterday", etc., alwa
   
   // API endpoints
   if (pathname.startsWith('/api/')) {
+    
+    // ========== INVOICE EDIT ENDPOINT - placed first to ensure it's hit ==========
+    if (pathname === '/api/invoice-edit' && req.method === 'POST') {
+      console.log('🎯 HIT /api/invoice-edit endpoint!');
+      let body = '';
+      req.on('data', chunk => { body += chunk.toString(); });
+      req.on('end', async () => {
+        try {
+          const data = body ? JSON.parse(body) : {};
+          const invoiceId = data.invoiceId;
+          
+          if (!invoiceId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'invoiceId required' }));
+            return;
+          }
+          
+          console.log('📝 Updating invoice:', invoiceId);
+          
+          // Update invoice
+          await sql`
+            UPDATE crm_invoices 
+            SET 
+              due_date = ${data.dueDate || null},
+              subtotal = ${parseFloat(data.subtotal) || 0},
+              tax_amount = ${parseFloat(data.taxAmount) || 0},
+              discount_type = ${data.discountType || 'fixed'},
+              discount_value = ${parseFloat(data.discountValue) || 0},
+              discount_amount = ${parseFloat(data.discountAmount) || 0},
+              total = ${parseFloat(data.total) || 0},
+              status = ${data.status || 'draft'},
+              notes = ${data.notes || ''},
+              footer_text = ${data.footerText || ''},
+              updated_at = NOW()
+            WHERE id = ${invoiceId}::uuid
+          `;
+          
+          // Delete old items
+          await sql`DELETE FROM crm_invoice_items WHERE invoice_id = ${invoiceId}::uuid`;
+          
+          // Insert new items
+          if (data.items && data.items.length > 0) {
+            for (let i = 0; i < data.items.length; i++) {
+              const item = data.items[i];
+              await sql`
+                INSERT INTO crm_invoice_items (
+                  invoice_id, description, quantity, unit_price, tax_rate, sort_order
+                ) VALUES (
+                  ${invoiceId}::uuid, 
+                  ${String(item.description || '')}, 
+                  ${parseFloat(item.quantity) || 1}, 
+                  ${parseFloat(item.unitPrice) || 0}, 
+                  ${parseFloat(item.taxRate) || 0}, 
+                  ${i}
+                )
+              `;
+            }
+          }
+          
+          console.log('✅ Invoice updated successfully:', invoiceId);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, ok: true, invoice_id: invoiceId }));
+        } catch (err) {
+          console.error('❌ Invoice update error:', err.message);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+      });
+      return;
+    }
+    // ========== END INVOICE EDIT ENDPOINT ==========
+
     // ===== Onboarding schema and minimal Website Analyzer endpoints =====
     let __onboardingEnsured = false;
     async function ensureOnboardingSchema() {
@@ -5236,76 +5308,6 @@ When users ask about "this week", "this month", "today", "yesterday", etc., alwa
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'webhook failure' }));
       }
-      return;
-    }
-
-    // SIMPLE INVOICE UPDATE - using unique path to avoid any routing conflicts
-    if (pathname === '/api/invoice-edit' && req.method === 'POST') {
-      console.log('🎯 Hit /api/invoice-edit endpoint');
-      let body = '';
-      req.on('data', chunk => { body += chunk.toString(); });
-      req.on('end', async () => {
-        try {
-          const data = body ? JSON.parse(body) : {};
-          const invoiceId = data.invoiceId;
-          
-          if (!invoiceId) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: false, error: 'invoiceId required' }));
-            return;
-          }
-          
-          console.log('📝 Simple update for invoice:', invoiceId);
-          
-          // Update invoice
-          await sql`
-            UPDATE crm_invoices 
-            SET 
-              due_date = ${data.dueDate || null},
-              subtotal = ${parseFloat(data.subtotal) || 0},
-              tax_amount = ${parseFloat(data.taxAmount) || 0},
-              discount_type = ${data.discountType || 'fixed'},
-              discount_value = ${parseFloat(data.discountValue) || 0},
-              discount_amount = ${parseFloat(data.discountAmount) || 0},
-              total = ${parseFloat(data.total) || 0},
-              status = ${data.status || 'draft'},
-              notes = ${data.notes || ''},
-              footer_text = ${data.footerText || ''},
-              updated_at = NOW()
-            WHERE id = ${invoiceId}::uuid
-          `;
-          
-          // Delete old items
-          await sql`DELETE FROM crm_invoice_items WHERE invoice_id = ${invoiceId}::uuid`;
-          
-          // Insert new items
-          if (data.items && data.items.length > 0) {
-            for (let i = 0; i < data.items.length; i++) {
-              const item = data.items[i];
-              await sql`
-                INSERT INTO crm_invoice_items (
-                  invoice_id, description, quantity, unit_price, tax_rate, sort_order
-                ) VALUES (
-                  ${invoiceId}::uuid, 
-                  ${String(item.description || '')}, 
-                  ${parseFloat(item.quantity) || 1}, 
-                  ${parseFloat(item.unitPrice) || 0}, 
-                  ${parseFloat(item.taxRate) || 0}, 
-                  ${i}
-                )
-              `;
-            }
-          }
-          
-          console.log('✅ Invoice updated successfully');
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, ok: true, invoice_id: invoiceId }));
-        } catch (err) {
-          console.error('❌ Invoice update error:', err.message);
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: false, error: err.message }));
-        }
-      });
       return;
     }
 
