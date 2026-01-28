@@ -5687,10 +5687,44 @@ When users ask about "this week", "this month", "today", "yesterday", etc., alwa
         await ensureInvoiceSchema();
         const publicId = pathname.split('/inv/')[1];
         if (!publicId) { res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' }); res.end('<main>Invoice not found.</main>'); return; }
-        const inv = await sql`SELECT id, invoice_no, client_name, client_email, issue_date, due_date, currency, subtotal, tax, total, notes, checkout_url, status, payment_status, paid_at FROM invoices WHERE public_id = ${publicId}`;
+        
+        // Try new invoices table first
+        let inv = await sql`SELECT id, invoice_no, client_name, client_email, issue_date, due_date, currency, subtotal, tax, total, notes, checkout_url, status, payment_status, paid_at FROM invoices WHERE public_id = ${publicId}`;
+        let items = [];
+        let useCrmTable = false;
+        
+        // If not found, try crm_invoices table (for legacy invoices)
+        if (!inv || inv.length === 0) {
+          const crmInv = await sql`
+            SELECT 
+              ci.id, ci.invoice_number as invoice_no, 
+              COALESCE(NULLIF(TRIM(CONCAT(cc.first_name, ' ', cc.last_name)), ''), 'Unknown Client') as client_name,
+              cc.email as client_email, ci.issue_date, ci.due_date, 
+              COALESCE(ci.currency, 'EUR') as currency, 
+              ci.subtotal, ci.tax_amount as tax, ci.total, ci.notes, 
+              ci.checkout_url, ci.status, ci.payment_status, ci.paid_date as paid_at
+            FROM crm_invoices ci
+            LEFT JOIN crm_clients cc ON ci.client_id::text = cc.id::text
+            WHERE ci.id::text = ${publicId}
+          `;
+          if (crmInv && crmInv.length > 0) {
+            inv = crmInv;
+            useCrmTable = true;
+          }
+        }
+        
         if (!inv || inv.length === 0) { res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' }); res.end('<main>Invoice not found.</main>'); return; }
+        
         const id = inv[0].id;
-        const items = await sql`SELECT description, quantity, unit_price, line_total FROM invoice_items WHERE invoice_id = ${id}`;
+        
+        // Get items from appropriate table
+        if (useCrmTable) {
+          const crmItems = await sql`SELECT description, quantity, unit_price, (quantity * unit_price) as line_total FROM crm_invoice_items WHERE invoice_id = ${id} ORDER BY sort_order`;
+          items = crmItems || [];
+        } else {
+          items = await sql`SELECT description, quantity, unit_price, line_total FROM invoice_items WHERE invoice_id = ${id}`;
+        }
+        
         const i = inv[0];
         const esc = (s) => String(s ?? '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
         const rowHtml = items.map(it => `
@@ -8118,13 +8152,13 @@ Due: ${esc(i.due_date)}</div>
           const invoices = await sql`
             SELECT 
               i.*,
-              c.name as client_name,
+              COALESCE(NULLIF(TRIM(CONCAT(c.first_name, ' ', c.last_name)), ''), 'Unknown Client') as client_name,
               c.email as client_email,
-              c.address1 as client_address1,
+              c.address as client_address1,
               c.city as client_city,
               c.country as client_country
             FROM crm_invoices i
-            LEFT JOIN crm_clients c ON i.client_id = c.id
+            LEFT JOIN crm_clients c ON i.client_id::text = c.id::text
             WHERE i.id = ${invoiceId}
           `;
           

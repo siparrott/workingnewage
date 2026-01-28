@@ -215,16 +215,38 @@ const InvoicesPage: React.FC = () => {
     return status !== 'paid' && new Date(dueDate) < new Date();
   };
 
-  const downloadInvoicePDF = async (publicId?: string) => {
+  const downloadInvoicePDF = async (invoiceId?: string, invoiceNumber?: string) => {
     try {
-      // For now, just open the public page and let the user Print / Save PDF
-      if (!publicId) throw new Error('Missing invoice link');
-      window.open(`/inv/${publicId}`, '_blank');
+      if (!invoiceId) throw new Error('Missing invoice ID');
+      
+      // Use the PDF generation endpoint
+      const response = await fetch(`/api/crm/invoices/${invoiceId}/pdf`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('PDF download error:', errorText);
+        throw new Error('Failed to generate PDF');
+      }
+      
+      // Get the HTML content and trigger download
+      const htmlContent = await response.text();
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Invoice-${invoiceNumber || invoiceId}.html`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
       
     } catch (error) {
       alert('PDF download failed. Please try again.');
     }
   };
+
 
   const sendEmail = async (id: string, to?: string) => {
     const email = to || prompt('Send invoice to email address:', '') || '';
@@ -468,13 +490,13 @@ const InvoicesPage: React.FC = () => {
                             <DollarSign size={16} />
                           </button>
                           <button 
-                            onClick={() => downloadInvoicePDF(invoice.public_id)}
+                            onClick={() => downloadInvoicePDF(invoice.id, invoice.invoice_number)}
                             className="text-indigo-600 hover:text-indigo-900" 
                             title="Download PDF"
                           >
                             <Download size={16} />
                           </button>
-                          <a href={`/inv/${invoice.public_id || ''}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-900" title="Open public link">
+                          <a href={`/inv/${invoice.id || ''}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-900" title="Open public link">
                             <FileText size={16} />
                           </a>
                           <button onClick={() => sendEmail(invoice.id)} className="text-indigo-600 hover:text-indigo-900" title="Send Email">
