@@ -42,7 +42,7 @@ interface Price {
   currency: string;
   confidence_score: number;
   package_name?: string;
-  source_url: string;
+  website_url: string;
 }
 
 interface Suggestion {
@@ -938,12 +938,27 @@ const AdminPriceWizardPage: React.FC = () => {
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Package</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Confidence</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                           {prices.slice(0, 20).map((price) => (
                             <tr key={price.id} className="hover:bg-gray-50">
-                              <td className="px-4 py-3 text-sm text-gray-900">{price.competitor_name}</td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                {price.website_url ? (
+                                  <a
+                                    href={price.website_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-purple-600 hover:text-purple-700 hover:underline"
+                                    title={`View source: ${price.website_url}`}
+                                  >
+                                    {price.competitor_name}
+                                  </a>
+                                ) : (
+                                  price.competitor_name
+                                )}
+                              </td>
                               <td className="px-4 py-3 text-sm text-gray-600 capitalize">{price.service_type}</td>
                               <td className="px-4 py-3 text-sm font-medium text-gray-900">
                                 {price.currency} {price.price_amount}
@@ -961,6 +976,22 @@ const AdminPriceWizardPage: React.FC = () => {
                                     {Math.round(price.confidence_score * 100)}%
                                   </span>
                                 </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                {price.website_url ? (
+                                  <a
+                                    href={price.website_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-purple-600 hover:text-purple-700 flex items-center gap-1 text-xs"
+                                    title={price.website_url}
+                                  >
+                                    <ExternalLink className="w-3 h-3" />
+                                    Verify
+                                  </a>
+                                ) : (
+                                  <span className="text-gray-400 text-xs">—</span>
+                                )}
                               </td>
                             </tr>
                           ))}
