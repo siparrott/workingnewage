@@ -4270,7 +4270,8 @@ Bitte versuchen Sie es später noch einmal.`;
         let subtotal = 0;
         let totalTax = 0;
         
-        // Insert new items
+        // Insert new items (table has: id, invoice_id, description, quantity, unit_price, tax_rate, sort_order, created_at)
+        let sortOrder = 0;
         for (const item of items) {
           const quantity = parseFloat(item.quantity) || 1;
           const unitPrice = parseFloat(item.unitPrice) || 0;
@@ -4280,11 +4281,12 @@ Bitte versuchen Sie es später noch einmal.`;
           
           subtotal += amount;
           totalTax += taxAmount;
+          sortOrder++;
           
           await runSql(`
-            INSERT INTO crm_invoice_items (invoice_id, description, quantity, unit_price, tax_rate, amount)
+            INSERT INTO crm_invoice_items (invoice_id, description, quantity, unit_price, tax_rate, sort_order)
             VALUES ($1::uuid, $2, $3, $4, $5, $6)
-          `, [invoiceId, item.description || '', quantity, unitPrice, taxRate, amount]);
+          `, [invoiceId, item.description || '', quantity, unitPrice, taxRate, sortOrder]);
         }
         
         // Update invoice totals
