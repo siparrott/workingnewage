@@ -6,12 +6,14 @@ const sql = neon.neon(process.env.DATABASE_URL);
 
 (async () => {
   try {
-    // Check all price list items
-    const items = await sql`SELECT name, LEFT(description, 100) as desc_preview, LENGTH(description) as desc_length FROM price_list_items WHERE is_active = true ORDER BY LENGTH(description) DESC LIMIT 10`;
-    console.log('Price list items by description length:');
-    items.forEach(item => {
-      console.log(`- ${item.name}: ${item.desc_length} chars - "${item.desc_preview}..."`);
-    });
+    // Clean up the Family Portrait item description - keep only the marketing description
+    const result = await sql`
+      UPDATE price_list_items 
+      SET description = 'Professional family portrait session with high-quality prints included'
+      WHERE name = 'Family Portrait (standard)'
+      RETURNING name, description
+    `;
+    console.log('Updated:', JSON.stringify(result, null, 2));
     
   } catch (e) {
     console.log('Error:', e.message);

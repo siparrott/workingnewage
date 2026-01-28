@@ -1323,10 +1323,15 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
               {/* Complete Price List from API */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {priceList.length > 0 ? (
-                  priceList.map((item) => (
+                  priceList.map((item) => {
+                    // Truncate long descriptions for display
+                    const displayDesc = item.description && item.description.length > 80 
+                      ? item.description.substring(0, 80) + '...' 
+                      : (item.description || 'Professional photography service');
+                    return (
                     <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors">
                       <h4 className="font-medium text-gray-900">{item.name}</h4>
-                      <p className="text-sm text-gray-600 mb-2">{item.description || 'Professional photography service'}</p>
+                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">{displayDesc}</p>
                       <div className="flex items-center justify-between mb-3">
                         <p className="font-semibold text-purple-600">€{(item.price || 0).toFixed(2)}</p>
                         <span className="text-xs bg-gray-100 px-2 py-1 rounded">{item.category}</span>
@@ -1334,7 +1339,11 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
                       <button
                         onClick={() => {
                           setPendingPriceItem(item);
-                          setEditableDescription(item.name + (item.description ? ` - ${item.description}` : ''));
+                          // Use a clean description for invoice - just name and short description
+                          const shortDesc = item.description && item.description.length > 60 
+                            ? item.description.substring(0, 60) 
+                            : (item.description || '');
+                          setEditableDescription(item.name + (shortDesc ? ` - ${shortDesc}` : ''));
                           setShowEditDescriptionModal(true);
                         }}
                         className="w-full bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded text-sm"
@@ -1342,7 +1351,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
                         Add to Invoice
                       </button>
                     </div>
-                  ))
+                  );})
                 ) : (
                   <div className="col-span-full text-center py-8 text-gray-500">
                     Loading price list...
