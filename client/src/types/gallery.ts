@@ -4,6 +4,7 @@ export interface Gallery {
   slug: string;
   description?: string;
   coverImage: string | null;
+  coverPosition?: { x: number; y: number };
   featuredImage?: GalleryImage | null;
   isPublic?: boolean;
   isPasswordProtected?: boolean;
@@ -116,6 +117,7 @@ export interface GalleryFormData {
   isFeatured?: boolean;
   sortOrder?: number;
   coverImage?: File | null;
+  coverPosition?: { x: number; y: number };
   clientId?: string;
   isPublic?: boolean;
   isPasswordProtected?: boolean;

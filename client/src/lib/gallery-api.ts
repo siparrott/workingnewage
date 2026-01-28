@@ -104,6 +104,7 @@ export async function createGallery(galleryData: GalleryFormData): Promise<Galle
       description: galleryData.description || null,
       slug: slug,
       coverImage: coverImageUrl,
+      coverPosition: galleryData.coverPosition || { x: 50, y: 50 },
       client_id: galleryData.clientId,
       is_public: galleryData.isPublic,
       is_password_protected: galleryData.isPasswordProtected,

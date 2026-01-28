@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Gallery, GalleryFormData } from '../../types/gallery';
 import { createGallery, updateGallery, uploadGalleryImages } from '../../lib/gallery-api';
+import CoverImagePositioner from '../galleries/CoverImagePositioner';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -18,7 +19,8 @@ import {
   Lock,
   Download,
   Calendar,
-  Share2
+  Share2,
+  Move
 } from 'lucide-react';
 
 interface GalleryFormProps {
@@ -68,6 +70,8 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
   const [uploadProgress, setUploadProgress] = useState(0);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [coverImageUrl, setCoverImageUrl] = useState<string>('');
+  const [coverPosition, setCoverPosition] = useState<{ x: number; y: number }>({ x: 50, y: 50 });
+  const [showPositioner, setShowPositioner] = useState(false);
 
   const steps = [
     { id: 'details', label: 'Details', icon: FileText, description: 'Gallery title and description' },
@@ -92,6 +96,7 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
       });
       setIsPasswordProtected(gallery.isPasswordProtected || false);
       setCoverImageUrl(gallery.coverImage || '');
+      setCoverPosition(gallery.coverPosition || { x: 50, y: 50 });
       if (gallery.id) {
         fetchUploadedImages(gallery.id);
       }
@@ -241,6 +246,7 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
         isPasswordProtected: isPasswordProtected,
         downloadEnabled: formData.downloadEnabled,
         coverImage: coverImage,
+        coverPosition: coverPosition,
         isPublic: true,
       };
       
@@ -380,18 +386,51 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Cover Image <span className="text-gray-400">(optional)</span>
         </label>        {coverImageUrl ? (
-          <div className="relative">
-            <img
-              src={coverImageUrl}
-              alt="Cover preview"
-              className="w-full h-64 object-cover rounded-lg"
-            />
-            <button
-              onClick={() => setCoverImageUrl('')}
-              className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700"
-            >
-              <X size={16} />
-            </button>
+          <div className="space-y-4">
+            {showPositioner ? (
+              <CoverImagePositioner
+                imageUrl={coverImageUrl}
+                initialPosition={coverPosition}
+                onPositionChange={(pos) => {
+                  setCoverPosition(pos);
+                  setShowPositioner(false);
+                }}
+                onCancel={() => setShowPositioner(false)}
+              />
+            ) : (
+              <div className="relative">
+                <img
+                  src={coverImageUrl}
+                  alt="Cover preview"
+                  className="w-full h-64 object-cover rounded-lg"
+                  style={{ objectPosition: `${coverPosition.x}% ${coverPosition.y}%` }}
+                />
+                <div className="absolute top-2 right-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPositioner(true)}
+                    className="p-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 shadow-lg"
+                    title="Adjust cover position"
+                  >
+                    <Move size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCoverImageUrl('');
+                      setCoverPosition({ x: 50, y: 50 });
+                    }}
+                    className="p-2 bg-red-600 text-white rounded-full hover:bg-red-700 shadow-lg"
+                    title="Remove cover image"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+                  Position: {Math.round(coverPosition.x)}%, {Math.round(coverPosition.y)}%
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-8">
@@ -631,7 +670,8 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
                 <img
                   src={coverImageUrl}
                   alt="Cover"
-                  className="max-w-full max-h-64 object-contain"
+                  className="max-w-full max-h-64 object-cover"
+                  style={{ objectPosition: `${coverPosition.x}% ${coverPosition.y}%` }}
                 />
               </div>
             )}

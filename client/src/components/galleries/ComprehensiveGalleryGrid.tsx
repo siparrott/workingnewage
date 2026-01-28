@@ -77,6 +77,11 @@ const ComprehensiveGalleryGrid: React.FC<ComprehensiveGalleryGridProps> = ({
                 src={gallery.coverImage}
                 alt={gallery.title}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                style={{ 
+                  objectPosition: gallery.coverPosition 
+                    ? `${gallery.coverPosition.x}% ${gallery.coverPosition.y}%` 
+                    : '50% 50%' 
+                }}
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">

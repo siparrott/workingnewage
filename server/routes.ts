@@ -3952,15 +3952,15 @@ Bitte versuchen Sie es später noch einmal.`;
 
   app.post("/api/galleries", authenticateUser, async (req: Request, res: Response) => {
     try {
-      const { title, description, clientId, isPublic = true, isPasswordProtected = false, password, slug } = req.body;
+      const { title, description, clientId, isPublic = true, isPasswordProtected = false, password, slug, coverImage, coverPosition } = req.body;
       
       // Generate slug if not provided
       const gallerySlug = slug || title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').trim('-');
       
       const query = `
-        INSERT INTO galleries (title, description, client_id, is_public, is_password_protected, password, slug, created_by)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING id, title, slug, description, is_public, created_at
+        INSERT INTO galleries (title, description, client_id, is_public, is_password_protected, password, slug, cover_image, cover_position, created_by)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING id, title, slug, description, cover_image, cover_position, is_public, created_at
       `;
       
   const result = await runSql(query, [
@@ -3971,10 +3971,20 @@ Bitte versuchen Sie es später noch einmal.`;
         isPasswordProtected,
         password || null,
         gallerySlug,
+        coverImage || null,
+        coverPosition ? JSON.stringify(coverPosition) : JSON.stringify({ x: 50, y: 50 }),
         req.user?.id || null
       ]);
       
-      res.status(201).json(result[0]);
+      // Transform response for frontend
+      const gallery = result[0];
+      res.status(201).json({
+        ...gallery,
+        coverImage: gallery.cover_image,
+        coverPosition: gallery.cover_position || { x: 50, y: 50 },
+        isPublic: gallery.is_public,
+        createdAt: gallery.created_at
+      });
     } catch (error) {
       console.error('Error creating gallery:', error);
       res.status(500).json({ error: "Failed to create gallery" });
@@ -3988,15 +3998,21 @@ Bitte versuchen Sie es später noch einmal.`;
       const values = [];
       let paramIndex = 1;
       
-      const allowedFields = ['title', 'description', 'isPublic', 'isPasswordProtected', 'password', 'coverImage'];
+      const allowedFields = ['title', 'description', 'isPublic', 'isPasswordProtected', 'password', 'coverImage', 'coverPosition'];
       
       for (const [key, value] of Object.entries(req.body)) {
         if (allowedFields.includes(key) && value !== undefined) {
           const dbField = key === 'isPublic' ? 'is_public' : 
                          key === 'isPasswordProtected' ? 'is_password_protected' :
-                         key === 'coverImage' ? 'cover_image' : key;
+                         key === 'coverImage' ? 'cover_image' :
+                         key === 'coverPosition' ? 'cover_position' : key;
           updates.push(`${dbField} = $${paramIndex}`);
-          values.push(value);
+          // For coverPosition, ensure it's stored as JSON
+          if (key === 'coverPosition') {
+            values.push(JSON.stringify(value));
+          } else {
+            values.push(value);
+          }
           paramIndex++;
         }
       }
@@ -4011,7 +4027,7 @@ Bitte versuchen Sie es später noch einmal.`;
         UPDATE galleries 
         SET ${updates.join(', ')}
         WHERE id = $${paramIndex}
-        RETURNING id, title, slug, description, is_public, updated_at
+        RETURNING id, title, slug, description, cover_image, cover_position, is_public, updated_at
       `;
       values.push(galleryId);
       
@@ -4021,7 +4037,15 @@ Bitte versuchen Sie es später noch einmal.`;
         return res.status(404).json({ error: "Gallery not found" });
       }
       
-      res.json(result[0]);
+      // Transform response for frontend
+      const gallery = result[0];
+      res.json({
+        ...gallery,
+        coverImage: gallery.cover_image,
+        coverPosition: gallery.cover_position || { x: 50, y: 50 },
+        isPublic: gallery.is_public,
+        updatedAt: gallery.updated_at
+      });
     } catch (error) {
       console.error('Error updating gallery:', error);
       res.status(500).json({ error: "Failed to update gallery" });
@@ -4078,7 +4102,26 @@ Bitte versuchen Sie es später noch einmal.`;
         return res.status(404).json({ error: "Gallery not found" });
       }
       
-      res.json(result[0]);
+      // Transform snake_case to camelCase for frontend
+      const gallery = result[0];
+      const transformedGallery = {
+        ...gallery,
+        coverImage: gallery.cover_image,
+        coverPosition: gallery.cover_position || { x: 50, y: 50 },
+        isPublic: gallery.is_public,
+        isPasswordProtected: gallery.is_password_protected,
+        clientId: gallery.client_id,
+        createdBy: gallery.created_by,
+        sortOrder: gallery.sort_order,
+        createdAt: gallery.created_at,
+        updatedAt: gallery.updated_at,
+        clientName: gallery.client_name,
+        clientEmail: gallery.client_email,
+        imageCount: gallery.image_count,
+        downloadEnabled: gallery.download_enabled ?? true
+      };
+      
+      res.json(transformedGallery);
     } catch (error) {
       console.error('Error fetching gallery:', error);
       res.status(500).json({ error: "Failed to fetch gallery" });

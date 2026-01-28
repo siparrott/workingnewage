@@ -54,6 +54,11 @@ const GalleryCard: React.FC<GalleryCardProps> = ({ gallery, isAdmin = false, onD
               src={gallery.coverImage} 
               alt={gallery.title}
               className="w-full h-full object-cover"
+              style={{ 
+                objectPosition: gallery.coverPosition 
+                  ? `${gallery.coverPosition.x}% ${gallery.coverPosition.y}%` 
+                  : '50% 50%' 
+              }}
             />
           ) : (
             <div className="w-full h-full bg-gray-200 flex items-center justify-center">

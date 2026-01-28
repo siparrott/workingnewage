@@ -547,6 +547,7 @@ export const galleries = pgTable("galleries", {
   slug: text("slug").unique().notNull(),
   description: text("description"),
   coverImage: text("cover_image"),
+  coverPosition: jsonb("cover_position").$type<{ x: number; y: number }>().default({ x: 50, y: 50 }),
   isPublic: boolean("is_public").default(true),
   isPasswordProtected: boolean("is_password_protected").default(false),
   password: text("password"),
