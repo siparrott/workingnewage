@@ -139,11 +139,8 @@ const AdminPriceWizardPage: React.FC = () => {
 
   /**
    * Start a new competitive pricing research session
-   * This will:
-   * 1. Create a session
-   * 2. Discover competitors via web search
-   * 3. Scrape their websites for prices
-   * 4. Analyze and generate 3-tier recommendations
+   * This uses the new Tavily + OpenAI integration for REAL competitor research
+   * Flow: /quick-start → background processing → poll /status for updates
    */
   const startNewResearch = async () => {
     if (newResearchServices.length === 0) {
@@ -155,66 +152,45 @@ const AdminPriceWizardPage: React.FC = () => {
     let sessionId: string | null = null;
 
     try {
-      // Step 1: Start session
-      setResearchProgress('Creating research session...');
-      const startRes = await fetch('/api/price-wizard/start', {
+      // Use the new quick-start endpoint that does everything in background
+      setResearchProgress('Starting AI-powered competitor research...');
+      const startRes = await fetch('/api/price-wizard/quick-start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           location: newResearchLocation,
-          services: newResearchServices
+          services: newResearchServices.map(s => {
+            // Map service IDs to full names for better search results
+            const serviceMap: Record<string, string> = {
+              'family': 'Family Portrait',
+              'portrait': 'Portrait Photography',
+              'newborn': 'Newborn Photography',
+              'wedding': 'Wedding Photography',
+              'corporate': 'Corporate Photography',
+              'event': 'Event Photography',
+            };
+            return serviceMap[s] || s;
+          })
         })
       });
 
-      if (!startRes.ok) throw new Error('Failed to start session');
+      if (!startRes.ok) {
+        const errorData = await startRes.json();
+        throw new Error(errorData.error || 'Failed to start research');
+      }
+      
       const startData = await startRes.json();
       sessionId = startData.sessionId;
-      console.log('✅ Session started:', sessionId);
+      console.log('✅ Research started:', sessionId);
 
-      // Step 2: Discover competitors
-      setResearchProgress('Discovering competitors in ' + newResearchLocation + '...');
-      const discoverRes = await fetch('/api/price-wizard/discover', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, maxResults: 15 })
-      });
-
-      if (!discoverRes.ok) throw new Error('Failed to discover competitors');
-      const discoverData = await discoverRes.json();
-      console.log('✅ Found competitors:', discoverData.competitorsFound);
-
-      // Step 3: Scrape prices (with 3s timeout per site)
-      setResearchProgress(`Scraping prices from ${discoverData.competitorsFound} competitors...`);
-      const scrapeRes = await fetch('/api/price-wizard/scrape', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId })
-      });
-
-      if (!scrapeRes.ok) throw new Error('Failed to scrape prices');
-      const scrapeData = await scrapeRes.json();
-      console.log('✅ Scraping complete:', scrapeData);
-
-      // Step 4: Analyze and generate suggestions
-      setResearchProgress('Analyzing market prices and generating recommendations...');
-      const analyzeRes = await fetch('/api/price-wizard/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId })
-      });
-
-      if (!analyzeRes.ok) throw new Error('Failed to analyze prices');
-      const analyzeData = await analyzeRes.json();
-      console.log('✅ Suggestions generated:', analyzeData.suggestionsGenerated);
-
-      // Success - refresh and select the new session
+      // Close modal and select the session - the auto-refresh will show progress
       setShowNewResearchModal(false);
       setNewResearchLocation('Wien');
       setNewResearchServices(['family', 'portrait']);
       await fetchSessions();
       setSelectedSession(sessionId);
 
-      alert(`Research complete!\n\nCompetitors found: ${discoverData.competitorsFound}\nPrices extracted: ${scrapeData.pricesExtracted}\nSuggestions generated: ${analyzeData.suggestionsGenerated}`);
+      alert(`🚀 Research started!\n\nLocation: ${newResearchLocation}\nServices: ${newResearchServices.join(', ')}\n\nThe AI will search for real competitors, extract prices, and generate recommendations.\n\nThis takes 1-2 minutes. The page will auto-refresh to show progress.`);
 
     } catch (error: any) {
       console.error('Research failed:', error);
@@ -298,7 +274,37 @@ const AdminPriceWizardPage: React.FC = () => {
   };
 
   /**
-   * Retry scraping for pending/failed competitors
+   * Re-run research with AI (Tavily + OpenAI)
+   * This will clear existing data and perform fresh competitor research
+   */
+  const retryWithAI = async (sessionId: string) => {
+    if (!confirm('This will clear existing competitor data and run fresh AI research.\n\nThis uses Tavily for competitor search and OpenAI for price extraction.\n\nContinue?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/price-wizard/research', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId })
+      });
+
+      if (response.ok) {
+        alert('🚀 AI research started!\n\nThe page will auto-refresh to show progress.\nThis takes 1-2 minutes.');
+        fetchSessionDetails(sessionId);
+        fetchSessions();
+      } else {
+        const data = await response.json();
+        alert(`Research failed: ${data.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Error starting AI research:', err);
+      alert('Failed to start AI research');
+    }
+  };
+
+  /**
+   * Retry scraping for pending/failed competitors (legacy method)
    */
   const retryScrape = async (sessionId: string) => {
     try {
@@ -848,6 +854,14 @@ const AdminPriceWizardPage: React.FC = () => {
                             {competitors.filter(c => c.status === 'failed').length} failed - add prices manually
                           </span>
                         )}
+                        <button
+                          onClick={() => retryWithAI(selectedSession!)}
+                          className="text-xs px-3 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 flex items-center gap-1"
+                          title="Re-run with Tavily + OpenAI"
+                        >
+                          <TrendingUp className="w-3 h-3" />
+                          AI Research
+                        </button>
                         <button
                           onClick={() => retryScrape(selectedSession!)}
                           className="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 flex items-center gap-1"

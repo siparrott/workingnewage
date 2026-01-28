@@ -2,16 +2,19 @@
  * Price Wizard API Routes
  * 
  * Endpoints for autonomous competitive pricing research
+ * Uses Tavily API for search + OpenAI for price extraction
  */
 
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { PriceScraperService } from '../services/PriceScraperService.js';
 import { CompetitorDiscoveryService } from '../services/CompetitorDiscoveryService.js';
+import { PriceResearchService } from '../services/PriceResearchService.js';
 
 const router = Router();
 const scraper = new PriceScraperService();
 const discovery = new CompetitorDiscoveryService();
+const priceResearch = new PriceResearchService();
 
 /**
  * POST /api/price-wizard/start
@@ -662,6 +665,135 @@ router.delete('/price/:priceId', async (req, res) => {
 
   } catch (error: any) {
     console.error('Error deleting price:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/price-wizard/research
+ * Run FULL automated research using Tavily + OpenAI
+ * This is the new production endpoint for real competitor research
+ */
+router.post('/research', async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Missing sessionId' });
+    }
+
+    // Get session details
+    const sessionResult = await pool.query(`
+      SELECT id, location, services, status FROM price_wizard_sessions WHERE id = $1
+    `, [sessionId]);
+
+    if (sessionResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    const session = sessionResult.rows[0];
+
+    // Check if API keys are configured
+    if (!process.env.TAVILY_API_KEY || !process.env.OPENAI_API_KEY) {
+      return res.status(500).json({ 
+        error: 'API keys not configured. Set TAVILY_API_KEY and OPENAI_API_KEY.' 
+      });
+    }
+
+    // Clear any previous data for this session (in case of retry)
+    await pool.query(`
+      DELETE FROM price_list_suggestions WHERE session_id = $1
+    `, [sessionId]);
+    
+    const competitorIds = await pool.query(`
+      SELECT id FROM competitor_research WHERE session_id = $1
+    `, [sessionId]);
+    
+    for (const row of competitorIds.rows) {
+      await pool.query(`DELETE FROM competitor_prices WHERE competitor_id = $1`, [row.id]);
+    }
+    
+    await pool.query(`
+      DELETE FROM competitor_research WHERE session_id = $1
+    `, [sessionId]);
+
+    // Run research in background (don't await)
+    // Return immediately so the frontend can poll for status
+    res.json({
+      success: true,
+      sessionId,
+      message: 'Research started. Poll /status endpoint for updates.',
+    });
+
+    // Run the actual research
+    priceResearch.runResearch({
+      sessionId,
+      location: session.location,
+      services: session.services,
+      maxCompetitors: 12,
+    }).catch(error => {
+      console.error('Background research failed:', error);
+    });
+
+  } catch (error: any) {
+    console.error('Error starting research:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/price-wizard/quick-start
+ * Combined endpoint: Create session AND start research in one call
+ */
+router.post('/quick-start', async (req, res) => {
+  try {
+    const { location, services, userId } = req.body;
+
+    if (!location || !services || !Array.isArray(services)) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: location, services (array)' 
+      });
+    }
+
+    // Check if API keys are configured
+    if (!process.env.TAVILY_API_KEY || !process.env.OPENAI_API_KEY) {
+      return res.status(500).json({ 
+        error: 'API keys not configured. Set TAVILY_API_KEY and OPENAI_API_KEY.' 
+      });
+    }
+
+    // Create session
+    const result = await pool.query(`
+      INSERT INTO price_wizard_sessions (user_id, location, services, status)
+      VALUES ($1, $2, $3, 'discovering')
+      RETURNING id, created_at
+    `, [userId || null, location, services]);
+
+    const session = result.rows[0];
+
+    // Return immediately
+    res.json({
+      success: true,
+      sessionId: session.id,
+      location,
+      services,
+      status: 'discovering',
+      createdAt: session.created_at,
+      message: 'Research started. Poll /status endpoint for updates.',
+    });
+
+    // Run the actual research in background
+    priceResearch.runResearch({
+      sessionId: session.id,
+      location,
+      services,
+      maxCompetitors: 12,
+    }).catch(error => {
+      console.error('Background research failed:', error);
+    });
+
+  } catch (error: any) {
+    console.error('Error in quick-start:', error);
     res.status(500).json({ error: error.message });
   }
 });
