@@ -27,7 +27,6 @@ const AVAILABLE_SERVICES = [
   { id: 'corporate', label: 'Corporate / Business' },
   { id: 'event', label: 'Event Photography' },
 ];
-                            </ul>
 
                             {/* Action Buttons */}
                             {suggestion.status === 'pending_review' && (
