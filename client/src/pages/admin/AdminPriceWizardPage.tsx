@@ -20,16 +20,9 @@ const AVAILABLE_SERVICES = [
   { id: 'newborn', label: 'Newborn Photography' },
   { id: 'portrait', label: 'Portrait Photography' },
   { id: 'corporate', label: 'Corporate / Business' },
+
   { id: 'event', label: 'Event Photography' },
 ];
-
-      if (competitorsRes.ok) setCompetitors(await competitorsRes.json());
-      if (pricesRes.ok) setPrices(await pricesRes.json());
-      if (suggestionsRes.ok) setSuggestions(await suggestionsRes.json());
-    } catch (err) {
-      console.error('Failed to fetch session details:', err);
-    }
-  };
 
   /**
    * Start a new competitive pricing research session
