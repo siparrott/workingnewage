@@ -27,8 +27,6 @@ const AVAILABLE_SERVICES = [
   { id: 'corporate', label: 'Corporate / Business' },
   { id: 'event', label: 'Event Photography' },
 ];
-                              )}
-                              {reasoningParts.competitiveAdvantage && (
                                 <li className="flex items-start gap-2">
                                   <span className="mt-1 text-green-500">•</span>
                                   <span><span className="font-semibold text-gray-800">Competitive Advantage:</span> <span className="text-gray-700">{reasoningParts.competitiveAdvantage}</span></span>
