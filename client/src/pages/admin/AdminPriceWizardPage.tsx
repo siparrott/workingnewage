@@ -20,24 +20,12 @@ import { Search, TrendingUp, DollarSign, Eye, CheckCircle, XCircle, RefreshCw, E
 
 // Available services for price research
 const AVAILABLE_SERVICES = [
-                        return (
-                          <div key={suggestion.id} className="p-6 mb-6 bg-gradient-to-br from-white via-gray-50 to-purple-50 rounded-2xl shadow-lg border border-gray-100">
-                            {/* Header with service type, tier, and price */}
-                            <div className="flex justify-between items-center mb-4">
-                              <div className="flex items-center gap-3">
-                                <span className="text-xl font-bold text-gray-900 capitalize tracking-tight">
-                                  {suggestion.service_type.replace(/_/g, ' ')}
-                                </span>
-                                {getTierBadge(suggestion.tier)}
-                              </div>
-                              <div className="text-right">
-                                <div className="text-4xl font-extrabold text-purple-700 drop-shadow-sm">
-                                  €{Number(suggestion.suggested_price).toFixed(2)}
-                                </div>
-                                <div className="text-xs text-gray-400 mt-1 font-medium">
-                                  Recommended price
-                                </div>
-                              </div>
+  { id: 'family', label: 'Family Photography' },
+  { id: 'wedding', label: 'Wedding Photography' },
+  { id: 'newborn', label: 'Newborn Photography' },
+  { id: 'portrait', label: 'Portrait Photography' },
+  { id: 'corporate', label: 'Corporate / Business' },
+  { id: 'event', label: 'Event Photography' },
                             </div>
 
                             {/* Market Position Bar */}
