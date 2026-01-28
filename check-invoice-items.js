@@ -6,13 +6,9 @@ const sql = neon.neon(process.env.DATABASE_URL);
 
 (async () => {
   try {
-    // Check crm_clients columns
-    const cols = await sql`SELECT column_name FROM information_schema.columns WHERE table_name='crm_clients' ORDER BY ordinal_position`;
-    console.log('crm_clients columns:', cols.map(x => x.column_name).join(', '));
-    
-    // Get sample client
-    const clients = await sql`SELECT * FROM crm_clients LIMIT 1`;
-    console.log('\nSample client:', JSON.stringify(clients[0], null, 2));
+    // Check crm_invoice_items columns
+    const cols = await sql`SELECT column_name, data_type, column_default FROM information_schema.columns WHERE table_name='crm_invoice_items'`;
+    console.log('crm_invoice_items structure:', JSON.stringify(cols, null, 2));
     
   } catch (e) {
     console.log('Error:', e.message);

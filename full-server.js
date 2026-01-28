@@ -10407,7 +10407,7 @@ New Age Fotografie Team`;
                 cc.email as client_email
               FROM crm_invoices ci
               LEFT JOIN crm_clients cc ON ci.client_id::text = cc.id::text
-              WHERE ci.id = ${invoiceId}
+              WHERE ci.id = ${invoiceId}::uuid
             `;
             
             if (invoices.length === 0) {
@@ -10421,7 +10421,7 @@ New Age Fotografie Team`;
             // Get invoice items
             const items = await sql`
               SELECT * FROM crm_invoice_items 
-              WHERE invoice_id = ${invoiceId}
+              WHERE invoice_id = ${invoiceId}::uuid
               ORDER BY sort_order
             `;
             
@@ -10463,11 +10463,11 @@ New Age Fotografie Team`;
             try {
               const data = body ? JSON.parse(body) : {};
               
-              // Update the invoice
+              // Update the invoice (cast to uuid)
               await sql`
                 UPDATE crm_invoices 
                 SET 
-                  client_id = ${data.clientId || null},
+                  client_id = ${data.clientId || null}::uuid,
                   due_date = ${data.dueDate},
                   subtotal = ${parseFloat(data.subtotal) || 0},
                   tax_amount = ${parseFloat(data.taxAmount) || 0},
@@ -10479,11 +10479,11 @@ New Age Fotografie Team`;
                   notes = ${data.notes || ''},
                   footer_text = ${data.footerText || ''},
                   updated_at = NOW()
-                WHERE id = ${invoiceId}
+                WHERE id = ${invoiceId}::uuid
               `;
               
-              // Delete existing items and re-insert
-              await sql`DELETE FROM crm_invoice_items WHERE invoice_id = ${invoiceId}`;
+              // Delete existing items and re-insert (cast to uuid)
+              await sql`DELETE FROM crm_invoice_items WHERE invoice_id = ${invoiceId}::uuid`;
               
               // Insert updated items
               if (data.items && data.items.length > 0) {
@@ -10493,7 +10493,7 @@ New Age Fotografie Team`;
                     INSERT INTO crm_invoice_items (
                       invoice_id, description, quantity, unit_price, tax_rate, sort_order
                     ) VALUES (
-                      ${invoiceId}, ${item.description}, ${parseFloat(item.quantity) || 1}, 
+                      ${invoiceId}::uuid, ${item.description}, ${parseFloat(item.quantity) || 1}, 
                       ${parseFloat(item.unitPrice) || 0}, ${parseFloat(item.taxRate) || 0}, ${i}
                     )
                   `;
