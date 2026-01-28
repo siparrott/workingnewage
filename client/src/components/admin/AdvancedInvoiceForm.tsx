@@ -156,11 +156,16 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
     if (isOpen) {
       fetchClients();
       fetchPriceList();
-      if (editingInvoice) {
-        loadInvoiceData();
-      }
+      // Don't load invoice data yet - wait for clients to load
     }
-  }, [isOpen, editingInvoice]);
+  }, [isOpen]);
+
+  // Load invoice data once clients are loaded (for editing)
+  useEffect(() => {
+    if (isOpen && editingInvoice && clients.length > 0) {
+      loadInvoiceData();
+    }
+  }, [isOpen, editingInvoice, clients.length]);
 
   // Apply prefill client when provided and clients are loaded
   useEffect(() => {
@@ -325,20 +330,28 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
     
     try {
       setLoading(true);
+      console.log('📥 Loading invoice data for:', editingInvoice.id);
       // Fetch invoice details including items from the API
       const response = await fetch(`/api/crm/invoices/${editingInvoice.id}`, {
         credentials: 'include'
       });
       
+      console.log('📨 Invoice fetch response:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('📦 Invoice data received:', data);
         const invoice = data.invoice || data;
         const items = data.items || invoice.items || [];
         
         // Find the client for this invoice
+        console.log('🔍 Looking for client:', invoice.client_id, 'in', clients.length, 'clients');
         const client = clients.find(c => c.id === invoice.client_id);
         if (client) {
+          console.log('✅ Found client:', client.name);
           setClientSearch(client.name);
+        } else {
+          console.log('⚠️ Client not found');
         }
         
         // Load invoice data into form
@@ -366,6 +379,9 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
             tax_rate: getLastUsedVatRate()
           }]
         });
+        console.log('✅ Form data loaded');
+      } else {
+        console.error('❌ Failed to fetch invoice:', response.status);
       }
     } catch (err) {
       console.error('Error loading invoice data:', err);
