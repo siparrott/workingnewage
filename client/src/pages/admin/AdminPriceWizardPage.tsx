@@ -182,127 +182,19 @@ const AVAILABLE_SERVICES = [
         fetchSessions();
       } else {
         const data = await response.json();
-                      {suggestions.map((suggestion) => {
-                        // Parse reasoning into structured parts
-                        const parseReasoning = (reasoning: string) => {
-                          const parts = {
-                            positioning: '',
-                            competitiveAdvantage: '',
-                            marketInsight: ''
-                          };
-                          // Extract different sections from the reasoning
-                          const posMatch = reasoning.match(/^(.*?)(?:Competitive advantage:|$)/is);
-                          const advMatch = reasoning.match(/Competitive advantage:\s*(.*?)(?:Market insight:|$)/is);
-                          const insMatch = reasoning.match(/Market insight:\s*(.*?)$/is);
-                          if (posMatch) parts.positioning = posMatch[1].trim();
-                          if (advMatch) parts.competitiveAdvantage = advMatch[1].trim();
-                          if (insMatch) parts.marketInsight = insMatch[1].trim();
-                          if (!parts.positioning && !parts.competitiveAdvantage && !parts.marketInsight) {
-                            parts.positioning = reasoning;
-                          }
-                          return parts;
-                        };
-                        const reasoningParts = parseReasoning(suggestion.reasoning || '');
-                        const percentilePosition = suggestion.market_median > 0 
-                          ? Math.round(((suggestion.suggested_price - suggestion.market_min) / (suggestion.market_max - suggestion.market_min)) * 100)
-                          : 50;
-                        // --- Visual Card Layout ---
-                        return (
-                          <div key={suggestion.id} className="p-6 mb-6 bg-gradient-to-br from-white via-gray-50 to-purple-50 rounded-2xl shadow-lg border border-gray-100">
-                            <div className="flex justify-between items-center mb-4">
-                              <div className="flex items-center gap-3">
-                                <span className="text-xl font-bold text-gray-900 capitalize tracking-tight">
-                                  {suggestion.service_type.replace(/_/g, ' ')}
-                                </span>
-                                {getTierBadge(suggestion.tier)}
-                              </div>
-                              <div className="text-right">
-                                <div className="text-4xl font-extrabold text-purple-700 drop-shadow-sm">
-                                  €{Number(suggestion.suggested_price).toFixed(2)}
-                                </div>
-                                <div className="text-xs text-gray-400 mt-1 font-medium">
-                                  Recommended price
-                                </div>
-                              </div>
-                            </div>
-                            <div className="mb-5 bg-gray-100 rounded-lg p-3 shadow-inner">
-                              <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                <span>Min: €{suggestion.market_min}</span>
-                                <span className="font-semibold text-gray-700">Median: €{suggestion.market_median}</span>
-                                <span>Max: €{suggestion.market_max}</span>
-                              </div>
-                              <div className="relative h-2 bg-gray-300 rounded-full">
-                                <div className="absolute h-2 bg-gradient-to-r from-green-400 via-yellow-400 to-red-400 rounded-full" style={{ width: '100%' }} />
-                                <div className="absolute w-4 h-4 bg-purple-600 rounded-full border-2 border-white shadow-md transform -translate-y-1/4" style={{ left: `${Math.min(Math.max(percentilePosition, 0), 100)}%`, marginLeft: '-8px' }} title={`Your price: €${suggestion.suggested_price}`} />
-                              </div>
-                              <div className="text-center text-xs text-purple-700 font-semibold mt-2">
-                                Positioned at {percentilePosition}th percentile
-                              </div>
-                            </div>
-                            <ul className="space-y-2 text-base">
-                              {reasoningParts.positioning && (
-                                <li className="flex items-start gap-2">
-                                  <span className="mt-1 text-blue-500">•</span>
-                                  <span><span className="font-semibold text-gray-800">Positioning:</span> <span className="text-gray-700">{reasoningParts.positioning}</span></span>
-                                </li>
-                              )}
-                              {reasoningParts.competitiveAdvantage && (
-                                <li className="flex items-start gap-2">
-                                  <span className="mt-1 text-green-500">•</span>
-                                  <span><span className="font-semibold text-gray-800">Competitive Advantage:</span> <span className="text-gray-700">{reasoningParts.competitiveAdvantage}</span></span>
-                                </li>
-                              )}
-                              {reasoningParts.marketInsight && (
-                                <li className="flex items-start gap-2">
-                                  <span className="mt-1 text-purple-500">•</span>
-                                  <span><span className="font-semibold text-gray-800">Market Insight:</span> <span className="text-gray-700">{reasoningParts.marketInsight}</span></span>
-                                </li>
-                              )}
-                            </ul>
-                            {suggestion.status === 'pending_review' && (
-                              <div className="flex gap-2 mt-6 pt-4 border-t border-gray-200">
-                                <button
-                                  onClick={() => openActivateModal(suggestion)}
-                                  className="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 text-base font-semibold transition-colors shadow"
-                                >
-                                  <CheckCircle className="w-5 h-5" />
-                                  Activate
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    const price = prompt('Enter adjusted price:', suggestion.suggested_price.toString());
-                                    if (price) openActivateModal(suggestion, parseFloat(price));
-                                  }}
-                                  className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-base font-semibold transition-colors shadow"
-                                >
-                                  Adjust & Activate
-                                </button>
-                                <button
-                                  onClick={() => rejectSuggestion(suggestion.id)}
-                                  className="px-3 py-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-red-100 hover:text-red-600 flex items-center gap-2 text-base transition-colors shadow"
-                                >
-                                  <XCircle className="w-5 h-5" />
-                                </button>
-                              </div>
-                            )}
-                            {suggestion.status === 'activated' && (
-                              <div className="flex items-center gap-2 text-base text-green-700 mt-6 pt-4 border-t border-gray-200 bg-green-50 -mx-6 -mb-6 px-6 py-3 rounded-b-2xl font-semibold">
-                                <CheckCircle className="w-5 h-5" />
-                                <span>Activated to price list</span>
-                              </div>
-                            )}
-                            {suggestion.status === 'rejected' && (
-                              <div className="text-base text-red-700 mt-6 pt-4 border-t border-gray-200 bg-red-50 -mx-6 -mb-6 px-6 py-3 rounded-b-2xl font-semibold">
-                                Rejected
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                <p className="text-purple-100 text-sm mt-1">
-                  Discover competitors and analyze market prices
-                </p>
-              </div>
+      }
+    } catch (err) {
+      console.error('Error retrying with AI:', err);
+      alert('Failed to start AI research');
+    }
+  };
+
+  // --- Price Recommendations Section ---
+  // (Moved out of retryWithAI)
+  // --- Visual Card Layout ---
+  // --- Rendered in main return block ---
+
+  // ...rest of the component code...
 
               <div className="p-6 space-y-5">
                 {/* Location Input */}
