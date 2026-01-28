@@ -341,22 +341,31 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
       if (response.ok) {
         const data = await response.json();
         console.log('📦 Invoice data received:', data);
+        console.log('📦 Raw client_id from response:', data?.invoice?.client_id);
         const invoice = data.invoice || data;
         const items = data.items || invoice.items || [];
         
-        // Find the client for this invoice
-        console.log('🔍 Looking for client:', invoice.client_id, 'in', clients.length, 'clients');
-        const client = clients.find(c => c.id === invoice.client_id);
-        if (client) {
-          console.log('✅ Found client:', client.name);
-          setClientSearch(client.name);
+        // Find the client for this invoice - convert both to string for comparison
+        const invoiceClientId = invoice.client_id ? String(invoice.client_id) : null;
+        console.log('🔍 Looking for client:', invoiceClientId, 'in', clients.length, 'clients');
+        
+        if (invoiceClientId) {
+          const client = clients.find(c => String(c.id) === invoiceClientId);
+          if (client) {
+            console.log('✅ Found client:', client.name);
+            setClientSearch(client.name);
+            // Also set the client_id in form data
+            setFormData(prev => ({ ...prev, client_id: invoiceClientId }));
+          } else {
+            console.log('⚠️ Client not found, checking first few client IDs:', clients.slice(0, 3).map(c => c.id));
+          }
         } else {
-          console.log('⚠️ Client not found');
+          console.log('⚠️ No client_id in invoice');
         }
         
         // Load invoice data into form
         setFormData({
-          client_id: invoice.client_id || '',
+          client_id: invoiceClientId || '',
           due_date: invoice.due_date ? new Date(invoice.due_date).toISOString().split('T')[0] : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           payment_terms: invoice.payment_terms || 'Net 30',
           currency: invoice.currency || 'EUR',
