@@ -4029,11 +4029,12 @@ Bitte versuchen Sie es später noch einmal.`;
         const dbField = fieldMapping[key];
         if (dbField && value !== undefined && !processedFields.has(dbField)) {
           processedFields.add(dbField);
-          updates.push(`${dbField} = $${paramIndex}`);
-          // For coverPosition and coverTemplate, ensure they're stored as JSON
+          // For JSONB columns, use explicit cast
           if (dbField === 'cover_position' || dbField === 'cover_template') {
+            updates.push(`${dbField} = $${paramIndex}::jsonb`);
             values.push(typeof value === 'string' ? value : JSON.stringify(value));
           } else {
+            updates.push(`${dbField} = $${paramIndex}`);
             values.push(value);
           }
           paramIndex++;
@@ -4049,10 +4050,13 @@ Bitte versuchen Sie es später noch einmal.`;
       const query = `
         UPDATE galleries 
         SET ${updates.join(', ')}
-        WHERE id = $${paramIndex}
+        WHERE id = $${paramIndex}::uuid
         RETURNING id, title, slug, description, cover_image, cover_position, cover_scale, cover_template, is_public, updated_at
       `;
       values.push(galleryId);
+      
+      console.log('[GALLERY-UPDATE] Query:', query);
+      console.log('[GALLERY-UPDATE] Values:', values.map((v, i) => `$${i+1}: ${typeof v === 'string' && v.length > 100 ? v.substring(0, 100) + '...' : v}`));
       
       const result = await runSql(query, values);
       
