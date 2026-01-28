@@ -197,7 +197,7 @@ const AVAILABLE_SERVICES = [
   // ...rest of the component code...
 
               {/* New Research Modal Content - properly wrapped */}
-              <>
+              {/* Modal content starts */}
                 <div className="p-6 space-y-5">
                   {/* Location Input */}
                   <div>
@@ -285,7 +285,7 @@ const AVAILABLE_SERVICES = [
                     )}
                   </button>
                 </div>
-              </>
+              {/* Modal content ends */}
             </div>
           </div>
         )}
