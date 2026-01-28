@@ -3293,87 +3293,9 @@ Bitte versuchen Sie es später noch einmal.`;
         
       }
       
-      // If still no images found, use fallback sample images
+      // If no images found, return empty array (no sample/placeholder images)
       if (!galleryImages || galleryImages.length === 0) {
-        const sampleImages = [
-          {
-            id: 'sample-1',
-            galleryId: gallery.id,
-            filename: 'mountain_landscape.jpg',
-            originalUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-            displayUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80',
-            thumbUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80',
-            title: 'Mountain Vista',
-            description: 'Beautiful mountain landscape captured during golden hour',
-            orderIndex: 0,
-            createdAt: new Date().toISOString(),
-            sizeBytes: 2500000,
-            contentType: 'image/jpeg',
-            capturedAt: null
-          },
-          {
-            id: 'sample-2',
-            galleryId: gallery.id,
-            filename: 'forest_path.jpg',
-            originalUrl: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-            displayUrl: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80',
-            thumbUrl: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80',
-            title: 'Forest Trail',
-            description: 'Peaceful forest path through autumn trees',
-            orderIndex: 1,
-            createdAt: new Date().toISOString(),
-            sizeBytes: 2300000,
-            contentType: 'image/jpeg',
-            capturedAt: null
-          },
-          {
-            id: 'sample-3',
-            galleryId: gallery.id,
-            filename: 'lake_reflection.jpg',
-            originalUrl: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-            displayUrl: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80',
-            thumbUrl: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80',
-            title: 'Lake Reflection',
-            description: 'Perfect mirror reflection on a calm mountain lake',
-            orderIndex: 2,
-            createdAt: new Date().toISOString(),
-            sizeBytes: 2800000,
-            contentType: 'image/jpeg',
-            capturedAt: null
-          },
-          {
-            id: 'sample-4',
-            galleryId: gallery.id,
-            filename: 'city_skyline.jpg',
-            originalUrl: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-            displayUrl: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80',
-            thumbUrl: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80',
-            title: 'Urban Evening',
-            description: 'City skyline illuminated at twilight',
-            orderIndex: 3,
-            createdAt: new Date().toISOString(),
-            sizeBytes: 2600000,
-            contentType: 'image/jpeg',
-            capturedAt: null
-          },
-          {
-            id: 'sample-5',
-            galleryId: gallery.id,
-            filename: 'coastal_sunset.jpg',
-            originalUrl: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2156&q=80',
-            displayUrl: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80',
-            thumbUrl: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80',
-            title: 'Coastal Sunset',
-            description: 'Golden hour over the ocean coastline',
-            orderIndex: 4,
-            createdAt: new Date().toISOString(),
-            sizeBytes: 2400000,
-            contentType: 'image/jpeg',
-            capturedAt: null
-          }
-        ];
-        
-        res.json(sampleImages);
+        res.json([]);
         return;
       }
       
