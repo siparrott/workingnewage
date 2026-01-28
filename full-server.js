@@ -5239,9 +5239,9 @@ When users ask about "this week", "this month", "today", "yesterday", etc., alwa
       return;
     }
 
-    // SIMPLE INVOICE UPDATE - direct endpoint without legacy routing
-    if (pathname === '/api/invoices/update' && req.method === 'POST') {
-      console.log('🎯 Hit /api/invoices/update endpoint');
+    // SIMPLE INVOICE UPDATE - using unique path to avoid any routing conflicts
+    if (pathname === '/api/invoice-edit' && req.method === 'POST') {
+      console.log('🎯 Hit /api/invoice-edit endpoint');
       let body = '';
       req.on('data', chunk => { body += chunk.toString(); });
       req.on('end', async () => {

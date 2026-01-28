@@ -556,7 +556,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
       let bodyPayload: any;
       
       if (isEditing) {
-        url = '/api/invoices/update';
+        url = '/api/invoice-edit';
         method = 'POST';
         bodyPayload = { ...payload, invoiceId: editingInvoice.id };
       } else {
