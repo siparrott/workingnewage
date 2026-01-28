@@ -26,38 +26,7 @@ const AVAILABLE_SERVICES = [
   { id: 'portrait', label: 'Portrait Photography' },
   { id: 'corporate', label: 'Corporate / Business' },
   { id: 'event', label: 'Event Photography' },
-                            </div>
-
-                            {/* Market Position Bar */}
-                            <div className="mb-5 bg-gray-100 rounded-lg p-3 shadow-inner">
-                              <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                <span>Min: €{suggestion.market_min}</span>
-                                <span className="font-semibold text-gray-700">Median: €{suggestion.market_median}</span>
-                                <span>Max: €{suggestion.market_max}</span>
-                              </div>
-                              <div className="relative h-2 bg-gray-300 rounded-full">
-                                <div 
-                                  className="absolute h-2 bg-gradient-to-r from-green-400 via-yellow-400 to-red-400 rounded-full"
-                                  style={{ width: '100%' }}
-                                />
-                                <div 
-                                  className="absolute w-4 h-4 bg-purple-600 rounded-full border-2 border-white shadow-md transform -translate-y-1/4"
-                                  style={{ left: `${Math.min(Math.max(percentilePosition, 0), 100)}%`, marginLeft: '-8px' }}
-                                  title={`Your price: €${suggestion.suggested_price}`}
-                                />
-                              </div>
-                              <div className="text-center text-xs text-purple-700 font-semibold mt-2">
-                                Positioned at {percentilePosition}th percentile
-                              </div>
-                            </div>
-
-                            {/* Prioritized Bullet Points */}
-                            <ul className="space-y-2 text-base">
-                              {reasoningParts.positioning && (
-                                <li className="flex items-start gap-2">
-                                  <span className="mt-1 text-blue-500">•</span>
-                                  <span><span className="font-semibold text-gray-800">Positioning:</span> <span className="text-gray-700">{reasoningParts.positioning}</span></span>
-                                </li>
+];
                               )}
                               {reasoningParts.competitiveAdvantage && (
                                 <li className="flex items-start gap-2">
