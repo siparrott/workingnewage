@@ -285,6 +285,7 @@ const AVAILABLE_SERVICES = [
                     )}
                   </button>
                 </div>
+              </div>
             </div>
           </div>
         )}
