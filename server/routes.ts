@@ -3230,6 +3230,83 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
+  // Upload images to a gallery (admin only)
+  app.post("/api/galleries/:galleryId/upload", authenticateUser, upload.array('images', 50), async (req: Request, res: Response) => {
+    try {
+      const { galleryId } = req.params;
+      const files = req.files as Express.Multer.File[];
+
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "No images provided" });
+      }
+
+      // Verify gallery exists
+      const gallery = await storage.getGallery(galleryId);
+      if (!gallery) {
+        return res.status(404).json({ error: "Gallery not found" });
+      }
+
+      console.log(`Uploading ${files.length} images to gallery ${galleryId}`);
+
+      const uploadedImages: any[] = [];
+      const s3Client = getS3Client();
+      const s3Config = getS3Config();
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const timestamp = Date.now();
+        const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+        const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const key = `galleries/${galleryId}/${timestamp}-${sanitizedFilename}`;
+
+        try {
+          // Upload to B2/S3
+          await s3Client.send(new PutObjectCommand({
+            Bucket: s3Config.bucket,
+            Key: key,
+            Body: file.buffer,
+            ContentType: file.mimetype,
+          }));
+
+          const imageUrl = buildPublicUrl(key);
+          console.log(`Uploaded image ${i + 1}/${files.length}: ${imageUrl}`);
+
+          // Insert into gallery_images table
+          const insertResult = await pool.query(`
+            INSERT INTO gallery_images (gallery_id, filename, url, title, sort_order, created_at)
+            VALUES ($1, $2, $3, $4, $5, NOW())
+            RETURNING id, gallery_id as "galleryId", filename, url, title, sort_order as "sortOrder", created_at as "createdAt"
+          `, [galleryId, sanitizedFilename, imageUrl, file.originalname, i]);
+
+          const insertedImage = insertResult.rows[0];
+          
+          uploadedImages.push({
+            id: insertedImage.id,
+            galleryId: insertedImage.galleryId,
+            filename: insertedImage.filename,
+            originalUrl: insertedImage.url,
+            displayUrl: insertedImage.url,
+            thumbUrl: insertedImage.url,
+            title: insertedImage.title,
+            orderIndex: insertedImage.sortOrder || 0,
+            createdAt: insertedImage.createdAt,
+            sizeBytes: file.size,
+            contentType: file.mimetype,
+          });
+        } catch (uploadError) {
+          console.error(`Failed to upload image ${file.originalname}:`, uploadError);
+          // Continue with other images even if one fails
+        }
+      }
+
+      console.log(`Successfully uploaded ${uploadedImages.length} images to gallery ${galleryId}`);
+      res.json(uploadedImages);
+    } catch (error) {
+      console.error("Error uploading gallery images:", error);
+      res.status(500).json({ error: "Failed to upload images" });
+    }
+  });
+
   // Get gallery images (public, requires authentication token)
   app.get("/api/galleries/:slug/images", async (req: Request, res: Response) => {
     try {
