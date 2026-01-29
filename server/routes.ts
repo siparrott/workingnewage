@@ -3910,10 +3910,10 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
-  // ==================== GALLERY ROUTES ====================
-  app.get("/api/galleries", authenticateUser, async (req: Request, res: Response) => {
+  // ==================== ADMIN GALLERY ROUTES ====================
+  app.get("/api/admin/galleries", authenticateUser, async (req: Request, res: Response) => {
     try {
-      const { clientId, isPublic, limit = 20 } = req.query;
+      const { clientId, isPublic, limit = 100 } = req.query;
       
       let query = `
         SELECT 

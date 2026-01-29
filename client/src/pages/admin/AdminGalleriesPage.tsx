@@ -153,7 +153,10 @@ const AdminGalleriesPage: React.FC = () => {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500"></div>
+          <div className="flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-teal-200 border-t-teal-500"></div>
+            <p className="text-gray-600 text-sm">Loading galleries...</p>
+          </div>
         </div>
       </AdminLayout>
     );

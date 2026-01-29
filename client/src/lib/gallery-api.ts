@@ -11,7 +11,7 @@ import {
 // Get all galleries (admin only)
 export async function getGalleries(): Promise<Gallery[]> {
   try {
-    const response = await fetch('/api/galleries', {
+    const response = await fetch('/api/admin/galleries', {
       credentials: 'include',
     });
     if (!response.ok) {
