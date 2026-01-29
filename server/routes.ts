@@ -3035,7 +3035,7 @@ Bitte versuchen Sie es später noch einmal.`;
   // ==================== GALLERY ROUTES ====================
   app.get("/api/galleries", async (req: Request, res: Response) => {
     try {
-      // Fetch galleries with client information
+      // Fetch public galleries with client information
       const result = await pool.query(`
         SELECT 
           g.id,
@@ -3053,11 +3053,12 @@ Bitte versuchen Sie es später noch einmal.`;
           g.sort_order as "sortOrder",
           g.created_at as "createdAt",
           g.updated_at as "updatedAt",
-          g.expires_at as "expiresAt",
           c.first_name || ' ' || c.last_name as "clientName",
-          c.email as "clientEmail"
+          c.email as "clientEmail",
+          (SELECT COUNT(*) FROM gallery_images gi WHERE gi.gallery_id = g.id) as "imageCount"
         FROM galleries g
         LEFT JOIN crm_clients c ON g.client_id = c.id
+        WHERE g.is_public = true
         ORDER BY g.created_at DESC
       `);
       
