@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import ImageGrid from '../components/galleries/ImageGrid';
 import Slideshow from '../components/galleries/Slideshow';
-import { getGalleryBySlug, getPublicGalleryImages, authenticateGallery } from '../lib/gallery-api';
+import { getGalleryBySlug, getPublicGalleryImages, authenticateGallery, uploadGalleryImages } from '../lib/gallery-api';
 import { Gallery, GalleryImage } from '../types/gallery';
-import { ArrowLeft, Download, Share2, Heart, Loader2, AlertCircle, Play, Lock, Mail, Image, Grid, Settings, HelpCircle, Calendar, HardDrive, CheckSquare, Info } from 'lucide-react';
+import { ArrowLeft, Download, Share2, Heart, Loader2, AlertCircle, Play, Lock, Mail, Image, Grid, Settings, HelpCircle, Calendar, HardDrive, CheckSquare, Info, Upload, Plus } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const GalleryPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
+  const { user, isAdmin } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [gallery, setGallery] = useState<Gallery | null>(null);
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -21,6 +24,10 @@ const GalleryPage: React.FC = () => {
   const [ratingFilter, setRatingFilter] = useState<'all' | 'love' | 'maybe' | 'reject'>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Upload state for admin
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
   
   // Auth form state
   const [email, setEmail] = useState('');
@@ -109,6 +116,41 @@ const GalleryPage: React.FC = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Admin upload handler
+  const handleAdminUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0 || !gallery) return;
+    
+    try {
+      setUploading(true);
+      setUploadProgress(`Uploading ${files.length} images...`);
+      
+      const fileArray = Array.from(files);
+      console.log(`[GalleryPage] Uploading ${fileArray.length} images to gallery ${gallery.id}`);
+      
+      const uploadedImages = await uploadGalleryImages(gallery.id, fileArray);
+      console.log(`[GalleryPage] Upload complete:`, uploadedImages);
+      
+      setUploadProgress(`Successfully uploaded ${uploadedImages.length} images!`);
+      
+      // Refresh gallery images
+      if (slug && authToken) {
+        await fetchGalleryImages(slug, authToken);
+      }
+      
+      setTimeout(() => {
+        setUploadProgress('');
+      }, 3000);
+    } catch (err) {
+      console.error('[GalleryPage] Upload failed:', err);
+      setUploadProgress('Upload failed. Please try again.');
+      setTimeout(() => {
+        setUploadProgress('');
+      }, 3000);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -643,7 +685,52 @@ const GalleryPage: React.FC = () => {
                   {selectedForSlideshow.size} selected
                 </span>
               )}
+              
+              {/* Admin Upload Button */}
+              {isAdmin && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleAdminUpload(e.target.files)}
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {uploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Images
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
             </div>
+            
+            {/* Upload Progress Banner */}
+            {uploadProgress && (
+              <div className={`mt-2 px-4 py-2 rounded-lg text-sm ${
+                uploadProgress.includes('failed') 
+                  ? 'bg-red-100 text-red-700' 
+                  : uploadProgress.includes('Successfully') 
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-blue-100 text-blue-700'
+              }`}>
+                {uploadProgress}
+              </div>
+            )}
+            
             <div className="text-sm text-gray-500">
               {filteredImages.length} photos
             </div>
