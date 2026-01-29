@@ -3109,6 +3109,17 @@ Bitte versuchen Sie es später noch einmal.`;
       // Admin users are in admin_users table, not users table
       const galleryData = { ...req.body };
       delete galleryData.createdBy; // Remove if it was sent from client
+      
+      // Generate slug from title if not provided
+      if (galleryData.title && !galleryData.slug) {
+        galleryData.slug = galleryData.title
+          .toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove accents
+          .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
+          .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+          .substring(0, 100); // Limit length
+      }
+      
       const validatedData = insertGallerySchema.parse(galleryData);
       const gallery = await storage.createGallery(validatedData);
       res.status(201).json(gallery);
@@ -3868,8 +3879,13 @@ Bitte versuchen Sie es später noch einmal.`;
     try {
       const { title, description, clientId, isPublic = true, isPasswordProtected = false, password, slug, coverImage, coverPosition, coverScale, coverTemplate } = req.body;
       
-      // Generate slug if not provided
-      const gallerySlug = slug || title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').trim('-');
+      // Generate slug from title if not provided
+      const gallerySlug = slug || title
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove accents
+        .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens  
+        .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+        .substring(0, 100); // Limit length
       
       const query = `
         INSERT INTO galleries (title, description, client_id, is_public, is_password_protected, password, slug, cover_image, cover_position, cover_scale, cover_template, created_by)
@@ -3938,6 +3954,21 @@ Bitte versuchen Sie es später noch einmal.`;
       };
       
       const processedFields = new Set<string>(); // Avoid duplicate updates
+      
+      // If title is being updated, also update the slug
+      const newTitle = req.body.title;
+      if (newTitle) {
+        const newSlug = newTitle
+          .toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove accents
+          .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
+          .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+          .substring(0, 100); // Limit length
+        updates.push(`slug = $${paramIndex}`);
+        values.push(newSlug);
+        paramIndex++;
+        processedFields.add('slug');
+      }
       
       for (const [key, value] of Object.entries(req.body)) {
         const dbField = fieldMapping[key];
