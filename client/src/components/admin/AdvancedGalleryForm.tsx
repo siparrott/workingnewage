@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Gallery, GalleryFormData, CoverTemplateSettings } from '../../types/gallery';
-import { createGallery, updateGallery, uploadGalleryImages } from '../../lib/gallery-api';
+import { createGallery, updateGallery, uploadGalleryImages, sendGalleryEmail, sendGalleryWhatsApp, sendGallerySms } from '../../lib/gallery-api';
 import CoverImagePositioner from '../galleries/CoverImagePositioner';
 import GalleryCoverDesigner, { CoverSettings, COVER_TEMPLATES } from '../galleries/GalleryCoverDesigner';
 import SearchableClientDropdown from './SearchableClientDropdown';
@@ -23,7 +23,13 @@ import {
   Calendar,
   Share2,
   Move,
-  Palette
+  Palette,
+  Mail,
+  MessageCircle,
+  Phone,
+  Copy,
+  Link,
+  CheckCircle
 } from 'lucide-react';
 
 interface GalleryFormProps {
@@ -78,6 +84,15 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
   const [coverTemplate, setCoverTemplate] = useState<CoverTemplateSettings | null>(null);
   const [showPositioner, setShowPositioner] = useState(false);
   const [showCoverDesigner, setShowCoverDesigner] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [savedGalleryId, setSavedGalleryId] = useState<string | null>(null);
+  const [savedGallerySlug, setSavedGallerySlug] = useState<string | null>(null);
+  const [shareEmail, setShareEmail] = useState('');
+  const [sharePhone, setSharePhone] = useState('');
+  const [shareMessage, setShareMessage] = useState('');
+  const [shareSending, setShareSending] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const steps = [
     { id: 'details', label: 'Details', icon: FileText, description: 'Gallery title and description' },
@@ -237,7 +252,7 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (showShare: boolean = false) => {
     if (!formData.title.trim()) {
       setError('Gallery title is required');
       return;
@@ -263,16 +278,23 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
       };
       
       let galleryId: string;
+      let gallerySlug: string;
       
       if (isEditing && gallery?.id) {
         const updatedGallery = await updateGallery(gallery.id, galleryFormData);
         galleryId = updatedGallery.id;
+        gallerySlug = updatedGallery.slug || formData.title.toLowerCase().replace(/[^\w\s]/gi, '').replace(/\s+/g, '-');
         setSuccessMessage('Gallery updated successfully!');
       } else {
         const newGallery = await createGallery(galleryFormData);
         galleryId = newGallery.id;
+        gallerySlug = newGallery.slug || formData.title.toLowerCase().replace(/[^\w\s]/gi, '').replace(/\s+/g, '-');
         setSuccessMessage('Gallery created successfully!');
       }
+      
+      // Store gallery info for sharing
+      setSavedGalleryId(galleryId);
+      setSavedGallerySlug(gallerySlug);
       
       // Upload images if any were selected (for both create and edit)
       console.log('[GalleryForm] Selected images count:', selectedImages.length);
@@ -296,13 +318,19 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
         console.log('[GalleryForm] No images to upload');
       }
       
-      setTimeout(() => {
-        if (onSuccess) {
-          onSuccess();
-        } else {
-          navigate('/admin/galleries');
-        }
-      }, 1500);
+      // If showShare is true, open share modal instead of navigating away
+      if (showShare) {
+        setLoading(false);
+        setShowShareModal(true);
+      } else {
+        setTimeout(() => {
+          if (onSuccess) {
+            onSuccess();
+          } else {
+            navigate('/admin/galleries');
+          }
+        }, 1500);
+      }
         } catch (err) {
       console.error('Gallery save error:', err);
       setImageUploading(false);
@@ -321,9 +349,261 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
       
       setError(errorMessage);
     } finally {
-      setLoading(false);
+      if (!showShare) {
+        setLoading(false);
+      }
     }
   };
+
+  // Share functionality
+  const getGalleryUrl = () => {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/gallery/${savedGallerySlug || formData.title.toLowerCase().replace(/[^\w\s]/gi, '').replace(/\s+/g, '-')}`;
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(getGalleryUrl());
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy link:', err);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!shareEmail.trim()) {
+      setError('Please enter an email address');
+      return;
+    }
+    try {
+      setShareSending(true);
+      setShareSuccess(null);
+      await sendGalleryEmail({
+        galleryId: savedGalleryId || undefined,
+        slug: savedGallerySlug || undefined,
+        to: shareEmail,
+        message: shareMessage || undefined
+      });
+      setShareSuccess('Email sent successfully!');
+      setShareEmail('');
+      setShareMessage('');
+    } catch (err) {
+      setError((err as Error).message || 'Failed to send email');
+    } finally {
+      setShareSending(false);
+    }
+  };
+
+  const handleSendWhatsApp = async () => {
+    try {
+      setShareSending(true);
+      const result = await sendGalleryWhatsApp({
+        galleryId: savedGalleryId || undefined,
+        slug: savedGallerySlug || undefined,
+        toPhone: sharePhone || undefined
+      });
+      // Open WhatsApp link if provided
+      if (result.share) {
+        window.open(result.share, '_blank');
+      } else {
+        // Fallback: create WhatsApp link manually
+        const message = encodeURIComponent(`Check out my gallery: ${getGalleryUrl()}`);
+        window.open(`https://wa.me/?text=${message}`, '_blank');
+      }
+      setShareSuccess('WhatsApp opened!');
+    } catch (err) {
+      // Fallback to manual WhatsApp share
+      const message = encodeURIComponent(`Check out my gallery: ${getGalleryUrl()}`);
+      window.open(`https://wa.me/?text=${message}`, '_blank');
+    } finally {
+      setShareSending(false);
+    }
+  };
+
+  const handleSendSms = async () => {
+    if (!sharePhone.trim()) {
+      setError('Please enter a phone number');
+      return;
+    }
+    try {
+      setShareSending(true);
+      setShareSuccess(null);
+      await sendGallerySms({
+        galleryId: savedGalleryId || undefined,
+        slug: savedGallerySlug || undefined,
+        toPhone: sharePhone
+      });
+      setShareSuccess('SMS sent successfully!');
+      setSharePhone('');
+    } catch (err) {
+      setError((err as Error).message || 'Failed to send SMS');
+    } finally {
+      setShareSending(false);
+    }
+  };
+
+  const renderShareModal = () => {
+    if (!showShareModal) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Share2 className="w-6 h-6" />
+                <h2 className="text-xl font-bold">Share Gallery</h2>
+              </div>
+              <button
+                onClick={() => {
+                  setShowShareModal(false);
+                  if (onSuccess) {
+                    onSuccess();
+                  } else {
+                    navigate('/admin/galleries');
+                  }
+                }}
+                className="p-1 hover:bg-white/20 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-purple-100 text-sm mt-1">
+              {formData.title}
+            </p>
+          </div>
+
+          {/* Content */}
+          <div className="p-6 space-y-4">
+            {/* Success message */}
+            {shareSuccess && (
+              <div className="flex items-center gap-2 p-3 bg-green-50 text-green-700 rounded-lg">
+                <CheckCircle className="w-5 h-5" />
+                <span>{shareSuccess}</span>
+              </div>
+            )}
+
+            {/* Error message */}
+            {error && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-lg">
+                <AlertCircle className="w-5 h-5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Copy Link */}
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 text-gray-700 font-medium">
+                  <Link className="w-5 h-5" />
+                  Gallery Link
+                </div>
+                <button
+                  onClick={handleCopyLink}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    linkCopied
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                  }`}
+                >
+                  {linkCopied ? (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      Copy Link
+                    </>
+                  )}
+                </button>
+              </div>
+              <div className="text-sm text-gray-500 bg-gray-50 p-2 rounded break-all">
+                {getGalleryUrl()}
+              </div>
+            </div>
+
+            {/* Share via Email */}
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center gap-2 text-gray-700 font-medium mb-3">
+                <Mail className="w-5 h-5" />
+                Send via Email
+              </div>
+              <div className="space-y-2">
+                <input
+                  type="email"
+                  placeholder="recipient@email.com"
+                  value={shareEmail}
+                  onChange={(e) => setShareEmail(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                />
+                <textarea
+                  placeholder="Add a personal message (optional)"
+                  value={shareMessage}
+                  onChange={(e) => setShareMessage(e.target.value)}
+                  rows={2}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
+                />
+                <button
+                  onClick={handleSendEmail}
+                  disabled={shareSending || !shareEmail.trim()}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {shareSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                  Send Email
+                </button>
+              </div>
+            </div>
+
+            {/* WhatsApp & SMS */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={handleSendWhatsApp}
+                disabled={shareSending}
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+              >
+                <MessageCircle className="w-5 h-5" />
+                WhatsApp
+              </button>
+              <button
+                onClick={() => {
+                  // Open SMS with pre-filled message
+                  const message = encodeURIComponent(`Check out my gallery: ${getGalleryUrl()}`);
+                  window.open(`sms:?body=${message}`, '_blank');
+                }}
+                disabled={shareSending}
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              >
+                <Phone className="w-5 h-5" />
+                SMS
+              </button>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 bg-gray-50 border-t">
+            <button
+              onClick={() => {
+                setShowShareModal(false);
+                if (onSuccess) {
+                  onSuccess();
+                } else {
+                  navigate('/admin/galleries');
+                }
+              }}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderStepIndicator = () => (
     <div className="flex items-center justify-between mb-8">
       {steps.map((step, index) => {
@@ -905,7 +1185,7 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
             {getStepIndex(currentStep) === steps.length - 1 ? (
               <>                <button
                   type="button"
-                  onClick={handleSubmit}
+                  onClick={() => handleSubmit(false)}
                   disabled={loading || !validateStep(currentStep)}
                   className="flex items-center px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                 >
@@ -918,7 +1198,7 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
                 </button>
                 <button
                   type="button"
-                  onClick={handleSubmit}
+                  onClick={() => handleSubmit(true)}
                   disabled={loading || imageUploading || !validateStep(currentStep)}
                   className="flex items-center px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
                 >
@@ -944,6 +1224,9 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
           </div>
         </div>
       </div>
+      
+      {/* Share Modal */}
+      {renderShareModal()}
     </div>
   );
 };
