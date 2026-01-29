@@ -3206,6 +3206,11 @@ Bitte versuchen Sie es später noch einmal.`;
       // Get gallery images from database
       const galleryImages = await storage.getGalleryImages(id);
       
+      console.log(`[ADMIN GALLERY IMAGES] Gallery ${id}: Found ${galleryImages?.length || 0} images`);
+      if (galleryImages?.[0]) {
+        console.log(`[ADMIN GALLERY IMAGES] First image raw:`, JSON.stringify(galleryImages[0]));
+      }
+      
       // Transform to match frontend expectations
       const transformedImages = (galleryImages || []).map(img => ({
         id: img.id,
@@ -3214,6 +3219,7 @@ Bitte versuchen Sie es später noch einmal.`;
         originalUrl: img.url || img.originalUrl,
         displayUrl: img.url || img.displayUrl,
         thumbUrl: img.url || img.thumbUrl,
+        url: img.url, // Also include raw url
         title: img.title,
         description: img.description,
         orderIndex: img.sortOrder || img.sort_order || 0,
@@ -3222,6 +3228,8 @@ Bitte versuchen Sie es später noch einmal.`;
         contentType: 'image/jpeg',
         capturedAt: null
       }));
+      
+      console.log(`[ADMIN GALLERY IMAGES] First transformed:`, transformedImages[0] ? JSON.stringify(transformedImages[0]) : 'none');
       
       res.json(transformedImages);
     } catch (error) {

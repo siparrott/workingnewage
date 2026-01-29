@@ -147,7 +147,13 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
       });
       if (!response.ok) throw new Error('Failed to fetch images');
       const data = await response.json();
-      console.log('[GalleryForm] Fetched uploaded images:', data?.length || 0);
+      console.log('[GalleryForm] Fetched uploaded images:', data);
+      console.log('[GalleryForm] First image URL fields:', data?.[0] ? {
+        url: data[0].url,
+        thumbUrl: data[0].thumbUrl,
+        displayUrl: data[0].displayUrl,
+        originalUrl: data[0].originalUrl
+      } : 'no images');
       setUploadedImages(data || []);
     } catch (err) {
       console.error('Error fetching images:', err);
@@ -898,20 +904,33 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
               Uploaded Images ({uploadedImages.length})
             </h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {uploadedImages.map((image, index) => (
-                <div key={index} className="relative group">
-                  <div className="aspect-square overflow-hidden rounded-lg">
-                    <img 
-                      src={image.thumbUrl || image.thumb_url || image.displayUrl || image.display_url || image.originalUrl || image.url} 
-                      alt={image.filename || `Image ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
+              {uploadedImages.map((image, index) => {
+                const imageUrl = image.thumbUrl || image.thumb_url || image.displayUrl || image.display_url || image.originalUrl || image.url;
+                return (
+                  <div key={image.id || index} className="relative group">
+                    <div className="aspect-square overflow-hidden rounded-lg bg-gray-100">
+                      {imageUrl ? (
+                        <img 
+                          src={imageUrl} 
+                          alt={image.filename || `Image ${index + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.error('Image failed to load:', imageUrl);
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          <ImageIcon size={32} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="absolute bottom-1 left-1 right-1 bg-black bg-opacity-50 text-white text-xs p-1 rounded truncate">
+                      {image.filename || `Image ${index + 1}`}
+                    </div>
                   </div>
-                  <div className="absolute bottom-1 left-1 right-1 bg-black bg-opacity-50 text-white text-xs p-1 rounded truncate">
-                    {image.filename || `Image ${index + 1}`}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
