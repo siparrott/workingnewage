@@ -82,7 +82,7 @@ const PublicGalleriesPage: React.FC = () => {
   // Calculate stats
   const stats = {
     totalGalleries: galleries.length,
-    totalImages: galleries.reduce((sum, g) => sum + (g.imageCount || 0), 0),
+    totalImages: galleries.reduce((sum, g) => sum + (parseInt(String(g.imageCount)) || 0), 0),
     passwordProtected: galleries.filter(g => g.isPasswordProtected).length,
     publicGalleries: galleries.filter(g => !g.isPasswordProtected).length,
   };
