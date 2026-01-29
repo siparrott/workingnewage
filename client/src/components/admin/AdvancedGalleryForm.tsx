@@ -908,7 +908,7 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
                 const imageUrl = image.thumbUrl || image.thumb_url || image.displayUrl || image.display_url || image.originalUrl || image.url;
                 return (
                   <div key={image.id || index} className="relative group">
-                    <div className="aspect-square overflow-hidden rounded-lg bg-gray-100">
+                    <div className="aspect-square overflow-hidden rounded-lg bg-gray-100 flex items-center justify-center">
                       {imageUrl ? (
                         <img 
                           src={imageUrl} 
@@ -916,7 +916,14 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             console.error('Image failed to load:', imageUrl);
-                            (e.target as HTMLImageElement).style.display = 'none';
+                            // Replace with placeholder
+                            const parent = (e.target as HTMLImageElement).parentElement;
+                            if (parent) {
+                              parent.innerHTML = `<div class="w-full h-full flex flex-col items-center justify-center text-gray-400 p-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                                <span class="text-xs mt-1 text-center">Failed to load</span>
+                              </div>`;
+                            }
                           }}
                         />
                       ) : (
