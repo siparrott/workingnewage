@@ -3236,17 +3236,23 @@ Bitte versuchen Sie es später noch einmal.`;
       const { galleryId } = req.params;
       const files = req.files as Express.Multer.File[];
 
+      console.log(`[GALLERY UPLOAD] Request received for gallery ${galleryId}`);
+      console.log(`[GALLERY UPLOAD] Files received:`, files?.length || 0);
+      console.log(`[GALLERY UPLOAD] User:`, req.user);
+
       if (!files || files.length === 0) {
+        console.log('[GALLERY UPLOAD] No files in request');
         return res.status(400).json({ error: "No images provided" });
       }
 
       // Verify gallery exists
       const gallery = await storage.getGallery(galleryId);
       if (!gallery) {
+        console.log('[GALLERY UPLOAD] Gallery not found:', galleryId);
         return res.status(404).json({ error: "Gallery not found" });
       }
 
-      console.log(`Uploading ${files.length} images to gallery ${galleryId}`);
+      console.log(`[GALLERY UPLOAD] Uploading ${files.length} images to gallery ${galleryId}`);
 
       const uploadedImages: any[] = [];
       const s3Client = getS3Client();

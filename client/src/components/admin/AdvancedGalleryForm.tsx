@@ -275,15 +275,25 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
       }
       
       // Upload images if any were selected (for both create and edit)
+      console.log('[GalleryForm] Selected images count:', selectedImages.length);
+      console.log('[GalleryForm] Gallery ID for upload:', galleryId);
+      
       if (selectedImages.length > 0) {
         setImageUploading(true);
         setSuccessMessage(`Uploading ${selectedImages.length} images...`);
         try {
-          await uploadGalleryImages(galleryId, selectedImages);
+          console.log('[GalleryForm] Starting upload...');
+          const uploadedResult = await uploadGalleryImages(galleryId, selectedImages);
+          console.log('[GalleryForm] Upload result:', uploadedResult);
           setSuccessMessage(isEditing ? 'Gallery and images updated!' : 'Gallery created with images!');
+        } catch (uploadErr) {
+          console.error('[GalleryForm] Upload failed:', uploadErr);
+          throw uploadErr;
         } finally {
           setImageUploading(false);
         }
+      } else {
+        console.log('[GalleryForm] No images to upload');
       }
       
       setTimeout(() => {
