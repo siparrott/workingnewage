@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GalleryImage } from '../../types/gallery';
-import { Heart, Download, Trash2, Eye, Image, Share2, ShoppingCart, Star } from 'lucide-react';
+import { Heart, Download, Trash2, Eye, Image, Share2, ShoppingCart, Star, Upload } from 'lucide-react';
 import { toggleImageFavorite, deleteGalleryImage, setGalleryCoverImage, setGalleryFeaturedImage } from '../../lib/gallery-api';
 import ProductSelectionModal from './ProductSelectionModal';
 
@@ -20,6 +20,7 @@ interface ImageGridProps {
   onToggleSelection?: (imageId: string) => void;
   onRunSlideshow?: () => void;
   onClearSelection?: () => void;
+  onAddImages?: () => void;
 }
 
 const ImageGrid: React.FC<ImageGridProps> = ({ 
@@ -38,6 +39,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   onToggleSelection: externalToggleSelection,
   onRunSlideshow,
   onClearSelection,
+  onAddImages,
 }) => {
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -383,11 +385,20 @@ const ImageGrid: React.FC<ImageGridProps> = ({
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <Image className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No Images Yet</h3>
-          <p className="text-gray-500">
+          <p className="text-gray-500 mb-4">
             {isAdmin 
               ? 'Upload images to get started.' 
               : 'This gallery is empty. Check back later.'}
           </p>
+          {isAdmin && onAddImages && (
+            <button
+              onClick={onAddImages}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 transition-colors"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Add Images
+            </button>
+          )}
         </div>
       ) : (
         <div className="gallery-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
