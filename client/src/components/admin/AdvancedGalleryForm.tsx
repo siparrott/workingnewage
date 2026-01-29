@@ -142,9 +142,12 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
 
   const fetchUploadedImages = async (galleryId: string) => {
     try {
-      const response = await fetch(`/api/galleries/${galleryId}/images`);
+      const response = await fetch(`/api/admin/galleries/${galleryId}/images`, {
+        credentials: 'include'
+      });
       if (!response.ok) throw new Error('Failed to fetch images');
       const data = await response.json();
+      console.log('[GalleryForm] Fetched uploaded images:', data?.length || 0);
       setUploadedImages(data || []);
     } catch (err) {
       console.error('Error fetching images:', err);
@@ -899,13 +902,13 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
                 <div key={index} className="relative group">
                   <div className="aspect-square overflow-hidden rounded-lg">
                     <img 
-                      src={image.thumb_url || image.display_url} 
-                      alt={image.filename}
+                      src={image.thumbUrl || image.thumb_url || image.displayUrl || image.display_url || image.originalUrl || image.url} 
+                      alt={image.filename || `Image ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <div className="absolute bottom-1 left-1 right-1 bg-black bg-opacity-50 text-white text-xs p-1 rounded truncate">
-                    {image.filename}
+                    {image.filename || `Image ${index + 1}`}
                   </div>
                 </div>
               ))}
@@ -1106,8 +1109,8 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
               {uploadedImages.slice(0, 8).map((image, index) => (
                 <div key={index} className="aspect-square overflow-hidden rounded-lg">
                   <img 
-                    src={image.thumb_url || image.display_url} 
-                    alt={image.filename}
+                    src={image.thumbUrl || image.thumb_url || image.displayUrl || image.display_url || image.originalUrl || image.url} 
+                    alt={image.filename || `Image ${index + 1}`}
                     className="w-full h-full object-cover"
                   />
                 </div>
