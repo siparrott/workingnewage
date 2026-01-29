@@ -272,10 +272,17 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
         const newGallery = await createGallery(galleryFormData);
         galleryId = newGallery.id;
         setSuccessMessage('Gallery created successfully!');
-        
-        // Upload images if any were selected
-        if (selectedImages.length > 0) {
+      }
+      
+      // Upload images if any were selected (for both create and edit)
+      if (selectedImages.length > 0) {
+        setImageUploading(true);
+        setSuccessMessage(`Uploading ${selectedImages.length} images...`);
+        try {
           await uploadGalleryImages(galleryId, selectedImages);
+          setSuccessMessage(isEditing ? 'Gallery and images updated!' : 'Gallery created with images!');
+        } finally {
+          setImageUploading(false);
         }
       }
       
@@ -288,6 +295,7 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
       }, 1500);
         } catch (err) {
       console.error('Gallery save error:', err);
+      setImageUploading(false);
       
       // Extract specific error message
       let errorMessage = 'An error occurred while saving the gallery';
@@ -891,25 +899,25 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
                   disabled={loading || !validateStep(currentStep)}
                   className="flex items-center px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                 >
-                  {loading ? (
+                  {(loading || imageUploading) ? (
                     <Loader2 className="animate-spin mr-2 h-4 w-4" />
                   ) : (
                     <Save className="mr-2 h-4 w-4" />
                   )}
-                  Save Draft
+                  {imageUploading ? 'Uploading...' : 'Save Draft'}
                 </button>
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  disabled={loading || !validateStep(currentStep)}
+                  disabled={loading || imageUploading || !validateStep(currentStep)}
                   className="flex items-center px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
                 >
-                  {loading ? (
+                  {(loading || imageUploading) ? (
                     <Loader2 className="animate-spin mr-2 h-4 w-4" />
                   ) : (
                     <Share2 className="mr-2 h-4 w-4" />
                   )}
-                  Share Gallery
+                  {imageUploading ? 'Uploading Images...' : 'Share Gallery'}
                 </button>
               </>
             ) : (
