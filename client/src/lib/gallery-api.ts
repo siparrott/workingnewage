@@ -234,19 +234,25 @@ export async function uploadGalleryImages(galleryId: string, files: File[]): Pro
       formData.append('images', file);
     });
 
+    console.log(`Uploading ${files.length} images to gallery ${galleryId}`);
+
     const response = await fetch(`/api/galleries/${galleryId}/upload`, {
       method: 'POST',
       body: formData,
+      credentials: 'include', // Include session cookies for authentication
     });
 
     if (!response.ok) {
       const error = await response.json();
+      console.error('Upload failed:', error);
       throw new Error(error.error || 'Failed to upload images');
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log(`Successfully uploaded ${result.length} images`);
+    return result;
   } catch (error) {
-    // console.error removed
+    console.error('Upload error:', error);
     throw error;
   }
 }
