@@ -181,7 +181,7 @@ const GalleryPage: React.FC = () => {
       return;
     }
     
-    const isPasswordProtected = gallery?.isPasswordProtected || !!gallery?.password;
+    const isPasswordProtected = gallery?.isPasswordProtected;
     if (isPasswordProtected && !password) {
       setAuthError('Password is required');
       return;
@@ -358,7 +358,7 @@ const GalleryPage: React.FC = () => {
 
   // Full-screen login view (not authenticated)
   if (!isAuthenticated && gallery) {
-    const isPasswordProtected = gallery.isPasswordProtected || !!gallery.password;
+    const isPasswordProtected = gallery.isPasswordProtected;
     
     return (
       <div className="fixed inset-0 w-full h-full">

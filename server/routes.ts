@@ -3111,7 +3111,10 @@ Bitte versuchen Sie es später noch einmal.`;
         }
       }
 
-      res.json(gallery);
+      // SECURITY: Never expose the actual password to the client
+      // Only send the isPasswordProtected boolean flag
+      const { password, ...safeGallery } = gallery;
+      res.json(safeGallery);
     } catch (error) {
       console.error("Error fetching gallery:", error);
       res.status(500).json({ error: "Internal server error" });
