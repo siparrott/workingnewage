@@ -81,6 +81,7 @@ import questionnairesRouter from './routes/questionnaires';
 import galleryShopRouter from './routes/gallery-shop';
 import authRoutes from './routes/auth';
 import filesRouter from './routes/files';
+import prodigiRoutes from './routes/prodigi';
 import storageRoutes from './storage-routes';
 import fileRoutes from './file-routes';
 import galleryTransferRoutes from './gallery-transfer-routes';
@@ -13305,6 +13306,9 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
   
   // Storage statistics routes
   app.use('/api/storage-stats', storageStatsRoutes);
+  
+  // Print ordering routes (Prodigi integration)
+  app.use('/api/print', prodigiRoutes);
 
   // Storage health check (diagnostics for Backblaze/AWS S3 configuration)
   app.get('/api/storage/health', async (_req: Request, res: Response) => {

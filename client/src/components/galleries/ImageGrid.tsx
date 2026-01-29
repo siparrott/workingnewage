@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { GalleryImage } from '../../types/gallery';
 import { Heart, Download, Trash2, Eye, Image, Share2, ShoppingCart, Star, Upload } from 'lucide-react';
 import { toggleImageFavorite, deleteGalleryImage, setGalleryCoverImage, setGalleryFeaturedImage } from '../../lib/gallery-api';
-import ProductSelectionModal from './ProductSelectionModal';
+import PrintOrderModal from './PrintOrderModal';
 
 interface ImageGridProps {
   images: GalleryImage[];
@@ -727,15 +727,14 @@ const ImageGrid: React.FC<ImageGridProps> = ({
         </div>
       )}
       
-      {/* Product Selection Modal */}
+      {/* Print Order Modal */}
       {selectedImageForOrder && (
-        <ProductSelectionModal
+        <PrintOrderModal
           image={selectedImageForOrder}
+          galleryId={galleryId}
           onClose={handleCloseOrderModal}
-          onAddToCart={(image, product, quantity) => {
-            console.log('Add to cart:', { image, product, quantity });
-            // TODO: Implement cart functionality
-            alert(`Added ${quantity}x ${product.name} to cart!`);
+          onOrderComplete={(orderId) => {
+            console.log('Print order created:', orderId);
           }}
         />
       )}
