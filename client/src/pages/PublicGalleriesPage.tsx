@@ -57,8 +57,11 @@ const PublicGalleriesPage: React.FC = () => {
     return gallery.coverImage || '/placeholder-gallery.jpg';
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('de-DE', {
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('de-DE', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'

@@ -3037,9 +3037,24 @@ Bitte versuchen Sie es später noch einmal.`;
       // Fetch galleries with client information
       const result = await pool.query(`
         SELECT 
-          g.*,
-          c.first_name || ' ' || c.last_name as client_name,
-          c.email as client_email
+          g.id,
+          g.title,
+          g.slug,
+          g.description,
+          g.cover_image as "coverImage",
+          g.cover_position as "coverPosition",
+          g.cover_scale as "coverScale",
+          g.cover_template as "coverTemplate",
+          g.is_public as "isPublic",
+          g.is_password_protected as "isPasswordProtected",
+          g.client_id as "clientId",
+          g.created_by as "createdBy",
+          g.sort_order as "sortOrder",
+          g.created_at as "createdAt",
+          g.updated_at as "updatedAt",
+          g.expires_at as "expiresAt",
+          c.first_name || ' ' || c.last_name as "clientName",
+          c.email as "clientEmail"
         FROM galleries g
         LEFT JOIN crm_clients c ON g.client_id = c.id
         ORDER BY g.created_at DESC
