@@ -255,9 +255,21 @@ export async function uploadGalleryImages(galleryId: string, files: File[]): Pro
     console.log(`[uploadGalleryImages] Response status: ${response.status}`);
     
     if (!response.ok) {
-      const error = await response.json();
-      console.error('[uploadGalleryImages] Upload failed:', error);
-      throw new Error(error.error || 'Failed to upload images');
+      let errorMessage = `Upload failed with status ${response.status}`;
+      try {
+        const error = await response.json();
+        console.error('[uploadGalleryImages] Upload failed:', error);
+        errorMessage = error.error || errorMessage;
+      } catch (parseErr) {
+        console.error('[uploadGalleryImages] Could not parse error response');
+      }
+      
+      if (response.status === 401) {
+        throw new Error('Authentication required - please log in as admin first');
+      } else if (response.status === 413) {
+        throw new Error('File too large - maximum size is 50MB per image');
+      }
+      throw new Error(errorMessage);
     }
 
     const result = await response.json();

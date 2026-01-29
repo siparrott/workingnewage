@@ -133,22 +133,33 @@ const GalleryPage: React.FC = () => {
       const uploadedImages = await uploadGalleryImages(gallery.id, fileArray);
       console.log(`[GalleryPage] Upload complete:`, uploadedImages);
       
-      setUploadProgress(`Successfully uploaded ${uploadedImages.length} images!`);
-      
-      // Refresh gallery images
-      if (slug && authToken) {
-        await fetchGalleryImages(slug, authToken);
+      if (uploadedImages && uploadedImages.length > 0) {
+        setUploadProgress(`Successfully uploaded ${uploadedImages.length} images!`);
+        
+        // Refresh gallery images
+        if (slug && authToken) {
+          await fetchGalleryImages(slug, authToken);
+        }
+      } else {
+        setUploadProgress('Upload completed but no images were saved. Please check the server logs.');
       }
       
       setTimeout(() => {
         setUploadProgress('');
-      }, 3000);
-    } catch (err) {
+      }, 5000);
+    } catch (err: any) {
       console.error('[GalleryPage] Upload failed:', err);
-      setUploadProgress('Upload failed. Please try again.');
+      const errorMessage = err?.message || 'Unknown error';
+      if (errorMessage.includes('401') || errorMessage.includes('Authentication')) {
+        setUploadProgress('Upload failed: You must be logged in as admin. Please log in and try again.');
+      } else if (errorMessage.includes('413') || errorMessage.includes('too large')) {
+        setUploadProgress('Upload failed: File is too large. Maximum size is 50MB per image.');
+      } else {
+        setUploadProgress(`Upload failed: ${errorMessage}`);
+      }
       setTimeout(() => {
         setUploadProgress('');
-      }, 3000);
+      }, 8000);
     } finally {
       setUploading(false);
     }

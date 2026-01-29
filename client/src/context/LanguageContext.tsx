@@ -345,6 +345,16 @@ const translations = {
     'gallery.notFoundTitle': 'Your gallery not found?',
     'gallery.notFoundDescription': 'If you cannot find your personal gallery, please contact us. We are happy to help you access your photos.',
     'gallery.contactUs': 'Contact us',
+    'gallery.totalGalleries': 'Total Galleries',
+    'gallery.totalPhotos': 'Total Photos',
+    'gallery.availableToView': 'Available to view',
+    'gallery.acrossAllGalleries': 'Across all galleries',
+    'gallery.publicAccess': 'Public Access',
+    'gallery.openGalleries': 'Open galleries',
+    'gallery.passwordProtected': 'Protected',
+    'gallery.requiresAccess': 'Requires access code',
+    'gallery.protected': 'Protected',
+    'gallery.photos': 'photos',
     
     // Voucher checkout
     'voucher.yourContactDetails': 'Your Contact Details',
@@ -1226,6 +1236,16 @@ const translations = {
     'gallery.notFoundTitle': 'Ihre Galerie nicht gefunden?',
     'gallery.notFoundDescription': 'Falls Sie Ihre persönliche Galerie nicht finden können, kontaktieren Sie uns bitte. Wir helfen Ihnen gerne beim Zugang zu Ihren Fotos.',
     'gallery.contactUs': 'Kontakt aufnehmen',
+    'gallery.totalGalleries': 'Galerien Gesamt',
+    'gallery.totalPhotos': 'Fotos Gesamt',
+    'gallery.availableToView': 'Verfügbar zum Anschauen',
+    'gallery.acrossAllGalleries': 'In allen Galerien',
+    'gallery.publicAccess': 'Öffentlich',
+    'gallery.openGalleries': 'Offene Galerien',
+    'gallery.passwordProtected': 'Geschützt',
+    'gallery.requiresAccess': 'Zugangscode erforderlich',
+    'gallery.protected': 'Geschützt',
+    'gallery.photos': 'Fotos',
     
     // Voucher checkout
     'voucher.yourContactDetails': 'Ihre Kontaktdaten',
