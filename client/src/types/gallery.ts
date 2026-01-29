@@ -1,15 +1,18 @@
 export interface CoverTemplateSettings {
   templateId: string;
+  category?: 'full-cover' | 'split-layout' | 'minimal' | 'creative' | 'collage';
   textPosition: 'top-left' | 'top-center' | 'top-right' | 'center' | 'bottom-left' | 'bottom-center' | 'bottom-right' | 'left-center' | 'right-center';
   textAlignment: 'left' | 'center' | 'right';
-  overlay: 'none' | 'dark' | 'light' | 'gradient-bottom' | 'gradient-top';
-  titleSize: 'small' | 'medium' | 'large' | 'xlarge';
+  overlay: 'none' | 'dark' | 'light' | 'gradient-bottom' | 'gradient-top' | 'gradient-left' | 'gradient-right' | 'vignette' | 'cinematic';
+  titleSize: 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge';
   showSubtitle: boolean;
   showButton: boolean;
-  buttonStyle: 'solid' | 'outline' | 'pill';
-  fontStyle: 'modern' | 'elegant' | 'bold' | 'minimal';
-  imageStyle: 'full' | 'left-half' | 'right-half' | 'top-half' | 'bottom-half' | 'inset';
+  buttonStyle: 'solid' | 'outline' | 'pill' | 'minimal' | 'arrow';
+  fontStyle: 'modern' | 'elegant' | 'bold' | 'minimal' | 'script' | 'vintage' | 'geometric';
+  imageStyle: 'full' | 'left-half' | 'right-half' | 'top-half' | 'bottom-half' | 'inset' | 'portrait-left' | 'portrait-right' | 'circle-center' | 'diagonal';
   subtitle?: string;
+  accentColor?: string;
+  borderStyle?: 'none' | 'thin' | 'thick' | 'double';
 }
 
 export interface Gallery {

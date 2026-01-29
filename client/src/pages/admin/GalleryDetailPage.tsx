@@ -6,9 +6,10 @@ import {
   Eye, EyeOff, Download, ShoppingCart, Clock, Calendar, Sparkles, Grid3X3, Grid2X2,
   LayoutGrid, ExternalLink, Plus, MoreVertical, Loader2, AlertCircle, Share2,
   Mail, Clipboard, Phone, Play, Video, Lock, Link as LinkIcon, Users, Tag, 
-  CreditCard, Truck, Edit2, Copy, Info
+  CreditCard, Truck, Edit2, Copy, Info, Palette
 } from 'lucide-react';
 import { getGalleryById, deleteGallery, getGalleryImages } from '../../lib/gallery-api';
+import { COVER_TEMPLATES, CoverTemplate } from '../../components/galleries/GalleryCoverDesigner';
 
 interface GalleryImage {
   id: string;
@@ -69,6 +70,10 @@ const GalleryDetailPage: React.FC = () => {
   // Cover images
   const [coverImages, setCoverImages] = useState<string[]>([]);
   const [selectedCover, setSelectedCover] = useState(0);
+  const [selectedCoverTemplate, setSelectedCoverTemplate] = useState<CoverTemplate>(COVER_TEMPLATES[0]);
+  const [coverTemplateCategory, setCoverTemplateCategory] = useState<CoverTemplate['category'] | 'all'>('all');
+  const [coverTemplatePage, setCoverTemplatePage] = useState(0);
+  const [showCoverDesigner, setShowCoverDesigner] = useState(false);
   
   // Experience settings
   const [welcomeMessage, setWelcomeMessage] = useState('');
@@ -712,31 +717,150 @@ const GalleryDetailPage: React.FC = () => {
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-medium text-gray-700">Gallery Cover</h3>
-                  <button className="text-teal-600 hover:text-teal-700 text-sm font-medium">
-                    + ADD NEW
+                  <button 
+                    onClick={() => setShowCoverDesigner(true)}
+                    className="text-teal-600 hover:text-teal-700 text-sm font-medium flex items-center gap-1"
+                  >
+                    <Palette size={14} />
+                    Design Cover
                   </button>
                 </div>
-                <div className="flex space-x-3">
-                  {coverImages.map((url, index) => (
+                
+                {/* Cover Template Categories */}
+                <div className="flex gap-1 mb-3 flex-wrap">
+                  {[
+                    { id: 'all', label: 'All' },
+                    { id: 'full-cover', label: 'Full' },
+                    { id: 'split-layout', label: 'Split' },
+                    { id: 'minimal', label: 'Minimal' },
+                    { id: 'creative', label: 'Creative' }
+                  ].map(cat => (
                     <button
-                      key={index}
-                      onClick={() => setSelectedCover(index)}
-                      className={`w-24 h-16 rounded-lg overflow-hidden border-2 ${
-                        selectedCover === index ? 'border-teal-500' : 'border-transparent'
+                      key={cat.id}
+                      onClick={() => {
+                        setCoverTemplateCategory(cat.id as typeof coverTemplateCategory);
+                        setCoverTemplatePage(0);
+                      }}
+                      className={`px-2 py-1 text-xs rounded-full transition-colors ${
+                        coverTemplateCategory === cat.id
+                          ? 'bg-teal-500 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
-                      <img src={url} alt={`Cover ${index + 1}`} className="w-full h-full object-cover" />
+                      {cat.label}
                     </button>
                   ))}
                 </div>
-                {coverImages.length > 0 && (
-                  <div className="flex mt-3 space-x-2">
-                    <button className="p-2 rounded-full bg-teal-500 text-white">
-                      <ChevronLeft size={16} />
+                
+                {/* Cover Templates Grid */}
+                <div className="relative">
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => setCoverTemplatePage(Math.max(0, coverTemplatePage - 1))}
+                      disabled={coverTemplatePage === 0}
+                      className="p-1.5 rounded-full bg-teal-500 text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <ChevronLeft size={14} />
                     </button>
-                    <button className="p-2 rounded-full bg-teal-500 text-white">
-                      <ChevronRight size={16} />
+                    
+                    <div className="flex gap-2 overflow-hidden flex-1">
+                      {/* No Cover option */}
+                      <button
+                        onClick={() => setSelectedCoverTemplate({ ...COVER_TEMPLATES[0], id: 'no-cover' } as CoverTemplate)}
+                        className={`flex-shrink-0 w-20 h-14 rounded-lg border-2 border-dashed flex flex-col items-center justify-center transition-all ${
+                          selectedCoverTemplate.id === 'no-cover' 
+                            ? 'border-teal-500 bg-teal-50' 
+                            : 'border-gray-300 hover:border-gray-400'
+                        }`}
+                      >
+                        <X size={12} className="text-gray-400" />
+                        <span className="text-[9px] text-gray-500 mt-0.5">No Cover</span>
+                      </button>
+                      
+                      {/* Templates */}
+                      {(() => {
+                        const filtered = coverTemplateCategory === 'all' 
+                          ? COVER_TEMPLATES 
+                          : COVER_TEMPLATES.filter(t => t.category === coverTemplateCategory);
+                        const perPage = 4;
+                        const visible = filtered.slice(coverTemplatePage * perPage, (coverTemplatePage + 1) * perPage);
+                        
+                        return visible.map(template => (
+                          <button
+                            key={template.id}
+                            onClick={() => setSelectedCoverTemplate(template)}
+                            className={`flex-shrink-0 w-20 h-14 rounded-lg overflow-hidden border-2 transition-all relative group ${
+                              selectedCoverTemplate.id === template.id 
+                                ? 'border-teal-500 ring-2 ring-teal-200' 
+                                : 'border-gray-200 hover:border-teal-300'
+                            }`}
+                          >
+                            {/* Mini preview */}
+                            <div className="absolute inset-0 bg-gray-200">
+                              {coverImages[0] && (
+                                <img
+                                  src={coverImages[0]}
+                                  alt={template.name}
+                                  className="w-full h-full object-cover"
+                                  style={{ opacity: 0.7 }}
+                                />
+                              )}
+                              {/* Overlay visualization */}
+                              <div className={`absolute inset-0 ${
+                                template.overlay === 'dark' ? 'bg-black/40' :
+                                template.overlay === 'light' ? 'bg-white/30' :
+                                template.overlay === 'gradient-bottom' ? 'bg-gradient-to-t from-black/60 to-transparent' :
+                                template.overlay === 'gradient-top' ? 'bg-gradient-to-b from-black/60 to-transparent' :
+                                template.overlay === 'vignette' ? 'bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.3)_100%)]' :
+                                ''
+                              }`} />
+                              {/* Text position indicator */}
+                              <div className={`absolute text-[6px] font-medium text-white drop-shadow ${
+                                template.textPosition === 'center' ? 'inset-0 flex items-center justify-center' :
+                                template.textPosition === 'bottom-center' ? 'bottom-1 left-0 right-0 text-center' :
+                                template.textPosition === 'top-center' ? 'top-1 left-0 right-0 text-center' :
+                                template.textPosition === 'bottom-left' ? 'bottom-1 left-1' :
+                                template.textPosition === 'bottom-right' ? 'bottom-1 right-1' :
+                                template.textPosition === 'top-left' ? 'top-1 left-1' :
+                                'inset-0 flex items-center justify-center'
+                              }`}>
+                                TEXT
+                              </div>
+                            </div>
+                            {/* Selection check */}
+                            {selectedCoverTemplate.id === template.id && (
+                              <div className="absolute top-0.5 right-0.5 w-3 h-3 bg-teal-500 rounded-full flex items-center justify-center">
+                                <Check size={8} className="text-white" />
+                              </div>
+                            )}
+                            {/* Name on hover */}
+                            <div className="absolute inset-x-0 bottom-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity py-0.5">
+                              <span className="text-[7px] text-white block text-center">{template.name}</span>
+                            </div>
+                          </button>
+                        ));
+                      })()}
+                    </div>
+                    
+                    <button 
+                      onClick={() => setCoverTemplatePage(coverTemplatePage + 1)}
+                      disabled={(() => {
+                        const filtered = coverTemplateCategory === 'all' 
+                          ? COVER_TEMPLATES 
+                          : COVER_TEMPLATES.filter(t => t.category === coverTemplateCategory);
+                        return (coverTemplatePage + 1) * 4 >= filtered.length;
+                      })()}
+                      className="p-1.5 rounded-full bg-teal-500 text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <ChevronRight size={14} />
                     </button>
+                  </div>
+                </div>
+                
+                {/* Selected template info */}
+                {selectedCoverTemplate.id !== 'no-cover' && (
+                  <div className="mt-2 text-xs text-gray-500">
+                    Selected: <span className="font-medium text-gray-700">{selectedCoverTemplate.name}</span>
                   </div>
                 )}
               </div>

@@ -1,27 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { Monitor, Smartphone, ZoomIn, ZoomOut, Move, Check, X, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Monitor, Smartphone, ZoomIn, ZoomOut, Move, Check, X, RotateCcw, ChevronLeft, ChevronRight, Grid, Type } from 'lucide-react';
 
 // Cover template definitions
 export interface CoverTemplate {
   id: string;
   name: string;
   thumbnail: string;
+  category: 'full-cover' | 'split-layout' | 'minimal' | 'creative' | 'collage';
   textPosition: 'top-left' | 'top-center' | 'top-right' | 'center' | 'bottom-left' | 'bottom-center' | 'bottom-right' | 'left-center' | 'right-center';
   textAlignment: 'left' | 'center' | 'right';
-  overlay: 'none' | 'dark' | 'light' | 'gradient-bottom' | 'gradient-top';
-  titleSize: 'small' | 'medium' | 'large' | 'xlarge';
+  overlay: 'none' | 'dark' | 'light' | 'gradient-bottom' | 'gradient-top' | 'gradient-left' | 'gradient-right' | 'vignette' | 'cinematic';
+  titleSize: 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge';
   showSubtitle: boolean;
   showButton: boolean;
-  buttonStyle: 'solid' | 'outline' | 'pill';
-  fontStyle: 'modern' | 'elegant' | 'bold' | 'minimal';
-  imageStyle: 'full' | 'left-half' | 'right-half' | 'top-half' | 'bottom-half' | 'inset';
+  buttonStyle: 'solid' | 'outline' | 'pill' | 'minimal' | 'arrow';
+  fontStyle: 'modern' | 'elegant' | 'bold' | 'minimal' | 'script' | 'vintage' | 'geometric';
+  imageStyle: 'full' | 'left-half' | 'right-half' | 'top-half' | 'bottom-half' | 'inset' | 'portrait-left' | 'portrait-right' | 'circle-center' | 'diagonal';
+  accentColor?: string;
+  borderStyle?: 'none' | 'thin' | 'thick' | 'double';
 }
 
+// Extensive library of cover templates organized by category
 const COVER_TEMPLATES: CoverTemplate[] = [
+  // === FULL COVER DESIGNS ===
   {
     id: 'classic-center',
     name: 'Classic Center',
     thumbnail: 'center',
+    category: 'full-cover',
     textPosition: 'center',
     textAlignment: 'center',
     overlay: 'dark',
@@ -33,12 +39,58 @@ const COVER_TEMPLATES: CoverTemplate[] = [
     imageStyle: 'full'
   },
   {
-    id: 'modern-left',
-    name: 'Modern Left',
-    thumbnail: 'left',
-    textPosition: 'left-center',
+    id: 'cinematic',
+    name: 'Cinematic',
+    thumbnail: 'cinematic',
+    category: 'full-cover',
+    textPosition: 'bottom-left',
     textAlignment: 'left',
+    overlay: 'cinematic',
+    titleSize: 'xxlarge',
+    showSubtitle: true,
+    showButton: false,
+    buttonStyle: 'minimal',
+    fontStyle: 'bold',
+    imageStyle: 'full'
+  },
+  {
+    id: 'elegant-vignette',
+    name: 'Elegant Vignette',
+    thumbnail: 'vignette',
+    category: 'full-cover',
+    textPosition: 'center',
+    textAlignment: 'center',
+    overlay: 'vignette',
+    titleSize: 'xlarge',
+    showSubtitle: true,
+    showButton: true,
+    buttonStyle: 'outline',
+    fontStyle: 'script',
+    imageStyle: 'full'
+  },
+  {
+    id: 'modern-bottom',
+    name: 'Modern Bottom',
+    thumbnail: 'bottom',
+    category: 'full-cover',
+    textPosition: 'bottom-center',
+    textAlignment: 'center',
     overlay: 'gradient-bottom',
+    titleSize: 'large',
+    showSubtitle: true,
+    showButton: true,
+    buttonStyle: 'pill',
+    fontStyle: 'modern',
+    imageStyle: 'full'
+  },
+  {
+    id: 'headline-top',
+    name: 'Headline Top',
+    thumbnail: 'top',
+    category: 'full-cover',
+    textPosition: 'top-center',
+    textAlignment: 'center',
+    overlay: 'gradient-top',
     titleSize: 'xlarge',
     showSubtitle: false,
     showButton: true,
@@ -47,37 +99,57 @@ const COVER_TEMPLATES: CoverTemplate[] = [
     imageStyle: 'full'
   },
   {
-    id: 'minimal-bottom',
-    name: 'Minimal Bottom',
-    thumbnail: 'bottom',
-    textPosition: 'bottom-center',
-    textAlignment: 'center',
+    id: 'corner-accent',
+    name: 'Corner Accent',
+    thumbnail: 'corner',
+    category: 'full-cover',
+    textPosition: 'bottom-left',
+    textAlignment: 'left',
     overlay: 'gradient-bottom',
     titleSize: 'medium',
     showSubtitle: true,
     showButton: true,
-    buttonStyle: 'pill',
+    buttonStyle: 'arrow',
     fontStyle: 'minimal',
     imageStyle: 'full'
   },
   {
-    id: 'elegant-top',
-    name: 'Elegant Top',
-    thumbnail: 'top',
-    textPosition: 'top-center',
+    id: 'full-dark',
+    name: 'Full Dark',
+    thumbnail: 'full-dark',
+    category: 'full-cover',
+    textPosition: 'center',
+    textAlignment: 'center',
+    overlay: 'dark',
+    titleSize: 'xxlarge',
+    showSubtitle: false,
+    showButton: true,
+    buttonStyle: 'outline',
+    fontStyle: 'geometric',
+    imageStyle: 'full'
+  },
+  {
+    id: 'subtle-light',
+    name: 'Subtle Light',
+    thumbnail: 'light',
+    category: 'full-cover',
+    textPosition: 'center',
     textAlignment: 'center',
     overlay: 'light',
     titleSize: 'large',
     showSubtitle: true,
-    showButton: false,
-    buttonStyle: 'outline',
+    showButton: true,
+    buttonStyle: 'solid',
     fontStyle: 'elegant',
     imageStyle: 'full'
   },
+  
+  // === SPLIT LAYOUT DESIGNS ===
   {
     id: 'split-right',
     name: 'Split Right',
     thumbnail: 'split-r',
+    category: 'split-layout',
     textPosition: 'right-center',
     textAlignment: 'center',
     overlay: 'none',
@@ -92,6 +164,7 @@ const COVER_TEMPLATES: CoverTemplate[] = [
     id: 'split-left',
     name: 'Split Left',
     thumbnail: 'split-l',
+    category: 'split-layout',
     textPosition: 'left-center',
     textAlignment: 'center',
     overlay: 'none',
@@ -103,23 +176,104 @@ const COVER_TEMPLATES: CoverTemplate[] = [
     imageStyle: 'right-half'
   },
   {
-    id: 'corner-badge',
-    name: 'Corner Badge',
-    thumbnail: 'corner',
-    textPosition: 'bottom-left',
-    textAlignment: 'left',
-    overlay: 'gradient-bottom',
-    titleSize: 'medium',
-    showSubtitle: false,
+    id: 'split-elegant',
+    name: 'Elegant Split',
+    thumbnail: 'split-elegant',
+    category: 'split-layout',
+    textPosition: 'right-center',
+    textAlignment: 'center',
+    overlay: 'none',
+    titleSize: 'xlarge',
+    showSubtitle: true,
+    showButton: true,
+    buttonStyle: 'outline',
+    fontStyle: 'script',
+    imageStyle: 'left-half',
+    borderStyle: 'thin'
+  },
+  {
+    id: 'portrait-left',
+    name: 'Portrait Left',
+    thumbnail: 'portrait-l',
+    category: 'split-layout',
+    textPosition: 'right-center',
+    textAlignment: 'center',
+    overlay: 'none',
+    titleSize: 'large',
+    showSubtitle: true,
     showButton: true,
     buttonStyle: 'pill',
+    fontStyle: 'elegant',
+    imageStyle: 'portrait-left'
+  },
+  {
+    id: 'portrait-right',
+    name: 'Portrait Right',
+    thumbnail: 'portrait-r',
+    category: 'split-layout',
+    textPosition: 'left-center',
+    textAlignment: 'center',
+    overlay: 'none',
+    titleSize: 'large',
+    showSubtitle: true,
+    showButton: true,
+    buttonStyle: 'pill',
+    fontStyle: 'elegant',
+    imageStyle: 'portrait-right'
+  },
+  {
+    id: 'diagonal-split',
+    name: 'Diagonal',
+    thumbnail: 'diagonal',
+    category: 'split-layout',
+    textPosition: 'bottom-right',
+    textAlignment: 'right',
+    overlay: 'none',
+    titleSize: 'xlarge',
+    showSubtitle: true,
+    showButton: true,
+    buttonStyle: 'outline',
     fontStyle: 'bold',
+    imageStyle: 'diagonal'
+  },
+  
+  // === MINIMAL DESIGNS ===
+  {
+    id: 'minimal-clean',
+    name: 'Clean Minimal',
+    thumbnail: 'minimal',
+    category: 'minimal',
+    textPosition: 'bottom-center',
+    textAlignment: 'center',
+    overlay: 'none',
+    titleSize: 'small',
+    showSubtitle: false,
+    showButton: false,
+    buttonStyle: 'minimal',
+    fontStyle: 'minimal',
+    imageStyle: 'inset',
+    borderStyle: 'thin'
+  },
+  {
+    id: 'minimal-text-only',
+    name: 'Text Focus',
+    thumbnail: 'text-focus',
+    category: 'minimal',
+    textPosition: 'center',
+    textAlignment: 'center',
+    overlay: 'light',
+    titleSize: 'xxlarge',
+    showSubtitle: true,
+    showButton: false,
+    buttonStyle: 'minimal',
+    fontStyle: 'minimal',
     imageStyle: 'full'
   },
   {
     id: 'inset-frame',
     name: 'Inset Frame',
     thumbnail: 'inset',
+    category: 'minimal',
     textPosition: 'bottom-center',
     textAlignment: 'center',
     overlay: 'none',
@@ -129,6 +283,115 @@ const COVER_TEMPLATES: CoverTemplate[] = [
     buttonStyle: 'outline',
     fontStyle: 'elegant',
     imageStyle: 'inset'
+  },
+  {
+    id: 'border-frame',
+    name: 'Border Frame',
+    thumbnail: 'border',
+    category: 'minimal',
+    textPosition: 'bottom-center',
+    textAlignment: 'center',
+    overlay: 'none',
+    titleSize: 'medium',
+    showSubtitle: true,
+    showButton: true,
+    buttonStyle: 'outline',
+    fontStyle: 'elegant',
+    imageStyle: 'inset',
+    borderStyle: 'double'
+  },
+  {
+    id: 'circle-center',
+    name: 'Circle Focus',
+    thumbnail: 'circle',
+    category: 'minimal',
+    textPosition: 'bottom-center',
+    textAlignment: 'center',
+    overlay: 'none',
+    titleSize: 'medium',
+    showSubtitle: true,
+    showButton: true,
+    buttonStyle: 'pill',
+    fontStyle: 'modern',
+    imageStyle: 'circle-center'
+  },
+  
+  // === CREATIVE DESIGNS ===
+  {
+    id: 'vintage-film',
+    name: 'Vintage Film',
+    thumbnail: 'vintage',
+    category: 'creative',
+    textPosition: 'bottom-left',
+    textAlignment: 'left',
+    overlay: 'vignette',
+    titleSize: 'large',
+    showSubtitle: true,
+    showButton: false,
+    buttonStyle: 'minimal',
+    fontStyle: 'vintage',
+    imageStyle: 'full'
+  },
+  {
+    id: 'script-overlay',
+    name: 'Script Overlay',
+    thumbnail: 'script',
+    category: 'creative',
+    textPosition: 'center',
+    textAlignment: 'center',
+    overlay: 'dark',
+    titleSize: 'xxlarge',
+    showSubtitle: false,
+    showButton: true,
+    buttonStyle: 'outline',
+    fontStyle: 'script',
+    imageStyle: 'full'
+  },
+  {
+    id: 'geometric',
+    name: 'Geometric',
+    thumbnail: 'geometric',
+    category: 'creative',
+    textPosition: 'center',
+    textAlignment: 'center',
+    overlay: 'dark',
+    titleSize: 'large',
+    showSubtitle: true,
+    showButton: true,
+    buttonStyle: 'solid',
+    fontStyle: 'geometric',
+    imageStyle: 'full',
+    borderStyle: 'thick'
+  },
+  {
+    id: 'magazine',
+    name: 'Magazine',
+    thumbnail: 'magazine',
+    category: 'creative',
+    textPosition: 'top-left',
+    textAlignment: 'left',
+    overlay: 'none',
+    titleSize: 'xxlarge',
+    showSubtitle: true,
+    showButton: false,
+    buttonStyle: 'minimal',
+    fontStyle: 'bold',
+    imageStyle: 'full'
+  },
+  {
+    id: 'editorial',
+    name: 'Editorial',
+    thumbnail: 'editorial',
+    category: 'creative',
+    textPosition: 'bottom-right',
+    textAlignment: 'right',
+    overlay: 'gradient-right',
+    titleSize: 'xlarge',
+    showSubtitle: true,
+    showButton: true,
+    buttonStyle: 'arrow',
+    fontStyle: 'modern',
+    imageStyle: 'full'
   }
 ];
 
@@ -167,13 +430,24 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [isDragging, setIsDragging] = useState(false);
   const [templatePage, setTemplatePage] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState<CoverTemplate['category'] | 'all'>('all');
 
-  const templatesPerPage = 5;
-  const totalPages = Math.ceil(COVER_TEMPLATES.length / templatesPerPage);
-  const visibleTemplates = COVER_TEMPLATES.slice(
+  // Filter templates by category
+  const filteredTemplates = selectedCategory === 'all' 
+    ? COVER_TEMPLATES 
+    : COVER_TEMPLATES.filter(t => t.category === selectedCategory);
+  
+  const templatesPerPage = 6;
+  const totalPages = Math.ceil(filteredTemplates.length / templatesPerPage);
+  const visibleTemplates = filteredTemplates.slice(
     templatePage * templatesPerPage,
     (templatePage + 1) * templatesPerPage
   );
+
+  // Reset page when category changes
+  useEffect(() => {
+    setTemplatePage(0);
+  }, [selectedCategory]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
@@ -229,7 +503,11 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
       'dark': 'bg-black/40',
       'light': 'bg-white/30',
       'gradient-bottom': 'bg-gradient-to-t from-black/70 via-black/20 to-transparent',
-      'gradient-top': 'bg-gradient-to-b from-black/70 via-black/20 to-transparent'
+      'gradient-top': 'bg-gradient-to-b from-black/70 via-black/20 to-transparent',
+      'gradient-left': 'bg-gradient-to-r from-black/70 via-black/20 to-transparent',
+      'gradient-right': 'bg-gradient-to-l from-black/70 via-black/20 to-transparent',
+      'vignette': 'bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)]',
+      'cinematic': 'bg-gradient-to-t from-black/80 via-transparent to-black/30'
     };
     return overlays[overlay] || '';
   };
@@ -239,7 +517,8 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
       'small': isMobile ? 'text-lg' : 'text-2xl',
       'medium': isMobile ? 'text-xl' : 'text-3xl',
       'large': isMobile ? 'text-2xl' : 'text-4xl',
-      'xlarge': isMobile ? 'text-3xl' : 'text-5xl'
+      'xlarge': isMobile ? 'text-3xl' : 'text-5xl',
+      'xxlarge': isMobile ? 'text-4xl' : 'text-6xl'
     };
     return sizes[size] || sizes['large'];
   };
@@ -249,7 +528,10 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
       'modern': 'font-sans tracking-wide',
       'elegant': 'font-serif tracking-widest uppercase',
       'bold': 'font-bold tracking-tight',
-      'minimal': 'font-light tracking-[0.3em] uppercase'
+      'minimal': 'font-light tracking-[0.3em] uppercase',
+      'script': 'font-serif italic tracking-wide',
+      'vintage': 'font-serif tracking-[0.2em] uppercase',
+      'geometric': 'font-sans font-black tracking-[0.15em] uppercase'
     };
     return styles[style] || styles['modern'];
   };
@@ -258,7 +540,9 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
     const styles: Record<string, string> = {
       'solid': 'bg-white text-gray-900 px-6 py-2 font-medium',
       'outline': 'border-2 border-white text-white px-6 py-2 font-medium',
-      'pill': 'bg-white text-gray-900 px-8 py-2 rounded-full font-medium'
+      'pill': 'bg-white text-gray-900 px-8 py-2 rounded-full font-medium',
+      'minimal': 'text-white underline underline-offset-4 font-light',
+      'arrow': 'text-white font-medium flex items-center gap-2 after:content-["→"]'
     };
     return styles[style] || styles['solid'];
   };
@@ -275,6 +559,14 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
         return { height: '60%', bottom: 0 };
       case 'inset':
         return { inset: '20px' };
+      case 'portrait-left':
+        return { width: '45%', left: '5%', top: '10%', bottom: '10%' };
+      case 'portrait-right':
+        return { width: '45%', right: '5%', top: '10%', bottom: '10%' };
+      case 'circle-center':
+        return { width: '50%', height: '70%', left: '25%', top: '5%', borderRadius: '50%' };
+      case 'diagonal':
+        return { width: '70%', clipPath: 'polygon(0 0, 100% 0, 70% 100%, 0 100%)' };
       default:
         return {};
     }
@@ -380,31 +672,69 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
   };
 
   const renderTemplateThumbnail = (template: CoverTemplate, isSelected: boolean) => {
+    // Get mini image style for thumbnail
+    const getMiniImageStyle = () => {
+      switch (template.imageStyle) {
+        case 'left-half': return { width: '50%', left: 0 };
+        case 'right-half': return { width: '50%', right: 0, left: 'auto' };
+        case 'inset': return { inset: '4px' };
+        case 'portrait-left': return { width: '40%', left: '5%' };
+        case 'portrait-right': return { width: '40%', right: '5%', left: 'auto' };
+        case 'circle-center': return { width: '50%', left: '25%', borderRadius: '50%' };
+        default: return {};
+      }
+    };
+    
     return (
       <div
         key={template.id}
         onClick={() => setSelectedTemplate(template)}
-        className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
+        className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all group ${
           isSelected 
-            ? 'border-purple-500 ring-2 ring-purple-200' 
-            : 'border-gray-200 hover:border-gray-300'
+            ? 'border-purple-500 ring-2 ring-purple-200 scale-105' 
+            : 'border-gray-200 hover:border-purple-300 hover:scale-102'
         }`}
         style={{ width: '100px', height: '70px' }}
       >
         {/* Mini preview */}
-        <div className="absolute inset-0 bg-gray-200">
-          <img
-            src={imageUrl}
-            alt={template.name}
-            className="w-full h-full object-cover opacity-60"
-          />
+        <div className="absolute inset-0 bg-gray-100">
+          {/* Split layout white panel */}
+          {(template.imageStyle === 'left-half' || template.imageStyle === 'right-half') && (
+            <div 
+              className={`absolute top-0 bottom-0 ${template.imageStyle === 'left-half' ? 'right-0' : 'left-0'} w-1/2 bg-white flex items-center justify-center`}
+            >
+              <Type size={10} className="text-gray-400" />
+            </div>
+          )}
+          
+          {/* Image area */}
+          <div 
+            className="absolute overflow-hidden"
+            style={{ 
+              inset: 0,
+              ...getMiniImageStyle()
+            }}
+          >
+            <img
+              src={imageUrl}
+              alt={template.name}
+              className="w-full h-full object-cover"
+              style={{ opacity: template.overlay === 'none' ? 0.8 : 0.7 }}
+            />
+          </div>
+          
+          {/* Overlay */}
           <div className={`absolute inset-0 ${getOverlayClasses(template.overlay)}`} />
           
-          {/* Text indicator */}
+          {/* Text indicator - shows where text will appear */}
           <div className={`absolute inset-0 flex ${getTextPositionClasses(template.textPosition)} p-1`}>
             <div className={`${template.textAlignment === 'center' ? 'text-center' : ''}`}>
-              <div className="bg-white/90 text-[6px] px-1 rounded font-medium text-gray-800">
-                {template.imageStyle === 'left-half' || template.imageStyle === 'right-half' ? 'SPLIT' : 'TEXT'}
+              <div className={`text-[5px] font-medium ${
+                template.overlay === 'none' && template.imageStyle !== 'left-half' && template.imageStyle !== 'right-half'
+                  ? 'text-gray-800 bg-white/80 px-1 rounded'
+                  : 'text-white drop-shadow-sm'
+              }`}>
+                {template.name.split(' ')[0].toUpperCase()}
               </div>
             </div>
           </div>
@@ -416,6 +746,11 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
             <Check size={10} className="text-white" />
           </div>
         )}
+        
+        {/* Template name on hover */}
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-1">
+          <span className="text-[8px] text-white font-medium">{template.name}</span>
+        </div>
       </div>
     );
   };
@@ -528,7 +863,33 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
           <div className="mt-8">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium text-gray-900">Gallery Cover</h3>
-              <span className="text-sm text-purple-600 cursor-pointer hover:underline">+ ADD NEW</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">{filteredTemplates.length} designs</span>
+                <span className="text-sm text-purple-600 cursor-pointer hover:underline">+ ADD NEW</span>
+              </div>
+            </div>
+            
+            {/* Category Tabs */}
+            <div className="flex gap-2 mb-4 flex-wrap">
+              {[
+                { id: 'all', label: 'All Designs' },
+                { id: 'full-cover', label: 'Full Cover' },
+                { id: 'split-layout', label: 'Split Layout' },
+                { id: 'minimal', label: 'Minimal' },
+                { id: 'creative', label: 'Creative' }
+              ].map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id as typeof selectedCategory)}
+                  className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                    selectedCategory === cat.id
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
             </div>
             
             <div className="flex items-center gap-2">
@@ -540,11 +901,15 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
                 <ChevronLeft size={16} />
               </button>
               
-              <div className="flex gap-3 overflow-hidden">
+              <div className="flex gap-3 overflow-hidden flex-wrap justify-center">
                 {/* No Cover option */}
                 <div
-                  onClick={() => setSelectedTemplate({ ...COVER_TEMPLATES[0], id: 'no-cover', name: 'No Cover', overlay: 'none' })}
-                  className="flex flex-col items-center justify-center cursor-pointer rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors"
+                  onClick={() => setSelectedTemplate({ ...COVER_TEMPLATES[0], id: 'no-cover', name: 'No Cover', overlay: 'none', category: 'full-cover' } as CoverTemplate)}
+                  className={`flex flex-col items-center justify-center cursor-pointer rounded-lg border-2 transition-colors ${
+                    selectedTemplate.id === 'no-cover' 
+                      ? 'border-purple-500 ring-2 ring-purple-200' 
+                      : 'border-dashed border-gray-300 hover:border-gray-400'
+                  }`}
                   style={{ width: '100px', height: '70px' }}
                 >
                   <div className="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center">
@@ -566,6 +931,21 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
                 <ChevronRight size={16} />
               </button>
             </div>
+            
+            {/* Page indicator */}
+            {totalPages > 1 && (
+              <div className="flex justify-center gap-1 mt-3">
+                {Array.from({ length: totalPages }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setTemplatePage(i)}
+                    className={`w-2 h-2 rounded-full transition-colors ${
+                      templatePage === i ? 'bg-purple-600' : 'bg-gray-300 hover:bg-gray-400'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
