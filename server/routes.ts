@@ -3244,12 +3244,17 @@ Bitte versuchen Sie es später noch einmal.`;
       const { galleryId } = req.params;
       const files = req.files as Express.Multer.File[];
 
-      console.log(`[GALLERY UPLOAD] Request received for gallery ${galleryId}`);
-      console.log(`[GALLERY UPLOAD] Files received:`, files?.length || 0);
+      console.log(`[GALLERY UPLOAD] ======= UPLOAD REQUEST RECEIVED =======`);
+      console.log(`[GALLERY UPLOAD] Gallery ID: ${galleryId}`);
+      console.log(`[GALLERY UPLOAD] Files array:`, files);
+      console.log(`[GALLERY UPLOAD] Files length:`, files?.length || 0);
+      console.log(`[GALLERY UPLOAD] Request body:`, req.body);
+      console.log(`[GALLERY UPLOAD] Content-Type:`, req.headers['content-type']);
       console.log(`[GALLERY UPLOAD] User:`, req.user);
 
       if (!files || files.length === 0) {
-        console.log('[GALLERY UPLOAD] No files in request');
+        console.log('[GALLERY UPLOAD] ERROR: No files in request');
+        console.log('[GALLERY UPLOAD] Returning 400 - No images provided');
         return res.status(400).json({ error: "No images provided" });
       }
 
@@ -3260,7 +3265,7 @@ Bitte versuchen Sie es später noch einmal.`;
         return res.status(404).json({ error: "Gallery not found" });
       }
 
-      console.log(`[GALLERY UPLOAD] Uploading ${files.length} images to gallery ${galleryId}`);
+      console.log(`[GALLERY UPLOAD] Starting upload of ${files.length} images to gallery ${galleryId}`);
 
       const uploadedImages: any[] = [];
       const s3Client = getS3Client();

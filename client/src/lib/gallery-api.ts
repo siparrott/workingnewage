@@ -226,33 +226,45 @@ export async function deleteGallery(id: string): Promise<void> {
 // Upload images to a gallery (admin only)
 export async function uploadGalleryImages(galleryId: string, files: File[]): Promise<GalleryImage[]> {
   try {
+    console.log(`[uploadGalleryImages] Starting upload for gallery ${galleryId}`);
+    console.log(`[uploadGalleryImages] Files received:`, files);
+    console.log(`[uploadGalleryImages] Files count:`, files?.length || 0);
+    
+    if (!files || files.length === 0) {
+      console.error('[uploadGalleryImages] No files to upload!');
+      throw new Error('No files selected for upload');
+    }
+    
     const formData = new FormData();
-    formData.append('galleryId', galleryId);
     
     // Append each file to the form data
-    files.forEach(file => {
-      formData.append('images', file);
+    files.forEach((file, index) => {
+      console.log(`[uploadGalleryImages] Appending file ${index + 1}:`, file.name, file.type, file.size);
+      formData.append('images', file, file.name);
     });
 
-    console.log(`Uploading ${files.length} images to gallery ${galleryId}`);
+    console.log(`[uploadGalleryImages] FormData prepared with ${files.length} images for gallery ${galleryId}`);
 
+    console.log(`[uploadGalleryImages] Sending request to /api/galleries/${galleryId}/upload`);
     const response = await fetch(`/api/galleries/${galleryId}/upload`, {
       method: 'POST',
       body: formData,
       credentials: 'include', // Include session cookies for authentication
     });
 
+    console.log(`[uploadGalleryImages] Response status: ${response.status}`);
+    
     if (!response.ok) {
       const error = await response.json();
-      console.error('Upload failed:', error);
+      console.error('[uploadGalleryImages] Upload failed:', error);
       throw new Error(error.error || 'Failed to upload images');
     }
 
     const result = await response.json();
-    console.log(`Successfully uploaded ${result.length} images`);
+    console.log(`[uploadGalleryImages] Successfully uploaded ${result.length} images:`, result);
     return result;
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('[uploadGalleryImages] Upload error:', error);
     throw error;
   }
 }
