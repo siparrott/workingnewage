@@ -234,7 +234,7 @@ const AdminGalleriesPage: React.FC = () => {
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-lg shadow overflow-visible">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -394,7 +394,7 @@ const AdminGalleriesPage: React.FC = () => {
                     </button>
                     
                     {openMenuId === gallery.id && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                         <button
                           onClick={() => {
                             navigate(`/admin/galleries/${gallery.id}/edit`);
