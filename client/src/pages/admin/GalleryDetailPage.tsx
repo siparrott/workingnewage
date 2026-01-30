@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   ArrowLeft, HelpCircle, Upload, Check, Settings, FolderOpen, MessageSquare, 
-  FileText, Trash2, Image as ImageIcon, Sun, Moon, X, ChevronLeft, ChevronRight,
+  FileText, Trash2, Image as ImageIcon, Sun, Moon, X, ChevronLeft, ChevronRight, ChevronDown,
   Eye, EyeOff, Download, ShoppingCart, Clock, Calendar, Sparkles, Grid3X3, Grid2X2,
   LayoutGrid, ExternalLink, Plus, MoreVertical, Loader2, AlertCircle, Share2,
   Mail, Clipboard, Phone, Play, Video, Lock, Link as LinkIcon, Users, Tag, 
@@ -118,6 +118,12 @@ const GalleryDetailPage: React.FC = () => {
   const [visitorDownloadResolution, setVisitorDownloadResolution] = useState('original');
   const [clientDownloadResolution, setClientDownloadResolution] = useState('original');
   const [showAdvancedDownloads, setShowAdvancedDownloads] = useState(false);
+  const [showVisitorPresetPicker, setShowVisitorPresetPicker] = useState(false);
+  const [showClientPresetPicker, setShowClientPresetPicker] = useState(false);
+  const [allowIndividualDownload, setAllowIndividualDownload] = useState(true);
+  const [allowZipDownload, setAllowZipDownload] = useState(true);
+  const [requireEmailBeforeDownload, setRequireEmailBeforeDownload] = useState(false);
+  const [addWatermarkToDownloads, setAddWatermarkToDownloads] = useState(false);
   
   // Sidebar panels
   const [expandedPanels, setExpandedPanels] = useState({
@@ -1828,41 +1834,143 @@ const GalleryDetailPage: React.FC = () => {
                   </div>
 
                   {/* Gallery Visitor */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <Users size={16} className="text-gray-400 mr-2" />
-                      <span className="text-sm text-gray-700">Gallery visitor</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <Eye size={16} className="text-gray-400 mr-2" />
+                        <span className="text-sm text-gray-700">Gallery visitor</span>
+                      </div>
+                      <div className="relative">
+                        <button
+                          onClick={() => {
+                            setShowVisitorPresetPicker(!showVisitorPresetPicker);
+                            setShowClientPresetPicker(false);
+                          }}
+                          className="px-3 py-1.5 border border-teal-500 rounded-lg text-xs text-teal-600 bg-white hover:bg-teal-50 flex items-center gap-2 min-w-[180px] justify-between"
+                        >
+                          <span>{
+                            visitorDownloadResolution === 'original' ? 'Original Resolution download' :
+                            visitorDownloadResolution === 'high' ? 'High Resolution (3000px)' :
+                            visitorDownloadResolution === 'medium' ? 'Medium Resolution (2000px)' :
+                            visitorDownloadResolution === 'web' ? 'Web Resolution (1200px)' :
+                            visitorDownloadResolution === 'low' ? 'Low Resolution (800px)' :
+                            'Not Allowed'
+                          }</span>
+                          <ChevronDown size={14} />
+                        </button>
+                        
+                        {showVisitorPresetPicker && (
+                          <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
+                            <div className="bg-gray-100 px-4 py-2 text-xs font-medium text-gray-500 uppercase">Download Preset</div>
+                            <div className="divide-y divide-gray-100">
+                              {[
+                                { id: 'none', label: 'Not Allowed' },
+                                { id: 'original', label: 'Original Resolution' },
+                                { id: 'high', label: 'High Resolution (3000px)' },
+                                { id: 'medium', label: 'Medium Resolution (2000px)' },
+                                { id: 'web', label: 'Web Resolution (1200px)' },
+                                { id: 'low', label: 'Low Resolution (800px)' },
+                              ].map((preset) => (
+                                <button
+                                  key={preset.id}
+                                  onClick={() => {
+                                    setVisitorDownloadResolution(preset.id);
+                                    setShowVisitorPresetPicker(false);
+                                  }}
+                                  className={`w-full px-4 py-2.5 text-left text-sm flex items-center justify-between hover:bg-gray-50 ${
+                                    visitorDownloadResolution === preset.id ? 'bg-teal-50 text-teal-700' : 'text-gray-700'
+                                  }`}
+                                >
+                                  {preset.label}
+                                  {visitorDownloadResolution === preset.id && <Check size={14} className="text-teal-500" />}
+                                </button>
+                              ))}
+                            </div>
+                            <div className="border-t border-gray-200">
+                              <button className="w-full px-4 py-2.5 text-left text-sm text-teal-600 hover:bg-teal-50 flex items-center gap-2">
+                                <Plus size={14} /> Add New
+                              </button>
+                              <button 
+                                onClick={() => setShowVisitorPresetPicker(false)}
+                                className="w-full px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 flex items-center gap-2"
+                              >
+                                <X size={14} /> Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <select
-                      value={visitorDownloadResolution}
-                      onChange={(e) => setVisitorDownloadResolution(e.target.value)}
-                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-teal-500 focus:border-teal-500"
-                    >
-                      <option value="original">Original Resolution download</option>
-                      <option value="high">High Resolution (3000px)</option>
-                      <option value="medium">Medium Resolution (2000px)</option>
-                      <option value="web">Web Resolution (1200px)</option>
-                      <option value="none">No download</option>
-                    </select>
                   </div>
 
                   {/* Logged-in Client */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <Lock size={16} className="text-gray-400 mr-2" />
-                      <span className="text-sm text-gray-700">Logged-in client</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <Lock size={16} className="text-gray-400 mr-2" />
+                        <span className="text-sm text-gray-700">Logged-in client</span>
+                      </div>
+                      <div className="relative">
+                        <button
+                          onClick={() => {
+                            setShowClientPresetPicker(!showClientPresetPicker);
+                            setShowVisitorPresetPicker(false);
+                          }}
+                          className="px-3 py-1.5 border border-teal-500 rounded-lg text-xs text-teal-600 bg-white hover:bg-teal-50 flex items-center gap-2 min-w-[180px] justify-between"
+                        >
+                          <span>{
+                            clientDownloadResolution === 'original' ? 'Original Resolution download' :
+                            clientDownloadResolution === 'high' ? 'High Resolution (3000px)' :
+                            clientDownloadResolution === 'medium' ? 'Medium Resolution (2000px)' :
+                            clientDownloadResolution === 'web' ? 'Web Resolution (1200px)' :
+                            clientDownloadResolution === 'low' ? 'Low Resolution (800px)' :
+                            'Not Allowed'
+                          }</span>
+                          <ChevronDown size={14} />
+                        </button>
+                        
+                        {showClientPresetPicker && (
+                          <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
+                            <div className="bg-gray-100 px-4 py-2 text-xs font-medium text-gray-500 uppercase">Download Preset</div>
+                            <div className="divide-y divide-gray-100">
+                              {[
+                                { id: 'none', label: 'Not Allowed' },
+                                { id: 'original', label: 'Original Resolution' },
+                                { id: 'high', label: 'High Resolution (3000px)' },
+                                { id: 'medium', label: 'Medium Resolution (2000px)' },
+                                { id: 'web', label: 'Web Resolution (1200px)' },
+                                { id: 'low', label: 'Low Resolution (800px)' },
+                              ].map((preset) => (
+                                <button
+                                  key={preset.id}
+                                  onClick={() => {
+                                    setClientDownloadResolution(preset.id);
+                                    setShowClientPresetPicker(false);
+                                  }}
+                                  className={`w-full px-4 py-2.5 text-left text-sm flex items-center justify-between hover:bg-gray-50 ${
+                                    clientDownloadResolution === preset.id ? 'bg-teal-50 text-teal-700' : 'text-gray-700'
+                                  }`}
+                                >
+                                  {preset.label}
+                                  {clientDownloadResolution === preset.id && <Check size={14} className="text-teal-500" />}
+                                </button>
+                              ))}
+                            </div>
+                            <div className="border-t border-gray-200">
+                              <button className="w-full px-4 py-2.5 text-left text-sm text-teal-600 hover:bg-teal-50 flex items-center gap-2">
+                                <Plus size={14} /> Add New
+                              </button>
+                              <button 
+                                onClick={() => setShowClientPresetPicker(false)}
+                                className="w-full px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 flex items-center gap-2"
+                              >
+                                <X size={14} /> Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <select
-                      value={clientDownloadResolution}
-                      onChange={(e) => setClientDownloadResolution(e.target.value)}
-                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-teal-500 focus:border-teal-500"
-                    >
-                      <option value="original">Original Resolution download</option>
-                      <option value="high">High Resolution (3000px)</option>
-                      <option value="medium">Medium Resolution (2000px)</option>
-                      <option value="web">Web Resolution (1200px)</option>
-                      <option value="none">No download</option>
-                    </select>
                   </div>
 
                   {/* New Password-Protected Download */}
@@ -1874,28 +1982,61 @@ const GalleryDetailPage: React.FC = () => {
                   {/* Show Advanced Settings */}
                   <button 
                     onClick={() => setShowAdvancedDownloads(!showAdvancedDownloads)}
-                    className="text-teal-600 hover:text-teal-700 text-sm"
+                    className="text-teal-600 hover:text-teal-700 text-sm flex items-center gap-1"
                   >
-                    {showAdvancedDownloads ? 'Hide' : 'Show'} advanced settings {showAdvancedDownloads ? '↑' : '↓'}
+                    {showAdvancedDownloads ? 'Hide' : 'Show'} advanced settings 
+                    <ChevronRight size={14} className={`transition-transform ${showAdvancedDownloads ? 'rotate-90' : ''}`} />
                   </button>
 
                   {showAdvancedDownloads && (
                     <div className="space-y-4 pt-4 border-t border-gray-200">
-                      <label className="flex items-center">
-                        <input type="checkbox" className="mr-2 rounded border-gray-300 text-teal-500" defaultChecked />
+                      <label className="flex items-center justify-between">
                         <span className="text-sm text-gray-600">Allow downloading individual photos</span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={allowIndividualDownload}
+                            onChange={(e) => setAllowIndividualDownload(e.target.checked)}
+                            className="sr-only peer" 
+                          />
+                          <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+                        </label>
                       </label>
-                      <label className="flex items-center">
-                        <input type="checkbox" className="mr-2 rounded border-gray-300 text-teal-500" defaultChecked />
+                      <label className="flex items-center justify-between">
                         <span className="text-sm text-gray-600">Allow downloading all photos as ZIP</span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={allowZipDownload}
+                            onChange={(e) => setAllowZipDownload(e.target.checked)}
+                            className="sr-only peer" 
+                          />
+                          <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+                        </label>
                       </label>
-                      <label className="flex items-center">
-                        <input type="checkbox" className="mr-2 rounded border-gray-300 text-teal-500" />
+                      <label className="flex items-center justify-between">
                         <span className="text-sm text-gray-600">Require email before download</span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={requireEmailBeforeDownload}
+                            onChange={(e) => setRequireEmailBeforeDownload(e.target.checked)}
+                            className="sr-only peer" 
+                          />
+                          <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+                        </label>
                       </label>
-                      <label className="flex items-center">
-                        <input type="checkbox" className="mr-2 rounded border-gray-300 text-teal-500" />
+                      <label className="flex items-center justify-between">
                         <span className="text-sm text-gray-600">Add watermark to downloads</span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={addWatermarkToDownloads}
+                            onChange={(e) => setAddWatermarkToDownloads(e.target.checked)}
+                            className="sr-only peer" 
+                          />
+                          <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+                        </label>
                       </label>
                     </div>
                   )}
