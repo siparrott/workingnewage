@@ -4222,6 +4222,148 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
+  // ==================== GALLERY SHARING ROUTES ====================
+  
+  // POST /api/galleries/send-email - Send gallery link via email
+  app.post("/api/galleries/send-email", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { gallery_id, slug, to, message } = req.body;
+      
+      if (!to || (!gallery_id && !slug)) {
+        return res.status(400).json({ error: 'to and gallery_id or slug required' });
+      }
+      
+      // Find gallery
+      let gallery;
+      if (slug) {
+        const result = await runSql(`SELECT id, title, slug, is_password_protected, password FROM galleries WHERE slug = $1 LIMIT 1`, [slug]);
+        gallery = result[0];
+      } else {
+        const result = await runSql(`SELECT id, title, slug, is_password_protected, password FROM galleries WHERE id = $1 LIMIT 1`, [gallery_id]);
+        gallery = result[0];
+      }
+      
+      if (!gallery) {
+        return res.status(404).json({ error: 'Gallery not found' });
+      }
+      
+      // Build gallery URL
+      const baseUrl = process.env.APP_URL || `https://${req.headers.host}`;
+      const link = `${baseUrl}/gallery/${gallery.slug}`;
+      const pwdNote = (gallery.is_password_protected && gallery.password) 
+        ? `<p>Password: <strong>${gallery.password}</strong></p>` 
+        : '';
+      
+      const html = `
+        <div style="font-family:system-ui;line-height:1.6">
+          <p>Hello,</p>
+          <p>We've shared the photo gallery "<strong>${gallery.title}</strong>" with you.</p>
+          <p><a href="${link}">Open the gallery</a></p>
+          ${pwdNote}
+          ${message ? `<p>${String(message)}</p>` : ''}
+          <p>— New Age Fotografie</p>
+        </div>`;
+      
+      const textContent = `Gallery link: ${link}${gallery.is_password_protected && gallery.password ? `\nPassword: ${gallery.password}` : ''}${message ? `\n\n${message}` : ''}`;
+      
+      // Send email using the enhanced email service
+      const { EnhancedEmailService } = await import('./services/enhancedEmailService');
+      const emailService = EnhancedEmailService.getInstance();
+      await emailService.sendEmail({
+        to,
+        subject: `Gallery: ${gallery.title}`,
+        text: textContent,
+        html: html
+      });
+      
+      res.json({ ok: true, link });
+    } catch (error) {
+      console.error('Error sending gallery email:', error);
+      res.status(500).json({ error: (error as Error)?.message || 'Failed to send email' });
+    }
+  });
+  
+  // POST /api/galleries/send-whatsapp - Send gallery link via WhatsApp
+  app.post("/api/galleries/send-whatsapp", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { gallery_id, slug, to_phone } = req.body;
+      
+      // Find gallery
+      let gallery;
+      if (slug) {
+        const result = await runSql(`SELECT id, title, slug, is_password_protected, password FROM galleries WHERE slug = $1 LIMIT 1`, [slug]);
+        gallery = result[0];
+      } else if (gallery_id) {
+        const result = await runSql(`SELECT id, title, slug, is_password_protected, password FROM galleries WHERE id = $1 LIMIT 1`, [gallery_id]);
+        gallery = result[0];
+      }
+      
+      if (!gallery) {
+        return res.status(404).json({ error: 'Gallery not found' });
+      }
+      
+      // Build gallery URL
+      const baseUrl = process.env.APP_URL || `https://${req.headers.host}`;
+      const link = `${baseUrl}/gallery/${gallery.slug}`;
+      
+      // Generate WhatsApp share link
+      const text = `Here's your photo gallery "${gallery.title}": ${link}${gallery.is_password_protected && gallery.password ? `\nPassword: ${gallery.password}` : ''}`;
+      const shareUrl = `https://wa.me/${to_phone ? to_phone.replace(/[^0-9]/g, '') : ''}?text=${encodeURIComponent(text)}`;
+      
+      res.json({ ok: true, sent: false, link, share: shareUrl });
+    } catch (error) {
+      console.error('Error with gallery WhatsApp share:', error);
+      res.status(500).json({ error: (error as Error)?.message || 'Failed to generate WhatsApp link' });
+    }
+  });
+  
+  // POST /api/galleries/send-sms - Send gallery link via SMS
+  app.post("/api/galleries/send-sms", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { gallery_id, slug, to_phone } = req.body;
+      
+      if (!to_phone) {
+        return res.status(400).json({ error: 'to_phone is required' });
+      }
+      
+      // Find gallery
+      let gallery;
+      if (slug) {
+        const result = await runSql(`SELECT id, title, slug, is_password_protected, password FROM galleries WHERE slug = $1 LIMIT 1`, [slug]);
+        gallery = result[0];
+      } else if (gallery_id) {
+        const result = await runSql(`SELECT id, title, slug, is_password_protected, password FROM galleries WHERE id = $1 LIMIT 1`, [gallery_id]);
+        gallery = result[0];
+      }
+      
+      if (!gallery) {
+        return res.status(404).json({ error: 'Gallery not found' });
+      }
+      
+      // Build gallery URL
+      const baseUrl = process.env.APP_URL || `https://${req.headers.host}`;
+      const link = `${baseUrl}/gallery/${gallery.slug}`;
+      
+      // Build SMS message
+      const smsText = `Here's your photo gallery "${gallery.title}": ${link}${gallery.is_password_protected && gallery.password ? ` (Password: ${gallery.password})` : ''}`;
+      
+      // Try to send via SMS service if configured
+      try {
+        const { SMSService } = await import('./services/smsService');
+        const smsService = SMSService.getInstance();
+        await smsService.sendSMS({ to: to_phone, message: smsText });
+        res.json({ ok: true, sent: true, link, info: 'SMS sent successfully' });
+      } catch (smsError) {
+        // SMS service not configured or failed
+        console.log('SMS service not available:', (smsError as Error)?.message);
+        res.json({ ok: true, sent: false, link, info: 'SMS service not configured. Please copy the link manually.' });
+      }
+    } catch (error) {
+      console.error('Error with gallery SMS:', error);
+      res.status(500).json({ error: (error as Error)?.message || 'Failed to send SMS' });
+    }
+  });
+
   // ==================== INVOICE ROUTES ====================
   app.get("/api/crm/invoices", authenticateUser, async (req: Request, res: Response) => {
     try {
