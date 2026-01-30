@@ -696,19 +696,6 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
           Link this gallery to a specific client in your CRM
         </p>
       </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Description <span className="text-gray-400">(optional)</span>
-        </label>
-        <textarea
-          value={formData.description || ''}
-          onChange={(e) => handleChange('description', e.target.value)}
-          rows={4}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-          placeholder="Describe this gallery..."
-        />
-      </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -834,6 +821,19 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
             </div>
           </div>
         )}
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Description <span className="text-gray-400">(optional)</span>
+        </label>
+        <textarea
+          value={formData.description || ''}
+          onChange={(e) => handleChange('description', e.target.value)}
+          rows={4}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+          placeholder="Describe this gallery..."
+        />
       </div>
     </div>
   );
