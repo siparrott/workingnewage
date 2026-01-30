@@ -138,6 +138,11 @@ const GalleryDetailPage: React.FC = () => {
   const [storageUsed, setStorageUsed] = useState('0 MB');
   const [photoCount, setPhotoCount] = useState(0);
   const [publishedDate, setPublishedDate] = useState<string | null>(null);
+  const [viewCount, setViewCount] = useState(0);
+  const [downloadCount, setDownloadCount] = useState(0);
+  const [favoriteCount, setFavoriteCount] = useState(0);
+  const [lastActivity, setLastActivity] = useState<string | null>(null);
+  const [uniqueVisitors, setUniqueVisitors] = useState(0);
 
   useEffect(() => {
     if (id) {
@@ -619,17 +624,58 @@ const GalleryDetailPage: React.FC = () => {
         </div>
 
         {/* Gallery Stats */}
-        <div className="p-4 space-y-2 text-sm text-gray-600">
+        <div className="p-4 space-y-3 text-sm text-gray-600 border-t border-gray-200">
+          {/* Live Status */}
           {publishedDate && gallery.isPublic && (
             <div className="flex items-center">
-              <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-              Live on {publishedDate}
+              <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+              <span className="text-green-600 font-medium">Live on {publishedDate}</span>
             </div>
           )}
+          {!gallery.isPublic && (
+            <div className="flex items-center">
+              <span className="w-2 h-2 bg-gray-400 rounded-full mr-2"></span>
+              <span className="text-gray-500">Not published</span>
+            </div>
+          )}
+          
+          {/* Photos & Storage */}
           <div className="flex items-center">
-            <ImageIcon size={14} className="mr-2 text-gray-400" />
-            {photoCount} photos / {storageUsed} storage
+            <ImageIcon size={14} className="mr-2 text-teal-500" />
+            <span className="text-teal-600 font-medium">{photoCount} photos</span>
+            <span className="mx-1 text-gray-400">/</span>
+            <span className="text-teal-600 font-medium">{storageUsed} storage</span>
           </div>
+
+          {/* Views & Visitors */}
+          <div className="flex items-center">
+            <Eye size={14} className="mr-2 text-blue-500" />
+            <span>{viewCount} views</span>
+            <span className="mx-1 text-gray-400">·</span>
+            <span>{uniqueVisitors} visitors</span>
+          </div>
+
+          {/* Downloads */}
+          <div className="flex items-center">
+            <Download size={14} className="mr-2 text-purple-500" />
+            <span>{downloadCount} downloads</span>
+          </div>
+
+          {/* Favorites */}
+          {favoriteCount > 0 && (
+            <div className="flex items-center">
+              <Sparkles size={14} className="mr-2 text-amber-500" />
+              <span>{favoriteCount} favorites</span>
+            </div>
+          )}
+
+          {/* Last Activity */}
+          {lastActivity && (
+            <div className="flex items-center text-xs text-gray-400 pt-2 border-t border-gray-100">
+              <Clock size={12} className="mr-2" />
+              <span>Last activity: {lastActivity}</span>
+            </div>
+          )}
         </div>
       </div>
 
