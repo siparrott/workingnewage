@@ -4001,11 +4001,19 @@ Bitte versuchen Sie es später noch einmal.`;
       const protectedGalleriesResult = await runSql(`SELECT COUNT(*) as count FROM galleries WHERE is_password_protected = true`);
       const protectedGalleries = parseInt(protectedGalleriesResult[0]?.count || '0');
       
+      // Get total storage used by gallery images (size_bytes column)
+      const storageResult = await runSql(`
+        SELECT COALESCE(SUM(size_bytes), 0) as total_bytes 
+        FROM gallery_images
+      `);
+      const totalStorageBytes = parseInt(storageResult[0]?.total_bytes || '0');
+      
       res.json({
         totalGalleries,
         totalImages,
         publicGalleries,
-        protectedGalleries
+        protectedGalleries,
+        totalStorageBytes
       });
     } catch (error) {
       console.error('Error fetching gallery analytics:', error);

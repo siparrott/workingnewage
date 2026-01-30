@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
-import { Plus, Search, Filter, Eye, Edit, Trash2, Clock, MoreVertical, Mail, Flag, Image, ChevronLeft, ChevronRight, HelpCircle, BookOpen, X, Globe, Lock } from 'lucide-react';
+import { Plus, Search, Filter, Eye, Edit, Trash2, Clock, MoreVertical, Mail, Flag, Image, ChevronLeft, ChevronRight, HelpCircle, BookOpen, X, Globe, Lock, HardDrive } from 'lucide-react';
 import { getGalleries, deleteGallery } from '../../lib/gallery-api';
 import AdvancedGalleryForm from '../../components/admin/AdvancedGalleryForm';
 
@@ -26,6 +26,7 @@ interface GalleryAnalytics {
   totalImages: number;
   publicGalleries: number;
   protectedGalleries: number;
+  totalStorageBytes: number;
 }
 
 const AdminGalleriesPage: React.FC = () => {
@@ -151,6 +152,16 @@ const AdminGalleriesPage: React.FC = () => {
     });
   };
 
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return '0 GB';
+    const gb = bytes / (1024 * 1024 * 1024);
+    if (gb < 0.01) {
+      const mb = bytes / (1024 * 1024);
+      return `${mb.toFixed(2)} MB`;
+    }
+    return `${gb.toFixed(2)} GB`;
+  };
+
   const toggleSelectAll = () => {
     if (selectedGalleries.length === paginatedGalleries.length) {
       setSelectedGalleries([]);
@@ -210,7 +221,7 @@ const AdminGalleriesPage: React.FC = () => {
 
         {/* Analytics Dashboard */}
         {analytics && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg shadow-lg p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -259,6 +270,19 @@ const AdminGalleriesPage: React.FC = () => {
                 </div>
                 <div className="bg-white/20 p-3 rounded-lg">
                   <Lock className="w-6 h-6" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-lg shadow-lg p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-indigo-100 text-sm font-medium mb-1">Speicher</p>
+                  <p className="text-3xl font-bold">{formatBytes(analytics.totalStorageBytes)}</p>
+                  <p className="text-indigo-100 text-xs mt-1">Genutzt</p>
+                </div>
+                <div className="bg-white/20 p-3 rounded-lg">
+                  <HardDrive className="w-6 h-6" />
                 </div>
               </div>
             </div>
