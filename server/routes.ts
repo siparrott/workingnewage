@@ -3208,12 +3208,17 @@ Bitte versuchen Sie es später noch einmal.`;
     try {
       const { id } = req.params;
       
+      console.log(`[ADMIN GALLERY IMAGES] Fetching images for gallery ${id}`);
+      
       // Get gallery images from database
       const galleryImages = await storage.getGalleryImages(id);
       
-      console.log(`[ADMIN GALLERY IMAGES] Gallery ${id}: Found ${galleryImages?.length || 0} images`);
-      if (galleryImages?.[0]) {
-        console.log(`[ADMIN GALLERY IMAGES] First image raw:`, JSON.stringify(galleryImages[0]));
+      console.log(`[ADMIN GALLERY IMAGES] Gallery ${id}: Found ${galleryImages?.length || 0} images in database`);
+      if (galleryImages && galleryImages.length > 0) {
+        console.log(`[ADMIN GALLERY IMAGES] First image raw data:`, JSON.stringify(galleryImages[0], null, 2));
+        console.log(`[ADMIN GALLERY IMAGES] All image IDs:`, galleryImages.map(img => img.id));
+      } else {
+        console.log(`[ADMIN GALLERY IMAGES] No images found in database for gallery ${id}`);
       }
       
       // Transform to match frontend expectations
@@ -3234,11 +3239,14 @@ Bitte versuchen Sie es später noch einmal.`;
         capturedAt: null
       }));
       
-      console.log(`[ADMIN GALLERY IMAGES] First transformed:`, transformedImages[0] ? JSON.stringify(transformedImages[0]) : 'none');
+      console.log(`[ADMIN GALLERY IMAGES] Returning ${transformedImages.length} transformed images to frontend`);
+      if (transformedImages.length > 0) {
+        console.log(`[ADMIN GALLERY IMAGES] First transformed image:`, JSON.stringify(transformedImages[0], null, 2));
+      }
       
       res.json(transformedImages);
     } catch (error) {
-      console.error("Error fetching admin gallery images:", error);
+      console.error("[ADMIN GALLERY IMAGES] Error fetching gallery images:", error);
       res.status(500).json({ error: "Failed to fetch gallery images" });
     }
   });
@@ -3304,6 +3312,14 @@ Bitte versuchen Sie es später noch einmal.`;
           console.log(`Uploaded image ${i + 1}/${files.length}: ${imageUrl}`);
 
           // Insert into gallery_images table
+          console.log(`[GALLERY UPLOAD] Inserting image ${i + 1} into DB:`, {
+            galleryId,
+            filename: sanitizedFilename,
+            url: imageUrl,
+            title: file.originalname,
+            sortOrder: i
+          });
+          
           const insertResult = await pool.query(`
             INSERT INTO gallery_images (gallery_id, filename, url, title, sort_order, created_at)
             VALUES ($1, $2, $3, $4, $5, NOW())
@@ -3311,6 +3327,7 @@ Bitte versuchen Sie es später noch einmal.`;
           `, [galleryId, sanitizedFilename, imageUrl, file.originalname, i]);
 
           const insertedImage = insertResult.rows[0];
+          console.log(`[GALLERY UPLOAD] DB insert successful. Inserted image ID:`, insertedImage.id);
           
           uploadedImages.push({
             id: insertedImage.id,
@@ -3325,6 +3342,8 @@ Bitte versuchen Sie es später noch einmal.`;
             sizeBytes: file.size,
             contentType: file.mimetype,
           });
+          
+          console.log(`[GALLERY UPLOAD] Added to uploadedImages array. Total uploaded so far: ${uploadedImages.length}`);
         } catch (uploadError) {
           console.error(`[GALLERY UPLOAD] Failed to upload image ${file.originalname}:`, uploadError);
           console.error(`[GALLERY UPLOAD] Error details:`, (uploadError as Error).message);
