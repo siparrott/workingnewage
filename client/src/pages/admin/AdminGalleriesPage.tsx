@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
-import { Plus, Search, Filter, Eye, Edit, Trash2, Clock, MoreVertical, Mail, Flag, Image, ChevronLeft, ChevronRight, HelpCircle, BookOpen, X } from 'lucide-react';
+import { Plus, Search, Filter, Eye, Edit, Trash2, Clock, MoreVertical, Mail, Flag, Image, ChevronLeft, ChevronRight, HelpCircle, BookOpen, X, Globe, Lock } from 'lucide-react';
 import { getGalleries, deleteGallery } from '../../lib/gallery-api';
 import AdvancedGalleryForm from '../../components/admin/AdvancedGalleryForm';
 
@@ -21,10 +21,18 @@ interface Gallery {
   type?: string;
 }
 
+interface GalleryAnalytics {
+  totalGalleries: number;
+  totalImages: number;
+  publicGalleries: number;
+  protectedGalleries: number;
+}
+
 const AdminGalleriesPage: React.FC = () => {
   const navigate = useNavigate();
   const [galleries, setGalleries] = useState<Gallery[]>([]);
   const [filteredGalleries, setFilteredGalleries] = useState<Gallery[]>([]);
+  const [analytics, setAnalytics] = useState<GalleryAnalytics | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showExpired, setShowExpired] = useState(false);
@@ -38,6 +46,7 @@ const AdminGalleriesPage: React.FC = () => {
 
   useEffect(() => {
     fetchGalleries();
+    fetchAnalytics();
   }, []);
 
   useEffect(() => {
@@ -50,6 +59,20 @@ const AdminGalleriesPage: React.FC = () => {
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
+
+  const fetchAnalytics = async () => {
+    try {
+      const response = await fetch('/api/admin/galleries/analytics', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAnalytics(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch analytics:', error);
+    }
+  };
 
   const fetchGalleries = async () => {
     try {
@@ -184,6 +207,63 @@ const AdminGalleriesPage: React.FC = () => {
             Get Help
           </button>
         </div>
+
+        {/* Analytics Dashboard */}
+        {analytics && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg shadow-lg p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-100 text-sm font-medium mb-1">Galerien Gesamt</p>
+                  <p className="text-4xl font-bold">{analytics.totalGalleries}</p>
+                  <p className="text-purple-100 text-xs mt-1">Verfügbar zum Anschauen</p>
+                </div>
+                <div className="bg-white/20 p-3 rounded-lg">
+                  <Image className="w-6 h-6" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-pink-500 to-pink-600 text-white rounded-lg shadow-lg p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-pink-100 text-sm font-medium mb-1">Fotos Gesamt</p>
+                  <p className="text-4xl font-bold">{analytics.totalImages.toString().padStart(5, '0')}</p>
+                  <p className="text-pink-100 text-xs mt-1">In allen Galerien</p>
+                </div>
+                <div className="bg-white/20 p-3 rounded-lg">
+                  <Image className="w-6 h-6" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded-lg shadow-lg p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-cyan-100 text-sm font-medium mb-1">Öffentlich</p>
+                  <p className="text-4xl font-bold">{analytics.publicGalleries}</p>
+                  <p className="text-cyan-100 text-xs mt-1">Offene Galerien</p>
+                </div>
+                <div className="bg-white/20 p-3 rounded-lg">
+                  <Globe className="w-6 h-6" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-lg shadow-lg p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-amber-100 text-sm font-medium mb-1">Geschützt</p>
+                  <p className="text-4xl font-bold">{analytics.protectedGalleries}</p>
+                  <p className="text-amber-100 text-xs mt-1">Zugangscode erforderlich</p>
+                </div>
+                <div className="bg-white/20 p-3 rounded-lg">
+                  <Lock className="w-6 h-6" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Filters Bar */}
         <div className="flex items-center justify-between bg-white rounded-lg shadow px-4 py-3">
