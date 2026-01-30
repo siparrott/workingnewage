@@ -3323,10 +3323,10 @@ Bitte versuchen Sie es später noch einmal.`;
           });
           
           const insertResult = await pool.query(`
-            INSERT INTO gallery_images (gallery_id, filename, url, title, sort_order, created_at)
-            VALUES ($1, $2, $3, $4, $5, NOW())
-            RETURNING id, gallery_id as "galleryId", filename, url, title, sort_order as "sortOrder", created_at as "createdAt"
-          `, [galleryId, sanitizedFilename, imageUrl, file.originalname, i]);
+            INSERT INTO gallery_images (gallery_id, filename, url, title, sort_order, size_bytes, content_type, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+            RETURNING id, gallery_id as "galleryId", filename, url, title, sort_order as "sortOrder", size_bytes as "sizeBytes", content_type as "contentType", created_at as "createdAt"
+          `, [galleryId, sanitizedFilename, imageUrl, file.originalname, i, file.size, file.mimetype]);
 
           const insertedImage = insertResult.rows[0];
           console.log(`[GALLERY UPLOAD] DB insert successful. Inserted image ID:`, insertedImage.id);

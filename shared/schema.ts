@@ -591,6 +591,8 @@ export const galleryImages = pgTable("gallery_images", {
   title: text("title"),
   description: text("description"),
   sortOrder: integer("sort_order").default(0),
+  sizeBytes: integer("size_bytes").default(0),
+  contentType: text("content_type"),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow(),
 });
