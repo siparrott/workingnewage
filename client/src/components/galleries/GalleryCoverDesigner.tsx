@@ -431,11 +431,16 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [templatePage, setTemplatePage] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<CoverTemplate['category'] | 'all'>('all');
+  const [customTemplates, setCustomTemplates] = useState<CoverTemplate[]>([]);
+  const [showNewTemplateModal, setShowNewTemplateModal] = useState(false);
 
+  // Combine built-in and custom templates
+  const allTemplates = [...COVER_TEMPLATES, ...customTemplates];
+  
   // Filter templates by category
   const filteredTemplates = selectedCategory === 'all' 
-    ? COVER_TEMPLATES 
-    : COVER_TEMPLATES.filter(t => t.category === selectedCategory);
+    ? allTemplates 
+    : allTemplates.filter(t => t.category === selectedCategory);
   
   const templatesPerPage = 6;
   const totalPages = Math.ceil(filteredTemplates.length / templatesPerPage);
@@ -865,7 +870,12 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
               <h3 className="font-medium text-gray-900">Gallery Cover</h3>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">{filteredTemplates.length} designs</span>
-                <span className="text-sm text-purple-600 cursor-pointer hover:underline">+ ADD NEW</span>
+                <button
+                  onClick={() => setShowNewTemplateModal(true)}
+                  className="text-sm text-purple-600 hover:text-purple-700 hover:underline font-medium"
+                >
+                  + ADD NEW
+                </button>
               </div>
             </div>
             
@@ -1019,6 +1029,114 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
           </div>
         </div>
       </div>
+
+      {/* New Template Modal */}
+      {showNewTemplateModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Create Custom Template</h3>
+                <button
+                  onClick={() => setShowNewTemplateModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <p className="text-sm text-gray-600 mb-4">
+                Create a custom cover template based on your current settings. This will be saved to your template library.
+              </p>
+
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const newTemplate: CoverTemplate = {
+                  id: `custom-${Date.now()}`,
+                  name: formData.get('name') as string,
+                  thumbnail: 'custom',
+                  category: formData.get('category') as CoverTemplate['category'],
+                  textPosition: selectedTemplate.textPosition,
+                  textAlignment: selectedTemplate.textAlignment,
+                  overlay: selectedTemplate.overlay,
+                  titleSize: selectedTemplate.titleSize,
+                  showSubtitle: selectedTemplate.showSubtitle,
+                  showButton: selectedTemplate.showButton,
+                  buttonStyle: selectedTemplate.buttonStyle,
+                  fontStyle: selectedTemplate.fontStyle,
+                  imageStyle: selectedTemplate.imageStyle,
+                  accentColor: selectedTemplate.accentColor,
+                  borderStyle: selectedTemplate.borderStyle
+                };
+                
+                setCustomTemplates([...customTemplates, newTemplate]);
+                setSelectedTemplate(newTemplate);
+                setShowNewTemplateModal(false);
+              }}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Template Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      required
+                      placeholder="My Custom Template"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Category <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="category"
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    >
+                      <option value="full-cover">Full Cover</option>
+                      <option value="split-layout">Split Layout</option>
+                      <option value="minimal">Minimal</option>
+                      <option value="creative">Creative</option>
+                      <option value="collage">Collage</option>
+                    </select>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Current Settings</p>
+                    <div className="text-xs text-gray-600 space-y-1">
+                      <p>• Text Position: {selectedTemplate.textPosition.replace(/-/g, ' ')}</p>
+                      <p>• Overlay: {selectedTemplate.overlay}</p>
+                      <p>• Title Size: {selectedTemplate.titleSize}</p>
+                      <p>• Font Style: {selectedTemplate.fontStyle}</p>
+                      <p>• Image Style: {selectedTemplate.imageStyle}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowNewTemplateModal(false)}
+                    className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    Create Template
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
