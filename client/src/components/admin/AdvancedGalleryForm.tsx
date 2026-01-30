@@ -474,8 +474,8 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
     if (!showShareModal) return null;
 
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           {/* Header */}
           <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4">
             <div className="flex items-center justify-between">
@@ -571,8 +571,8 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
                   placeholder="Add a personal message (optional)"
                   value={shareMessage}
                   onChange={(e) => setShareMessage(e.target.value)}
-                  rows={2}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
+                  rows={4}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 />
                 <button
                   onClick={handleSendEmail}
@@ -768,9 +768,9 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
   );
 
   const renderCoverStep = () => (
-    <div className="space-y-6">
+    <div className="h-[calc(100vh-300px)] min-h-[600px]">
       {coverImageUrl ? (
-        <div className="space-y-4">
+        <div className="h-full">
           <div className="text-center mb-4">
             <h3 className="text-lg font-medium text-gray-900 mb-2">Design Your Gallery Cover</h3>
             <p className="text-sm text-gray-600">
@@ -778,37 +778,39 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
             </p>
           </div>
           
-          <GalleryCoverDesigner
-            imageUrl={coverImageUrl}
-            galleryTitle={formData.title || 'Gallery Title'}
-            initialSettings={{
-              template: coverTemplate ? COVER_TEMPLATES.find(t => t.id === coverTemplate.templateId) || COVER_TEMPLATES[0] : COVER_TEMPLATES[0],
-              imagePosition: coverPosition,
-              imageScale: coverScale,
-              title: formData.title,
-              subtitle: coverTemplate?.subtitle || 'NEW AGE FOTOGRAFIE'
-            }}
-            onSave={(settings: CoverSettings) => {
-              setCoverPosition(settings.imagePosition);
-              setCoverScale(settings.imageScale);
-              setCoverTemplate({
-                templateId: settings.template.id,
-                textPosition: settings.template.textPosition,
-                textAlignment: settings.template.textAlignment,
-                overlay: settings.template.overlay,
-                titleSize: settings.template.titleSize,
-                showSubtitle: settings.template.showSubtitle,
-                showButton: settings.template.showButton,
-                buttonStyle: settings.template.buttonStyle,
-                fontStyle: settings.template.fontStyle,
-                imageStyle: settings.template.imageStyle,
-                subtitle: settings.subtitle
-              });
-            }}
-            onCancel={() => {
-              // Just stay on this step, don't go back
-            }}
-          />
+          <div className="h-[calc(100%-80px)]">
+            <GalleryCoverDesigner
+              imageUrl={coverImageUrl}
+              galleryTitle={formData.title || 'Gallery Title'}
+              initialSettings={{
+                template: coverTemplate ? COVER_TEMPLATES.find(t => t.id === coverTemplate.templateId) || COVER_TEMPLATES[0] : COVER_TEMPLATES[0],
+                imagePosition: coverPosition,
+                imageScale: coverScale,
+                title: formData.title,
+                subtitle: coverTemplate?.subtitle || 'NEW AGE FOTOGRAFIE'
+              }}
+              onSave={(settings: CoverSettings) => {
+                setCoverPosition(settings.imagePosition);
+                setCoverScale(settings.imageScale);
+                setCoverTemplate({
+                  templateId: settings.template.id,
+                  textPosition: settings.template.textPosition,
+                  textAlignment: settings.template.textAlignment,
+                  overlay: settings.template.overlay,
+                  titleSize: settings.template.titleSize,
+                  showSubtitle: settings.template.showSubtitle,
+                  showButton: settings.template.showButton,
+                  buttonStyle: settings.template.buttonStyle,
+                  fontStyle: settings.template.fontStyle,
+                  imageStyle: settings.template.imageStyle,
+                  subtitle: settings.subtitle
+                });
+              }}
+              onCancel={() => {
+                // Just stay on this step, don't go back
+              }}
+            />
+          </div>
         </div>
       ) : (
         <div className="text-center py-12">

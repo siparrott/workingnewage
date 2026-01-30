@@ -761,7 +761,7 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-xl max-w-6xl mx-auto">
+    <div className="bg-white rounded-xl shadow-xl w-full h-full flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
         <h2 className="text-xl font-semibold text-gray-900">Gallery Cover Designer</h2>
@@ -782,9 +782,9 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
         </div>
       </div>
 
-      <div className="flex">
+      <div className="flex flex-1 overflow-hidden">
         {/* Main Preview Area */}
-        <div className="flex-1 p-6 bg-gray-50">
+        <div className="flex-1 p-6 bg-gray-50 overflow-y-auto">
           {/* Preview Mode Toggle */}
           <div className="flex items-center justify-center gap-2 mb-6">
             <button
@@ -960,7 +960,7 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
         </div>
 
         {/* Settings Panel */}
-        <div className="w-80 border-l bg-white p-6 space-y-6">
+        <div className="w-80 border-l bg-white p-6 space-y-6 overflow-y-auto">
           <div>
             <h3 className="font-medium text-gray-900 mb-4">Cover Settings</h3>
             
