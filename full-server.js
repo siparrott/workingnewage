@@ -7274,6 +7274,232 @@ Due: ${esc(i.due_date)}</div>
         return;
       }
 
+      // ==================== EMAIL FOLDERS API ====================
+      // Ensure email_folders table exists
+      const ensureEmailFoldersTable = async () => {
+        if (!sql) return;
+        try {
+          await sql`
+            CREATE TABLE IF NOT EXISTS email_folders (
+              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              name TEXT NOT NULL,
+              color TEXT DEFAULT '#6366f1',
+              sort_order INTEGER DEFAULT 0,
+              created_at TIMESTAMPTZ DEFAULT NOW(),
+              updated_at TIMESTAMPTZ DEFAULT NOW()
+            )`;
+          // Add folder_id column to crm_messages if not exists
+          await sql`ALTER TABLE crm_messages ADD COLUMN IF NOT EXISTS folder_id UUID REFERENCES email_folders(id) ON DELETE SET NULL`;
+        } catch (e) {
+          console.warn('⚠️ Email folders table ensure failed:', e.message);
+        }
+      };
+
+      // GET /api/inbox/folders - List all folders
+      if (pathname === '/api/inbox/folders' && req.method === 'GET') {
+        try {
+          await ensureEmailFoldersTable();
+          if (!sql) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify([]));
+            return;
+          }
+          const folders = await sql`
+            SELECT id, name, color, sort_order, created_at, updated_at
+            FROM email_folders
+            ORDER BY sort_order ASC, created_at ASC
+          `;
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(folders));
+        } catch (error) {
+          console.error('❌ GET /api/inbox/folders error:', error);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Failed to load folders' }));
+        }
+        return;
+      }
+
+      // POST /api/inbox/folders - Create a new folder
+      if (pathname === '/api/inbox/folders' && req.method === 'POST') {
+        try {
+          await ensureEmailFoldersTable();
+          let body = '';
+          req.on('data', chunk => { body += chunk.toString(); });
+          await new Promise(r => req.on('end', r));
+          const data = body ? JSON.parse(body) : {};
+          if (!data.name) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Folder name is required' }));
+            return;
+          }
+          if (!sql) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Database not available' }));
+            return;
+          }
+          const result = await sql`
+            INSERT INTO email_folders (name, color, sort_order)
+            VALUES (${data.name}, ${data.color || '#6366f1'}, COALESCE((SELECT MAX(sort_order) + 1 FROM email_folders), 0))
+            RETURNING id, name, color, sort_order, created_at, updated_at
+          `;
+          res.writeHead(201, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(result[0]));
+        } catch (error) {
+          console.error('❌ POST /api/inbox/folders error:', error);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Failed to create folder' }));
+        }
+        return;
+      }
+
+      // PUT /api/inbox/folders/:id - Update a folder
+      if (pathname.match(/^\/api\/inbox\/folders\/[A-Za-z0-9\-]+$/) && req.method === 'PUT') {
+        try {
+          await ensureEmailFoldersTable();
+          const folderId = pathname.split('/').pop();
+          let body = '';
+          req.on('data', chunk => { body += chunk.toString(); });
+          await new Promise(r => req.on('end', r));
+          const data = body ? JSON.parse(body) : {};
+          if (!sql) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Database not available' }));
+            return;
+          }
+          const result = await sql`
+            UPDATE email_folders
+            SET name = COALESCE(${data.name}, name),
+                color = COALESCE(${data.color}, color),
+                updated_at = NOW()
+            WHERE id = ${folderId}
+            RETURNING id, name, color, sort_order, created_at, updated_at
+          `;
+          if (result.length === 0) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Folder not found' }));
+            return;
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(result[0]));
+        } catch (error) {
+          console.error('❌ PUT /api/inbox/folders error:', error);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Failed to update folder' }));
+        }
+        return;
+      }
+
+      // DELETE /api/inbox/folders/:id - Delete a folder
+      if (pathname.match(/^\/api\/inbox\/folders\/[A-Za-z0-9\-]+$/) && req.method === 'DELETE') {
+        try {
+          await ensureEmailFoldersTable();
+          const folderId = pathname.split('/').pop();
+          if (!sql) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Database not available' }));
+            return;
+          }
+          // Move emails from this folder back to inbox (null folder_id)
+          await sql`UPDATE crm_messages SET folder_id = NULL WHERE folder_id = ${folderId}`;
+          // Delete the folder
+          await sql`DELETE FROM email_folders WHERE id = ${folderId}`;
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true }));
+        } catch (error) {
+          console.error('❌ DELETE /api/inbox/folders error:', error);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Failed to delete folder' }));
+        }
+        return;
+      }
+
+      // POST /api/inbox/emails/move - Move emails to a folder
+      if (pathname === '/api/inbox/emails/move' && req.method === 'POST') {
+        try {
+          await ensureEmailFoldersTable();
+          let body = '';
+          req.on('data', chunk => { body += chunk.toString(); });
+          await new Promise(r => req.on('end', r));
+          const data = body ? JSON.parse(body) : {};
+          if (!data.messageIds || !Array.isArray(data.messageIds)) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'messageIds array is required' }));
+            return;
+          }
+          if (!sql) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Database not available' }));
+            return;
+          }
+          // data.folderId can be null to move back to inbox
+          const folderId = data.folderId || null;
+          await sql`UPDATE crm_messages SET folder_id = ${folderId}, updated_at = NOW() WHERE id = ANY(${data.messageIds})`;
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, moved: data.messageIds.length }));
+        } catch (error) {
+          console.error('❌ POST /api/inbox/emails/move error:', error);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Failed to move emails' }));
+        }
+        return;
+      }
+
+      // GET /api/inbox/emails - Get emails (with optional folder filter)
+      if (pathname === '/api/inbox/emails' && req.method === 'GET') {
+        try {
+          await ensureEmailFoldersTable();
+          const folder = parsedUrl.query?.folder;
+          if (!sql) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify([]));
+            return;
+          }
+          let messages;
+          if (folder === 'archive') {
+            messages = await sql`
+              SELECT id, sender_name AS "senderName", sender_email AS "senderEmail", 
+                     subject, content, status, direction, folder_id,
+                     client_id AS "clientId", created_at AS "createdAt", updated_at AS "updatedAt"
+              FROM crm_messages WHERE status = 'archived' ORDER BY created_at DESC
+            `;
+          } else if (folder === 'trash') {
+            messages = await sql`
+              SELECT id, sender_name AS "senderName", sender_email AS "senderEmail", 
+                     subject, content, status, direction, folder_id,
+                     client_id AS "clientId", created_at AS "createdAt", updated_at AS "updatedAt"
+              FROM crm_messages WHERE status = 'deleted' ORDER BY created_at DESC
+            `;
+          } else if (folder) {
+            // Custom folder
+            messages = await sql`
+              SELECT id, sender_name AS "senderName", sender_email AS "senderEmail", 
+                     subject, content, status, direction, folder_id,
+                     client_id AS "clientId", created_at AS "createdAt", updated_at AS "updatedAt"
+              FROM crm_messages WHERE folder_id = ${folder} ORDER BY created_at DESC
+            `;
+          } else {
+            // Default inbox - only inbound, non-archived, non-deleted, no custom folder
+            messages = await sql`
+              SELECT id, sender_name AS "senderName", sender_email AS "senderEmail", 
+                     subject, content, status, direction, folder_id,
+                     client_id AS "clientId", created_at AS "createdAt", updated_at AS "updatedAt"
+              FROM crm_messages 
+              WHERE (direction IS NULL OR direction != 'outbound')
+                AND status NOT IN ('archived', 'deleted', 'sent', 'demo_sent')
+                AND folder_id IS NULL
+              ORDER BY created_at DESC
+            `;
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(messages));
+        } catch (error) {
+          console.error('❌ GET /api/inbox/emails error:', error);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Failed to load emails' }));
+        }
+        return;
+      }
+
       // Get inbox messages endpoint
       if (pathname === '/api/messages' && req.method === 'GET') {
         try {
