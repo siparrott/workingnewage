@@ -520,11 +520,11 @@ export async function downloadGallery(slug: string, token: string): Promise<Blob
 }
 
 // Share gallery via email (admin)
-export async function sendGalleryEmail(params: { galleryId?: string; slug?: string; to: string; message?: string }): Promise<{ ok: boolean; link: string }> {
+export async function sendGalleryEmail(params: { galleryId?: string; slug?: string; to: string; message?: string; galleryUrl?: string }): Promise<{ ok: boolean; link: string }> {
   const res = await fetch('/api/galleries/send-email', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ gallery_id: params.galleryId, slug: params.slug, to: params.to, message: params.message }),
+    body: JSON.stringify({ gallery_id: params.galleryId, slug: params.slug, to: params.to, message: params.message, gallery_url: params.galleryUrl }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error || 'Failed to send email');
@@ -532,11 +532,11 @@ export async function sendGalleryEmail(params: { galleryId?: string; slug?: stri
 }
 
 // Share gallery via WhatsApp (admin)
-export async function sendGalleryWhatsApp(params: { galleryId?: string; slug?: string; toPhone?: string }): Promise<{ ok: boolean; sent: boolean; link: string; share?: string }> {
+export async function sendGalleryWhatsApp(params: { galleryId?: string; slug?: string; toPhone?: string; galleryUrl?: string }): Promise<{ ok: boolean; sent: boolean; link: string; share?: string }> {
   const res = await fetch('/api/galleries/send-whatsapp', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ gallery_id: params.galleryId, slug: params.slug, to_phone: params.toPhone }),
+    body: JSON.stringify({ gallery_id: params.galleryId, slug: params.slug, to_phone: params.toPhone, gallery_url: params.galleryUrl }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error || 'Failed to send WhatsApp');
@@ -544,11 +544,11 @@ export async function sendGalleryWhatsApp(params: { galleryId?: string; slug?: s
 }
 
 // Share gallery via SMS (admin)
-export async function sendGallerySms(params: { galleryId?: string; slug?: string; toPhone: string }): Promise<{ ok: boolean; sent: boolean; link: string; info?: string }> {
+export async function sendGallerySms(params: { galleryId?: string; slug?: string; toPhone: string; galleryUrl?: string }): Promise<{ ok: boolean; sent: boolean; link: string; info?: string }> {
   const res = await fetch('/api/galleries/send-sms', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ gallery_id: params.galleryId, slug: params.slug, to_phone: params.toPhone }),
+    body: JSON.stringify({ gallery_id: params.galleryId, slug: params.slug, to_phone: params.toPhone, gallery_url: params.galleryUrl }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error || 'Failed to send SMS');

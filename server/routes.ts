@@ -4236,7 +4236,7 @@ Bitte versuchen Sie es später noch einmal.`;
   // POST /api/galleries/send-email - Send gallery link via email
   app.post("/api/galleries/send-email", authenticateUser, async (req: Request, res: Response) => {
     try {
-      const { gallery_id, slug, to, message } = req.body;
+      const { gallery_id, slug, to, message, gallery_url } = req.body;
       
       if (!to || (!gallery_id && !slug)) {
         return res.status(400).json({ error: 'to and gallery_id or slug required' });
@@ -4256,9 +4256,8 @@ Bitte versuchen Sie es später noch einmal.`;
         return res.status(404).json({ error: 'Gallery not found' });
       }
       
-      // Build gallery URL
-      const baseUrl = process.env.APP_URL || `https://${req.headers.host}`;
-      const link = `${baseUrl}/gallery/${gallery.slug}`;
+      // Use frontend-provided gallery_url, or build from environment/host
+      const link = gallery_url || `https://www.newagefotografie.com/gallery/${gallery.slug}`;
       const pwdNote = (gallery.is_password_protected && gallery.password) 
         ? `<p>Password: <strong>${gallery.password}</strong></p>` 
         : '';
@@ -4294,7 +4293,7 @@ Bitte versuchen Sie es später noch einmal.`;
   // POST /api/galleries/send-whatsapp - Send gallery link via WhatsApp
   app.post("/api/galleries/send-whatsapp", authenticateUser, async (req: Request, res: Response) => {
     try {
-      const { gallery_id, slug, to_phone } = req.body;
+      const { gallery_id, slug, to_phone, gallery_url } = req.body;
       
       // Find gallery
       let gallery;
@@ -4310,9 +4309,8 @@ Bitte versuchen Sie es später noch einmal.`;
         return res.status(404).json({ error: 'Gallery not found' });
       }
       
-      // Build gallery URL
-      const baseUrl = process.env.APP_URL || `https://${req.headers.host}`;
-      const link = `${baseUrl}/gallery/${gallery.slug}`;
+      // Use frontend-provided gallery_url, or build with production domain
+      const link = gallery_url || `https://www.newagefotografie.com/gallery/${gallery.slug}`;
       
       // Generate WhatsApp share link
       const text = `Here's your photo gallery "${gallery.title}": ${link}${gallery.is_password_protected && gallery.password ? `\nPassword: ${gallery.password}` : ''}`;
@@ -4328,7 +4326,7 @@ Bitte versuchen Sie es später noch einmal.`;
   // POST /api/galleries/send-sms - Send gallery link via SMS
   app.post("/api/galleries/send-sms", authenticateUser, async (req: Request, res: Response) => {
     try {
-      const { gallery_id, slug, to_phone } = req.body;
+      const { gallery_id, slug, to_phone, gallery_url } = req.body;
       
       if (!to_phone) {
         return res.status(400).json({ error: 'to_phone is required' });
@@ -4348,9 +4346,8 @@ Bitte versuchen Sie es später noch einmal.`;
         return res.status(404).json({ error: 'Gallery not found' });
       }
       
-      // Build gallery URL
-      const baseUrl = process.env.APP_URL || `https://${req.headers.host}`;
-      const link = `${baseUrl}/gallery/${gallery.slug}`;
+      // Use frontend-provided gallery_url, or build with production domain
+      const link = gallery_url || `https://www.newagefotografie.com/gallery/${gallery.slug}`;
       
       // Build SMS message
       const smsText = `Here's your photo gallery "${gallery.title}": ${link}${gallery.is_password_protected && gallery.password ? ` (Password: ${gallery.password})` : ''}`;

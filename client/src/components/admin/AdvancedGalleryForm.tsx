@@ -392,7 +392,8 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
         galleryId: savedGalleryId || undefined,
         slug: savedGallerySlug || undefined,
         to: shareEmail,
-        message: shareMessage || undefined
+        message: shareMessage || undefined,
+        galleryUrl: getGalleryUrl()
       });
       setShareSuccess('Email sent successfully!');
       setShareEmail('');
@@ -410,7 +411,8 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
       const result = await sendGalleryWhatsApp({
         galleryId: savedGalleryId || undefined,
         slug: savedGallerySlug || undefined,
-        toPhone: sharePhone || undefined
+        toPhone: sharePhone || undefined,
+        galleryUrl: getGalleryUrl()
       });
       // Open WhatsApp link if provided
       if (result.share) {
@@ -441,7 +443,8 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
       await sendGallerySms({
         galleryId: savedGalleryId || undefined,
         slug: savedGallerySlug || undefined,
-        toPhone: sharePhone
+        toPhone: sharePhone,
+        galleryUrl: getGalleryUrl()
       });
       setShareSuccess('SMS sent successfully!');
       setSharePhone('');
