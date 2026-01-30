@@ -3963,6 +3963,37 @@ Bitte versuchen Sie es später noch einmal.`;
   });
 
   // ==================== ADMIN GALLERY ROUTES ====================
+  // Get gallery analytics/stats (admin only)
+  app.get("/api/admin/galleries/analytics", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      // Get total galleries count
+      const totalGalleriesResult = await runSql(`SELECT COUNT(*) as count FROM galleries`);
+      const totalGalleries = parseInt(totalGalleriesResult[0]?.count || '0');
+      
+      // Get total images count across all galleries
+      const totalImagesResult = await runSql(`SELECT COUNT(*) as count FROM gallery_images`);
+      const totalImages = parseInt(totalImagesResult[0]?.count || '0');
+      
+      // Get public galleries count
+      const publicGalleriesResult = await runSql(`SELECT COUNT(*) as count FROM galleries WHERE is_public = true`);
+      const publicGalleries = parseInt(publicGalleriesResult[0]?.count || '0');
+      
+      // Get password-protected galleries count
+      const protectedGalleriesResult = await runSql(`SELECT COUNT(*) as count FROM galleries WHERE is_password_protected = true`);
+      const protectedGalleries = parseInt(protectedGalleriesResult[0]?.count || '0');
+      
+      res.json({
+        totalGalleries,
+        totalImages,
+        publicGalleries,
+        protectedGalleries
+      });
+    } catch (error) {
+      console.error('Error fetching gallery analytics:', error);
+      res.status(500).json({ error: "Failed to fetch gallery analytics" });
+    }
+  });
+
   app.get("/api/admin/galleries", authenticateUser, async (req: Request, res: Response) => {
     try {
       const { clientId, isPublic, limit = 100 } = req.query;

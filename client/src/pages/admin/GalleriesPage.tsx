@@ -33,10 +33,18 @@ interface Client {
   email: string;
 }
 
+interface GalleryAnalytics {
+  totalGalleries: number;
+  totalImages: number;
+  publicGalleries: number;
+  protectedGalleries: number;
+}
+
 const GalleriesPage: React.FC = () => {
   const navigate = useNavigate();
   const [galleries, setGalleries] = useState<Gallery[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const [analytics, setAnalytics] = useState<GalleryAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedClientFilter, setSelectedClientFilter] = useState<string>('');
@@ -54,7 +62,22 @@ const GalleriesPage: React.FC = () => {
   useEffect(() => {
     fetchGalleries();
     fetchClients();
+    fetchAnalytics();
   }, [selectedClientFilter]);
+
+  const fetchAnalytics = async () => {
+    try {
+      const response = await fetch('/api/admin/galleries/analytics', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAnalytics(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch analytics:', error);
+    }
+  };
 
   const fetchGalleries = async () => {
     try {
@@ -266,6 +289,71 @@ const GalleriesPage: React.FC = () => {
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Analytics Dashboard */}
+        {analytics && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-purple-100 text-sm font-medium mb-1">Galerien Gesamt</p>
+                    <p className="text-4xl font-bold">{analytics.totalGalleries}</p>
+                    <p className="text-purple-100 text-xs mt-1">Verfügbar zum Anschauen</p>
+                  </div>
+                  <div className="bg-white/20 p-3 rounded-lg">
+                    <Image className="w-6 h-6" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-pink-500 to-pink-600 text-white border-0">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-pink-100 text-sm font-medium mb-1">Fotos Gesamt</p>
+                    <p className="text-4xl font-bold">{analytics.totalImages.toString().padStart(5, '0')}</p>
+                    <p className="text-pink-100 text-xs mt-1">In allen Galerien</p>
+                  </div>
+                  <div className="bg-white/20 p-3 rounded-lg">
+                    <Image className="w-6 h-6" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-cyan-500 to-cyan-600 text-white border-0">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-cyan-100 text-sm font-medium mb-1">Öffentlich</p>
+                    <p className="text-4xl font-bold">{analytics.publicGalleries}</p>
+                    <p className="text-cyan-100 text-xs mt-1">Offene Galerien</p>
+                  </div>
+                  <div className="bg-white/20 p-3 rounded-lg">
+                    <Globe className="w-6 h-6" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-amber-500 to-amber-600 text-white border-0">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-amber-100 text-sm font-medium mb-1">Geschützt</p>
+                    <p className="text-4xl font-bold">{analytics.protectedGalleries}</p>
+                    <p className="text-amber-100 text-xs mt-1">Zugangscode erforderlich</p>
+                  </div>
+                  <div className="bg-white/20 p-3 rounded-lg">
+                    <Lock className="w-6 h-6" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="mb-6">
