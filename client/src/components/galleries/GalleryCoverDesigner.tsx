@@ -1033,7 +1033,7 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
       {/* New Template Modal */}
       {showNewTemplateModal && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">Create Custom Template</h3>
@@ -1046,36 +1046,42 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
               </div>
 
               <p className="text-sm text-gray-600 mb-4">
-                Create a custom cover template based on your current settings. This will be saved to your template library.
+                Create a custom cover template with full control over layout, styling, and effects.
               </p>
 
               <form onSubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.currentTarget);
+                
+                // Handle checkboxes properly - they're only in formData if checked
+                const showSubtitle = formData.has('showSubtitle');
+                const showButton = formData.has('showButton');
+                
                 const newTemplate: CoverTemplate = {
                   id: `custom-${Date.now()}`,
                   name: formData.get('name') as string,
                   thumbnail: 'custom',
                   category: formData.get('category') as CoverTemplate['category'],
-                  textPosition: selectedTemplate.textPosition,
-                  textAlignment: selectedTemplate.textAlignment,
-                  overlay: selectedTemplate.overlay,
-                  titleSize: selectedTemplate.titleSize,
-                  showSubtitle: selectedTemplate.showSubtitle,
-                  showButton: selectedTemplate.showButton,
-                  buttonStyle: selectedTemplate.buttonStyle,
-                  fontStyle: selectedTemplate.fontStyle,
-                  imageStyle: selectedTemplate.imageStyle,
-                  accentColor: selectedTemplate.accentColor,
-                  borderStyle: selectedTemplate.borderStyle
+                  textPosition: formData.get('textPosition') as CoverTemplate['textPosition'],
+                  textAlignment: formData.get('textAlignment') as CoverTemplate['textAlignment'],
+                  overlay: formData.get('overlay') as CoverTemplate['overlay'],
+                  titleSize: formData.get('titleSize') as CoverTemplate['titleSize'],
+                  showSubtitle: showSubtitle,
+                  showButton: showButton,
+                  buttonStyle: formData.get('buttonStyle') as CoverTemplate['buttonStyle'],
+                  fontStyle: formData.get('fontStyle') as CoverTemplate['fontStyle'],
+                  imageStyle: formData.get('imageStyle') as CoverTemplate['imageStyle'],
+                  accentColor: formData.get('accentColor') as string,
+                  borderStyle: formData.get('borderStyle') as CoverTemplate['borderStyle']
                 };
                 
                 setCustomTemplates([...customTemplates, newTemplate]);
                 setSelectedTemplate(newTemplate);
                 setShowNewTemplateModal(false);
               }}>
-                <div className="space-y-4">
-                  <div>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Basic Info */}
+                  <div className="col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Template Name <span className="text-red-500">*</span>
                     </label>
@@ -1083,6 +1089,7 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
                       type="text"
                       name="name"
                       required
+                      defaultValue={selectedTemplate.name}
                       placeholder="My Custom Template"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                     />
@@ -1095,6 +1102,7 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
                     <select
                       name="category"
                       required
+                      defaultValue={selectedTemplate.category}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                     >
                       <option value="full-cover">Full Cover</option>
@@ -1105,15 +1113,192 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
                     </select>
                   </div>
 
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Current Settings</p>
-                    <div className="text-xs text-gray-600 space-y-1">
-                      <p>• Text Position: {selectedTemplate.textPosition.replace(/-/g, ' ')}</p>
-                      <p>• Overlay: {selectedTemplate.overlay}</p>
-                      <p>• Title Size: {selectedTemplate.titleSize}</p>
-                      <p>• Font Style: {selectedTemplate.fontStyle}</p>
-                      <p>• Image Style: {selectedTemplate.imageStyle}</p>
-                    </div>
+                  {/* Image Style */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Image Style
+                    </label>
+                    <select
+                      name="imageStyle"
+                      defaultValue={selectedTemplate.imageStyle}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    >
+                      <option value="full">Full</option>
+                      <option value="left-half">Left Half</option>
+                      <option value="right-half">Right Half</option>
+                      <option value="portrait-left">Portrait Left</option>
+                      <option value="portrait-right">Portrait Right</option>
+                      <option value="inset">Inset</option>
+                      <option value="circle-center">Circle Center</option>
+                    </select>
+                  </div>
+
+                  {/* Text Position */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Text Position
+                    </label>
+                    <select
+                      name="textPosition"
+                      defaultValue={selectedTemplate.textPosition}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    >
+                      <option value="top-left">Top Left</option>
+                      <option value="top-center">Top Center</option>
+                      <option value="top-right">Top Right</option>
+                      <option value="center">Center</option>
+                      <option value="bottom-left">Bottom Left</option>
+                      <option value="bottom-center">Bottom Center</option>
+                      <option value="bottom-right">Bottom Right</option>
+                      <option value="left-center">Left Center</option>
+                      <option value="right-center">Right Center</option>
+                    </select>
+                  </div>
+
+                  {/* Text Alignment */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Text Alignment
+                    </label>
+                    <select
+                      name="textAlignment"
+                      defaultValue={selectedTemplate.textAlignment}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    >
+                      <option value="left">Left</option>
+                      <option value="center">Center</option>
+                      <option value="right">Right</option>
+                    </select>
+                  </div>
+
+                  {/* Overlay Effect */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Overlay Effect (Opacity)
+                    </label>
+                    <select
+                      name="overlay"
+                      defaultValue={selectedTemplate.overlay}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    >
+                      <option value="none">None</option>
+                      <option value="dark">Dark</option>
+                      <option value="light">Light</option>
+                      <option value="gradient-bottom">Gradient Bottom</option>
+                      <option value="gradient-top">Gradient Top</option>
+                      <option value="gradient-left">Gradient Left</option>
+                      <option value="gradient-right">Gradient Right</option>
+                      <option value="vignette">Vignette</option>
+                      <option value="cinematic">Cinematic</option>
+                    </select>
+                  </div>
+
+                  {/* Title Size */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Title Size
+                    </label>
+                    <select
+                      name="titleSize"
+                      defaultValue={selectedTemplate.titleSize}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    >
+                      <option value="small">Small</option>
+                      <option value="medium">Medium</option>
+                      <option value="large">Large</option>
+                      <option value="xlarge">Extra Large</option>
+                      <option value="xxlarge">XX Large</option>
+                    </select>
+                  </div>
+
+                  {/* Font Style */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Font Style
+                    </label>
+                    <select
+                      name="fontStyle"
+                      defaultValue={selectedTemplate.fontStyle}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    >
+                      <option value="elegant">Elegant</option>
+                      <option value="modern">Modern</option>
+                      <option value="bold">Bold</option>
+                      <option value="script">Script</option>
+                    </select>
+                  </div>
+
+                  {/* Border Style */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Border Style
+                    </label>
+                    <select
+                      name="borderStyle"
+                      defaultValue={selectedTemplate.borderStyle}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    >
+                      <option value="none">None</option>
+                      <option value="thin">Thin</option>
+                      <option value="thick">Thick</option>
+                      <option value="double">Double</option>
+                    </select>
+                  </div>
+
+                  {/* Button Style */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Button Style
+                    </label>
+                    <select
+                      name="buttonStyle"
+                      defaultValue={selectedTemplate.buttonStyle}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    >
+                      <option value="solid">Solid</option>
+                      <option value="outline">Outline</option>
+                      <option value="pill">Pill</option>
+                      <option value="minimal">Minimal</option>
+                      <option value="arrow">Arrow</option>
+                    </select>
+                  </div>
+
+                  {/* Accent Color */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Accent Color
+                    </label>
+                    <input
+                      type="color"
+                      name="accentColor"
+                      defaultValue={selectedTemplate.accentColor || '#6366f1'}
+                      className="w-full h-10 px-1 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    />
+                  </div>
+
+                  {/* Toggle Options */}
+                  <div className="col-span-2 space-y-3 bg-gray-50 rounded-lg p-4">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="showSubtitle"
+                        value="true"
+                        defaultChecked={selectedTemplate.showSubtitle}
+                        className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Show Subtitle</span>
+                    </label>
+
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="showButton"
+                        value="true"
+                        defaultChecked={selectedTemplate.showButton}
+                        className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Show Button</span>
+                    </label>
                   </div>
                 </div>
 

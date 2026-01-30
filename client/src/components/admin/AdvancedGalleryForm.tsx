@@ -38,7 +38,7 @@ interface GalleryFormProps {
   onSuccess?: () => void;
 }
 
-type Step = 'details' | 'upload' | 'settings' | 'preview';
+type Step = 'details' | 'cover' | 'upload' | 'settings' | 'preview';
 
 // Internal form state interface
 interface FormState {
@@ -98,6 +98,7 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
 
   const steps = [
     { id: 'details', label: 'Details', icon: FileText, description: 'Gallery title and description' },
+    { id: 'cover', label: 'Cover', icon: Palette, description: 'Design gallery cover' },
     { id: 'upload', label: 'Upload', icon: Upload, description: 'Add images to gallery' },
     { id: 'settings', label: 'Settings', icon: Settings, description: 'Access and sharing options' },
     { id: 'preview', label: 'Preview', icon: Eye, description: 'Review and publish' }
@@ -173,6 +174,8 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
     switch (step) {
       case 'details':
         return !!formData.title.trim();
+      case 'cover':
+        return true; // Cover is optional
       case 'upload':
         return selectedImages.length > 0 || uploadedImages.length > 0;
       case 'settings':
@@ -700,105 +703,30 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Cover Image <span className="text-gray-400">(optional)</span>
-        </label>        {coverImageUrl ? (
-          <div className="space-y-4">
-            {showCoverDesigner ? (
-              <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 overflow-auto">
-                <GalleryCoverDesigner
-                  imageUrl={coverImageUrl}
-                  galleryTitle={formData.title || 'Gallery Title'}
-                  initialSettings={{
-                    template: coverTemplate ? COVER_TEMPLATES.find(t => t.id === coverTemplate.templateId) || COVER_TEMPLATES[0] : COVER_TEMPLATES[0],
-                    imagePosition: coverPosition,
-                    imageScale: coverScale,
-                    title: formData.title,
-                    subtitle: coverTemplate?.subtitle || 'NEW AGE FOTOGRAFIE'
-                  }}
-                  onSave={(settings: CoverSettings) => {
-                    setCoverPosition(settings.imagePosition);
-                    setCoverScale(settings.imageScale);
-                    setCoverTemplate({
-                      templateId: settings.template.id,
-                      textPosition: settings.template.textPosition,
-                      textAlignment: settings.template.textAlignment,
-                      overlay: settings.template.overlay,
-                      titleSize: settings.template.titleSize,
-                      showSubtitle: settings.template.showSubtitle,
-                      showButton: settings.template.showButton,
-                      buttonStyle: settings.template.buttonStyle,
-                      fontStyle: settings.template.fontStyle,
-                      imageStyle: settings.template.imageStyle,
-                      subtitle: settings.subtitle
-                    });
-                    setShowCoverDesigner(false);
-                  }}
-                  onCancel={() => setShowCoverDesigner(false)}
-                />
-              </div>
-            ) : showPositioner ? (
-              <CoverImagePositioner
-                imageUrl={coverImageUrl}
-                initialPosition={coverPosition}
-                onPositionChange={(pos) => {
-                  setCoverPosition(pos);
-                  setShowPositioner(false);
-                }}
-                onCancel={() => setShowPositioner(false)}
-              />
-            ) : (
-              <div className="relative">
-                {/* Full image view - shows entire photo without cropping */}
-                <div className="relative bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center p-4">
-                  <img
-                    src={coverImageUrl}
-                    alt="Cover preview"
-                    className="max-w-full max-h-[500px] object-contain rounded"
-                  />
-                </div>
-                <div className="absolute top-2 right-2 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowCoverDesigner(true)}
-                    className="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 shadow-lg"
-                    title="Design cover layout"
-                  >
-                    <Palette size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowPositioner(true)}
-                    className="p-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 shadow-lg"
-                    title="Adjust cover position"
-                  >
-                    <Move size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCoverImageUrl('');
-                      setCoverPosition({ x: 50, y: 50 });
-                      setCoverScale(100);
-                      setCoverTemplate(null);
-                    }}
-                    className="p-2 bg-red-600 text-white rounded-full hover:bg-red-700 shadow-lg"
-                    title="Remove cover image"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-                <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded flex gap-2">
-                  <span>Position: {Math.round(coverPosition.x)}%, {Math.round(coverPosition.y)}%</span>
-                  <span>•</span>
-                  <span>Scale: {coverScale}%</span>
-                  {coverTemplate && (
-                    <>
-                      <span>•</span>
-                      <span>Template: {coverTemplate.templateId}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
+        </label>
+        {coverImageUrl ? (
+          <div className="relative">
+            <img
+              src={coverImageUrl}
+              alt="Cover preview"
+              className="w-full h-48 object-cover rounded-lg"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setCoverImageUrl('');
+                setCoverPosition({ x: 50, y: 50 });
+                setCoverScale(100);
+                setCoverTemplate(null);
+              }}
+              className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full hover:bg-red-700 shadow-lg"
+              title="Remove cover image"
+            >
+              <X size={16} />
+            </button>
+            <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white text-xs px-3 py-1.5 rounded">
+              Cover uploaded • Design in next step
+            </div>
           </div>
         ) : (
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-8">
@@ -818,6 +746,7 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
                   }}
                 />
               </label>
+              <p className="text-xs text-gray-500 mt-2">You'll be able to design the cover in the next step</p>
             </div>
           </div>
         )}
@@ -835,6 +764,76 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
           placeholder="Describe this gallery..."
         />
       </div>
+    </div>
+  );
+
+  const renderCoverStep = () => (
+    <div className="space-y-6">
+      {coverImageUrl ? (
+        <div className="space-y-4">
+          <div className="text-center mb-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Design Your Gallery Cover</h3>
+            <p className="text-sm text-gray-600">
+              Choose a template and customize how your gallery cover appears to clients
+            </p>
+          </div>
+          
+          <GalleryCoverDesigner
+            imageUrl={coverImageUrl}
+            galleryTitle={formData.title || 'Gallery Title'}
+            initialSettings={{
+              template: coverTemplate ? COVER_TEMPLATES.find(t => t.id === coverTemplate.templateId) || COVER_TEMPLATES[0] : COVER_TEMPLATES[0],
+              imagePosition: coverPosition,
+              imageScale: coverScale,
+              title: formData.title,
+              subtitle: coverTemplate?.subtitle || 'NEW AGE FOTOGRAFIE'
+            }}
+            onSave={(settings: CoverSettings) => {
+              setCoverPosition(settings.imagePosition);
+              setCoverScale(settings.imageScale);
+              setCoverTemplate({
+                templateId: settings.template.id,
+                textPosition: settings.template.textPosition,
+                textAlignment: settings.template.textAlignment,
+                overlay: settings.template.overlay,
+                titleSize: settings.template.titleSize,
+                showSubtitle: settings.template.showSubtitle,
+                showButton: settings.template.showButton,
+                buttonStyle: settings.template.buttonStyle,
+                fontStyle: settings.template.fontStyle,
+                imageStyle: settings.template.imageStyle,
+                subtitle: settings.subtitle
+              });
+            }}
+            onCancel={() => {
+              // Just stay on this step, don't go back
+            }}
+          />
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <div className="bg-gray-50 rounded-lg p-8 max-w-md mx-auto">
+            <Palette className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Cover Image</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              You haven't uploaded a cover image yet. You can go back to add one or skip this step.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                const currentIndex = getStepIndex(currentStep);
+                if (currentIndex > 0) {
+                  setCurrentStep(steps[currentIndex - 1].id as Step);
+                }
+              }}
+              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            >
+              <ArrowLeft size={16} className="mr-2" />
+              Go Back to Add Cover Image
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -1226,6 +1225,8 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
     switch (currentStep) {
       case 'details':
         return renderDetailsStep();
+      case 'cover':
+        return renderCoverStep();
       case 'upload':
         return renderUploadStep();
       case 'settings':
