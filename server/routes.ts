@@ -3310,7 +3310,7 @@ Bitte versuchen Sie es später noch einmal.`;
             ContentType: file.mimetype,
           }));
 
-          const imageUrl = buildPublicUrl(key);
+          const imageUrl = buildPublicUrl(s3Config.bucket, s3Config.endpoint, key);
           console.log(`[GALLERY UPLOAD] S3 upload successful for image ${i + 1}/${files.length}: ${imageUrl}`);
 
           // Insert into gallery_images table
