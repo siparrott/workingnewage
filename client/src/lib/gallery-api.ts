@@ -260,6 +260,9 @@ export async function uploadGalleryImages(galleryId: string, files: File[]): Pro
         const error = await response.json();
         console.error('[uploadGalleryImages] Upload failed:', error);
         errorMessage = error.error || errorMessage;
+        if (error.details) {
+          errorMessage += ` - ${error.details}`;
+        }
       } catch (parseErr) {
         console.error('[uploadGalleryImages] Could not parse error response');
       }

@@ -3289,6 +3289,7 @@ Bitte versuchen Sie es später noch einmal.`;
       console.log(`[GALLERY UPLOAD] Starting upload of ${files.length} images to gallery ${galleryId}`);
 
       const uploadedImages: any[] = [];
+      const errors: string[] = [];
       const s3Client = getS3Client();
       const s3Config = getS3Config();
 
@@ -3301,6 +3302,7 @@ Bitte versuchen Sie es später noch einmal.`;
 
         try {
           // Upload to B2/S3
+          console.log(`[GALLERY UPLOAD] Attempting S3 upload for ${file.originalname}...`);
           await s3Client.send(new PutObjectCommand({
             Bucket: s3Config.bucket,
             Key: key,
@@ -3309,7 +3311,7 @@ Bitte versuchen Sie es später noch einmal.`;
           }));
 
           const imageUrl = buildPublicUrl(key);
-          console.log(`Uploaded image ${i + 1}/${files.length}: ${imageUrl}`);
+          console.log(`[GALLERY UPLOAD] S3 upload successful for image ${i + 1}/${files.length}: ${imageUrl}`);
 
           // Insert into gallery_images table
           console.log(`[GALLERY UPLOAD] Inserting image ${i + 1} into DB:`, {
@@ -3345,13 +3347,30 @@ Bitte versuchen Sie es später noch einmal.`;
           
           console.log(`[GALLERY UPLOAD] Added to uploadedImages array. Total uploaded so far: ${uploadedImages.length}`);
         } catch (uploadError) {
-          console.error(`[GALLERY UPLOAD] Failed to upload image ${file.originalname}:`, uploadError);
-          console.error(`[GALLERY UPLOAD] Error details:`, (uploadError as Error).message);
+          const errorMsg = `Failed to upload ${file.originalname}: ${(uploadError as Error).message}`;
+          console.error(`[GALLERY UPLOAD] ${errorMsg}`);
+          console.error(`[GALLERY UPLOAD] Full error:`, uploadError);
+          errors.push(errorMsg);
           // Continue with other images even if one fails
         }
       }
 
       console.log(`[GALLERY UPLOAD] Successfully uploaded ${uploadedImages.length} out of ${files.length} images to gallery ${galleryId}`);
+      
+      if (uploadedImages.length === 0 && errors.length > 0) {
+        console.error(`[GALLERY UPLOAD] All uploads failed. Errors:`, errors);
+        return res.status(500).json({ 
+          error: "All uploads failed", 
+          details: errors.join('; '),
+          uploadedCount: 0,
+          totalCount: files.length
+        });
+      }
+      
+      if (errors.length > 0) {
+        console.warn(`[GALLERY UPLOAD] Some uploads failed:`, errors);
+      }
+      
       res.json(uploadedImages);
     } catch (error) {
       console.error("Error uploading gallery images:", error);
