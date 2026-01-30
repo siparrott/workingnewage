@@ -815,7 +815,6 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
                   setCurrentStep(steps[currentIndex - 1].id as Step);
                 }
               }}
-              }}
             />
           </div>
         </div>
