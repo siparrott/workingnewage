@@ -71,6 +71,8 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
   const [clients, setClients] = useState<Client[]>([]);
   const [password, setPassword] = useState('');
   const [isPasswordProtected, setIsPasswordProtected] = useState(false);
+  const [watermarkEnabled, setWatermarkEnabled] = useState(false);
+  const [invisibleWatermarkEnabled, setInvisibleWatermarkEnabled] = useState(false);
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [uploadedImages, setUploadedImages] = useState<any[]>([]);  const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
@@ -277,6 +279,8 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
         password: isPasswordProtected ? password : undefined,
         isPasswordProtected: isPasswordProtected,
         downloadEnabled: formData.downloadEnabled,
+        watermarkEnabled: watermarkEnabled,
+        invisibleWatermarkEnabled: invisibleWatermarkEnabled,
         coverImage: coverImage,
         coverImageUrl: coverImageUrl, // Send existing URL if no new file
         coverPosition: coverPosition,
@@ -1015,6 +1019,49 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
               <span
                 className={`${
                   formData.downloadEnabled ? 'translate-x-6' : 'translate-x-1'
+                } inline-block h-4 w-4 transform rounded-full bg-white transition`}
+              />
+            </button>
+          </div>
+        </div>
+
+        {/* Watermark Settings */}
+        <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-sm font-medium text-gray-900">Visible Watermark</h4>
+              <p className="text-sm text-gray-500">Add visible watermark overlay to images</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setWatermarkEnabled(!watermarkEnabled)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                watermarkEnabled ? 'bg-purple-600' : 'bg-gray-200'
+              }`}
+            >
+              <span
+                className={`${
+                  watermarkEnabled ? 'translate-x-6' : 'translate-x-1'
+                } inline-block h-4 w-4 transform rounded-full bg-white transition`}
+              />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+            <div>
+              <h4 className="text-sm font-medium text-gray-900">Invisible Watermark</h4>
+              <p className="text-sm text-gray-500">Embed invisible steganographic watermark</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setInvisibleWatermarkEnabled(!invisibleWatermarkEnabled)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                invisibleWatermarkEnabled ? 'bg-purple-600' : 'bg-gray-200'
+              }`}
+            >
+              <span
+                className={`${
+                  invisibleWatermarkEnabled ? 'translate-x-6' : 'translate-x-1'
                 } inline-block h-4 w-4 transform rounded-full bg-white transition`}
               />
             </button>

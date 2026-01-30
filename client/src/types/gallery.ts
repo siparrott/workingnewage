@@ -131,6 +131,7 @@ export interface GalleryFormData {
   password?: string;
   downloadEnabled: boolean;
   watermarkEnabled?: boolean;
+  invisibleWatermarkEnabled?: boolean;
   expiresAt?: string;
   clientEmail?: string;
   isFeatured?: boolean;
