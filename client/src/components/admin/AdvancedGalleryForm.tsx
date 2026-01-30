@@ -1211,34 +1211,35 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
           </button>
           
           <div className="flex space-x-3">
+            {/* Save Draft button - always visible */}
+            <button
+              type="button"
+              onClick={() => handleSubmit(false)}
+              disabled={loading || imageUploading}
+              className="flex items-center px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              {(loading || imageUploading) ? (
+                <Loader2 className="animate-spin mr-2 h-4 w-4" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
+              {imageUploading ? 'Uploading...' : 'Save Draft'}
+            </button>
+            
             {getStepIndex(currentStep) === steps.length - 1 ? (
-              <>                <button
-                  type="button"
-                  onClick={() => handleSubmit(false)}
-                  disabled={loading || !validateStep(currentStep)}
-                  className="flex items-center px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  {(loading || imageUploading) ? (
-                    <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                  ) : (
-                    <Save className="mr-2 h-4 w-4" />
-                  )}
-                  {imageUploading ? 'Uploading...' : 'Save Draft'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSubmit(true)}
-                  disabled={loading || imageUploading || !validateStep(currentStep)}
-                  className="flex items-center px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
-                >
-                  {(loading || imageUploading) ? (
-                    <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                  ) : (
-                    <Share2 className="mr-2 h-4 w-4" />
-                  )}
-                  {imageUploading ? 'Uploading Images...' : 'Share Gallery'}
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={() => handleSubmit(true)}
+                disabled={loading || imageUploading || !validateStep(currentStep)}
+                className="flex items-center px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+              >
+                {(loading || imageUploading) ? (
+                  <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                ) : (
+                  <Share2 className="mr-2 h-4 w-4" />
+                )}
+                {imageUploading ? 'Uploading Images...' : 'Share Gallery'}
+              </button>
             ) : (
               <button
                 type="button"
