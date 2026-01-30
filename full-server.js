@@ -1627,11 +1627,13 @@ async function handleGalleryAPI(req, res, pathname, query) {
   };
 
   console.log('📧 handleGalleryAPI called - pathname:', pathname, 'gallerySlug:', gallerySlug, 'method:', req.method);
+  console.log('📧 pathParts:', JSON.stringify(pathParts));
+  console.log('📧 Check send-email: method===POST?', req.method === 'POST', 'gallerySlug===send-email?', gallerySlug === 'send-email');
 
   try {
     // POST /api/galleries/send-email - Send gallery link via email
     if (req.method === 'POST' && gallerySlug === 'send-email') {
-      console.log('📧 Handling send-email endpoint');
+      console.log('📧 MATCHED send-email endpoint - entering handler');
       let raw = ''; req.on('data', c => raw += c); await new Promise(r => req.on('end', r));
       try {
         const body = raw ? JSON.parse(raw) : {};
@@ -2469,6 +2471,7 @@ async function handleGalleryAPI(req, res, pathname, query) {
   }
 
   // If no matching endpoint found
+  console.log('📧 FALLTHROUGH - No matching endpoint! pathname:', pathname, 'gallerySlug:', gallerySlug, 'method:', req.method);
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Gallery API endpoint not found' }));
 }
