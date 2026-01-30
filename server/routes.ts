@@ -3251,11 +3251,19 @@ Bitte versuchen Sie es später noch einmal.`;
 
       console.log(`[GALLERY UPLOAD] ======= UPLOAD REQUEST RECEIVED =======`);
       console.log(`[GALLERY UPLOAD] Gallery ID: ${galleryId}`);
-      console.log(`[GALLERY UPLOAD] Files array:`, files);
+      console.log(`[GALLERY UPLOAD] Files array exists:`, !!files);
       console.log(`[GALLERY UPLOAD] Files length:`, files?.length || 0);
-      console.log(`[GALLERY UPLOAD] Request body:`, req.body);
+      if (files && files.length > 0) {
+        console.log(`[GALLERY UPLOAD] First file:`, {
+          fieldname: files[0].fieldname,
+          originalname: files[0].originalname,
+          mimetype: files[0].mimetype,
+          size: files[0].size,
+          bufferExists: !!files[0].buffer,
+          bufferLength: files[0].buffer?.length || 0
+        });
+      }
       console.log(`[GALLERY UPLOAD] Content-Type:`, req.headers['content-type']);
-      console.log(`[GALLERY UPLOAD] User:`, req.user);
 
       if (!files || files.length === 0) {
         console.log('[GALLERY UPLOAD] ERROR: No files in request');
@@ -3318,12 +3326,13 @@ Bitte versuchen Sie es später noch einmal.`;
             contentType: file.mimetype,
           });
         } catch (uploadError) {
-          console.error(`Failed to upload image ${file.originalname}:`, uploadError);
+          console.error(`[GALLERY UPLOAD] Failed to upload image ${file.originalname}:`, uploadError);
+          console.error(`[GALLERY UPLOAD] Error details:`, (uploadError as Error).message);
           // Continue with other images even if one fails
         }
       }
 
-      console.log(`Successfully uploaded ${uploadedImages.length} images to gallery ${galleryId}`);
+      console.log(`[GALLERY UPLOAD] Successfully uploaded ${uploadedImages.length} out of ${files.length} images to gallery ${galleryId}`);
       res.json(uploadedImages);
     } catch (error) {
       console.error("Error uploading gallery images:", error);
@@ -4268,11 +4277,10 @@ Bitte versuchen Sie es später noch einmal.`;
       
       // Send email using the enhanced email service
       const { EnhancedEmailService } = await import('./services/enhancedEmailService');
-      const emailService = EnhancedEmailService.getInstance();
-      await emailService.sendEmail({
+      await EnhancedEmailService.sendEmail({
         to,
         subject: `Gallery: ${gallery.title}`,
-        text: textContent,
+        content: textContent,
         html: html
       });
       
@@ -4705,11 +4713,10 @@ Bitte versuchen Sie es später noch einmal.`;
       
       // Send email using the enhanced email service
       const { EnhancedEmailService } = await import('./services/enhancedEmailService');
-      const emailService = EnhancedEmailService.getInstance();
-      await emailService.sendEmail({
+      await EnhancedEmailService.sendEmail({
         to,
         subject: `Invoice ${invoice.invoice_number} from New Age Fotografie`,
-        text: textContent,
+        content: textContent,
         html: html
       });
       
@@ -5637,6 +5644,122 @@ New Age Fotografie Team`;
       console.error("Error fetching inbox emails:", error);
       // Fail-open to avoid blocking dashboard if storage fails
       res.json([]);
+    }
+  });
+
+  // ==================== INBOX FOLDERS ROUTES ====================
+  
+  // Ensure email_folders table exists
+  const ensureEmailFoldersTable = async () => {
+    try {
+      await runSql(`
+        CREATE TABLE IF NOT EXISTS email_folders (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          name TEXT NOT NULL,
+          color TEXT DEFAULT '#6366f1',
+          sort_order INTEGER DEFAULT 0,
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          updated_at TIMESTAMPTZ DEFAULT NOW()
+        )`);
+      // Add folder_id column to crm_messages if not exists
+      await runSql(`ALTER TABLE crm_messages ADD COLUMN IF NOT EXISTS folder_id UUID`);
+    } catch (e) {
+      console.warn('⚠️ Email folders table ensure failed:', (e as Error).message);
+    }
+  };
+
+  // GET /api/inbox/folders - List all folders
+  app.get("/api/inbox/folders", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      await ensureEmailFoldersTable();
+      const folders = await runSql(`
+        SELECT id, name, color, sort_order, created_at, updated_at
+        FROM email_folders
+        ORDER BY sort_order ASC, created_at ASC
+      `);
+      res.json(folders || []);
+    } catch (error) {
+      console.error('Error fetching inbox folders:', error);
+      res.json([]);
+    }
+  });
+
+  // POST /api/inbox/folders - Create a new folder
+  app.post("/api/inbox/folders", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      await ensureEmailFoldersTable();
+      const { name, color } = req.body;
+      if (!name) {
+        return res.status(400).json({ error: 'Folder name is required' });
+      }
+      const result = await runSql(`
+        INSERT INTO email_folders (name, color, sort_order)
+        VALUES ($1, $2, COALESCE((SELECT MAX(sort_order) + 1 FROM email_folders), 0))
+        RETURNING id, name, color, sort_order, created_at, updated_at
+      `, [name, color || '#6366f1']);
+      res.status(201).json(result[0]);
+    } catch (error) {
+      console.error('Error creating inbox folder:', error);
+      res.status(500).json({ error: 'Failed to create folder' });
+    }
+  });
+
+  // PUT /api/inbox/folders/:id - Update a folder
+  app.put("/api/inbox/folders/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      await ensureEmailFoldersTable();
+      const { id } = req.params;
+      const { name, color } = req.body;
+      const result = await runSql(`
+        UPDATE email_folders
+        SET name = COALESCE($1, name),
+            color = COALESCE($2, color),
+            updated_at = NOW()
+        WHERE id = $3::uuid
+        RETURNING id, name, color, sort_order, created_at, updated_at
+      `, [name, color, id]);
+      if (!result || result.length === 0) {
+        return res.status(404).json({ error: 'Folder not found' });
+      }
+      res.json(result[0]);
+    } catch (error) {
+      console.error('Error updating inbox folder:', error);
+      res.status(500).json({ error: 'Failed to update folder' });
+    }
+  });
+
+  // DELETE /api/inbox/folders/:id - Delete a folder
+  app.delete("/api/inbox/folders/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      await ensureEmailFoldersTable();
+      const { id } = req.params;
+      // Move emails from this folder back to inbox (null folder_id)
+      await runSql(`UPDATE crm_messages SET folder_id = NULL WHERE folder_id = $1::uuid`, [id]);
+      // Delete the folder
+      await runSql(`DELETE FROM email_folders WHERE id = $1::uuid`, [id]);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting inbox folder:', error);
+      res.status(500).json({ error: 'Failed to delete folder' });
+    }
+  });
+
+  // POST /api/inbox/emails/move - Move emails to a folder
+  app.post("/api/inbox/emails/move", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      await ensureEmailFoldersTable();
+      const { messageIds, folderId } = req.body;
+      if (!messageIds || !Array.isArray(messageIds)) {
+        return res.status(400).json({ error: 'messageIds array is required' });
+      }
+      // folderId can be null to move back to inbox
+      for (const msgId of messageIds) {
+        await runSql(`UPDATE crm_messages SET folder_id = $1, updated_at = NOW() WHERE id = $2::uuid`, [folderId || null, msgId]);
+      }
+      res.json({ success: true, moved: messageIds.length });
+    } catch (error) {
+      console.error('Error moving emails:', error);
+      res.status(500).json({ error: 'Failed to move emails' });
     }
   });
 
