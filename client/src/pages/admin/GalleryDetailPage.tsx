@@ -72,7 +72,9 @@ const GalleryDetailPage: React.FC = () => {
   const [showWatermarkPicker, setShowWatermarkPicker] = useState(false);
   const [watermarkOpacity, setWatermarkOpacity] = useState(50);
   const [watermarkPosition, setWatermarkPosition] = useState<'center' | 'corner' | 'tile'>('corner');
-  const [watermarkType, setWatermarkType] = useState<'visible' | 'invisible' | 'pattern'>('visible');
+  const [visibleWatermarkEnabled, setVisibleWatermarkEnabled] = useState(true);
+  const [invisibleWatermarkEnabled, setInvisibleWatermarkEnabled] = useState(true);
+  const [patternWatermarkEnabled, setPatternWatermarkEnabled] = useState(false);
   
   // Cover images
   const [coverImages, setCoverImages] = useState<string[]>([]);
@@ -1229,28 +1231,64 @@ const GalleryDetailPage: React.FC = () => {
                     {/* Watermark Settings (shown when watermark selected) */}
                     {selectedWatermark && (
                       <div className="mt-4 space-y-4">
-                        {/* Watermark Type */}
-                        <div>
-                          <div className="text-xs text-gray-500 mb-2">Protection Type</div>
-                          <div className="grid grid-cols-3 gap-1">
-                            {[
-                              { id: 'visible', label: 'Visible' },
-                              { id: 'invisible', label: 'Invisible' },
-                              { id: 'pattern', label: 'Pattern' }
-                            ].map((type) => (
-                              <button
-                                key={type.id}
-                                onClick={() => setWatermarkType(type.id as typeof watermarkType)}
-                                className={`px-2 py-1.5 rounded text-xs font-medium ${
-                                  watermarkType === type.id
-                                    ? 'bg-teal-500 text-white'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                }`}
-                              >
-                                {type.label}
-                              </button>
-                            ))}
+                        {/* Visible Watermark Toggle */}
+                        <div className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <Droplet size={16} className="text-teal-500" />
+                            <div>
+                              <div className="text-sm font-medium text-gray-700">Visible Watermark</div>
+                              <div className="text-xs text-gray-500">Shows logo on images</div>
+                            </div>
                           </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={visibleWatermarkEnabled}
+                              onChange={(e) => setVisibleWatermarkEnabled(e.target.checked)}
+                              className="sr-only peer" 
+                            />
+                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+                          </label>
+                        </div>
+
+                        {/* Invisible Watermark Toggle */}
+                        <div className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <Shield size={16} className="text-amber-500" />
+                            <div>
+                              <div className="text-sm font-medium text-gray-700">Invisible Watermark</div>
+                              <div className="text-xs text-gray-500">Hidden data in pixels (AI-resistant)</div>
+                            </div>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={invisibleWatermarkEnabled}
+                              onChange={(e) => setInvisibleWatermarkEnabled(e.target.checked)}
+                              className="sr-only peer" 
+                            />
+                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                          </label>
+                        </div>
+
+                        {/* Pattern Watermark Toggle */}
+                        <div className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <LayoutGrid size={16} className="text-purple-500" />
+                            <div>
+                              <div className="text-sm font-medium text-gray-700">Pattern Overlay</div>
+                              <div className="text-xs text-gray-500">Tiles across image (hard to remove)</div>
+                            </div>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={patternWatermarkEnabled}
+                              onChange={(e) => setPatternWatermarkEnabled(e.target.checked)}
+                              className="sr-only peer" 
+                            />
+                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
+                          </label>
                         </div>
 
                         {/* Position */}
@@ -1277,11 +1315,11 @@ const GalleryDetailPage: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Opacity (only for visible) */}
-                        {watermarkType === 'visible' && (
+                        {/* Opacity (only for visible watermark) */}
+                        {visibleWatermarkEnabled && (
                           <div>
                             <div className="flex justify-between text-xs text-gray-500 mb-2">
-                              <span>Opacity</span>
+                              <span>Visible Opacity</span>
                               <span>{watermarkOpacity}%</span>
                             </div>
                             <input
@@ -1295,15 +1333,35 @@ const GalleryDetailPage: React.FC = () => {
                           </div>
                         )}
 
-                        {/* AI Protection Info */}
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                          <div className="flex items-start gap-2">
-                            <Shield size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
-                            <div className="text-xs text-amber-800">
-                              <strong>AI Protection:</strong> "Invisible" watermarks embed hidden data into pixel patterns. "Pattern" tiles across the image making AI removal difficult. Combined with visible marks provides best protection.
+                        {/* AI Protection Status */}
+                        {(visibleWatermarkEnabled && invisibleWatermarkEnabled) ? (
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                            <div className="flex items-start gap-2">
+                              <Shield size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                              <div className="text-xs text-green-800">
+                                <strong>Maximum Protection:</strong> Both visible and invisible watermarks enabled. Even if AI removes the visible mark, the invisible data proves ownership.
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        ) : invisibleWatermarkEnabled ? (
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                            <div className="flex items-start gap-2">
+                              <Shield size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
+                              <div className="text-xs text-amber-800">
+                                <strong>Invisible Protection:</strong> Hidden watermark data embedded. Consider adding visible mark for deterrence.
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                            <div className="flex items-start gap-2">
+                              <Info size={16} className="text-gray-500 mt-0.5 flex-shrink-0" />
+                              <div className="text-xs text-gray-600">
+                                <strong>Tip:</strong> Enable invisible watermark for best AI-removal protection.
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1313,9 +1371,12 @@ const GalleryDetailPage: React.FC = () => {
               {/* Experience Settings - Full Featured */}
               {activeSettingsTab === 'experience' && (
                 <div className="p-4 space-y-6 border-t border-gray-200">
+                  {/* User flow header */}
+                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">User flow</div>
+                  
                   {/* Welcome Message */}
                   <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Welcome message</h4>
+                    <div className="text-xs text-gray-500 mb-2">Welcome message</div>
                     <div className="flex items-center bg-white border border-gray-300 rounded-lg px-3 py-2">
                       <Mail size={16} className="text-gray-400 mr-2" />
                       <input
