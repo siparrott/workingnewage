@@ -185,6 +185,15 @@ app.use((req, res, next) => {
       // Quick database test
       await db.execute(sql`SELECT 1 as test`);
       console.log('✅ Database connection verified');
+      
+      // Run gallery images migration to add size tracking
+      try {
+        await db.execute(sql`ALTER TABLE gallery_images ADD COLUMN IF NOT EXISTS size_bytes INTEGER DEFAULT 0`);
+        await db.execute(sql`ALTER TABLE gallery_images ADD COLUMN IF NOT EXISTS content_type TEXT`);
+        console.log('✅ Gallery images size tracking migration completed');
+      } catch (migrationError) {
+        console.warn('⚠️ Gallery migration already applied or failed:', migrationError.message);
+      }
     } catch (error) {
       console.warn('⚠️ Database connection issue:', error.message);
     }
