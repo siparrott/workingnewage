@@ -705,11 +705,11 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
           Cover Image <span className="text-gray-400">(optional)</span>
         </label>
         {coverImageUrl ? (
-          <div className="relative w-full rounded-lg overflow-hidden bg-gray-100">
+          <div className="relative w-full rounded-lg overflow-hidden bg-gray-100" style={{ maxHeight: '200px' }}>
             <img
               src={coverImageUrl}
               alt="Cover preview"
-              className="w-full h-40 object-cover"
+              className="w-full h-32 object-cover"
             />
             <button
               type="button"
@@ -719,7 +719,7 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
                 setCoverScale(100);
                 setCoverTemplate(null);
               }}
-              className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full hover:bg-red-700 shadow-lg"
+              className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full hover:bg-red-700 shadow-lg z-10"
               title="Remove cover image"
             >
               <X size={16} />
