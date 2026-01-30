@@ -1626,12 +1626,16 @@ async function handleGalleryAPI(req, res, pathname, query) {
     }
   };
 
+  console.log('📧 handleGalleryAPI called - pathname:', pathname, 'gallerySlug:', gallerySlug, 'method:', req.method);
+
   try {
     // POST /api/galleries/send-email - Send gallery link via email
     if (req.method === 'POST' && gallerySlug === 'send-email') {
+      console.log('📧 Handling send-email endpoint');
       let raw = ''; req.on('data', c => raw += c); await new Promise(r => req.on('end', r));
       try {
         const body = raw ? JSON.parse(raw) : {};
+        console.log('📧 send-email body:', JSON.stringify(body));
         const gallery_id = body.gallery_id || body.id;
         const slugParam = body.slug;
         const to = body.to;
