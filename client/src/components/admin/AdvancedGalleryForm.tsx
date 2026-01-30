@@ -805,9 +805,16 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
                   imageStyle: settings.template.imageStyle,
                   subtitle: settings.subtitle
                 });
+                // Auto-advance to next step after saving
+                nextStep();
               }}
               onCancel={() => {
-                // Just stay on this step, don't go back
+                // Go back to details step
+                const currentIndex = getStepIndex(currentStep);
+                if (currentIndex > 0) {
+                  setCurrentStep(steps[currentIndex - 1].id as Step);
+                }
+              }}
               }}
             />
           </div>
