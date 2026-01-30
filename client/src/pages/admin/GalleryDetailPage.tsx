@@ -1712,9 +1712,12 @@ const GalleryDetailPage: React.FC = () => {
               {/* Shopping Settings - Full Featured */}
               {activeSettingsTab === 'shopping' && (
                 <div className="p-4 space-y-6 border-t border-gray-200">
+                  {/* Pricing header */}
+                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">Pricing</div>
+                  
                   {/* Price List */}
                   <div>
-                    <h4 className="text-xs text-gray-500 mb-2">Price list</h4>
+                    <div className="text-xs text-gray-500 mb-2">Price list</div>
                     <div className="flex items-center bg-white border border-gray-300 rounded-lg px-3 py-2">
                       <span className="flex-1 text-sm text-gray-700">{priceList}</span>
                       <button className="text-red-400 hover:text-red-500">
@@ -1725,7 +1728,7 @@ const GalleryDetailPage: React.FC = () => {
 
                   {/* Tax */}
                   <div>
-                    <h4 className="text-xs text-gray-500 mb-2">Tax</h4>
+                    <div className="text-xs text-gray-500 mb-2">Tax</div>
                     <div className="flex items-center bg-white border border-gray-300 rounded-lg px-3 py-2">
                       <span className="flex-1 text-sm text-gray-700">{taxSetting}</span>
                       <button className="text-red-400 hover:text-red-500">
@@ -1736,9 +1739,8 @@ const GalleryDetailPage: React.FC = () => {
 
                   {/* Payment Methods */}
                   <div>
-                    <h4 className="text-xs text-gray-500 mb-2">Payment methods</h4>
+                    <div className="text-xs text-gray-500 mb-2">Payment methods</div>
                     <div className="flex items-center bg-white border border-gray-300 rounded-lg px-3 py-2">
-                      <CreditCard size={14} className="text-gray-400 mr-2" />
                       <span className="flex-1 text-sm text-gray-500">{paymentMethods} methods selected</span>
                       <button className="text-gray-400 hover:text-teal-500">
                         <Edit2 size={14} />
@@ -1748,9 +1750,8 @@ const GalleryDetailPage: React.FC = () => {
 
                   {/* Shipping Methods */}
                   <div>
-                    <h4 className="text-xs text-gray-500 mb-2">Shipping Methods</h4>
+                    <div className="text-xs text-gray-500 mb-2">Shipping Methods</div>
                     <div className="flex items-center bg-white border border-gray-300 rounded-lg px-3 py-2">
-                      <Truck size={14} className="text-gray-400 mr-2" />
                       <span className="flex-1 text-sm text-gray-500">{shippingMethods} method selected</span>
                       <button className="text-gray-400 hover:text-teal-500">
                         <Edit2 size={14} />
@@ -1788,14 +1789,28 @@ const GalleryDetailPage: React.FC = () => {
                           className="sr-only peer" 
                         />
                         <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
-                        <span className="ms-2 text-xs text-gray-500">{allowQuickBuy ? 'Yes' : 'No'}</span>
+                        <span className="ms-2 text-xs text-gray-500">{allowQuickBuy ? 'No' : 'No'}</span>
                       </label>
                     </div>
-                    <p className="text-xs text-gray-500">Allows gallery visitors to optionally skip the Shop and make purchases from the Quick Buy menu by clicking the <span className="text-teal-600">Order</span> button on a single photo.</p>
+                    <p className="text-xs text-gray-500">
+                      Allows gallery visitors to optionally skip the Shop and make purchases from the Quick Buy menu by clicking the <span className="text-teal-600 font-medium">Order</span> button on a single photo.
+                    </p>
+                  </div>
+
+                  {/* Prodigi Integration Info */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div className="flex items-start gap-2">
+                        <Truck size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                        <div className="text-xs text-green-800">
+                          <strong>Prodigi Connected:</strong> Print orders are automatically fulfilled through Prodigi API with worldwide shipping.
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Minimum Order Info */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                     <h5 className="text-sm font-medium text-blue-800 mb-1">Looking to set a minimum order?</h5>
                     <p className="text-xs text-blue-600">
                       Minimum order amount can be found in each of your <span className="text-blue-700 underline cursor-pointer">price lists</span> and applies to all galleries using that price list.
