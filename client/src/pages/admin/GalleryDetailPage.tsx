@@ -6,7 +6,7 @@ import {
   Eye, EyeOff, Download, ShoppingCart, Clock, Calendar, Sparkles, Grid3X3, Grid2X2,
   LayoutGrid, ExternalLink, Plus, MoreVertical, Loader2, AlertCircle, Share2,
   Mail, Clipboard, Phone, Play, Video, Lock, Link as LinkIcon, Users, Tag, 
-  CreditCard, Truck, Edit2, Copy, Info, Palette
+  CreditCard, Truck, Edit2, Copy, Info, Palette, Smartphone, Monitor
 } from 'lucide-react';
 import { getGalleryById, deleteGallery, getGalleryImages } from '../../lib/gallery-api';
 import { COVER_TEMPLATES, CoverTemplate } from '../../components/galleries/GalleryCoverDesigner';
@@ -74,6 +74,7 @@ const GalleryDetailPage: React.FC = () => {
   const [coverTemplateCategory, setCoverTemplateCategory] = useState<CoverTemplate['category'] | 'all'>('all');
   const [coverTemplatePage, setCoverTemplatePage] = useState(0);
   const [showCoverDesigner, setShowCoverDesigner] = useState(false);
+  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   
   // Experience settings
   const [welcomeMessage, setWelcomeMessage] = useState('');
@@ -653,63 +654,166 @@ const GalleryDetailPage: React.FC = () => {
                 <p className="text-sm text-gray-500 mt-2">Perfect for presenting photos and selling items.</p>
               </div>
 
-              {/* Gallery Cover Preview */}
+              {/* Gallery Cover Preview - Desktop & Mobile */}
               <div className="mb-8">
-                <div className="relative rounded-lg overflow-hidden bg-gray-900 aspect-video">
-                  {coverView === 'cover' ? (
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-1/2 p-8 text-white">
-                        <h2 className="text-3xl font-bold mb-4">{gallery.title.toUpperCase()}</h2>
-                        <button className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm">
-                          OPEN GALLERY
-                        </button>
-                        <div className="mt-4 text-xs opacity-60">NEW AGE FOTOGRAFIE</div>
+                <div className="flex items-start justify-center gap-6 py-4 bg-gray-100 rounded-lg">
+                  {/* Desktop Preview */}
+                  <div className={`transition-all duration-300 ${previewDevice === 'mobile' ? 'opacity-40 scale-90' : 'opacity-100'}`}>
+                    <div className="bg-gray-800 rounded-lg p-1 shadow-xl">
+                      {/* Browser chrome */}
+                      <div className="bg-gray-700 rounded-t px-3 py-1.5 flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-400"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-green-400"></div>
+                        <div className="ml-3 bg-gray-600 rounded px-2 py-0.5 text-[8px] text-gray-300 flex-1 text-center truncate">
+                          newagefotografie.com/galleries/{gallery.id}
+                        </div>
                       </div>
-                      <div className="w-1/2 h-full">
-                        {(gallery.coverImage || images[0]?.display_url) && (
-                          <img 
-                            src={gallery.coverImage || images[0]?.display_url} 
-                            alt="Cover" 
-                            className="w-full h-full object-cover"
-                          />
+                      {/* Screen content */}
+                      <div className="w-80 h-48 bg-gray-900 rounded-b overflow-hidden">
+                        {coverView === 'cover' ? (
+                          <div className="h-full flex items-center relative">
+                            {(gallery.coverImage || images[0]?.display_url) && (
+                              <img 
+                                src={gallery.coverImage || images[0]?.display_url} 
+                                alt="Cover" 
+                                className="absolute inset-0 w-full h-full object-cover"
+                              />
+                            )}
+                            <div className={`absolute inset-0 ${
+                              selectedCoverTemplate.overlay === 'dark' ? 'bg-black/50' :
+                              selectedCoverTemplate.overlay === 'gradient-bottom' ? 'bg-gradient-to-t from-black/70 to-transparent' :
+                              selectedCoverTemplate.overlay === 'vignette' ? 'bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)]' :
+                              'bg-black/30'
+                            }`} />
+                            <div className={`relative z-10 p-4 text-white ${
+                              selectedCoverTemplate.textPosition === 'center' ? 'text-center mx-auto' :
+                              selectedCoverTemplate.textPosition === 'bottom-left' ? 'absolute bottom-4 left-4' :
+                              selectedCoverTemplate.textPosition === 'bottom-center' ? 'absolute bottom-4 left-0 right-0 text-center' :
+                              ''
+                            }`}>
+                              <h2 className={`font-bold mb-2 ${
+                                selectedCoverTemplate.titleSize === 'large' ? 'text-xl' :
+                                selectedCoverTemplate.titleSize === 'xlarge' ? 'text-2xl' : 'text-lg'
+                              } ${
+                                selectedCoverTemplate.fontStyle === 'elegant' ? 'font-serif tracking-wide' :
+                                selectedCoverTemplate.fontStyle === 'modern' ? 'font-sans tracking-tight' :
+                                selectedCoverTemplate.fontStyle === 'script' ? 'font-serif italic' : ''
+                              }`}>
+                                {gallery.title.toUpperCase()}
+                              </h2>
+                              <button className="bg-white/20 hover:bg-white/30 backdrop-blur text-white px-3 py-1 rounded text-xs">
+                                OPEN GALLERY
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-2 grid grid-cols-4 gap-1 h-full">
+                            {images.slice(0, 8).map((img, i) => (
+                              <div key={i} className="aspect-square rounded overflow-hidden">
+                                <img src={img.thumb_url} alt="" className="w-full h-full object-cover" />
+                              </div>
+                            ))}
+                          </div>
                         )}
                       </div>
                     </div>
-                  ) : (
-                    <div className="p-4 grid grid-cols-4 gap-2">
-                      {images.slice(0, 8).map((img, i) => (
-                        <div key={i} className="aspect-square rounded overflow-hidden">
-                          <img src={img.thumb_url} alt="" className="w-full h-full object-cover" />
-                        </div>
-                      ))}
+                    <p className="text-center text-xs text-gray-500 mt-2">Desktop</p>
+                  </div>
+
+                  {/* Mobile Preview */}
+                  <div className={`transition-all duration-300 ${previewDevice === 'desktop' ? 'opacity-40 scale-90' : 'opacity-100'}`}>
+                    <div className="bg-gray-900 rounded-[24px] p-2 shadow-xl relative">
+                      {/* Phone notch */}
+                      <div className="absolute top-3 left-1/2 -translate-x-1/2 w-16 h-4 bg-black rounded-full z-10"></div>
+                      {/* Screen */}
+                      <div className="w-36 h-72 bg-gray-900 rounded-[18px] overflow-hidden border-2 border-gray-800">
+                        {coverView === 'cover' ? (
+                          <div className="h-full relative">
+                            {(gallery.coverImage || images[0]?.display_url) && (
+                              <img 
+                                src={gallery.coverImage || images[0]?.display_url} 
+                                alt="Cover" 
+                                className="absolute inset-0 w-full h-full object-cover"
+                              />
+                            )}
+                            <div className={`absolute inset-0 ${
+                              selectedCoverTemplate.overlay === 'dark' ? 'bg-black/50' :
+                              selectedCoverTemplate.overlay === 'gradient-bottom' ? 'bg-gradient-to-t from-black/70 to-transparent' :
+                              'bg-black/30'
+                            }`} />
+                            <div className="absolute bottom-6 left-0 right-0 text-center z-10 px-2">
+                              <h2 className="text-white font-bold text-sm mb-2 leading-tight">
+                                {gallery.title.toUpperCase()}
+                              </h2>
+                              <button className="bg-white/20 backdrop-blur text-white px-2 py-1 rounded text-[8px]">
+                                OPEN
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-1.5 grid grid-cols-2 gap-1 h-full">
+                            {images.slice(0, 6).map((img, i) => (
+                              <div key={i} className="aspect-square rounded overflow-hidden">
+                                <img src={img.thumb_url} alt="" className="w-full h-full object-cover" />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
+                    <p className="text-center text-xs text-gray-500 mt-2">Mobile</p>
+                  </div>
                 </div>
                 
-                {/* Cover/Thumbnails Toggle */}
-                <div className="flex justify-center mt-4 space-x-2">
-                  <button
-                    onClick={() => setCoverView('cover')}
-                    className={`flex items-center px-4 py-2 rounded-lg text-sm ${
-                      coverView === 'cover' 
-                        ? 'bg-teal-100 text-teal-700' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    <ImageIcon size={16} className="mr-2" />
-                    Cover
-                  </button>
-                  <button
-                    onClick={() => setCoverView('thumbnails')}
-                    className={`flex items-center px-4 py-2 rounded-lg text-sm ${
-                      coverView === 'thumbnails' 
-                        ? 'bg-teal-100 text-teal-700' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    <Grid3X3 size={16} className="mr-2" />
-                    Thumbnails
-                  </button>
+                {/* Cover/Thumbnails & Device Toggle */}
+                <div className="flex justify-center mt-4 gap-4">
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => setCoverView('cover')}
+                      className={`flex items-center px-4 py-2 rounded-lg text-sm ${
+                        coverView === 'cover' 
+                          ? 'bg-teal-100 text-teal-700' 
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      <ImageIcon size={16} className="mr-2" />
+                      Cover
+                    </button>
+                    <button
+                      onClick={() => setCoverView('thumbnails')}
+                      className={`flex items-center px-4 py-2 rounded-lg text-sm ${
+                        coverView === 'thumbnails' 
+                          ? 'bg-teal-100 text-teal-700' 
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      <Grid3X3 size={16} className="mr-2" />
+                      Thumbnails
+                    </button>
+                  </div>
+                  <div className="border-l border-gray-300 pl-4 flex space-x-2">
+                    <button
+                      onClick={() => setPreviewDevice('desktop')}
+                      className={`flex items-center px-3 py-2 rounded-lg text-sm ${
+                        previewDevice === 'desktop' 
+                          ? 'bg-teal-100 text-teal-700' 
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      <Monitor size={16} />
+                    </button>
+                    <button
+                      onClick={() => setPreviewDevice('mobile')}
+                      className={`flex items-center px-3 py-2 rounded-lg text-sm ${
+                        previewDevice === 'mobile' 
+                          ? 'bg-teal-100 text-teal-700' 
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      <Smartphone size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
