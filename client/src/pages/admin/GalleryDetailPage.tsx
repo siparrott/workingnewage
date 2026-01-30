@@ -6,7 +6,7 @@ import {
   Eye, EyeOff, Download, ShoppingCart, Clock, Calendar, Sparkles, Grid3X3, Grid2X2,
   LayoutGrid, ExternalLink, Plus, MoreVertical, Loader2, AlertCircle, Share2,
   Mail, Clipboard, Phone, Play, Video, Lock, Link as LinkIcon, Users, Tag, 
-  CreditCard, Truck, Edit2, Copy, Info, Palette, Smartphone, Monitor
+  CreditCard, Truck, Edit2, Copy, Info, Palette, Smartphone, Monitor, Droplet, Shield
 } from 'lucide-react';
 import { getGalleryById, deleteGallery, getGalleryImages } from '../../lib/gallery-api';
 import { COVER_TEMPLATES, CoverTemplate } from '../../components/galleries/GalleryCoverDesigner';
@@ -66,6 +66,13 @@ const GalleryDetailPage: React.FC = () => {
   const [showFilenames, setShowFilenames] = useState(true);
   const [navigationType, setNavigationType] = useState<NavigationType>('icons');
   const [showBrandLogo, setShowBrandLogo] = useState(true);
+  
+  // Watermark settings
+  const [selectedWatermark, setSelectedWatermark] = useState<string | null>(null);
+  const [showWatermarkPicker, setShowWatermarkPicker] = useState(false);
+  const [watermarkOpacity, setWatermarkOpacity] = useState(50);
+  const [watermarkPosition, setWatermarkPosition] = useState<'center' | 'corner' | 'tile'>('corner');
+  const [watermarkType, setWatermarkType] = useState<'visible' | 'invisible' | 'pattern'>('visible');
   
   // Cover images
   const [coverImages, setCoverImages] = useState<string[]>([]);
@@ -1135,10 +1142,170 @@ const GalleryDetailPage: React.FC = () => {
                   {/* Watermark */}
                   <div>
                     <div className="text-xs text-gray-500 mb-2">Watermark</div>
-                    <button className="w-full flex items-center justify-center px-4 py-2 border border-teal-500 text-teal-600 rounded-lg hover:bg-teal-50">
+                    
+                    {/* Selected Watermark Display */}
+                    {selectedWatermark ? (
+                      <div className="mb-3 p-3 bg-white border border-gray-200 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
+                              <Droplet size={16} className="text-teal-500" />
+                            </div>
+                            <span className="text-sm font-medium text-gray-700">{selectedWatermark}</span>
+                          </div>
+                          <button 
+                            onClick={() => setSelectedWatermark(null)}
+                            className="text-gray-400 hover:text-red-500"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <button 
+                      onClick={() => setShowWatermarkPicker(!showWatermarkPicker)}
+                      className="w-full flex items-center justify-center px-4 py-2 border border-teal-500 text-teal-600 rounded-lg hover:bg-teal-50"
+                    >
                       <Plus size={16} className="mr-2" />
                       Select a watermark
                     </button>
+
+                    {/* Watermark Picker Dropdown */}
+                    {showWatermarkPicker && (
+                      <div className="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+                        {/* NAF Templates Header */}
+                        <div className="bg-teal-500 text-white px-4 py-2 text-sm font-medium">
+                          NAF templates
+                        </div>
+                        
+                        {/* Watermark Options */}
+                        <div className="divide-y divide-gray-100">
+                          <button
+                            onClick={() => {
+                              setSelectedWatermark('NAF watermark');
+                              setShowWatermarkPicker(false);
+                            }}
+                            className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                          >
+                            <Droplet size={14} className="text-gray-400" />
+                            NAF watermark
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedWatermark('NAF watermark (invisible)');
+                              setShowWatermarkPicker(false);
+                            }}
+                            className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                          >
+                            <Shield size={14} className="text-gray-400" />
+                            NAF watermark (invisible)
+                          </button>
+                        </div>
+
+                        {/* Add New / Cancel */}
+                        <div className="border-t border-gray-200 divide-y divide-gray-100">
+                          <button
+                            onClick={() => {
+                              // TODO: Open watermark upload modal
+                              setShowWatermarkPicker(false);
+                            }}
+                            className="w-full px-4 py-3 text-left text-sm text-teal-600 hover:bg-teal-50 flex items-center gap-2"
+                          >
+                            <Plus size={14} className="text-teal-500" />
+                            Add New
+                          </button>
+                          <button
+                            onClick={() => setShowWatermarkPicker(false)}
+                            className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50 flex items-center gap-2"
+                          >
+                            <X size={14} className="text-red-400" />
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Watermark Settings (shown when watermark selected) */}
+                    {selectedWatermark && (
+                      <div className="mt-4 space-y-4">
+                        {/* Watermark Type */}
+                        <div>
+                          <div className="text-xs text-gray-500 mb-2">Protection Type</div>
+                          <div className="grid grid-cols-3 gap-1">
+                            {[
+                              { id: 'visible', label: 'Visible' },
+                              { id: 'invisible', label: 'Invisible' },
+                              { id: 'pattern', label: 'Pattern' }
+                            ].map((type) => (
+                              <button
+                                key={type.id}
+                                onClick={() => setWatermarkType(type.id as typeof watermarkType)}
+                                className={`px-2 py-1.5 rounded text-xs font-medium ${
+                                  watermarkType === type.id
+                                    ? 'bg-teal-500 text-white'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
+                              >
+                                {type.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Position */}
+                        <div>
+                          <div className="text-xs text-gray-500 mb-2">Position</div>
+                          <div className="grid grid-cols-3 gap-1">
+                            {[
+                              { id: 'corner', label: 'Corner' },
+                              { id: 'center', label: 'Center' },
+                              { id: 'tile', label: 'Tile' }
+                            ].map((pos) => (
+                              <button
+                                key={pos.id}
+                                onClick={() => setWatermarkPosition(pos.id as typeof watermarkPosition)}
+                                className={`px-2 py-1.5 rounded text-xs font-medium ${
+                                  watermarkPosition === pos.id
+                                    ? 'bg-teal-500 text-white'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
+                              >
+                                {pos.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Opacity (only for visible) */}
+                        {watermarkType === 'visible' && (
+                          <div>
+                            <div className="flex justify-between text-xs text-gray-500 mb-2">
+                              <span>Opacity</span>
+                              <span>{watermarkOpacity}%</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="10"
+                              max="100"
+                              value={watermarkOpacity}
+                              onChange={(e) => setWatermarkOpacity(parseInt(e.target.value))}
+                              className="w-full accent-teal-500"
+                            />
+                          </div>
+                        )}
+
+                        {/* AI Protection Info */}
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                          <div className="flex items-start gap-2">
+                            <Shield size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
+                            <div className="text-xs text-amber-800">
+                              <strong>AI Protection:</strong> "Invisible" watermarks embed hidden data into pixel patterns. "Pattern" tiles across the image making AI removal difficult. Combined with visible marks provides best protection.
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
