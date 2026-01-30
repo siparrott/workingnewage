@@ -273,6 +273,25 @@ export async function uploadGalleryImages(galleryId: string, files: File[]): Pro
     }
 
     const result = await response.json();
+    console.log(`[uploadGalleryImages] Response body:`, result);
+    console.log(`[uploadGalleryImages] Result is array:`, Array.isArray(result));
+    console.log(`[uploadGalleryImages] Result length:`, result?.length);
+    
+    if (!Array.isArray(result)) {
+      console.error('[uploadGalleryImages] ERROR: Response is not an array!', result);
+      throw new Error('Invalid response from server - expected array of uploaded images');
+    }
+    
+    if (result.length === 0) {
+      console.error('[uploadGalleryImages] ERROR: Server returned 0 uploaded images!');
+      console.error('[uploadGalleryImages] This means all uploads failed on the server.');
+      throw new Error(`Upload failed - server returned 0 images (tried to upload ${files.length} images). Check server logs for errors.`);
+    }
+    
+    if (result.length < files.length) {
+      console.warn(`[uploadGalleryImages] WARNING: Only ${result.length} out of ${files.length} images were uploaded successfully`);
+    }
+    
     console.log(`[uploadGalleryImages] Successfully uploaded ${result.length} images:`, result);
     return result;
   } catch (error) {

@@ -316,6 +316,14 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
           console.log('[GalleryForm] Starting upload...');
           const uploadedResult = await uploadGalleryImages(galleryId, selectedImages);
           console.log('[GalleryForm] Upload result:', uploadedResult);
+          console.log('[GalleryForm] Upload successful. Refreshing gallery images...');
+          
+          // Refresh the uploaded images list to show newly uploaded images
+          await fetchUploadedImages(galleryId);
+          
+          // Clear selected images since they're now uploaded
+          setSelectedImages([]);
+          
           setSuccessMessage(isEditing ? 'Gallery and images updated!' : 'Gallery created with images!');
         } catch (uploadErr) {
           console.error('[GalleryForm] Upload failed:', uploadErr);
