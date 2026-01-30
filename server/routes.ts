@@ -4657,6 +4657,166 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
+  // ==================== INVOICE SHARING ROUTES ====================
+  
+  // POST /api/invoices/send-email - Send invoice link via email
+  app.post("/api/invoices/send-email", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { invoice_id, to } = req.body;
+      
+      if (!invoice_id || !to) {
+        return res.status(400).json({ error: 'invoice_id and to (email) are required' });
+      }
+      
+      // Find invoice
+      const invoiceResult = await runSql(`
+        SELECT i.*, c.first_name, c.last_name, c.email as client_email
+        FROM crm_invoices i
+        LEFT JOIN crm_clients c ON i.client_id = c.id
+        WHERE i.id = $1::uuid
+      `, [invoice_id]);
+      
+      if (!invoiceResult || invoiceResult.length === 0) {
+        return res.status(404).json({ error: 'Invoice not found' });
+      }
+      
+      const invoice = invoiceResult[0];
+      
+      // Build invoice URL
+      const baseUrl = process.env.APP_URL || `https://${req.headers.host}`;
+      const link = `${baseUrl}/inv/${invoice_id}`;
+      
+      const clientName = invoice.first_name && invoice.last_name 
+        ? `${invoice.first_name} ${invoice.last_name}`
+        : 'Client';
+      
+      const html = `
+        <div style="font-family:system-ui;line-height:1.6">
+          <p>Hello ${clientName},</p>
+          <p>Please find your invoice <strong>${invoice.invoice_number}</strong> attached.</p>
+          <p><strong>Amount Due:</strong> €${(invoice.total || 0).toFixed(2)}</p>
+          <p><strong>Due Date:</strong> ${invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : 'N/A'}</p>
+          <p><a href="${link}" style="display:inline-block;padding:12px 24px;background-color:#7C3AED;color:white;text-decoration:none;border-radius:6px;">View Invoice</a></p>
+          <p>Thank you for your business.</p>
+          <p>— New Age Fotografie</p>
+        </div>`;
+      
+      const textContent = `Invoice ${invoice.invoice_number}\nAmount Due: €${(invoice.total || 0).toFixed(2)}\nView Invoice: ${link}`;
+      
+      // Send email using the enhanced email service
+      const { EnhancedEmailService } = await import('./services/enhancedEmailService');
+      const emailService = EnhancedEmailService.getInstance();
+      await emailService.sendEmail({
+        to,
+        subject: `Invoice ${invoice.invoice_number} from New Age Fotografie`,
+        text: textContent,
+        html: html
+      });
+      
+      // Update invoice status to 'sent' if it was 'draft'
+      if (invoice.status === 'draft') {
+        await runSql('UPDATE crm_invoices SET status = $1, updated_at = NOW() WHERE id = $2::uuid', ['sent', invoice_id]);
+      }
+      
+      res.json({ ok: true, link });
+    } catch (error) {
+      console.error('Error sending invoice email:', error);
+      res.status(500).json({ error: (error as Error)?.message || 'Failed to send email' });
+    }
+  });
+  
+  // POST /api/invoices/send-whatsapp - Send invoice link via WhatsApp
+  app.post("/api/invoices/send-whatsapp", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { invoice_id, to_phone } = req.body;
+      
+      if (!invoice_id) {
+        return res.status(400).json({ error: 'invoice_id is required' });
+      }
+      
+      // Find invoice
+      const invoiceResult = await runSql(`
+        SELECT i.*, c.first_name, c.last_name
+        FROM crm_invoices i
+        LEFT JOIN crm_clients c ON i.client_id = c.id
+        WHERE i.id = $1::uuid
+      `, [invoice_id]);
+      
+      if (!invoiceResult || invoiceResult.length === 0) {
+        return res.status(404).json({ error: 'Invoice not found' });
+      }
+      
+      const invoice = invoiceResult[0];
+      
+      // Build invoice URL
+      const baseUrl = process.env.APP_URL || `https://${req.headers.host}`;
+      const link = `${baseUrl}/inv/${invoice_id}`;
+      
+      // Generate WhatsApp share link using the correct API format
+      const text = `Hello! Here is your invoice ${invoice.invoice_number} for €${(invoice.total || 0).toFixed(2)}.\n\nView and pay online: ${link}\n\nThank you! - New Age Fotografie`;
+      
+      // Clean phone number - remove all non-digits
+      const cleanPhone = to_phone ? to_phone.replace(/[^0-9]/g, '') : '';
+      
+      // Use the correct WhatsApp API URL format
+      const shareUrl = cleanPhone 
+        ? `https://api.whatsapp.com/send/?phone=${cleanPhone}&text=${encodeURIComponent(text)}`
+        : `https://api.whatsapp.com/send/?text=${encodeURIComponent(text)}`;
+      
+      res.json({ ok: true, sent: false, link, share: shareUrl });
+    } catch (error) {
+      console.error('Error with invoice WhatsApp share:', error);
+      res.status(500).json({ error: (error as Error)?.message || 'Failed to generate WhatsApp link' });
+    }
+  });
+  
+  // POST /api/invoices/send-sms - Send invoice link via SMS
+  app.post("/api/invoices/send-sms", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { invoice_id, to_phone } = req.body;
+      
+      if (!invoice_id || !to_phone) {
+        return res.status(400).json({ error: 'invoice_id and to_phone are required' });
+      }
+      
+      // Find invoice
+      const invoiceResult = await runSql(`
+        SELECT i.*, c.first_name, c.last_name
+        FROM crm_invoices i
+        LEFT JOIN crm_clients c ON i.client_id = c.id
+        WHERE i.id = $1::uuid
+      `, [invoice_id]);
+      
+      if (!invoiceResult || invoiceResult.length === 0) {
+        return res.status(404).json({ error: 'Invoice not found' });
+      }
+      
+      const invoice = invoiceResult[0];
+      
+      // Build invoice URL
+      const baseUrl = process.env.APP_URL || `https://${req.headers.host}`;
+      const link = `${baseUrl}/inv/${invoice_id}`;
+      
+      // Build SMS message
+      const smsText = `Invoice ${invoice.invoice_number}: €${(invoice.total || 0).toFixed(2)}. View: ${link} - New Age Fotografie`;
+      
+      // Try to send via SMS service if configured
+      try {
+        const { SMSService } = await import('./services/smsService');
+        const smsService = SMSService.getInstance();
+        await smsService.sendSMS({ to: to_phone, message: smsText });
+        res.json({ ok: true, sent: true, link, info: 'SMS sent successfully' });
+      } catch (smsError) {
+        // SMS service not configured or failed
+        console.log('SMS service not available:', (smsError as Error)?.message);
+        res.json({ ok: true, sent: false, link, info: 'SMS service not configured. Please copy the link manually.' });
+      }
+    } catch (error) {
+      console.error('Error with invoice SMS:', error);
+      res.status(500).json({ error: (error as Error)?.message || 'Failed to send SMS' });
+    }
+  });
+
   // ==================== INVOICE PAYMENT ROUTES ====================
   app.get("/api/crm/invoices/:invoiceId/payments", authenticateUser, async (req: Request, res: Response) => {
     try {
