@@ -2,14 +2,84 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { fileURLToPath } from "url";
+import prerender from "@prerenderer/rollup-plugin";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// FORCE CLEAN BUILD v4 - 20251210-1840
+// Public routes to prerender for SEO
+const publicRoutes = [
+  '/',
+  '/fotoshootings',
+  '/kontakt',
+  '/blog',
+  '/warteliste',
+  '/vouchers',
+  '/gutscheine',
+  
+  // SEO Cornerstone Pages
+  '/familienfotos-wien/',
+  '/neugeborenenfotos-wien/',
+  '/babyfotos-wien/',
+  '/schwangerschaftsfotos-wien/',
+  '/business-portrait-wien/',
+  '/teamfotos-wien/',
+  '/bewerbungsfotos-wien/',
+  '/eventfotografie-wien/',
+  '/hochzeitsfotografie-wien/',
+  '/produkt-fotografie-wien/',
+  '/immobilien-fotografie-wien/',
+  '/studio-fotografie-wien/',
+  '/familien-fotoshooting-wien/',
+  '/baby-fotografie-wien/',
+  
+  // SEO Pillar Pages
+  '/kinder-fotografie-wien/',
+  '/portrait-fotografie-wien/',
+  
+  // Support Pages
+  '/ueber-uns/',
+  '/preise/',
+  '/faq/',
+  '/kundenstimmen/',
+  '/impressum/',
+  '/agb/',
+  '/datenschutz/',
+  
+  // Fotoshooting Types
+  '/fotoshootings/business',
+  '/fotoshootings/event',
+  '/fotoshootings/wedding',
+  
+  // Gutschein Pages
+  '/gutschein',
+  '/gutschein/family',
+  '/gutschein/newborn',
+  '/gutschein/maternity',
+];
+
+// FORCE CLEAN BUILD v5 - SEO Prerendering - 20260204
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    prerender({
+      routes: publicRoutes,
+      renderer: '@prerenderer/renderer-puppeteer',
+      rendererOptions: {
+        maxConcurrentRoutes: 4,
+        renderAfterTime: 500,
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      },
+      postProcess(renderedRoute) {
+        // Clean up Vite's preload module scripts for better SEO
+        renderedRoute.html = renderedRoute.html
+          .replace(/<link[^>]*?rel="modulepreload"[^>]*?>/g, '');
+        return renderedRoute;
+      },
+    }) as any,
+  ],
   define: {
-    __BUILD_VERSION__: JSON.stringify('v4-20251210-1840')
+    __BUILD_VERSION__: JSON.stringify('v5-prerender-20260204')
   },
   resolve: {
     alias: {
@@ -24,7 +94,6 @@ export default defineConfig({
     emptyOutDir: true,
     chunkSizeWarningLimit: 2000,
     target: "es2020",
-    // Force new build hash
     sourcemap: false,
     rollupOptions: {
       output: {
