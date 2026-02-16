@@ -181,19 +181,20 @@ async function generateModernInvoicePDF(invoice: any, client: any): Promise<Buff
       .catch(() => []);
     
     // Extract relevant fields from published content if available
+    // Note: Content is stored using translation keys, not field IDs
     if (siteSettings[0]?.publishedContent) {
       const siteContent = siteSettings[0].publishedContent as any;
-      if (siteContent['site-logo']) {
-        studioConfig.logo = siteContent['site-logo'];
+      if (siteContent['site.logo']) {
+        studioConfig.logo = siteContent['site.logo'];
       }
     }
     
     if (contactDetails[0]?.publishedContent) {
       const contactContent = contactDetails[0].publishedContent as any;
-      if (contactContent['contact-studio-name']) studioConfig.studioName = contactContent['contact-studio-name'];
-      if (contactContent['contact-address']) studioConfig.address = contactContent['contact-address'];
-      if (contactContent['contact-phone']) studioConfig.phone = contactContent['contact-phone'];
-      if (contactContent['contact-email']) studioConfig.email = contactContent['contact-email'];
+      if (contactContent['contact.studioName']) studioConfig.studioName = contactContent['contact.studioName'];
+      if (contactContent['contact.studioAddress']) studioConfig.address = contactContent['contact.studioAddress'];
+      if (contactContent['contact.phone']) studioConfig.phone = contactContent['contact.phone'];
+      if (contactContent['contact.email']) studioConfig.email = contactContent['contact.email'];
     }
   } catch (error) {
     console.warn('Failed to fetch studio config for PDF, using defaults:', (error as any)?.message);
@@ -4692,19 +4693,20 @@ Bitte versuchen Sie es später noch einmal.`;
         .catch(() => [null]);
       
       // Extract relevant fields from published content if available
+      // Note: Content is stored using translation keys, not field IDs
       if (siteSettings?.publishedContent) {
         const siteContent = siteSettings.publishedContent as any;
-        if (siteContent['site-logo']) studioConfig.logo = siteContent['site-logo'];
+        if (siteContent['site.logo']) studioConfig.logo = siteContent['site.logo'];
       }
       
       if (contactDetails?.publishedContent) {
         const contactContent = contactDetails.publishedContent as any;
-        if (contactContent['contact-studio-name']) studioConfig.studioName = contactContent['contact-studio-name'];
-        if (contactContent['contact-address']) studioConfig.address = contactContent['contact-address'];
-        if (contactContent['contact-address-note']) studioConfig.addressNote = contactContent['contact-address-note'];
-        if (contactContent['contact-phone']) studioConfig.phone = contactContent['contact-phone'];
-        if (contactContent['contact-email']) studioConfig.email = contactContent['contact-email'];
-        if (contactContent['contact-hours']) studioConfig.openingHours = contactContent['contact-hours'];
+        if (contactContent['contact.studioName']) studioConfig.studioName = contactContent['contact.studioName'];
+        if (contactContent['contact.studioAddress']) studioConfig.address = contactContent['contact.studioAddress'];
+        if (contactContent['contact.addressNote']) studioConfig.addressNote = contactContent['contact.addressNote'];
+        if (contactContent['contact.phone']) studioConfig.phone = contactContent['contact.phone'];
+        if (contactContent['contact.email']) studioConfig.email = contactContent['contact.email'];
+        if (contactContent['contact.openingHours']) studioConfig.openingHours = contactContent['contact.openingHours'];
       }
     } catch (error) {
       console.warn('Could not fetch studio config from database, using defaults:', (error as any)?.message);
