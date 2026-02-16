@@ -58,25 +58,31 @@ const publicRoutes = [
 ];
 
 // FORCE CLEAN BUILD v5 - SEO Prerendering - 20260204
+// Detect if running on Heroku (DYNO env var) or in CI to skip prerendering
+const isHeroku = process.env.DYNO !== undefined || process.env.CI === 'true';
+
 export default defineConfig({
   plugins: [
     react(),
-    prerender({
-      routes: publicRoutes,
-      renderer: '@prerenderer/renderer-puppeteer',
-      rendererOptions: {
-        maxConcurrentRoutes: 4,
-        renderAfterTime: 500,
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      },
-      postProcess(renderedRoute) {
-        // Clean up Vite's preload module scripts for better SEO
-        renderedRoute.html = renderedRoute.html
-          .replace(/<link[^>]*?rel="modulepreload"[^>]*?>/g, '');
-        return renderedRoute;
-      },
-    }) as any,
+    // Skip prerendering on Heroku to avoid Puppeteer/Chrome dependency issues
+    ...(!isHeroku ? [
+      prerender({
+        routes: publicRoutes,
+        renderer: '@prerenderer/renderer-puppeteer',
+        rendererOptions: {
+          maxConcurrentRoutes: 4,
+          renderAfterTime: 500,
+          headless: true,
+          args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        },
+        postProcess(renderedRoute) {
+          // Clean up Vite's preload module scripts for better SEO
+          renderedRoute.html = renderedRoute.html
+            .replace(/<link[^>]*?rel="modulepreload"[^>]*?>/g, '');
+          return renderedRoute;
+        },
+      }) as any,
+    ] : []),
   ],
   define: {
     __BUILD_VERSION__: JSON.stringify('v5-prerender-20260204')
