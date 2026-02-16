@@ -138,10 +138,7 @@ async function generateModernInvoicePDF(invoice: any, client: any): Promise<Buff
   const invoiceItems = await storage.getCrmInvoiceItems(invoice.id);
   const contactEmail = await resolveContactEmail();
   
-  // Fetch studio configuration dynamically
-  const studioId = 'default-studio'; // TODO: Get from request context
-  const language = 'de';
-  
+  // Default studio configuration
   let studioConfig = {
     logo: null as string | null,
     studioName: 'New Age Fotografie',
@@ -150,9 +147,13 @@ async function generateModernInvoicePDF(invoice: any, client: any): Promise<Buff
     email: contactEmail || 'kontakt@newagefotografie.com'
   };
   
+  // Try to fetch dynamic studio configuration
   try {
-    // Fetch site settings (logo)
-    const [siteSettings] = await db
+    const studioId = '550e8400-e29b-41d4-a716-446655440000'; // Default demo studio ID
+    const language = 'de';
+    
+    // Fetch site settings (logo) - with error handling
+    const siteSettings = await db
       .select()
       .from(manualPageContent)
       .where(
@@ -162,10 +163,11 @@ async function generateModernInvoicePDF(invoice: any, client: any): Promise<Buff
           eq(manualPageContent.language, language)
         )
       )
-      .limit(1);
+      .limit(1)
+      .catch(() => []);
     
-    // Fetch contact details
-    const [contactDetails] = await db
+    // Fetch contact details - with error handling
+    const contactDetails = await db
       .select()
       .from(manualPageContent)
       .where(
@@ -175,30 +177,27 @@ async function generateModernInvoicePDF(invoice: any, client: any): Promise<Buff
           eq(manualPageContent.language, language)
         )
       )
-      .limit(1);
+      .limit(1)
+      .catch(() => []);
     
-    // Extract relevant fields from published content
-    const siteContent = siteSettings?.publishedContent || {};
-    const contactContent = contactDetails?.publishedContent || {};
+    // Extract relevant fields from published content if available
+    if (siteSettings[0]?.publishedContent) {
+      const siteContent = siteSettings[0].publishedContent as any;
+      if (siteContent['site-logo']) {
+        studioConfig.logo = siteContent['site-logo'];
+      }
+    }
     
-    if (siteContent['site-logo']) {
-      studioConfig.logo = siteContent['site-logo'];
-    }
-    if (contactContent['contact-studio-name']) {
-      studioConfig.studioName = contactContent['contact-studio-name'];
-    }
-    if (contactContent['contact-address']) {
-      studioConfig.address = contactContent['contact-address'];
-    }
-    if (contactContent['contact-phone']) {
-      studioConfig.phone = contactContent['contact-phone'];
-    }
-    if (contactContent['contact-email']) {
-      studioConfig.email = contactContent['contact-email'];
+    if (contactDetails[0]?.publishedContent) {
+      const contactContent = contactDetails[0].publishedContent as any;
+      if (contactContent['contact-studio-name']) studioConfig.studioName = contactContent['contact-studio-name'];
+      if (contactContent['contact-address']) studioConfig.address = contactContent['contact-address'];
+      if (contactContent['contact-phone']) studioConfig.phone = contactContent['contact-phone'];
+      if (contactContent['contact-email']) studioConfig.email = contactContent['contact-email'];
     }
   } catch (error) {
-    console.error('Failed to fetch studio config for PDF:', error);
-    // Use default values
+    console.warn('Failed to fetch studio config for PDF, using defaults:', (error as any)?.message);
+    // Continue with default values
   }
   
   const doc = new jsPDF();
@@ -4649,11 +4648,22 @@ Bitte versuchen Sie es später noch einmal.`;
 
   // ==================== STUDIO CONFIG FOR INVOICES ====================
   app.get("/api/studio-config", async (req: Request, res: Response) => {
+    // Return defaults - this endpoint will be enhanced when CMS is ready
+    const studioConfig = {
+      logo: null,
+      studioName: 'New Age Fotografie',
+      address: 'Wehrgasse 11A/2+5, 1050 Wien',
+      addressNote: '',
+      phone: '+43 699 194 77 607',
+      email: 'kontakt@newagefotografie.com',
+      openingHours: 'Termine nach Vereinbarung'
+    };
+    
     try {
-      const studioId = req.query.studioId as string || 'default-studio';
+      const studioId = req.query.studioId as string || '550e8400-e29b-41d4-a716-446655440000';
       const language = (req.query.language as string) || 'de';
       
-      // Fetch site settings (logo)
+      // Try to fetch site settings (logo) if table exists
       const [siteSettings] = await db
         .select()
         .from(manualPageContent)
@@ -4664,9 +4674,10 @@ Bitte versuchen Sie es später noch einmal.`;
             eq(manualPageContent.language, language)
           )
         )
-        .limit(1);
+        .limit(1)
+        .catch(() => [null]);
       
-      // Fetch contact details (address, phone, email, etc.)
+      // Try to fetch contact details if table exists
       const [contactDetails] = await db
         .select()
         .from(manualPageContent)
@@ -4677,37 +4688,31 @@ Bitte versuchen Sie es später noch einmal.`;
             eq(manualPageContent.language, language)
           )
         )
-        .limit(1);
+        .limit(1)
+        .catch(() => [null]);
       
-      // Extract relevant fields from published content
-      const siteContent = siteSettings?.publishedContent || {};
-      const contactContent = contactDetails?.publishedContent || {};
+      // Extract relevant fields from published content if available
+      if (siteSettings?.publishedContent) {
+        const siteContent = siteSettings.publishedContent as any;
+        if (siteContent['site-logo']) studioConfig.logo = siteContent['site-logo'];
+      }
       
-      const studioConfig = {
-        logo: siteContent['site-logo'] || null,
-        studioName: contactContent['contact-studio-name'] || 'New Age Fotografie',
-        address: contactContent['contact-address'] || 'Wehrgasse 11A/2+5, 1050 Wien',
-        addressNote: contactContent['contact-address-note'] || '',
-        phone: contactContent['contact-phone'] || '+43 699 194 77 607',
-        email: contactContent['contact-email'] || 'kontakt@newagefotografie.com',
-        openingHours: contactContent['contact-hours'] || 'Termine nach Vereinbarung'
-      };
-      
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-      res.json(studioConfig);
+      if (contactDetails?.publishedContent) {
+        const contactContent = contactDetails.publishedContent as any;
+        if (contactContent['contact-studio-name']) studioConfig.studioName = contactContent['contact-studio-name'];
+        if (contactContent['contact-address']) studioConfig.address = contactContent['contact-address'];
+        if (contactContent['contact-address-note']) studioConfig.addressNote = contactContent['contact-address-note'];
+        if (contactContent['contact-phone']) studioConfig.phone = contactContent['contact-phone'];
+        if (contactContent['contact-email']) studioConfig.email = contactContent['contact-email'];
+        if (contactContent['contact-hours']) studioConfig.openingHours = contactContent['contact-hours'];
+      }
     } catch (error) {
-      console.error('Error fetching studio config:', error);
-      // Return defaults if database fails
-      res.json({
-        logo: null,
-        studioName: 'New Age Fotografie',
-        address: 'Wehrgasse 11A/2+5, 1050 Wien',
-        addressNote: '',
-        phone: '+43 699 194 77 607',
-        email: 'kontakt@newagefotografie.com',
-        openingHours: 'Termine nach Vereinbarung'
-      });
+      console.warn('Could not fetch studio config from database, using defaults:', (error as any)?.message);
+      // Continue with defaults
     }
+    
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.json(studioConfig);
   });
 
   // ==================== INVOICE ROUTES ====================
