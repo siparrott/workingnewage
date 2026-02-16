@@ -369,14 +369,9 @@ app.use((req, res, next) => {
   // Removed signal handlers to diagnose crash - server should stay alive
   console.log('🟢 Server running and ready for connections');
 
-  // Load background jobs (cron tasks) after server is up
-  try {
-    await import('./jobs/index.js');
-    console.log('✅ Background jobs (cron tasks) loaded');
-  } catch (err: any) {
-    console.warn('⚠️ Failed to load background jobs:', err?.message || err);
-    // Don't crash - jobs are optional
-  }
+  // Background jobs (cron tasks) disabled to prevent startup issues
+  // Jobs can be loaded separately if needed
+  console.log('ℹ️ Background jobs (cron) are disabled');
 
   // Start background Google Calendar sync scheduler if enabled via env
   try {

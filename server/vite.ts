@@ -4,7 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
-import viteConfig from "../vite.config";
+// viteConfig imported dynamically in setupVite to avoid production issues
 import { nanoid } from "nanoid";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -24,6 +24,10 @@ export function log(message: string, source = "express") {
 }
 
 export async function setupVite(app: Express, server: Server) {
+  // Dynamically import viteConfig only when needed (development mode)
+  const viteConfigModule = await import("../vite.config.js");
+  const viteConfig = viteConfigModule.default;
+
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
