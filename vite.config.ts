@@ -59,7 +59,11 @@ const publicRoutes = [
 
 // FORCE CLEAN BUILD v5 - SEO Prerendering - 20260204
 // Detect if running on Heroku (DYNO env var) or in CI to skip prerendering
-const isHeroku = process.env.DYNO !== undefined || process.env.CI === 'true';
+// Also check for NODE_ENV=production and absence of local dev indicators
+const isHeroku = process.env.DYNO !== undefined || 
+                 process.env.CI === 'true' || 
+                 process.env.HEROKU === 'true' ||
+                 (process.env.NODE_ENV === 'production' && !process.env.PRERENDER);
 
 export default defineConfig({
   plugins: [
