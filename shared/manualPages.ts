@@ -328,8 +328,11 @@ export const manualPageManifest: ManualPageDefinition[] = [
         label: 'Studio Details',
         fields: [
           makeField('contact-studio-title', 'Studio Section Title', 'contact.studioTitle'),
+          makeField('contact-studio-name', 'Studio Name', 'contact.studioName'),
           makeField('contact-address', 'Studio Address', 'contact.studioAddress'),
           makeField('contact-address-note', 'Address Note', 'contact.addressNote', 'longForm'),
+          makeField('contact-phone', 'Phone Number', 'contact.phone'),
+          makeField('contact-email', 'Email Address', 'contact.email'),
           makeField('contact-hours', 'Opening Hours', 'contact.openingHours'),
           makeField('contact-transport-title', 'Transport Title', 'contact.transport'),
           makeField('contact-train', 'Public Transport Copy', 'contact.trainInfo', 'longForm'),

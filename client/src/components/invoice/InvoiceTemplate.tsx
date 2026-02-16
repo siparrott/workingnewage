@@ -1,5 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Lock } from 'lucide-react';
+
+interface StudioConfig {
+  logo: string | null;
+  studioName: string;
+  address: string;
+  addressNote: string;
+  phone: string;
+  email: string;
+  openingHours: string;
+}
 
 interface InvoiceTemplateProps {
   invoice: {
@@ -49,6 +59,35 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
   // Debug: Log what the template receives
   console.log('📄 INVOICE TEMPLATE RECEIVED:', invoice);
   
+  // State for studio configuration
+  const [studioConfig, setStudioConfig] = useState<StudioConfig>({
+    logo: null,
+    studioName: 'New Age Fotografie',
+    address: 'Wehrgasse 11A/2+5, 1050 Wien',
+    addressNote: '',
+    phone: '+43 699 194 77 607',
+    email: 'kontakt@newagefotografie.com',
+    openingHours: 'Termine nach Vereinbarung'
+  });
+  
+  // Fetch studio configuration on mount
+  useEffect(() => {
+    const fetchStudioConfig = async () => {
+      try {
+        const response = await fetch('/api/studio-config?language=de');
+        if (response.ok) {
+          const config = await response.json();
+          setStudioConfig(config);
+        }
+      } catch (error) {
+        console.error('Failed to fetch studio config:', error);
+        // Keep default values if fetch fails
+      }
+    };
+    
+    fetchStudioConfig();
+  }, []);
+  
   // Calculate balance
   const paidAmount = invoice.paid_amount || 0;
   const balanceDue = invoice.total_amount - paidAmount;
@@ -95,35 +134,45 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
       }}>
         {/* Left: Company Info */}
         <div style={{ flex: 1 }}>
-          <div style={{
-            width: '140px',
-            height: '60px',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '20px',
-            borderRadius: '4px'
-          }}>
+          {studioConfig.logo ? (
+            <img 
+              src={studioConfig.logo} 
+              alt={studioConfig.studioName}
+              style={{
+                maxWidth: '180px',
+                maxHeight: '80px',
+                marginBottom: '20px',
+                objectFit: 'contain'
+              }}
+            />
+          ) : (
             <div style={{
-              color: 'white',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              letterSpacing: '1px',
-              textAlign: 'center',
-              lineHeight: '1.2'
+              width: '140px',
+              height: '60px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '20px',
+              borderRadius: '4px'
             }}>
-              NEW AGE<br/>FOTOGRAFIE
+              <div style={{
+                color: 'white',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                letterSpacing: '1px',
+                textAlign: 'center',
+                lineHeight: '1.2'
+              }}>
+                {studioConfig.studioName.split(' ').map((word, i) => (
+                  <React.Fragment key={i}>
+                    {word.toUpperCase()}
+                    {i < studioConfig.studioName.split(' ').length - 1 && <br/>}
+                  </React.Fragment>
+                ))}
+              </div>
             </div>
-          </div>
-          <div style={{ fontSize: '11px', lineHeight: '1.6', color: '#666' }}>
-            <div style={{ fontWeight: 'bold', marginBottom: '4px', color: '#2c3e50' }}>
-              Büro & Korrespondenz-Adresse:
-            </div>
-            <div>Julius-Tandler-Platz 5 / 13</div>
-            <div>Eingang Ecke Schönbrunner Str.</div>
-            <div>1090, Austria</div>
-          </div>
+          )}
         </div>
 
         {/* Right: Invoice Header */}
@@ -178,17 +227,18 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
           </div>
           <div style={{ fontSize: '13px', lineHeight: '1.6', color: '#2c3e50' }}>
             <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-              {invoice.client?.name || 'N/A'}
+              {invoice.client?.name}
             </div>
-            <div style={{ color: '#666' }}>{invoice.client?.address1 || 'N/A'}</div>
-            <div style={{ color: '#666' }}>
-              {invoice.client?.city ? `Wien, ${invoice.client.city}` : 'Wien, Wien'}
-            </div>
-            <div style={{ color: '#666' }}>
-              {invoice.client?.country || '1179, Austria'}
-            </div>
+            {invoice.client?.address1 && (
+              <div style={{ color: '#666' }}>{invoice.client.address1}</div>
+            )}
+            {invoice.client?.city && (
+              <div style={{ color: '#666' }}>
+                {invoice.client.city}, {invoice.client?.country || 'Austria'}
+              </div>
+            )}
             <div style={{ color: '#666', marginTop: '6px' }}>
-              {invoice.client?.email || 'N/A'}
+              {invoice.client?.email}
             </div>
             {invoice.client?.phone && (
               <div style={{ color: '#666' }}>{invoice.client.phone}</div>
@@ -210,17 +260,18 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
           </div>
           <div style={{ fontSize: '13px', lineHeight: '1.6', color: '#2c3e50' }}>
             <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-              {invoice.client?.name || 'N/A'}
+              {invoice.client?.name}
             </div>
-            <div style={{ color: '#666' }}>{invoice.client?.address1 || 'N/A'}</div>
-            <div style={{ color: '#666' }}>
-              {invoice.client?.city ? `Wien, ${invoice.client.city}` : 'Wien, Wien'}
-            </div>
-            <div style={{ color: '#666' }}>
-              {invoice.client?.country || '1179, Austria'}
-            </div>
+            {invoice.client?.address1 && (
+              <div style={{ color: '#666' }}>{invoice.client.address1}</div>
+            )}
+            {invoice.client?.city && (
+              <div style={{ color: '#666' }}>
+                {invoice.client.city}, {invoice.client?.country || 'Austria'}
+              </div>
+            )}
             <div style={{ color: '#666', marginTop: '6px' }}>
-              {invoice.client?.email || 'N/A'}
+              {invoice.client?.email}
             </div>
             {invoice.client?.phone && (
               <div style={{ color: '#666' }}>{invoice.client.phone}</div>
@@ -591,21 +642,28 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
           color: '#999',
           letterSpacing: '0.5px'
         }}>
-          NEW AGE FOTOGRAFIE
+          {studioConfig.studioName.toUpperCase()}
         </div>
         <div style={{
           fontSize: '11px',
           color: '#999',
           marginTop: '8px'
         }}>
-          +43 677 633 99210
+          {studioConfig.phone}
         </div>
         <div style={{
           fontSize: '11px',
           color: '#667eea',
           marginTop: '4px'
         }}>
-          HALLO@NEWAGEFOTOGRAFIE.COM
+          {studioConfig.email.toUpperCase()}
+        </div>
+        <div style={{
+          fontSize: '10px',
+          color: '#999',
+          marginTop: '8px'
+        }}>
+          {studioConfig.address}
         </div>
       </div>
 
