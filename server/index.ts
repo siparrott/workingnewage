@@ -6,7 +6,8 @@ import express, { type Request, Response, NextFunction } from "express";
 import http from "node:http";
 // Import routes and jobs directly to fix client database access
 import { registerRoutes } from "./routes";
-import "./jobs";
+// Jobs loaded conditionally below to avoid startup crashes
+// import "./jobs";
 import { setupVite, serveStatic, log } from "./vite";
 // Mount lightweight auth routes immediately (full routes registered later lazily)
 import authRoutes from './routes/auth';
@@ -367,6 +368,15 @@ app.use((req, res, next) => {
   
   // Removed signal handlers to diagnose crash - server should stay alive
   console.log('🟢 Server running and ready for connections');
+
+  // Load background jobs (cron tasks) after server is up
+  try {
+    await import('./jobs/index.js');
+    console.log('✅ Background jobs (cron tasks) loaded');
+  } catch (err: any) {
+    console.warn('⚠️ Failed to load background jobs:', err?.message || err);
+    // Don't crash - jobs are optional
+  }
 
   // Start background Google Calendar sync scheduler if enabled via env
   try {
