@@ -222,12 +222,6 @@ export class StripeVoucherService {
       let discountedPrimaryCents = basePrimaryCents;
 
       let remainingClientDiscount = clientDiscountCents;
-      const strict95Codes = new Set(
-        (process.env.COUPONS_95_ONLY || 'VCWIEN')
-          .split(',')
-          .map(s => s.trim().toUpperCase())
-          .filter(Boolean)
-      );
       const appliedCodeUpper = String(data.appliedVoucherCode || data.appliedVoucher?.code || '').toUpperCase();
 
       const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = data.items.map(item => {
@@ -250,15 +244,12 @@ export class StripeVoucherService {
           const looksLikeDelivery = (item.sku || '').toString().toLowerCase().startsWith('delivery-')
             || (item.description || '').toLowerCase().includes('liefer');
           if (!looksLikeDelivery) {
-            // If code is in strict €95-only list, require baseCents == 9500
-            if (strict95Codes.has(appliedCodeUpper) && baseCents !== 9500) {
-              // skip applying discount for this line
-            } else {
-              const maxReducible = unitCents; // per unit
-              const reduceBy = Math.min(maxReducible, remainingClientDiscount);
-              unitCents = Math.max(0, unitCents - reduceBy);
-              remainingClientDiscount = Math.max(0, remainingClientDiscount - reduceBy);
-            }
+            // Apply discount to all eligible voucher products regardless of price
+            // SKU-based validation is handled by the coupon system
+            const maxReducible = unitCents; // per unit
+            const reduceBy = Math.min(maxReducible, remainingClientDiscount);
+            unitCents = Math.max(0, unitCents - reduceBy);
+            remainingClientDiscount = Math.max(0, remainingClientDiscount - reduceBy);
           }
         }
 
@@ -340,7 +331,6 @@ export class StripeVoucherService {
         base_unit: String(basePrimaryCents),
         // If client sent discount, reflect it here; otherwise use computed delta
         discount_cents: String(Math.max(0, (Number((data as any).discount) || 0) || (basePrimaryCents - discountedPrimaryCents))),
-        discount_strict_95: String(strict95Codes.has(appliedCodeUpper)),
         shipping_address: data.voucherData?.shippingAddress ? JSON.stringify(data.voucherData.shippingAddress).substring(0, 500) : '',
         // Optional art for PDF rendering (priority: custom > design > product default)
         design_image: designImage,
