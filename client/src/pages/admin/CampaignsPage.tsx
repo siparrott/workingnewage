@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { 
   Plus, 
@@ -11,7 +12,8 @@ import {
   Brain,
   Sparkles,
   Target,
-  Eye
+  Eye,
+  Image as ImageIcon
 } from 'lucide-react';
 import AdvancedCampaignBuilder from '../../components/admin/AdvancedCampaignBuilder';
 import EmailSequenceBuilder from '../../components/admin/EmailSequenceBuilder';
@@ -20,15 +22,52 @@ import CampaignAnalyticsDetail from '../../components/admin/CampaignAnalyticsDet
 import { EmailCampaign } from '../../types/email-marketing';
 import { getCampaigns } from '../../lib/email-marketing';
 
-type TabType = 'overview' | 'campaigns' | 'sequences' | 'analytics' | 'templates' | 'subscribers';
+type TabType = 'overview' | 'campaigns' | 'sequences' | 'analytics' | 'templates' | 'subscribers' | 'gallery-leads';
 
 const AdvancedEmailMarketingHub: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [showCampaignBuilder, setShowCampaignBuilder] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<EmailCampaign | null>(null);
   const [campaigns, setCampaigns] = useState<EmailCampaign[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+  const [galleryLeads, setGalleryLeads] = useState<any[]>([]);
+  const [selectedGallery, setSelectedGallery] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Check if we should show gallery leads tab
+    const galleryParam = searchParams.get('gallery');
+    if (galleryParam) {
+      setActiveTab('gallery-leads');
+      setSelectedGallery(galleryParam);
+      loadGalleryLeads(galleryParam);
+    }
+  }, [searchParams]);
+
+  const loadGalleryLeads = async (galleryId?: string) => {
+    try {
+      setLoading(true);
+      const url = galleryId 
+        ? `/api/galleries/${galleryId}/analytics`
+        : `/api/galleries/all-email-captures`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setGalleryLeads(data.emailCaptures || []);
+      }
+    } catch (error) {
+      console.error('Error loading gallery leads:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadCampaigns = async () => {
     try {
@@ -60,7 +99,8 @@ const AdvancedEmailMarketingHub: React.FC = () => {
     { id: 'sequences', label: 'Sequences', icon: Zap },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp },
     { id: 'templates', label: 'Templates', icon: Sparkles },
-    { id: 'subscribers', label: 'Subscribers', icon: Users }
+    { id: 'subscribers', label: 'Subscribers', icon: Users },
+    { id: 'gallery-leads', label: 'Gallery Leads', icon: ImageIcon }
   ];
 
   const OverviewTab = () => (
@@ -457,6 +497,145 @@ const AdvancedEmailMarketingHub: React.FC = () => {
     </div>
   );
 
+  const GalleryLeadsTab = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Gallery Leads</h2>
+          <p className="text-gray-600">Email addresses captured from gallery visitors</p>
+        </div>
+        <div className="flex space-x-3">
+          <button 
+            onClick={() => {
+              setSelectedGallery(null);
+              loadGalleryLeads();
+            }}
+            className={`px-4 py-2 border rounded-lg ${!selectedGallery ? 'bg-purple-50 border-purple-600 text-purple-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+          >
+            All Galleries
+          </button>
+          <button className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+            Export to CSV
+          </button>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-2xl font-bold text-gray-900">{galleryLeads.length}</div>
+              <div className="text-sm text-gray-500">Total Leads</div>
+            </div>
+            <Mail className="h-8 w-8 text-green-600" />
+          </div>
+        </div>
+        
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-2xl font-bold text-gray-900">{new Set(galleryLeads.map(l => l.email)).size}</div>
+              <div className="text-sm text-gray-500">Unique Emails</div>
+            </div>
+            <Users className="h-8 w-8 text-blue-600" />
+          </div>
+        </div>
+        
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-2xl font-bold text-gray-900">{galleryLeads.filter(l => l.phone).length}</div>
+              <div className="text-sm text-gray-500">With Phone</div>
+            </div>
+            <Target className="h-8 w-8 text-purple-600" />
+          </div>
+        </div>
+      </div>
+
+      {/* Leads Table */}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Phone
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Source
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Captured
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    Loading...
+                  </td>
+                </tr>
+              ) : galleryLeads.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    No gallery leads captured yet
+                  </td>
+                </tr>
+              ) : (
+                galleryLeads.map((lead) => (
+                  <tr key={lead.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {lead.email}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {lead.name || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {lead.phone || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 capitalize">
+                        {lead.source}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(lead.captured_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <button className="text-purple-600 hover:text-purple-900 mr-3">
+                        Add to Campaign
+                      </button>
+                      <button className="text-gray-600 hover:text-gray-900">
+                        View Details
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+
   if (showCampaignBuilder) {
     return (
       <AdminLayout>
@@ -502,6 +681,7 @@ const AdvancedEmailMarketingHub: React.FC = () => {
         {activeTab === 'analytics' && <EmailAnalyticsDashboard />}
         {activeTab === 'templates' && <TemplatesTab />}
         {activeTab === 'subscribers' && <SubscribersTab />}
+        {activeTab === 'gallery-leads' && <GalleryLeadsTab />}
       </div>
 
       {/* Campaign Analytics Modal */}

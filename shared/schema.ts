@@ -597,6 +597,58 @@ export const galleryImages = pgTable("gallery_images", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Gallery Analytics and Email Captures
+export const galleryAnalytics = pgTable("gallery_analytics", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  galleryId: uuid("gallery_id").references(() => galleries.id, { onDelete: "cascade" }).notNull().unique(),
+  viewCount: integer("view_count").default(0).notNull(),
+  downloadCount: integer("download_count").default(0).notNull(),
+  emailCaptureCount: integer("email_capture_count").default(0).notNull(),
+  lastViewedAt: timestamp("last_viewed_at"),
+  lastDownloadedAt: timestamp("last_downloaded_at"),
+  lastEmailCapturedAt: timestamp("last_email_captured_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const galleryEmailCaptures = pgTable("gallery_email_captures", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  galleryId: uuid("gallery_id").references(() => galleries.id, { onDelete: "cascade" }).notNull(),
+  email: text("email").notNull(),
+  name: text("name"),
+  phone: text("phone"),
+  source: text("source").default("gallery_view"), // gallery_view, download, share
+  metadata: jsonb("metadata"), // IP address, user agent, etc.
+  capturedAt: timestamp("captured_at").defaultNow(),
+});
+
+export const galleryActivityLog = pgTable("gallery_activity_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  galleryId: uuid("gallery_id").references(() => galleries.id, { onDelete: "cascade" }).notNull(),
+  activityType: text("activity_type").notNull(), // view, download, email_capture, share
+  visitorEmail: text("visitor_email"),
+  visitorName: text("visitor_name"),
+  imageId: uuid("image_id").references(() => galleryImages.id, { onDelete: "set null" }),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertGalleryAnalyticsSchema = createInsertSchema(galleryAnalytics).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertGalleryEmailCaptureSchema = createInsertSchema(galleryEmailCaptures).omit({
+  id: true,
+  capturedAt: true,
+});
+
+export const insertGalleryActivityLogSchema = createInsertSchema(galleryActivityLog).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Digital Files storage (for uploaded assets/documents)
 export const digitalFiles = pgTable("digital_files", {
   id: text("id").primaryKey(),
@@ -2027,6 +2079,14 @@ export type SchedulerBooking = typeof schedulerBookings.$inferSelect;
 export type InsertSchedulerBooking = z.infer<typeof insertSchedulerBookingSchema>;
 export type SchedulerBlockedTime = typeof schedulerBlockedTimes.$inferSelect;
 export type InsertSchedulerBlockedTime = z.infer<typeof insertSchedulerBlockedTimeSchema>;
+
+// Gallery Analytics types
+export type GalleryAnalytics = typeof galleryAnalytics.$inferSelect;
+export type InsertGalleryAnalytics = z.infer<typeof insertGalleryAnalyticsSchema>;
+export type GalleryEmailCapture = typeof galleryEmailCaptures.$inferSelect;
+export type InsertGalleryEmailCapture = z.infer<typeof insertGalleryEmailCaptureSchema>;
+export type GalleryActivityLog = typeof galleryActivityLog.$inferSelect;
+export type InsertGalleryActivityLog = z.infer<typeof insertGalleryActivityLogSchema>;
 
 // Backwards-compatible snake_case aliases for legacy imports
 export const photography_sessions = photographySessions as typeof photographySessions;

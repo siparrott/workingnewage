@@ -83,8 +83,36 @@ const GalleryPage: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated && slug && authToken) {
       fetchGalleryImages(slug, authToken);
+      
+      // Track gallery view
+      trackGalleryView();
     }
   }, [isAuthenticated, slug, authToken]);
+
+  const trackGalleryView = async () => {
+    if (!gallery?.id) return;
+    
+    try {
+      await fetch(`/api/galleries/${gallery.id}/track-view`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          visitorEmail: email || undefined,
+          visitorName: firstName && lastName ? `${firstName} ${lastName}` : undefined,
+          metadata: {
+            userAgent: navigator.userAgent,
+            referrer: document.referrer,
+            timestamp: new Date().toISOString()
+          }
+        })
+      });
+    } catch (err) {
+      console.error('Failed to track view:', err);
+      // Don't fail the page if tracking fails
+    }
+  };
 
   const fetchGallery = async (gallerySlug: string) => {
     try {
@@ -279,12 +307,36 @@ const GalleryPage: React.FC = () => {
     }
   }, [slug]);
 
-  const handleDownloadAll = () => {
+  const handleDownloadAll = async () => {
     if (!gallery || !slug || !authToken) return;
     
     if (!gallery.downloadEnabled) {
       alert('Downloads are disabled for this gallery.');
       return;
+    }
+    
+    // Track download
+    if (gallery.id) {
+      try {
+        await fetch(`/api/galleries/${gallery.id}/track-download`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            visitorEmail: email || undefined,
+            visitorName: firstName && lastName ? `${firstName} ${lastName}` : undefined,
+            metadata: {
+              downloadType: 'all',
+              imageCount: images.length,
+              timestamp: new Date().toISOString()
+            }
+          })
+        });
+      } catch (err) {
+        console.error('Failed to track download:', err);
+        // Don't fail the download if tracking fails
+      }
     }
     
     // Create a download link using Neon API

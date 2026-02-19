@@ -177,6 +177,33 @@ const GalleryDetailPage: React.FC = () => {
           year: 'numeric'
         }));
       }
+      
+      // Fetch analytics
+      try {
+        const analyticsResponse = await fetch(`/api/galleries/${galleryId}/analytics`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        if (analyticsResponse.ok) {
+          const analyticsData = await analyticsResponse.json();
+          setViewCount(analyticsData.analytics.view_count || 0);
+          setDownloadCount(analyticsData.analytics.download_count || 0);
+          setUniqueVisitors(analyticsData.emailCaptures?.length || 0);
+          
+          if (analyticsData.analytics.last_viewed_at) {
+            setLastActivity(new Date(analyticsData.analytics.last_viewed_at).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching analytics:', err);
+        // Don't fail the whole page if analytics fail
+      }
     } catch (err) {
       console.error('Error fetching gallery:', err);
       setError('Failed to load gallery');
@@ -566,13 +593,46 @@ const GalleryDetailPage: React.FC = () => {
             <div className="flex items-center">
               <MessageSquare size={18} className="mr-3 text-gray-500" />
               <span className="font-medium text-gray-900">ACTIVITY FEED</span>
-              <span className="ml-2 px-2 py-0.5 bg-orange-500 text-white text-xs rounded-full">Unread</span>
             </div>
             <ChevronRight size={18} className={`text-gray-400 transition-transform ${expandedPanels.activityFeed ? 'rotate-90' : ''}`} />
           </button>
           {expandedPanels.activityFeed && (
-            <div className="px-4 pb-4 text-sm text-gray-500">
-              No recent activity
+            <div className="px-4 pb-4 space-y-3">
+              {/* Views */}
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center text-gray-700">
+                  <Eye size={16} className="mr-2 text-blue-500" />
+                  <span>Views</span>
+                </div>
+                <span className="font-semibold text-gray-900">{viewCount}</span>
+              </div>
+              
+              {/* Downloads */}
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center text-gray-700">
+                  <Download size={16} className="mr-2 text-purple-500" />
+                  <span>Downloads</span>
+                </div>
+                <span className="font-semibold text-gray-900">{downloadCount}</span>
+              </div>
+              
+              {/* Email Addresses Entered */}
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center text-gray-700">
+                  <Mail size={16} className="mr-2 text-green-500" />
+                  <span>Email Addresses</span>
+                </div>
+                <span className="font-semibold text-gray-900">{uniqueVisitors}</span>
+              </div>
+              
+              {uniqueVisitors > 0 && (
+                <button
+                  onClick={() => navigate(`/admin/email-campaigns?gallery=${id}`)}
+                  className="w-full mt-2 px-3 py-1.5 text-xs bg-purple-50 text-purple-700 hover:bg-purple-100 rounded transition-colors"
+                >
+                  View Captured Emails →
+                </button>
+              )}
             </div>
           )}
         </div>

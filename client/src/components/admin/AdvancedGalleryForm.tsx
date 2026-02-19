@@ -705,11 +705,11 @@ const AdvancedGalleryForm: React.FC<GalleryFormProps> = ({ gallery, isEditing = 
           Cover Image <span className="text-gray-400">(optional)</span>
         </label>
         {coverImageUrl ? (
-          <div className="relative w-full rounded-lg overflow-hidden bg-gray-100" style={{ maxHeight: '200px' }}>
+          <div className="relative w-full rounded-lg overflow-hidden bg-gray-100" style={{ maxHeight: '400px' }}>
             <img
               src={coverImageUrl}
               alt="Cover preview"
-              className="w-full h-32 object-cover"
+              className="w-full h-auto max-h-96 object-contain"
             />
             <button
               type="button"
