@@ -13698,12 +13698,11 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
 
       // Save to database as a lead
       const leadData = {
-        firstName: fullName.split(' ')[0] || fullName,
-        lastName: fullName.split(' ').slice(1).join(' ') || '',
+        name: fullName,
         email: email,
         phone: phone || null,
+        message: message,
         source: 'Website Contact Form',
-        notes: message,
         status: 'new'
       };
 
@@ -13785,12 +13784,11 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
 
       // Save to database as a lead with appointment details
       const leadData = {
-        firstName: fullName.split(' ')[0] || fullName,
-        lastName: fullName.split(' ').slice(1).join(' ') || '',
+        name: fullName,
         email: email,
         phone: phone,
+        message: `Preferred Date: ${preferredDate}${message ? '\n\nAdditional Message: ' + message : ''}`,
         source: 'Appointment Request (Waitlist)',
-        notes: `Preferred Date: ${preferredDate}${message ? '\n\nAdditional Message: ' + message : ''}`,
         status: 'new'
       };
 
