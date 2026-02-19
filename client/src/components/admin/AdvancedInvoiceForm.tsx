@@ -145,6 +145,22 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
   const [pendingPriceItem, setPendingPriceItem] = useState<PriceListItem | null>(null);
   const [editableDescription, setEditableDescription] = useState('');
 
+  // Quick client creation states
+  const [showQuickClientModal, setShowQuickClientModal] = useState(false);
+  const [quickClientData, setQuickClientData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    zip: '',
+    country: '',
+    company: '',
+    notes: ''
+  });
+  const [creatingClient, setCreatingClient] = useState(false);
+
   const steps = [
     { id: 1, title: 'Client & Details', icon: User },
     { id: 2, title: 'Line Items', icon: FileText },
@@ -503,6 +519,73 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
+  const handleQuickClientCreate = async () => {
+    try {
+      setCreatingClient(true);
+      setError(null);
+
+      // Validate required fields
+      if (!quickClientData.firstName || !quickClientData.email) {
+        setError('First name and email are required');
+        return;
+      }
+
+      // Create client via API
+      const response = await fetch('/api/crm/clients', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(quickClientData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create client');
+      }
+
+      const newClient = await response.json();
+      
+      // Transform the response to match our Client interface
+      const transformedClient = {
+        id: newClient.id,
+        name: `${newClient.firstName} ${newClient.lastName}`.trim(),
+        email: newClient.email,
+        address1: newClient.address,
+        city: newClient.city,
+        country: newClient.country
+      };
+
+      // Add to clients list and select it
+      setClients(prev => [transformedClient, ...prev]);
+      setFilteredClients(prev => [transformedClient, ...prev]);
+      setFormData(prev => ({ ...prev, client_id: transformedClient.id }));
+      setClientSearch(transformedClient.name);
+
+      // Reset and close modal
+      setQuickClientData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        address: '',
+        city: '',
+        zip: '',
+        country: '',
+        company: '',
+        notes: ''
+      });
+      setShowQuickClientModal(false);
+      setError(null);
+      
+    } catch (err) {
+      setError('Failed to create client. Please try again.');
+      console.error('Error creating client:', err);
+    } finally {
+      setCreatingClient(false);
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       setLoading(true);
@@ -721,10 +804,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
               <div className="mt-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    // This could open a quick client creation modal
-                    alert('Quick client creation feature can be added here. For now, please go to the Clients page to add new clients.');
-                  }}
+                  onClick={() => setShowQuickClientModal(true)}
                   className="text-sm text-purple-600 hover:text-purple-800 flex items-center"
                 >
                   <Plus className="w-4 h-4 mr-1" />
@@ -1575,6 +1655,208 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
                     )}
                   </button>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Quick Client Creation Modal */}
+      <AnimatePresence>
+        {showQuickClientModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70]"
+            onClick={() => !creatingClient && setShowQuickClientModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">Add New Client</h3>
+                <button
+                  onClick={() => !creatingClient && setShowQuickClientModal(false)}
+                  disabled={creatingClient}
+                  className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-start">
+                  <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm">{error}</span>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      First Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={quickClientData.firstName}
+                      onChange={(e) => setQuickClientData(prev => ({ ...prev, firstName: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      placeholder="John"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      value={quickClientData.lastName}
+                      onChange={(e) => setQuickClientData(prev => ({ ...prev, lastName: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      placeholder="Doe"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={quickClientData.email}
+                    onChange={(e) => setQuickClientData(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    placeholder="john.doe@example.com"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={quickClientData.phone}
+                    onChange={(e) => setQuickClientData(prev => ({ ...prev, phone: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    placeholder="+43 660 123 4567"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Company
+                  </label>
+                  <input
+                    type="text"
+                    value={quickClientData.company}
+                    onChange={(e) => setQuickClientData(prev => ({ ...prev, company: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    placeholder="Company Name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Address
+                  </label>
+                  <input
+                    type="text"
+                    value={quickClientData.address}
+                    onChange={(e) => setQuickClientData(prev => ({ ...prev, address: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    placeholder="Street Address"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      City
+                    </label>
+                    <input
+                      type="text"
+                      value={quickClientData.city}
+                      onChange={(e) => setQuickClientData(prev => ({ ...prev, city: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      placeholder="Vienna"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      ZIP Code
+                    </label>
+                    <input
+                      type="text"
+                      value={quickClientData.zip}
+                      onChange={(e) => setQuickClientData(prev => ({ ...prev, zip: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      placeholder="1010"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Country
+                  </label>
+                  <input
+                    type="text"
+                    value={quickClientData.country}
+                    onChange={(e) => setQuickClientData(prev => ({ ...prev, country: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    placeholder="Austria"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Notes
+                  </label>
+                  <textarea
+                    value={quickClientData.notes}
+                    onChange={(e) => setQuickClientData(prev => ({ ...prev, notes: e.target.value }))}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    placeholder="Additional notes about the client..."
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
+                <button
+                  onClick={() => !creatingClient && setShowQuickClientModal(false)}
+                  disabled={creatingClient}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleQuickClientCreate}
+                  disabled={creatingClient || !quickClientData.firstName || !quickClientData.email}
+                  className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {creatingClient ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Check size={16} className="mr-2" />
+                      Create Client
+                    </>
+                  )}
+                </button>
               </div>
             </motion.div>
           </motion.div>
