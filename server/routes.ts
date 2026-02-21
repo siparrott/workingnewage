@@ -957,6 +957,30 @@ function convertPlainTextToStructuredHTML(content: string): string {
   return htmlContent;
 }
 
+// Helper function to find client by email address
+async function findClientIdByEmail(email: string): Promise<string | null> {
+  if (!email) return null;
+  
+  try {
+    const normalizedEmail = email.toLowerCase().trim();
+    const clients = await storage.getCrmClients();
+    
+    const matchingClient = clients.find(client => 
+      client.email && client.email.toLowerCase().trim() === normalizedEmail
+    );
+    
+    if (matchingClient) {
+      console.log(`✅ Matched email ${email} to client ${matchingClient.firstName} ${matchingClient.lastName} (${matchingClient.id})`);
+      return matchingClient.id;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error finding client by email:', error);
+    return null;
+  }
+}
+
 // IMAP Email Import Function
 async function importEmailsFromIMAP(config: {
   host: string;
@@ -2521,6 +2545,36 @@ Bitte versuchen Sie es später noch einmal.`;
       res.json({ coverImage: gallery.coverImage });
     } catch (error) {
       console.error("Error fetching client gallery cover:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get all email messages for a specific client
+  app.get("/api/crm/clients/:id/messages", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const clientId = req.params.id;
+      
+      // Get all messages
+      const allMessages = await storage.getCrmMessages();
+      
+      // Filter messages that belong to this client
+      const clientMessages = allMessages.filter(msg => msg.clientId === clientId);
+      
+      // Transform to expected format for ViewEmailsModal
+      const formattedMessages = clientMessages.map(msg => ({
+        id: msg.id,
+        subject: msg.subject,
+        from: msg.senderEmail,
+        to: msg.recipientEmail || 'hallo@newagefotografie.com',
+        content: msg.content,
+        timestamp: msg.createdAt || msg.sentAt || new Date().toISOString(),
+        type: msg.direction === 'outbound' ? 'sent' : 'received'
+      }));
+      
+      console.log(`Found ${formattedMessages.length} messages for client ${clientId}`);
+      res.json(formattedMessages);
+    } catch (error) {
+      console.error("Error fetching client messages:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -5887,15 +5941,19 @@ New Age Fotografie Team`;
           
           if (!isDuplicate) {
             try {
+              // Try to match email to a client
+              const clientId = await findClientIdByEmail(email.from);
+              
               await storage.createCrmMessage({
                 senderName: email.fromName,
                 senderEmail: email.from,
                 subject: email.subject,
                 content: email.body,
-                status: email.isRead ? 'read' : 'unread'
+                status: email.isRead ? 'read' : 'unread',
+                clientId: clientId || undefined
               });
               newEmailCount++;
-              console.log(`Imported new email: ${email.subject} from ${email.from}`);
+              console.log(`Imported new email: ${email.subject} from ${email.from}${clientId ? ` (linked to client ${clientId})` : ''}`);
             } catch (error) {
               console.error('Failed to save email:', error);
             }
@@ -5932,15 +5990,23 @@ New Age Fotografie Team`;
 
       console.log(`Successfully fetched ${importedEmails.length} emails from ${username}`);
 
-      // Store emails in database
+      // Store emails in database with client matching
       for (const email of importedEmails) {
+        // Try to match email to a client
+        const clientId = await findClientIdByEmail(email.from);
+        
         await storage.createCrmMessage({
           senderName: email.fromName,
           senderEmail: email.from,
           subject: email.subject,
           content: email.body,
-          status: email.isRead ? 'read' : 'unread'
+          status: email.isRead ? 'read' : 'unread',
+          clientId: clientId || undefined
         });
+        
+        if (clientId) {
+          console.log(`Linked email from ${email.from} to client ${clientId}`);
+        }
       }
 
       return res.json({

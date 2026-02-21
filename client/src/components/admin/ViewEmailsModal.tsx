@@ -37,30 +37,17 @@ const ViewEmailsModal: React.FC<ViewEmailsModalProps> = ({
   const fetchEmails = async () => {
     setLoading(true);
     try {
-      // For now, we'll use mock data since the email tracking system needs to be implemented
-      const mockEmails: Email[] = [
-        {
-          id: '1',
-          subject: 'Welcome to New Age Fotografie',
-          from: 'hallo@newagefotografie.com',
-          to: 'client@example.com',
-          content: 'Thank you for choosing New Age Fotografie for your photography needs...',
-          timestamp: '2024-01-15T10:30:00Z',
-          type: 'sent'
-        },
-        {
-          id: '2',
-          subject: 'Re: Photography Session Details',
-          from: 'client@example.com',
-          to: 'hallo@newagefotografie.com',
-          content: 'Thank you for the information. I would like to schedule...',
-          timestamp: '2024-01-16T14:20:00Z',
-          type: 'received'
-        }
-      ];
-      setEmails(mockEmails);
+      const response = await fetch(`/api/crm/clients/${clientId}/messages`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch client emails');
+      }
+      
+      const data = await response.json();
+      setEmails(data);
     } catch (error) {
       console.error('Failed to fetch emails:', error);
+      setEmails([]);
     } finally {
       setLoading(false);
     }
@@ -109,7 +96,7 @@ const ViewEmailsModal: React.FC<ViewEmailsModalProps> = ({
                 <Mail size={48} className="mx-auto mb-4 text-gray-400" />
                 <p>No emails found for this client</p>
                 <p className="text-sm text-gray-500 mt-2">
-                  Email tracking will be implemented in future updates
+                  Emails are automatically linked when imported from the inbox
                 </p>
               </div>
             ) : (
