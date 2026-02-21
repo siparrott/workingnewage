@@ -2554,11 +2554,41 @@ Bitte versuchen Sie es später noch einmal.`;
     try {
       const clientId = req.params.id;
       
+      // Get the client to access their email address
+      const client = await storage.getCrmClient(clientId);
+      
+      if (!client) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+      
       // Get all messages
       const allMessages = await storage.getCrmMessages();
       
-      // Filter messages that belong to this client
-      const clientMessages = allMessages.filter(msg => msg.clientId === clientId);
+      // Filter messages that belong to this client by:
+      // 1. clientId matches (new emails)
+      // 2. senderEmail matches client email (legacy emails without clientId)
+      const clientEmail = client.email?.toLowerCase().trim();
+      
+      const clientMessages = allMessages.filter(msg => {
+        // Match by clientId
+        if (msg.clientId === clientId) {
+          return true;
+        }
+        
+        // Match by email address (for emails imported before clientId linking was implemented)
+        if (clientEmail && msg.senderEmail) {
+          const senderEmail = msg.senderEmail.toLowerCase().trim();
+          if (senderEmail === clientEmail) {
+            // Auto-link this message to the client for future queries
+            storage.updateCrmMessage(msg.id, { clientId }).catch(err => 
+              console.error('Failed to auto-link message:', err)
+            );
+            return true;
+          }
+        }
+        
+        return false;
+      });
       
       // Transform to expected format for ViewEmailsModal
       const formattedMessages = clientMessages.map(msg => ({
@@ -2571,7 +2601,7 @@ Bitte versuchen Sie es später noch einmal.`;
         type: msg.direction === 'outbound' ? 'sent' : 'received'
       }));
       
-      console.log(`Found ${formattedMessages.length} messages for client ${clientId}`);
+      console.log(`Found ${formattedMessages.length} messages for client ${clientId} (${client.email})`);
       res.json(formattedMessages);
     } catch (error) {
       console.error("Error fetching client messages:", error);
