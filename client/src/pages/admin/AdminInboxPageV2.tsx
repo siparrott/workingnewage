@@ -526,7 +526,7 @@ const AdminInboxPage: React.FC = () => {
           filteredMessages.map(message => (
             <div 
               key={message.id}
-              className={`p-4 hover:bg-gray-50 cursor-pointer ${
+              className={`p-4 hover:bg-gray-50 cursor-pointer relative group ${
                 selectedMessages.includes(message.id) ? 'bg-blue-50' : ''
               } ${!message.isRead ? 'bg-blue-25' : ''}`}
               onClick={() => setCurrentMessage(message)}
@@ -565,9 +565,22 @@ const AdminInboxPage: React.FC = () => {
                         <Paperclip size={12} className="text-gray-400" />
                       )}
                     </div>
-                    <span className="text-xs text-gray-500">
-                      {formatTimestamp(message.timestamp)}
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs text-gray-500">
+                        {formatTimestamp(message.timestamp)}
+                      </span>
+                      {/* Delete button - visible on hover */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete([message.id]);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-opacity"
+                        title="Delete"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
                   
                   <div className={`text-sm ${!message.isRead ? 'font-semibold text-gray-900' : 'text-gray-600'} truncate`}>
