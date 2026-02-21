@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.insertLeadSourceSchema = exports.insertCrmLeadSchema = exports.insertCrmClientSchema = exports.insertBlogPostSchema = exports.insertUserSchema = exports.insertPhotographySessionSchema = exports.questionnaireResponses = exports.questionnaires = exports.schedulerBlockedTimes = exports.schedulerBookings = exports.schedulers = exports.onlineBookings = exports.bookingForms = exports.calendarSyncLogs = exports.calendarSyncSettings = exports.availabilityOverrides = exports.availabilityTemplates = exports.businessInsights = exports.weatherData = exports.sessionCommunications = exports.sessionTasks = exports.sessionEquipment = exports.photographySessions = exports.photoFolders = exports.digitalFiles = exports.galleryImages = exports.galleries = exports.smsConfig = exports.googleCalendarConfig = exports.studioAppointments = exports.messageCampaigns = exports.crmMessages = exports.couponUsage = exports.voucherSales = exports.priceListItems = exports.discountCoupons = exports.voucherProducts = exports.manualPageContent = exports.studioAvailableSlots = exports.crmInvoicePayments = exports.crmInvoiceItems = exports.crmInvoices = exports.crmLeads = exports.crmClients = exports.leadSources = exports.blogPosts = exports.adminUsers = exports.templateDefinitions = exports.studioConfigs = exports.users = void 0;
-exports.emailTemplates = exports.insertEmailCampaignSchema = exports.emailCampaigns = exports.insertGalleryTransferLogSchema = exports.insertArchivedFolderSchema = exports.insertArchivedFileSchema = exports.insertStorageUsageSchema = exports.insertStorageSubscriptionSchema = exports.galleryTransferLog = exports.archivedFiles = exports.archivedFolders = exports.storageUsage = exports.storageSubscriptions = exports.storageSubscriptionStatus = exports.storageSubscriptionTier = exports.insertPriceListItemSchema = exports.insertAgentAuditDiffSchema = exports.insertAgentAuditSchema = exports.insertAgentMessageSchema = exports.insertAgentSessionSchema = exports.insertAgentActionLogSchema = exports.insertAiPolicySchema = exports.insertStudioIntegrationSchema = exports.insertStudioSchema = exports.agentAuditDiff = exports.agentAudit = exports.agentMessage = exports.agentSession = exports.agentActionLog = exports.aiPolicies = exports.studioIntegrations = exports.studios = exports.insertAdminUserSchema = exports.insertOpenaiAssistantSchema = exports.insertKnowledgeBaseSchema = exports.openaiAssistants = exports.knowledgeBase = exports.insertCouponUsageSchema = exports.insertVoucherSaleSchema = exports.insertDiscountCouponSchema = exports.insertVoucherProductSchema = exports.insertSchedulerBlockedTimeSchema = exports.insertSchedulerBookingSchema = exports.insertSchedulerSchema = exports.insertSMSConfigSchema = exports.insertMessageCampaignSchema = exports.insertCrmMessageSchema = exports.insertCrmInvoiceItemSchema = exports.insertCrmInvoiceSchema = exports.insertGallerySchema = void 0;
-exports.gallery_images = exports.photography_sessions = exports.emailLinks = exports.emailEvents = exports.insertEmailSegmentSchema = exports.emailSegments = exports.insertEmailSubscriberSchema = exports.emailSubscribers = exports.insertEmailTemplateSchema = void 0;
+exports.questionnaireResponses = exports.questionnaires = exports.schedulerBlockedTimes = exports.schedulerBookings = exports.schedulers = exports.onlineBookings = exports.bookingForms = exports.calendarSyncLogs = exports.calendarSyncSettings = exports.availabilityOverrides = exports.availabilityTemplates = exports.businessInsights = exports.weatherData = exports.sessionCommunications = exports.sessionTasks = exports.sessionEquipment = exports.photographySessions = exports.photoFolders = exports.digitalFiles = exports.insertGalleryActivityLogSchema = exports.insertGalleryEmailCaptureSchema = exports.insertGalleryAnalyticsSchema = exports.galleryActivityLog = exports.galleryEmailCaptures = exports.galleryAnalytics = exports.galleryImages = exports.galleries = exports.smsConfig = exports.googleCalendarConfig = exports.studioAppointments = exports.messageCampaigns = exports.crmMessages = exports.couponUsage = exports.voucherSales = exports.priceListItems = exports.discountCoupons = exports.voucherProducts = exports.manualPageContent = exports.studioAvailableSlots = exports.crmInvoicePayments = exports.crmInvoiceItems = exports.crmInvoices = exports.crmLeads = exports.crmClients = exports.leadSources = exports.blogPosts = exports.adminUsers = exports.templateDefinitions = exports.studioConfigs = exports.users = void 0;
+exports.insertStorageUsageSchema = exports.insertStorageSubscriptionSchema = exports.galleryTransferLog = exports.archivedFiles = exports.archivedFolders = exports.storageUsage = exports.storageSubscriptions = exports.storageSubscriptionStatus = exports.storageSubscriptionTier = exports.insertPriceListItemSchema = exports.insertAgentAuditDiffSchema = exports.insertAgentAuditSchema = exports.insertAgentMessageSchema = exports.insertAgentSessionSchema = exports.insertAgentActionLogSchema = exports.insertAiPolicySchema = exports.insertStudioIntegrationSchema = exports.insertStudioSchema = exports.agentAuditDiff = exports.agentAudit = exports.agentMessage = exports.agentSession = exports.agentActionLog = exports.aiPolicies = exports.studioIntegrations = exports.studios = exports.insertAdminUserSchema = exports.insertOpenaiAssistantSchema = exports.insertKnowledgeBaseSchema = exports.openaiAssistants = exports.knowledgeBase = exports.insertCouponUsageSchema = exports.insertVoucherSaleSchema = exports.insertDiscountCouponSchema = exports.insertVoucherProductSchema = exports.insertSchedulerBlockedTimeSchema = exports.insertSchedulerBookingSchema = exports.insertSchedulerSchema = exports.insertSMSConfigSchema = exports.insertMessageCampaignSchema = exports.insertCrmMessageSchema = exports.insertCrmInvoiceItemSchema = exports.insertCrmInvoiceSchema = exports.insertGallerySchema = exports.insertLeadSourceSchema = exports.insertCrmLeadSchema = exports.insertCrmClientSchema = exports.insertBlogPostSchema = exports.insertUserSchema = exports.insertPhotographySessionSchema = void 0;
+exports.gallery_images = exports.photography_sessions = exports.emailLinks = exports.emailEvents = exports.insertEmailSegmentSchema = exports.emailSegments = exports.insertEmailSubscriberSchema = exports.emailSubscribers = exports.insertEmailTemplateSchema = exports.emailTemplates = exports.insertEmailCampaignSchema = exports.emailCampaigns = exports.insertGalleryTransferLogSchema = exports.insertArchivedFolderSchema = exports.insertArchivedFileSchema = void 0;
 const pg_core_1 = require("drizzle-orm/pg-core");
 const drizzle_zod_1 = require("drizzle-zod");
 const zod_1 = require("zod");
@@ -503,8 +503,56 @@ exports.galleryImages = (0, pg_core_1.pgTable)("gallery_images", {
     title: (0, pg_core_1.text)("title"),
     description: (0, pg_core_1.text)("description"),
     sortOrder: (0, pg_core_1.integer)("sort_order").default(0),
+    sizeBytes: (0, pg_core_1.integer)("size_bytes").default(0),
+    contentType: (0, pg_core_1.text)("content_type"),
     metadata: (0, pg_core_1.jsonb)("metadata"),
     createdAt: (0, pg_core_1.timestamp)("created_at").defaultNow(),
+});
+// Gallery Analytics and Email Captures
+exports.galleryAnalytics = (0, pg_core_1.pgTable)("gallery_analytics", {
+    id: (0, pg_core_1.uuid)("id").primaryKey().defaultRandom(),
+    galleryId: (0, pg_core_1.uuid)("gallery_id").references(() => exports.galleries.id, { onDelete: "cascade" }).notNull().unique(),
+    viewCount: (0, pg_core_1.integer)("view_count").default(0).notNull(),
+    downloadCount: (0, pg_core_1.integer)("download_count").default(0).notNull(),
+    emailCaptureCount: (0, pg_core_1.integer)("email_capture_count").default(0).notNull(),
+    lastViewedAt: (0, pg_core_1.timestamp)("last_viewed_at"),
+    lastDownloadedAt: (0, pg_core_1.timestamp)("last_downloaded_at"),
+    lastEmailCapturedAt: (0, pg_core_1.timestamp)("last_email_captured_at"),
+    createdAt: (0, pg_core_1.timestamp)("created_at").defaultNow(),
+    updatedAt: (0, pg_core_1.timestamp)("updated_at").defaultNow(),
+});
+exports.galleryEmailCaptures = (0, pg_core_1.pgTable)("gallery_email_captures", {
+    id: (0, pg_core_1.uuid)("id").primaryKey().defaultRandom(),
+    galleryId: (0, pg_core_1.uuid)("gallery_id").references(() => exports.galleries.id, { onDelete: "cascade" }).notNull(),
+    email: (0, pg_core_1.text)("email").notNull(),
+    name: (0, pg_core_1.text)("name"),
+    phone: (0, pg_core_1.text)("phone"),
+    source: (0, pg_core_1.text)("source").default("gallery_view"), // gallery_view, download, share
+    metadata: (0, pg_core_1.jsonb)("metadata"), // IP address, user agent, etc.
+    capturedAt: (0, pg_core_1.timestamp)("captured_at").defaultNow(),
+});
+exports.galleryActivityLog = (0, pg_core_1.pgTable)("gallery_activity_log", {
+    id: (0, pg_core_1.uuid)("id").primaryKey().defaultRandom(),
+    galleryId: (0, pg_core_1.uuid)("gallery_id").references(() => exports.galleries.id, { onDelete: "cascade" }).notNull(),
+    activityType: (0, pg_core_1.text)("activity_type").notNull(), // view, download, email_capture, share
+    visitorEmail: (0, pg_core_1.text)("visitor_email"),
+    visitorName: (0, pg_core_1.text)("visitor_name"),
+    imageId: (0, pg_core_1.uuid)("image_id").references(() => exports.galleryImages.id, { onDelete: "set null" }),
+    metadata: (0, pg_core_1.jsonb)("metadata"),
+    createdAt: (0, pg_core_1.timestamp)("created_at").defaultNow(),
+});
+exports.insertGalleryAnalyticsSchema = (0, drizzle_zod_1.createInsertSchema)(exports.galleryAnalytics).omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+});
+exports.insertGalleryEmailCaptureSchema = (0, drizzle_zod_1.createInsertSchema)(exports.galleryEmailCaptures).omit({
+    id: true,
+    capturedAt: true,
+});
+exports.insertGalleryActivityLogSchema = (0, drizzle_zod_1.createInsertSchema)(exports.galleryActivityLog).omit({
+    id: true,
+    createdAt: true,
 });
 // Digital Files storage (for uploaded assets/documents)
 exports.digitalFiles = (0, pg_core_1.pgTable)("digital_files", {

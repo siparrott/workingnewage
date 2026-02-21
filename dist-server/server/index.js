@@ -54,9 +54,9 @@ const app = (0, express_1.default)();
 let serverInstance = null;
 // Behind reverse proxies (Heroku/Render/etc.) trust the first proxy so secure cookies work when appropriate
 app.set('trust proxy', 1);
-// Increase body size limits to accommodate large ICS payloads
-app.use(express_1.default.json({ limit: '5mb' }));
-app.use(express_1.default.urlencoded({ extended: false, limit: '5mb' }));
+// Increase body size limits to accommodate large image payloads (base64 encoded images can be 10MB+)
+app.use(express_1.default.json({ limit: '50mb' }));
+app.use(express_1.default.urlencoded({ extended: false, limit: '50mb' }));
 // Add CORS headers for API requests
 app.use((req, res, next) => {
     // Echo back the request origin to support credentials; default to * if none
@@ -164,6 +164,15 @@ app.use((req, res, next) => {
             // Quick database test
             await db_1.db.execute((0, drizzle_orm_1.sql) `SELECT 1 as test`);
             console.log('✅ Database connection verified');
+            // Run gallery images migration to add size tracking
+            try {
+                await db_1.db.execute((0, drizzle_orm_1.sql) `ALTER TABLE gallery_images ADD COLUMN IF NOT EXISTS size_bytes INTEGER DEFAULT 0`);
+                await db_1.db.execute((0, drizzle_orm_1.sql) `ALTER TABLE gallery_images ADD COLUMN IF NOT EXISTS content_type TEXT`);
+                console.log('✅ Gallery images size tracking migration completed');
+            }
+            catch (migrationError) {
+                console.warn('⚠️ Gallery migration already applied or failed:', migrationError.message);
+            }
         }
         catch (error) {
             console.warn('⚠️ Database connection issue:', error.message);

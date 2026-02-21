@@ -414,7 +414,7 @@ router.get('/sessions', async (req, res) => {
  */
 router.post('/activate-suggestion', async (req, res) => {
     try {
-        const { suggestionId, adjustedPrice } = req.body;
+        const { suggestionId, adjustedPrice, description } = req.body;
         if (!suggestionId) {
             return res.status(400).json({ error: 'Missing suggestionId' });
         }
@@ -433,19 +433,21 @@ router.post('/activate-suggestion', async (req, res) => {
         // Create price list entry so it appears in Invoice "Select from Price List"
         const serviceName = `${suggestion.service_type} (${suggestion.tier})`;
         const priceListResult = await db_js_1.pool.query(`
-      INSERT INTO price_lists (
-        service_name,
+      INSERT INTO price_list_items (
+        name,
         category,
         price,
         description,
-        active
-      ) VALUES ($1, $2, $3, $4, true)
-      RETURNING id, service_name, price
+        currency,
+        is_active
+      ) VALUES ($1, $2, $3, $4, $5, true)
+      RETURNING id, name, price
     `, [
             serviceName,
             'Photography',
             finalPrice,
-            suggestion.reasoning || `AI-recommended ${suggestion.tier} tier pricing based on competitive market analysis`
+            description || suggestion.reasoning || `AI-recommended ${suggestion.tier} tier pricing based on competitive market analysis`,
+            suggestion.currency || 'EUR'
         ]);
         const priceListItem = priceListResult.rows[0];
         // Mark suggestion as activated with the final price and link to price list item
@@ -463,7 +465,7 @@ router.post('/activate-suggestion', async (req, res) => {
             success: true,
             suggestion_id: suggestionId,
             price_list_id: priceListItem.id,
-            service_name: priceListItem.service_name,
+            service_name: priceListItem.name,
             activated_price: finalPrice,
             message: 'Price activated and added to your Price List successfully'
         });

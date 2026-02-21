@@ -348,7 +348,13 @@ class DatabaseStorage {
         return result[0];
     }
     async getGalleryBySlug(slug) {
-        const result = await db_1.db.select().from(schema_js_1.galleries).where((0, drizzle_orm_1.eq)(schema_js_1.galleries.slug, slug)).limit(1);
+        // First try to find by slug
+        let result = await db_1.db.select().from(schema_js_1.galleries).where((0, drizzle_orm_1.eq)(schema_js_1.galleries.slug, slug)).limit(1);
+        if (result.length > 0) {
+            return result[0];
+        }
+        // If not found by slug, try by ID (for UUID-based URLs)
+        result = await db_1.db.select().from(schema_js_1.galleries).where((0, drizzle_orm_1.eq)(schema_js_1.galleries.id, slug)).limit(1);
         return result[0];
     }
     async getClientGalleryWithCover(clientId) {

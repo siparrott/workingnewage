@@ -74,6 +74,7 @@ const setup_routes_1 = __importDefault(require("./setup-routes"));
 const questionnaires_1 = __importDefault(require("./routes/questionnaires"));
 const gallery_shop_1 = __importDefault(require("./routes/gallery-shop"));
 const files_1 = __importDefault(require("./routes/files"));
+const prodigi_1 = __importDefault(require("./routes/prodigi"));
 const storage_routes_1 = __importDefault(require("./storage-routes"));
 const gallery_transfer_routes_1 = __importDefault(require("./gallery-transfer-routes"));
 const storage_stats_routes_1 = __importDefault(require("./storage-stats-routes"));
@@ -2741,14 +2742,30 @@ Bitte versuchen Sie es später noch einmal.`;
     // ==================== GALLERY ROUTES ====================
     app.get("/api/galleries", async (req, res) => {
         try {
-            // Fetch galleries with client information
+            // Fetch public galleries with client information
             const result = await db_1.pool.query(`
         SELECT 
-          g.*,
-          c.first_name || ' ' || c.last_name as client_name,
-          c.email as client_email
+          g.id,
+          g.title,
+          g.slug,
+          g.description,
+          g.cover_image as "coverImage",
+          g.cover_position as "coverPosition",
+          g.cover_scale as "coverScale",
+          g.cover_template as "coverTemplate",
+          g.is_public as "isPublic",
+          g.is_password_protected as "isPasswordProtected",
+          g.client_id as "clientId",
+          g.created_by as "createdBy",
+          g.sort_order as "sortOrder",
+          g.created_at as "createdAt",
+          g.updated_at as "updatedAt",
+          c.first_name || ' ' || c.last_name as "clientName",
+          c.email as "clientEmail",
+          (SELECT COUNT(*) FROM gallery_images gi WHERE gi.gallery_id = g.id) as "imageCount"
         FROM galleries g
         LEFT JOIN crm_clients c ON g.client_id = c.id
+        WHERE g.is_public = true
         ORDER BY g.created_at DESC
       `);
             res.json(result.rows);
@@ -2793,7 +2810,10 @@ Bitte versuchen Sie es später noch einmal.`;
                     };
                 }
             }
-            res.json(gallery);
+            // SECURITY: Never expose the actual password to the client
+            // Only send the isPasswordProtected boolean flag
+            const { password, ...safeGallery } = gallery;
+            res.json(safeGallery);
         }
         catch (error) {
             console.error("Error fetching gallery:", error);
@@ -2808,6 +2828,15 @@ Bitte versuchen Sie es später noch einmal.`;
             // Admin users are in admin_users table, not users table
             const galleryData = { ...req.body };
             delete galleryData.createdBy; // Remove if it was sent from client
+            // Generate slug from title if not provided
+            if (galleryData.title && !galleryData.slug) {
+                galleryData.slug = galleryData.title
+                    .toLowerCase()
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove accents
+                    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
+                    .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+                    .substring(0, 100); // Limit length
+            }
             const validatedData = insertGallerySchema.parse(galleryData);
             const gallery = await storage_1.storage.createGallery(validatedData);
             res.status(201).json(gallery);
@@ -2821,16 +2850,7 @@ Bitte versuchen Sie es später noch einmal.`;
             res.status(500).json({ error: "Internal server error", message: error.message });
         }
     });
-    app.put("/api/galleries/:id", authenticateUser, async (req, res) => {
-        try {
-            const gallery = await storage_1.storage.updateGallery(req.params.id, req.body);
-            res.json(gallery);
-        }
-        catch (error) {
-            console.error("Error updating gallery:", error);
-            res.status(500).json({ error: "Internal server error" });
-        }
-    });
+    // NOTE: Gallery PUT endpoint moved to line ~4000 with better field mapping
     app.delete("/api/galleries/:id", authenticateUser, async (req, res) => {
         try {
             await storage_1.storage.deleteGallery(req.params.id);
@@ -2877,8 +2897,17 @@ Bitte versuchen Sie es später noch einmal.`;
     app.get("/api/admin/galleries/:id/images", authenticateUser, async (req, res) => {
         try {
             const { id } = req.params;
+            console.log(`[ADMIN GALLERY IMAGES] Fetching images for gallery ${id}`);
             // Get gallery images from database
             const galleryImages = await storage_1.storage.getGalleryImages(id);
+            console.log(`[ADMIN GALLERY IMAGES] Gallery ${id}: Found ${galleryImages?.length || 0} images in database`);
+            if (galleryImages && galleryImages.length > 0) {
+                console.log(`[ADMIN GALLERY IMAGES] First image raw data:`, JSON.stringify(galleryImages[0], null, 2));
+                console.log(`[ADMIN GALLERY IMAGES] All image IDs:`, galleryImages.map(img => img.id));
+            }
+            else {
+                console.log(`[ADMIN GALLERY IMAGES] No images found in database for gallery ${id}`);
+            }
             // Transform to match frontend expectations
             const transformedImages = (galleryImages || []).map(img => ({
                 id: img.id,
@@ -2887,6 +2916,7 @@ Bitte versuchen Sie es später noch einmal.`;
                 originalUrl: img.url || img.originalUrl,
                 displayUrl: img.url || img.displayUrl,
                 thumbUrl: img.url || img.thumbUrl,
+                url: img.url, // Also include raw url
                 title: img.title,
                 description: img.description,
                 orderIndex: img.sortOrder || img.sort_order || 0,
@@ -2895,11 +2925,126 @@ Bitte versuchen Sie es später noch einmal.`;
                 contentType: 'image/jpeg',
                 capturedAt: null
             }));
+            console.log(`[ADMIN GALLERY IMAGES] Returning ${transformedImages.length} transformed images to frontend`);
+            if (transformedImages.length > 0) {
+                console.log(`[ADMIN GALLERY IMAGES] First transformed image:`, JSON.stringify(transformedImages[0], null, 2));
+            }
             res.json(transformedImages);
         }
         catch (error) {
-            console.error("Error fetching admin gallery images:", error);
+            console.error("[ADMIN GALLERY IMAGES] Error fetching gallery images:", error);
             res.status(500).json({ error: "Failed to fetch gallery images" });
+        }
+    });
+    // Upload images to a gallery (admin only)
+    app.post("/api/galleries/:galleryId/upload", authenticateUser, upload.array('images', 50), async (req, res) => {
+        try {
+            const { galleryId } = req.params;
+            const files = req.files;
+            console.log(`[GALLERY UPLOAD] ======= UPLOAD REQUEST RECEIVED =======`);
+            console.log(`[GALLERY UPLOAD] Gallery ID: ${galleryId}`);
+            console.log(`[GALLERY UPLOAD] Files array exists:`, !!files);
+            console.log(`[GALLERY UPLOAD] Files length:`, files?.length || 0);
+            if (files && files.length > 0) {
+                console.log(`[GALLERY UPLOAD] First file:`, {
+                    fieldname: files[0].fieldname,
+                    originalname: files[0].originalname,
+                    mimetype: files[0].mimetype,
+                    size: files[0].size,
+                    bufferExists: !!files[0].buffer,
+                    bufferLength: files[0].buffer?.length || 0
+                });
+            }
+            console.log(`[GALLERY UPLOAD] Content-Type:`, req.headers['content-type']);
+            if (!files || files.length === 0) {
+                console.log('[GALLERY UPLOAD] ERROR: No files in request');
+                console.log('[GALLERY UPLOAD] Returning 400 - No images provided');
+                return res.status(400).json({ error: "No images provided" });
+            }
+            // Verify gallery exists
+            const gallery = await storage_1.storage.getGallery(galleryId);
+            if (!gallery) {
+                console.log('[GALLERY UPLOAD] Gallery not found:', galleryId);
+                return res.status(404).json({ error: "Gallery not found" });
+            }
+            console.log(`[GALLERY UPLOAD] Starting upload of ${files.length} images to gallery ${galleryId}`);
+            const uploadedImages = [];
+            const errors = [];
+            const s3Client = (0, s3_storage_1.getS3Client)();
+            const s3Config = (0, s3_storage_1.getS3Config)();
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const timestamp = Date.now();
+                const ext = path_1.default.extname(file.originalname).toLowerCase() || '.jpg';
+                const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+                const key = `galleries/${galleryId}/${timestamp}-${sanitizedFilename}`;
+                try {
+                    // Upload to B2/S3
+                    console.log(`[GALLERY UPLOAD] Attempting S3 upload for ${file.originalname}...`);
+                    await s3Client.send(new client_s3_1.PutObjectCommand({
+                        Bucket: s3Config.bucket,
+                        Key: key,
+                        Body: file.buffer,
+                        ContentType: file.mimetype,
+                    }));
+                    const imageUrl = (0, s3_storage_1.buildPublicUrl)(s3Config.bucket, s3Config.endpoint, key);
+                    console.log(`[GALLERY UPLOAD] S3 upload successful for image ${i + 1}/${files.length}: ${imageUrl}`);
+                    // Insert into gallery_images table
+                    console.log(`[GALLERY UPLOAD] Inserting image ${i + 1} into DB:`, {
+                        galleryId,
+                        filename: sanitizedFilename,
+                        url: imageUrl,
+                        title: file.originalname,
+                        sortOrder: i
+                    });
+                    const insertResult = await db_1.pool.query(`
+            INSERT INTO gallery_images (gallery_id, filename, url, title, sort_order, size_bytes, content_type, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+            RETURNING id, gallery_id as "galleryId", filename, url, title, sort_order as "sortOrder", size_bytes as "sizeBytes", content_type as "contentType", created_at as "createdAt"
+          `, [galleryId, sanitizedFilename, imageUrl, file.originalname, i, file.size, file.mimetype]);
+                    const insertedImage = insertResult.rows[0];
+                    console.log(`[GALLERY UPLOAD] DB insert successful. Inserted image ID:`, insertedImage.id);
+                    uploadedImages.push({
+                        id: insertedImage.id,
+                        galleryId: insertedImage.galleryId,
+                        filename: insertedImage.filename,
+                        originalUrl: insertedImage.url,
+                        displayUrl: insertedImage.url,
+                        thumbUrl: insertedImage.url,
+                        title: insertedImage.title,
+                        orderIndex: insertedImage.sortOrder || 0,
+                        createdAt: insertedImage.createdAt,
+                        sizeBytes: file.size,
+                        contentType: file.mimetype,
+                    });
+                    console.log(`[GALLERY UPLOAD] Added to uploadedImages array. Total uploaded so far: ${uploadedImages.length}`);
+                }
+                catch (uploadError) {
+                    const errorMsg = `Failed to upload ${file.originalname}: ${uploadError.message}`;
+                    console.error(`[GALLERY UPLOAD] ${errorMsg}`);
+                    console.error(`[GALLERY UPLOAD] Full error:`, uploadError);
+                    errors.push(errorMsg);
+                    // Continue with other images even if one fails
+                }
+            }
+            console.log(`[GALLERY UPLOAD] Successfully uploaded ${uploadedImages.length} out of ${files.length} images to gallery ${galleryId}`);
+            if (uploadedImages.length === 0 && errors.length > 0) {
+                console.error(`[GALLERY UPLOAD] All uploads failed. Errors:`, errors);
+                return res.status(500).json({
+                    error: "All uploads failed",
+                    details: errors.join('; '),
+                    uploadedCount: 0,
+                    totalCount: files.length
+                });
+            }
+            if (errors.length > 0) {
+                console.warn(`[GALLERY UPLOAD] Some uploads failed:`, errors);
+            }
+            res.json(uploadedImages);
+        }
+        catch (error) {
+            console.error("Error uploading gallery images:", error);
+            res.status(500).json({ error: "Failed to upload images" });
         }
     });
     // Get gallery images (public, requires authentication token)
@@ -2976,86 +3121,9 @@ Bitte versuchen Sie es später noch einmal.`;
                     console.log('Error checking local gallery files:', error);
                 }
             }
-            // If still no images found, use fallback sample images
+            // If no images found, return empty array (no sample/placeholder images)
             if (!galleryImages || galleryImages.length === 0) {
-                const sampleImages = [
-                    {
-                        id: 'sample-1',
-                        galleryId: gallery.id,
-                        filename: 'mountain_landscape.jpg',
-                        originalUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-                        displayUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80',
-                        thumbUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80',
-                        title: 'Mountain Vista',
-                        description: 'Beautiful mountain landscape captured during golden hour',
-                        orderIndex: 0,
-                        createdAt: new Date().toISOString(),
-                        sizeBytes: 2500000,
-                        contentType: 'image/jpeg',
-                        capturedAt: null
-                    },
-                    {
-                        id: 'sample-2',
-                        galleryId: gallery.id,
-                        filename: 'forest_path.jpg',
-                        originalUrl: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-                        displayUrl: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80',
-                        thumbUrl: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80',
-                        title: 'Forest Trail',
-                        description: 'Peaceful forest path through autumn trees',
-                        orderIndex: 1,
-                        createdAt: new Date().toISOString(),
-                        sizeBytes: 2300000,
-                        contentType: 'image/jpeg',
-                        capturedAt: null
-                    },
-                    {
-                        id: 'sample-3',
-                        galleryId: gallery.id,
-                        filename: 'lake_reflection.jpg',
-                        originalUrl: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-                        displayUrl: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80',
-                        thumbUrl: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80',
-                        title: 'Lake Reflection',
-                        description: 'Perfect mirror reflection on a calm mountain lake',
-                        orderIndex: 2,
-                        createdAt: new Date().toISOString(),
-                        sizeBytes: 2800000,
-                        contentType: 'image/jpeg',
-                        capturedAt: null
-                    },
-                    {
-                        id: 'sample-4',
-                        galleryId: gallery.id,
-                        filename: 'city_skyline.jpg',
-                        originalUrl: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-                        displayUrl: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80',
-                        thumbUrl: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80',
-                        title: 'Urban Evening',
-                        description: 'City skyline illuminated at twilight',
-                        orderIndex: 3,
-                        createdAt: new Date().toISOString(),
-                        sizeBytes: 2600000,
-                        contentType: 'image/jpeg',
-                        capturedAt: null
-                    },
-                    {
-                        id: 'sample-5',
-                        galleryId: gallery.id,
-                        filename: 'coastal_sunset.jpg',
-                        originalUrl: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2156&q=80',
-                        displayUrl: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80',
-                        thumbUrl: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80',
-                        title: 'Coastal Sunset',
-                        description: 'Golden hour over the ocean coastline',
-                        orderIndex: 4,
-                        createdAt: new Date().toISOString(),
-                        sizeBytes: 2400000,
-                        contentType: 'image/jpeg',
-                        capturedAt: null
-                    }
-                ];
-                res.json(sampleImages);
+                res.json([]);
                 return;
             }
             // Return gallery images from Neon database
@@ -3496,10 +3564,44 @@ Bitte versuchen Sie es später noch einmal.`;
             res.status(500).json({ error: "Failed to fetch client segments" });
         }
     });
-    // ==================== GALLERY ROUTES ====================
-    app.get("/api/galleries", authenticateUser, async (req, res) => {
+    // ==================== ADMIN GALLERY ROUTES ====================
+    // Get gallery analytics/stats (admin only)
+    app.get("/api/admin/galleries/analytics", authenticateUser, async (req, res) => {
         try {
-            const { clientId, isPublic, limit = 20 } = req.query;
+            // Get total galleries count
+            const totalGalleriesResult = await runSql(`SELECT COUNT(*) as count FROM galleries`);
+            const totalGalleries = parseInt(totalGalleriesResult[0]?.count || '0');
+            // Get total images count across all galleries
+            const totalImagesResult = await runSql(`SELECT COUNT(*) as count FROM gallery_images`);
+            const totalImages = parseInt(totalImagesResult[0]?.count || '0');
+            // Get public galleries count
+            const publicGalleriesResult = await runSql(`SELECT COUNT(*) as count FROM galleries WHERE is_public = true`);
+            const publicGalleries = parseInt(publicGalleriesResult[0]?.count || '0');
+            // Get password-protected galleries count
+            const protectedGalleriesResult = await runSql(`SELECT COUNT(*) as count FROM galleries WHERE is_password_protected = true`);
+            const protectedGalleries = parseInt(protectedGalleriesResult[0]?.count || '0');
+            // Get total storage used by gallery images (size_bytes column)
+            const storageResult = await runSql(`
+        SELECT COALESCE(SUM(size_bytes), 0) as total_bytes 
+        FROM gallery_images
+      `);
+            const totalStorageBytes = parseInt(storageResult[0]?.total_bytes || '0');
+            res.json({
+                totalGalleries,
+                totalImages,
+                publicGalleries,
+                protectedGalleries,
+                totalStorageBytes
+            });
+        }
+        catch (error) {
+            console.error('Error fetching gallery analytics:', error);
+            res.status(500).json({ error: "Failed to fetch gallery analytics" });
+        }
+    });
+    app.get("/api/admin/galleries", authenticateUser, async (req, res) => {
+        try {
+            const { clientId, isPublic, limit = 100 } = req.query;
             let query = `
         SELECT 
           g.id,
@@ -3549,8 +3651,13 @@ Bitte versuchen Sie es später noch einmal.`;
     app.post("/api/galleries", authenticateUser, async (req, res) => {
         try {
             const { title, description, clientId, isPublic = true, isPasswordProtected = false, password, slug, coverImage, coverPosition, coverScale, coverTemplate } = req.body;
-            // Generate slug if not provided
-            const gallerySlug = slug || title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').trim('-');
+            // Generate slug from title if not provided
+            const gallerySlug = slug || title
+                .toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove accents
+                .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens  
+                .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+                .substring(0, 100); // Limit length
             const query = `
         INSERT INTO galleries (title, description, client_id, is_public, is_password_protected, password, slug, cover_image, cover_position, cover_scale, cover_template, created_by)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
@@ -3593,21 +3700,52 @@ Bitte versuchen Sie es später noch einmal.`;
             const updates = [];
             const values = [];
             let paramIndex = 1;
-            const allowedFields = ['title', 'description', 'isPublic', 'isPasswordProtected', 'password', 'coverImage', 'coverPosition', 'coverScale', 'coverTemplate'];
+            // Map from both camelCase and snake_case to database column names
+            const fieldMapping = {
+                'title': 'title',
+                'description': 'description',
+                'isPublic': 'is_public',
+                'is_public': 'is_public',
+                'isPasswordProtected': 'is_password_protected',
+                'is_password_protected': 'is_password_protected',
+                'password': 'password',
+                'coverImage': 'cover_image',
+                'cover_image': 'cover_image',
+                'coverPosition': 'cover_position',
+                'cover_position': 'cover_position',
+                'coverScale': 'cover_scale',
+                'cover_scale': 'cover_scale',
+                'coverTemplate': 'cover_template',
+                'cover_template': 'cover_template',
+                'clientId': 'client_id',
+                'client_id': 'client_id',
+            };
+            const processedFields = new Set(); // Avoid duplicate updates
+            // If title is being updated, also update the slug
+            const newTitle = req.body.title;
+            if (newTitle) {
+                const newSlug = newTitle
+                    .toLowerCase()
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove accents
+                    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
+                    .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+                    .substring(0, 100); // Limit length
+                updates.push(`slug = $${paramIndex}`);
+                values.push(newSlug);
+                paramIndex++;
+                processedFields.add('slug');
+            }
             for (const [key, value] of Object.entries(req.body)) {
-                if (allowedFields.includes(key) && value !== undefined) {
-                    const dbField = key === 'isPublic' ? 'is_public' :
-                        key === 'isPasswordProtected' ? 'is_password_protected' :
-                            key === 'coverImage' ? 'cover_image' :
-                                key === 'coverPosition' ? 'cover_position' :
-                                    key === 'coverScale' ? 'cover_scale' :
-                                        key === 'coverTemplate' ? 'cover_template' : key;
-                    updates.push(`${dbField} = $${paramIndex}`);
-                    // For coverPosition and coverTemplate, ensure they're stored as JSON
-                    if (key === 'coverPosition' || key === 'coverTemplate') {
-                        values.push(JSON.stringify(value));
+                const dbField = fieldMapping[key];
+                if (dbField && value !== undefined && !processedFields.has(dbField)) {
+                    processedFields.add(dbField);
+                    // For JSONB columns, use explicit cast
+                    if (dbField === 'cover_position' || dbField === 'cover_template') {
+                        updates.push(`${dbField} = $${paramIndex}::jsonb`);
+                        values.push(typeof value === 'string' ? value : JSON.stringify(value));
                     }
                     else {
+                        updates.push(`${dbField} = $${paramIndex}`);
                         values.push(value);
                     }
                     paramIndex++;
@@ -3620,10 +3758,12 @@ Bitte versuchen Sie es später noch einmal.`;
             const query = `
         UPDATE galleries 
         SET ${updates.join(', ')}
-        WHERE id = $${paramIndex}
+        WHERE id = $${paramIndex}::uuid
         RETURNING id, title, slug, description, cover_image, cover_position, cover_scale, cover_template, is_public, updated_at
       `;
             values.push(galleryId);
+            console.log('[GALLERY-UPDATE] Query:', query);
+            console.log('[GALLERY-UPDATE] Values:', values.map((v, i) => `$${i + 1}: ${typeof v === 'string' && v.length > 100 ? v.substring(0, 100) + '...' : v}`));
             const result = await runSql(query, values);
             if (result.length === 0) {
                 return res.status(404).json({ error: "Gallery not found" });
@@ -3642,7 +3782,9 @@ Bitte versuchen Sie es später noch einmal.`;
         }
         catch (error) {
             console.error('Error updating gallery:', error);
-            res.status(500).json({ error: "Failed to update gallery" });
+            console.error('Error message:', error?.message);
+            console.error('Error stack:', error?.stack);
+            res.status(500).json({ error: error?.message || "Failed to update gallery" });
         }
     });
     app.delete("/api/galleries/:id", authenticateUser, async (req, res) => {
@@ -3713,29 +3855,298 @@ Bitte versuchen Sie es später noch einmal.`;
             res.status(500).json({ error: "Failed to fetch gallery" });
         }
     });
+    // ==================== GALLERY ANALYTICS TRACKING ROUTES ====================
+    // POST /api/galleries/:id/track-view - Track gallery view
+    app.post("/api/galleries/:id/track-view", async (req, res) => {
+        try {
+            const galleryId = req.params.id;
+            const { visitorEmail, visitorName, metadata } = req.body;
+            // Update or create analytics record
+            await runSql(`
+        INSERT INTO gallery_analytics (gallery_id, view_count, last_viewed_at, updated_at)
+        VALUES ($1, 1, NOW(), NOW())
+        ON CONFLICT (gallery_id) DO UPDATE SET
+          view_count = gallery_analytics.view_count + 1,
+          last_viewed_at = NOW(),
+          updated_at = NOW()
+      `, [galleryId]);
+            // Log activity
+            await runSql(`
+        INSERT INTO gallery_activity_log (gallery_id, activity_type, visitor_email, visitor_name, metadata)
+        VALUES ($1, 'view', $2, $3, $4)
+      `, [galleryId, visitorEmail || null, visitorName || null, JSON.stringify(metadata || {})]);
+            res.json({ success: true });
+        }
+        catch (error) {
+            console.error('Error tracking gallery view:', error);
+            res.status(500).json({ error: "Failed to track view" });
+        }
+    });
+    // POST /api/galleries/:id/track-download - Track gallery download
+    app.post("/api/galleries/:id/track-download", async (req, res) => {
+        try {
+            const galleryId = req.params.id;
+            const { visitorEmail, visitorName, imageId, metadata } = req.body;
+            // Update analytics record
+            await runSql(`
+        INSERT INTO gallery_analytics (gallery_id, download_count, last_downloaded_at, updated_at)
+        VALUES ($1, 1, NOW(), NOW())
+        ON CONFLICT (gallery_id) DO UPDATE SET
+          download_count = gallery_analytics.download_count + 1,
+          last_downloaded_at = NOW(),
+          updated_at = NOW()
+      `, [galleryId]);
+            // Log activity
+            await runSql(`
+        INSERT INTO gallery_activity_log (gallery_id, activity_type, visitor_email, visitor_name, image_id, metadata)
+        VALUES ($1, 'download', $2, $3, $4, $5)
+      `, [galleryId, visitorEmail || null, visitorName || null, imageId || null, JSON.stringify(metadata || {})]);
+            res.json({ success: true });
+        }
+        catch (error) {
+            console.error('Error tracking gallery download:', error);
+            res.status(500).json({ error: "Failed to track download" });
+        }
+    });
+    // POST /api/galleries/:id/capture-email - Capture visitor email
+    app.post("/api/galleries/:id/capture-email", async (req, res) => {
+        try {
+            const galleryId = req.params.id;
+            const { email, name, phone, source, metadata } = req.body;
+            if (!email) {
+                return res.status(400).json({ error: 'Email is required' });
+            }
+            // Check if email already captured for this gallery (to prevent duplicates)
+            const existing = await runSql(`
+        SELECT id FROM gallery_email_captures
+        WHERE gallery_id = $1 AND email = $2
+        LIMIT 1
+      `, [galleryId, email]);
+            if (existing.length === 0) {
+                // Insert email capture
+                await runSql(`
+          INSERT INTO gallery_email_captures (gallery_id, email, name, phone, source, metadata)
+          VALUES ($1, $2, $3, $4, $5, $6)
+        `, [galleryId, email, name || null, phone || null, source || 'gallery_view', JSON.stringify(metadata || {})]);
+                // Update analytics
+                await runSql(`
+          INSERT INTO gallery_analytics (gallery_id, email_capture_count, last_email_captured_at, updated_at)
+          VALUES ($1, 1, NOW(), NOW())
+          ON CONFLICT (gallery_id) DO UPDATE SET
+            email_capture_count = gallery_analytics.email_capture_count + 1,
+            last_email_captured_at = NOW(),
+            updated_at = NOW()
+        `, [galleryId]);
+                // Log activity
+                await runSql(`
+          INSERT INTO gallery_activity_log (gallery_id, activity_type, visitor_email, visitor_name, metadata)
+          VALUES ($1, 'email_capture', $2, $3, $4)
+        `, [galleryId, email, name || null, JSON.stringify({ source, ...metadata })]);
+            }
+            res.json({ success: true, alreadyCaptured: existing.length > 0 });
+        }
+        catch (error) {
+            console.error('Error capturing email:', error);
+            res.status(500).json({ error: "Failed to capture email" });
+        }
+    });
+    // GET /api/galleries/:id/analytics - Get gallery analytics (admin only)
+    app.get("/api/galleries/:id/analytics", authenticateUser, async (req, res) => {
+        try {
+            const galleryId = req.params.id;
+            // Get analytics summary
+            const analytics = await runSql(`
+        SELECT * FROM gallery_analytics WHERE gallery_id = $1
+      `, [galleryId]);
+            // Get recent activity (last 50)
+            const recentActivity = await runSql(`
+        SELECT * FROM gallery_activity_log
+        WHERE gallery_id = $1
+        ORDER BY created_at DESC
+        LIMIT 50
+      `, [galleryId]);
+            // Get email captures
+            const emailCaptures = await runSql(`
+        SELECT * FROM gallery_email_captures
+        WHERE gallery_id = $1
+        ORDER BY captured_at DESC
+      `, [galleryId]);
+            res.json({
+                analytics: analytics[0] || { viewCount: 0, downloadCount: 0, emailCaptureCount: 0 },
+                recentActivity,
+                emailCaptures
+            });
+        }
+        catch (error) {
+            console.error('Error fetching gallery analytics:', error);
+            res.status(500).json({ error: "Failed to fetch analytics" });
+        }
+    });
+    // ==================== GALLERY SHARING ROUTES ====================
+    // POST /api/galleries/send-email - Send gallery link via email
+    app.post("/api/galleries/send-email", authenticateUser, async (req, res) => {
+        try {
+            const { gallery_id, slug, to, message, gallery_url } = req.body;
+            if (!to || (!gallery_id && !slug)) {
+                return res.status(400).json({ error: 'to and gallery_id or slug required' });
+            }
+            // Find gallery
+            let gallery;
+            if (slug) {
+                const result = await runSql(`SELECT id, title, slug, is_password_protected, password FROM galleries WHERE slug = $1 LIMIT 1`, [slug]);
+                gallery = result[0];
+            }
+            else {
+                const result = await runSql(`SELECT id, title, slug, is_password_protected, password FROM galleries WHERE id = $1 LIMIT 1`, [gallery_id]);
+                gallery = result[0];
+            }
+            if (!gallery) {
+                return res.status(404).json({ error: 'Gallery not found' });
+            }
+            // Use frontend-provided gallery_url, or build from environment/host
+            const link = gallery_url || `https://www.newagefotografie.com/gallery/${gallery.slug}`;
+            const pwdNote = (gallery.is_password_protected && gallery.password)
+                ? `<p>Password: <strong>${gallery.password}</strong></p>`
+                : '';
+            const html = `
+        <div style="font-family:system-ui;line-height:1.6">
+          <p>Hello,</p>
+          <p>We've shared the photo gallery "<strong>${gallery.title}</strong>" with you.</p>
+          <p><a href="${link}">Open the gallery</a></p>
+          ${pwdNote}
+          ${message ? `<p>${String(message)}</p>` : ''}
+          <p>— New Age Fotografie</p>
+        </div>`;
+            const textContent = `Gallery link: ${link}${gallery.is_password_protected && gallery.password ? `\nPassword: ${gallery.password}` : ''}${message ? `\n\n${message}` : ''}`;
+            // Send email using the enhanced email service
+            const { EnhancedEmailService } = await import('./services/enhancedEmailService');
+            await EnhancedEmailService.sendEmail({
+                to,
+                subject: `Gallery: ${gallery.title}`,
+                content: textContent,
+                html: html
+            });
+            res.json({ ok: true, link });
+        }
+        catch (error) {
+            console.error('Error sending gallery email:', error);
+            res.status(500).json({ error: error?.message || 'Failed to send email' });
+        }
+    });
+    // POST /api/galleries/send-whatsapp - Send gallery link via WhatsApp
+    app.post("/api/galleries/send-whatsapp", authenticateUser, async (req, res) => {
+        try {
+            const { gallery_id, slug, to_phone, gallery_url } = req.body;
+            // Find gallery
+            let gallery;
+            if (slug) {
+                const result = await runSql(`SELECT id, title, slug, is_password_protected, password FROM galleries WHERE slug = $1 LIMIT 1`, [slug]);
+                gallery = result[0];
+            }
+            else if (gallery_id) {
+                const result = await runSql(`SELECT id, title, slug, is_password_protected, password FROM galleries WHERE id = $1 LIMIT 1`, [gallery_id]);
+                gallery = result[0];
+            }
+            if (!gallery) {
+                return res.status(404).json({ error: 'Gallery not found' });
+            }
+            // Use frontend-provided gallery_url, or build with production domain
+            const link = gallery_url || `https://www.newagefotografie.com/gallery/${gallery.slug}`;
+            // Generate WhatsApp share link
+            const text = `Here's your photo gallery "${gallery.title}": ${link}${gallery.is_password_protected && gallery.password ? `\nPassword: ${gallery.password}` : ''}`;
+            const shareUrl = `https://wa.me/${to_phone ? to_phone.replace(/[^0-9]/g, '') : ''}?text=${encodeURIComponent(text)}`;
+            res.json({ ok: true, sent: false, link, share: shareUrl });
+        }
+        catch (error) {
+            console.error('Error with gallery WhatsApp share:', error);
+            res.status(500).json({ error: error?.message || 'Failed to generate WhatsApp link' });
+        }
+    });
+    // POST /api/galleries/send-sms - Send gallery link via SMS
+    app.post("/api/galleries/send-sms", authenticateUser, async (req, res) => {
+        try {
+            const { gallery_id, slug, to_phone, gallery_url } = req.body;
+            if (!to_phone) {
+                return res.status(400).json({ error: 'to_phone is required' });
+            }
+            // Find gallery
+            let gallery;
+            if (slug) {
+                const result = await runSql(`SELECT id, title, slug, is_password_protected, password FROM galleries WHERE slug = $1 LIMIT 1`, [slug]);
+                gallery = result[0];
+            }
+            else if (gallery_id) {
+                const result = await runSql(`SELECT id, title, slug, is_password_protected, password FROM galleries WHERE id = $1 LIMIT 1`, [gallery_id]);
+                gallery = result[0];
+            }
+            if (!gallery) {
+                return res.status(404).json({ error: 'Gallery not found' });
+            }
+            // Use frontend-provided gallery_url, or build with production domain
+            const link = gallery_url || `https://www.newagefotografie.com/gallery/${gallery.slug}`;
+            // Build SMS message
+            const smsText = `Here's your photo gallery "${gallery.title}": ${link}${gallery.is_password_protected && gallery.password ? ` (Password: ${gallery.password})` : ''}`;
+            // Try to send via SMS service if configured
+            try {
+                const { SMSService } = await import('./services/smsService');
+                const smsService = SMSService.getInstance();
+                await smsService.sendSMS({ to: to_phone, message: smsText });
+                res.json({ ok: true, sent: true, link, info: 'SMS sent successfully' });
+            }
+            catch (smsError) {
+                // SMS service not configured or failed
+                console.log('SMS service not available:', smsError?.message);
+                res.json({ ok: true, sent: false, link, info: 'SMS service not configured. Please copy the link manually.' });
+            }
+        }
+        catch (error) {
+            console.error('Error with gallery SMS:', error);
+            res.status(500).json({ error: error?.message || 'Failed to send SMS' });
+        }
+    });
     // ==================== INVOICE ROUTES ====================
     app.get("/api/crm/invoices", authenticateUser, async (req, res) => {
         try {
-            const invoices = await storage_1.storage.getCrmInvoices();
+            const clientId = req.query.clientId;
+            let invoices = await storage_1.storage.getCrmInvoices();
+            // Filter by clientId if provided
+            if (clientId) {
+                invoices = invoices.filter(inv => inv.client_id === clientId);
+            }
             // Transform the data to match frontend expectations
             const transformedInvoices = invoices.map(invoice => ({
                 id: invoice.id,
+                invoiceNumber: invoice.invoice_number,
                 invoice_number: invoice.invoice_number,
+                clientId: invoice.client_id,
                 client_id: invoice.client_id,
+                issueDate: invoice.issue_date,
                 issue_date: invoice.issue_date,
+                dueDate: invoice.due_date,
                 due_date: invoice.due_date,
+                subtotal: parseFloat(invoice.subtotal || '0'),
                 subtotal_amount: parseFloat(invoice.subtotal || '0'),
+                taxAmount: parseFloat(invoice.tax_amount || '0'),
                 tax_amount: parseFloat(invoice.tax_amount || '0'),
+                total: parseFloat(invoice.total || '0'),
+                totalAmount: parseFloat(invoice.total || '0'),
                 total_amount: parseFloat(invoice.total || '0'),
                 status: invoice.status,
                 notes: invoice.notes,
+                createdAt: invoice.created_at,
                 created_at: invoice.created_at,
                 client: {
                     name: invoice.client_name,
                     email: invoice.client_email
                 }
             }));
-            res.json(transformedInvoices);
+            // Support both response formats for backwards compatibility
+            if (clientId) {
+                res.json({ invoices: transformedInvoices });
+            }
+            else {
+                res.json(transformedInvoices);
+            }
         }
         catch (error) {
             console.error("Error fetching invoices:", error);
@@ -3758,6 +4169,48 @@ Bitte versuchen Sie es später noch einmal.`;
             res.status(500).json({ error: "Internal server error", rows: [], total: 0 });
         }
     });
+    // Get invoice status by IDs
+    app.get("/api/invoices/status", authenticateUser, async (req, res) => {
+        try {
+            const ids = req.query.ids;
+            if (!ids) {
+                return res.json({ statuses: {} });
+            }
+            const idList = ids.split(',').filter(Boolean);
+            const statuses = {};
+            for (const id of idList) {
+                try {
+                    const result = await runSql('SELECT status FROM crm_invoices WHERE id = $1::uuid', [id]);
+                    if (result && result.length > 0) {
+                        statuses[id] = result[0].status || 'draft';
+                    }
+                }
+                catch (e) {
+                    // Skip invalid IDs
+                }
+            }
+            res.json({ statuses });
+        }
+        catch (error) {
+            console.error("Error fetching invoice statuses:", error);
+            res.status(500).json({ error: "Internal server error", statuses: {} });
+        }
+    });
+    // Update invoice status
+    app.post("/api/invoices/update-status", authenticateUser, async (req, res) => {
+        try {
+            const { invoice_id, status } = req.body;
+            if (!invoice_id || !status) {
+                return res.status(400).json({ ok: false, error: 'Missing invoice_id or status' });
+            }
+            await runSql('UPDATE crm_invoices SET status = $1, updated_at = NOW() WHERE id = $2::uuid', [status, invoice_id]);
+            res.json({ ok: true, success: true });
+        }
+        catch (error) {
+            console.error("Error updating invoice status:", error);
+            res.status(500).json({ ok: false, error: "Internal server error" });
+        }
+    });
     app.get("/api/crm/invoices/:id", authenticateUser, async (req, res) => {
         try {
             const invoice = await storage_1.storage.getCrmInvoice(req.params.id);
@@ -3772,8 +4225,10 @@ Bitte versuchen Sie es später noch einmal.`;
                 client = await storage_1.storage.getCrmClient(invoice.clientId);
             }
             // Return complete invoice with items and client
+            // Include both camelCase and snake_case for client_id for frontend compatibility
             res.json({
                 ...invoice,
+                client_id: invoice.clientId, // Add snake_case version for frontend
                 items,
                 client
             });
@@ -3783,44 +4238,135 @@ Bitte versuchen Sie es später noch einmal.`;
             res.status(500).json({ error: "Internal server error" });
         }
     });
+    // Invoice edit endpoint - handles full invoice updates including items
+    app.post("/api/invoice-edit", authenticateUser, async (req, res) => {
+        try {
+            const { invoiceId, clientId, invoiceNumber, status, dueDate, notes, footerText, items } = req.body;
+            console.log('[INVOICE-EDIT] Received update request for invoice:', invoiceId);
+            console.log('[INVOICE-EDIT] Request body:', JSON.stringify(req.body, null, 2));
+            if (!invoiceId) {
+                return res.status(400).json({ ok: false, error: 'Missing invoiceId' });
+            }
+            // Update main invoice record
+            const updateQuery = `
+        UPDATE crm_invoices 
+        SET 
+          client_id = COALESCE($1::uuid, client_id),
+          invoice_number = COALESCE($2, invoice_number),
+          status = COALESCE($3, status),
+          due_date = COALESCE($4::timestamp, due_date),
+          notes = COALESCE($5, notes),
+          footer_text = COALESCE($6, footer_text),
+          updated_at = NOW()
+        WHERE id = $7::uuid
+        RETURNING *
+      `;
+            const updateResult = await runSql(updateQuery, [
+                clientId || null,
+                invoiceNumber || null,
+                status || null,
+                dueDate || null,
+                notes || null,
+                footerText || null,
+                invoiceId
+            ]);
+            if (!updateResult || updateResult.length === 0) {
+                console.log('[INVOICE-EDIT] Invoice not found:', invoiceId);
+                return res.status(404).json({ ok: false, error: 'Invoice not found' });
+            }
+            console.log('[INVOICE-EDIT] Updated invoice record:', updateResult[0]);
+            // Update invoice items if provided
+            if (items && Array.isArray(items) && items.length > 0) {
+                console.log('[INVOICE-EDIT] Updating', items.length, 'items');
+                // Delete existing items
+                await runSql('DELETE FROM crm_invoice_items WHERE invoice_id = $1::uuid', [invoiceId]);
+                // Calculate totals
+                let subtotal = 0;
+                let totalTax = 0;
+                // Insert new items (table has: id, invoice_id, description, quantity, unit_price, tax_rate, sort_order, created_at)
+                let sortOrder = 0;
+                for (const item of items) {
+                    const quantity = parseFloat(item.quantity) || 1;
+                    const unitPrice = parseFloat(item.unitPrice) || 0;
+                    const taxRate = parseFloat(item.taxRate) || 0;
+                    const amount = quantity * unitPrice;
+                    const taxAmount = amount * (taxRate / 100);
+                    subtotal += amount;
+                    totalTax += taxAmount;
+                    sortOrder++;
+                    await runSql(`
+            INSERT INTO crm_invoice_items (invoice_id, description, quantity, unit_price, tax_rate, sort_order)
+            VALUES ($1::uuid, $2, $3, $4, $5, $6)
+          `, [invoiceId, item.description || '', quantity, unitPrice, taxRate, sortOrder]);
+                }
+                // Update invoice totals
+                const total = subtotal + totalTax;
+                await runSql(`
+          UPDATE crm_invoices 
+          SET subtotal = $1, tax_amount = $2, total = $3, updated_at = NOW()
+          WHERE id = $4::uuid
+        `, [subtotal, totalTax, total, invoiceId]);
+                console.log('[INVOICE-EDIT] Updated totals - subtotal:', subtotal, 'tax:', totalTax, 'total:', total);
+            }
+            res.json({ ok: true, success: true, invoice_id: invoiceId });
+        }
+        catch (error) {
+            console.error('[INVOICE-EDIT] Error updating invoice:', error);
+            res.status(500).json({ ok: false, error: error.message || 'Internal server error' });
+        }
+    });
     app.post("/api/crm/invoices", authenticateUser, async (req, res) => {
         try {
             console.log("Received invoice data:", JSON.stringify(req.body, null, 2));
-            // Validate the invoice data
-            const invoiceData = insertCrmInvoiceSchema.parse(req.body);
-            console.log("After schema validation:", JSON.stringify(invoiceData, null, 2));
+            // Transform snake_case from frontend to camelCase for database
+            const invoiceData = {
+                clientId: req.body.clientId || req.body.client_id,
+                invoiceNumber: req.body.invoiceNumber || req.body.invoice_number,
+                issueDate: req.body.issueDate || req.body.issue_date,
+                dueDate: req.body.dueDate || req.body.due_date,
+                subtotal: req.body.subtotal?.toString() || '0',
+                taxAmount: req.body.taxAmount?.toString() || req.body.tax_amount?.toString() || '0',
+                discountAmount: req.body.discountAmount?.toString() || req.body.discount_amount?.toString() || '0',
+                total: req.body.total?.toString() || '0',
+                currency: req.body.currency || 'EUR',
+                status: (req.body.status || 'draft').toLowerCase(),
+                paymentTerms: req.body.paymentTerms || req.body.payment_terms || 'Net 30',
+                notes: req.body.notes || '',
+                termsAndConditions: req.body.termsAndConditions || req.body.terms_and_conditions,
+                footerText: req.body.footerText || req.body.footer_text,
+                stripePaymentIntentId: req.body.stripePaymentIntentId || req.body.stripe_payment_intent_id,
+                stripePaymentUrl: req.body.stripePaymentUrl || req.body.stripe_payment_url,
+                paidAmount: req.body.paidAmount?.toString() || req.body.paid_amount?.toString() || '0',
+                createdBy: req.body.createdBy || req.body.created_by || null
+            };
+            console.log("Transformed invoice data:", JSON.stringify(invoiceData, null, 2));
             // Add auto-generated invoice number if not provided
             if (!invoiceData.invoiceNumber) {
                 const timestamp = Date.now();
                 invoiceData.invoiceNumber = `INV-${timestamp}`;
             }
-            // Remove createdBy to avoid foreign key constraint issues with non-existent users
-            const { createdBy, ...invoiceDataWithoutCreatedBy } = invoiceData;
-            // Explicitly set createdBy to null to prevent foreign key issues
-            const finalInvoiceData = { ...invoiceDataWithoutCreatedBy, createdBy: null };
-            console.log('Invoice data being sent to storage:', JSON.stringify(finalInvoiceData, null, 2));
+            console.log('Invoice data being sent to storage:', JSON.stringify(invoiceData, null, 2));
             // Create the invoice
-            const invoice = await storage_1.storage.createCrmInvoice(finalInvoiceData); // Create invoice items if provided
+            const invoice = await storage_1.storage.createCrmInvoice(invoiceData);
+            // Create invoice items if provided
             if (req.body.items && req.body.items.length > 0) {
                 const itemsData = req.body.items.map((item, index) => ({
                     invoiceId: invoice.id,
                     description: item.description,
-                    quantity: item.quantity.toString(),
-                    unitPrice: (item.unitPrice || item.unit_price).toString(),
+                    quantity: item.quantity?.toString() || '1',
+                    unitPrice: (item.unitPrice || item.unit_price || 0).toString(),
                     taxRate: (item.taxRate || item.tax_rate || 0).toString(),
                     sortOrder: index
                 }));
+                console.log('Creating invoice items:', JSON.stringify(itemsData, null, 2));
                 await storage_1.storage.createCrmInvoiceItems(itemsData);
             }
             res.status(201).json({ ok: true, invoice_id: invoice.id, ...invoice });
         }
         catch (error) {
-            if (error instanceof z.ZodError) {
-                console.error("Validation error details:", JSON.stringify(error.errors, null, 2));
-                return res.status(400).json({ ok: false, error: "Validation error", details: error.errors });
-            }
             console.error("Error creating invoice:", error);
-            res.status(500).json({ ok: false, error: "Internal server error" });
+            console.error("Error stack:", error.stack);
+            res.status(500).json({ ok: false, error: error.message || "Internal server error" });
         }
     });
     app.put("/api/crm/invoices/:id", authenticateUser, async (req, res) => {
@@ -3851,6 +4397,138 @@ Bitte versuchen Sie es später noch einmal.`;
         catch (error) {
             console.error("Error deleting invoice:", error);
             res.status(500).json({ error: "Internal server error" });
+        }
+    });
+    // ==================== INVOICE SHARING ROUTES ====================
+    // POST /api/invoices/send-email - Send invoice link via email
+    app.post("/api/invoices/send-email", authenticateUser, async (req, res) => {
+        try {
+            const { invoice_id, to } = req.body;
+            if (!invoice_id || !to) {
+                return res.status(400).json({ error: 'invoice_id and to (email) are required' });
+            }
+            // Find invoice
+            const invoiceResult = await runSql(`
+        SELECT i.*, c.first_name, c.last_name, c.email as client_email
+        FROM crm_invoices i
+        LEFT JOIN crm_clients c ON i.client_id = c.id
+        WHERE i.id = $1::uuid
+      `, [invoice_id]);
+            if (!invoiceResult || invoiceResult.length === 0) {
+                return res.status(404).json({ error: 'Invoice not found' });
+            }
+            const invoice = invoiceResult[0];
+            // Build invoice URL
+            const baseUrl = process.env.APP_URL || `https://${req.headers.host}`;
+            const link = `${baseUrl}/inv/${invoice_id}`;
+            const clientName = invoice.first_name && invoice.last_name
+                ? `${invoice.first_name} ${invoice.last_name}`
+                : 'Client';
+            const html = `
+        <div style="font-family:system-ui;line-height:1.6">
+          <p>Hello ${clientName},</p>
+          <p>Please find your invoice <strong>${invoice.invoice_number}</strong> attached.</p>
+          <p><strong>Amount Due:</strong> €${(invoice.total || 0).toFixed(2)}</p>
+          <p><strong>Due Date:</strong> ${invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : 'N/A'}</p>
+          <p><a href="${link}" style="display:inline-block;padding:12px 24px;background-color:#7C3AED;color:white;text-decoration:none;border-radius:6px;">View Invoice</a></p>
+          <p>Thank you for your business.</p>
+          <p>— New Age Fotografie</p>
+        </div>`;
+            const textContent = `Invoice ${invoice.invoice_number}\nAmount Due: €${(invoice.total || 0).toFixed(2)}\nView Invoice: ${link}`;
+            // Send email using the enhanced email service
+            const { EnhancedEmailService } = await import('./services/enhancedEmailService');
+            await EnhancedEmailService.sendEmail({
+                to,
+                subject: `Invoice ${invoice.invoice_number} from New Age Fotografie`,
+                content: textContent,
+                html: html
+            });
+            // Update invoice status to 'sent' if it was 'draft'
+            if (invoice.status === 'draft') {
+                await runSql('UPDATE crm_invoices SET status = $1, updated_at = NOW() WHERE id = $2::uuid', ['sent', invoice_id]);
+            }
+            res.json({ ok: true, link });
+        }
+        catch (error) {
+            console.error('Error sending invoice email:', error);
+            res.status(500).json({ error: error?.message || 'Failed to send email' });
+        }
+    });
+    // POST /api/invoices/send-whatsapp - Send invoice link via WhatsApp
+    app.post("/api/invoices/send-whatsapp", authenticateUser, async (req, res) => {
+        try {
+            const { invoice_id, to_phone } = req.body;
+            if (!invoice_id) {
+                return res.status(400).json({ error: 'invoice_id is required' });
+            }
+            // Find invoice
+            const invoiceResult = await runSql(`
+        SELECT i.*, c.first_name, c.last_name
+        FROM crm_invoices i
+        LEFT JOIN crm_clients c ON i.client_id = c.id
+        WHERE i.id = $1::uuid
+      `, [invoice_id]);
+            if (!invoiceResult || invoiceResult.length === 0) {
+                return res.status(404).json({ error: 'Invoice not found' });
+            }
+            const invoice = invoiceResult[0];
+            // Build invoice URL
+            const baseUrl = process.env.APP_URL || `https://${req.headers.host}`;
+            const link = `${baseUrl}/inv/${invoice_id}`;
+            // Generate WhatsApp share link using the correct API format
+            const text = `Hello! Here is your invoice ${invoice.invoice_number} for €${(invoice.total || 0).toFixed(2)}.\n\nView and pay online: ${link}\n\nThank you! - New Age Fotografie`;
+            // Clean phone number - remove all non-digits
+            const cleanPhone = to_phone ? to_phone.replace(/[^0-9]/g, '') : '';
+            // Use the correct WhatsApp API URL format
+            const shareUrl = cleanPhone
+                ? `https://api.whatsapp.com/send/?phone=${cleanPhone}&text=${encodeURIComponent(text)}`
+                : `https://api.whatsapp.com/send/?text=${encodeURIComponent(text)}`;
+            res.json({ ok: true, sent: false, link, share: shareUrl });
+        }
+        catch (error) {
+            console.error('Error with invoice WhatsApp share:', error);
+            res.status(500).json({ error: error?.message || 'Failed to generate WhatsApp link' });
+        }
+    });
+    // POST /api/invoices/send-sms - Send invoice link via SMS
+    app.post("/api/invoices/send-sms", authenticateUser, async (req, res) => {
+        try {
+            const { invoice_id, to_phone } = req.body;
+            if (!invoice_id || !to_phone) {
+                return res.status(400).json({ error: 'invoice_id and to_phone are required' });
+            }
+            // Find invoice
+            const invoiceResult = await runSql(`
+        SELECT i.*, c.first_name, c.last_name
+        FROM crm_invoices i
+        LEFT JOIN crm_clients c ON i.client_id = c.id
+        WHERE i.id = $1::uuid
+      `, [invoice_id]);
+            if (!invoiceResult || invoiceResult.length === 0) {
+                return res.status(404).json({ error: 'Invoice not found' });
+            }
+            const invoice = invoiceResult[0];
+            // Build invoice URL
+            const baseUrl = process.env.APP_URL || `https://${req.headers.host}`;
+            const link = `${baseUrl}/inv/${invoice_id}`;
+            // Build SMS message
+            const smsText = `Invoice ${invoice.invoice_number}: €${(invoice.total || 0).toFixed(2)}. View: ${link} - New Age Fotografie`;
+            // Try to send via SMS service if configured
+            try {
+                const { SMSService } = await import('./services/smsService');
+                const smsService = SMSService.getInstance();
+                await smsService.sendSMS({ to: to_phone, message: smsText });
+                res.json({ ok: true, sent: true, link, info: 'SMS sent successfully' });
+            }
+            catch (smsError) {
+                // SMS service not configured or failed
+                console.log('SMS service not available:', smsError?.message);
+                res.json({ ok: true, sent: false, link, info: 'SMS service not configured. Please copy the link manually.' });
+            }
+        }
+        catch (error) {
+            console.error('Error with invoice SMS:', error);
+            res.status(500).json({ error: error?.message || 'Failed to send SMS' });
         }
     });
     // ==================== INVOICE PAYMENT ROUTES ====================
@@ -4586,6 +5264,121 @@ New Age Fotografie Team`;
             console.error("Error fetching inbox emails:", error);
             // Fail-open to avoid blocking dashboard if storage fails
             res.json([]);
+        }
+    });
+    // ==================== INBOX FOLDERS ROUTES ====================
+    // Ensure email_folders table exists
+    const ensureEmailFoldersTable = async () => {
+        try {
+            await runSql(`
+        CREATE TABLE IF NOT EXISTS email_folders (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          name TEXT NOT NULL,
+          color TEXT DEFAULT '#6366f1',
+          sort_order INTEGER DEFAULT 0,
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          updated_at TIMESTAMPTZ DEFAULT NOW()
+        )`);
+            // Add folder_id column to crm_messages if not exists
+            await runSql(`ALTER TABLE crm_messages ADD COLUMN IF NOT EXISTS folder_id UUID`);
+        }
+        catch (e) {
+            console.warn('⚠️ Email folders table ensure failed:', e.message);
+        }
+    };
+    // GET /api/inbox/folders - List all folders
+    app.get("/api/inbox/folders", authenticateUser, async (req, res) => {
+        try {
+            await ensureEmailFoldersTable();
+            const folders = await runSql(`
+        SELECT id, name, color, sort_order, created_at, updated_at
+        FROM email_folders
+        ORDER BY sort_order ASC, created_at ASC
+      `);
+            res.json(folders || []);
+        }
+        catch (error) {
+            console.error('Error fetching inbox folders:', error);
+            res.json([]);
+        }
+    });
+    // POST /api/inbox/folders - Create a new folder
+    app.post("/api/inbox/folders", authenticateUser, async (req, res) => {
+        try {
+            await ensureEmailFoldersTable();
+            const { name, color } = req.body;
+            if (!name) {
+                return res.status(400).json({ error: 'Folder name is required' });
+            }
+            const result = await runSql(`
+        INSERT INTO email_folders (name, color, sort_order)
+        VALUES ($1, $2, COALESCE((SELECT MAX(sort_order) + 1 FROM email_folders), 0))
+        RETURNING id, name, color, sort_order, created_at, updated_at
+      `, [name, color || '#6366f1']);
+            res.status(201).json(result[0]);
+        }
+        catch (error) {
+            console.error('Error creating inbox folder:', error);
+            res.status(500).json({ error: 'Failed to create folder' });
+        }
+    });
+    // PUT /api/inbox/folders/:id - Update a folder
+    app.put("/api/inbox/folders/:id", authenticateUser, async (req, res) => {
+        try {
+            await ensureEmailFoldersTable();
+            const { id } = req.params;
+            const { name, color } = req.body;
+            const result = await runSql(`
+        UPDATE email_folders
+        SET name = COALESCE($1, name),
+            color = COALESCE($2, color),
+            updated_at = NOW()
+        WHERE id = $3::uuid
+        RETURNING id, name, color, sort_order, created_at, updated_at
+      `, [name, color, id]);
+            if (!result || result.length === 0) {
+                return res.status(404).json({ error: 'Folder not found' });
+            }
+            res.json(result[0]);
+        }
+        catch (error) {
+            console.error('Error updating inbox folder:', error);
+            res.status(500).json({ error: 'Failed to update folder' });
+        }
+    });
+    // DELETE /api/inbox/folders/:id - Delete a folder
+    app.delete("/api/inbox/folders/:id", authenticateUser, async (req, res) => {
+        try {
+            await ensureEmailFoldersTable();
+            const { id } = req.params;
+            // Move emails from this folder back to inbox (null folder_id)
+            await runSql(`UPDATE crm_messages SET folder_id = NULL WHERE folder_id = $1::uuid`, [id]);
+            // Delete the folder
+            await runSql(`DELETE FROM email_folders WHERE id = $1::uuid`, [id]);
+            res.json({ success: true });
+        }
+        catch (error) {
+            console.error('Error deleting inbox folder:', error);
+            res.status(500).json({ error: 'Failed to delete folder' });
+        }
+    });
+    // POST /api/inbox/emails/move - Move emails to a folder
+    app.post("/api/inbox/emails/move", authenticateUser, async (req, res) => {
+        try {
+            await ensureEmailFoldersTable();
+            const { messageIds, folderId } = req.body;
+            if (!messageIds || !Array.isArray(messageIds)) {
+                return res.status(400).json({ error: 'messageIds array is required' });
+            }
+            // folderId can be null to move back to inbox
+            for (const msgId of messageIds) {
+                await runSql(`UPDATE crm_messages SET folder_id = $1, updated_at = NOW() WHERE id = $2::uuid`, [folderId || null, msgId]);
+            }
+            res.json({ success: true, moved: messageIds.length });
+        }
+        catch (error) {
+            console.error('Error moving emails:', error);
+            res.status(500).json({ error: 'Failed to move emails' });
         }
     });
     // ==================== ADMIN DASHBOARD ====================
@@ -12035,6 +12828,8 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
     app.use('/api/gallery-transfer', gallery_transfer_routes_1.default);
     // Storage statistics routes
     app.use('/api/storage-stats', storage_stats_routes_1.default);
+    // Print ordering routes (Prodigi integration)
+    app.use('/api/print', prodigi_1.default);
     // Storage health check (diagnostics for Backblaze/AWS S3 configuration)
     app.get('/api/storage/health', async (_req, res) => {
         const bucket = process.env.AWS_S3_BUCKET || '';

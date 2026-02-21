@@ -388,15 +388,37 @@ const AdminInboxPage: React.FC = () => {
     setSelectedMessages([]);
   };
 
-  const handleDelete = (messageIds: string[]) => {
-    setMessages(prev => 
-      prev.map(message => 
-        messageIds.includes(message.id) 
-          ? { ...message, folder: 'trash' }
-          : message
-      )
-    );
-    setSelectedMessages([]);
+  const handleDelete = async (messageIds: string[]) => {
+    if (!confirm(`Are you sure you want to delete ${messageIds.length} message${messageIds.length > 1 ? 's' : ''}? This action cannot be undone.`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Delete each message via API
+      await Promise.all(
+        messageIds.map(id => 
+          fetch(`/api/crm/messages/${id}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+          })
+        )
+      );
+
+      // Remove from local state
+      setMessages(prev => prev.filter(message => !messageIds.includes(message.id)));
+      setSelectedMessages([]);
+      
+      // Clear current message if it was deleted
+      if (currentMessage && messageIds.includes(currentMessage.id)) {
+        setCurrentMessage(null);
+      }
+    } catch (err) {
+      console.error('Failed to delete messages:', err);
+      setError('Failed to delete messages. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatTimestamp = (timestamp: string) => {
