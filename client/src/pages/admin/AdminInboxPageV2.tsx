@@ -85,6 +85,9 @@ const AdminInboxPage: React.FC = () => {
   const [newFolderName, setNewFolderName] = useState('');
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editingFolderName, setEditingFolderName] = useState('');
+  
+  // More actions dropdown state
+  const [showMoreActions, setShowMoreActions] = useState(false);
 
   // Fetch custom folders
   const fetchCustomFolders = async () => {
@@ -253,6 +256,21 @@ const AdminInboxPage: React.FC = () => {
   useEffect(() => {
     fetchMessages();
   }, [selectedFolder]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showMoreActions) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.relative')) {
+          setShowMoreActions(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMoreActions]);
 
   const fetchMessages = async () => {
     try {
@@ -617,12 +635,63 @@ const AdminInboxPage: React.FC = () => {
               >
                 <Forward size={16} />
               </button>
-              <button
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-md"
-                title="More actions"
-              >
-                <MoreHorizontal size={16} />
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowMoreActions(!showMoreActions)}
+                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-md"
+                  title="More actions"
+                >
+                  <MoreHorizontal size={16} />
+                </button>
+                
+                {/* Dropdown Menu */}
+                {showMoreActions && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200">
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          handleMarkAsRead([currentMessage.id], !currentMessage.isRead);
+                          setShowMoreActions(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                      >
+                        {currentMessage.isRead ? <MailOpen size={14} className="mr-2" /> : <Mail size={14} className="mr-2" />}
+                        Mark as {currentMessage.isRead ? 'unread' : 'read'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleStar([currentMessage.id], !currentMessage.isStarred);
+                          setShowMoreActions(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                      >
+                        <Star size={14} className="mr-2" />
+                        {currentMessage.isStarred ? 'Unstar' : 'Star'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleArchive([currentMessage.id]);
+                          setShowMoreActions(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                      >
+                        <Archive size={14} className="mr-2" />
+                        Archive
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleDelete([currentMessage.id]);
+                          setShowMoreActions(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
+                      >
+                        <Trash2 size={14} className="mr-2" />
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
