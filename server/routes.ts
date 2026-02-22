@@ -5862,6 +5862,139 @@ New Age Fotografie Team`;
     }
   });
 
+  // ==================== PRIMARY STRIPE WEBHOOK ====================
+  // Fast-responding webhook endpoint for all Stripe events
+  // This endpoint responds immediately to prevent timeouts, then processes asynchronously
+  app.post("/api/stripe/webhook", async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    
+    if (!stripe || !stripeConfigured) {
+      console.error('❌ Stripe not configured for webhook');
+      return res.status(503).json({ error: "Payment service not configured" });
+    }
+
+    const sig = req.headers['stripe-signature'];
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!sig) {
+      console.error('❌ Missing Stripe signature header');
+      return res.status(400).json({ error: 'Missing Stripe signature' });
+    }
+
+    if (!webhookSecret || webhookSecret.startsWith('http')) {
+      console.error('❌ STRIPE_WEBHOOK_SECRET not configured correctly. Must be whsec_* secret from Stripe Dashboard, not a URL!');
+      return res.status(500).json({ error: 'Webhook secret not configured' });
+    }
+
+    let event: Stripe.Event;
+
+    try {
+      // Verify webhook signature
+      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+      console.log(`✅ Webhook signature verified: ${event.type} (${Date.now() - startTime}ms)`);
+    } catch (err: any) {
+      console.error('❌ Webhook signature verification failed:', err.message);
+      return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+    }
+
+    // RESPOND IMMEDIATELY - Don't make Stripe wait for processing
+    res.status(200).json({ received: true, type: event.type, id: event.id });
+    console.log(`⚡ Webhook response sent (${Date.now() - startTime}ms) - Processing ${event.type} async`);
+
+    // Process webhook event ASYNCHRONOUSLY after response
+    setImmediate(async () => {
+      try {
+        const processStart = Date.now();
+        
+        switch (event.type) {
+          case 'checkout.session.completed':
+          case 'checkout.session.async_payment_succeeded':
+            await handleCheckoutCompleted(event);
+            console.log(`✅ Processed ${event.type} in ${Date.now() - processStart}ms`);
+            break;
+
+          case 'checkout.session.expired':
+            await handleCheckoutExpired(event);
+            console.log(`✅ Processed ${event.type} in ${Date.now() - processStart}ms`);
+            break;
+
+          default:
+            console.log(`ℹ️ Unhandled webhook event type: ${event.type}`);
+        }
+      } catch (err) {
+        console.error(`❌ Error processing webhook ${event.type}:`, err);
+        // Don't throw - webhook already acknowledged
+      }
+    });
+  });
+
+  // Helper function to process completed checkout sessions
+  async function handleCheckoutCompleted(event: Stripe.Event) {
+    const session = event.data.object as Stripe.Checkout.Session;
+    
+    // Handle CRM invoice payments
+    const invoiceId = session.metadata?.invoiceId || session.metadata?.invoice_id;
+    if (invoiceId && session.payment_status === 'paid') {
+      try {
+        const invoice = await storage.getCrmInvoice(invoiceId);
+        if (invoice) {
+          const totalAmount = parseFloat(invoice.total?.toString() || '0');
+          
+          await storage.updateCrmInvoice(invoiceId, {
+            status: 'paid',
+            paidAmount: totalAmount.toString(),
+          });
+
+          await storage.createCrmInvoicePayment({
+            invoiceId: invoiceId,
+            amount: totalAmount.toString(),
+            paymentMethod: 'stripe',
+            paymentReference: session.payment_intent as string,
+            notes: `Stripe checkout completed - Session: ${session.id}`,
+          });
+
+          console.log(`✅ CRM Invoice ${invoiceId} marked as paid`);
+        }
+      } catch (err) {
+        console.error('❌ Error updating CRM invoice:', err);
+      }
+    }
+
+    // Handle voucher sales
+    const voucherSaleId = session.metadata?.voucherSaleId;
+    if (voucherSaleId && session.payment_status === 'paid') {
+      try {
+        // Update voucher sale status
+        await db.execute(
+          sql`UPDATE voucher_sales SET payment_status = 'paid' WHERE id = ${voucherSaleId}`
+        );
+        console.log(`✅ Voucher sale ${voucherSaleId} marked as paid`);
+      } catch (err) {
+        console.error('❌ Error updating voucher sale:', err);
+      }
+    }
+  }
+
+  // Helper function to process expired checkout sessions
+  async function handleCheckoutExpired(event: Stripe.Event) {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const invoiceId = session.metadata?.invoiceId || session.metadata?.invoice_id;
+    
+    if (invoiceId) {
+      try {
+        const invoice = await storage.getCrmInvoice(invoiceId);
+        if (invoice && invoice.status !== 'paid') {
+          await storage.updateCrmInvoice(invoiceId, {
+            status: 'expired',
+          });
+          console.log(`✅ Invoice ${invoiceId} marked as expired`);
+        }
+      } catch (err) {
+        console.error('❌ Error marking invoice as expired:', err);
+      }
+    }
+  }
+
   // Stripe webhook for invoice payments
   app.post("/api/invoices/webhook", async (req: Request, res: Response) => {
     if (!stripe || !stripeConfigured) {
