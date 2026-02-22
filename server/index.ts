@@ -60,12 +60,6 @@ let serverInstance: any = null;
 // Behind reverse proxies (Heroku/Render/etc.) trust the first proxy so secure cookies work when appropriate
 app.set('trust proxy', 1);
 
-// CRITICAL: Stripe webhooks need raw body for signature verification
-// Must come BEFORE express.json() middleware
-app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
-app.use('/api/invoices/webhook', express.raw({ type: 'application/json' }));
-app.use('/api/vouchers/stripe-webhook', express.raw({ type: 'application/json' }));
-
 // Increase body size limits to accommodate large image payloads (base64 encoded images can be 10MB+)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));

@@ -5863,10 +5863,21 @@ New Age Fotografie Team`;
   });
 
   // ==================== PRIMARY STRIPE WEBHOOK ====================
+  // Webhook health check - test if endpoint is reachable
+  app.get("/api/stripe/webhook/health", (_req: Request, res: Response) => {
+    res.status(200).json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      stripeConfigured: stripeConfigured,
+      webhookSecretConfigured: Boolean(process.env.STRIPE_WEBHOOK_SECRET && !process.env.STRIPE_WEBHOOK_SECRET.startsWith('http'))
+    });
+  });
+
   // Fast-responding webhook endpoint for all Stripe events
   // This endpoint responds immediately to prevent timeouts, then processes asynchronously
-  app.post("/api/stripe/webhook", async (req: Request, res: Response) => {
+  app.post("/api/stripe/webhook", express.raw({ type: 'application/json' }), async (req: Request, res: Response) => {
     const startTime = Date.now();
+    console.log(`🔵 Webhook request received at ${new Date().toISOString()}`);
     
     if (!stripe || !stripeConfigured) {
       console.error('❌ Stripe not configured for webhook');
@@ -5889,7 +5900,7 @@ New Age Fotografie Team`;
     let event: Stripe.Event;
 
     try {
-      // Verify webhook signature
+      // Verify webhook signature - req.body should be a Buffer from express.raw()
       event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
       console.log(`✅ Webhook signature verified: ${event.type} (${Date.now() - startTime}ms)`);
     } catch (err: any) {
