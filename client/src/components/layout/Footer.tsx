@@ -298,6 +298,15 @@ const Footer: React.FC = () => {
                   {t('footer.modelRelease')}
                 </Link>
               </li>
+              <li>
+                <Link 
+                  to="/calculator" 
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Calculator
+                </Link>
+              </li>
             </ul>
           </div>
           

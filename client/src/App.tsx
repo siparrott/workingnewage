@@ -124,6 +124,7 @@ import QuestionnaireFormPage from './pages/QuestionnaireFormPage';
 import ImageTestPage from './pages/ImageTestPage';
 import PublicSchedulerPage from './pages/public/PublicSchedulerPage';
 import AdminSchedulersPage from './pages/admin/AdminSchedulersPage';
+import CalculatorPage from './pages/CalculatorPage';
 import SetupWizard from './pages/setup/SetupWizard';
 import ScrollToTop from './components/ScrollToTop';
 
@@ -208,6 +209,7 @@ function App() {
                 <Route path="/galerie" element={<PublicGalleriesPage />} />
                 <Route path="/gallery/:slug" element={<GalleryPage />} />
                 <Route path="/gallery" element={<ProtectedRoute><GalleryPage /></ProtectedRoute>} />
+                <Route path="/calculator" element={<CalculatorPage />} />
                 <Route path="/survey-demo" element={<SurveySystemDemoPage />} />
                 <Route path="/survey/:id" element={<SurveyTakingPage />} />
                 <Route path="/q/:token" element={<QuestionnaireFormPage />} />
