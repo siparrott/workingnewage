@@ -9,9 +9,8 @@ export default function ConsentScripts() {
     const load = () => {
       // Analytics - only load if user has consented
       if (hasConsent("analytics")) {
-        // Google Analytics 4 example (uncomment and add your ID)
-        // loadGA4("G-XXXXXXXXXX");
-        console.log("[Consent] Analytics consent granted - ready to load GA");
+        loadGA4("G-8W76BVNNW9");
+        console.log("[Consent] Analytics consent granted - loading GA");
       }
 
       // Marketing - only load if user has consented
