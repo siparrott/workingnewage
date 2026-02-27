@@ -15,15 +15,21 @@ const CalculatorPage: React.FC = () => {
       <div className="bg-gray-50 py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-3xl font-bold text-center mb-8">Calculator</h1>
-          <div className="flex justify-center">
+          <div className="qk-widget" style={{ maxWidth: '720px', margin: '0 auto' }}>
             <iframe
-              src="https://quotekits.com/embed/embed_portrait-photography-modern_1771847326845_wiwq9drsp"
-              width="800"
+              src="https://pricingembed.com/embed/embed_ai_1772183443071_rj6vv7tiy"
+              width="100%"
               height="600"
               frameBorder="0"
-              style={{ maxWidth: '100%', border: 'none' }}
+              style={{ border: 'none', borderRadius: '12px' }}
               title="Photography Calculator"
             />
+            <div className="qk-credit" style={{ textAlign: 'center', padding: '8px 0', fontSize: '13px', fontFamily: 'sans-serif', opacity: 0.7 }}>
+              <a href="https://pricingembed.com" target="_blank" rel="noopener"
+                style={{ color: '#22C55E', textDecoration: 'none' }}>
+                ⚡ Powered by PricingEmbed
+              </a>
+            </div>
           </div>
         </div>
       </div>
