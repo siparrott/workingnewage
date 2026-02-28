@@ -171,107 +171,39 @@ export default function SchwangerschaftsfotosWienPage() {
           <h2 className="text-3xl font-bold text-center mb-12">
             {t('maternity.packages.title')}
           </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Studio Package */}
-            <div className="bg-white rounded-xl shadow-lg p-8 border-2 border-gray-200">
-              <h3 className="text-2xl font-bold mb-4">{t('maternity.packages.studio.title')}</h3>
-              <div className="text-3xl font-bold text-purple-600 mb-6">
-                {t('maternity.packages.studio.price')}
+          <div className="flex justify-center">
+            {/* Maternity Premium */}
+            <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+              <h3 className="text-2xl font-bold mb-2">Maternity Premium</h3>
+              <div className="mb-6">
+                <div className="flex items-baseline">
+                  <span className="text-sm text-purple-200 mr-1">Ab</span>
+                  <span className="text-4xl font-bold">€399</span>
+                </div>
               </div>
-              <ul className="space-y-3 mb-8">
+              <ul className="space-y-4 mb-8">
                 <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>{t('maternity.packages.studio.feature1')}</span>
+                  <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
+                  <span>60 Minuten Shooting</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>{t('maternity.packages.studio.feature2')}</span>
+                  <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
+                  <span>Alle Portraits als Datei (High-Quality JPG)</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>{t('maternity.packages.studio.feature3')}</span>
+                  <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
+                  <span>Bis zu 12 Personen & Haustiere möglich</span>
                 </li>
                 <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>{t('maternity.packages.studio.feature4')}</span>
+                  <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
+                  <span>Gültig bis 2 Jahre</span>
                 </li>
               </ul>
               <Link
-                to="/termin-planen"
-                className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
-              >
-                {t('maternity.packages.studio.button')}
-              </Link>
-            </div>
-
-            {/* Premium Package */}
-            <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-xl shadow-2xl p-8 transform scale-105">
-              <div className="bg-yellow-400 text-gray-900 text-sm font-bold px-3 py-1 rounded-full inline-block mb-4">
-                {t('maternity.packages.premium.badge')}
-              </div>
-              <h3 className="text-2xl font-bold mb-4">{t('maternity.packages.premium.title')}</h3>
-              <div className="text-3xl font-bold mb-6">
-                {t('maternity.packages.premium.price')}
-              </div>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>{t('maternity.packages.premium.feature1')}</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>{t('maternity.packages.premium.feature2')}</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>{t('maternity.packages.premium.feature3')}</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>{t('maternity.packages.premium.feature4')}</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>{t('maternity.packages.premium.feature5')}</span>
-                </li>
-              </ul>
-              <Link
-                to="/termin-planen"
+                to="/warteliste"
                 className="block text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
               >
-                {t('maternity.packages.premium.button')}
-              </Link>
-            </div>
-
-            {/* Outdoor Package */}
-            <div className="bg-white rounded-xl shadow-lg p-8 border-2 border-gray-200">
-              <h3 className="text-2xl font-bold mb-4">{t('maternity.packages.outdoor.title')}</h3>
-              <div className="text-3xl font-bold text-purple-600 mb-6">
-                {t('maternity.packages.outdoor.price')}
-              </div>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>{t('maternity.packages.outdoor.feature1')}</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>{t('maternity.packages.outdoor.feature2')}</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>{t('maternity.packages.outdoor.feature3')}</span>
-                </li>
-                <li className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>{t('maternity.packages.outdoor.feature4')}</span>
-                </li>
-              </ul>
-              <Link
-                to="/termin-planen"
-                className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
-              >
-                {t('maternity.packages.outdoor.button')}
+                Jetzt sichern
               </Link>
             </div>
           </div>
