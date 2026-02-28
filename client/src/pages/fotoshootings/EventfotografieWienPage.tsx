@@ -188,62 +188,62 @@ export default function EventfotografieWienPage() {
       {/* What We Cover Section */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Was wir abdecken</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">{language === 'de' ? 'Was wir abdecken' : 'What We Cover'}</h2>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div className="bg-gray-50 rounded-xl p-6">
               <Building className="h-10 w-10 text-purple-600 mb-4" />
-              <h3 className="font-semibold text-lg mb-3 text-gray-900">Konferenzen & Summits</h3>
-              <p className="text-gray-600 text-sm">Keynotes, Breakouts, Panels, Networking</p>
+              <h3 className="font-semibold text-lg mb-3 text-gray-900">{language === 'de' ? 'Konferenzen & Summits' : 'Conferences & Summits'}</h3>
+              <p className="text-gray-600 text-sm">{language === 'de' ? 'Keynotes, Breakouts, Panels, Networking' : 'Keynotes, breakouts, panels, networking'}</p>
             </div>
 
             <div className="bg-gray-50 rounded-xl p-6">
               <Zap className="h-10 w-10 text-purple-600 mb-4" />
-              <h3 className="font-semibold text-lg mb-3 text-gray-900">Brand & Produkt-Launches</h3>
-              <p className="text-gray-600 text-sm">Staging, Presse, VIPs, Detailshots</p>
+              <h3 className="font-semibold text-lg mb-3 text-gray-900">{language === 'de' ? 'Brand & Produkt-Launches' : 'Brand & Product Launches'}</h3>
+              <p className="text-gray-600 text-sm">{language === 'de' ? 'Staging, Presse, VIPs, Detailshots' : 'Staging, press, VIPs, detail shots'}</p>
             </div>
 
             <div className="bg-gray-50 rounded-xl p-6">
               <Users className="h-10 w-10 text-purple-600 mb-4" />
-              <h3 className="font-semibold text-lg mb-3 text-gray-900">Messen & Expo</h3>
-              <p className="text-gray-600 text-sm">Booth-Stories, Besucherfluss, Teamportraits</p>
+              <h3 className="font-semibold text-lg mb-3 text-gray-900">{language === 'de' ? 'Messen & Expo' : 'Trade Fairs & Expo'}</h3>
+              <p className="text-gray-600 text-sm">{language === 'de' ? 'Booth-Stories, Besucherfluss, Teamportraits' : 'Booth stories, visitor flow, team portraits'}</p>
             </div>
 
             <div className="bg-gray-50 rounded-xl p-6">
               <Award className="h-10 w-10 text-purple-600 mb-4" />
               <h3 className="font-semibold text-lg mb-3 text-gray-900">Awards & Galas</h3>
-              <p className="text-gray-600 text-sm">Red Carpet, Step-and-Repeat, Show-Highlights</p>
+              <p className="text-gray-600 text-sm">{language === 'de' ? 'Red Carpet, Step-and-Repeat, Show-Highlights' : 'Red carpet, step-and-repeat, show highlights'}</p>
             </div>
 
             <div className="bg-gray-50 rounded-xl p-6">
               <Camera className="h-10 w-10 text-purple-600 mb-4" />
-              <h3 className="font-semibold text-lg mb-3 text-gray-900">PR-Termine</h3>
-              <p className="text-gray-600 text-sm">Pressefotos, Social-Assets, schnelle Auswahl</p>
+              <h3 className="font-semibold text-lg mb-3 text-gray-900">{language === 'de' ? 'PR-Termine' : 'PR Events'}</h3>
+              <p className="text-gray-600 text-sm">{language === 'de' ? 'Pressefotos, Social-Assets, schnelle Auswahl' : 'Press photos, social assets, quick selection'}</p>
             </div>
 
             <div className="bg-purple-50 rounded-xl p-6 border-2 border-purple-200">
               <Eye className="h-10 w-10 text-purple-600 mb-4" />
-              <h3 className="font-semibold text-lg mb-3 text-gray-900">Ziel</h3>
-              <p className="text-gray-700 text-sm font-medium">Content, der sofort nutzbar ist – für Presse, Social, Intranet und Sales Decks</p>
+              <h3 className="font-semibold text-lg mb-3 text-gray-900">{language === 'de' ? 'Ziel' : 'Goal'}</h3>
+              <p className="text-gray-700 text-sm font-medium">{language === 'de' ? 'Content, der sofort nutzbar ist – für Presse, Social, Intranet und Sales Decks' : 'Content ready to use immediately – for press, social, intranet and sales decks'}</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Extended Content Section - Safe Copy Slot */}
-      <MarkdownCopySlot content={newageCopyMap['eventfotografie-wien'].markdown} />
+      {language === 'de' && <MarkdownCopySlot content={newageCopyMap['eventfotografie-wien'].markdown} />}
 
       {/* SLAs Table Section */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-8">Unsere SLAs (Lieferzeiten)</h2>
+          <h2 className="text-3xl font-bold text-center mb-8">{language === 'de' ? 'Unsere SLAs (Lieferzeiten)' : 'Our SLAs (Delivery Times)'}</h2>
           
           <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
             <table className="w-full">
               <thead className="bg-purple-600 text-white">
                 <tr>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Asset</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Umfang</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold">{language === 'de' ? 'Umfang' : 'Scope'}</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">SLA Standard</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">SLA Express*</th>
                 </tr>
@@ -251,25 +251,25 @@ export default function EventfotografieWienPage() {
               <tbody className="divide-y divide-gray-200">
                 <tr className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">Preview-Set</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">25–60 Bilder</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? '25–60 Bilder' : '25–60 images'}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">24 h</td>
                   <td className="px-6 py-4 text-sm text-purple-600 font-semibold">6–12 h</td>
                 </tr>
                 <tr className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">Social Snippets</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">10–20 Bilder (4:5/16:9)</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? '10–20 Bilder (4:5/16:9)' : '10–20 images (4:5/16:9)'}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">24 h</td>
                   <td className="px-6 py-4 text-sm text-purple-600 font-semibold">Same Day</td>
                 </tr>
                 <tr className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">Finale Galerie</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">200–800+ Bilder</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">3–5 Werktage</td>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{language === 'de' ? 'Finale Galerie' : 'Final Gallery'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? '200–800+ Bilder' : '200–800+ images'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">{language === 'de' ? '3–5 Werktage' : '3–5 business days'}</td>
                   <td className="px-6 py-4 text-sm text-purple-600 font-semibold">48–72 h</td>
                 </tr>
                 <tr className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">Presse-Selektion</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">12–20 Bilder</td>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{language === 'de' ? 'Presse-Selektion' : 'Press Selection'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? '12–20 Bilder' : '12–20 images'}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">12–24 h</td>
                   <td className="px-6 py-4 text-sm text-purple-600 font-semibold">≤ 6 h</td>
                 </tr>
@@ -279,7 +279,7 @@ export default function EventfotografieWienPage() {
 
           <div className="bg-purple-100 rounded-xl p-4 text-center">
             <p className="text-sm text-gray-700">
-              <strong>*Express</strong> nach Vereinbarung; Aufpreis je nach Umfang.
+              <strong>*Express</strong> {language === 'de' ? 'nach Vereinbarung; Aufpreis je nach Umfang.' : 'by arrangement; surcharge depending on scope.'}
             </p>
           </div>
         </div>
@@ -304,7 +304,7 @@ export default function EventfotografieWienPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Pakete & Preise
+              {language === 'de' ? 'Pakete & Preise' : 'Packages & Prices'}
             </h2>
           </div>
 
@@ -312,72 +312,72 @@ export default function EventfotografieWienPage() {
             {/* Eventfotografie */}
             <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow border border-purple-200">
               <div className="mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Eventfotografie</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">{language === 'de' ? 'Eventfotografie' : 'Event Photography'}</h3>
               </div>
               <div className="mb-6">
                 <div className="flex items-baseline">
-                  <span className="text-sm text-gray-500 mr-1">Ab</span>
+                  <span className="text-sm text-gray-500 mr-1">{language === 'de' ? 'Ab' : 'From'}</span>
                   <span className="text-4xl font-bold text-purple-600">€449</span>
                 </div>
               </div>
               <div className="space-y-4 mb-8">
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Kurzauftrag inkl. 30 bearbeiteter Fotos</span>
+                  <span className="text-gray-700">{language === 'de' ? 'Kurzauftrag inkl. 30 bearbeiteter Fotos' : 'Short assignment incl. 30 edited photos'}</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Gültig bis 2 Jahre</span>
+                  <span className="text-gray-700">{language === 'de' ? 'Gültig bis 2 Jahre' : 'Valid for up to 2 years'}</span>
                 </div>
               </div>
               <Link
                 to="/warteliste"
                 className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
               >
-                Jetzt sichern
+                {language === 'de' ? 'Jetzt sichern' : 'Book now'}
               </Link>
             </div>
 
             {/* Event Premium - BELIEBT */}
             <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 relative">
               <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-bl-lg rounded-tr-2xl">
-                BELIEBT
+                {language === 'de' ? 'BELIEBT' : 'POPULAR'}
               </div>
               <div className="mb-6 mt-4">
                 <h3 className="text-2xl font-bold mb-2">Event Premium</h3>
               </div>
               <div className="mb-6">
                 <div className="flex items-baseline">
-                  <span className="text-sm text-purple-200 mr-1">Ab</span>
+                  <span className="text-sm text-purple-200 mr-1">{language === 'de' ? 'Ab' : 'From'}</span>
                   <span className="text-4xl font-bold">€999</span>
                 </div>
               </div>
               <div className="space-y-4 mb-8">
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Ganztägige Event-Coverage</span>
+                  <span>{language === 'de' ? 'Ganztägige Event-Coverage' : 'Full-day event coverage'}</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Alle Bilder als Datei in Vollauflösung</span>
+                  <span>{language === 'de' ? 'Alle Bilder als Datei in Vollauflösung' : 'All images as files in full resolution'}</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Gültig bis 2 Jahre</span>
+                  <span>{language === 'de' ? 'Gültig bis 2 Jahre' : 'Valid for up to 2 years'}</span>
                 </div>
               </div>
               <Link
                 to="/warteliste"
                 className="block w-full text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
               >
-                Jetzt sichern
+                {language === 'de' ? 'Jetzt sichern' : 'Book now'}
               </Link>
             </div>
           </div>
 
           <div className="mt-6 text-center">
             <p className="text-gray-600">
-              Slots sind begrenzt. Trag dich hier ein: <Link to="/warteliste" className="text-purple-600 hover:text-purple-700 underline font-semibold">Termin-Warteliste</Link>
+              {language === 'de' ? <>Slots sind begrenzt. Trag dich hier ein: <Link to="/warteliste" className="text-purple-600 hover:text-purple-700 underline font-semibold">Termin-Warteliste</Link></> : <>Slots are limited. Sign up here: <Link to="/warteliste" className="text-purple-600 hover:text-purple-700 underline font-semibold">Appointment Waitlist</Link></>}
             </p>
           </div>
         </div>
@@ -386,7 +386,7 @@ export default function EventfotografieWienPage() {
       {/* Workflow Section */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Workflow vor Ort</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">{language === 'de' ? 'Workflow vor Ort' : 'On-Site Workflow'}</h2>
           
           <div className="grid md:grid-cols-3 lg:grid-cols-6 gap-6">
             <div className="text-center">
@@ -394,42 +394,42 @@ export default function EventfotografieWienPage() {
                 <span className="text-2xl font-bold text-purple-600">1</span>
               </div>
               <h3 className="font-semibold mb-2 text-gray-900">Kick-Off</h3>
-              <p className="text-gray-600 text-sm">Shotlist, CI-Guides, Laufwege</p>
+              <p className="text-gray-600 text-sm">{language === 'de' ? 'Shotlist, CI-Guides, Laufwege' : 'Shot list, CI guides, walking routes'}</p>
             </div>
             <div className="text-center">
               <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-purple-600">2</span>
               </div>
               <h3 className="font-semibold mb-2 text-gray-900">Light-Test</h3>
-              <p className="text-gray-600 text-sm">Bühne, Backlight, Publikum – einmal sauber messen</p>
+              <p className="text-gray-600 text-sm">{language === 'de' ? 'Bühne, Backlight, Publikum – einmal sauber messen' : 'Stage, backlight, audience – one clean measurement'}</p>
             </div>
             <div className="text-center">
               <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-purple-600">3</span>
               </div>
               <h3 className="font-semibold mb-2 text-gray-900">Coverage</h3>
-              <p className="text-gray-600 text-sm">Unauffällig, doppelt gesichert (Dual-Card)</p>
+              <p className="text-gray-600 text-sm">{language === 'de' ? 'Unauffällig, doppelt gesichert (Dual-Card)' : 'Unobtrusive, dual-card backup'}</p>
             </div>
             <div className="text-center">
               <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-purple-600">4</span>
               </div>
               <h3 className="font-semibold mb-2 text-gray-900">On-Site Delivery</h3>
-              <p className="text-gray-600 text-sm">Erste Social-Assets direkt an euer Team</p>
+              <p className="text-gray-600 text-sm">{language === 'de' ? 'Erste Social-Assets direkt an euer Team' : 'First social assets delivered directly to your team'}</p>
             </div>
             <div className="text-center">
               <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-purple-600">5</span>
               </div>
-              <h3 className="font-semibold mb-2 text-gray-900">Übergabe</h3>
-              <p className="text-gray-600 text-sm">Strukturierte Ordner, klare Dateinamen, Nutzungsrechte</p>
+              <h3 className="font-semibold mb-2 text-gray-900">{language === 'de' ? 'Übergabe' : 'Handover'}</h3>
+              <p className="text-gray-600 text-sm">{language === 'de' ? 'Strukturierte Ordner, klare Dateinamen, Nutzungsrechte' : 'Structured folders, clear filenames, usage rights'}</p>
             </div>
             <div className="text-center">
               <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-purple-600">6</span>
               </div>
               <h3 className="font-semibold mb-2 text-gray-900">Backups</h3>
-              <p className="text-gray-600 text-sm">2× Karten + RAID-Spiegelung noch am Event-Tag</p>
+              <p className="text-gray-600 text-sm">{language === 'de' ? '2× Karten + RAID-Spiegelung noch am Event-Tag' : '2× cards + RAID mirroring on the event day'}</p>
             </div>
           </div>
         </div>
@@ -438,32 +438,32 @@ export default function EventfotografieWienPage() {
       {/* Visual Style & Tech Section */}
       <section className="py-16 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-8">Bildsprache & Technik</h2>
+          <h2 className="text-3xl font-bold text-center mb-8">{language === 'de' ? 'Bildsprache & Technik' : 'Visual Language & Technology'}</h2>
           
           <div className="grid md:grid-cols-2 gap-6">
             <div className="bg-gray-50 rounded-xl p-6">
               <h3 className="font-semibold text-lg text-gray-900 mb-4">Keynote-Look</h3>
-              <p className="text-gray-700 text-sm">Tele + sauberes Bühnenlicht, Gesichter klar, Screens lesbar</p>
+              <p className="text-gray-700 text-sm">{language === 'de' ? 'Tele + sauberes Bühnenlicht, Gesichter klar, Screens lesbar' : 'Telephoto + clean stage light, clear faces, readable screens'}</p>
             </div>
 
             <div className="bg-gray-50 rounded-xl p-6">
-              <h3 className="font-semibold text-lg text-gray-900 mb-4">Atmosphäre</h3>
-              <p className="text-gray-700 text-sm">Weitwinkel-Stories, Publikum, „between the talks"</p>
+              <h3 className="font-semibold text-lg text-gray-900 mb-4">{language === 'de' ? 'Atmosphäre' : 'Atmosphere'}</h3>
+              <p className="text-gray-700 text-sm">{language === 'de' ? 'Weitwinkel-Stories, Publikum, „between the talks“' : 'Wide-angle stories, audience, "between the talks"'}</p>
             </div>
 
             <div className="bg-gray-50 rounded-xl p-6">
               <h3 className="font-semibold text-lg text-gray-900 mb-4">Brand-Details</h3>
-              <p className="text-gray-700 text-sm">Signage, Produkt, Hand-Close-ups</p>
+              <p className="text-gray-700 text-sm">{language === 'de' ? 'Signage, Produkt, Hand-Close-ups' : 'Signage, product, hand close-ups'}</p>
             </div>
 
             <div className="bg-gray-50 rounded-xl p-6">
-              <h3 className="font-semibold text-lg text-gray-900 mb-4">Hauttöne</h3>
-              <p className="text-gray-700 text-sm">Farbkalibriert, CI-Profile auf Wunsch</p>
+              <h3 className="font-semibold text-lg text-gray-900 mb-4">{language === 'de' ? 'Hauttöne' : 'Skin Tones'}</h3>
+              <p className="text-gray-700 text-sm">{language === 'de' ? 'Farbkalibriert, CI-Profile auf Wunsch' : 'Color-calibrated, CI profiles on request'}</p>
             </div>
 
             <div className="bg-purple-50 rounded-xl p-6 md:col-span-2">
-              <h3 className="font-semibold text-lg text-gray-900 mb-4">Formate</h3>
-              <p className="text-gray-700 text-sm">4:5, 1:1, 16:9 – Social-ready exportiert</p>
+              <h3 className="font-semibold text-lg text-gray-900 mb-4">{language === 'de' ? 'Formate' : 'Formats'}</h3>
+              <p className="text-gray-700 text-sm">{language === 'de' ? '4:5, 1:1, 16:9 – Social-ready exportiert' : '4:5, 1:1, 16:9 – exported social-ready'}</p>
             </div>
           </div>
         </div>
@@ -486,36 +486,36 @@ export default function EventfotografieWienPage() {
       {/* Delivery & Rights Section */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-8">Übergaben & Rechte</h2>
+          <h2 className="text-3xl font-bold text-center mb-8">{language === 'de' ? 'Übergaben & Rechte' : 'Handover & Rights'}</h2>
           
           <div className="bg-white rounded-xl p-8 shadow-lg">
             <ul className="space-y-4">
               <li className="flex items-start">
                 <Shield className="h-6 w-6 text-purple-600 mr-3 flex-shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-gray-900">Galerie:</strong>
-                  <span className="text-gray-700"> Passwort-geschützt, sortiert nach Tracks</span>
+                  <strong className="text-gray-900">{language === 'de' ? 'Galerie:' : 'Gallery:'}</strong>
+                  <span className="text-gray-700"> {language === 'de' ? 'Passwort-geschützt, sortiert nach Tracks' : 'Password-protected, sorted by tracks'}</span>
                 </div>
               </li>
               <li className="flex items-start">
                 <Check className="h-6 w-6 text-purple-600 mr-3 flex-shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-gray-900">Dateibenennung:</strong>
+                  <strong className="text-gray-900">{language === 'de' ? 'Dateibenennung:' : 'File naming:'}</strong>
                   <span className="text-gray-700"> Event_YYYYMMDD_Session_Speaker_###.jpg</span>
                 </div>
               </li>
               <li className="flex items-start">
                 <Check className="h-6 w-6 text-purple-600 mr-3 flex-shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-gray-900">Nutzung:</strong>
-                  <span className="text-gray-700"> Unternehmenskommunikation, PR, Social, Web – inkl.</span>
+                  <strong className="text-gray-900">{language === 'de' ? 'Nutzung:' : 'Usage:'}</strong>
+                  <span className="text-gray-700"> {language === 'de' ? 'Unternehmenskommunikation, PR, Social, Web – inkl.' : 'Corporate communications, PR, social, web – included.'}</span>
                 </div>
               </li>
               <li className="flex items-start">
                 <Users className="h-6 w-6 text-purple-600 mr-3 flex-shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-gray-900">Dritte:</strong>
-                  <span className="text-gray-700"> Medien/Partner auf Anfrage; wir liefern Pressetexte/Caption-Hilfen</span>
+                  <strong className="text-gray-900">{language === 'de' ? 'Dritte:' : 'Third parties:'}</strong>
+                  <span className="text-gray-700"> {language === 'de' ? 'Medien/Partner auf Anfrage; wir liefern Pressetexte/Caption-Hilfen' : 'Media/partners on request; we provide press texts/caption assistance'}</span>
                 </div>
               </li>
             </ul>
@@ -526,13 +526,13 @@ export default function EventfotografieWienPage() {
       {/* Example Shotlist Section */}
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-8">Beispiel-Shotlist (Kurz)</h2>
+          <h2 className="text-3xl font-bold text-center mb-8">{language === 'de' ? 'Beispiel-Shotlist (Kurz)' : 'Example Shot List (Brief)'}</h2>
           
           <div className="bg-purple-50 rounded-xl p-8">
             <ul className="grid md:grid-cols-2 gap-4">
               <li className="flex items-start">
                 <Check className="h-5 w-5 text-purple-600 mr-3 flex-shrink-0 mt-0.5" />
-                <span className="text-gray-700">Venue-Außen & Check-in</span>
+                <span className="text-gray-700">{language === 'de' ? 'Venue-Außen & Check-in' : 'Venue exterior & check-in'}</span>
               </li>
               <li className="flex items-start">
                 <Check className="h-5 w-5 text-purple-600 mr-3 flex-shrink-0 mt-0.5" />
@@ -540,11 +540,11 @@ export default function EventfotografieWienPage() {
               </li>
               <li className="flex items-start">
                 <Check className="h-5 w-5 text-purple-600 mr-3 flex-shrink-0 mt-0.5" />
-                <span className="text-gray-700">Publikum, Q&A, Breakouts</span>
+                <span className="text-gray-700">{language === 'de' ? 'Publikum, Q&A, Breakouts' : 'Audience, Q&A, breakouts'}</span>
               </li>
               <li className="flex items-start">
                 <Check className="h-5 w-5 text-purple-600 mr-3 flex-shrink-0 mt-0.5" />
-                <span className="text-gray-700">Partner-Booths, Produkt, Demos</span>
+                <span className="text-gray-700">{language === 'de' ? 'Partner-Booths, Produkt, Demos' : 'Partner booths, product, demos'}</span>
               </li>
               <li className="flex items-start">
                 <Check className="h-5 w-5 text-purple-600 mr-3 flex-shrink-0 mt-0.5" />
@@ -552,7 +552,7 @@ export default function EventfotografieWienPage() {
               </li>
               <li className="flex items-start">
                 <Check className="h-5 w-5 text-purple-600 mr-3 flex-shrink-0 mt-0.5" />
-                <span className="text-gray-700">Award/Show-Momente</span>
+                <span className="text-gray-700">{language === 'de' ? 'Award/Show-Momente' : 'Award/show moments'}</span>
               </li>
               <li className="flex items-start">
                 <Check className="h-5 w-5 text-purple-600 mr-3 flex-shrink-0 mt-0.5" />
