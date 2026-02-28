@@ -247,7 +247,7 @@ const BlogPage: React.FC = () => {
             {loading ? (
               <div className="flex items-center justify-center h-64">
                 <Loader2 className="h-8 w-8 text-purple-600 animate-spin" />
-                <span className="ml-2 text-gray-600">Loading posts...</span>
+                <span className="ml-2 text-gray-600">{language === 'de' ? 'Beiträge laden...' : 'Loading posts...'}</span>
               </div>
             ) : error ? (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
@@ -345,7 +345,7 @@ const BlogPage: React.FC = () => {
                         to={`/blog/${post.slug}`}
                         className="text-purple-600 hover:text-purple-800 font-medium text-sm inline-flex items-center"
                       >
-                        Read more
+                        {language === 'de' ? 'Weiterlesen' : 'Read more'}
                         <ChevronRight size={16} className="ml-1" />
                       </Link>
                     </div>
@@ -435,7 +435,7 @@ const BlogPage: React.FC = () => {
           <div className="lg:col-span-1">
             {/* Tags */}
             <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Categories</h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-4">{language === 'de' ? 'Kategorien' : 'Categories'}</h2>
               <ul className="space-y-2">
                 <li>
                   <button
@@ -445,7 +445,7 @@ const BlogPage: React.FC = () => {
                     }`}
                   >
                     <ChevronRight size={16} className="mr-2" />
-                    All Categories
+                    {language === 'de' ? 'Alle Kategorien' : 'All Categories'}
                   </button>
                 </li>
                 {tags.map((tagItem) => (
@@ -468,19 +468,19 @@ const BlogPage: React.FC = () => {
             <div className="bg-purple-50 rounded-lg shadow-lg p-6 mb-8">
               <h2 className="text-xl font-bold text-gray-800 mb-4">Newsletter</h2>
               <p className="text-gray-600 mb-4">
-                Stay updated with our latest photography tips and special offers.
+                {language === 'de' ? 'Bleiben Sie auf dem Laufenden mit unseren neuesten Fotografie-Tipps und Sonderangeboten.' : 'Stay updated with our latest photography tips and special offers.'}
               </p>
               <form className="space-y-4">
                 <input
                   type="email"
-                  placeholder="Your email address"
+                  placeholder={language === 'de' ? 'Ihre E-Mail-Adresse' : 'Your email address'}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-purple-600"
                 />
                 <button
                   type="submit"
                   className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
                 >
-                  Subscribe
+                  {language === 'de' ? 'Abonnieren' : 'Subscribe'}
                 </button>
               </form>
             </div>

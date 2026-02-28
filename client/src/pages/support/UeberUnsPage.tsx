@@ -9,7 +9,7 @@ import { SEOHead } from '../../components/SEO/SEOHead';
 import { useLanguage } from '../../context/LanguageContext';
 
 const UeberUnsPage: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   
   return (
     <Layout>
@@ -240,37 +240,37 @@ const UeberUnsPage: React.FC = () => {
         {/* Our Look Table */}
         <section className="py-16 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-4xl font-bold mb-8 text-gray-900">Our Look, in one table</h2>
+            <h2 className="text-4xl font-bold mb-8 text-gray-900">{language === 'de' ? 'Unser Look – auf einen Blick' : 'Our Look, in one table'}</h2>
             
             <div className="overflow-x-auto">
               <table className="w-full border-collapse bg-white rounded-lg overflow-hidden shadow-lg">
                 <thead className="bg-gray-900 text-white">
                   <tr>
-                    <th className="px-6 py-4 text-left font-semibold">Look</th>
-                    <th className="px-6 py-4 text-left font-semibold">Where it shines</th>
-                    <th className="px-6 py-4 text-left font-semibold">Lighting & set</th>
+                    <th className="px-6 py-4 text-left font-semibold">{language === 'de' ? 'Stil' : 'Look'}</th>
+                    <th className="px-6 py-4 text-left font-semibold">{language === 'de' ? 'Ideal für' : 'Where it shines'}</th>
+                    <th className="px-6 py-4 text-left font-semibold">{language === 'de' ? 'Licht & Setup' : 'Lighting & set'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   <tr className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-900">Clean editorial</td>
-                    <td className="px-6 py-4 text-gray-700">Headshots, teams, brand PR</td>
-                    <td className="px-6 py-4 text-gray-600">90–105 cm soft source, subtle negative fill</td>
+                    <td className="px-6 py-4 font-medium text-gray-900">{language === 'de' ? 'Clean Editorial' : 'Clean editorial'}</td>
+                    <td className="px-6 py-4 text-gray-700">{language === 'de' ? 'Headshots, Teams, Marken-PR' : 'Headshots, teams, brand PR'}</td>
+                    <td className="px-6 py-4 text-gray-600">{language === 'de' ? '90–105 cm Softbox, dezente Neg.-Aufhellung' : '90–105 cm soft source, subtle negative fill'}</td>
                   </tr>
                   <tr className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-900">Warm lifestyle</td>
-                    <td className="px-6 py-4 text-gray-700">Families, couples</td>
-                    <td className="px-6 py-4 text-gray-600">Large key + bounce, layered background</td>
+                    <td className="px-6 py-4 font-medium text-gray-900">{language === 'de' ? 'Warm Lifestyle' : 'Warm lifestyle'}</td>
+                    <td className="px-6 py-4 text-gray-700">{language === 'de' ? 'Familien, Paare' : 'Families, couples'}</td>
+                    <td className="px-6 py-4 text-gray-600">{language === 'de' ? 'Großes Führungslicht + Reflektor, gestaffelte Hintergründe' : 'Large key + bounce, layered background'}</td>
                   </tr>
                   <tr className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-900">Studio classic</td>
-                    <td className="px-6 py-4 text-gray-700">Timeless portraits</td>
-                    <td className="px-6 py-4 text-gray-600">Mid-grey or pure white, controlled ratios</td>
+                    <td className="px-6 py-4 font-medium text-gray-900">{language === 'de' ? 'Studio Klassisch' : 'Studio classic'}</td>
+                    <td className="px-6 py-4 text-gray-700">{language === 'de' ? 'Zeitlose Porträts' : 'Timeless portraits'}</td>
+                    <td className="px-6 py-4 text-gray-600">{language === 'de' ? 'Mittelgrau oder Reinweiß, kontrollierte Verhältnisse' : 'Mid-grey or pure white, controlled ratios'}</td>
                   </tr>
                   <tr className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-900">Dramatic low-key</td>
-                    <td className="px-6 py-4 text-gray-700">Musicians, fashion, athletes</td>
-                    <td className="px-6 py-4 text-gray-600">Gridded strip + rim, minimal fill</td>
+                    <td className="px-6 py-4 font-medium text-gray-900">{language === 'de' ? 'Dramatisch Low-Key' : 'Dramatic low-key'}</td>
+                    <td className="px-6 py-4 text-gray-700">{language === 'de' ? 'Musiker, Mode, Sportler' : 'Musicians, fashion, athletes'}</td>
+                    <td className="px-6 py-4 text-gray-600">{language === 'de' ? 'Wabe + Streiflicht, minimale Aufhellung' : 'Gridded strip + rim, minimal fill'}</td>
                   </tr>
                 </tbody>
               </table>
@@ -281,15 +281,21 @@ const UeberUnsPage: React.FC = () => {
         {/* Credentials */}
         <section className="py-16 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-4xl font-bold mb-8 text-gray-900">Credentials at a glance</h2>
+            <h2 className="text-4xl font-bold mb-8 text-gray-900">{language === 'de' ? 'Referenzen auf einen Blick' : 'Credentials at a glance'}</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[
+              {(language === 'de' ? [
+                { icon: Camera, text: "Film-Ära-Grundlagen → schnelle, präzise Belichtung und Farbdisziplin" },
+                { icon: Users, text: "High-Street-Erfahrung → ruhige, effiziente Sessions für jedes Alter" },
+                { icon: Star, text: "Modeagentur → Styling-Instinkt und Posing-Feingefühl" },
+                { icon: MapPin, text: "Internationale Events → drucksichere Lieferung und Logistik" },
+                { icon: Award, text: "Wiener Studio → wiederholbare Qualität, bei jedem Wetter" }
+              ] : [
                 { icon: Camera, text: "Film-era foundations → fast, accurate exposure and color discipline" },
                 { icon: Users, text: "High-street volume → calm, efficient sessions for every age and stage" },
                 { icon: Star, text: "Fashion agency → styling instincts and posing nuance" },
                 { icon: MapPin, text: "Global events → pressure-proof delivery and logistics" },
                 { icon: Award, text: "Vienna studio → repeatable quality, rain or shine" }
-              ].map((item, idx) => (
+              ]).map((item, idx) => (
                 <div key={idx} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
                   <item.icon className="w-6 h-6 text-purple-600 flex-shrink-0 mt-1" />
                   <p className="text-gray-700">{item.text}</p>
@@ -302,15 +308,21 @@ const UeberUnsPage: React.FC = () => {
         {/* How a session feels */}
         <section className="py-16 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-4xl font-bold mb-8 text-gray-900">How a session feels</h2>
+            <h2 className="text-4xl font-bold mb-8 text-gray-900">{language === 'de' ? 'So fühlt sich ein Shooting an' : 'How a session feels'}</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
-              {[
+              {(language === 'de' ? [
+                { num: "1", title: "Planen", desc: "Sie teilen Ihre Ziele, Outfits und den Verwendungszweck der Bilder." },
+                { num: "2", title: "Lichttest", desc: "Wir finden Ihre besten Winkel und den richtigen Kontrast." },
+                { num: "3", title: "Shooting", desc: "Klare, freundliche Anleitung. Natürlicher Ausdruck gewinnt." },
+                { num: "4", title: "Auswahl", desc: "Sie markieren Favoriten; wir beraten zu Ausschnitt und Nutzung." },
+                { num: "5", title: "Lieferung", desc: "Retuschierte Dateien, optimiert für Druck und Web, pünktlich." }
+              ] : [
                 { num: "1", title: "Plan", desc: "You share goals, outfits, and where the images will live." },
                 { num: "2", title: "Light test", desc: "We dial your best angles and the right contrast." },
                 { num: "3", title: "Shoot", desc: "Clear, friendly direction. Natural expression wins." },
                 { num: "4", title: "Select", desc: "You mark favorites; we advise on crops and usage." },
                 { num: "5", title: "Deliver", desc: "Retouched files, sized for print and web, on time." }
-              ].map((step) => (
+              ]).map((step) => (
                 <div key={step.num} className="bg-white p-6 rounded-xl shadow-sm text-center">
                   <div className="w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">
                     {step.num}
@@ -321,7 +333,7 @@ const UeberUnsPage: React.FC = () => {
               ))}
             </div>
             <p className="mt-8 text-center text-gray-600">
-              <strong>Turnarounds:</strong> Preview in 48–72 h. Final gallery in 1–2 weeks (weddings per agreement).
+              <strong>{language === 'de' ? 'Lieferzeiten:' : 'Turnarounds:'}</strong> {language === 'de' ? 'Vorschau in 48–72 Std. Finale Galerie in 1–2 Wochen (Hochzeiten nach Vereinbarung).' : 'Preview in 48–72 h. Final gallery in 1–2 weeks (weddings per agreement).'}
             </p>
           </div>
         </section>
@@ -329,19 +341,19 @@ const UeberUnsPage: React.FC = () => {
         {/* Trusted for */}
         <section className="py-16 bg-slate-900 text-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-4xl font-bold mb-8 text-center">Trusted for moments that matter</h2>
+            <h2 className="text-4xl font-bold mb-8 text-center">{language === 'de' ? 'Vertraut für Momente, die zählen' : 'Trusted for moments that matter'}</h2>
             <div className="grid md:grid-cols-3 gap-6 text-center">
               <div className="bg-white/10 backdrop-blur-sm p-6 rounded-xl">
                 <CheckCircle className="w-12 h-12 text-purple-400 mx-auto mb-3" />
-                <p className="text-lg">Eurovision Vienna • UEFA / Champions League • Euro finals</p>
+                <p className="text-lg">{language === 'de' ? 'Eurovision Wien • UEFA / Champions League • EM-Finale' : 'Eurovision Vienna • UEFA / Champions League • Euro finals'}</p>
               </div>
               <div className="bg-white/10 backdrop-blur-sm p-6 rounded-xl">
                 <CheckCircle className="w-12 h-12 text-blue-400 mx-auto mb-3" />
-                <p className="text-lg">Corporate brand launches and conferences across AT & EU</p>
+                <p className="text-lg">{language === 'de' ? 'Markeneinführungen und Konferenzen in AT & EU' : 'Corporate brand launches and conferences across AT & EU'}</p>
               </div>
               <div className="bg-white/10 backdrop-blur-sm p-6 rounded-xl">
                 <CheckCircle className="w-12 h-12 text-pink-400 mx-auto mb-3" />
-                <p className="text-lg">Weddings and elopements from England to Malta, South Africa to Austria</p>
+                <p className="text-lg">{language === 'de' ? 'Hochzeiten von England bis Malta, Südafrika bis Österreich' : 'Weddings and elopements from England to Malta, South Africa to Austria'}</p>
               </div>
             </div>
           </div>
@@ -350,9 +362,27 @@ const UeberUnsPage: React.FC = () => {
         {/* FAQs */}
         <section className="py-16 bg-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-4xl font-bold mb-8 text-gray-900">FAQs (quick answers)</h2>
+            <h2 className="text-4xl font-bold mb-8 text-gray-900">{language === 'de' ? 'FAQs (Kurzantworten)' : 'FAQs (quick answers)'}</h2>
             <div className="space-y-6">
-              {[
+              {(language === 'de' ? [
+                {
+                  q: "Wo befindet sich Ihr Studio?",
+                  a: "In Wien. Studio-Sessions nahe dem Zentrum mit guter Erreichbarkeit. Parktipps erhalten Sie in der Bestätigung."
+                },
+                {
+                  q: "Bieten Sie Studio und Outdoor an?",
+                  a: "Ja. Studio für Kontrolle. Outdoor für Stimmung. Wir planen nach Licht und Wetter."
+                },
+                {
+                  q: "Wie buchen wir?",
+                  a: "Nennen Sie uns Termine und Ziel. Wir senden Plan, Preis und einen einfachen Vertrag. Oder tragen Sie sich in unsere Warteliste ein.",
+                  link: "/warteliste"
+                },
+                {
+                  q: "Reisen Sie auch?",
+                  a: "Ja. In ganz Österreich und der EU. Reisekosten sind transparent und vorab vereinbart."
+                }
+              ] : [
                 {
                   q: "Where are you based?",
                   a: "Vienna city. Studio sessions near the center with easy access and parking tips in your confirmation."
@@ -370,7 +400,7 @@ const UeberUnsPage: React.FC = () => {
                   q: "Do you travel?",
                   a: "Yes. Across Austria and the EU. Travel fees are transparent and agreed up front."
                 }
-              ].map((faq, idx) => (
+              ]).map((faq, idx) => (
                 <div key={idx} className="bg-gray-50 p-6 rounded-lg">
                   <h3 className="text-xl font-semibold mb-3 text-gray-900">{faq.q}</h3>
                   <p className="text-gray-700">
@@ -393,16 +423,16 @@ const UeberUnsPage: React.FC = () => {
         {/* Tone & Ethics */}
         <section className="py-16 bg-gray-50">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-4xl font-bold mb-6 text-gray-900">Tone, ethics, and quality</h2>
+            <h2 className="text-4xl font-bold mb-6 text-gray-900">{language === 'de' ? 'Stil, Ethik und Qualität' : 'Tone, ethics, and quality'}</h2>
             <div className="prose prose-lg max-w-none">
               <p className="text-gray-700 mb-4">
-                We edit lightly. Skin looks like skin. Color stays true.
+                {language === 'de' ? 'Wir retuschieren dezent. Haut sieht wie Haut aus. Farben bleiben natürlich.' : 'We edit lightly. Skin looks like skin. Color stays true.'}
               </p>
               <p className="text-gray-700 mb-4">
-                We never over-promise. We always deliver what we show.
+                {language === 'de' ? 'Wir versprechen nie zu viel. Wir liefern immer, was wir zeigen.' : 'We never over-promise. We always deliver what we show.'}
               </p>
               <p className="text-gray-700">
-                Consent and privacy matter—especially for kids and corporate clients.
+                {language === 'de' ? 'Einwilligung und Datenschutz sind uns wichtig – besonders bei Kindern und Firmenkunden.' : 'Consent and privacy matter—especially for kids and corporate clients.'}
               </p>
             </div>
           </div>

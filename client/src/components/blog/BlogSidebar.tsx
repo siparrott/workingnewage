@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BlogTag } from '../../types/blog';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface BlogSidebarProps {
   tags: BlogTag[];
@@ -10,6 +11,7 @@ interface BlogSidebarProps {
 const BlogSidebar: React.FC<BlogSidebarProps> = ({ tags, isAdmin = false }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTag = searchParams.get('tag') || '';
+  const { language } = useLanguage();
   
   const handleTagClick = (tagSlug: string) => {
     const newSearchParams = new URLSearchParams(searchParams);
@@ -26,7 +28,7 @@ const BlogSidebar: React.FC<BlogSidebarProps> = ({ tags, isAdmin = false }) => {
     <div className="space-y-6">
       {/* Categories */}
       <div className="bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">Categories</h2>
+        <h2 className="text-xl font-bold text-gray-800 mb-4">{language === 'de' ? 'Kategorien' : 'Categories'}</h2>
         <ul className="space-y-2">
           {tags.map(tag => (
             <li key={tag.id}>
@@ -49,21 +51,21 @@ const BlogSidebar: React.FC<BlogSidebarProps> = ({ tags, isAdmin = false }) => {
       {/* Newsletter Signup */}
       {!isAdmin && (
         <div className="bg-purple-50 rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Subscribe to Our Newsletter</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">{language === 'de' ? 'Newsletter abonnieren' : 'Subscribe to Our Newsletter'}</h2>
           <p className="text-gray-600 mb-4">
-            Stay updated with our latest photography tips and special offers.
+            {language === 'de' ? 'Bleiben Sie auf dem Laufenden mit unseren neuesten Fotografie-Tipps und Sonderangeboten.' : 'Stay updated with our latest photography tips and special offers.'}
           </p>
           <form className="space-y-4">
             <input
               type="email"
-              placeholder="Your email address"
+              placeholder={language === 'de' ? 'Ihre E-Mail-Adresse' : 'Your email address'}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-purple-600"
             />
             <button
               type="submit"
               className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
             >
-              Subscribe
+              {language === 'de' ? 'Abonnieren' : 'Subscribe'}
             </button>
           </form>
         </div>
@@ -72,7 +74,7 @@ const BlogSidebar: React.FC<BlogSidebarProps> = ({ tags, isAdmin = false }) => {
       {/* Recent Posts */}
       {!isAdmin && (
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Recent Posts</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">{language === 'de' ? 'Neueste Beiträge' : 'Recent Posts'}</h2>
           <div className="space-y-4">
             {/* This would be populated dynamically in a real implementation */}
             <div className="border-b border-gray-200 pb-4">
