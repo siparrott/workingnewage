@@ -19,6 +19,7 @@ const CategoryFilter: React.FC = () => {
       case 'Hochzeit': return t('categories.wedding');
       case 'Business': return t('categories.business');
       case 'Event': return t('categories.event');
+      case 'Immobilien': return 'Immobilien';
       default: return category;
     }
   };

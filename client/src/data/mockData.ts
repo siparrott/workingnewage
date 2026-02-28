@@ -29,7 +29,8 @@ export const categories: Category[] = [
   'Schwangerschaft',
   'Hochzeit',
   'Business',
-  'Event'
+  'Event',
+  'Immobilien'
 ];
 
 // Voucher data

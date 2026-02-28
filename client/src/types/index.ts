@@ -14,7 +14,7 @@ export interface Voucher {
   slug: string;
 }
 
-export type Category = 'Familie' | 'Baby' | 'Schwangerschaft' | 'Hochzeit' | 'Business' | 'Event';
+export type Category = 'Familie' | 'Baby' | 'Schwangerschaft' | 'Hochzeit' | 'Business' | 'Event' | 'Immobilien';
 
 export interface Partner {
   id: string;

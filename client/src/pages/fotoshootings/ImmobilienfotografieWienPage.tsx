@@ -332,40 +332,75 @@ const ImmobilienfotografieWienPage: React.FC = () => {
               Fixpreise nach Objektgröße – transparent und planbar.
             </p>
           </div>
-          <div className="flex justify-center">
-            {/* Immobilienfotografie */}
-            <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl shadow-2xl p-8 border-2 border-blue-500 max-w-md w-full">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Immobilienfotografie</h3>
-              <p className="text-gray-600 mb-4">Wohnungen & Häuser</p>
+          <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+            {/* Immobilien Basic */}
+            <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow border border-blue-200">
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Immobilien Basic</h3>
+                <p className="text-gray-600">Kleine Wohnungen & Studios</p>
+              </div>
               <div className="mb-6">
                 <div className="flex items-baseline">
                   <span className="text-sm text-gray-500 mr-1">Ab</span>
-                  <span className="text-4xl font-bold text-blue-600">€495</span>
+                  <span className="text-4xl font-bold text-blue-600">€249</span>
                 </div>
               </div>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Innen und Exterieur</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Alle Bilder in Vollauflösung dabei</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">360°-Bilder, Google Maps-Update</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="space-y-4 mb-8">
+                <div className="flex items-start">
+                  <Check className="h-5 w-5 text-blue-500 mr-3 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-700">Inkl. alle Bilder als Datei</span>
+                </div>
+                <div className="flex items-start">
+                  <Check className="h-5 w-5 text-blue-500 mr-3 flex-shrink-0 mt-0.5" />
                   <span className="text-gray-700">Gültig bis 2 Jahre</span>
-                </li>
-              </ul>
+                </div>
+              </div>
               <Link
                 to="/warteliste"
-                className="block w-full text-center bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all"
+                className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
               >
-                Jetzt buchen
+                Jetzt sichern
+              </Link>
+            </div>
+
+            {/* Immobilien Premium - BELIEBT */}
+            <div className="bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-2xl shadow-2xl p-8 relative">
+              <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-bl-lg rounded-tr-2xl">
+                BELIEBT
+              </div>
+              <div className="mb-6 mt-4">
+                <h3 className="text-2xl font-bold mb-2">Immobilien Premium</h3>
+                <p className="text-blue-200">Wohnungen & Häuser</p>
+              </div>
+              <div className="mb-6">
+                <div className="flex items-baseline">
+                  <span className="text-sm text-blue-200 mr-1">Ab</span>
+                  <span className="text-4xl font-bold">€449</span>
+                </div>
+              </div>
+              <div className="space-y-4 mb-8">
+                <div className="flex items-start">
+                  <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
+                  <span>Alle Bilder als Datei in Vollauflösung</span>
+                </div>
+                <div className="flex items-start">
+                  <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
+                  <span>Interaktiver Video-Rundgang</span>
+                </div>
+                <div className="flex items-start">
+                  <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
+                  <span>Professionell gezeichneter Grundriss</span>
+                </div>
+                <div className="flex items-start">
+                  <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
+                  <span>Gültig bis 2 Jahre</span>
+                </div>
+              </div>
+              <Link
+                to="/warteliste"
+                className="block w-full text-center px-6 py-3 bg-white text-blue-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+              >
+                Jetzt sichern
               </Link>
             </div>
           </div>
