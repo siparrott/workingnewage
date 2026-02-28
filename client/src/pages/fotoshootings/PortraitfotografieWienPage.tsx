@@ -157,26 +157,26 @@ export default function PortraitfotografieWienPage() {
         {/* Portrait-Stile */}
         <section className="py-16 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Portrait-Stile auf einen Blick</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">{language === 'de' ? 'Portrait-Stile auf einen Blick' : 'Portrait Styles at a Glance'}</h2>
             <div className="grid md:grid-cols-3 gap-8">
               <div className="bg-gray-50 rounded-xl p-6">
                 <Sparkles className="h-10 w-10 text-purple-600 mb-4" />
                 <h3 className="font-semibold text-lg mb-2 text-gray-900">Editorial</h3>
-                <p className="text-gray-600 text-sm">Magazin-Look, markante Lichtkante, klare Posen.</p>
+                <p className="text-gray-600 text-sm">{language === 'de' ? 'Magazin-Look, markante Lichtkante, klare Posen.' : 'Magazine look, striking light edge, clear poses.'}</p>
               </div>
               <div className="bg-gray-50 rounded-xl p-6">
                 <Camera className="h-10 w-10 text-purple-600 mb-4" />
-                <h3 className="font-semibold text-lg mb-2 text-gray-900">Klassisch</h3>
-                <p className="text-gray-600 text-sm">Zeitlos, weiche Übergänge, dezente Retusche.</p>
+                <h3 className="font-semibold text-lg mb-2 text-gray-900">{language === 'de' ? 'Klassisch' : 'Classic'}</h3>
+                <p className="text-gray-600 text-sm">{language === 'de' ? 'Zeitlos, weiche Übergänge, dezente Retusche.' : 'Timeless, soft transitions, subtle retouching.'}</p>
               </div>
               <div className="bg-gray-50 rounded-xl p-6">
                 <Sparkles className="h-10 w-10 text-purple-600 mb-4" />
-                <h3 className="font-semibold text-lg mb-2 text-gray-900">Kreativ</h3>
-                <p className="text-gray-600 text-sm">Farben, Texturen, Bewegung – gerne auch Experimente.</p>
+                <h3 className="font-semibold text-lg mb-2 text-gray-900">{language === 'de' ? 'Kreativ' : 'Creative'}</h3>
+                <p className="text-gray-600 text-sm">{language === 'de' ? 'Farben, Texturen, Bewegung – gerne auch Experimente.' : 'Colours, textures, movement – experiments welcome.'}</p>
               </div>
             </div>
             <div className="mt-8 text-center text-gray-700 text-sm">
-              Ergebnis: Ein Set Bilder, das auf Website, LinkedIn & Profil gleichermaßen funktioniert.
+              {language === 'de' ? 'Ergebnis: Ein Set Bilder, das auf Website, LinkedIn & Profil gleichermaßen funktioniert.' : 'Result: A set of images that works equally well on your website, LinkedIn & profile.'}
             </div>
           </div>
         </section>
@@ -184,63 +184,63 @@ export default function PortraitfotografieWienPage() {
         {/* Studio-Sets & Licht */}
         <section className="py-16 bg-gray-50">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-center mb-8">Studio-Sets & Licht (Best-of)</h2>
+            <h2 className="text-3xl font-bold text-center mb-8">{language === 'de' ? 'Studio-Sets & Licht (Best-of)' : 'Studio Sets & Lighting (Best-of)'}</h2>
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               <table className="w-full">
                 <thead className="bg-purple-600 text-white">
                   <tr>
                     <th className="px-6 py-4 text-left text-sm font-semibold">Set</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold">Look</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">Licht-Setup</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">Ideal für</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold">{language === 'de' ? 'Licht-Setup' : 'Light Setup'}</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold">{language === 'de' ? 'Ideal für' : 'Ideal for'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   <tr className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">Charcoal Grey</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">Zeitlos, Business-Ready</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">2-Licht Clamshell + Haarlicht</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">Headshots, Team</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? 'Zeitlos, Business-Ready' : 'Timeless, business-ready'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? '2-Licht Clamshell + Haarlicht' : '2-light clamshell + hair light'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? 'Headshots, Team' : 'Headshots, team'}</td>
                   </tr>
                   <tr className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">White High-Key</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">Hell, clean, modern</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">Großes Softbox-Key + Aufheller</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? 'Hell, clean, modern' : 'Bright, clean, modern'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? 'Großes Softbox-Key + Aufheller' : 'Large softbox key + fill'}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">Web, PR</td>
                   </tr>
                   <tr className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">Black Low-Key</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">Dramatisch, kantig</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">Streifenlicht + Edge</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">Editorial, Künstler</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? 'Dramatisch, kantig' : 'Dramatic, edgy'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? 'Streifenlicht + Edge' : 'Strip light + edge'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? 'Editorial, Künstler' : 'Editorial, artists'}</td>
                   </tr>
                   <tr className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">Color Pop</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">Mutig, Trend</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">Farbgel + Key/Fill</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">Kampagnen, Social</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? 'Mutig, Trend' : 'Bold, trending'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? 'Farbgel + Key/Fill' : 'Colour gel + key/fill'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? 'Kampagnen, Social' : 'Campaigns, social'}</td>
                   </tr>
                   <tr className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">Textured Backdrop</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">Warm, organisch</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? 'Warm, organisch' : 'Warm, organic'}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">Soft Key + Grid</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">Autoren, Personal Brand</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? 'Autoren, Personal Brand' : 'Authors, personal brand'}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
             <div className="mt-4 bg-purple-50 rounded-xl p-4 text-sm text-gray-700">
-              Technik-Kurznotiz: Hauttöne zuerst. Dual-Card-Backup. Kalibrierte Monitore. Retusche dezent – Poren bleiben Poren.
+              {language === 'de' ? 'Technik-Kurznotiz: Hauttöne zuerst. Dual-Card-Backup. Kalibrierte Monitore. Retusche dezent – Poren bleiben Poren.' : 'Tech note: Skin tones first. Dual-card backup. Calibrated monitors. Retouching subtle – pores stay pores.'}
             </div>
           </div>
         </section>
         {/* Extended Content Section - Safe Copy Slot */}
-        <MarkdownCopySlot content={newageCopyMap['portrait-fotografie-wien'].markdown} />
+        {language === 'de' && <MarkdownCopySlot content={newageCopyMap['portrait-fotografie-wien'].markdown} />}
         {/* Pakete & Preise */}
         <section className="py-16 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Pakete & Preise</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{language === 'de' ? 'Pakete & Preise' : 'Packages & Prices'}</h2>
             </div>
             <div className="grid md:grid-cols-3 gap-8 mb-12">
               {/* Business Portrait Basic */}
@@ -251,47 +251,47 @@ export default function PortraitfotografieWienPage() {
                 </div>
                 <div className="mb-6">
                   <div className="flex items-baseline">
-                    <span className="text-sm text-gray-500 mr-1">Ab</span>
+                    <span className="text-sm text-gray-500 mr-1">{language === 'de' ? 'Ab' : 'From'}</span>
                     <span className="text-4xl font-bold text-purple-600">€69</span>
                   </div>
                 </div>
                 <div className="space-y-3 mb-8 text-sm">
-                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>30 Minuten</span></div>
-                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>1 retuschiertes Foto suitable for LinkedIn</span></div>
-                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>Gültig bis 2 Jahre</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>{language === 'de' ? '30 Minuten' : '30 minutes'}</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>{language === 'de' ? '1 retuschiertes Foto suitable for LinkedIn' : '1 retouched photo suitable for LinkedIn'}</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>{language === 'de' ? 'Gültig bis 2 Jahre' : 'Valid for up to 2 years'}</span></div>
                 </div>
                 <Link
                   to="/warteliste"
                   className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
                 >
-                  Jetzt buchen
+                  {language === 'de' ? 'Jetzt buchen' : 'Book Now'}
                 </Link>
               </div>
 
               {/* Express Headshot (beliebt) */}
               <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 transform scale-105 relative">
-                <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-bl-lg rounded-tr-2xl">BELIEBT</div>
+                <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-bl-lg rounded-tr-2xl">{language === 'de' ? 'BELIEBT' : 'POPULAR'}</div>
                 <div className="mb-6 mt-4">
                   <h3 className="text-2xl font-bold mb-2">Express Headshot</h3>
-                  <p className="text-purple-100 font-medium">Schnell & effizient</p>
+                  <p className="text-purple-100 font-medium">{language === 'de' ? 'Schnell & effizient' : 'Fast & efficient'}</p>
                 </div>
                 <div className="mb-6">
                   <div className="flex items-baseline">
-                    <span className="text-sm text-purple-200 mr-1">Ab</span>
+                    <span className="text-sm text-purple-200 mr-1">{language === 'de' ? 'Ab' : 'From'}</span>
                     <span className="text-4xl font-bold">€95</span>
                   </div>
                 </div>
                 <div className="space-y-3 mb-8 text-sm">
-                  <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>20–30 Min.</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>{language === 'de' ? '20–30 Min.' : '20–30 min.'}</span></div>
                   <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>1 Look/Outfit</span></div>
-                  <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>1 retuschiertes Bild (High-Res + Web)</span></div>
-                  <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>Gültig bis 2 Jahre</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>{language === 'de' ? '1 retuschiertes Bild (High-Res + Web)' : '1 retouched image (high-res + web)'}</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>{language === 'de' ? 'Gültig bis 2 Jahre' : 'Valid for up to 2 years'}</span></div>
                 </div>
                 <Link
                   to="/warteliste"
                   className="block w-full text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
                 >
-                  Jetzt buchen
+                  {language === 'de' ? 'Jetzt buchen' : 'Book Now'}
                 </Link>
               </div>
 
@@ -303,20 +303,20 @@ export default function PortraitfotografieWienPage() {
                 </div>
                 <div className="mb-6">
                   <div className="flex items-baseline">
-                    <span className="text-sm text-gray-500 mr-1">Ab</span>
+                    <span className="text-sm text-gray-500 mr-1">{language === 'de' ? 'Ab' : 'From'}</span>
                     <span className="text-4xl font-bold text-purple-600">€199</span>
                   </div>
                 </div>
                 <div className="space-y-3 mb-8 text-sm">
-                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>60 Minuten Session</span></div>
-                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>Professional headshots for business use</span></div>
-                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>Gültig bis 2 Jahre</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>{language === 'de' ? '60 Minuten Session' : '60-minute session'}</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>{language === 'de' ? 'Professional headshots for business use' : 'Professional headshots for business use'}</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>{language === 'de' ? 'Gültig bis 2 Jahre' : 'Valid for up to 2 years'}</span></div>
                 </div>
                 <Link
                   to="/warteliste"
                   className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
                 >
-                  Jetzt buchen
+                  {language === 'de' ? 'Jetzt buchen' : 'Book Now'}
                 </Link>
               </div>
             </div>
@@ -326,28 +326,28 @@ export default function PortraitfotografieWienPage() {
         {/* Vorbereitung */}
         <section className="py-16 bg-gray-50">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-center mb-10">Vorbereitung: Kleidung & Ausdruck</h2>
+            <h2 className="text-3xl font-bold text-center mb-10">{language === 'de' ? 'Vorbereitung: Kleidung & Ausdruck' : 'Preparation: Clothing & Expression'}</h2>
             <div className="grid md:grid-cols-3 gap-6">
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-semibold text-gray-900 mb-3">Kleidung (quick wins)</h3>
+                <h3 className="font-semibold text-gray-900 mb-3">{language === 'de' ? 'Kleidung (quick wins)' : 'Clothing (quick wins)'}</h3>
                 <ul className="text-sm text-gray-700 space-y-2">
-                  <li>• 2–3 Outfits: neutral + Statement</li>
-                  <li>• Feine Texturen &gt; große Logos</li>
-                  <li>• Kragen & Schultern glatt (Steamer vor Ort)</li>
+                  <li>{language === 'de' ? '• 2–3 Outfits: neutral + Statement' : '• 2–3 outfits: neutral + statement'}</li>
+                  <li>{language === 'de' ? '• Feine Texturen > große Logos' : '• Fine textures > large logos'}</li>
+                  <li>{language === 'de' ? '• Kragen & Schultern glatt (Steamer vor Ort)' : '• Collar & shoulders smooth (steamer on site)'}</li>
                 </ul>
               </div>
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-semibold text-gray-900 mb-3">Ausdruck</h3>
+                <h3 className="font-semibold text-gray-900 mb-3">{language === 'de' ? 'Ausdruck' : 'Expression'}</h3>
                 <ul className="text-sm text-gray-700 space-y-2">
-                  <li>• „Soft Smile“, „Focused“, „Approachable“ – Mikro-Coaching</li>
-                  <li>• 5-Sekunden-Regel: Mini-Reset zwischen Serien</li>
+                  <li>{language === 'de' ? '• „Soft Smile“, „Focused“, „Approachable“ – Mikro-Coaching' : '• "Soft Smile", "Focused", "Approachable" – micro-coaching'}</li>
+                  <li>{language === 'de' ? '• 5-Sekunden-Regel: Mini-Reset zwischen Serien' : '• 5-second rule: mini reset between series'}</li>
                 </ul>
               </div>
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-semibold text-gray-900 mb-3">Accessoires</h3>
+                <h3 className="font-semibold text-gray-900 mb-3">{language === 'de' ? 'Accessoires' : 'Accessories'}</h3>
                 <ul className="text-sm text-gray-700 space-y-2">
-                  <li>• Brillen entspiegeln? Super – sonst kurzer Winkel-Check</li>
-                  <li>• Schmuck: 1 Fokus-Piece statt alles gleichzeitig</li>
+                  <li>{language === 'de' ? '• Brillen entspiegeln? Super – sonst kurzer Winkel-Check' : '• Anti-glare glasses? Great – otherwise a quick angle check'}</li>
+                  <li>{language === 'de' ? '• Schmuck: 1 Fokus-Piece statt alles gleichzeitig' : '• Jewellery: 1 focus piece instead of everything at once'}</li>
                 </ul>
               </div>
             </div>
@@ -357,15 +357,16 @@ export default function PortraitfotografieWienPage() {
         {/* On Location Wien */}
         <section className="py-16 bg-white">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-center mb-6">On Location in Wien</h2>
+            <h2 className="text-3xl font-bold text-center mb-6">{language === 'de' ? 'On Location in Wien' : 'On Location in Vienna'}</h2>
             <p className="text-gray-700 text-center max-w-3xl mx-auto mb-4">
-              Lieber urban statt Studio? Wir haben Spots mit Platz & Lichtfenstern. Tipp: Unter der Woche am Vormittag ist es ruhiger –
-              per ÖPNV kommt man entspannt hin.
+              {language === 'de'
+                ? 'Lieber urban statt Studio? Wir haben Spots mit Platz & Lichtfenstern. Tipp: Unter der Woche am Vormittag ist es ruhiger – per ÖPNV kommt man entspannt hin.'
+                : 'Prefer urban over studio? We have spots with space & natural light. Tip: Weekday mornings are quieter – easy to reach by public transport.'}
             </p>
             <p className="text-center text-sm text-gray-600">
-              Externer Hinweis:{' '}
+              {language === 'de' ? 'Externer Hinweis: ' : 'External link: '}
               <a href="https://www.wienerlinien.at/" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-700 underline">
-                Wiener Linien Routenplaner – Anfahrt & Umstieg
+                {language === 'de' ? 'Wiener Linien Routenplaner – Anfahrt & Umstieg' : 'Wiener Linien Route Planner – Directions & Transfers'}
               </a>
             </p>
           </div>
@@ -374,47 +375,47 @@ export default function PortraitfotografieWienPage() {
         {/* Ablauf & SLAs */}
         <section className="py-16 bg-gray-50">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-center mb-8">Ablauf & Lieferzeiten (SLAs)</h2>
+            <h2 className="text-3xl font-bold text-center mb-8">{language === 'de' ? 'Ablauf & Lieferzeiten (SLAs)' : 'Process & Delivery Times (SLAs)'}</h2>
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               <table className="w-full">
                 <thead className="bg-purple-600 text-white">
                   <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">Schritt</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">Was passiert</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">Zeit</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold">{language === 'de' ? 'Schritt' : 'Step'}</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold">{language === 'de' ? 'Was passiert' : 'What happens'}</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold">{language === 'de' ? 'Zeit' : 'Time'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   <tr className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">Briefing</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">Ziel, Look, Nutzung (Web/Print/PR)</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">10 Min</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? 'Ziel, Look, Nutzung (Web/Print/PR)' : 'Goal, look, usage (web/print/PR)'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? '10 Min' : '10 min'}</td>
                   </tr>
                   <tr className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">Shooting</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">Lichtcheck → Serien → Review</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">30–120 Min</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? 'Lichtcheck → Serien → Review' : 'Light check → Series → Review'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? '30–120 Min' : '30–120 min'}</td>
                   </tr>
                   <tr className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">Auswahl</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">Favoriten in Galerie markieren</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">am Tag</td>
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{language === 'de' ? 'Auswahl' : 'Selection'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? 'Favoriten in Galerie markieren' : 'Mark favourites in gallery'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? 'am Tag' : 'Same day'}</td>
                   </tr>
                   <tr className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">Retusche</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">Natürlich, sauber, markenschonend</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">2–4 Werktage</td>
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{language === 'de' ? 'Retusche' : 'Retouching'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? 'Natürlich, sauber, markenschonend' : 'Natural, clean, brand-safe'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? '2–4 Werktage' : '2–4 business days'}</td>
                   </tr>
                   <tr className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">Delivery</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">Hi-Res + Web-Optimiert, Namensschema</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">Download-Link</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? 'Hi-Res + Web-Optimiert, Namensschema' : 'Hi-res + web-optimised, naming scheme'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? 'Download-Link' : 'Download link'}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
             <div className="bg-purple-100 rounded-xl p-4 text-center mt-4">
-              <p className="text-sm text-gray-700">Express möglich, wenn’s brennt.</p>
+              <p className="text-sm text-gray-700">{language === 'de' ? "Express möglich, wenn's brennt." : 'Express available when it\'s urgent.'}</p>
             </div>
           </div>
         </section>
@@ -422,12 +423,12 @@ export default function PortraitfotografieWienPage() {
         {/* Beispiele */}
         <section className="py-16 bg-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-center mb-8">Beispiele: Editorial • Klassisch • Kreativ</h2>
+            <h2 className="text-3xl font-bold text-center mb-8">{language === 'de' ? 'Beispiele: Editorial • Klassisch • Kreativ' : 'Examples: Editorial • Classic • Creative'}</h2>
             <div className="bg-purple-50 rounded-xl p-8">
               <ul className="grid md:grid-cols-3 gap-4 text-sm text-gray-700">
-                <li>• Editorial: Dunkler Backdrop, Edge-Light, markanter Kiefer – Magazin-ready.</li>
-                <li>• Klassisch: Grey, weiches Key, Catchlights sauber – zeitlos.</li>
-                <li>• Kreativ: Farbgel-Gradient, leichte Motion – Social Hook.</li>
+                <li>{language === 'de' ? '• Editorial: Dunkler Backdrop, Edge-Light, markanter Kiefer – Magazin-ready.' : '• Editorial: Dark backdrop, edge light, strong jawline – magazine-ready.'}</li>
+                <li>{language === 'de' ? '• Klassisch: Grey, weiches Key, Catchlights sauber – zeitlos.' : '• Classic: Grey, soft key, clean catchlights – timeless.'}</li>
+                <li>{language === 'de' ? '• Kreativ: Farbgel-Gradient, leichte Motion – Social Hook.' : '• Creative: Colour gel gradient, subtle motion – social hook.'}</li>
               </ul>
             </div>
           </div>
@@ -436,23 +437,23 @@ export default function PortraitfotografieWienPage() {
         {/* FAQ */}
         <section className="py-16 bg-gray-50">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-center mb-12">FAQ – kurz & klar</h2>
+            <h2 className="text-3xl font-bold text-center mb-12">{language === 'de' ? 'FAQ – kurz & klar' : 'FAQ – Short & Clear'}</h2>
             <div className="space-y-6">
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-bold text-lg text-gray-900 mb-2">Wie viele finale Bilder?</h3>
-                <p className="text-gray-600">Je nach Paket 6–18 retuschierte Motive, plus Grundauswahl.</p>
+                <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Wie viele finale Bilder?' : 'How many final images?'}</h3>
+                <p className="text-gray-600">{language === 'de' ? 'Je nach Paket 6–18 retuschierte Motive, plus Grundauswahl.' : 'Depending on the package, 6–18 retouched images, plus basic selection.'}</p>
               </div>
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-bold text-lg text-gray-900 mb-2">Darf ich die RAWs bekommen?</h3>
-                <p className="text-gray-600">Nein – wir liefern finale, farbverbindliche Bilder (JPG/PNG, auf Wunsch TIFF).</p>
+                <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Darf ich die RAWs bekommen?' : 'Can I get the RAW files?'}</h3>
+                <p className="text-gray-600">{language === 'de' ? 'Nein – wir liefern finale, farbverbindliche Bilder (JPG/PNG, auf Wunsch TIFF).' : 'No – we deliver final, colour-accurate images (JPG/PNG, TIFF on request).'}</p>
               </div>
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-bold text-lg text-gray-900 mb-2">Make-up nötig?</h3>
-                <p className="text-gray-600">Empfehlung: Mattierung/Teint-Ausgleich. Gerne buchen wir Make-up Artist.</p>
+                <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Make-up nötig?' : 'Is make-up necessary?'}</h3>
+                <p className="text-gray-600">{language === 'de' ? 'Empfehlung: Mattierung/Teint-Ausgleich. Gerne buchen wir Make-up Artist.' : 'Recommendation: mattifying/complexion evening. We\'re happy to book a make-up artist.'}</p>
               </div>
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-bold text-lg text-gray-900 mb-2">Retusche-Level?</h3>
-                <p className="text-gray-600">Natürlich – Hautstruktur bleibt, temporäre Unreinheiten gehen.</p>
+                <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Retusche-Level?' : 'Retouching level?'}</h3>
+                <p className="text-gray-600">{language === 'de' ? 'Natürlich – Hautstruktur bleibt, temporäre Unreinheiten gehen.' : 'Natural – skin texture stays, temporary blemishes go.'}</p>
               </div>
             </div>
           </div>
@@ -461,17 +462,19 @@ export default function PortraitfotografieWienPage() {
         {/* Final CTA */}
         <section className="py-16 bg-gradient-to-r from-gray-900 to-gray-800 text-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Nächster Schritt</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">{language === 'de' ? 'Nächster Schritt' : 'Next Step'}</h2>
             <p className="text-xl mb-8 opacity-90">
-              Erzähl uns kurz Zweck, Deadline und gewünschten Stil. Wir empfehlen Paket, Set & Licht – und blocken dir einen Slot.
+              {language === 'de'
+                ? 'Erzähl uns kurz Zweck, Deadline und gewünschten Stil. Wir empfehlen Paket, Set & Licht – und blocken dir einen Slot.'
+                : 'Tell us briefly the purpose, deadline and desired style. We\'ll recommend a package, set & lighting – and block a slot for you.'}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/warteliste" className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg">
-                Jetzt Wartelisten-Platz sichern
+                {language === 'de' ? 'Jetzt Wartelisten-Platz sichern' : 'Secure a waitlist spot now'}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
               <Link to="/kontakt" className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white rounded-lg hover:bg-white/10 transition-colors font-semibold text-lg">
-                Verfügbarkeit prüfen
+                {language === 'de' ? 'Verfügbarkeit prüfen' : 'Check availability'}
               </Link>
             </div>
           </div>
