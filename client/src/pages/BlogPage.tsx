@@ -52,7 +52,9 @@ const BlogPage: React.FC = () => {
 
   useEffect(() => {
     // SEO Meta Tags
-    document.title = 'Blog - Fotografie Tipps & Inspiration | New Age Fotografie Wien';
+    document.title = language === 'de' 
+      ? 'Blog - Fotografie Tipps & Inspiration | New Age Fotografie Wien'
+      : 'Blog - Photography Tips & Inspiration | New Age Photography Vienna';
     
     // Update meta description
     let metaDescription = document.querySelector('meta[name="description"]');
@@ -61,7 +63,9 @@ const BlogPage: React.FC = () => {
       metaDescription.setAttribute('name', 'description');
       document.head.appendChild(metaDescription);
     }
-    metaDescription.setAttribute('content', 'Fotografie-Blog mit Tipps für Familienfotos, Neugeborenenbilder und Schwangerschaftsfotos. Inspiration und Beratung vom Wiener Familienfotograf.');
+    metaDescription.setAttribute('content', language === 'de' 
+      ? 'Fotografie-Blog mit Tipps für Familienfotos, Neugeborenenbilder und Schwangerschaftsfotos. Inspiration und Beratung vom Wiener Familienfotograf.'
+      : 'Photography blog with tips for family photos, newborn pictures and maternity photos. Inspiration and advice from a Vienna family photographer.');
 
     // Open Graph tags
     let ogTitle = document.querySelector('meta[property="og:title"]');
@@ -70,12 +74,12 @@ const BlogPage: React.FC = () => {
       ogTitle.setAttribute('property', 'og:title');
       document.head.appendChild(ogTitle);
     }
-    ogTitle.setAttribute('content', 'Fotografie Blog - New Age Fotografie Wien');
+    ogTitle.setAttribute('content', language === 'de' ? 'Fotografie Blog - New Age Fotografie Wien' : 'Photography Blog - New Age Photography Vienna');
 
     return () => {
-      document.title = 'New Age Fotografie - Familienfotograf Wien';
+      document.title = language === 'de' ? 'New Age Fotografie - Familienfotograf Wien' : 'New Age Photography - Family Photographer Vienna';
     };
-  }, []);
+  }, [language]);
   
   const fetchData = async () => {
     try {
@@ -157,9 +161,9 @@ const BlogPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Fotografie Blog | New Age Fotografie"
-        description="Tipps, Inspiration und Neuigkeiten rund um Fotografie in Wien. Familien-, Baby- und Business-Fotografie Insights."
-        keywords="Fotografie Blog Wien, Fotoshooting Tipps, Fotograf Inspiration"
+        title={language === 'de' ? 'Fotografie Blog | New Age Fotografie' : 'Photography Blog | New Age Photography'}
+        description={language === 'de' ? 'Tipps, Inspiration und Neuigkeiten rund um Fotografie in Wien. Familien-, Baby- und Business-Fotografie Insights.' : 'Tips, inspiration and news about photography in Vienna. Family, baby and business photography insights.'}
+        keywords={language === 'de' ? 'Fotografie Blog Wien, Fotoshooting Tipps, Fotograf Inspiration' : 'Photography Blog Vienna, Photoshoot Tips, Photographer Inspiration'}
         canonical="/blog"
         ogImage="https://i.postimg.cc/wTdZVLdC/photo-grid.jpg"
         hreflang={[
@@ -175,7 +179,7 @@ const BlogPage: React.FC = () => {
             "@context": "https://schema.org",
             "@type": "Blog",
             "name": "New Age Fotografie Blog",
-            "description": "Fotografie-Tipps, Behind-the-Scenes und Inspiration für Fotoshootings in Wien",
+            "description": language === 'de' ? "Fotografie-Tipps, Behind-the-Scenes und Inspiration für Fotoshootings in Wien" : "Photography tips, behind-the-scenes and inspiration for photoshoots in Vienna",
             "url": "https://newagefotografie.at/blog/",
             "publisher": {
               "@type": "Organization",
@@ -185,7 +189,7 @@ const BlogPage: React.FC = () => {
                 "url": "https://newagefotografie.at/logo.png"
               }
             },
-            "inLanguage": "de-AT",
+            "inLanguage": language === 'de' ? "de-AT" : "en",
             "blogPost": posts.slice(0, 5).map(post => ({
               "@type": "BlogPosting",
               "headline": post.title,
@@ -487,24 +491,24 @@ const BlogPage: React.FC = () => {
 
             {/* Popular Services */}
             <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Beliebte Services</h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-4">{language === 'de' ? 'Beliebte Services' : 'Popular Services'}</h2>
               <ul className="space-y-3">
                 <li>
                   <Link to="/fotoshooting/familienfotos-wien/" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
                     <ChevronRight size={16} className="mr-2 text-purple-600" />
-                    Familienfotos Wien
+                    {language === 'de' ? 'Familienfotos Wien' : 'Family Photos Vienna'}
                   </Link>
                 </li>
                 <li>
                   <Link to="/fotoshooting/neugeborenenfotos-wien/" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
                     <ChevronRight size={16} className="mr-2 text-purple-600" />
-                    Neugeborenenfotos
+                    {language === 'de' ? 'Neugeborenenfotos' : 'Newborn Photos'}
                   </Link>
                 </li>
                 <li>
                   <Link to="/fotoshooting/babyfotos-wien/" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
                     <ChevronRight size={16} className="mr-2 text-purple-600" />
-                    Babyfotos Wien
+                    {language === 'de' ? 'Babyfotos Wien' : 'Baby Photos Vienna'}
                   </Link>
                 </li>
                 <li>
@@ -516,7 +520,7 @@ const BlogPage: React.FC = () => {
                 <li>
                   <Link to="/fotoshooting/hochzeitsfotografie-wien/" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
                     <ChevronRight size={16} className="mr-2 text-purple-600" />
-                    Hochzeitsfotografie
+                    {language === 'de' ? 'Hochzeitsfotografie' : 'Wedding Photography'}
                   </Link>
                 </li>
               </ul>
@@ -524,15 +528,15 @@ const BlogPage: React.FC = () => {
 
             {/* Voucher CTA */}
             <div className="bg-gradient-to-br from-purple-600 to-purple-800 rounded-lg shadow-lg p-6 text-white">
-              <h2 className="text-xl font-bold mb-3">Geschenkidee</h2>
+              <h2 className="text-xl font-bold mb-3">{language === 'de' ? 'Geschenkidee' : 'Gift Idea'}</h2>
               <p className="text-purple-100 mb-4 text-sm">
-                Schenken Sie unvergessliche Momente mit unseren Fotoshooting-Gutscheinen.
+                {language === 'de' ? 'Schenken Sie unvergessliche Momente mit unseren Fotoshooting-Gutscheinen.' : 'Give unforgettable moments with our photoshoot vouchers.'}
               </p>
               <Link 
                 to="/gutscheine" 
                 className="inline-block bg-white text-purple-600 px-4 py-2 rounded-lg font-medium hover:bg-purple-50 transition-colors"
               >
-                Gutscheine entdecken
+                {language === 'de' ? 'Gutscheine entdecken' : 'Discover Vouchers'}
               </Link>
             </div>
           </div>

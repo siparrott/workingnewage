@@ -26,8 +26,48 @@ const Imap = require('imap');
 import { simpleParser } from 'mailparser';
 
 // Lightweight helpers/stubs to keep routes type-safe where optional features are used
+const tagTranslations: Record<string, string> = {
+  'familienfotos': 'family photos',
+  'wien': 'vienna',
+  'studio': 'studio',
+  'outdoor': 'outdoor',
+  'vergleich': 'comparison',
+  'fotoshooting': 'photoshoot',
+  'photography': 'photography',
+  'vienna': 'vienna',
+  'baby': 'baby',
+  'winter': 'winter',
+  'family': 'family',
+  'Businessportraits Wien': 'Business Portraits Vienna',
+  'Businessfotos Wien': 'Business Photos Vienna',
+  'Headshots Wien': 'Headshots Vienna',
+  'Corporate Fotos Wien': 'Corporate Photos Vienna',
+  'Business Fotograf Wien': 'Business Photographer Vienna',
+  'Teamfotos Wien': 'Team Photos Vienna',
+  'Firmenfotografie Wien': 'Corporate Photography Vienna',
+  'Profilfoto Tipps': 'Profile Photo Tips',
+  'Business Shooting Wien': 'Business Shooting Vienna',
+  'Wien Fotograf Business': 'Vienna Photographer Business',
+  'Familienfotos Wien': 'Family Photos Vienna',
+  'Studio Familienfotos Wien': 'Studio Family Photos Vienna',
+  'Outdoor Familienfotos Wien': 'Outdoor Family Photos Vienna',
+  'Familienfotos Vergleich': 'Family Photos Comparison',
+  'Fotoshooting Wien': 'Photoshoot Vienna',
+  'Familienfotografie Tipps': 'Family Photography Tips',
+  'neugeborene': 'newborn',
+  'schwangerschaft': 'maternity',
+  'hochzeit': 'wedding',
+  'produkt': 'product',
+  'immobilien': 'real estate',
+  'event': 'event',
+  'bewerbung': 'application',
+  'portrait': 'portrait',
+};
+
 const translateToEnglish = (s: string) => s;
-const translateTagToEnglish = (s: string) => s;
+const translateTagToEnglish = (tag: string): string => {
+  return tagTranslations[tag] || tag;
+};
 // Some routes use English translation for vouchers specifically
 const translateVoucherToEnglish = (s: string) => s;
 // Zod schemas may be imported in other environments; provide permissive fallback parsers here
