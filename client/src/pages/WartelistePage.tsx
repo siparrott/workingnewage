@@ -5,8 +5,10 @@ import { Calendar, Mail, Phone, User, Camera, Gift, ChevronRight } from 'lucide-
 import { submitWaitlistForm } from '../lib/forms';
 import { useManualPageContent } from '../hooks/useManualPageContent';
 import { SEOHead } from '../components/SEO/SEOHead';
+import { useLanguage } from '../context/LanguageContext';
 
 const WartelistePage: React.FC = () => {
+  const { language } = useLanguage();
   const t = useManualPageContent('waitlist');
   const [formData, setFormData] = useState({
     fullName: '',
@@ -29,7 +31,7 @@ const WartelistePage: React.FC = () => {
       setSuccess(true);
       setFormData({ fullName: '', preferredDate: '', email: '', phone: '', message: '' });
     } catch (err) {
-      setError('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+      setError(language === 'de' ? 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.' : 'An error occurred. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -45,9 +47,9 @@ const WartelistePage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Warteliste für Fotoshootings | New Age Fotografie"
-        description="Tragen Sie sich auf unsere Warteliste ein und erfahren Sie als Erste/r von freien Terminen und Aktionen."
-        keywords="Warteliste Fotoshooting, Termin Fotograf Wien, Benachrichtigung"
+        title={language === 'de' ? 'Warteliste für Fotoshootings | New Age Fotografie' : 'Photoshoot Waitlist | New Age Photography'}
+        description={language === 'de' ? 'Tragen Sie sich auf unsere Warteliste ein und erfahren Sie als Erste/r von freien Terminen und Aktionen.' : 'Sign up for our waitlist and be the first to know about available appointments and promotions.'}
+        keywords={language === 'de' ? 'Warteliste Fotoshooting, Termin Fotograf Wien, Benachrichtigung' : 'Photoshoot waitlist, Photographer appointment Vienna, Notification'}
         canonical="/warteliste"
       />
       
@@ -163,35 +165,35 @@ const WartelistePage: React.FC = () => {
             </button>
 
             <p className="text-sm text-gray-500 text-center">
-              <span className="text-purple-600">*</span> Pflichtfelder
+              <span className="text-purple-600">*</span> {language === 'de' ? 'Pflichtfelder' : 'Required fields'}
             </p>
           </form>
         </div>
 
         {/* Services Sidebar/Section */}
         <div className="max-w-4xl mx-auto mt-12">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-6 text-center">Während Sie warten - Entdecken Sie unsere Services</h2>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-6 text-center">{language === 'de' ? 'Während Sie warten – Entdecken Sie unsere Services' : 'While You Wait – Discover Our Services'}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Link to="/fotoshooting/familienfotos-wien/" className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow text-center group">
               <Camera className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-              <h3 className="font-medium text-gray-900 group-hover:text-purple-600">Familienfotos</h3>
+              <h3 className="font-medium text-gray-900 group-hover:text-purple-600">{language === 'de' ? 'Familienfotos' : 'Family Photos'}</h3>
             </Link>
             <Link to="/fotoshooting/neugeborenenfotos-wien/" className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow text-center group">
               <Camera className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-              <h3 className="font-medium text-gray-900 group-hover:text-purple-600">Neugeborene</h3>
+              <h3 className="font-medium text-gray-900 group-hover:text-purple-600">{language === 'de' ? 'Neugeborene' : 'Newborn'}</h3>
             </Link>
             <Link to="/fotoshooting/schwangerschaftsfotos-wien/" className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow text-center group">
               <Camera className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-              <h3 className="font-medium text-gray-900 group-hover:text-purple-600">Schwangerschaft</h3>
+              <h3 className="font-medium text-gray-900 group-hover:text-purple-600">{language === 'de' ? 'Schwangerschaft' : 'Maternity'}</h3>
             </Link>
             <Link to="/gutscheine" className="bg-purple-600 text-white p-4 rounded-lg shadow hover:bg-purple-700 transition-colors text-center">
               <Gift className="w-8 h-8 mx-auto mb-2" />
-              <h3 className="font-medium">Gutscheine</h3>
+              <h3 className="font-medium">{language === 'de' ? 'Gutscheine' : 'Vouchers'}</h3>
             </Link>
           </div>
           <p className="text-center text-gray-600 mt-6">
             <Link to="/blog" className="text-purple-600 hover:text-purple-800 font-medium inline-flex items-center">
-              Lesen Sie unseren Blog für Fotografie-Tipps <ChevronRight className="w-4 h-4 ml-1" />
+              {language === 'de' ? 'Lesen Sie unseren Blog für Fotografie-Tipps' : 'Read our blog for photography tips'} <ChevronRight className="w-4 h-4 ml-1" />
             </Link>
           </p>
         </div>
