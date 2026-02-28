@@ -174,19 +174,19 @@ const WartelistePage: React.FC = () => {
         <div className="max-w-4xl mx-auto mt-12">
           <h2 className="text-2xl font-semibold text-gray-900 mb-6 text-center">{language === 'de' ? 'Während Sie warten – Entdecken Sie unsere Services' : 'While You Wait – Discover Our Services'}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link to="/fotoshooting/familienfotos-wien/" className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow text-center group">
+            <Link to="/familienfotos-wien/" className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow text-center group">
               <Camera className="w-8 h-8 text-purple-600 mx-auto mb-2" />
               <h3 className="font-medium text-gray-900 group-hover:text-purple-600">{language === 'de' ? 'Familienfotos' : 'Family Photos'}</h3>
             </Link>
-            <Link to="/fotoshooting/neugeborenenfotos-wien/" className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow text-center group">
+            <Link to="/neugeborenenfotos-wien/" className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow text-center group">
               <Camera className="w-8 h-8 text-purple-600 mx-auto mb-2" />
               <h3 className="font-medium text-gray-900 group-hover:text-purple-600">{language === 'de' ? 'Neugeborene' : 'Newborn'}</h3>
             </Link>
-            <Link to="/fotoshooting/schwangerschaftsfotos-wien/" className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow text-center group">
+            <Link to="/schwangerschaftsfotos-wien/" className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow text-center group">
               <Camera className="w-8 h-8 text-purple-600 mx-auto mb-2" />
               <h3 className="font-medium text-gray-900 group-hover:text-purple-600">{language === 'de' ? 'Schwangerschaft' : 'Maternity'}</h3>
             </Link>
-            <Link to="/gutscheine" className="bg-purple-600 text-white p-4 rounded-lg shadow hover:bg-purple-700 transition-colors text-center">
+            <Link to="/vouchers" className="bg-purple-600 text-white p-4 rounded-lg shadow hover:bg-purple-700 transition-colors text-center">
               <Gift className="w-8 h-8 mx-auto mb-2" />
               <h3 className="font-medium">{language === 'de' ? 'Gutscheine' : 'Vouchers'}</h3>
             </Link>

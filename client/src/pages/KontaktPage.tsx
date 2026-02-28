@@ -32,7 +32,7 @@ const KontaktPage: React.FC = () => {
       setSuccess(true);
       setFormData({ fullName: '', email: '', phone: '', message: '' });
     } catch (err) {
-      setError('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+      setError(language === 'de' ? 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.' : 'An error occurred. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -48,9 +48,9 @@ const KontaktPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Kontakt - Fotograf in Wien | New Age Fotografie"
-        description="Kontaktieren Sie New Age Fotografie in Wien. Rufen Sie an oder schreiben Sie uns. Wir freuen uns auf Sie!"
-        keywords="Kontakt Fotograf Wien, Fotostudio Kontakt, New Age Fotografie Adresse"
+        title={language === 'de' ? 'Kontakt - Fotograf in Wien | New Age Fotografie' : 'Contact - Photographer in Vienna | New Age Photography'}
+        description={language === 'de' ? 'Kontaktieren Sie New Age Fotografie in Wien. Rufen Sie an oder schreiben Sie uns. Wir freuen uns auf Sie!' : 'Contact New Age Photography in Vienna. Call or write to us. We look forward to hearing from you!'}
+        keywords={language === 'de' ? 'Kontakt Fotograf Wien, Fotostudio Kontakt, New Age Fotografie Adresse' : 'Contact Photographer Vienna, Photo Studio Contact, New Age Photography Address'}
         canonical="/kontakt"
       />
       
@@ -244,7 +244,7 @@ const KontaktPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl font-semibold text-gray-900 mb-6 text-center">{language === 'de' ? 'Unsere Beliebten Services' : 'Our Popular Services'}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Link to="/fotoshooting/familienfotos-wien/" className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow group">
+            <Link to="/familienfotos-wien/" className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow group">
               <div className="flex items-center mb-3">
                 <Camera className="w-6 h-6 text-purple-600 mr-3" />
                 <h3 className="font-semibold text-gray-900 group-hover:text-purple-600">{language === 'de' ? 'Familienfotos' : 'Family Photos'}</h3>
@@ -252,7 +252,7 @@ const KontaktPage: React.FC = () => {
               <p className="text-gray-600 text-sm mb-2">{language === 'de' ? 'Professionelle Familienportraits in Wien' : 'Professional family portraits in Vienna'}</p>
               <span className="text-purple-600 text-sm flex items-center">{language === 'de' ? 'Mehr erfahren' : 'Learn more'} <ChevronRight className="w-4 h-4 ml-1" /></span>
             </Link>
-            <Link to="/fotoshooting/neugeborenenfotos-wien/" className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow group">
+            <Link to="/neugeborenenfotos-wien/" className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow group">
               <div className="flex items-center mb-3">
                 <Camera className="w-6 h-6 text-purple-600 mr-3" />
                 <h3 className="font-semibold text-gray-900 group-hover:text-purple-600">{language === 'de' ? 'Neugeborenenfotos' : 'Newborn Photos'}</h3>
@@ -260,7 +260,7 @@ const KontaktPage: React.FC = () => {
               <p className="text-gray-600 text-sm mb-2">{language === 'de' ? 'Zarte Babyfotografie für die ersten Tage' : 'Gentle baby photography for the first days'}</p>
               <span className="text-purple-600 text-sm flex items-center">{language === 'de' ? 'Mehr erfahren' : 'Learn more'} <ChevronRight className="w-4 h-4 ml-1" /></span>
             </Link>
-            <Link to="/fotoshooting/business-portrait-wien/" className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow group">
+            <Link to="/business-portrait-wien/" className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow group">
               <div className="flex items-center mb-3">
                 <Camera className="w-6 h-6 text-purple-600 mr-3" />
                 <h3 className="font-semibold text-gray-900 group-hover:text-purple-600">Business Portraits</h3>
@@ -271,7 +271,7 @@ const KontaktPage: React.FC = () => {
           </div>
           <div className="text-center mt-8">
             <Link 
-              to="/gutscheine" 
+              to="/vouchers" 
               className="inline-flex items-center bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors"
             >
               <Gift className="w-5 h-5 mr-2" />

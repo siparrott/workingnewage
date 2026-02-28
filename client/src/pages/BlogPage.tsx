@@ -494,31 +494,31 @@ const BlogPage: React.FC = () => {
               <h2 className="text-xl font-bold text-gray-800 mb-4">{language === 'de' ? 'Beliebte Services' : 'Popular Services'}</h2>
               <ul className="space-y-3">
                 <li>
-                  <Link to="/fotoshooting/familienfotos-wien/" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
+                  <Link to="/familienfotos-wien/" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
                     <ChevronRight size={16} className="mr-2 text-purple-600" />
                     {language === 'de' ? 'Familienfotos Wien' : 'Family Photos Vienna'}
                   </Link>
                 </li>
                 <li>
-                  <Link to="/fotoshooting/neugeborenenfotos-wien/" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
+                  <Link to="/neugeborenenfotos-wien/" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
                     <ChevronRight size={16} className="mr-2 text-purple-600" />
                     {language === 'de' ? 'Neugeborenenfotos' : 'Newborn Photos'}
                   </Link>
                 </li>
                 <li>
-                  <Link to="/fotoshooting/babyfotos-wien/" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
+                  <Link to="/babyfotos-wien/" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
                     <ChevronRight size={16} className="mr-2 text-purple-600" />
                     {language === 'de' ? 'Babyfotos Wien' : 'Baby Photos Vienna'}
                   </Link>
                 </li>
                 <li>
-                  <Link to="/fotoshooting/business-portrait-wien/" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
+                  <Link to="/business-portrait-wien/" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
                     <ChevronRight size={16} className="mr-2 text-purple-600" />
                     Business Portraits
                   </Link>
                 </li>
                 <li>
-                  <Link to="/fotoshooting/hochzeitsfotografie-wien/" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
+                  <Link to="/hochzeitsfotografie-wien/" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
                     <ChevronRight size={16} className="mr-2 text-purple-600" />
                     {language === 'de' ? 'Hochzeitsfotografie' : 'Wedding Photography'}
                   </Link>
@@ -533,7 +533,7 @@ const BlogPage: React.FC = () => {
                 {language === 'de' ? 'Schenken Sie unvergessliche Momente mit unseren Fotoshooting-Gutscheinen.' : 'Give unforgettable moments with our photoshoot vouchers.'}
               </p>
               <Link 
-                to="/gutscheine" 
+                to="/vouchers" 
                 className="inline-block bg-white text-purple-600 px-4 py-2 rounded-lg font-medium hover:bg-purple-50 transition-colors"
               >
                 {language === 'de' ? 'Gutscheine entdecken' : 'Discover Vouchers'}
