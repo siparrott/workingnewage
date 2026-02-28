@@ -73,7 +73,7 @@ export default function SchwangerschaftsfotosWienPage() {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             {/* Left: Text Content */}
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
                 {heroTitle}
               </h1>
               {heroSubtitle && (
