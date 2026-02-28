@@ -175,13 +175,14 @@ export default function FamilienfotosWienPage() {
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div className="prose prose-lg max-w-none">
               <p className="text-lg text-gray-700 leading-relaxed">
-                Willkommen bei New Age Fotografie – Ihrem Familienfotografen in Wien! Unser ruhiges Studio bietet den perfekten 
-                Rahmen für authentische Familienfotos. Ob kleine Familie oder Großfamilie mit bis zu 12 Personen – wir nehmen uns 
-                Zeit für echte Momente und natürliche Emotionen.
+                {language === 'de'
+                  ? 'Willkommen bei New Age Fotografie – Ihrem Familienfotografen in Wien! Unser ruhiges Studio bietet den perfekten Rahmen für authentische Familienfotos. Ob kleine Familie oder Großfamilie mit bis zu 12 Personen – wir nehmen uns Zeit für echte Momente und natürliche Emotionen.'
+                  : 'Welcome to New Age Fotografie – your family photographer in Vienna! Our quiet studio provides the perfect setting for authentic family photos. Whether a small family or a large family of up to 12 people – we take the time for real moments and natural emotions.'}
               </p>
               <p className="text-lg text-gray-700 leading-relaxed mt-4">
-                Bringt gerne eure Persönlichkeit mit: Lieblingsspielzeug der Kinder, Musikinstrumente, Sportgeräte oder das 
-                Familienmaskottchen. Diese persönlichen Details machen eure Fotos einzigartig und erzählen eure Geschichte.
+                {language === 'de'
+                  ? 'Bringt gerne eure Persönlichkeit mit: Lieblingsspielzeug der Kinder, Musikinstrumente, Sportgeräte oder das Familienmaskottchen. Diese persönlichen Details machen eure Fotos einzigartig und erzählen eure Geschichte.'
+                  : 'Feel free to bring your personality along: children\'s favorite toys, musical instruments, sports equipment, or the family mascot. These personal details make your photos unique and tell your story.'}
               </p>
             </div>
             <div>
@@ -202,10 +203,10 @@ export default function FamilienfotosWienPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Unsere Pakete
+              {language === 'de' ? 'Unsere Pakete' : 'Our Packages'}
             </h2>
             <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              Bis 12 Personen pro Termin
+              {language === 'de' ? 'Bis 12 Personen pro Termin' : 'Up to 12 people per session'}
             </p>
           </div>
 
@@ -226,36 +227,36 @@ export default function FamilienfotosWienPage() {
               <div className="space-y-4 mb-4">
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">60 Min Shooting</span>
+                  <span className="text-gray-700">{language === 'de' ? '60 Min Shooting' : '60 min shooting'}</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">1 retuschiertes Portrait digital + Leinwand 40×30 cm</span>
+                  <span className="text-gray-700">{language === 'de' ? '1 retuschiertes Portrait digital + Leinwand 40×30 cm' : '1 retouched portrait digital + canvas 40×30 cm'}</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Nutzungsrechte privat</span>
+                  <span className="text-gray-700">{language === 'de' ? 'Nutzungsrechte privat' : 'Private usage rights'}</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Bis zu 12 Personen und auch Haustiere möglich</span>
+                  <span className="text-gray-700">{language === 'de' ? 'Bis zu 12 Personen und auch Haustiere möglich' : 'Up to 12 people and pets welcome'}</span>
                 </div>
               </div>
 
-              <p className="text-gray-400 text-sm mb-6">Gültig bis 2 Jahre</p>
+              <p className="text-gray-400 text-sm mb-6">{language === 'de' ? 'Gültig bis 2 Jahre' : 'Valid for up to 2 years'}</p>
 
               <button
                 onClick={() => handleBookPackage('Family Basic', 95, 'Familienfotografie - 60 Min, 1 Portrait + Leinwand 40×30 cm')}
                 className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
               >
-                Jetzt Buchen
+                {language === 'de' ? 'Jetzt Buchen' : 'Book Now'}
               </button>
             </div>
 
             {/* Family Classic Package - BESTSELLER */}
             <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 transform scale-105 relative">
               <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-bl-lg rounded-tr-2xl">
-                BESTSELLER
+                {language === 'de' ? 'BESTSELLER' : 'BESTSELLER'}
               </div>
               
               <div className="mb-6 mt-4">
@@ -272,29 +273,29 @@ export default function FamilienfotosWienPage() {
               <div className="space-y-4 mb-4">
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>60 Min Shooting</span>
+                  <span>{language === 'de' ? '60 Min Shooting' : '60 min shooting'}</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>2 retuschierte Portraits digital + 2x Leinwand 30×40 cm</span>
+                  <span>{language === 'de' ? '2 retuschierte Portraits digital + 2x Leinwand 30×40 cm' : '2 retouched portraits digital + 2x canvas 30×40 cm'}</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Nutzungsrechte privat</span>
+                  <span>{language === 'de' ? 'Nutzungsrechte privat' : 'Private usage rights'}</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Bis zu 12 Personen und auch Haustiere möglich</span>
+                  <span>{language === 'de' ? 'Bis zu 12 Personen und auch Haustiere möglich' : 'Up to 12 people and pets welcome'}</span>
                 </div>
               </div>
 
-              <p className="text-purple-200 text-sm mb-6">Gültig bis 2 Jahre</p>
+              <p className="text-purple-200 text-sm mb-6">{language === 'de' ? 'Gültig bis 2 Jahre' : 'Valid for up to 2 years'}</p>
 
               <button
                 onClick={() => handleBookPackage('Family Classic', 195, 'Familienfotografie - 60 Min, 2 Portraits + 2x Leinwand 30×40 cm')}
                 className="block w-full text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
               >
-                Jetzt Buchen
+                {language === 'de' ? 'Jetzt Buchen' : 'Book Now'}
               </button>
             </div>
 
@@ -314,67 +315,67 @@ export default function FamilienfotosWienPage() {
               <div className="space-y-4 mb-4">
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">60 Min Shooting</span>
+                  <span className="text-gray-700">{language === 'de' ? '60 Min Shooting' : '60 min shooting'}</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">5 retuschierte Fotos digital</span>
+                  <span className="text-gray-700">{language === 'de' ? '5 retuschierte Fotos digital' : '5 retouched photos digital'}</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Leinwand 40×30 cm</span>
+                  <span className="text-gray-700">{language === 'de' ? 'Leinwand 40×30 cm' : 'Canvas 40×30 cm'}</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Nutzungsrechte privat</span>
+                  <span className="text-gray-700">{language === 'de' ? 'Nutzungsrechte privat' : 'Private usage rights'}</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Bis zu 12 Personen und auch Haustiere möglich</span>
+                  <span className="text-gray-700">{language === 'de' ? 'Bis zu 12 Personen und auch Haustiere möglich' : 'Up to 12 people and pets welcome'}</span>
                 </div>
               </div>
 
-              <p className="text-gray-400 text-sm mb-6">Gültig bis 2 Jahre</p>
+              <p className="text-gray-400 text-sm mb-6">{language === 'de' ? 'Gültig bis 2 Jahre' : 'Valid for up to 2 years'}</p>
 
               <button
                 onClick={() => handleBookPackage('Family Premium', 225, 'Familienfotografie - 60 Min, 5 Fotos + Leinwand 40×30 cm')}
                 className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
               >
-                Jetzt Buchen
+                {language === 'de' ? 'Jetzt Buchen' : 'Book Now'}
               </button>
             </div>
           </div>
 
           {/* Immer inklusive Section */}
           <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">Immer inklusive:</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">{language === 'de' ? 'Immer inklusive:' : 'Always included:'}</h3>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="flex items-start">
                 <Users className="h-6 w-6 text-purple-600 mr-3 flex-shrink-0 mt-1" />
                 <div>
-                  <p className="font-semibold text-gray-900 mb-1">Bis 12 Personen pro Termin</p>
-                  <p className="text-gray-600 text-sm">Kinder & Pets zählen mit – wir planen die Kombinationen</p>
+                  <p className="font-semibold text-gray-900 mb-1">{language === 'de' ? 'Bis 12 Personen pro Termin' : 'Up to 12 people per session'}</p>
+                  <p className="text-gray-600 text-sm">{language === 'de' ? 'Kinder & Pets zählen mit – wir planen die Kombinationen' : 'Children & pets count – we plan the combinations'}</p>
                 </div>
               </div>
               <div className="flex items-start">
                 <Smile className="h-6 w-6 text-purple-600 mr-3 flex-shrink-0 mt-1" />
                 <div>
-                  <p className="font-semibold text-gray-900 mb-1">Outfitwechsel erwünscht</p>
-                  <p className="text-gray-600 text-sm">Wir empfehlen 2 Looks pro Person.</p>
+                  <p className="font-semibold text-gray-900 mb-1">{language === 'de' ? 'Outfitwechsel erwünscht' : 'Outfit changes welcome'}</p>
+                  <p className="text-gray-600 text-sm">{language === 'de' ? 'Wir empfehlen 2 Looks pro Person.' : 'We recommend 2 looks per person.'}</p>
                 </div>
               </div>
               <div className="flex items-start">
                 <Music className="h-6 w-6 text-purple-600 mr-3 flex-shrink-0 mt-1" />
                 <div>
-                  <p className="font-semibold text-gray-900 mb-1">Requisiten/Hobby-Items willkommen</p>
-                  <p className="text-gray-600 text-sm">Musikinstrumente, Sport, Kuscheltier – bringt euer Leben mit!</p>
+                  <p className="font-semibold text-gray-900 mb-1">{language === 'de' ? 'Requisiten/Hobby-Items willkommen' : 'Props/hobby items welcome'}</p>
+                  <p className="text-gray-600 text-sm">{language === 'de' ? 'Musikinstrumente, Sport, Kuscheltier – bringt euer Leben mit!' : 'Musical instruments, sports, stuffed animals – bring your life along!'}</p>
                 </div>
               </div>
               <div className="flex items-start">
                 <Camera className="h-6 w-6 text-purple-600 mr-3 flex-shrink-0 mt-1" />
                 <div>
-                  <p className="font-semibold text-gray-900 mb-1">Ruhige Auswahlgalerie online</p>
-                  <p className="text-gray-600 text-sm">Retusche nach eurer Auswahl – kein Zeitdruck</p>
+                  <p className="font-semibold text-gray-900 mb-1">{language === 'de' ? 'Ruhige Auswahlgalerie online' : 'Relaxed online selection gallery'}</p>
+                  <p className="text-gray-600 text-sm">{language === 'de' ? 'Retusche nach eurer Auswahl – kein Zeitdruck' : 'Retouching after your selection – no time pressure'}</p>
                 </div>
               </div>
             </div>
@@ -382,46 +383,46 @@ export default function FamilienfotosWienPage() {
 
           {/* Optionen */}
           <div className="bg-purple-50 rounded-xl p-6">
-            <h4 className="font-bold text-gray-900 mb-4">Optionen (auf Wunsch):</h4>
+            <h4 className="font-bold text-gray-900 mb-4">{language === 'de' ? 'Optionen (auf Wunsch):' : 'Options (on request):'}</h4>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
               <div className="flex items-center">
                 <Check className="h-4 w-4 text-purple-600 mr-2" />
-                <span>Zusatzdatei retuschiert <strong>€15</strong></span>
+                <span>{language === 'de' ? 'Zusatzdatei retuschiert' : 'Additional retouched file'} <strong>€15</strong></span>
               </div>
               <div className="flex items-center">
                 <Check className="h-4 w-4 text-purple-600 mr-2" />
-                <span>Express-Bearbeitung 72 h: <strong>€60</strong></span>
+                <span>{language === 'de' ? 'Express-Bearbeitung 72 h:' : 'Express editing 72 h:'} <strong>€60</strong></span>
               </div>
               <div className="flex items-center">
                 <Check className="h-4 w-4 text-purple-600 mr-2" />
-                <span>Fine-Art-Album ab <strong>€195</strong></span>
+                <span>{language === 'de' ? 'Fine-Art-Album ab' : 'Fine art album from'} <strong>€195</strong></span>
               </div>
               <div className="flex items-center">
                 <Check className="h-4 w-4 text-purple-600 mr-2" />
-                <span>Duplikat-Leinwand 40×30 <strong>€59</strong> / 60×40 <strong>€89</strong></span>
+                <span>{language === 'de' ? 'Duplikat-Leinwand 40×30' : 'Duplicate canvas 40×30'} <strong>€59</strong> / 60×40 <strong>€89</strong></span>
               </div>
             </div>
           </div>
 
           {/* CTA Buttons after packages */}
           <div className="mt-12 text-center bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">Jetzt buchen</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">{language === 'de' ? 'Jetzt buchen' : 'Book now'}</h3>
             <p className="text-gray-700 mb-6">
-              👉 <strong>Termin sichern:</strong> Plätze sind begrenzt – sichern Sie sich Ihren Wunschtermin auf der Warteliste
+              👉 <strong>{language === 'de' ? 'Termin sichern:' : 'Secure your spot:'}</strong> {language === 'de' ? 'Plätze sind begrenzt – sichern Sie sich Ihren Wunschtermin auf der Warteliste' : 'Spots are limited – secure your preferred date on the waitlist'}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 to="/warteliste"
                 className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
               >
-                Termin auf der Warteliste sichern
+                {language === 'de' ? 'Termin auf der Warteliste sichern' : 'Secure a spot on the waitlist'}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
               <Link
                 to="/gutschein/family"
                 className="inline-flex items-center justify-center px-8 py-4 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors font-semibold"
               >
-                Familien-Gutschein verschenken
+                {language === 'de' ? 'Familien-Gutschein verschenken' : 'Give a Family Voucher'}
               </Link>
             </div>
           </div>
@@ -440,42 +441,42 @@ export default function FamilienfotosWienPage() {
               loading="lazy"
             />
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Shooting-Ablauf (Studio)</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">{language === 'de' ? 'Shooting-Ablauf (Studio)' : 'Shooting Process (Studio)'}</h2>
           <div className="grid md:grid-cols-5 gap-6">
             <div className="text-center">
               <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-purple-600">1</span>
               </div>
-              <h3 className="font-semibold mb-2 text-gray-900">Kurzbriefing</h3>
-              <p className="text-gray-600 text-sm">Familiengröße, Looks, besondere Wünsche</p>
+              <h3 className="font-semibold mb-2 text-gray-900">{language === 'de' ? 'Kurzbriefing' : 'Quick briefing'}</h3>
+              <p className="text-gray-600 text-sm">{language === 'de' ? 'Familiengröße, Looks, besondere Wünsche' : 'Family size, looks, special requests'}</p>
             </div>
             <div className="text-center">
               <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-purple-600">2</span>
               </div>
-              <h3 className="font-semibold mb-2 text-gray-900">Ankommen & Outfitcheck</h3>
-              <p className="text-gray-600 text-sm">Wir stimmen Farben ab</p>
+              <h3 className="font-semibold mb-2 text-gray-900">{language === 'de' ? 'Ankommen & Outfitcheck' : 'Arrival & outfit check'}</h3>
+              <p className="text-gray-600 text-sm">{language === 'de' ? 'Wir stimmen Farben ab' : 'We coordinate colors'}</p>
             </div>
             <div className="text-center">
               <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-purple-600">3</span>
               </div>
-              <h3 className="font-semibold mb-2 text-gray-900">Shooting mit Anleitung</h3>
-              <p className="text-gray-600 text-sm">Gesamt, Teilgruppen, Geschwister, Eltern-Kind, Einzelportraits</p>
+              <h3 className="font-semibold mb-2 text-gray-900">{language === 'de' ? 'Shooting mit Anleitung' : 'Guided shooting'}</h3>
+              <p className="text-gray-600 text-sm">{language === 'de' ? 'Gesamt, Teilgruppen, Geschwister, Eltern-Kind, Einzelportraits' : 'Full group, subgroups, siblings, parent-child, individual portraits'}</p>
             </div>
             <div className="text-center">
               <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-purple-600">4</span>
               </div>
-              <h3 className="font-semibold mb-2 text-gray-900">Requisiten & Hobbys</h3>
-              <p className="text-gray-600 text-sm">1–2 Motive mit Items einplanen</p>
+              <h3 className="font-semibold mb-2 text-gray-900">{language === 'de' ? 'Requisiten & Hobbys' : 'Props & hobbies'}</h3>
+              <p className="text-gray-600 text-sm">{language === 'de' ? '1–2 Motive mit Items einplanen' : 'Plan 1–2 shots with personal items'}</p>
             </div>
             <div className="text-center">
               <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-purple-600">5</span>
               </div>
-              <h3 className="font-semibold mb-2 text-gray-900">Auswahlgalerie</h3>
-              <p className="text-gray-600 text-sm">Favoriten markieren → Retusche → Download & Leinwand</p>
+              <h3 className="font-semibold mb-2 text-gray-900">{language === 'de' ? 'Auswahlgalerie' : 'Selection gallery'}</h3>
+              <p className="text-gray-600 text-sm">{language === 'de' ? 'Favoriten markieren → Retusche → Download & Leinwand' : 'Mark favorites → retouching → download & canvas'}</p>
             </div>
           </div>
         </div>
@@ -505,19 +506,19 @@ export default function FamilienfotosWienPage() {
       {/* Internal Linking - Related Services */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-center mb-8">Weitere Fotografie-Services</h2>
+          <h2 className="text-2xl font-bold text-center mb-8">{language === 'de' ? 'Weitere Fotografie-Services' : 'More Photography Services'}</h2>
           <div className="grid md:grid-cols-3 gap-6">
             <Link
               to="/baby-fotografie-wien/"
               className="block bg-purple-50 rounded-xl p-6 hover:shadow-lg transition-shadow"
             >
               <Baby className="h-10 w-10 text-purple-600 mb-4" />
-              <h3 className="font-semibold text-lg mb-2 text-gray-900">Baby & Newborn Fotografie</h3>
+              <h3 className="font-semibold text-lg mb-2 text-gray-900">{language === 'de' ? 'Baby & Newborn Fotografie' : 'Baby & Newborn Photography'}</h3>
               <p className="text-gray-600 text-sm mb-4">
-                Zarte Neugeborenenfotos mit Herz und Sicherheit
+                {language === 'de' ? 'Zarte Neugeborenenfotos mit Herz und Sicherheit' : 'Gentle newborn photos with heart and safety'}
               </p>
               <span className="text-purple-600 font-semibold flex items-center">
-                Mehr erfahren <ArrowRight className="ml-1 h-4 w-4" />
+                {language === 'de' ? 'Mehr erfahren' : 'Learn more'} <ArrowRight className="ml-1 h-4 w-4" />
               </span>
             </Link>
             <Link
@@ -525,12 +526,12 @@ export default function FamilienfotosWienPage() {
               className="block bg-purple-50 rounded-xl p-6 hover:shadow-lg transition-shadow"
             >
               <Heart className="h-10 w-10 text-purple-600 mb-4" />
-              <h3 className="font-semibold text-lg mb-2 text-gray-900">Schwangerschafts-Fotos</h3>
+              <h3 className="font-semibold text-lg mb-2 text-gray-900">{language === 'de' ? 'Schwangerschafts-Fotos' : 'Maternity Photos'}</h3>
               <p className="text-gray-600 text-sm mb-4">
-                Emotionale Babybauch-Portraits im Studio oder Outdoor
+                {language === 'de' ? 'Emotionale Babybauch-Portraits im Studio oder Outdoor' : 'Emotional baby bump portraits in studio or outdoor'}
               </p>
               <span className="text-purple-600 font-semibold flex items-center">
-                Mehr erfahren <ArrowRight className="ml-1 h-4 w-4" />
+                {language === 'de' ? 'Mehr erfahren' : 'Learn more'} <ArrowRight className="ml-1 h-4 w-4" />
               </span>
             </Link>
             <Link
@@ -538,12 +539,12 @@ export default function FamilienfotosWienPage() {
               className="block bg-purple-50 rounded-xl p-6 hover:shadow-lg transition-shadow"
             >
               <Camera className="h-10 w-10 text-purple-600 mb-4" />
-              <h3 className="font-semibold text-lg mb-2 text-gray-900">Business-Portraits</h3>
+              <h3 className="font-semibold text-lg mb-2 text-gray-900">{language === 'de' ? 'Business-Portraits' : 'Business Portraits'}</h3>
               <p className="text-gray-600 text-sm mb-4">
-                Professionelle Unternehmensfotos & LinkedIn-Portraits
+                {language === 'de' ? 'Professionelle Unternehmensfotos & LinkedIn-Portraits' : 'Professional corporate photos & LinkedIn portraits'}
               </p>
               <span className="text-purple-600 font-semibold flex items-center">
-                Mehr erfahren <ArrowRight className="ml-1 h-4 w-4" />
+                {language === 'de' ? 'Mehr erfahren' : 'Learn more'} <ArrowRight className="ml-1 h-4 w-4" />
               </span>
             </Link>
           </div>
@@ -557,17 +558,17 @@ export default function FamilienfotosWienPage() {
       <section className="py-16 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Bereit für unvergessliche Familienfotos?
+            {language === 'de' ? 'Bereit für unvergessliche Familienfotos?' : 'Ready for unforgettable family photos?'}
           </h2>
           <p className="text-xl mb-8 opacity-90">
-            Sichern Sie sich jetzt Ihren Wunschtermin – Plätze sind begrenzt
+            {language === 'de' ? 'Sichern Sie sich jetzt Ihren Wunschtermin – Plätze sind begrenzt' : 'Secure your preferred date now – spots are limited'}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               to="/warteliste"
               className="inline-flex items-center justify-center px-8 py-4 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-lg"
             >
-              Termin auf der Warteliste sichern
+              {language === 'de' ? 'Termin auf der Warteliste sichern' : 'Secure a spot on the waitlist'}
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </div>

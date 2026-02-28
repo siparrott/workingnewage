@@ -11,7 +11,7 @@ interface Review {
 }
 
 const GoogleReviews: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [reviews, setReviews] = useState<Review[]>([
     {
       author_name: "Sabine Schuster",
@@ -105,7 +105,7 @@ const GoogleReviews: React.FC = () => {
   
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
-    return date.toLocaleDateString('de-DE', { year: 'numeric', month: 'long' });
+    return date.toLocaleDateString(language === 'de' ? 'de-DE' : 'en-US', { year: 'numeric', month: 'long' });
   };
   
   const renderStars = (rating: number) => {
@@ -122,7 +122,7 @@ const GoogleReviews: React.FC = () => {
     <section className="bg-gray-50 py-16">
       <div className="container mx-auto px-4">
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-gray-800 mb-4">Was unsere Kunden sagen</h2>
+          <h2 className="text-3xl font-bold text-gray-800 mb-4">{language === 'de' ? 'Was unsere Kunden sagen' : 'What Our Clients Say'}</h2>
           <div className="flex items-center justify-center mb-2">
             <div className="flex">
               {renderStars(5)}
@@ -133,7 +133,7 @@ const GoogleReviews: React.FC = () => {
               rel="noopener noreferrer"
               className="ml-2 text-blue-600 hover:text-blue-800 text-sm"
             >
-              4.9 auf Google (253 Bewertungen)
+              {language === 'de' ? '4.9 auf Google (253 Bewertungen)' : '4.9 on Google (253 Reviews)'}
             </a>
           </div>
         </div>
@@ -170,7 +170,7 @@ const GoogleReviews: React.FC = () => {
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:text-blue-800 text-sm inline-flex items-center"
                   >
-                    Auf Google Maps ansehen
+                    {language === 'de' ? 'Auf Google Maps ansehen' : 'View on Google Maps'}
                     <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                     </svg>
