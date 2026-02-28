@@ -195,12 +195,12 @@ router.put('/:id', async (req: Request, res: Response) => {
       updates.price = updates.price?.toString();
     }
 
-    // Convert dates
-    if (updates.startDate) {
-      updates.startDate = new Date(updates.startDate);
+    // Convert dates (empty strings → null for timestamp columns)
+    if (updates.startDate !== undefined) {
+      updates.startDate = updates.startDate ? new Date(updates.startDate) : null;
     }
-    if (updates.endDate) {
-      updates.endDate = new Date(updates.endDate);
+    if (updates.endDate !== undefined) {
+      updates.endDate = updates.endDate ? new Date(updates.endDate) : null;
     }
 
     const [updated] = await db
@@ -860,8 +860,7 @@ function generateAvailableSlots(
 ): Array<{ start: Date; end: Date; formatted: string }> {
   const slots: Array<{ start: Date; end: Date; formatted: string }> = [];
   const weeklyAvailability = scheduler.weeklyAvailability as Record<string, Array<{ start: string; end: string }>>;
-  
-  if (!weeklyAvailability) return slots;
+  const specificDates = scheduler.specificDates as Array<{ date: string; windows: Array<{ start: string; end: string }> }> | null;
 
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const increment = scheduler.availabilityIncrements || 60;
@@ -870,15 +869,48 @@ function generateAvailableSlots(
   const bufferAfter = scheduler.bufferAfter || 0;
   const totalBlockedTime = duration + bufferBefore + bufferAfter;
 
-  // Iterate through each day
-  const days = eachDayOfInterval({ start: startDate, end: endDate });
+  // For date_range, clamp the iteration window to the scheduler's start/end dates
+  let iterStart = startDate;
+  let iterEnd = endDate;
+  if (scheduler.availabilityType === 'date_range') {
+    if (scheduler.startDate && new Date(scheduler.startDate) > iterStart) {
+      iterStart = startOfDay(new Date(scheduler.startDate));
+    }
+    if (scheduler.endDate && new Date(scheduler.endDate) < iterEnd) {
+      iterEnd = endOfDay(new Date(scheduler.endDate));
+    }
+    // If the clamped window is empty, return no slots
+    if (iterStart > iterEnd) return slots;
+  }
+
+  // Iterate through each day in the range
+  const days = eachDayOfInterval({ start: iterStart, end: iterEnd });
 
   for (const day of days) {
-    const dayOfWeek = getDay(day);
-    const dayName = dayNames[dayOfWeek];
-    const dayAvailability = weeklyAvailability[dayName];
+    // Determine the time windows for this day based on availability type
+    let dayWindows: Array<{ start: string; end: string }> = [];
 
-    if (!dayAvailability || dayAvailability.length === 0) continue;
+    if (scheduler.availabilityType === 'specific_dates' && specificDates) {
+      // Only allow dates explicitly listed in specificDates
+      const dayStr = format(day, 'yyyy-MM-dd');
+      const match = specificDates.find(sd => sd.date === dayStr);
+      if (!match) continue; // Day not in the allowed specific dates
+      dayWindows = match.windows || [];
+      // If the specific date entry has no windows, use the weekly availability as fallback
+      if (dayWindows.length === 0 && weeklyAvailability) {
+        const dayOfWeek = getDay(day);
+        const dayName = dayNames[dayOfWeek];
+        dayWindows = weeklyAvailability[dayName] || [];
+      }
+    } else {
+      // For 'ongoing' and 'date_range', use weekly availability
+      if (!weeklyAvailability) continue;
+      const dayOfWeek = getDay(day);
+      const dayName = dayNames[dayOfWeek];
+      dayWindows = weeklyAvailability[dayName] || [];
+    }
+
+    if (dayWindows.length === 0) continue;
 
     // Count bookings for this day (for maxPerDay check)
     const dayStart = startOfDay(day);
@@ -891,7 +923,7 @@ function generateAvailableSlots(
     if (scheduler.maxPerDay && bookingsOnDay.length >= scheduler.maxPerDay) continue;
 
     // Generate slots for each availability window
-    for (const window of dayAvailability) {
+    for (const window of dayWindows) {
       const [startHour, startMin] = window.start.split(':').map(Number);
       const [endHour, endMin] = window.end.split(':').map(Number);
 

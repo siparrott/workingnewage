@@ -33,8 +33,11 @@ interface Scheduler {
   location: string;
   price: string;
   availabilityType: string;
+  startDate: string | null;
+  endDate: string | null;
   timezone: string;
   weeklyAvailability: Record<string, Array<{ start: string; end: string }>>;
+  specificDates: Array<{ date: string; windows: Array<{ start: string; end: string }> }> | null;
   bufferBefore: number;
   bufferAfter: number;
   minNotice: number;
@@ -94,8 +97,11 @@ export default function AdminSchedulersPage() {
     location: '',
     price: '',
     availabilityType: 'ongoing',
+    startDate: '',
+    endDate: '',
     timezone: 'Europe/Vienna',
-    weeklyAvailability: defaultWeeklyAvailability,
+    weeklyAvailability: defaultWeeklyAvailability as Record<string, Array<{ start: string; end: string }>>,
+    specificDates: [] as Array<{ date: string; windows: Array<{ start: string; end: string }> }>,
     bufferBefore: 0,
     bufferAfter: 0,
     minNotice: 24,
@@ -261,8 +267,11 @@ export default function AdminSchedulersPage() {
       location: '',
       price: '',
       availabilityType: 'ongoing',
+      startDate: '',
+      endDate: '',
       timezone: 'Europe/Vienna',
       weeklyAvailability: defaultWeeklyAvailability,
+      specificDates: [],
       bufferBefore: 0,
       bufferAfter: 0,
       minNotice: 24,
@@ -285,9 +294,12 @@ export default function AdminSchedulersPage() {
       duration: scheduler.duration,
       location: scheduler.location || '',
       price: scheduler.price || '',
-      availabilityType: scheduler.availabilityType,
+      availabilityType: scheduler.availabilityType || 'ongoing',
+      startDate: scheduler.startDate ? scheduler.startDate.split('T')[0] : '',
+      endDate: scheduler.endDate ? scheduler.endDate.split('T')[0] : '',
       timezone: scheduler.timezone,
       weeklyAvailability: scheduler.weeklyAvailability || defaultWeeklyAvailability,
+      specificDates: scheduler.specificDates || [],
       bufferBefore: scheduler.bufferBefore,
       bufferAfter: scheduler.bufferAfter,
       minNotice: scheduler.minNotice,
@@ -419,6 +431,249 @@ export default function AdminSchedulersPage() {
           {/* Availability Settings */}
           <div className="space-y-4 pt-4 border-t border-gray-200">
             <h3 className="font-medium text-gray-900">Availability Settings</h3>
+
+            {/* Availability Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Availability Type</label>
+              <select
+                value={formData.availabilityType}
+                onChange={(e) => setFormData({ ...formData, availabilityType: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+              >
+                <option value="ongoing">Ongoing (recurring weekly schedule)</option>
+                <option value="date_range">Date Range (available within a period)</option>
+                <option value="specific_dates">Specific Dates Only</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                {formData.availabilityType === 'ongoing' && 'Clients can book on any matching day within the max advance window.'}
+                {formData.availabilityType === 'date_range' && 'Clients can only book between the start and end dates below.'}
+                {formData.availabilityType === 'specific_dates' && 'Clients can only book on the exact dates you specify below.'}
+              </p>
+            </div>
+
+            {/* Date Range inputs (only for date_range type) */}
+            {formData.availabilityType === 'date_range' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                  <input
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Weekly Schedule Editor (for ongoing and date_range) */}
+            {(formData.availabilityType === 'ongoing' || formData.availabilityType === 'date_range') && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Weekly Schedule</label>
+                <div className="space-y-2 bg-gray-50 rounded-lg p-3">
+                  {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
+                    const dayWindows = formData.weeklyAvailability[day] || [];
+                    const isEnabled = dayWindows.length > 0;
+                    
+                    return (
+                      <div key={day} className="flex items-center gap-3">
+                        <label className="flex items-center gap-2 w-28 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={isEnabled}
+                            onChange={(e) => {
+                              const newAvail = { ...formData.weeklyAvailability };
+                              if (e.target.checked) {
+                                newAvail[day] = [{ start: '09:00', end: '17:00' }];
+                              } else {
+                                newAvail[day] = [];
+                              }
+                              setFormData({ ...formData, weeklyAvailability: newAvail });
+                            }}
+                            className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
+                          />
+                          <span className="text-sm font-medium text-gray-700 capitalize">{day}</span>
+                        </label>
+                        
+                        {isEnabled && dayWindows.map((window, windowIdx) => (
+                          <div key={windowIdx} className="flex items-center gap-1">
+                            <input
+                              type="time"
+                              value={window.start}
+                              onChange={(e) => {
+                                const newAvail = { ...formData.weeklyAvailability };
+                                newAvail[day] = [...dayWindows];
+                                newAvail[day][windowIdx] = { ...newAvail[day][windowIdx], start: e.target.value };
+                                setFormData({ ...formData, weeklyAvailability: newAvail });
+                              }}
+                              className="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-teal-500"
+                            />
+                            <span className="text-gray-400 text-sm">–</span>
+                            <input
+                              type="time"
+                              value={window.end}
+                              onChange={(e) => {
+                                const newAvail = { ...formData.weeklyAvailability };
+                                newAvail[day] = [...dayWindows];
+                                newAvail[day][windowIdx] = { ...newAvail[day][windowIdx], end: e.target.value };
+                                setFormData({ ...formData, weeklyAvailability: newAvail });
+                              }}
+                              className="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-teal-500"
+                            />
+                            {dayWindows.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newAvail = { ...formData.weeklyAvailability };
+                                  newAvail[day] = dayWindows.filter((_, i) => i !== windowIdx);
+                                  setFormData({ ...formData, weeklyAvailability: newAvail });
+                                }}
+                                className="p-1 text-red-400 hover:text-red-600"
+                                title="Remove window"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        
+                        {isEnabled && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newAvail = { ...formData.weeklyAvailability };
+                              newAvail[day] = [...dayWindows, { start: '13:00', end: '17:00' }];
+                              setFormData({ ...formData, weeklyAvailability: newAvail });
+                            }}
+                            className="text-xs text-teal-600 hover:text-teal-700 whitespace-nowrap"
+                          >
+                            + Add window
+                          </button>
+                        )}
+                        
+                        {!isEnabled && (
+                          <span className="text-xs text-gray-400">Unavailable</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Specific Dates Editor */}
+            {formData.availabilityType === 'specific_dates' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Available Dates</label>
+                <div className="space-y-2 bg-gray-50 rounded-lg p-3">
+                  {formData.specificDates.map((sd, sdIdx) => (
+                    <div key={sdIdx} className="flex items-center gap-3 bg-white p-2 rounded border border-gray-200">
+                      <input
+                        type="date"
+                        value={sd.date}
+                        onChange={(e) => {
+                          const newDates = [...formData.specificDates];
+                          newDates[sdIdx] = { ...sd, date: e.target.value };
+                          setFormData({ ...formData, specificDates: newDates });
+                        }}
+                        className="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-teal-500"
+                      />
+                      {sd.windows.map((w, wIdx) => (
+                        <div key={wIdx} className="flex items-center gap-1">
+                          <input
+                            type="time"
+                            value={w.start}
+                            onChange={(e) => {
+                              const newDates = [...formData.specificDates];
+                              const newWindows = [...sd.windows];
+                              newWindows[wIdx] = { ...w, start: e.target.value };
+                              newDates[sdIdx] = { ...sd, windows: newWindows };
+                              setFormData({ ...formData, specificDates: newDates });
+                            }}
+                            className="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-teal-500"
+                          />
+                          <span className="text-gray-400 text-sm">–</span>
+                          <input
+                            type="time"
+                            value={w.end}
+                            onChange={(e) => {
+                              const newDates = [...formData.specificDates];
+                              const newWindows = [...sd.windows];
+                              newWindows[wIdx] = { ...w, end: e.target.value };
+                              newDates[sdIdx] = { ...sd, windows: newWindows };
+                              setFormData({ ...formData, specificDates: newDates });
+                            }}
+                            className="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-teal-500"
+                          />
+                          {sd.windows.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newDates = [...formData.specificDates];
+                                newDates[sdIdx] = { ...sd, windows: sd.windows.filter((_, i) => i !== wIdx) };
+                                setFormData({ ...formData, specificDates: newDates });
+                              }}
+                              className="p-1 text-red-400 hover:text-red-600"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newDates = [...formData.specificDates];
+                          newDates[sdIdx] = { ...sd, windows: [...sd.windows, { start: '13:00', end: '17:00' }] };
+                          setFormData({ ...formData, specificDates: newDates });
+                        }}
+                        className="text-xs text-teal-600 hover:text-teal-700 whitespace-nowrap"
+                      >
+                        + Window
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({ ...formData, specificDates: formData.specificDates.filter((_, i) => i !== sdIdx) });
+                        }}
+                        className="p-1 text-red-400 hover:text-red-600 ml-auto"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const tomorrow = new Date();
+                      tomorrow.setDate(tomorrow.getDate() + 1);
+                      const dateStr = tomorrow.toISOString().split('T')[0];
+                      setFormData({
+                        ...formData,
+                        specificDates: [...formData.specificDates, { date: dateStr, windows: [{ start: '09:00', end: '17:00' }] }]
+                      });
+                    }}
+                    className="flex items-center gap-1 text-sm text-teal-600 hover:text-teal-700 font-medium"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Date
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Only the dates listed above will be available for booking. Each date also needs its time windows set.
+                </p>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -773,6 +1028,19 @@ export default function AdminSchedulersPage() {
                           <p className="font-medium capitalize">{scheduler.sessionType}</p>
                         </div>
                         <div>
+                          <p className="text-gray-500">Availability</p>
+                          <p className="font-medium capitalize">
+                            {scheduler.availabilityType === 'date_range' ? 'Date Range' : 
+                             scheduler.availabilityType === 'specific_dates' ? 'Specific Dates' : 
+                             'Ongoing'}
+                            {scheduler.availabilityType === 'date_range' && scheduler.startDate && scheduler.endDate && (
+                              <span className="text-gray-400 text-xs block">
+                                {new Date(scheduler.startDate).toLocaleDateString()} – {new Date(scheduler.endDate).toLocaleDateString()}
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        <div>
                           <p className="text-gray-500">Auto Approve</p>
                           <p className="font-medium">{scheduler.autoApprove ? 'Yes' : 'No'}</p>
                         </div>
@@ -794,7 +1062,42 @@ export default function AdminSchedulersPage() {
                         </div>
                       </div>
 
-                      <div className="mt-4 p-3 bg-white rounded-lg border border-gray-200">
+                      {/* Weekly schedule summary */}
+                      {scheduler.weeklyAvailability && (scheduler.availabilityType === 'ongoing' || scheduler.availabilityType === 'date_range') && (
+                        <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200">
+                          <p className="text-xs text-gray-500 mb-2 font-medium">Weekly Schedule</p>
+                          <div className="grid grid-cols-7 gap-1 text-xs text-center">
+                            {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((label, i) => {
+                              const dayKey = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'][i];
+                              const windows = scheduler.weeklyAvailability[dayKey] || [];
+                              return (
+                                <div key={dayKey} className={`p-1 rounded ${windows.length > 0 ? 'bg-teal-50 text-teal-700' : 'bg-gray-50 text-gray-400'}`}>
+                                  <p className="font-medium">{label}</p>
+                                  {windows.length > 0 ? windows.map((w: any, j: number) => (
+                                    <p key={j}>{w.start}–{w.end}</p>
+                                  )) : <p>Off</p>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Specific dates summary */}
+                      {scheduler.specificDates && scheduler.availabilityType === 'specific_dates' && (
+                        <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200">
+                          <p className="text-xs text-gray-500 mb-2 font-medium">Available Dates ({scheduler.specificDates.length})</p>
+                          <div className="flex flex-wrap gap-1">
+                            {(scheduler.specificDates as any[]).map((sd: any, i: number) => (
+                              <span key={i} className="px-2 py-0.5 bg-teal-50 text-teal-700 rounded text-xs">
+                                {sd.date} ({sd.windows?.map((w: any) => `${w.start}–${w.end}`).join(', ')})
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200">
                         <p className="text-xs text-gray-500 mb-1">Booking Link</p>
                         <div className="flex items-center gap-2">
                           <code className="flex-1 text-sm text-gray-700 bg-gray-50 px-2 py-1 rounded">
