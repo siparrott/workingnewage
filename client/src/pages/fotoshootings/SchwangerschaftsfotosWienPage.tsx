@@ -3,7 +3,7 @@ import { RelatedServices } from '../../components/SEO/RelatedServices';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link } from 'react-router-dom';
-import { Heart, Sparkles, Camera, ArrowRight, Check } from 'lucide-react';
+import { Heart, Sparkles, Camera, ArrowRight, Check, Users } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
@@ -11,7 +11,7 @@ import { newageCopyMap } from '../../content/newageCopyMap';
 
 export default function SchwangerschaftsfotosWienPage() {
   const { language } = useLanguage();
-  const tm = useManualPageContent('schwangerschaftsfotos');
+  const t = useManualPageContent('schwangerschaftsfotos');
 
   // Language-aware fallbacks
   const fallbacks = {
@@ -34,7 +34,7 @@ export default function SchwangerschaftsfotosWienPage() {
   const fb = fallbacks[language] || fallbacks.de;
   
   const fromManual = (key: string, fallback: string) => {
-    const value = tm(key);
+    const value = t(key);
     if (!value || value === key) {
       return fallback;
     }
