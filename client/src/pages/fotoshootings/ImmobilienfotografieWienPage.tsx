@@ -332,146 +332,41 @@ const ImmobilienfotografieWienPage: React.FC = () => {
               Fixpreise nach Objektgröße – transparent und planbar.
             </p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {/* Basic */}
-            <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-200 hover:border-blue-300 transition-all">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Basic</h3>
-              <p className="text-gray-600 mb-4">Wohnungen bis 60m²</p>
+          <div className="flex justify-center">
+            {/* Immobilienfotografie */}
+            <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl shadow-2xl p-8 border-2 border-blue-500 max-w-md w-full">
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Immobilienfotografie</h3>
+              <p className="text-gray-600 mb-4">Wohnungen & Häuser</p>
               <div className="mb-6">
-                <span className="text-4xl font-bold text-gray-900">€190</span>
-              </div>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">15-20 Bilder (Wohnräume, Bad, Küche)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Window-Pull HDR & vertikale Korrektur</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Lieferung 4-7 Werktage</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Formate für Online-Portale & PDF-Exposé</span>
-                </li>
-              </ul>
-              <button
-                onClick={() => handleBookPackage('Basic Immobilien', 190, 'Basic (bis 60m²) - 15-20 Bilder, Window-Pull HDR & vertikale Korrektur')}
-                className="block w-full text-center bg-gray-900 text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition-all"
-              >
-                Paket wählen
-              </button>
-            </div>
-
-            {/* Classic - BELIEBT */}
-            <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl shadow-2xl p-8 border-2 border-blue-500 relative transform scale-105 hover:scale-110 transition-all">
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-bold">
-                BELIEBT
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Classic</h3>
-              <p className="text-gray-600 mb-4">Wohnungen bis 120m²</p>
-              <div className="mb-6">
-                <span className="text-4xl font-bold text-blue-600">€290</span>
+                <div className="flex items-baseline">
+                  <span className="text-sm text-gray-500 mr-1">Ab</span>
+                  <span className="text-4xl font-bold text-blue-600">€495</span>
+                </div>
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-start gap-2">
                   <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">25-35 Bilder (alle Räume, Balkon/Terrasse)</span>
+                  <span className="text-gray-700">Innen und Exterieur</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Window-Pull HDR & vertikale Korrektur</span>
+                  <span className="text-gray-700">Alle Bilder in Vollauflösung dabei</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Styling Light bei Bedarf</span>
+                  <span className="text-gray-700">360°-Bilder, Google Maps-Update</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Lieferung 4-7 Werktage</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Alle Formate (Online, PDF, Print, Social)</span>
+                  <span className="text-gray-700">Gültig bis 2 Jahre</span>
                 </li>
               </ul>
-              <button
-                onClick={() => handleBookPackage('Classic Immobilien', 290, 'Classic (bis 120m²) - 25-35 Bilder, Window-Pull HDR, Styling Light')}
+              <Link
+                to="/warteliste"
                 className="block w-full text-center bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all"
               >
-                Paket wählen
-              </button>
-            </div>
-
-            {/* Premium */}
-            <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-200 hover:border-blue-300 transition-all">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Premium</h3>
-              <p className="text-gray-600 mb-4">Ab 120m² / Häuser</p>
-              <div className="mb-6">
-                <span className="text-4xl font-bold text-gray-900">€420</span>
-              </div>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">35-50 Bilder (inkl. Außenbereich, Garten)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Window-Pull HDR & vertikale Korrektur</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Styling Light & Detailshots</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Optional: Twilight Exterior (Dämmerung)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Lieferung 4-7 Werktage</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Alle Formate, Premium-Support</span>
-                </li>
-              </ul>
-              <button
-                onClick={() => handleBookPackage('Premium Immobilien', 420, 'Premium (ab 120m²) - 35-50 Bilder, Styling Light & Detailshots, Optional Twilight')}
-                className="block w-full text-center bg-gray-900 text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition-all"
-              >
-                Paket wählen
-              </button>
-            </div>
-          </div>
-
-          {/* Add-ons */}
-          <div className="mt-12 bg-gradient-to-br from-gray-50 to-white p-8 rounded-xl border border-gray-200">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">Add-ons</h3>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h4 className="font-bold text-gray-900 mb-2">2D-Grundriss</h4>
-                <p className="text-sm text-gray-600 mb-2">nach RICS/IPMS Standard</p>
-                <p className="text-2xl font-bold text-blue-600">€60</p>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h4 className="font-bold text-gray-900 mb-2">3D-Grundriss</h4>
-                <p className="text-sm text-gray-600 mb-2">mit Möblierung visualisiert</p>
-                <p className="text-2xl font-bold text-blue-600">€120</p>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h4 className="font-bold text-gray-900 mb-2">Drohne</h4>
-                <p className="text-sm text-gray-600 mb-2">Luftaufnahmen Außenbereich</p>
-                <p className="text-2xl font-bold text-blue-600">€90</p>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h4 className="font-bold text-gray-900 mb-2">Video 20-40s</h4>
-                <p className="text-sm text-gray-600 mb-2">Walkthrough für Social/Online</p>
-                <p className="text-2xl font-bold text-blue-600">€180</p>
-              </div>
+                Jetzt buchen
+              </Link>
             </div>
           </div>
         </div>
