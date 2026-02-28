@@ -148,7 +148,7 @@ router.post('/', async (req: Request, res: Response) => {
       sessionType,
       duration,
       location,
-      price: price?.toString(),
+      price: (price !== undefined && price !== null && price !== '') ? price.toString() : '0',
       availabilityType,
       startDate: startDate ? new Date(startDate) : null,
       endDate: endDate ? new Date(endDate) : null,
@@ -190,9 +190,9 @@ router.put('/:id', async (req: Request, res: Response) => {
     delete updates.id;
     delete updates.createdAt;
 
-    // Convert price to string if provided
+    // Convert price to string if provided (empty string → '0' for decimal column)
     if (updates.price !== undefined) {
-      updates.price = updates.price?.toString();
+      updates.price = (updates.price !== null && updates.price !== '') ? updates.price.toString() : '0';
     }
 
     // Convert dates (empty strings → null for timestamp columns)

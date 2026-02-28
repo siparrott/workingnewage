@@ -111,6 +111,7 @@ export default function AdminSchedulersPage() {
     autoApprove: true,
     sendReminders: true,
     reminderHours: 24,
+    confirmationMessage: '',
     brandName: '',
     brandColor: '#0d9488'
   });
@@ -166,9 +167,13 @@ export default function AdminSchedulersPage() {
         setSchedulers([newScheduler, ...schedulers]);
         setShowCreateModal(false);
         resetForm();
+      } else {
+        const errorData = await response.json().catch(() => null);
+        alert(errorData?.error || `Failed to create scheduler (${response.status})`);
       }
     } catch (error) {
       console.error('Error creating scheduler:', error);
+      alert('Network error — could not create scheduler');
     }
   };
 
@@ -189,9 +194,13 @@ export default function AdminSchedulersPage() {
         setSchedulers(schedulers.map(s => s.id === updated.id ? updated : s));
         setEditingScheduler(null);
         resetForm();
+      } else {
+        const errorData = await response.json().catch(() => null);
+        alert(errorData?.error || `Failed to update scheduler (${response.status})`);
       }
     } catch (error) {
       console.error('Error updating scheduler:', error);
+      alert('Network error — could not update scheduler');
     }
   };
 
@@ -281,6 +290,7 @@ export default function AdminSchedulersPage() {
       autoApprove: true,
       sendReminders: true,
       reminderHours: 24,
+      confirmationMessage: '',
       brandName: '',
       brandColor: '#0d9488'
     });
@@ -309,6 +319,7 @@ export default function AdminSchedulersPage() {
       autoApprove: scheduler.autoApprove,
       sendReminders: scheduler.sendReminders,
       reminderHours: scheduler.reminderHours,
+      confirmationMessage: (scheduler as any).confirmationMessage || '',
       brandName: scheduler.brandName || '',
       brandColor: scheduler.brandColor || '#0d9488'
     });
@@ -776,6 +787,43 @@ export default function AdminSchedulersPage() {
                 <span className="ml-2 text-sm text-gray-700">Send email reminders</span>
               </label>
             </div>
+
+            {/* Email Reminder Settings (visible when sendReminders is checked) */}
+            {formData.sendReminders && (
+              <div className="ml-6 space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Reminder Timing</label>
+                  <select
+                    value={formData.reminderHours}
+                    onChange={(e) => setFormData({ ...formData, reminderHours: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                  >
+                    <option value={1}>1 hour before</option>
+                    <option value={2}>2 hours before</option>
+                    <option value={4}>4 hours before</option>
+                    <option value={12}>12 hours before</option>
+                    <option value={24}>24 hours before (1 day)</option>
+                    <option value={48}>48 hours before (2 days)</option>
+                    <option value={72}>72 hours before (3 days)</option>
+                    <option value={168}>1 week before</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Confirmation Message</label>
+                  <textarea
+                    value={formData.confirmationMessage}
+                    onChange={(e) => setFormData({ ...formData, confirmationMessage: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                    rows={3}
+                    placeholder="Custom message included in the confirmation and reminder emails. Leave empty for the default message."
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Available placeholders: {'{{client_name}}'}, {'{{date}}'}, {'{{time}}'}, {'{{location}}'}, {'{{session_type}}'}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Branding */}
