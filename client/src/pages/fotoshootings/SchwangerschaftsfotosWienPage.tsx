@@ -141,13 +141,14 @@ export default function SchwangerschaftsfotosWienPage() {
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div className="prose prose-lg max-w-none">
               <p className="text-lg text-gray-700 leading-relaxed">
-                Willkommen bei New Age Fotografie – Ihrem Partner für emotionale Schwangerschaftsfotos in Wien! 
-                Unser Studio bietet den perfekten Rahmen für stilvolle Babybauch-Portraits. Ob klassisch, 
-                natürlich oder kreativ – wir nehmen uns Zeit für authentische Momente.
+                {language === 'de'
+                  ? 'Willkommen bei New Age Fotografie – Ihrem Partner für emotionale Schwangerschaftsfotos in Wien! Unser Studio bietet den perfekten Rahmen für stilvolle Babybauch-Portraits. Ob klassisch, natürlich oder kreativ – wir nehmen uns Zeit für authentische Momente.'
+                  : 'Welcome to New Age Photography – your partner for emotional maternity photos in Vienna! Our studio provides the perfect setting for stylish baby bump portraits. Whether classic, natural, or creative – we take time for authentic moments.'}
               </p>
               <p className="text-lg text-gray-700 leading-relaxed mt-4">
-                Feiern Sie die Schönheit der Schwangerschaft mit professionellen, stilvollen Fotos, die diese 
-                besondere Zeit für immer festhalten. Partner und Geschwisterkinder sind herzlich willkommen.
+                {language === 'de'
+                  ? 'Feiern Sie die Schönheit der Schwangerschaft mit professionellen, stilvollen Fotos, die diese besondere Zeit für immer festhalten. Partner und Geschwisterkinder sind herzlich willkommen.'
+                  : 'Celebrate the beauty of pregnancy with professional, stylish photos that capture this special time forever. Partners and siblings are warmly welcome.'}
               </p>
             </div>
             <div>
@@ -163,7 +164,7 @@ export default function SchwangerschaftsfotosWienPage() {
       </section>
 
       {/* Extended Content Section - Safe Copy Slot */}
-      <MarkdownCopySlot content={newageCopyMap['schwangerschaftsfotos-wien'].markdown} />
+      {language === 'de' && <MarkdownCopySlot content={newageCopyMap['schwangerschaftsfotos-wien'].markdown} />}
 
       {/* Packages Section */}
       <section className="py-16 bg-white">
@@ -177,33 +178,33 @@ export default function SchwangerschaftsfotosWienPage() {
               <h3 className="text-2xl font-bold mb-2">Maternity Premium</h3>
               <div className="mb-6">
                 <div className="flex items-baseline">
-                  <span className="text-sm text-purple-200 mr-1">Ab</span>
+                  <span className="text-sm text-purple-200 mr-1">{language === 'de' ? 'Ab' : 'From'}</span>
                   <span className="text-4xl font-bold">€399</span>
                 </div>
               </div>
               <ul className="space-y-4 mb-8">
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>60 Minuten Shooting</span>
+                  <span>{language === 'de' ? '60 Minuten Shooting' : '60 minute shoot'}</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Alle Portraits als Datei (High-Quality JPG)</span>
+                  <span>{language === 'de' ? 'Alle Portraits als Datei (High-Quality JPG)' : 'All portraits as files (High-Quality JPG)'}</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Bis zu 12 Personen & Haustiere möglich</span>
+                  <span>{language === 'de' ? 'Bis zu 12 Personen & Haustiere möglich' : 'Up to 12 people & pets welcome'}</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Gültig bis 2 Jahre</span>
+                  <span>{language === 'de' ? 'Gültig bis 2 Jahre' : 'Valid for up to 2 years'}</span>
                 </li>
               </ul>
               <Link
                 to="/warteliste"
                 className="block text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
               >
-                Jetzt sichern
+                {language === 'de' ? 'Jetzt sichern' : 'Book Now'}
               </Link>
             </div>
           </div>
@@ -287,10 +288,10 @@ export default function SchwangerschaftsfotosWienPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Weitere Fotografie-Services
+              {language === 'de' ? 'Weitere Fotografie-Services' : 'More Photography Services'}
             </h2>
             <p className="text-lg text-gray-600">
-              Komplette Fotodokumentation Ihrer Schwangerschaft und Familienzeit
+              {language === 'de' ? 'Komplette Fotodokumentation Ihrer Schwangerschaft und Familienzeit' : 'Complete photo documentation of your pregnancy and family time'}
             </p>
           </div>
 
@@ -302,13 +303,13 @@ export default function SchwangerschaftsfotosWienPage() {
             >
               <Heart className="h-12 w-12 text-purple-600 mb-4" />
               <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
-                Baby & Newborn Fotografie
+                {language === 'de' ? 'Baby & Newborn Fotografie' : 'Baby & Newborn Photography'}
               </h3>
               <p className="text-gray-600 mb-4">
-                Die perfekte Fortsetzung – zarte Neugeborenenfotos in den ersten Lebenstagen.
+                {language === 'de' ? 'Die perfekte Fortsetzung – zarte Neugeborenenfotos in den ersten Lebenstagen.' : 'The perfect continuation – delicate newborn photos in the first days of life.'}
               </p>
               <span className="text-purple-600 font-semibold inline-flex items-center">
-                Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
+                {language === 'de' ? 'Mehr erfahren' : 'Learn more'} <ArrowRight className="ml-2 h-4 w-4" />
               </span>
             </Link>
 
@@ -319,13 +320,13 @@ export default function SchwangerschaftsfotosWienPage() {
             >
               <Users className="h-12 w-12 text-purple-600 mb-4" />
               <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
-                Familienfotografie
+                {language === 'de' ? 'Familienfotografie' : 'Family Photography'}
               </h3>
               <p className="text-gray-600 mb-4">
-                Natürliche Familienporträts mit Baby – wachsende Familien in Szene setzen.
+                {language === 'de' ? 'Natürliche Familienporträts mit Baby – wachsende Familien in Szene setzen.' : 'Natural family portraits with baby – capturing growing families beautifully.'}
               </p>
               <span className="text-purple-600 font-semibold inline-flex items-center">
-                Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
+                {language === 'de' ? 'Mehr erfahren' : 'Learn more'} <ArrowRight className="ml-2 h-4 w-4" />
               </span>
             </Link>
 
@@ -339,10 +340,10 @@ export default function SchwangerschaftsfotosWienPage() {
                 Business Portraits
               </h3>
               <p className="text-gray-600 mb-4">
-                Professionelle Headshots für LinkedIn und Bewerbungen – selbstbewusst zurück ins Business.
+                {language === 'de' ? 'Professionelle Headshots für LinkedIn und Bewerbungen – selbstbewusst zurück ins Business.' : 'Professional headshots for LinkedIn and applications – confidently back in business.'}
               </p>
               <span className="text-purple-600 font-semibold inline-flex items-center">
-                Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
+                {language === 'de' ? 'Mehr erfahren' : 'Learn more'} <ArrowRight className="ml-2 h-4 w-4" />
               </span>
             </Link>
           </div>
