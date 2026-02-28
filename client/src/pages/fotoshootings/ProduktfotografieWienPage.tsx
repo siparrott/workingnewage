@@ -190,62 +190,26 @@ export default function ProduktfotografieWienPage() {
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Pakete & Preise (Richtwerte)</h2>
             </div>
-            <div className="grid md:grid-cols-3 gap-8 mb-12">
-              {/* Starter 10 */}
-              <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow border border-gray-200">
-                <div className="mb-6"><h3 className="text-2xl font-bold text-gray-900 mb-2">Starter 10</h3><p className="text-purple-600 font-medium">10 Motive</p></div>
-                <div className="mb-6"><span className="text-4xl font-bold text-purple-600">€390</span></div>
-                <div className="space-y-3 mb-8 text-sm">
-                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>1 Look/Motiv, Retusche, Freisteller</span></div>
-                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>Ideal: Kleinserie, Amazon Launch</span></div>
+            <div className="flex justify-center mb-12">
+              {/* Produktfotografie */}
+              <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+                <div className="mb-6">
+                  <h3 className="text-2xl font-bold mb-2">Produktfotografie</h3>
+                  <p className="text-purple-100 font-medium">Ideal für Shops & Social</p>
                 </div>
-                <Link to="/warteliste" className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold">Termin sichern</Link>
-              </div>
-
-              {/* Shop 25 (Beliebt) */}
-              <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 transform scale-105 relative">
-                <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-bl-lg rounded-tr-2xl">BELIEBT</div>
-                <div className="mb-6 mt-4"><h3 className="text-2xl font-bold mb-2">Shop 25</h3><p className="text-purple-100 font-medium">25 Motive</p></div>
-                <div className="mb-6"><span className="text-4xl font-bold">€890</span></div>
-                <div className="space-y-3 mb-8 text-sm">
-                  <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>1–2 Looks, Schatten/Reflex-Option</span></div>
-                  <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>Farbkalibrierung inklusive</span></div>
-                  <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>Ideal: Full Shop Update</span></div>
-                </div>
-                <Link to="/warteliste" className="block text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold">Termin sichern</Link>
-              </div>
-
-              {/* Brand 50 */}
-              <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow border border-gray-200">
-                <div className="mb-6"><h3 className="text-2xl font-bold text-gray-900 mb-2">Brand 50</h3><p className="text-purple-600 font-medium">50 Motive</p></div>
-                <div className="mb-6"><span className="text-4xl font-bold text-purple-600">€1.790</span></div>
-                <div className="space-y-3 mb-8 text-sm">
-                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>Mix aus Freisteller + Lifestyle</span></div>
-                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>Set-Bau light</span></div>
-                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>Ideal: Relaunch, Kampagnen</span></div>
-                </div>
-                <Link to="/warteliste" className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold">Termin sichern</Link>
-              </div>
-            </div>
-
-            {/* Add-ons & SLAs */}
-            <div className="bg-gray-50 rounded-xl p-6 text-sm">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="font-bold text-gray-900 mb-3">Add-ons</h4>
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    <div className="flex items-center"><Check className="h-4 w-4 text-purple-600 mr-2" />Video Snippet (6–10s)</div>
-                    <div className="flex items-center"><Check className="h-4 w-4 text-purple-600 mr-2" />360° Spin</div>
-                    <div className="flex items-center"><Check className="h-4 w-4 text-purple-600 mr-2" />Text-Overlay</div>
-                    <div className="flex items-center"><Check className="h-4 w-4 text-purple-600 mr-2" />Social/Ads ab <strong>€120</strong></div>
+                <div className="mb-6">
+                  <div className="flex items-baseline">
+                    <span className="text-sm text-purple-200 mr-1">Ab</span>
+                    <span className="text-4xl font-bold">€199</span>
                   </div>
                 </div>
-                <div>
-                  <h4 className="font-bold text-gray-900 mb-3">Liefer-SLAs</h4>
-                  <p className="text-gray-700">Preview <strong>48–72 h</strong>, Final <strong>3–7 AT</strong> (abhängig von Menge).</p>
+                <div className="space-y-4 mb-8">
+                  <div className="flex items-start"><Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" /><span>5 retuschierte Bilder</span></div>
+                  <div className="flex items-start"><Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" /><span>Ideal für Shops & Social</span></div>
+                  <div className="flex items-start"><Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" /><span>Gültig bis 2 Jahre</span></div>
                 </div>
+                <Link to="/warteliste" className="block text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold">Jetzt buchen</Link>
               </div>
-              <p className="mt-4 text-center text-gray-700">Slot sichern? <Link to="/warteliste" className="text-purple-600 hover:text-purple-700 underline font-semibold">Zur Warteliste</Link></p>
             </div>
           </div>
         </section>
