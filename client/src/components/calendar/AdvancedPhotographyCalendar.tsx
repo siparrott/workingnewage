@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, isAfter, isBefore, startOfWeek, endOfWeek, eachHourOfInterval, startOfDay, addDays, startOfYear, endOfYear } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, isAfter, isBefore, startOfWeek, endOfWeek, eachHourOfInterval, startOfDay, addDays, subDays, addWeeks, subWeeks, startOfYear, endOfYear } from 'date-fns';
 import { Calendar, ChevronLeft, ChevronRight, Plus, MapPin, Camera, Clock, DollarSign, AlertTriangle, CheckCircle, Star, Sun, Cloud, Users, Filter, Search, Download, Upload, RefreshCw, Settings, Eye, Edit, Trash2, Copy, ExternalLink } from 'lucide-react';
 
 interface PhotographySession {
@@ -943,22 +943,32 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
                 Today
               </button>
               <button
-                onClick={() => setCurrentDate(subMonths(currentDate, 1))}
+                onClick={() => {
+                  if (view === 'day') setCurrentDate(subDays(currentDate, 1));
+                  else if (view === 'week') setCurrentDate(subWeeks(currentDate, 1));
+                  else setCurrentDate(subMonths(currentDate, 1));
+                }}
                 className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
               >
                 <ChevronLeft className="w-5 h-5 text-gray-600" />
               </button>
               <button
-                onClick={() => setCurrentDate(addMonths(currentDate, 1))}
+                onClick={() => {
+                  if (view === 'day') setCurrentDate(addDays(currentDate, 1));
+                  else if (view === 'week') setCurrentDate(addWeeks(currentDate, 1));
+                  else setCurrentDate(addMonths(currentDate, 1));
+                }}
                 className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
               >
                 <ChevronRight className="w-5 h-5 text-gray-600" />
               </button>
             </div>
             
-            {/* Month/Year display */}
+            {/* Date display - adapts to current view */}
             <h3 className="text-xl font-semibold text-gray-900">
-              {format(currentDate, 'MMMM yyyy')}
+              {view === 'day' 
+                ? format(currentDate, 'EEEE, MMMM d, yyyy')
+                : format(currentDate, 'MMMM yyyy')}
             </h3>
           </div>
 
