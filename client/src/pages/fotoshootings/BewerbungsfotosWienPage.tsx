@@ -184,88 +184,37 @@ export default function BewerbungsfotosWienPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 mb-12">
-            {/* Smart Start Package */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow">
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Smart Start</h3>
-                <p className="text-purple-600 font-medium">Bewerbung, Praktikum, Azubi</p>
-              </div>
-              
-              <div className="mb-6">
-                <div className="flex items-baseline">
-                  <span className="text-4xl font-bold text-purple-600">€95</span>
-                </div>
-              </div>
-
-              <div className="space-y-4 mb-8">
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">1 Outfit</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">1 Hintergrund (hell/dunkel/grau)</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">1 retuschiertes Bild</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700 text-sm">Zusätzliche Aufnahmen zur Auswahl</span>
-                </div>
-                <div className="flex items-start">
-                  <Clock className="h-5 w-5 text-purple-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-600 text-sm">20–25 Min.</span>
-                </div>
-              </div>
-
-              <Link
-                to="/warteliste"
-                className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
-              >
-                Jetzt buchen
-              </Link>
-            </div>
-
-            {/* Professional Package */}
-            <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 transform scale-105 relative">
+          <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto mb-12">
+            {/* Bewerbungsfotos & LinkedIn */}
+            <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 relative">
               <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-bl-lg rounded-tr-2xl">
                 BELIEBT
               </div>
               
               <div className="mb-6 mt-4">
-                <h3 className="text-2xl font-bold mb-2">Professional</h3>
-                <p className="text-purple-100 font-medium">Wechsel in neue Position, LinkedIn</p>
+                <h3 className="text-2xl font-bold mb-2">Bewerbungsfotos & LinkedIn</h3>
+                <p className="text-purple-100 font-medium">Bewerbungen & LinkedIn</p>
               </div>
               
               <div className="mb-6">
                 <div className="flex items-baseline">
-                  <span className="text-4xl font-bold">€195</span>
+                  <span className="text-sm text-purple-200 mr-1">Ab</span>
+                  <span className="text-4xl font-bold">€129</span>
                 </div>
               </div>
 
               <div className="space-y-4 mb-8">
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>2 Outfits</span>
+                  <span>Inkl. 2 retuschierte Bilder</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>2 Hintergründe</span>
+                  <span>Für Bewerbungen & LinkedIn</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>3 retuschierte Bilder (versch. Crops: Square, 4:5, Banner)</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Auswahl am Bildschirm</span>
-                </div>
-                <div className="flex items-start">
-                  <Clock className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-purple-100 text-sm">40–45 Min.</span>
+                  <span>Gültig bis 2 Jahre</span>
                 </div>
               </div>
 
@@ -277,15 +226,16 @@ export default function BewerbungsfotosWienPage() {
               </Link>
             </div>
 
-            {/* Branding Set Package */}
+            {/* Brand Upgrade */}
             <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow">
               <div className="mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Branding Set</h3>
-                <p className="text-purple-600 font-medium">Führungskräfte, Personal Branding</p>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Brand Upgrade</h3>
+                <p className="text-purple-600 font-medium">Maximale Vielfalt</p>
               </div>
               
               <div className="mb-6">
                 <div className="flex items-baseline">
+                  <span className="text-sm text-gray-500 mr-1">Ab</span>
                   <span className="text-4xl font-bold text-purple-600">€295</span>
                 </div>
               </div>
@@ -293,23 +243,23 @@ export default function BewerbungsfotosWienPage() {
               <div className="space-y-4 mb-8">
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">3+ Outfits</span>
+                  <span className="text-gray-700">75–90 Min.</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">2–3 Looks (Studio + „Office-Look")</span>
+                  <span className="text-gray-700">Bis zu 3 Looks/Outfits</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">6 retuschierte Bilder</span>
+                  <span className="text-gray-700">10 retuschierte Bilder (High-Res + Web)</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Header-Banner & CV-Set</span>
+                  <span className="text-gray-700">Mehrere Hintergründe & Licht-Variationen</span>
                 </div>
                 <div className="flex items-start">
-                  <Clock className="h-5 w-5 text-purple-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-600 text-sm">60–70 Min.</span>
+                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-700">Gültig bis 2 Jahre</span>
                 </div>
               </div>
 
@@ -319,25 +269,6 @@ export default function BewerbungsfotosWienPage() {
               >
                 Jetzt buchen
               </Link>
-            </div>
-          </div>
-
-          {/* Optional Services */}
-          <div className="bg-purple-50 rounded-xl p-6">
-            <h4 className="font-bold text-gray-900 mb-4">Express & Extras:</h4>
-            <div className="grid sm:grid-cols-2 gap-4 text-sm">
-              <div className="flex items-center">
-                <Check className="h-4 w-4 text-purple-600 mr-2" />
-                <span>Express-Lieferung 24 h: <strong>€15/Bild</strong></span>
-              </div>
-              <div className="flex items-center">
-                <Check className="h-4 w-4 text-purple-600 mr-2" />
-                <span>Express-Lieferung 6 h: <strong>€25/Bild</strong> (nach Verfügbarkeit)</span>
-              </div>
-              <div className="flex items-center">
-                <Check className="h-4 w-4 text-purple-600 mr-2" />
-                <span>Zusatzbild retuschiert: <strong>€30/Bild</strong></span>
-              </div>
             </div>
           </div>
         </div>

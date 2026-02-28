@@ -183,82 +183,33 @@ export default function TeamfotosWienPage() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 mb-12">
-            {/* Starter Team Package */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow">
+          <div className="flex justify-center mb-12">
+            {/* Team & Mitarbeiterfotos */}
+            <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
               <div className="mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Starter Team</h3>
-                <p className="text-purple-600 font-medium">Für 5–9 Personen</p>
+                <h3 className="text-2xl font-bold mb-2">Team & Mitarbeiterfotos</h3>
+                <p className="text-purple-100 font-medium">Paketpreise by headcount</p>
               </div>
               
               <div className="mb-6">
                 <div className="flex items-baseline">
-                  <span className="text-4xl font-bold text-purple-600">€95</span>
-                  <span className="text-gray-600 ml-2">p. P.</span>
-                </div>
-              </div>
-
-              <div className="space-y-4 mb-8">
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">1 Look / neutraler Hintergrund</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">1 retuschiertes Portrait p. P.</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">1 Gruppenfoto</span>
-                </div>
-                <div className="flex items-start">
-                  <Clock className="h-5 w-5 text-purple-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-600 text-sm">ca. 8–10 Min. p. P.</span>
-                </div>
-              </div>
-
-              <Link
-                to="/warteliste"
-                className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
-              >
-                Jetzt anfragen
-              </Link>
-            </div>
-
-            {/* Scale Team Package */}
-            <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 transform scale-105 relative">
-              <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-bl-lg rounded-tr-2xl">
-                BELIEBT
-              </div>
-              
-              <div className="mb-6 mt-4">
-                <h3 className="text-2xl font-bold mb-2">Scale Team</h3>
-                <p className="text-purple-100 font-medium">Für 10–30 Personen</p>
-              </div>
-              
-              <div className="mb-6">
-                <div className="flex items-baseline">
-                  <span className="text-4xl font-bold">€95</span>
-                  <span className="text-purple-100 ml-2">p. P.</span>
+                  <span className="text-sm text-purple-200 mr-1">Ab</span>
+                  <span className="text-4xl font-bold">€299</span>
                 </div>
               </div>
 
               <div className="space-y-4 mb-8">
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>1–2 Looks (z. B. Hell & Dunkel)</span>
+                  <span>In-Studio or On-Site options</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>2 retuschierte Portraits p. P.</span>
+                  <span>z.B. 50€ pro Kopf mit alle Portraits als Datei dazu</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Gruppenfoto(s)</span>
-                </div>
-                <div className="flex items-start">
-                  <Clock className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-purple-100 text-sm">7–8 Min. p. P.</span>
+                  <span>Gültig bis 2 Jahre</span>
                 </div>
               </div>
 
@@ -268,61 +219,6 @@ export default function TeamfotosWienPage() {
               >
                 Jetzt anfragen
               </Link>
-            </div>
-
-            {/* Plus Branding Package */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow">
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Plus Branding</h3>
-                <p className="text-purple-600 font-medium">Abteilungen / größere Crews</p>
-              </div>
-              
-              <div className="mb-6">
-                <div className="flex items-baseline">
-                  <span className="text-2xl font-bold text-purple-600">Auf Anfrage</span>
-                </div>
-              </div>
-
-              <div className="space-y-4 mb-8">
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">CI-Farbe, Logo-Wall</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Reportage-Extras (Lobby/Meeting)</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">2 Portraits p. P. + Team-Varianten</span>
-                </div>
-                <div className="flex items-start">
-                  <TrendingUp className="h-5 w-5 text-purple-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-600 text-sm">Individuelle Zeitplanung</span>
-                </div>
-              </div>
-
-              <Link
-                to="/kontakt"
-                className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
-              >
-                Anfrage senden
-              </Link>
-            </div>
-          </div>
-
-          {/* Optional Services */}
-          <div className="bg-purple-50 rounded-xl p-6">
-            <h4 className="font-bold text-gray-900 mb-4">Optional:</h4>
-            <div className="grid sm:grid-cols-2 gap-4 text-sm">
-              <div className="flex items-center">
-                <Check className="h-4 w-4 text-purple-600 mr-2" />
-                <span>Zusätzl. retuschiertes Bild <strong>€30 p. P.</strong></span>
-              </div>
-              <div className="flex items-center">
-                <Check className="h-4 w-4 text-purple-600 mr-2" />
-                <span>Express-Retusche 24–48 h <strong>€15 p. P.</strong></span>
-              </div>
             </div>
           </div>
         </div>
