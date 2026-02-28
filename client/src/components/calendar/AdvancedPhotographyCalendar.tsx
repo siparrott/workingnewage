@@ -968,6 +968,8 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
             <h3 className="text-xl font-semibold text-gray-900">
               {view === 'day' 
                 ? format(currentDate, 'EEEE, MMMM d, yyyy')
+                : view === 'week'
+                ? `${format(startOfWeek(currentDate), 'MMM d')} – ${format(endOfWeek(currentDate), 'MMM d, yyyy')}`
                 : format(currentDate, 'MMMM yyyy')}
             </h3>
           </div>
