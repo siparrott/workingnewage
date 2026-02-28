@@ -200,140 +200,50 @@ export default function NeugeborenenfotosWienPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 mb-12">
-            {/* Basic Package */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow">
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Basic</h3>
-                <p className="text-purple-600 font-medium">Erste Erinnerungen</p>
-              </div>
-              
-              <div className="mb-6">
-                <div className="flex items-baseline">
-                  <span className="text-4xl font-bold text-purple-600">€95</span>
-                </div>
-              </div>
-
-              <div className="space-y-4 mb-8">
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">ca. 60 Minuten im Studio</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">1 retuschiertes Lieblingsfoto digital</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Leinwand 40×30 cm mit demselben Motiv</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">1–2 simple Sets (gewickelt)</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700 text-sm italic">Ideal, wenn ihr eine perfekte Erinnerung möchtet</span>
-                </div>
-              </div>
-
-              <button
-                onClick={() => handleBookPackage('Newborn Basic', 95, 'Neugeborenen-Fotografie - 60 Min, 1 Foto + Leinwand')}
-                className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
-              >
-                Jetzt buchen
-              </button>
-            </div>
-
-            {/* Premium Package - BESTSELLER */}
-            <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 transform scale-105 relative">
+          <div className="flex justify-center mb-12">
+            {/* Newborn Premium Package */}
+            <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 max-w-md w-full relative">
               <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-bl-lg rounded-tr-2xl">
                 BESTSELLER
               </div>
               
               <div className="mb-6 mt-4">
-                <h3 className="text-2xl font-bold mb-2">Premium</h3>
-                <p className="text-purple-100 font-medium">Umfangreichere Erinnerungen</p>
+                <h3 className="text-2xl font-bold mb-2">Newborn Premium</h3>
               </div>
               
               <div className="mb-6">
                 <div className="flex items-baseline">
+                  <span className="text-sm mr-1">Ab</span>
                   <span className="text-4xl font-bold">€195</span>
                 </div>
               </div>
 
-              <div className="space-y-4 mb-8">
+              <div className="space-y-4 mb-4">
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>ca. 90 Minuten im Studio</span>
+                  <span>ca. 60 Minuten im Studio</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>5 retuschierte Lieblingsfotos digital (frei wählbar)</span>
+                  <span>5 retuschierte Lieblingsfotos digital</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Leinwand 40×30 cm (Motiv nach Wahl)</span>
+                  <span>Leinwand 40×30 cm</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>2–3 Sets (Wraps + Detail-Makros)</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Eltern- & Geschwisterfoto inklusive</span>
+                  <span>Bis zu 12 Personen und auch Haustiere möglich</span>
                 </div>
               </div>
 
+              <p className="text-purple-200 text-sm mb-6">Gültig bis 2 Jahre</p>
+
               <button
-                onClick={() => handleBookPackage('Newborn Premium', 195, 'Neugeborenen-Fotografie - 90 Min, 5 Fotos + Leinwand')}
+                onClick={() => handleBookPackage('Newborn Premium', 195, 'Neugeborenen-Fotografie - 60 Min, 5 Fotos + Leinwand 40×30 cm')}
                 className="block w-full text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
               >
-                Jetzt buchen
-              </button>
-            </div>
-
-            {/* Deluxe Package */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow">
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Deluxe</h3>
-                <p className="text-purple-600 font-medium">Das komplette Erlebnis</p>
-              </div>
-              
-              <div className="mb-6">
-                <div className="flex items-baseline">
-                  <span className="text-4xl font-bold text-purple-600">€295</span>
-                </div>
-              </div>
-
-              <div className="space-y-4 mb-8">
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">ca. 120 Minuten im Studio</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">10 retuschierte Lieblingsfotos digital</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Leinwand 60×40 cm (Motiv nach Wahl)</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">3–4 Sets inkl. Makro-Details (Hände, Wimpern, Füßchen)</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Extra Zeit für ruhige Übergänge & Variationen</span>
-                </div>
-              </div>
-
-              <button
-                onClick={() => handleBookPackage('Newborn Deluxe', 295, 'Neugeborenen-Fotografie - 120 Min, 10 Fotos + Leinwand')}
-                className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
-              >
-                Jetzt buchen
+                Jetzt Buchen
               </button>
             </div>
           </div>
