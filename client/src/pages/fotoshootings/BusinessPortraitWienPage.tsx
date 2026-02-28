@@ -200,127 +200,113 @@ export default function BusinessPortraitWienPage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 mb-12">
-            {/* Express Headshot Package */}
+            {/* Business Portrait Basic Package */}
             <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow">
               <div className="mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Express Headshot</h3>
-                <p className="text-purple-600 font-medium">Schnell & effizient</p>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Business Portrait Basic</h3>
               </div>
               
               <div className="mb-6">
                 <div className="flex items-baseline">
-                  <span className="text-4xl font-bold text-purple-600">€95</span>
+                  <span className="text-sm text-gray-500 mr-1">Ab</span>
+                  <span className="text-4xl font-bold text-purple-600">€69</span>
                 </div>
               </div>
 
-              <div className="space-y-4 mb-8">
+              <div className="space-y-4 mb-4">
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">20–30 Min.</span>
+                  <span className="text-gray-700">Business-Headshot, 30 Minuten</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">1 Look/Outfit</span>
+                  <span className="text-gray-700">1 retuschiertes Foto</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">1 retuschiertes Bild (High-Res + Web)</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700 text-sm">Jedes weitere Bild €30</span>
+                  <span className="text-gray-700">Suitable for LinkedIn</span>
                 </div>
               </div>
+
+              <p className="text-gray-400 text-sm mb-6">Gültig bis 2 Jahre</p>
 
               <button
-                onClick={() => handleBookPackage('Express Headshot', 95, 'Business Portrait - 20-30 Min, 1 Foto')}
+                onClick={() => handleBookPackage('Business Portrait Basic', 69, 'Business-Headshot - 30 Min, 1 retuschiertes Foto')}
                 className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
               >
-                Jetzt buchen
+                Jetzt Buchen
               </button>
             </div>
 
-            {/* Solo Pro Package */}
+            {/* Express Headshot Package - BELIEBT */}
             <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 transform scale-105 relative">
               <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-bl-lg rounded-tr-2xl">
                 BELIEBT
               </div>
               
               <div className="mb-6 mt-4">
-                <h3 className="text-2xl font-bold mb-2">Solo Pro</h3>
-                <p className="text-purple-100 font-medium">Für Professionals</p>
+                <h3 className="text-2xl font-bold mb-2">Express Headshot</h3>
               </div>
               
               <div className="mb-6">
                 <div className="flex items-baseline">
-                  <span className="text-4xl font-bold">€195</span>
+                  <span className="text-sm mr-1">Ab</span>
+                  <span className="text-4xl font-bold">€95</span>
                 </div>
               </div>
 
-              <div className="space-y-4 mb-8">
+              <div className="space-y-4 mb-4">
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>45–60 Min.</span>
+                  <span>Schnell & effizient</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Bis zu 2 Looks/Outfits</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>5 retuschierte Bilder (High-Res + Web)</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Variable Hintergründe & Licht-Setups</span>
+                  <span>x2 Bilder nach Wahl als Datei</span>
                 </div>
               </div>
+
+              <p className="text-purple-200 text-sm mb-6">Gültig bis 2 Jahre</p>
 
               <button
-                onClick={() => handleBookPackage('Solo Pro', 195, 'Business Portrait - 45-60 Min, 5 Fotos')}
+                onClick={() => handleBookPackage('Express Headshot', 95, 'Express Headshot - Schnell & effizient, x2 Bilder als Datei')}
                 className="block w-full text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
               >
-                Jetzt buchen
+                Jetzt Buchen
               </button>
             </div>
 
-            {/* Brand Upgrade Package */}
+            {/* Solo Pro Package */}
             <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow">
               <div className="mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Brand Upgrade</h3>
-                <p className="text-purple-600 font-medium">Maximale Vielfalt</p>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Solo Pro</h3>
               </div>
               
               <div className="mb-6">
                 <div className="flex items-baseline">
-                  <span className="text-4xl font-bold text-purple-600">€295</span>
+                  <span className="text-sm text-gray-500 mr-1">Ab</span>
+                  <span className="text-4xl font-bold text-purple-600">€195</span>
                 </div>
               </div>
 
-              <div className="space-y-4 mb-8">
+              <div className="space-y-4 mb-4">
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">75–90 Min.</span>
+                  <span className="text-gray-700">Für Professionals</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Bis zu 3 Looks/Outfits</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">10 retuschierte Bilder (High-Res + Web)</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Mehrere Hintergründe & Licht-Variationen</span>
+                  <span className="text-gray-700">Alle Bilder als Datei inkl.</span>
                 </div>
               </div>
+
+              <p className="text-gray-400 text-sm mb-6">Gültig bis 2 Jahre</p>
 
               <button
-                onClick={() => handleBookPackage('Brand Upgrade', 295, 'Business Portrait - 75-90 Min, 10 Fotos')}
+                onClick={() => handleBookPackage('Solo Pro', 195, 'Solo Pro - Für Professionals, alle Bilder als Datei')}
                 className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
               >
-                Jetzt buchen
+                Jetzt Buchen
               </button>
             </div>
           </div>
@@ -332,7 +318,7 @@ export default function BusinessPortraitWienPage() {
               <div>
                 <p className="font-semibold text-gray-900 mb-1">Team- & Mitarbeiterfotos:</p>
                 <p className="text-gray-600">
-                  ab €95 p. P. (ab 5 Personen, 2 Looks, 2 retuschierte Bilder p. P.). Einheitlicher Look + Gruppenbild möglich.
+                  Ab €299. Paketpreise by headcount. In-Studio or OnSite options, ab 50€ pro Kopf mit alle Portraits als Datei dazu.
                 </p>
               </div>
             </div>
