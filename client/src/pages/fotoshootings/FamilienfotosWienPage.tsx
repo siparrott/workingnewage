@@ -214,16 +214,16 @@ export default function FamilienfotosWienPage() {
             <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow">
               <div className="mb-6">
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">Family Basic</h3>
-                <p className="text-purple-600 font-medium">Ideal für: Kleine Familien, ein Hauptmotiv</p>
               </div>
               
               <div className="mb-6">
                 <div className="flex items-baseline">
+                  <span className="text-sm text-gray-500 mr-1">Ab</span>
                   <span className="text-4xl font-bold text-purple-600">€95</span>
                 </div>
               </div>
 
-              <div className="space-y-4 mb-8">
+              <div className="space-y-4 mb-4">
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
                   <span className="text-gray-700">60 Min Shooting</span>
@@ -234,103 +234,113 @@ export default function FamilienfotosWienPage() {
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Auswahlgalerie online</span>
+                  <span className="text-gray-700">Nutzungsrechte privat</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Nutzungsrechte privat</span>
+                  <span className="text-gray-700">Bis zu 12 Personen und auch Haustiere möglich</span>
                 </div>
               </div>
 
+              <p className="text-gray-400 text-sm mb-6">Gültig bis 2 Jahre</p>
+
               <button
-                onClick={() => handleBookPackage('Family Basic', 95, 'Familienfotografie - 60 Min Shooting')}
+                onClick={() => handleBookPackage('Family Basic', 95, 'Familienfotografie - 60 Min, 1 Portrait + Leinwand 40×30 cm')}
                 className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
               >
-                Jetzt buchen
+                Jetzt Buchen
               </button>
             </div>
 
-            {/* Family Premium Package - BESTSELLER */}
+            {/* Family Classic Package - BESTSELLER */}
             <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 transform scale-105 relative">
               <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-bl-lg rounded-tr-2xl">
                 BESTSELLER
               </div>
               
               <div className="mb-6 mt-4">
-                <h3 className="text-2xl font-bold mb-2">Family Premium</h3>
-                <p className="text-purple-100 font-medium">Ideal für: Größere Familien, mehrere Kombis</p>
+                <h3 className="text-2xl font-bold mb-2">Family Classic</h3>
               </div>
               
               <div className="mb-6">
                 <div className="flex items-baseline">
+                  <span className="text-sm mr-1">Ab</span>
                   <span className="text-4xl font-bold">€195</span>
                 </div>
               </div>
 
-              <div className="space-y-4 mb-8">
+              <div className="space-y-4 mb-4">
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>90 Min Shooting</span>
+                  <span>60 Min Shooting</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>5 retuschierte Fotos digital (Motive frei wählbar)</span>
+                  <span>2 retuschierte Portraits digital + 2x Leinwand 30×40 cm</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Leinwand 40×30 cm (Motiv nach Wahl)</span>
+                  <span>Nutzungsrechte privat</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Auswahlgalerie & Nutzungsrechte privat</span>
+                  <span>Bis zu 12 Personen und auch Haustiere möglich</span>
                 </div>
               </div>
 
+              <p className="text-purple-200 text-sm mb-6">Gültig bis 2 Jahre</p>
+
               <button
-                onClick={() => handleBookPackage('Family Premium', 195, 'Familienfotografie - 90 Min Shooting')}
+                onClick={() => handleBookPackage('Family Classic', 195, 'Familienfotografie - 60 Min, 2 Portraits + 2x Leinwand 30×40 cm')}
                 className="block w-full text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
               >
-                Jetzt buchen
+                Jetzt Buchen
               </button>
             </div>
 
-            {/* Family Deluxe Package */}
+            {/* Family Premium Package */}
             <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow">
               <div className="mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Family Deluxe</h3>
-                <p className="text-purple-600 font-medium">Ideal für: Komplettes Familienerlebnis</p>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Family Premium</h3>
               </div>
               
               <div className="mb-6">
                 <div className="flex items-baseline">
-                  <span className="text-4xl font-bold text-purple-600">€295</span>
+                  <span className="text-sm text-gray-500 mr-1">Ab</span>
+                  <span className="text-4xl font-bold text-purple-600">€225</span>
                 </div>
               </div>
 
-              <div className="space-y-4 mb-8">
+              <div className="space-y-4 mb-4">
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">90–120 Min Shooting</span>
+                  <span className="text-gray-700">60 Min Shooting</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">10 retuschierte Fotos digital</span>
+                  <span className="text-gray-700">5 retuschierte Fotos digital</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Leinwand 60×40 cm (Motiv nach Wahl)</span>
+                  <span className="text-gray-700">Leinwand 40×30 cm</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Auswahlgalerie & Nutzungsrechte privat</span>
+                  <span className="text-gray-700">Nutzungsrechte privat</span>
+                </div>
+                <div className="flex items-start">
+                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-700">Bis zu 12 Personen und auch Haustiere möglich</span>
                 </div>
               </div>
+
+              <p className="text-gray-400 text-sm mb-6">Gültig bis 2 Jahre</p>
 
               <button
-                onClick={() => handleBookPackage('Family Deluxe', 295, 'Familienfotografie - 90-120 Min Shooting')}
+                onClick={() => handleBookPackage('Family Premium', 225, 'Familienfotografie - 60 Min, 5 Fotos + Leinwand 40×30 cm')}
                 className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
               >
-                Jetzt buchen
+                Jetzt Buchen
               </button>
             </div>
           </div>
