@@ -102,17 +102,16 @@ export default function EventfotografieWienPage() {
             },
             "offers": {
               "@type": "AggregateOffer",
-              "lowPrice": "640",
-              "highPrice": "1980",
+              "lowPrice": "449",
+              "highPrice": "999",
               "priceCurrency": "EUR"
             },
             "hasOfferCatalog": {
               "@type": "OfferCatalog",
               "name": "Eventfotografie Pakete",
               "itemListElement": [
-                {"@type": "Offer", "name": "Half-Day (bis 4 Std.)"},
-                {"@type": "Offer", "name": "Full-Day (bis 8 Std.)"},
-                {"@type": "Offer", "name": "Plus Team (2 Fotograf:innen)"}
+                {"@type": "Offer", "name": "Eventfotografie", "price": "449", "priceCurrency": "EUR"},
+                {"@type": "Offer", "name": "Event Premium", "price": "999", "priceCurrency": "EUR"}
               ]
             }
           })}
@@ -305,144 +304,74 @@ export default function EventfotografieWienPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Pakete & Preise (Richtwerte)
+              Pakete & Preise
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 mb-12">
-            {/* Half-Day Package */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow border border-gray-200">
+          <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto mb-12">
+            {/* Eventfotografie */}
+            <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow border border-purple-200">
               <div className="mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Half-Day</h3>
-                <p className="text-purple-600 font-medium">bis 4 Std.</p>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Eventfotografie</h3>
               </div>
-              
               <div className="mb-6">
                 <div className="flex items-baseline">
-                  <span className="text-4xl font-bold text-purple-600">€640</span>
+                  <span className="text-sm text-gray-500 mr-1">Ab</span>
+                  <span className="text-4xl font-bold text-purple-600">€449</span>
                 </div>
               </div>
-
               <div className="space-y-4 mb-8">
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">1 Fotograf:in</span>
+                  <span className="text-gray-700">Kurzauftrag inkl. 30 bearbeiteter Fotos</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">150+ Bilder</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Preview 24 h</span>
+                  <span className="text-gray-700">Gültig bis 2 Jahre</span>
                 </div>
               </div>
-
-              <button
-                onClick={() => handleBookPackage('Half-Day Event', 640, 'Half-Day Event (bis 4 Std.) - 1 Fotograf:in, 150+ Bilder, Preview 24 h')}
+              <Link
+                to="/warteliste"
                 className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
               >
-                Jetzt buchen
-              </button>
+                Jetzt sichern
+              </Link>
             </div>
 
-            {/* Full-Day Package - BELIEBT */}
-            <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 transform scale-105 relative">
+            {/* Event Premium - BELIEBT */}
+            <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 relative">
               <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-bl-lg rounded-tr-2xl">
                 BELIEBT
               </div>
-              
               <div className="mb-6 mt-4">
-                <h3 className="text-2xl font-bold mb-2">Full-Day</h3>
-                <p className="text-purple-100 font-medium">bis 8 Std.</p>
+                <h3 className="text-2xl font-bold mb-2">Event Premium</h3>
               </div>
-              
               <div className="mb-6">
                 <div className="flex items-baseline">
-                  <span className="text-4xl font-bold">€1.180</span>
+                  <span className="text-sm text-purple-200 mr-1">Ab</span>
+                  <span className="text-4xl font-bold">€999</span>
                 </div>
               </div>
-
               <div className="space-y-4 mb-8">
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>1 Fotograf:in</span>
+                  <span>Ganztägige Event-Coverage</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>350+ Bilder</span>
+                  <span>Alle Bilder als Datei in Vollauflösung</span>
                 </div>
                 <div className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>Social-Cut 24 h</span>
+                  <span>Gültig bis 2 Jahre</span>
                 </div>
               </div>
-
-              <button
-                onClick={() => handleBookPackage('Full-Day Event', 1180, 'Full-Day Event (bis 8 Std.) - 1 Fotograf:in, 350+ Bilder, Social-Cut 24 h')}
+              <Link
+                to="/warteliste"
                 className="block w-full text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
               >
-                Jetzt buchen
-              </button>
-            </div>
-
-            {/* Plus Team Package */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow border border-gray-200">
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Plus Team</h3>
-                <p className="text-purple-600 font-medium">bis 8 Std.</p>
-              </div>
-              
-              <div className="mb-6">
-                <div className="flex items-baseline">
-                  <span className="text-4xl font-bold text-purple-600">€1.980</span>
-                </div>
-              </div>
-
-              <div className="space-y-4 mb-8">
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">2 Fotograf:innen</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">600+ Bilder</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Presse-Set 12 h</span>
-                </div>
-              </div>
-
-              <button
-                onClick={() => handleBookPackage('Plus Team Event', 1980, 'Plus Team Event (bis 8 Std.) - 2 Fotograf:innen, 600+ Bilder, Presse-Set 12 h')}
-                className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
-              >
-                Jetzt buchen
-              </button>
-            </div>
-          </div>
-
-          {/* Add-ons */}
-          <div className="bg-gray-50 rounded-xl p-6">
-            <h4 className="font-bold text-gray-900 mb-4">Add-ons:</h4>
-            <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="flex items-center">
-                <Check className="h-4 w-4 text-purple-600 mr-2" />
-                <span>Zusatzstunde <strong>€150</strong></span>
-              </div>
-              <div className="flex items-center">
-                <Check className="h-4 w-4 text-purple-600 mr-2" />
-                <span>Videographer ab <strong>€780</strong></span>
-              </div>
-              <div className="flex items-center">
-                <Check className="h-4 w-4 text-purple-600 mr-2" />
-                <span>On-Site Auswahlstation <strong>€190</strong></span>
-              </div>
-              <div className="flex items-center">
-                <Check className="h-4 w-4 text-purple-600 mr-2" />
-                <span>Sofort-Export (Same-Day) <strong>€290</strong></span>
-              </div>
+                Jetzt sichern
+              </Link>
             </div>
           </div>
 
