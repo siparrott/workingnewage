@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, isAfter, isBefore, startOfWeek, endOfWeek, eachHourOfInterval, startOfDay, addDays, subDays, addWeeks, subWeeks, startOfYear, endOfYear } from 'date-fns';
-import { Calendar, ChevronLeft, ChevronRight, Plus, MapPin, Camera, Clock, DollarSign, AlertTriangle, CheckCircle, Star, Sun, Cloud, Users, Filter, Search, Download, Upload, RefreshCw, Settings, Eye, Edit, Trash2, Copy, ExternalLink } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Plus, MapPin, Camera, Clock, DollarSign, AlertTriangle, CheckCircle, Star, Sun, Cloud, Users, Filter, Search, Download, Upload, RefreshCw, Settings, Eye, Edit, Trash2, Copy, ExternalLink, Printer } from 'lucide-react';
 
 interface PhotographySession {
   id: string;
@@ -704,7 +704,7 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
       .slice(0, 50);
 
     return (
-      <div className="space-y-4">
+      <div id="agenda-print-area" className="space-y-4">
         {upcomingSessions.map(session => {
           const startTime = parseISO(session.startTime);
           const endTime = parseISO(session.endTime);
@@ -1009,6 +1009,44 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
                 onChange={(e) => e.target.files?.[0] && onImportCalendar(e.target.files[0])}
               />
             </label>
+
+            {/* Print button - visible in agenda and list views */}
+            {(view === 'agenda' || view === 'list') && (
+              <button
+                onClick={() => {
+                  // Hide non-printable UI, then trigger browser print
+                  const printStyle = document.createElement('style');
+                  printStyle.id = 'agenda-print-style';
+                  printStyle.textContent = `
+                    @media print {
+                      /* Hide sidebar, header nav, action buttons */
+                      nav, aside, [data-sidebar], .admin-sidebar,
+                      button, label, input, select,
+                      [class*="hover:"], .no-print,
+                      #agenda-print-style + * { }
+                      header { display: none !important; }
+                      /* Show only the agenda content area */
+                      body * { visibility: hidden; }
+                      #agenda-print-area, #agenda-print-area * { visibility: visible; }
+                      #agenda-print-area { position: absolute; left: 0; top: 0; width: 100%; }
+                      /* Clean up for print */
+                      #agenda-print-area button,
+                      #agenda-print-area .no-print { display: none !important; }
+                      #agenda-print-area { font-size: 11px; }
+                      @page { margin: 1cm; }
+                    }
+                  `;
+                  document.head.appendChild(printStyle);
+                  window.print();
+                  // Clean up after print dialog closes
+                  setTimeout(() => printStyle.remove(), 1000);
+                }}
+                className="flex items-center space-x-2 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Print</span>
+              </button>
+            )}
 
             {/* New Session button - accent color */}
             <button
