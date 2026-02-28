@@ -94,17 +94,17 @@ export default function HochzeitsfotografieWienPage() {
               provider: { '@type': 'LocalBusiness', name: 'New Age Fotografie' },
               offers: {
                 '@type': 'AggregateOffer',
-                lowPrice: '690',
-                highPrice: '2450',
+                lowPrice: '599',
+                highPrice: '2499',
                 priceCurrency: 'EUR'
               },
               hasOfferCatalog: {
                 '@type': 'OfferCatalog',
                 name: 'Hochzeitsfotografie Pakete',
                 itemListElement: [
-                  { '@type': 'Offer', name: 'Standesamt Mini (bis 2 Std.)' },
-                  { '@type': 'Offer', name: 'Classic (bis 6 Std.)' },
-                  { '@type': 'Offer', name: 'Premium Day (bis 10 Std.)' }
+                  { '@type': 'Offer', name: 'Hochzeitsfotografie Basic', price: '599', priceCurrency: 'EUR' },
+                  { '@type': 'Offer', name: 'Hochzeit Basic', price: '1299', priceCurrency: 'EUR' },
+                  { '@type': 'Offer', name: 'Hochzeit Premium', price: '2499', priceCurrency: 'EUR' }
                 ]
               }
             })}
@@ -285,91 +285,82 @@ export default function HochzeitsfotografieWienPage() {
         <section className="py-16 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Pakete & Preise (Richtwerte)</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Pakete & Preise</h2>
             </div>
-            <div className="grid md:grid-cols-3 gap-8 mb-12">
-              {/* Standesamt Mini */}
-              <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow border border-gray-200">
+            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-12">
+              {/* Hochzeitsfotografie Basic */}
+              <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow border border-purple-200">
                 <div className="mb-6">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Standesamt Mini</h3>
-                  <p className="text-purple-600 font-medium">bis 2 Std.</p>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Hochzeitsfotografie Basic</h3>
                 </div>
                 <div className="mb-6">
                   <div className="flex items-baseline">
-                    <span className="text-4xl font-bold text-purple-600">€690</span>
+                    <span className="text-sm text-gray-500 mr-1">Ab</span>
+                    <span className="text-4xl font-bold text-purple-600">€599</span>
                   </div>
                 </div>
                 <div className="space-y-4 mb-8">
-                  <div className="flex items-start"><Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" /><span className="text-gray-700">Zeremonie + Gruppen & Paarfotos</span></div>
-                  <div className="flex items-start"><Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" /><span className="text-gray-700">150+ Bilder, Retusche Basis</span></div>
-                  <div className="flex items-start"><Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" /><span className="text-gray-700">Sneak Peek 24–48 h</span></div>
+                  <div className="flex items-start"><Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" /><span className="text-gray-700">Hochzeitsbegleitung (Auszug)</span></div>
+                  <div className="flex items-start"><Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" /><span className="text-gray-700">Inkl. 30 bearbeiteter Fotos</span></div>
+                  <div className="flex items-start"><Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" /><span className="text-gray-700">Gültig bis 2 Jahre</span></div>
                 </div>
-                <button
-                  onClick={() => handleBookPackage('Standesamt Mini Hochzeit', 690, 'Standesamt Mini (bis 2 Std.) - Zeremonie + Gruppen & Paarfotos, 150+ Bilder')}
+                <Link
+                  to="/warteliste"
                   className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
                 >
-                  Anfragen
-                </button>
+                  Jetzt sichern
+                </Link>
               </div>
 
-              {/* Classic (Beliebt) */}
+              {/* Hochzeit Basic (Beliebt) */}
               <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 transform scale-105 relative">
                 <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-bl-lg rounded-tr-2xl">BELIEBT</div>
                 <div className="mb-6 mt-4">
-                  <h3 className="text-2xl font-bold mb-2">Classic</h3>
-                  <p className="text-purple-100 font-medium">bis 6 Std.</p>
+                  <h3 className="text-2xl font-bold mb-2">Hochzeit Basic</h3>
                 </div>
                 <div className="mb-6">
                   <div className="flex items-baseline">
-                    <span className="text-4xl font-bold">€1.590</span>
+                    <span className="text-sm text-purple-200 mr-1">Ab</span>
+                    <span className="text-4xl font-bold">€1.299</span>
                   </div>
                 </div>
                 <div className="space-y-4 mb-8">
-                  <div className="flex items-start"><Check className="h-5 w-5 text-yellow-300 mr-3 mt-0.5" /><span>Getting Ready bis Agape</span></div>
-                  <div className="flex items-start"><Check className="h-5 w-5 text-yellow-300 mr-3 mt-0.5" /><span>350+ Bilder, fein kuratiert</span></div>
-                  <div className="flex items-start"><Check className="h-5 w-5 text-yellow-300 mr-3 mt-0.5" /><span>Sneak Peek 24 h</span></div>
+                  <div className="flex items-start"><Check className="h-5 w-5 text-yellow-300 mr-3 mt-0.5" /><span>Standesamt oder kleine Feier</span></div>
+                  <div className="flex items-start"><Check className="h-5 w-5 text-yellow-300 mr-3 mt-0.5" /><span>Alle Portraits als Datei – Halber Tag</span></div>
+                  <div className="flex items-start"><Check className="h-5 w-5 text-yellow-300 mr-3 mt-0.5" /><span>Stunden nach Wunsch</span></div>
+                  <div className="flex items-start"><Check className="h-5 w-5 text-yellow-300 mr-3 mt-0.5" /><span>Gültig bis 2 Jahre</span></div>
                 </div>
-                <button
-                  onClick={() => handleBookPackage('Classic Hochzeit', 1590, 'Classic (bis 6 Std.) - Getting Ready bis Agape, 350+ Bilder, Sneak Peek 24 h')}
+                <Link
+                  to="/warteliste"
                   className="block w-full text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
                 >
-                  Anfragen
-                </button>
+                  Jetzt sichern
+                </Link>
               </div>
 
-              {/* Premium Day */}
-              <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow border border-gray-200">
+              {/* Hochzeit Premium */}
+              <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow border border-purple-200">
                 <div className="mb-6">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Premium Day</h3>
-                  <p className="text-purple-600 font-medium">bis 10 Std.</p>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Hochzeit Premium</h3>
                 </div>
                 <div className="mb-6">
                   <div className="flex items-baseline">
-                    <span className="text-4xl font-bold text-purple-600">€2.450</span>
+                    <span className="text-sm text-gray-500 mr-1">Ab</span>
+                    <span className="text-4xl font-bold text-purple-600">€2.499</span>
                   </div>
                 </div>
                 <div className="space-y-4 mb-8">
-                  <div className="flex items-start"><Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" /><span className="text-gray-700">Ganztagsreportage inkl. Abend</span></div>
-                  <div className="flex items-start"><Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" /><span className="text-gray-700">600+ Bilder, Storytelling</span></div>
-                  <div className="flex items-start"><Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" /><span className="text-gray-700">Paarshoot in goldenem Licht</span></div>
+                  <div className="flex items-start"><Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" /><span className="text-gray-700">Ganztägige Hochzeit – alle Bilder</span></div>
+                  <div className="flex items-start"><Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" /><span className="text-gray-700">Online-Galerie, Prints & Leinwand-Collage</span></div>
+                  <div className="flex items-start"><Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" /><span className="text-gray-700">Porträts nach Wahl</span></div>
+                  <div className="flex items-start"><Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" /><span className="text-gray-700">Gültig bis 2 Jahre</span></div>
                 </div>
-                <button
-                  onClick={() => handleBookPackage('Premium Day Hochzeit', 2450, 'Premium Day (bis 10 Std.) - Ganztagsreportage inkl. Abend, 600+ Bilder, Paarshoot')}
+                <Link
+                  to="/warteliste"
                   className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
                 >
-                  Anfragen
-                </button>
-              </div>
-            </div>
-
-            {/* Add-ons */}
-            <div className="bg-gray-50 rounded-xl p-6">
-              <h4 className="font-bold text-gray-900 mb-4">Add-ons:</h4>
-              <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div className="flex items-center"><Check className="h-4 w-4 text-purple-600 mr-2" /><span>Zusatzstunde <strong>€150</strong></span></div>
-                <div className="flex items-center"><Check className="h-4 w-4 text-purple-600 mr-2" /><span>Zweites Set/Assistent:in <strong>€290</strong></span></div>
-                <div className="flex items-center"><Check className="h-4 w-4 text-purple-600 mr-2" /><span>Express-Galerie <strong>48 h</strong></span></div>
-                <div className="flex items-center"><Check className="h-4 w-4 text-purple-600 mr-2" /><span>Album & Fine-Art Prints</span></div>
+                  Jetzt sichern
+                </Link>
               </div>
             </div>
 
