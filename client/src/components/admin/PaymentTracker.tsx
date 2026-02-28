@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { X, Plus, CreditCard, Calendar, DollarSign, Trash2, ChevronDown, Mail, FileText, Settings, PlusCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { addInvoicePayment } from '../../api/invoices';
+import { useLanguage } from '../../hooks/useLanguage';
 
 interface Payment {
   id: string;
@@ -168,24 +169,8 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
     notes: ''
   });
 
-  // Detect language from currency or browser locale
-  // EUR in German-speaking regions (Austria, Germany, Switzerland uses CHF) → German
-  // Also check browser language as fallback
-  const language = useMemo(() => {
-    const browserLang = navigator.language?.toLowerCase() || '';
-    const isGermanBrowser = browserLang.startsWith('de');
-    // EUR is used in Germany, Austria - default to German for EUR
-    // CHF is Switzerland (multilingual, but often German)
-    if (currency === 'EUR' || currency === 'CHF') {
-      return 'de';
-    }
-    // For USD, GBP, AUD - English
-    if (currency === 'USD' || currency === 'GBP' || currency === 'AUD') {
-      return 'en';
-    }
-    // Fall back to browser language
-    return isGermanBrowser ? 'de' : 'en';
-  }, [currency]);
+  // Use the app's language toggle (respects the DE/EN switch in the header)
+  const { language } = useLanguage();
 
   // Get localized labels
   const t = PAYMENT_METHOD_LABELS[language];
