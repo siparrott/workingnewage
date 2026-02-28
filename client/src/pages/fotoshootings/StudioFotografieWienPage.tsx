@@ -118,9 +118,7 @@ const StudioFotografieWienPage: React.FC = () => {
               "@type": "OfferCatalog",
               "name": "Studio Pakete",
               "itemListElement": [
-                { "@type": "Offer", "name": "Headshot Basic", "price": "150", "priceCurrency": "EUR" },
-                { "@type": "Offer", "name": "Portrait Classic", "price": "290", "priceCurrency": "EUR" },
-                { "@type": "Offer", "name": "Family Studio", "price": "350", "priceCurrency": "EUR" }
+                { "@type": "Offer", "name": "Studio-Fotografie Basic", "price": "149", "priceCurrency": "EUR" }
               ]
             }
           })}
@@ -488,176 +486,37 @@ const StudioFotografieWienPage: React.FC = () => {
               Fixpreise je nach Dauer und Umfang – transparent und planbar.
             </p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-12">
-            {/* Headshot Basic */}
-            <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-200 hover:border-purple-300 transition-all">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Headshot Basic</h3>
-              <p className="text-gray-600 mb-4">30 Minuten Session</p>
+          <div className="flex justify-center mb-12">
+            {/* Studio-Fotografie Basic */}
+            <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl shadow-2xl p-8 border-2 border-purple-500 max-w-md w-full">
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Studio-Fotografie Basic</h3>
+              <p className="text-gray-600 mb-4">Studio-Miete inkl. Fotosession</p>
               <div className="mb-6">
-                <span className="text-4xl font-bold text-gray-900">€150</span>
-              </div>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">3 Bilder final retuschiert</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">1 Set (Classic Neutral oder High-Key White)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Hautretusche & Tonung inkl.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Lieferung 48h Standard</span>
-                </li>
-              </ul>
-              <Link
-                to="/warteliste/"
-                className="block w-full text-center bg-gray-900 text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition-all"
-              >
-                Paket wählen
-              </Link>
-            </div>
-
-            {/* Portrait Classic - BELIEBT */}
-            <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl shadow-2xl p-8 border-2 border-purple-500 relative transform scale-105 hover:scale-110 transition-all">
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-purple-500 text-white px-4 py-1 rounded-full text-sm font-bold">
-                BELIEBT
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Portrait Classic</h3>
-              <p className="text-gray-600 mb-4">60 Minuten Session</p>
-              <div className="mb-6">
-                <span className="text-4xl font-bold text-purple-600">€290</span>
+                <div className="flex items-baseline">
+                  <span className="text-sm text-gray-500 mr-1">Ab</span>
+                  <span className="text-4xl font-bold text-purple-600">€149</span>
+                </div>
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-start gap-2">
                   <Check className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">8 Bilder final retuschiert</span>
+                  <span className="text-gray-700">Perfekte Option für Produkt- oder Portraitaufnahmen</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">2 Sets (z.B. Neutral + Moody Color)</span>
+                  <span className="text-gray-700">Studio-Miete inklusive</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Check className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Outfit-Wechsel möglich</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Hautretusche, Dodge&Burn, Tonung</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Lieferung 48-72h Standard</span>
+                  <span className="text-gray-700">Gültig bis 2 Jahre</span>
                 </li>
               </ul>
               <Link
                 to="/warteliste/"
                 className="block w-full text-center bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-all"
               >
-                Paket wählen
+                Jetzt buchen
               </Link>
-            </div>
-
-            {/* Family Studio */}
-            <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-200 hover:border-purple-300 transition-all">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Family Studio</h3>
-              <p className="text-gray-600 mb-4">75 Minuten Session</p>
-              <div className="mb-6">
-                <span className="text-4xl font-bold text-gray-900">€350</span>
-              </div>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">12 Bilder final retuschiert</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">2 Sets + Lifestyle Corner</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Kindertaugliches Tempo & Pausen</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Alle Personen & Kombinationen</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Lieferung 72h Standard</span>
-                </li>
-              </ul>
-              <Link
-                to="/warteliste/"
-                className="block w-full text-center bg-gray-900 text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition-all"
-              >
-                Paket wählen
-              </Link>
-            </div>
-          </div>
-
-          {/* Business Team Package */}
-          <div className="bg-gradient-to-br from-blue-50 to-white p-8 rounded-xl border border-blue-200 max-w-4xl mx-auto mb-12">
-            <div className="grid md:grid-cols-2 gap-8 items-center">
-              <div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">Business Team</h3>
-                <p className="text-gray-600 mb-4">Für Abteilungen & Mitarbeiter-Rosters</p>
-                <ul className="space-y-2 text-gray-700">
-                  <li className="flex items-start gap-2">
-                    <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <span>1 Bild pro Person, einheitlicher Look</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <span>Classic Neutral Set, 2-3 Stunden Session</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <span>Ideal für Website & interne Profile</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="text-center md:text-right">
-                <p className="text-gray-600 mb-2">Ab</p>
-                <p className="text-4xl font-bold text-blue-600 mb-4">€590</p>
-                <Link
-                  to="/warteliste/"
-                  className="inline-block bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all"
-                >
-                  Anfrage stellen
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Add-ons */}
-          <div className="bg-gradient-to-br from-gray-50 to-white p-8 rounded-xl border border-gray-200">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">Add-ons</h3>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h4 className="font-bold text-gray-900 mb-2">Zusätzliches Bild</h4>
-                <p className="text-sm text-gray-600 mb-2">retuschiert & exportiert</p>
-                <p className="text-2xl font-bold text-purple-600">€20</p>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h4 className="font-bold text-gray-900 mb-2">Visagistik</h4>
-                <p className="text-sm text-gray-600 mb-2">Make-up & Haare professionell</p>
-                <p className="text-2xl font-bold text-purple-600">ab €120</p>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h4 className="font-bold text-gray-900 mb-2">Express 24h</h4>
-                <p className="text-sm text-gray-600 mb-2">Bilder am nächsten Tag</p>
-                <p className="text-2xl font-bold text-purple-600">+€80</p>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h4 className="font-bold text-gray-900 mb-2">Content-Reel</h4>
-                <p className="text-sm text-gray-600 mb-2">Video 10-20s im selben Setup</p>
-                <p className="text-2xl font-bold text-purple-600">€90</p>
-              </div>
             </div>
           </div>
         </div>
