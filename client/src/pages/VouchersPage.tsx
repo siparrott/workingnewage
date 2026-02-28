@@ -29,10 +29,10 @@ const VouchersPage: React.FC = () => {
 
   // Fetch voucher products from API with shorter cache (images update frequently)
   const { data: apiProducts, isLoading } = useQuery({
-    queryKey: ['/api/vouchers/products', 'v3-no-flash'],
+    queryKey: ['/api/vouchers/products', 'v3-no-flash', language],
     queryFn: async () => {
       console.log('🔄 Fetching fresh voucher data from API...');
-      const res = await fetch('/api/vouchers/products?_t=' + Date.now()); // Cache busting
+      const res = await fetch('/api/vouchers/products?_t=' + Date.now() + '&language=' + language); // Cache busting + language
       if (!res.ok) throw new Error('Failed to fetch vouchers');
       const data = await res.json();
       console.log('✅ Voucher products fetched:', data.length, 'products');
@@ -48,27 +48,7 @@ const VouchersPage: React.FC = () => {
 
   // NO fallback vouchers - always load from API to prevent placeholder flash
 
-  // Translation map for product descriptions (English -> German)
-  // Keys must match EXACTLY what's in the database
-  const descriptionTranslations: Record<string, string> = {
-    // Familie Fotoshootings
-    'Professional family photo session in our studio - 10x Portraits of your choice Digital, and one A3 (40x30cm) canvas - Shooting for up to five persons plus pets': 'Professionelles Familien-Fotoshooting in unserem Studio - 10x Portraits Ihrer Wahl digital, und eine A3 (40x30cm) Leinwand - Shooting für bis zu fünf Personen plus Haustiere',
-    // Business Portrait Session
-    'Professional headshots for business use on location - price per Person': 'Professionelle Business-Portraits vor Ort - Preis pro Person',
-    // Shooting Experience Gutschein (multiline description from DB)
-    'Valid for Families of all sizes, including pregnancy and newborn Shootings\nOne hour Shooting for up to 15 guests plus pets\n3 Outfit changes\nA2 (60x40cm) canvas - portrait of your choice\nDigital copy to share, and to make copies, delivered as a high quality jpg file': 
-      'Gültig für Familien jeder Größe, inklusive Schwangerschafts- und Neugeborenen-Shootings\nEine Stunde Shooting für bis zu 15 Gäste plus Haustiere\n3 Outfit-Wechsel\nA2 (60x40cm) Leinwand - Portrait Ihrer Wahl\nDigitale Kopie zum Teilen und für Abzüge, als hochwertige JPG-Datei',
-    // Maternity Premium
-    '60 minute shoot - including all Portraits in Digital format (high quality jpg, delivered electronically)': '60-minütiges Shooting - inklusive aller Portraits im Digitalformat (hochwertige JPG-Dateien, elektronisch geliefert)',
-  };
-
-  // Helper function to get translated description
-  const getTranslatedDescription = (description: string): string => {
-    if (language === 'de' && descriptionTranslations[description]) {
-      return descriptionTranslations[description];
-    }
-    return description;
-  };
+  // Translation is now handled server-side via the language parameter in the API request
 
   // Transform API products to match expected format
   const voucherProducts = useMemo(() => {
@@ -89,7 +69,7 @@ const VouchersPage: React.FC = () => {
           id: p.id,
           name: p.name,
           slug: p.slug,
-          description: getTranslatedDescription(rawDescription),
+          description: rawDescription,
           price: parseFloat(p.price) || 0,
           originalPrice: p.originalPrice || p.original_price ? parseFloat(p.originalPrice || p.original_price) : parseFloat(p.price) * 1.3,
           image: imageUrl || '', // Use actual uploaded image or empty string
@@ -221,9 +201,9 @@ const VouchersPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Fotoshooting Gutscheine in Wien | New Age Fotografie"
-        description="Fotoshooting Gutscheine als perfektes Geschenk. Wählen Sie aus Familie, Baby oder Business Paketen. Sofort per E-Mail!"
-        keywords="Fotoshooting Gutschein Wien, Geschenkgutschein Fotograf, Gutschein Fotoshooting"
+        title={language === 'de' ? 'Fotoshooting Gutscheine in Wien | New Age Fotografie' : 'Photoshoot Vouchers in Vienna | New Age Photography'}
+        description={language === 'de' ? 'Fotoshooting Gutscheine als perfektes Geschenk. Wählen Sie aus Familie, Baby oder Business Paketen. Sofort per E-Mail!' : 'Photoshoot vouchers as the perfect gift. Choose from family, baby or business packages. Instantly via email!'}
+        keywords={language === 'de' ? 'Fotoshooting Gutschein Wien, Geschenkgutschein Fotograf, Gutschein Fotoshooting' : 'Photoshoot Voucher Vienna, Gift voucher photographer, Voucher photoshoot'}
         canonical="/vouchers"
         ogImage="https://images.unsplash.com/photo-1511895426328-dc8714191300?w=1200&h=630&fit=crop"
         hreflang={[
@@ -265,10 +245,10 @@ const VouchersPage: React.FC = () => {
             {vouchersTitle}
           </h1>
           <p className="text-xl md:text-2xl mb-2">
-            Fotoshooting Gutscheine für jeden Anlass
+            {language === 'de' ? 'Fotoshooting Gutscheine für jeden Anlass' : 'Photoshoot Vouchers for Every Occasion'}
           </p>
           <p className="text-lg opacity-90">
-            Wählen Sie aus unseren Kategorien: Familie, Baby, Schwangerschaft, Business & Event
+            {language === 'de' ? 'Wählen Sie aus unseren Kategorien: Familie, Baby, Schwangerschaft, Business & Event' : 'Choose from our categories: Family, Baby, Maternity, Business & Event'}
           </p>
         </div>
       </div>

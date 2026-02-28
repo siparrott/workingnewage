@@ -69,7 +69,93 @@ const translateTagToEnglish = (tag: string): string => {
   return tagTranslations[tag] || tag;
 };
 // Some routes use English translation for vouchers specifically
-const translateVoucherToEnglish = (s: string) => s;
+const voucherNameTranslations: Record<string, string> = {
+  'Familie Fotoshootings': 'Family Photo Session',
+  'Shooting Experience Gutschein': 'Shooting Experience Voucher',
+  'Portraitfotografie Basic': 'Portrait Photography Basic',
+  'Portrait Einzelperson': 'Individual Portrait',
+  'Bewerbungsfotos & LinkedIn': 'Application Photos & LinkedIn',
+  'Team & Mitarbeiterfotos': 'Team & Employee Photos',
+  'Eventfotografie': 'Event Photography',
+  'Maternity Premium': 'Maternity Premium',
+  'Business Portrait Session': 'Business Portrait Session',
+  'Hochzeitsbegleitung': 'Wedding Coverage',
+  'Hochzeit Komplett': 'Wedding Complete',
+  'Hochzeit Premium': 'Wedding Premium',
+  'Immobilien Basic': 'Real Estate Basic',
+  'Immobilien Standard': 'Real Estate Standard',
+  'Immobilien Premium': 'Real Estate Premium',
+  'Neugeborenen Shooting': 'Newborn Photoshoot',
+  'Baby Fotoshooting': 'Baby Photoshoot',
+  'Schwangerschaftsfotos': 'Maternity Photos',
+  'Produktfotografie Basic': 'Product Photography Basic',
+  'Produktfotografie Premium': 'Product Photography Premium',
+  'Studio Miete + Fotosession': 'Studio Rental + Photo Session',
+  'Event Premium': 'Event Premium',
+};
+const voucherDescriptionTranslations: Record<string, string> = {
+  '60 Min Shooting; 1 retuschiertes Portrait digital + Leinwand 40\u00d730 cm; Auswahlgalerie online; Nutzungsrechte privat': 
+    '60 Min Shooting; 1 retouched portrait digital + Canvas 40\u00d730 cm; Online gallery; Private usage rights',
+  '60 Min Shooting; 2 retuschiertes Portrait digital + 2x Leinwand 30\u00d740 cm; Auswahlgalerie online; Nutzungsrechte privat': 
+    '60 Min Shooting; 2 retouched portraits digital + 2x Canvas 30\u00d740 cm; Online gallery; Private usage rights',
+  '60 Min Shooting; 5 retuschierte Fotos digital; Leinwand 40\u00d730 cm; Auswahlgalerie & Nutzungsrechte privat':
+    '60 Min Shooting; 5 retouched photos digital; Canvas 40\u00d730 cm; Online gallery & Private usage rights',
+  'Hochzeitsbegleitung (Auszug) inkl. 30 bearbeiteter Fotos': 
+    'Wedding coverage (excerpt) incl. 30 edited photos',
+  'Standesamt oder kleine Feier inkl. alle Portraits als Datei - Halber Tag, Stunden nach Wunsch\\n':
+    'Registry office or small celebration incl. all portraits as file - Half day, hours as desired',
+  'Ganzt\u00e4gige Hochzeit - inkl. alle Bilder, Online-Galerie, Prints und Leinwand-Collage als Geschenk (Portr\u00e4ts nach Wahl)':
+    'Full day wedding - incl. all images, online gallery, prints and canvas collage as gift (portraits of your choice)',
+  'Immobilienfotos Paket f\u00fcr Wohnungen & H\u00e4user \u2014 Innen und Exterieur. Alle Bilder in Vollaufl\u00f6sung dabei, 360\u00b0-Bilder, Google Maps-Update\\n':
+    'Real estate photo package for apartments & houses \u2014 Interior and exterior. All images in full resolution, 360\u00b0 images, Google Maps update',
+  'Kleine Wohnungen & Studios inkl. alle Bilder als Datei':
+    'Small apartments & studios incl. all images as file',
+  'Wohnungen & H\u00e4user  alle Bilder als Datei, Interaktiver Video-Rundgang und professionell gezeichneter Grundriss':
+    'Apartments & houses all images as file, interactive video tour and professionally drawn floor plan',
+  'Portraitsession im Studio; 30-45 Minuten; 1 retuschiertes Foto':
+    'Portrait session in studio; 30-45 minutes; 1 retouched photo',
+  'Bewerbungsfotos Paket inkl. 2 retuschierte Bilder f\u00fcr Bewerbungen & LinkedIn':
+    'Application photos package incl. 2 retouched images for applications & LinkedIn',
+  'Team- & Mitarbeiterfotos; Paketpreise by headcount; In-Studio or Onsite options z.B:. 50\u20ac pro Kopf mit alle Port\u00e4ts als Datei dazu.':
+    'Team & employee photos; Package prices by headcount; In-studio or onsite options e.g.: \u20ac50 per person with all portraits as files',
+  'Studio-Miete inkl. Fotosession; perfekte Option f\u00fcr Produkt- oder Portraitaufnahmen':
+    'Studio rental incl. photo session; perfect option for product or portrait shots',
+  'Produktfotografie Basic \u2014 5 retuschierte Bilder, ideal f\u00fcr Shops & Social':
+    'Product Photography Basic \u2014 5 retouched images, ideal for shops & social media',
+  'Business-Headshot; 30 Minuten; 1 retuschiertes Foto suitable for LinkedIn':
+    'Business headshot; 30 minutes; 1 retouched photo suitable for LinkedIn',
+  'Klassisches Portr\u00e4t - 5x Port\u00e4ts nach Wahl':
+    'Classic portrait - 5x portraits of your choice',
+  'Schnell & effizient inkl. x2 Bilder nach Wahl als Datei ':
+    'Quick & efficient incl. 2 images of your choice as file',
+  'F\u00fcr Professionals inkl. alle Bilder als Datei ':
+    'For professionals incl. all images as file',
+  'Maximale Wirkung f\u00fcr deine Produkte und deine Marke.\\n\\nInklusive 10 hochaufl\u00f6sender High-Impact-Fotos deiner Wahl \u2013 mit kommerziellen Nutzungsrechten f\u00fcr unbegrenzte Drucke und uneingeschr\u00e4nkte Online-Nutzung.':
+    'Maximum impact for your products and brand.\\n\\nIncluding 10 high-resolution high-impact photos of your choice \u2013 with commercial usage rights for unlimited prints and unrestricted online use.',
+  'Eventfotografie Paket \u2014 Kurzauftrag inkl. 30 bearbeiteter Fotos':
+    'Event photography package \u2014 Short assignment incl. 30 edited photos',
+  'Ganzt\u00e4gige Event-Coverage - inkl. alle Bilder als Datei, in Vollaufl\u00f6sung geliefert':
+    'Full day event coverage - incl. all images as file, delivered in full resolution',
+  'ca. 60 Minuten im Studio; 5 retuschierte Lieblingsfotos digital; Leinwand 40\u00d730 cm; 2\u20133 Sets (Wraps + Detail-Makros)':
+    'approx. 60 minutes in studio; 5 retouched favorite photos digital; Canvas 40\u00d730 cm; 2-3 sets (wraps + detail macros)',
+  'Professional family photo session in our studio - 10x Portraits of your choice Digital, and one A3 (40x30cm) canvas - Shooting for up to five persons plus pets':
+    'Professional family photo session in our studio - 10x Portraits of your choice Digital, and one A3 (40x30cm) canvas - Shooting for up to five persons plus pets',
+  'Professional headshots for business use on location - price per Person':
+    'Professional headshots for business use on location - price per Person',
+  '60 minute shoot - including all Portraits in Digital format (high quality jpg, delivered electronically)':
+    '60 minute shoot - including all Portraits in Digital format (high quality jpg, delivered electronically)',
+};
+const translateVoucherToEnglish = (s: string): string => {
+  // Try exact match in name translations
+  if (voucherNameTranslations[s]) return voucherNameTranslations[s];
+  // Try exact match in description translations
+  if (voucherDescriptionTranslations[s]) return voucherDescriptionTranslations[s];
+  // Try trimmed match
+  const trimmed = s.trim();
+  if (voucherNameTranslations[trimmed]) return voucherNameTranslations[trimmed];
+  if (voucherDescriptionTranslations[trimmed]) return voucherDescriptionTranslations[trimmed];
+  return s;
+};
 // Zod schemas may be imported in other environments; provide permissive fallback parsers here
 const insertUserSchema = { parse: (v: any) => v } as any;
 const insertBlogPostSchema = { parse: (v: any) => v } as any;
@@ -10039,11 +10125,12 @@ New Age Fotografie CRM System
         }
       };
       const p = product as any;
+      const singleLanguage = (req.query.language as string) || 'de';
       const transformedProduct = {
         id: p.id,
-        name: p.name,
-        description: p.description,
-        detailedDescription: p.detailedDescription ?? p.detailed_description,
+        name: singleLanguage === 'en' ? translateVoucherToEnglish(p.name) : p.name,
+        description: p.description ? (singleLanguage === 'en' ? translateVoucherToEnglish(p.description) : p.description) : null,
+        detailedDescription: (p.detailedDescription ?? p.detailed_description) ? (singleLanguage === 'en' ? translateVoucherToEnglish(p.detailedDescription ?? p.detailed_description) : (p.detailedDescription ?? p.detailed_description)) : null,
         price: p.price,
         originalPrice: p.originalPrice ?? p.original_price,
         category: p.category,
@@ -10051,7 +10138,7 @@ New Age Fotografie CRM System
         sessionType: p.sessionType ?? p.session_type,
         validityPeriod: p.validityPeriod ?? p.validity_period,
         redemptionInstructions: p.redemptionInstructions ?? p.redemption_instructions,
-        termsAndConditions: p.termsAndConditions ?? p.terms_and_conditions,
+        termsAndConditions: (p.termsAndConditions ?? p.terms_and_conditions) ? (singleLanguage === 'en' ? translateVoucherToEnglish(p.termsAndConditions ?? p.terms_and_conditions) : (p.termsAndConditions ?? p.terms_and_conditions)) : null,
         imageUrl: encodeImageUrl(p.imageUrl ?? p.image_url),
         thumbnailUrl: encodeImageUrl(p.thumbnailUrl ?? p.thumbnail_url),
         promoImageUrl: encodeImageUrl(p.promoImageUrl ?? p.promo_image_url),

@@ -5,7 +5,7 @@ import { useLanguage } from '../../context/LanguageContext';
 
 const CategoryFilter: React.FC = () => {
   const { categories, selectedCategory, setSelectedCategory } = useAppContext();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const handleCategoryChange = (category: Category | null) => {
     setSelectedCategory(category);
@@ -15,11 +15,11 @@ const CategoryFilter: React.FC = () => {
     switch (category) {
       case 'Familie': return t('categories.family');
       case 'Baby': return t('categories.baby');
-      case 'Schwangerschaft': return 'Schwangerschaft';
+      case 'Schwangerschaft': return t('categories.maternity') !== 'categories.maternity' ? t('categories.maternity') : (language === 'de' ? 'Schwangerschaft' : 'Maternity');
       case 'Hochzeit': return t('categories.wedding');
       case 'Business': return t('categories.business');
       case 'Event': return t('categories.event');
-      case 'Immobilien': return 'Immobilien';
+      case 'Immobilien': return language === 'de' ? 'Immobilien' : 'Real Estate';
       default: return category;
     }
   };

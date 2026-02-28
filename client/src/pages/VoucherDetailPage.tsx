@@ -29,25 +29,9 @@ const VoucherDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Translation map for product descriptions (English -> German)
-  const descriptionTranslations: Record<string, string> = {
-    // Familie Fotoshootings
-    'Professional family photo session in our studio - 10x Portraits of your choice Digital, and one A3 (40x30cm) canvas - Shooting for up to five persons plus pets': 'Professionelles Familien-Fotoshooting in unserem Studio - 10x Portraits Ihrer Wahl digital, und eine A3 (40x30cm) Leinwand - Shooting für bis zu fünf Personen plus Haustiere',
-    // Business Portrait Session
-    'Professional headshots for business use on location - price per Person': 'Professionelle Business-Portraits vor Ort - Preis pro Person',
-    // Shooting Experience Gutschein (multiline description from DB)
-    'Valid for Families of all sizes, including pregnancy and newborn Shootings\nOne hour Shooting for up to 15 guests plus pets\n3 Outfit changes\nA2 (60x40cm) canvas - portrait of your choice\nDigital copy to share, and to make copies, delivered as a high quality jpg file': 
-      'Gültig für Familien jeder Größe, inklusive Schwangerschafts- und Neugeborenen-Shootings\nEine Stunde Shooting für bis zu 15 Gäste plus Haustiere\n3 Outfit-Wechsel\nA2 (60x40cm) Leinwand - Portrait Ihrer Wahl\nDigitale Kopie zum Teilen und für Abzüge, als hochwertige JPG-Datei',
-    // Maternity Premium
-    '60 minute shoot - including all Portraits in Digital format (high quality jpg, delivered electronically)': '60-minütiges Shooting - inklusive aller Portraits im Digitalformat (hochwertige JPG-Dateien, elektronisch geliefert)',
-  };
-
-  // Helper function to get translated description
+  // Translation is now handled server-side via the language parameter
   const getTranslatedDescription = (description: string | null): string => {
     if (!description) return '';
-    if (language === 'de' && descriptionTranslations[description]) {
-      return descriptionTranslations[description];
-    }
     return description;
   };
 
@@ -57,8 +41,8 @@ const VoucherDetailPage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        if (!slug) throw new Error('Kein Gutschein Slug');
-        const res = await fetch(`/api/vouchers/products/${encodeURIComponent(slug)}`);
+        if (!slug) throw new Error(language === 'de' ? 'Kein Gutschein Slug' : 'No voucher slug');
+        const res = await fetch(`/api/vouchers/products/${encodeURIComponent(slug)}?language=${language}`);
         if (!res.ok) {
           throw new Error(`Fetch failed: ${res.status}`);
         }
@@ -87,13 +71,13 @@ const VoucherDetailPage: React.FC = () => {
     }
     fetchVoucher();
     return () => { active = false; };
-  }, [slug]);
+  }, [slug, language]);
 
   if (loading) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-16 text-center">
-          <p className="text-gray-600">Lade Gutschein…</p>
+          <p className="text-gray-600">{language === 'de' ? 'Lade Gutschein…' : 'Loading voucher…'}</p>
         </div>
       </Layout>
     );
@@ -104,15 +88,15 @@ const VoucherDetailPage: React.FC = () => {
       <Layout>
         <div className="container mx-auto px-4 py-16 text-center">
           <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold mb-4 text-gray-800">Gutschein nicht gefunden</h1>
+          <h1 className="text-2xl font-bold mb-4 text-gray-800">{language === 'de' ? 'Gutschein nicht gefunden' : 'Voucher Not Found'}</h1>
           <p className="text-gray-600 mb-8">
-            {error ? `Fehler: ${error}` : 'Der gesuchte Gutschein konnte nicht gefunden werden.'}
+            {error ? (language === 'de' ? `Fehler: ${error}` : `Error: ${error}`) : (language === 'de' ? 'Der gesuchte Gutschein konnte nicht gefunden werden.' : 'The requested voucher could not be found.')}
           </p>
           <button
             onClick={() => navigate('/vouchers')}
             className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
           >
-            Gutscheine durchsuchen
+            {language === 'de' ? 'Gutscheine durchsuchen' : 'Browse Vouchers'}
           </button>
         </div>
       </Layout>
@@ -140,7 +124,7 @@ const VoucherDetailPage: React.FC = () => {
           onClick={() => navigate('/vouchers')}
           className="flex items-center text-purple-600 hover:text-purple-800 mb-6 transition-colors"
         >
-          <ArrowLeft size={16} className="mr-1" /> Zurück zu den Gutscheinen
+          <ArrowLeft size={16} className="mr-1" /> {language === 'de' ? 'Zurück zu den Gutscheinen' : 'Back to Vouchers'}
         </button>
         
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -167,14 +151,14 @@ const VoucherDetailPage: React.FC = () => {
                 <div className="mr-6 flex items-center">
                   <Calendar size={16} className="text-gray-500 mr-1" />
                   <span className="text-sm text-gray-500">
-                    Gültig bis {new Date(voucher.validUntil).toLocaleDateString()}
+                    {language === 'de' ? 'Gültig bis' : 'Valid until'} {new Date(voucher.validUntil).toLocaleDateString()}
                   </span>
                 </div>
                 
                 <div className="flex items-center">
                   <span className={`inline-block w-2 h-2 rounded-full mr-1 ${isValid ? 'bg-green-500' : 'bg-red-500'}`}></span>
                   <span className="text-sm text-gray-500">
-                    {isValid ? 'Aktiv' : 'Abgelaufen'}
+                    {isValid ? (language === 'de' ? 'Aktiv' : 'Active') : (language === 'de' ? 'Abgelaufen' : 'Expired')}
                   </span>
                 </div>
               </div>
@@ -190,16 +174,16 @@ const VoucherDetailPage: React.FC = () => {
               
               <div className="mb-6">
                 <p className="text-gray-700 mb-2">
-                  <span className="font-semibold">Gutschein-ID:</span> {voucher.id}
+                  <span className="font-semibold">{language === 'de' ? 'Gutschein-ID:' : 'Voucher ID:'}</span> {voucher.id}
                 </p>
                 <p className="text-gray-700">
-                  <span className="font-semibold">Status:</span> {voucher.isActive ? 'Aktiv' : 'Inaktiv'}
+                  <span className="font-semibold">Status:</span> {voucher.isActive ? (language === 'de' ? 'Aktiv' : 'Active') : (language === 'de' ? 'Inaktiv' : 'Inactive')}
                 </p>
               </div>
               
               {isAvailable && isValid ? (
                 <div className="mb-6">
-                  <label className="block text-gray-700 font-medium mb-2">Anzahl</label>
+                  <label className="block text-gray-700 font-medium mb-2">{language === 'de' ? 'Anzahl' : 'Quantity'}</label>
                   <div className="flex items-center mb-4">
                     <input
                       type="number"
@@ -224,7 +208,7 @@ const VoucherDetailPage: React.FC = () => {
                       <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002 2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
-                      Personalisieren - €{(voucher.price * quantity).toFixed(2)}
+                      {language === 'de' ? 'Personalisieren' : 'Personalize'} - €{(voucher.price * quantity).toFixed(2)}
                     </button>
                     
                     {/* Quick Checkout Button - Direct purchase without personalization */}
@@ -233,14 +217,14 @@ const VoucherDetailPage: React.FC = () => {
                       className="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
                     >
                       <ShoppingCart size={18} className="mr-2" />
-                      Schnellkauf - €{(voucher.price * quantity).toFixed(2)}
+                      {language === 'de' ? 'Schnellkauf' : 'Quick Buy'} - €{(voucher.price * quantity).toFixed(2)}
                     </button>
                   </div>
                   
                   <div className="mt-3 text-center">
                     <p className="text-sm text-gray-600">
-                      💎 <strong>Personalisieren:</strong> Fügen Sie eigene Fotos und Nachrichten hinzu<br/>
-                      ⚡ <strong>Schnellkauf:</strong> Sofortiger Kauf ohne Anpassung
+                      💎 <strong>{language === 'de' ? 'Personalisieren:' : 'Personalize:'}</strong> {language === 'de' ? 'Fügen Sie eigene Fotos und Nachrichten hinzu' : 'Add your own photos and messages'}<br/>
+                      ⚡ <strong>{language === 'de' ? 'Schnellkauf:' : 'Quick Buy:'}</strong> {language === 'de' ? 'Sofortiger Kauf ohne Anpassung' : 'Instant purchase without customization'}
                     </p>
                   </div>
                 </div>
@@ -250,8 +234,8 @@ const VoucherDetailPage: React.FC = () => {
                     <AlertCircle size={20} className="text-red-500 mr-2 mt-0.5" />
                     <p className="text-red-700">
                       {!isAvailable 
-                        ? 'Dieser Gutschein ist derzeit ausverkauft.' 
-                        : 'Dieser Gutschein ist abgelaufen und nicht mehr verfügbar.'}
+                        ? (language === 'de' ? 'Dieser Gutschein ist derzeit ausverkauft.' : 'This voucher is currently sold out.')
+                        : (language === 'de' ? 'Dieser Gutschein ist abgelaufen und nicht mehr verfügbar.' : 'This voucher has expired and is no longer available.')}
                     </p>
                   </div>
                 </div>
@@ -261,8 +245,8 @@ const VoucherDetailPage: React.FC = () => {
                 <div className="flex items-start">
                   <Info size={20} className="text-gray-500 mr-2 mt-0.5" />
                   <div>
-                    <h3 className="font-semibold text-gray-800 mb-2">Geschäftsbedingungen</h3>
-                    <p className="text-gray-700 text-sm">{voucher.termsAndConditions || 'Keine zusätzlichen Bedingungen.'}</p>
+                    <h3 className="font-semibold text-gray-800 mb-2">{language === 'de' ? 'Geschäftsbedingungen' : 'Terms & Conditions'}</h3>
+                    <p className="text-gray-700 text-sm">{voucher.termsAndConditions || (language === 'de' ? 'Keine zusätzlichen Bedingungen.' : 'No additional conditions.')}</p>
                   </div>
                 </div>
               </div>
