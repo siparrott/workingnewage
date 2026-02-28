@@ -243,87 +243,81 @@ export default function PortraitfotografieWienPage() {
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Pakete & Preise</h2>
             </div>
             <div className="grid md:grid-cols-3 gap-8 mb-12">
-              {/* Headshot Mini */}
+              {/* Business Portrait Basic */}
               <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow border border-gray-200">
                 <div className="mb-6">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Headshot Mini</h3>
-                  <p className="text-purple-600 font-medium">30 Min</p>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Business Portrait Basic</h3>
+                  <p className="text-purple-600 font-medium">Business-Headshot</p>
                 </div>
                 <div className="mb-6">
                   <div className="flex items-baseline">
-                    <span className="text-4xl font-bold text-purple-600">€190</span>
+                    <span className="text-sm text-gray-500 mr-1">Ab</span>
+                    <span className="text-4xl font-bold text-purple-600">€69</span>
                   </div>
                 </div>
                 <div className="space-y-3 mb-8 text-sm">
-                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>2 Looks, 6 Retuschen, Online-Galerie</span></div>
-                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>Ideal: LinkedIn, Signatur</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>30 Minuten</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>1 retuschiertes Foto suitable for LinkedIn</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>Gültig bis 2 Jahre</span></div>
                 </div>
-                <button
-                  onClick={() => handleBookPackage('Headshot Mini Portrait', 190, 'Headshot Mini (30 Min) - 2 Looks, 6 Retuschen, Online-Galerie')}
+                <Link
+                  to="/warteliste"
                   className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
                 >
-                  Termin sichern
-                </button>
+                  Jetzt buchen
+                </Link>
               </div>
 
-              {/* Portrait Classic (beliebt) */}
+              {/* Express Headshot (beliebt) */}
               <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 transform scale-105 relative">
                 <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-bl-lg rounded-tr-2xl">BELIEBT</div>
                 <div className="mb-6 mt-4">
-                  <h3 className="text-2xl font-bold mb-2">Portrait Classic</h3>
-                  <p className="text-purple-100 font-medium">60–75 Min</p>
+                  <h3 className="text-2xl font-bold mb-2">Express Headshot</h3>
+                  <p className="text-purple-100 font-medium">Schnell & effizient</p>
                 </div>
                 <div className="mb-6">
                   <div className="flex items-baseline">
-                    <span className="text-4xl font-bold">€320</span>
+                    <span className="text-sm text-purple-200 mr-1">Ab</span>
+                    <span className="text-4xl font-bold">€95</span>
                   </div>
                 </div>
                 <div className="space-y-3 mb-8 text-sm">
-                  <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>3 Looks, 12 Retuschen</span></div>
-                  <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>Outfit-Check & Posing-Guidance</span></div>
-                  <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>Ideal: Website, PR</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>20–30 Min.</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>1 Look/Outfit</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>1 retuschiertes Bild (High-Res + Web)</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-yellow-300 mr-2 mt-0.5" /><span>Gültig bis 2 Jahre</span></div>
                 </div>
-                <button
-                  onClick={() => handleBookPackage('Portrait Classic', 320, 'Portrait Classic (60-75 Min) - 3 Looks, 12 Retuschen, Outfit-Check & Posing-Guidance')}
+                <Link
+                  to="/warteliste"
                   className="block w-full text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
                 >
-                  Termin sichern
-                </button>
+                  Jetzt buchen
+                </Link>
               </div>
 
-              {/* Editorial Session */}
+              {/* Business Portrait Session */}
               <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow border border-gray-200">
                 <div className="mb-6">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Editorial Session</h3>
-                  <p className="text-purple-600 font-medium">90–120 Min</p>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Business Portrait Session</h3>
+                  <p className="text-purple-600 font-medium">Professional headshots</p>
                 </div>
                 <div className="mb-6">
                   <div className="flex items-baseline">
-                    <span className="text-4xl font-bold text-purple-600">€480</span>
+                    <span className="text-sm text-gray-500 mr-1">Ab</span>
+                    <span className="text-4xl font-bold text-purple-600">€199</span>
                   </div>
                 </div>
                 <div className="space-y-3 mb-8 text-sm">
-                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>4–5 Looks, 18 Retuschen</span></div>
-                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>Creative Set, Farbgel-Option</span></div>
-                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>Ideal: Kampagnen, Artists</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>60 Minuten Session</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>Professional headshots for business use</span></div>
+                  <div className="flex items-start"><Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" /><span>Gültig bis 2 Jahre</span></div>
                 </div>
-                <button
-                  onClick={() => handleBookPackage('Editorial Session Portrait', 480, 'Editorial Session (90-120 Min) - 4-5 Looks, 18 Retuschen, Creative Set')}
+                <Link
+                  to="/warteliste"
                   className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
                 >
-                  Termin sichern
-                </button>
-              </div>
-            </div>
-
-            {/* Add-ons */}
-            <div className="bg-gray-50 rounded-xl p-6 text-sm">
-              <h4 className="font-bold text-gray-900 mb-3">Add-ons:</h4>
-              <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="flex items-center"><Check className="h-4 w-4 text-purple-600 mr-2" />Extra Look <strong>€40</strong></div>
-                <div className="flex items-center"><Check className="h-4 w-4 text-purple-600 mr-2" />Express-Delivery <strong>48h €60</strong></div>
-                <div className="flex items-center"><Check className="h-4 w-4 text-purple-600 mr-2" />Visagistik/Haare ab <strong>€120</strong></div>
-                <div className="flex items-center"><Check className="h-4 w-4 text-purple-600 mr-2" />Lizenzpakete für Presse/Ads (auf Anfrage)</div>
+                  Jetzt buchen
+                </Link>
               </div>
             </div>
           </div>
