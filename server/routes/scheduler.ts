@@ -31,6 +31,11 @@ import {
   setHours,
   setMinutes
 } from 'date-fns';
+import {
+  createGoogleCalendarEvent,
+  deleteGoogleCalendarEvent,
+  getGoogleCalendarBusyTimes
+} from '../services/schedulerGoogleCalendar';
 
 const router = Router();
 
@@ -333,6 +338,12 @@ router.put('/bookings/:bookingId/status', async (req: Request, res: Response) =>
       updateData.cancellationReason = cancellationReason;
     }
 
+    // Fetch the current booking to check for Google Calendar event
+    const [currentBooking] = await db
+      .select()
+      .from(schedulerBookings)
+      .where(eq(schedulerBookings.id, bookingId));
+
     const [updated] = await db
       .update(schedulerBookings)
       .set(updateData)
@@ -376,6 +387,45 @@ router.put('/bookings/:bookingId/status', async (req: Request, res: Response) =>
           .where(eq(schedulerBookings.id, bookingId));
 
         updated.sessionId = sessionId;
+
+        // Create Google Calendar event for newly confirmed booking
+        try {
+          const gcalEventId = await createGoogleCalendarEvent({
+            summary: `${scheduler.name} - ${updated.clientName}`,
+            description: `Booked via Scheduler\nClient: ${updated.clientName}\nEmail: ${updated.clientEmail}${updated.clientPhone ? '\nPhone: ' + updated.clientPhone : ''}${updated.clientNotes ? '\nNotes: ' + updated.clientNotes : ''}`,
+            location: scheduler.location || undefined,
+            startTime: new Date(updated.scheduledDate),
+            endTime: new Date(updated.scheduledEndDate),
+            clientEmail: updated.clientEmail,
+            clientName: updated.clientName,
+          });
+
+          if (gcalEventId) {
+            await db
+              .update(schedulerBookings)
+              .set({ googleCalendarEventId: gcalEventId })
+              .where(eq(schedulerBookings.id, bookingId));
+            await db
+              .update(photographySessions)
+              .set({ googleCalendarEventId: gcalEventId } as any)
+              .where(eq(photographySessions.id, sessionId));
+          }
+        } catch (gcalErr) {
+          console.warn('[Scheduler] GCal event creation on confirm failed:', gcalErr);
+        }
+      }
+    }
+
+    // If cancelled, delete the Google Calendar event
+    if (status === 'cancelled' && currentBooking?.googleCalendarEventId) {
+      try {
+        await deleteGoogleCalendarEvent(currentBooking.googleCalendarEventId);
+        await db
+          .update(schedulerBookings)
+          .set({ googleCalendarEventId: null })
+          .where(eq(schedulerBookings.id, bookingId));
+      } catch (gcalErr) {
+        console.warn('[Scheduler] GCal event deletion on cancel failed:', gcalErr);
       }
     }
 
@@ -565,6 +615,14 @@ router.get('/public/:slug/availability', async (req: Request, res: Response) => 
         gte(schedulerBlockedTimes.endDate, startDate)
       ));
 
+    // Fetch Google Calendar busy times to prevent double-bookings
+    let googleBusyTimes: Array<{ start: Date; end: Date }> = [];
+    try {
+      googleBusyTimes = await getGoogleCalendarBusyTimes(startDate, endDate);
+    } catch (gcalErr) {
+      console.warn('[Scheduler] Google Calendar busy-time check failed, proceeding without:', gcalErr);
+    }
+
     // Generate available slots
     const availableSlots = generateAvailableSlots(
       scheduler,
@@ -572,7 +630,8 @@ router.get('/public/:slug/availability', async (req: Request, res: Response) => 
       endDate,
       existingBookings,
       existingSessions,
-      blockedTimes
+      blockedTimes,
+      googleBusyTimes
     );
 
     // If requesting specific date, return time slots
@@ -653,6 +712,21 @@ router.post('/public/:slug/book', async (req: Request, res: Response) => {
       });
     }
 
+    // Also check Google Calendar for conflicts (double-booking prevention)
+    try {
+      const gcalBusy = await getGoogleCalendarBusyTimes(bookingStart, bookingEnd);
+      const hasGcalConflict = gcalBusy.some(busy => 
+        bookingStart < busy.end && bookingEnd > busy.start
+      );
+      if (hasGcalConflict) {
+        return res.status(409).json({
+          error: 'This time slot is no longer available. Please select another time.'
+        });
+      }
+    } catch (gcalErr) {
+      console.warn('[Scheduler] Google Calendar conflict check failed, proceeding:', gcalErr);
+    }
+
     // Check for existing CRM client
     let clientId = null;
     const existingClients = await db
@@ -718,6 +792,40 @@ router.post('/public/:slug/book', async (req: Request, res: Response) => {
         .where(eq(schedulerBookings.id, bookingId));
     }
 
+    // Create Google Calendar event for confirmed bookings
+    let googleCalendarEventId: string | null = null;
+    if (status === 'confirmed') {
+      try {
+        googleCalendarEventId = await createGoogleCalendarEvent({
+          summary: `${scheduler.name} - ${clientName}`,
+          description: `Booked via Scheduler\nClient: ${clientName}\nEmail: ${clientEmail}${clientPhone ? '\nPhone: ' + clientPhone : ''}${clientNotes ? '\nNotes: ' + clientNotes : ''}`,
+          location: scheduler.location || undefined,
+          startTime: bookingStart,
+          endTime: bookingEnd,
+          clientEmail: clientEmail.toLowerCase(),
+          clientName,
+        });
+
+        if (googleCalendarEventId) {
+          // Store Google Calendar event ID on the booking
+          await db
+            .update(schedulerBookings)
+            .set({ googleCalendarEventId })
+            .where(eq(schedulerBookings.id, bookingId));
+
+          // Also store on the photography session if one was created
+          if (sessionId) {
+            await db
+              .update(photographySessions)
+              .set({ googleCalendarEventId } as any)
+              .where(eq(photographySessions.id, sessionId));
+          }
+        }
+      } catch (gcalErr) {
+        console.warn('[Scheduler] Google Calendar event creation failed, booking still saved:', gcalErr);
+      }
+    }
+
     // TODO: Send confirmation email
 
     res.status(201).json({
@@ -727,7 +835,8 @@ router.post('/public/:slug/book', async (req: Request, res: Response) => {
         scheduledDate: bookingStart,
         scheduledEndDate: bookingEnd,
         status,
-        confirmationNumber: bookingId.slice(0, 8).toUpperCase()
+        confirmationNumber: bookingId.slice(0, 8).toUpperCase(),
+        googleCalendarEventId
       },
       message: scheduler.autoApprove 
         ? 'Your appointment has been confirmed!'
@@ -746,7 +855,8 @@ function generateAvailableSlots(
   endDate: Date,
   existingBookings: any[],
   existingSessions: any[],
-  blockedTimes: any[]
+  blockedTimes: any[],
+  googleBusyTimes: Array<{ start: Date; end: Date }> = []
 ): Array<{ start: Date; end: Date; formatted: string }> {
   const slots: Array<{ start: Date; end: Date; formatted: string }> = [];
   const weeklyAvailability = scheduler.weeklyAvailability as Record<string, Array<{ start: string; end: string }>>;
@@ -821,7 +931,12 @@ function generateAvailableSlots(
           return slotStart < blockedEnd && slotEnd > blockedStart;
         });
 
-        if (!hasBookingConflict && !hasSessionConflict && !isBlocked) {
+        // Check for Google Calendar conflicts (external events)
+        const hasGoogleConflict = googleBusyTimes.some(busy => {
+          return bufferedStart < busy.end && bufferedEnd > busy.start;
+        });
+
+        if (!hasBookingConflict && !hasSessionConflict && !isBlocked && !hasGoogleConflict) {
           slots.push({
             start: slotStart,
             end: slotEnd,

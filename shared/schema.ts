@@ -993,6 +993,9 @@ export const schedulerBookings = pgTable("scheduler_bookings", {
   // Linked session (created when booking is confirmed)
   sessionId: text("session_id"),
   
+  // Google Calendar sync
+  googleCalendarEventId: text("google_calendar_event_id"),
+  
   // Client notes & questionnaire responses
   clientNotes: text("client_notes"),
   questionnaireResponses: jsonb("questionnaire_responses"),
