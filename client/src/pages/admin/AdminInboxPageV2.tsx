@@ -31,7 +31,11 @@ import {
   Tag,
   Download,
   Edit2,
-  Check
+  Check,
+  Link,
+  Unlink,
+  UserPlus,
+  Loader2
 } from 'lucide-react';
 
 interface EmailMessage {
@@ -49,6 +53,15 @@ interface EmailMessage {
   labels: string[];
   folder: string;
   threadId: string;
+  clientId: string | null;
+  clientName: string | null;
+}
+
+interface ClientOption {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
 }
 
 interface EmailFolder {
@@ -88,6 +101,13 @@ const AdminInboxPage: React.FC = () => {
   
   // More actions dropdown state
   const [showMoreActions, setShowMoreActions] = useState(false);
+  
+  // Client linking state
+  const [showClientPicker, setShowClientPicker] = useState(false);
+  const [clientsList, setClientsList] = useState<ClientOption[]>([]);
+  const [clientSearchTerm, setClientSearchTerm] = useState('');
+  const [isLinkingClient, setIsLinkingClient] = useState(false);
+  const [isAutoLinking, setIsAutoLinking] = useState(false);
 
   // Fetch custom folders
   const fetchCustomFolders = async () => {
@@ -192,6 +212,96 @@ const AdminInboxPage: React.FC = () => {
   useEffect(() => {
     fetchCustomFolders();
   }, []);
+
+  // Fetch clients list for linking
+  const fetchClientsList = async () => {
+    try {
+      const response = await fetch('/api/inbox/emails/clients-list', {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setClientsList(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch clients:', err);
+    }
+  };
+
+  // Link email to client
+  const handleLinkToClient = async (messageId: string, clientId: string) => {
+    setIsLinkingClient(true);
+    try {
+      const response = await fetch(`/api/inbox/emails/${messageId}/link-client`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId }),
+      });
+      if (response.ok) {
+        const result = await response.json();
+        // Update the message in local state
+        setMessages(prev => prev.map(m => 
+          m.id === messageId ? { ...m, clientId, clientName: result.client?.name || null } : m
+        ));
+        if (currentMessage?.id === messageId) {
+          setCurrentMessage(prev => prev ? { ...prev, clientId, clientName: result.client?.name || null } : null);
+        }
+        setShowClientPicker(false);
+        setClientSearchTerm('');
+      }
+    } catch (err) {
+      console.error('Failed to link email to client:', err);
+      alert('Failed to link email to client');
+    } finally {
+      setIsLinkingClient(false);
+    }
+  };
+
+  // Unlink email from client
+  const handleUnlinkClient = async (messageId: string) => {
+    try {
+      const response = await fetch(`/api/inbox/emails/${messageId}/link-client`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: null }),
+      });
+      if (response.ok) {
+        setMessages(prev => prev.map(m => 
+          m.id === messageId ? { ...m, clientId: null, clientName: null } : m
+        ));
+        if (currentMessage?.id === messageId) {
+          setCurrentMessage(prev => prev ? { ...prev, clientId: null, clientName: null } : null);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to unlink email from client:', err);
+    }
+  };
+
+  // Bulk auto-link all unlinked emails
+  const handleAutoLinkAll = async () => {
+    setIsAutoLinking(true);
+    try {
+      const response = await fetch('/api/inbox/emails/auto-link', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (response.ok) {
+        const result = await response.json();
+        alert(`Auto-linked ${result.linkedCount} emails to matching clients`);
+        await fetchMessages(); // Reload to show updated links
+      }
+    } catch (err) {
+      console.error('Failed to auto-link emails:', err);
+      alert('Failed to auto-link emails');
+    } finally {
+      setIsAutoLinking(false);
+    }
+  };
 
   // Fetch folder counts separately
   const fetchFolderCounts = async () => {
@@ -308,7 +418,7 @@ const AdminInboxPage: React.FC = () => {
       // Convert API data to EmailMessage format with proper folder separation
       const emailMessages: EmailMessage[] = data.map((msg: any) => ({
         id: msg.id,
-        from: msg.senderEmail,
+        from: msg.senderEmail || msg.sender_email,
         fromName: msg.senderName || msg.sender_name || 'New Age Fotografie',
         to: msg.recipientEmail || msg.recipient_email || 'hallo@newagefotografie.com',
         subject: msg.subject?.replace('[SENT] ', '') || '(No Subject)',
@@ -320,7 +430,9 @@ const AdminInboxPage: React.FC = () => {
         hasAttachments: false,
         labels: [],
         folder: msg.folder_id || ((msg.direction === 'outbound' || msg.status === 'sent' || msg.status === 'demo_sent') ? 'sent' : 'inbox'),
-        threadId: msg.id
+        threadId: msg.id,
+        clientId: msg.clientId || msg.client_id || null,
+        clientName: msg.clientName || msg.client_name || null
       }));
       
       setMessages(emailMessages);
@@ -558,6 +670,12 @@ const AdminInboxPage: React.FC = () => {
                       <span className={`text-sm ${!message.isRead ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
                         {message.fromName}
                       </span>
+                      {message.clientName && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800" title={`Linked to client: ${message.clientName}`}>
+                          <User size={10} className="mr-0.5" />
+                          {message.clientName}
+                        </span>
+                      )}
                       {message.isImportant && (
                         <Flag size={12} className="text-red-500" />
                       )}
@@ -726,6 +844,113 @@ const AdminInboxPage: React.FC = () => {
                 <div>{new Date(currentMessage.timestamp).toLocaleTimeString()}</div>
               </div>
             </div>
+
+            {/* Client Link Section */}
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+              {currentMessage.clientName ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <User size={16} className="text-green-600" />
+                    <span className="text-sm font-medium text-green-800">
+                      Linked to: {currentMessage.clientName}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleUnlinkClient(currentMessage.id)}
+                    className="flex items-center space-x-1 px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded"
+                    title="Unlink from client"
+                  >
+                    <Unlink size={12} />
+                    <span>Unlink</span>
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-500 flex items-center space-x-1">
+                      <AlertCircle size={14} className="text-amber-500" />
+                      <span>Not linked to any client</span>
+                    </span>
+                    <button
+                      onClick={() => {
+                        setShowClientPicker(true);
+                        fetchClientsList();
+                      }}
+                      className="flex items-center space-x-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md border border-blue-200"
+                    >
+                      <UserPlus size={12} />
+                      <span>Link to Client</span>
+                    </button>
+                  </div>
+
+                  {/* Client Picker Dropdown */}
+                  {showClientPicker && (
+                    <div className="mt-2 border border-gray-300 rounded-lg bg-white shadow-lg">
+                      <div className="p-2 border-b border-gray-200">
+                        <div className="relative">
+                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
+                          <input
+                            type="text"
+                            placeholder="Search clients by name or email..."
+                            value={clientSearchTerm}
+                            onChange={(e) => setClientSearchTerm(e.target.value)}
+                            className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            autoFocus
+                          />
+                        </div>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto">
+                        {clientsList
+                          .filter(c => {
+                            if (!clientSearchTerm) return true;
+                            const term = clientSearchTerm.toLowerCase();
+                            return c.name.toLowerCase().includes(term) || c.email.toLowerCase().includes(term);
+                          })
+                          .slice(0, 20)
+                          .map(client => (
+                            <button
+                              key={client.id}
+                              onClick={() => handleLinkToClient(currentMessage.id, client.id)}
+                              disabled={isLinkingClient}
+                              className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-blue-50 text-left border-b border-gray-100 last:border-0"
+                            >
+                              <div>
+                                <div className="font-medium text-gray-900">{client.name}</div>
+                                <div className="text-xs text-gray-500">{client.email}</div>
+                              </div>
+                              {isLinkingClient ? (
+                                <Loader2 size={14} className="animate-spin text-blue-500" />
+                              ) : (
+                                <Link size={14} className="text-gray-400" />
+                              )}
+                            </button>
+                          ))}
+                        {clientsList.filter(c => {
+                          if (!clientSearchTerm) return true;
+                          const term = clientSearchTerm.toLowerCase();
+                          return c.name.toLowerCase().includes(term) || c.email.toLowerCase().includes(term);
+                        }).length === 0 && (
+                          <div className="px-3 py-4 text-sm text-gray-500 text-center">
+                            No clients found
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-2 border-t border-gray-200">
+                        <button
+                          onClick={() => {
+                            setShowClientPicker(false);
+                            setClientSearchTerm('');
+                          }}
+                          className="w-full px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="prose max-w-full overflow-hidden">
@@ -768,6 +993,15 @@ const AdminInboxPage: React.FC = () => {
             >
               <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
               <span>{isRefreshing ? 'Syncing...' : 'Sync'}</span>
+            </button>
+            <button 
+              onClick={handleAutoLinkAll}
+              disabled={isAutoLinking}
+              className="flex items-center space-x-2 px-4 py-2 border border-green-300 text-green-700 rounded-md hover:bg-green-50 disabled:opacity-50"
+              title="Auto-link all unlinked emails to matching clients by email address"
+            >
+              <Link size={16} className={isAutoLinking ? 'animate-pulse' : ''} />
+              <span>{isAutoLinking ? 'Linking...' : 'Auto-link Clients'}</span>
             </button>            <button 
               onClick={() => setShowSettings(true)}
               className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
