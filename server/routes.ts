@@ -2762,7 +2762,25 @@ Bitte versuchen Sie es später noch einmal.`;
   app.put("/api/crm/clients/:id", authenticateUser, async (req: Request, res: Response) => {
     console.log(`/api/crm/clients/${req.params.id} PUT received - body:`, req.body);
     try {
-      const client = await storage.updateCrmClient(req.params.id, req.body);
+      // Only pass known fields to prevent Drizzle errors from unknown properties
+      const { firstName, lastName, email, phone, address, city, state, zip, country, company, leadSource, notes, status } = req.body;
+      const sanitized: Record<string, any> = {};
+      if (firstName !== undefined) sanitized.firstName = firstName;
+      if (lastName !== undefined) sanitized.lastName = lastName;
+      if (email !== undefined) sanitized.email = email;
+      if (phone !== undefined) sanitized.phone = phone;
+      if (address !== undefined) sanitized.address = address;
+      if (city !== undefined) sanitized.city = city;
+      if (state !== undefined) sanitized.state = state;
+      if (zip !== undefined) sanitized.zip = zip;
+      if (country !== undefined) sanitized.country = country;
+      if (company !== undefined) sanitized.company = company;
+      if (leadSource !== undefined) sanitized.leadSource = leadSource;
+      if (notes !== undefined) sanitized.notes = notes;
+      if (status !== undefined) sanitized.status = status;
+      sanitized.updatedAt = new Date();
+
+      const client = await storage.updateCrmClient(req.params.id, sanitized);
       console.log(`/api/crm/clients/${req.params.id} updated:`, client);
       res.json(client);
     } catch (error) {
