@@ -13,6 +13,7 @@ interface ApiVoucher {
   originalPrice?: number | null;
   category?: string | null;
   validityPeriod?: number | null;
+  validUntil?: string | null;
   imageUrl?: string | null;
   thumbnailUrl?: string | null;
   termsAndConditions?: string | null;

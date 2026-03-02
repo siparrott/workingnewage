@@ -158,7 +158,7 @@ const GalleryDetailPage: React.FC = () => {
       
       // Fetch images
       const imagesData = await getGalleryImages(galleryId);
-      setImages(imagesData || []);
+      setImages((imagesData || []) as any);
       setPhotoCount(imagesData?.length || 0);
       
       // Calculate storage

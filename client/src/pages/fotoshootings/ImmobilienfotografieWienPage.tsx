@@ -16,9 +16,10 @@ interface SEOHeadProps {
   description: string;
   keywords: string;
   canonical: string;
+  hreflang?: Array<{ lang: string; url: string }>;
 }
 
-const SEOHead: React.FC<SEOHeadProps> = ({ title, description, keywords, canonical }) => {
+const SEOHead: React.FC<SEOHeadProps> = ({ title, description, keywords, canonical, hreflang = [] }) => {
   return (
     <Helmet>
       <title>{title}</title>
@@ -32,6 +33,9 @@ const SEOHead: React.FC<SEOHeadProps> = ({ title, description, keywords, canonic
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
+      {hreflang.map(({ lang, url }) => (
+        <link key={lang} rel="alternate" hrefLang={lang} href={`https://www.newagefotografie.com${url}`} />
+      ))}
       <html lang="de" />
       <meta name="geo.region" content="AT-9" />
       <meta name="geo.placename" content="Wien" />
@@ -103,10 +107,10 @@ const ImmobilienfotografieWienPage: React.FC = () => {
         description={newageCopyMap['immobilien-fotografie-wien'].metaDescription}
         keywords="immobilienfotograf wien, architektur fotografie wien, interieur fotografie, grundrisse, real estate fotograf, immobilienfoto, makler fotografie wien"
         canonical="/immobilien-fotografie-wien/"
-        hreflang={{
-          de: '/immobilien-fotografie-wien/',
-          en: '/en/real-estate-photography-vienna/'
-        }}
+        hreflang={[
+          { lang: 'de', url: '/immobilien-fotografie-wien/' },
+          { lang: 'en', url: '/en/real-estate-photography-vienna/' }
+        ]}
       />
 
       <Helmet>
