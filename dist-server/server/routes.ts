@@ -14861,7 +14861,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
         console.error('Error adding to email_subscribers:', subError);
       }
 
-      // Send voucher email to customer
+      // Send voucher email to customer (template loaded from email_automations)
       try {
         const transporter = nodemailer.createTransport({
           host: 'smtp.easyname.com',
@@ -14873,64 +14873,40 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
           }
         });
 
-        const voucherEmailHtml = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #7C3AED; margin: 0;">New Age Fotografie</h1>
-              <p style="color: #666; margin: 5px 0;">Familienfotograf Wien</p>
-            </div>
+        // Fetch the newsletter signup automation template from DB
+        const automationResult = await db.select().from(emailAutomations).where(
+          and(eq(emailAutomations.triggerType, 'newsletter_signup'), eq(emailAutomations.enabled, true))
+        ).limit(1);
 
-            <h2 style="color: #333; text-align: center;">
-              Vielen Dank für Ihr Interesse! 🎉
-            </h2>
-            
-            <div style="background-color: #f8f9fa; padding: 30px; border-radius: 8px; margin: 20px 0; text-align: center;">
-              <h3 style="color: #7C3AED; margin: 0 0 20px 0; font-size: 24px;">
-                Ihr 50€ Fotoshooting-Gutschein
-              </h3>
-              <div style="background-color: #7C3AED; color: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 0; font-size: 18px; font-weight: bold;">VOUCHER50</p>
-                <p style="margin: 5px 0 0 0; font-size: 14px;">Gutscheincode für 50€ Rabatt</p>
-              </div>
-              <p style="color: #666; margin: 10px 0;">
-                Gültig für alle Fotoshooting-Pakete. Einfach bei der Buchung angeben.
-              </p>
-            </div>
+        let emailSubject = '🎉 Ihr 50€ Fotoshooting-Gutschein ist da!';
+        let emailHtml = `<p>Vielen Dank für Ihre Anmeldung! Wir melden uns bald bei Ihnen.</p>`;
 
-            <div style="margin: 30px 0;">
-              <h3 style="color: #333;">So einfach geht's:</h3>
-              <ol style="color: #666; line-height: 1.6;">
-                <li>WhatsApp an <strong>+43 677 633 99210</strong> oder E-Mail an <strong>${getEnvContactEmailSync()}</strong></li>
-                <li>Ihren Wunschtermin nennen</li>
-                <li>Gutscheincode <strong>VOUCHER50</strong> erwähnen</li>
-                <li>50€ sparen und wunderschöne Erinnerungen schaffen!</li>
-              </ol>
-            </div>
+        if (automationResult.length > 0) {
+          const rule = automationResult[0];
+          emailSubject = rule.emailSubject
+            .replace(/\{\{clientName\}\}/g, email.split('@')[0] || 'Kunde')
+            .replace(/\{\{clientEmail\}\}/g, email);
+          emailHtml = rule.emailBodyHtml
+            .replace(/\{\{clientName\}\}/g, email.split('@')[0] || 'Kunde')
+            .replace(/\{\{clientEmail\}\}/g, email);
 
-            <div style="background-color: #e8f4fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h4 style="color: #333; margin: 0 0 10px 0;">Unsere Fotoshootings:</h4>
-              <ul style="color: #666; margin: 0; padding-left: 20px;">
-                <li>Familienfotografie</li>
-                <li>Neugeborenen-Fotografie</li>
-                <li>Schwangerschaftsfotos</li>
-                <li>Business-Headshots</li>
-              </ul>
-            </div>
-
-            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
-              <p style="margin: 0; color: #666; font-size: 14px;">
-                New Age Fotografie | Wehrgasse 11A/2+5, 1050 Wien<br>
-                Tel/WhatsApp: +43 677 633 99210 | E-Mail: ${getEnvContactEmailSync()}
-              </p>
-            </div>
-          </div>
-        `;
+          // Log the send
+          try {
+            await db.insert(emailAutomationLogs).values({
+              automationId: rule.id,
+              bookingId: `newsletter-${Date.now()}`,
+              clientEmail: email,
+              clientName: email.split('@')[0] || 'Subscriber',
+              status: 'sent'
+            });
+          } catch (_) {}
+        }
 
         await transporter.sendMail({
           from: `"New Age Fotografie" <${getEnvContactEmailSync() || 'no-reply@localhost'}>`,
           to: email,
-          subject: '🎉 Ihr 50€ Fotoshooting-Gutschein ist da!',
-          html: voucherEmailHtml
+          subject: emailSubject,
+          html: emailHtml
         });
 
         // Send notification to business
