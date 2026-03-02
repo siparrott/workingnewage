@@ -2832,7 +2832,8 @@ Bitte versuchen Sie es später noch einmal.`;
       
       // Filter messages that belong to this client by:
       // 1. clientId matches (new emails)
-      // 2. senderEmail matches client email (legacy emails without clientId)
+      // 2. senderEmail matches client email (legacy inbound emails without clientId)
+      // 3. recipientEmail matches client email (outbound emails sent to this client)
       const clientEmail = client.email?.toLowerCase().trim();
       
       const clientMessages = allMessages.filter(msg => {
@@ -2841,13 +2842,25 @@ Bitte versuchen Sie es später noch einmal.`;
           return true;
         }
         
-        // Match by email address (for emails imported before clientId linking was implemented)
+        // Match by sender email address (for inbound emails before clientId linking)
         if (clientEmail && msg.senderEmail) {
           const senderEmail = msg.senderEmail.toLowerCase().trim();
           if (senderEmail === clientEmail) {
             // Auto-link this message to the client for future queries
             storage.updateCrmMessage(msg.id, { clientId }).catch(err => 
               console.error('Failed to auto-link message:', err)
+            );
+            return true;
+          }
+        }
+        
+        // Match by recipient email (for outbound emails sent to this client)
+        if (clientEmail && msg.recipientEmail) {
+          const recipientEmail = msg.recipientEmail.toLowerCase().trim();
+          if (recipientEmail === clientEmail) {
+            // Auto-link this message to the client for future queries
+            storage.updateCrmMessage(msg.id, { clientId }).catch(err => 
+              console.error('Failed to auto-link outbound message:', err)
             );
             return true;
           }
@@ -6541,6 +6554,21 @@ New Age Fotografie Team`;
       const unreadOnly = req.query.unread === 'true';
       const messages = await storage.getCrmMessages();
       
+      // Build a client lookup map for enriching messages with client names
+      let clientMap: Record<string, { name: string; email: string }> = {};
+      try {
+        const clients = await storage.getCrmClients();
+        for (const c of clients) {
+          clientMap[c.id] = { name: `${c.firstName} ${c.lastName}`, email: c.email };
+          // Also map by email for auto-matching
+          if (c.email) {
+            clientMap[`email:${c.email.toLowerCase().trim()}`] = { name: `${c.firstName} ${c.lastName}`, email: c.email };
+          }
+        }
+      } catch (e) {
+        console.warn('Could not load clients for email enrichment:', e);
+      }
+      
       // Filter to only show INBOUND messages (received emails)
       // Sent emails (outbound) should only appear in the Sent folder
       const inboundMessages = messages.filter(message => {
@@ -6550,8 +6578,26 @@ New Age Fotografie Team`;
         return true;
       });
       
+      // Enrich messages with client info
+      const enrichedMessages = inboundMessages.map(msg => {
+        let clientName: string | null = null;
+        let resolvedClientId: string | null = msg.clientId || null;
+        
+        if (msg.clientId && clientMap[msg.clientId]) {
+          clientName = clientMap[msg.clientId].name;
+        } else if (msg.senderEmail) {
+          // Try to find client by sender email
+          const lookup = clientMap[`email:${msg.senderEmail.toLowerCase().trim()}`];
+          if (lookup) {
+            clientName = lookup.name;
+          }
+        }
+        
+        return { ...msg, clientName, clientId: resolvedClientId };
+      });
+      
       // Sort messages by creation date (newest first)
-      const sortedMessages = inboundMessages.sort((a, b) => {
+      const sortedMessages = enrichedMessages.sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return dateB - dateA;
@@ -6683,6 +6729,96 @@ New Age Fotografie Team`;
     } catch (error) {
       console.error('Error moving emails:', error);
       res.status(500).json({ error: 'Failed to move emails' });
+    }
+  });
+
+  // PUT /api/inbox/emails/:id/link-client - Manually link an email to a client
+  app.put("/api/inbox/emails/:id/link-client", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { clientId } = req.body;
+      
+      if (!clientId) {
+        // Unlink the email from any client
+        await storage.updateCrmMessage(id, { clientId: null as any });
+        return res.json({ success: true, message: 'Email unlinked from client' });
+      }
+      
+      // Verify the client exists
+      const client = await storage.getCrmClient(clientId);
+      if (!client) {
+        return res.status(404).json({ error: 'Client not found' });
+      }
+      
+      await storage.updateCrmMessage(id, { clientId });
+      console.log(`🔗 Manually linked email ${id} to client ${client.firstName} ${client.lastName} (${clientId})`);
+      
+      res.json({ 
+        success: true, 
+        message: `Email linked to ${client.firstName} ${client.lastName}`,
+        client: { id: client.id, name: `${client.firstName} ${client.lastName}`, email: client.email }
+      });
+    } catch (error) {
+      console.error('Error linking email to client:', error);
+      res.status(500).json({ error: 'Failed to link email to client' });
+    }
+  });
+
+  // POST /api/inbox/emails/auto-link - Bulk auto-link all unlinked emails to clients by email match
+  app.post("/api/inbox/emails/auto-link", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const allMessages = await storage.getCrmMessages();
+      const clients = await storage.getCrmClients();
+      let linkedCount = 0;
+      const linkedEmails: Array<{ messageId: string; clientName: string; senderEmail: string }> = [];
+      
+      for (const msg of allMessages) {
+        if (!msg.clientId && msg.senderEmail) {
+          const normalizedSender = msg.senderEmail.toLowerCase().trim();
+          const matchingClient = clients.find(c => 
+            c.email && c.email.toLowerCase().trim() === normalizedSender
+          );
+          if (matchingClient) {
+            await storage.updateCrmMessage(msg.id, { clientId: matchingClient.id });
+            linkedCount++;
+            linkedEmails.push({
+              messageId: msg.id,
+              clientName: `${matchingClient.firstName} ${matchingClient.lastName}`,
+              senderEmail: msg.senderEmail
+            });
+          }
+        }
+      }
+      
+      console.log(`🔗 Auto-linked ${linkedCount} emails to clients`);
+      res.json({ 
+        success: true, 
+        linkedCount, 
+        linkedEmails,
+        message: `Auto-linked ${linkedCount} emails to matching clients`
+      });
+    } catch (error) {
+      console.error('Error auto-linking emails:', error);
+      res.status(500).json({ error: 'Failed to auto-link emails' });
+    }
+  });
+
+  // GET /api/inbox/emails/clients-list - Get all clients for the link-to-client picker
+  app.get("/api/inbox/emails/clients-list", authenticateUser, async (_req: Request, res: Response) => {
+    try {
+      const clients = await storage.getCrmClients();
+      const clientList = clients.map(c => ({
+        id: c.id,
+        name: `${c.firstName} ${c.lastName}`,
+        email: c.email,
+        phone: c.phone
+      }));
+      // Sort alphabetically by name
+      clientList.sort((a, b) => a.name.localeCompare(b.name));
+      res.json(clientList);
+    } catch (error) {
+      console.error('Error fetching clients list:', error);
+      res.status(500).json({ error: 'Failed to fetch clients' });
     }
   });
 
@@ -9649,15 +9785,19 @@ New Age Fotografie Team`;
         
         if (!isDuplicate) {
           try {
+            // Try to match email to a client
+            const clientId = await findClientIdByEmail(email.from);
+            
             await storage.createCrmMessage({
               senderName: email.fromName,
               senderEmail: email.from,
               subject: email.subject,
               content: email.body,
-              status: email.isRead ? 'read' : 'unread'
+              status: email.isRead ? 'read' : 'unread',
+              clientId: clientId || undefined
             });
             newEmailCount++;
-            console.log(`Imported new email: ${email.subject} from ${email.from}`);
+            console.log(`Imported new email: ${email.subject} from ${email.from}${clientId ? ` (linked to client ${clientId})` : ''}`);
           } catch (error) {
             console.error('Failed to save email:', error);
           }
@@ -9665,6 +9805,31 @@ New Age Fotografie Team`;
       }
       
       console.log(`Imported ${newEmailCount} new emails out of ${importedEmails.length} fetched`);
+      
+      // Auto-link any previously unlinked emails to clients
+      try {
+        const allMessages = await storage.getCrmMessages();
+        const clients = await storage.getCrmClients();
+        let linkedCount = 0;
+        
+        for (const msg of allMessages) {
+          if (!msg.clientId && msg.senderEmail) {
+            const normalizedSender = msg.senderEmail.toLowerCase().trim();
+            const matchingClient = clients.find(c => 
+              c.email && c.email.toLowerCase().trim() === normalizedSender
+            );
+            if (matchingClient) {
+              await storage.updateCrmMessage(msg.id, { clientId: matchingClient.id });
+              linkedCount++;
+            }
+          }
+        }
+        if (linkedCount > 0) {
+          console.log(`🔗 Auto-linked ${linkedCount} previously unlinked emails to clients`);
+        }
+      } catch (linkErr) {
+        console.error('Auto-link pass failed:', linkErr);
+      }
       
       res.json({ 
         success: true, 
