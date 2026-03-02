@@ -4,7 +4,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import {
   Zap, Plus, Edit, Trash2, Play, Pause, Send, Clock, CalendarCheck,
   ChevronDown, ChevronUp, CheckCircle, XCircle, AlertCircle, Loader2,
-  Mail, TestTube
+  Mail, TestTube, Eye, Code
 } from 'lucide-react';
 
 interface Automation {
@@ -128,6 +128,11 @@ const i18n: Record<string, Record<string, string>> = {
     created: 'Automation created',
     confirmDelete: 'Really delete this automation?',
     requiredFields: 'Name, subject and email body are required',
+    preview: 'Preview',
+    htmlCode: 'HTML Code',
+    previewNote: 'This is how the email will look. Placeholders like {{clientName}} will be replaced with actual values when sent.',
+    test: 'Test',
+    logs: 'Logs',
   },
   de: {
     title: 'E-Mail-Automatisierungen',
@@ -180,6 +185,11 @@ const i18n: Record<string, Record<string, string>> = {
     created: 'Automatisierung erstellt',
     confirmDelete: 'Diese Automatisierung wirklich löschen?',
     requiredFields: 'Name, Betreff und E-Mail-Inhalt sind erforderlich',
+    preview: 'Vorschau',
+    htmlCode: 'HTML-Code',
+    previewNote: 'So wird die E-Mail aussehen. Platzhalter wie {{clientName}} werden beim Versand durch echte Werte ersetzt.',
+    test: 'Test',
+    logs: 'Protokoll',
   }
 };
 
@@ -208,6 +218,7 @@ const AdminAutomationsPage: React.FC = () => {
   const [formQuestionnaire, setFormQuestionnaire] = useState('');
   const [formEnabled, setFormEnabled] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
 
   const fetchAutomations = useCallback(async () => {
     try {
@@ -447,42 +458,47 @@ const AdminAutomationsPage: React.FC = () => {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 ml-4">
+                    <div className="flex items-center gap-1 ml-4">
                       <button
                         onClick={() => handleTest(a.id)}
                         disabled={testSending === a.id}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        className="flex flex-col items-center px-2 py-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors min-w-[52px]"
                         title={tx('sendTestEmail')}
                       >
-                        {testSending === a.id ? <Loader2 size={16} className="animate-spin" /> : <TestTube size={16} />}
+                        {testSending === a.id ? <Loader2 size={15} className="animate-spin" /> : <TestTube size={15} />}
+                        <span className="text-[10px] mt-0.5 leading-tight">{tx('test')}</span>
                       </button>
                       <button
                         onClick={() => handleToggle(a)}
-                        className={`p-2 rounded-lg transition-colors ${a.enabled ? 'text-orange-600 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'}`}
+                        className={`flex flex-col items-center px-2 py-1.5 rounded-lg transition-colors min-w-[52px] ${a.enabled ? 'text-orange-600 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'}`}
                         title={a.enabled ? tx('pause') : tx('activate')}
                       >
-                        {a.enabled ? <Pause size={16} /> : <Play size={16} />}
+                        {a.enabled ? <Pause size={15} /> : <Play size={15} />}
+                        <span className="text-[10px] mt-0.5 leading-tight">{a.enabled ? tx('pause') : tx('activate')}</span>
                       </button>
                       <button
                         onClick={() => openEdit(a)}
-                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                        className="flex flex-col items-center px-2 py-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors min-w-[52px]"
                         title={tx('edit')}
                       >
-                        <Edit size={16} />
+                        <Edit size={15} />
+                        <span className="text-[10px] mt-0.5 leading-tight">{tx('edit')}</span>
                       </button>
                       <button
                         onClick={() => handleDelete(a.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="flex flex-col items-center px-2 py-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors min-w-[52px]"
                         title={tx('delete')}
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={15} />
+                        <span className="text-[10px] mt-0.5 leading-tight">{tx('delete')}</span>
                       </button>
                       <button
                         onClick={() => fetchLogs(a.id)}
-                        className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                        className="flex flex-col items-center px-2 py-1.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors min-w-[52px]"
                         title={tx('showSentEmails')}
                       >
-                        {expandedLogs === a.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        {expandedLogs === a.id ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                        <span className="text-[10px] mt-0.5 leading-tight">{tx('logs')}</span>
                       </button>
                     </div>
                   </div>
@@ -616,16 +632,60 @@ const AdminAutomationsPage: React.FC = () => {
 
                 {/* Body */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{tx('bodyLabel')}</label>
-                  <textarea
-                    value={formBody} onChange={(e) => setFormBody(e.target.value)}
-                    rows={12}
-                    placeholder={tx('bodyPlaceholder')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono text-sm"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    {tx('placeholders')} {'{{clientName}}'}, {'{{clientEmail}}'}, {'{{bookingDate}}'}, {'{{bookingTime}}'}, {'{{questionnaireLink}}'}
-                  </p>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-sm font-medium text-gray-700">{tx('bodyLabel')}</label>
+                    <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewMode(false)}
+                        className={`flex items-center gap-1 px-3 py-1 text-xs font-medium transition-colors ${
+                          !previewMode ? 'bg-purple-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Code size={12} /> {tx('htmlCode')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewMode(true)}
+                        className={`flex items-center gap-1 px-3 py-1 text-xs font-medium transition-colors ${
+                          previewMode ? 'bg-purple-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Eye size={12} /> {tx('preview')}
+                      </button>
+                    </div>
+                  </div>
+
+                  {!previewMode ? (
+                    <>
+                      <textarea
+                        value={formBody} onChange={(e) => setFormBody(e.target.value)}
+                        rows={12}
+                        placeholder={tx('bodyPlaceholder')}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono text-sm"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">
+                        {tx('placeholders')} {'{{clientName}}'}, {'{{clientEmail}}'}, {'{{bookingDate}}'}, {'{{bookingTime}}'}, {'{{questionnaireLink}}'}
+                      </p>
+                    </>
+                  ) : (
+                    <div className="border border-gray-300 rounded-lg overflow-hidden">
+                      <div className="bg-gray-50 border-b border-gray-200 px-3 py-2">
+                        <p className="text-xs text-gray-500">{tx('previewNote')}</p>
+                      </div>
+                      <div
+                        className="p-4 bg-white min-h-[200px] max-h-[400px] overflow-y-auto"
+                        dangerouslySetInnerHTML={{
+                          __html: formBody
+                            .replace(/\{\{clientName\}\}/g, 'Maria Muster')
+                            .replace(/\{\{clientEmail\}\}/g, 'maria@example.com')
+                            .replace(/\{\{bookingDate\}\}/g, '15.04.2026')
+                            .replace(/\{\{bookingTime\}\}/g, '14:00')
+                            .replace(/\{\{questionnaireLink\}\}/g, '#')
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Enabled */}
