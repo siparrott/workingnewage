@@ -260,6 +260,27 @@ export default function AdminSchedulersPage() {
     }
   };
 
+  const handleDeleteBooking = async (bookingId: string, clientName: string) => {
+    if (!confirm(`Delete booking for ${clientName}? This cannot be undone.`)) return;
+    try {
+      const response = await fetch(`/api/schedulers/bookings/${bookingId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        fetchAllBookings();
+        fetchSchedulers();
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to delete booking');
+      }
+    } catch (error) {
+      console.error('Error deleting booking:', error);
+      alert('Failed to delete booking');
+    }
+  };
+
   const copyBookingLink = (slug: string) => {
     const link = `${window.location.origin}/book/${slug}`;
     navigator.clipboard.writeText(link);
@@ -1246,6 +1267,13 @@ export default function AdminSchedulersPage() {
                           >
                             <Mail className="w-4 h-4" />
                           </a>
+                          <button
+                            onClick={() => handleDeleteBooking(booking.id, booking.clientName)}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                            title="Delete booking"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </td>
                     </tr>
