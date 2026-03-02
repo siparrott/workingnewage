@@ -413,16 +413,16 @@ const AdminPriceWizardPage: React.FC = () => {
   };
 
   const getTierBadge = (tier: string) => {
-    const config: Record<string, { bg: string; text: string }> = {
-      basic: { bg: 'bg-gray-100', text: 'text-gray-800' },
-      standard: { bg: 'bg-blue-100', text: 'text-blue-800' },
-      premium: { bg: 'bg-purple-100', text: 'text-purple-800' }
+    const config: Record<string, { bg: string; text: string; label: string }> = {
+      basic: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Budget-Friendly' },
+      standard: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Mid-Range' },
+      premium: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'High-End' }
     };
 
     const c = config[tier];
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${c.bg} ${c.text}`}>
-        {tier}
+        {c.label}
       </span>
     );
   };
@@ -436,10 +436,10 @@ const AdminPriceWizardPage: React.FC = () => {
   return (
     <AdminLayout>
       <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Price Wizard</h1>
-            <p className="text-gray-600">Competitive pricing intelligence and recommendations</p>
+            <p className="text-gray-600">See what other photographers in your area charge, and get suggested prices for your services</p>
           </div>
           <button
             onClick={() => setShowNewResearchModal(true)}
@@ -448,6 +448,16 @@ const AdminPriceWizardPage: React.FC = () => {
             <TrendingUp className="w-4 h-4" />
             New Research
           </button>
+        </div>
+
+        {/* How it works explanation */}
+        <div className="mb-6 bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-purple-900 mb-1">How does this work?</h3>
+          <p className="text-sm text-purple-800">
+            The Price Wizard searches for photographers near you, collects their published prices, and then suggests
+            what you could charge for each service. It shows you the <strong>lowest</strong>, <strong>middle (average)</strong>, and <strong>highest</strong> prices
+            in your market so you can decide where to position yourself.
+          </p>
         </div>
 
         {/* New Research Modal */}
@@ -779,15 +789,15 @@ const AdminPriceWizardPage: React.FC = () => {
                     <div className="grid grid-cols-3 gap-4">
                       <div className="text-center p-3 bg-blue-50 rounded-lg">
                         <div className="text-2xl font-bold text-blue-600">{selectedSessionData.competitors_found}</div>
-                        <div className="text-xs text-gray-600">Competitors</div>
+                        <div className="text-xs text-gray-600">Photographers Found</div>
                       </div>
                       <div className="text-center p-3 bg-green-50 rounded-lg">
                         <div className="text-2xl font-bold text-green-600">{selectedSessionData.prices_extracted}</div>
-                        <div className="text-xs text-gray-600">Prices</div>
+                        <div className="text-xs text-gray-600">Prices Collected</div>
                       </div>
                       <div className="text-center p-3 bg-purple-50 rounded-lg">
                         <div className="text-2xl font-bold text-purple-600">{selectedSessionData.suggestions_generated}</div>
-                        <div className="text-xs text-gray-600">Suggestions</div>
+                        <div className="text-xs text-gray-600">Price Suggestions</div>
                       </div>
                     </div>
                   </div>
@@ -797,7 +807,11 @@ const AdminPriceWizardPage: React.FC = () => {
                 {suggestions.length > 0 && (
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200">
                     <div className="p-4 border-b border-gray-200">
-                      <h3 className="font-semibold text-gray-900">Price Recommendations</h3>
+                      <h3 className="font-semibold text-gray-900">Suggested Prices for Your Services</h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Based on what {competitors.length || 'local'} competitor{competitors.length !== 1 ? 's' : ''} charge, here are our recommended prices for each service and price level.
+                        You can <strong>accept</strong> a suggestion to add it to your invoice price list, <strong>adjust</strong> it first, or <strong>reject</strong> it.
+                      </p>
                     </div>
                     <div className="divide-y divide-gray-200">
                       {suggestions.map((suggestion) => {
@@ -846,35 +860,64 @@ const AdminPriceWizardPage: React.FC = () => {
                                   €{Number(suggestion.suggested_price).toFixed(2)}
                                 </div>
                                 <div className="text-xs text-gray-500 mt-1">
-                                  Recommended price
+                                  Suggested price
                                 </div>
                               </div>
                             </div>
 
-                            {/* Market Position Bar */}
-                            <div className="mb-4 bg-gray-50 rounded-lg p-3">
-                              <div className="flex justify-between text-xs text-gray-500 mb-2">
-                                <span>Min: €{suggestion.market_min}</span>
-                                <span className="font-medium text-gray-700">Median: €{suggestion.market_median}</span>
-                                <span>Max: €{suggestion.market_max}</span>
+                            {/* Market Position Bar — Where your suggested price sits */}
+                            <div className="mb-4 bg-gray-50 rounded-lg p-4">
+                              <div className="text-xs font-semibold text-gray-700 mb-3">
+                                Where this price sits compared to competitors in your area:
                               </div>
-                              <div className="relative h-2 bg-gray-200 rounded-full">
+                              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                <span>Cheapest: €{suggestion.market_min}</span>
+                                <span className="font-medium text-gray-700">Average: €{suggestion.market_median}</span>
+                                <span>Most Expensive: €{suggestion.market_max}</span>
+                              </div>
+                              <div className="relative h-3 bg-gray-200 rounded-full">
                                 <div 
-                                  className="absolute h-2 bg-gradient-to-r from-green-400 via-yellow-400 to-red-400 rounded-full"
+                                  className="absolute h-3 bg-gradient-to-r from-green-400 via-yellow-400 to-red-400 rounded-full"
                                   style={{ width: '100%' }}
                                 />
                                 <div 
-                                  className="absolute w-3 h-3 bg-purple-600 rounded-full border-2 border-white shadow-md transform -translate-y-0.5"
-                                  style={{ left: `${Math.min(Math.max(percentilePosition, 0), 100)}%`, marginLeft: '-6px' }}
-                                  title={`Your price: €${suggestion.suggested_price}`}
+                                  className="absolute w-4 h-4 bg-purple-600 rounded-full border-2 border-white shadow-md transform -translate-y-0.5"
+                                  style={{ left: `${Math.min(Math.max(percentilePosition, 0), 100)}%`, marginLeft: '-8px' }}
+                                  title={`Suggested price: €${suggestion.suggested_price}`}
                                 />
                               </div>
-                              <div className="text-center text-xs text-purple-600 font-medium mt-2">
-                                Positioned at {percentilePosition}th percentile
+                              <div className="flex justify-between text-xs mt-1">
+                                <span className="text-green-700">Lower prices</span>
+                                <span className="text-red-700">Higher prices</span>
+                              </div>
+                              <div className="mt-3 bg-purple-50 border border-purple-200 rounded-md px-3 py-2">
+                                <p className="text-sm text-purple-900">
+                                  {percentilePosition <= 25 ? (
+                                    <>
+                                      <strong>Below average</strong> — This price is lower than what most competitors charge.
+                                      You would be one of the more affordable options in your area.
+                                    </>
+                                  ) : percentilePosition <= 50 ? (
+                                    <>
+                                      <strong>Around average</strong> — This price is close to what most competitors charge.
+                                      A solid middle-ground that balances value and earnings.
+                                    </>
+                                  ) : percentilePosition <= 75 ? (
+                                    <>
+                                      <strong>Above average</strong> — This price is higher than what most competitors charge.
+                                      Your price is higher than {percentilePosition}% of competitors — good if your work quality and experience justify it.
+                                    </>
+                                  ) : (
+                                    <>
+                                      <strong>Premium range</strong> — This price is among the highest in your area.
+                                      Your price is higher than {percentilePosition}% of competitors — suited for photographers with a strong reputation and portfolio.
+                                    </>
+                                  )}
+                                </p>
                               </div>
                             </div>
 
-                            {/* Structured Reasoning */}
+                            {/* What this recommendation means */}
                             <div className="space-y-3 text-sm">
                               {reasoningParts.positioning && (
                                 <div className="flex gap-2">
@@ -882,7 +925,7 @@ const AdminPriceWizardPage: React.FC = () => {
                                     <span className="text-blue-600 text-xs">📍</span>
                                   </div>
                                   <div>
-                                    <span className="font-medium text-gray-700">Positioning: </span>
+                                    <span className="font-medium text-gray-700">Why this price: </span>
                                     <span className="text-gray-600">{reasoningParts.positioning}</span>
                                   </div>
                                 </div>
@@ -894,7 +937,7 @@ const AdminPriceWizardPage: React.FC = () => {
                                     <span className="text-green-600 text-xs">✨</span>
                                   </div>
                                   <div>
-                                    <span className="font-medium text-gray-700">Competitive Advantage: </span>
+                                    <span className="font-medium text-gray-700">Your advantage: </span>
                                     <span className="text-gray-600">{reasoningParts.competitiveAdvantage}</span>
                                   </div>
                                 </div>
@@ -906,7 +949,7 @@ const AdminPriceWizardPage: React.FC = () => {
                                     <span className="text-purple-600 text-xs">📊</span>
                                   </div>
                                   <div>
-                                    <span className="font-medium text-gray-700">Market Insight: </span>
+                                    <span className="font-medium text-gray-700">Market trend: </span>
                                     <span className="text-gray-600">{reasoningParts.marketInsight}</span>
                                   </div>
                                 </div>
@@ -921,13 +964,13 @@ const AdminPriceWizardPage: React.FC = () => {
                                   className="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 text-sm font-medium transition-colors"
                                 >
                                   <CheckCircle className="w-4 h-4" />
-                                  Activate
+                                  Accept & Add to Price List
                                 </button>
                                 <button
                                   onClick={() => openActivationModal(suggestion, true)}
                                   className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
                                 >
-                                  Adjust & Activate
+                                  Adjust Price First
                                 </button>
                                 <button
                                   onClick={() => rejectSuggestion(suggestion.id)}
@@ -941,7 +984,7 @@ const AdminPriceWizardPage: React.FC = () => {
                             {suggestion.status === 'activated' && (
                               <div className="flex items-center gap-2 text-sm text-green-600 mt-4 pt-4 border-t border-gray-100 bg-green-50 -mx-5 -mb-5 px-5 py-3 rounded-b-lg">
                                 <CheckCircle className="w-4 h-4" />
-                                <span className="font-medium">Activated to price list</span>
+                                <span className="font-medium">Added to your price list</span>
                               </div>
                             )}
 
@@ -961,7 +1004,7 @@ const AdminPriceWizardPage: React.FC = () => {
                 {competitors.length > 0 && (
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200">
                     <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                      <h3 className="font-semibold text-gray-900">Discovered Competitors</h3>
+                      <h3 className="font-semibold text-gray-900">Competitor Photographers</h3>
                       <div className="flex gap-2 items-center">
                         {competitors.filter(c => c.status === 'pending').length > 0 && (
                           <span className="text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
@@ -1046,7 +1089,7 @@ const AdminPriceWizardPage: React.FC = () => {
                 {prices.length > 0 && (
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200">
                     <div className="p-4 border-b border-gray-200">
-                      <h3 className="font-semibold text-gray-900">Extracted Prices ({prices.length})</h3>
+                      <h3 className="font-semibold text-gray-900">Collected Prices ({prices.length})</h3>
                     </div>
                     <div className="overflow-x-auto">
                       <table className="w-full">
@@ -1056,7 +1099,7 @@ const AdminPriceWizardPage: React.FC = () => {
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Package</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Confidence</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Accuracy</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source</th>
                           </tr>
                         </thead>
@@ -1137,7 +1180,7 @@ const AdminPriceWizardPage: React.FC = () => {
             <div className="bg-gradient-to-r from-green-600 to-teal-600 px-6 py-4 rounded-t-xl">
               <h2 className="text-xl font-bold text-white">Activate Price</h2>
               <p className="text-green-100 text-sm mt-1">
-                Add to your price list for invoicing
+                Add this suggested price to your price list so you can use it in invoices
               </p>
             </div>
 
@@ -1154,7 +1197,8 @@ const AdminPriceWizardPage: React.FC = () => {
                       activationSuggestion.tier === 'standard' ? 'bg-blue-100 text-blue-700' :
                       'bg-purple-100 text-purple-700'
                     }`}>
-                      {activationSuggestion.tier}
+                      {activationSuggestion.tier === 'basic' ? 'Budget-Friendly' : 
+                       activationSuggestion.tier === 'standard' ? 'Mid-Range' : 'High-End'}
                     </span>
                   </div>
                   <div className="text-right">
