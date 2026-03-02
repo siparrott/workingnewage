@@ -69,8 +69,8 @@ const AdminBlogPostsPage: React.FC = () => {
       const mappedPosts = data.posts.map((post: any) => {
         // Compute the real status from published boolean + publishedAt date
         let computedStatus = 'DRAFT';
+        const pubDate = post.publishedAt ? new Date(post.publishedAt) : null;
         if (post.published) {
-          const pubDate = post.publishedAt ? new Date(post.publishedAt) : null;
           if (pubDate && pubDate > new Date()) {
             computedStatus = 'SCHEDULED';
           } else {
