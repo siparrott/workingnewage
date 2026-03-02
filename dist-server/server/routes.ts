@@ -13,7 +13,7 @@ async function runSql(query: string, params?: any[]) {
 }
 import { sql, or, desc, and } from 'drizzle-orm';
 import { eq } from "drizzle-orm";
-import { priceListItems, emailCampaigns, emailTemplates, emailSegments, emailEvents, emailLinks, emailSubscribers, insertLeadSourceSchema, crmLeads, studioConfigs, crmMessages, manualPageContent } from "../shared/schema";
+import { priceListItems, emailCampaigns, emailTemplates, emailSegments, emailEvents, emailLinks, emailSubscribers, insertLeadSourceSchema, crmLeads, studioConfigs, crmMessages, manualPageContent, emailAutomations, emailAutomationLogs, schedulerBookings } from "../shared/schema";
 import path from 'path';
 import os from 'os';
 // Removed duplicate fs import (already imported earlier)
@@ -15022,6 +15022,287 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
 
   // Register test routes
   registerTestRoutes(app);
+
+  // ==================== EMAIL AUTOMATIONS CRUD ====================
+  
+  // GET all automations
+  app.get("/api/admin/automations", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const automations = await db.select().from(emailAutomations).orderBy(emailAutomations.offsetHours);
+      res.json(automations);
+    } catch (error) {
+      console.error("Error fetching automations:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // GET single automation
+  app.get("/api/admin/automations/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const result = await db.select().from(emailAutomations).where(eq(emailAutomations.id, parseInt(req.params.id))).limit(1);
+      if (result.length === 0) return res.status(404).json({ error: "Automation not found" });
+      res.json(result[0]);
+    } catch (error) {
+      console.error("Error fetching automation:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // POST create automation
+  app.post("/api/admin/automations", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { name, description, triggerType, offsetHours, emailSubject, emailBodyHtml, questionnaireSlug, enabled } = req.body;
+      const result = await db.insert(emailAutomations).values({
+        name, description, triggerType, offsetHours: parseInt(offsetHours),
+        emailSubject, emailBodyHtml, questionnaireSlug: questionnaireSlug || null,
+        enabled: enabled !== false
+      }).returning();
+      res.json(result[0]);
+    } catch (error) {
+      console.error("Error creating automation:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // PUT update automation
+  app.put("/api/admin/automations/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { name, description, triggerType, offsetHours, emailSubject, emailBodyHtml, questionnaireSlug, enabled } = req.body;
+      const updates: any = { updatedAt: new Date() };
+      if (name !== undefined) updates.name = name;
+      if (description !== undefined) updates.description = description;
+      if (triggerType !== undefined) updates.triggerType = triggerType;
+      if (offsetHours !== undefined) updates.offsetHours = parseInt(offsetHours);
+      if (emailSubject !== undefined) updates.emailSubject = emailSubject;
+      if (emailBodyHtml !== undefined) updates.emailBodyHtml = emailBodyHtml;
+      if (questionnaireSlug !== undefined) updates.questionnaireSlug = questionnaireSlug || null;
+      if (enabled !== undefined) updates.enabled = enabled;
+      
+      const result = await db.update(emailAutomations).set(updates).where(eq(emailAutomations.id, parseInt(req.params.id))).returning();
+      if (result.length === 0) return res.status(404).json({ error: "Automation not found" });
+      res.json(result[0]);
+    } catch (error) {
+      console.error("Error updating automation:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // DELETE automation
+  app.delete("/api/admin/automations/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      await db.delete(emailAutomations).where(eq(emailAutomations.id, parseInt(req.params.id)));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting automation:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // GET automation logs (for viewing sent emails)
+  app.get("/api/admin/automations/:id/logs", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const logs = await db.select().from(emailAutomationLogs)
+        .where(eq(emailAutomationLogs.automationId, parseInt(req.params.id)))
+        .orderBy(desc(emailAutomationLogs.sentAt))
+        .limit(50);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching automation logs:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // POST test/preview an automation email (sends to admin)
+  app.post("/api/admin/automations/:id/test", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const automation = await db.select().from(emailAutomations).where(eq(emailAutomations.id, parseInt(req.params.id))).limit(1);
+      if (automation.length === 0) return res.status(404).json({ error: "Automation not found" });
+
+      const rule = automation[0];
+      const testHtml = rule.emailBodyHtml
+        .replace(/\{\{clientName\}\}/g, 'Max Mustermann')
+        .replace(/\{\{bookingDate\}\}/g, '15. März 2026')
+        .replace(/\{\{bookingTime\}\}/g, '14:00 Uhr')
+        .replace(/\{\{questionnaireLink\}\}/g, `https://www.newagefotografie.com/questionnaire/${rule.questionnaireSlug || 'pre-shoot'}`);
+
+      const testSubject = rule.emailSubject
+        .replace(/\{\{clientName\}\}/g, 'Max Mustermann')
+        .replace(/\{\{bookingDate\}\}/g, '15. März 2026')
+        .replace(/\{\{bookingTime\}\}/g, '14:00 Uhr');
+
+      const transporter = nodemailer.createTransport({
+        host: 'smtp.easyname.com', port: 465, secure: true,
+        auth: { user: process.env.BUSINESS_MAILBOX_USER || '30840mail10', pass: process.env.EMAIL_PASSWORD || '' }
+      });
+
+      const adminEmail = getEnvContactEmailSync();
+      await transporter.sendMail({
+        from: `"New Age Fotografie" <${adminEmail || 'no-reply@localhost'}>`,
+        to: adminEmail,
+        subject: `[TEST] ${testSubject}`,
+        html: testHtml
+      });
+
+      res.json({ success: true, message: `Test-E-Mail an ${adminEmail} gesendet` });
+    } catch (error) {
+      console.error("Error sending test automation:", error);
+      res.status(500).json({ error: "Fehler beim Senden der Test-E-Mail" });
+    }
+  });
+
+  // ==================== BACKGROUND AUTOMATION CRON JOB ====================
+  let automationInterval: NodeJS.Timeout | null = null;
+  let isAutomationRunning = false;
+
+  const AUTOMATION_CHECK_INTERVAL_MS = 30 * 60 * 1000; // Check every 30 minutes
+
+  const runAutomationCheck = async () => {
+    if (isAutomationRunning) return;
+    isAutomationRunning = true;
+
+    try {
+      // Get all enabled automations
+      const automations = await db.select().from(emailAutomations).where(eq(emailAutomations.enabled, true));
+      if (automations.length === 0) { isAutomationRunning = false; return; }
+
+      // Get all confirmed bookings (not cancelled) with dates in the relevant range
+      const now = new Date();
+      const bookings = await db.select().from(schedulerBookings).where(
+        and(
+          eq(schedulerBookings.status, 'confirmed'),
+          sql`${schedulerBookings.clientEmail} IS NOT NULL AND ${schedulerBookings.clientEmail} != ''`
+        )
+      );
+
+      if (bookings.length === 0) { isAutomationRunning = false; return; }
+
+      // Set up transporter once
+      const emailPassword = process.env.EMAIL_PASSWORD || process.env.SMTP_PASS;
+      if (!emailPassword) { isAutomationRunning = false; return; }
+
+      const transporter = nodemailer.createTransport({
+        host: 'smtp.easyname.com', port: 465, secure: true,
+        auth: { user: process.env.BUSINESS_MAILBOX_USER || '30840mail10', pass: emailPassword }
+      });
+      const fromEmail = getEnvContactEmailSync() || 'no-reply@localhost';
+
+      let emailsSent = 0;
+
+      for (const rule of automations) {
+        for (const booking of bookings) {
+          try {
+            const bookingDate = new Date(booking.scheduledDate);
+            
+            // Calculate when this email should be sent
+            // offsetHours is negative for "before" (e.g. -48 = 2 days before) and positive for "after"
+            const sendAt = new Date(bookingDate.getTime() + rule.offsetHours * 60 * 60 * 1000);
+            
+            // Check if we're in the send window:
+            // The email should be sent if sendAt is in the past (or within 30 min from now)
+            // but not more than 30 minutes ago (to avoid re-sending on every cycle)
+            const timeDiff = now.getTime() - sendAt.getTime();
+            const withinWindow = timeDiff >= 0 && timeDiff < AUTOMATION_CHECK_INTERVAL_MS;
+
+            if (!withinWindow) continue;
+
+            // Check if already sent for this booking+automation combo
+            const existingLog = await db.select().from(emailAutomationLogs).where(
+              and(
+                eq(emailAutomationLogs.automationId, rule.id),
+                eq(emailAutomationLogs.bookingId, booking.id)
+              )
+            ).limit(1);
+
+            if (existingLog.length > 0) continue;
+
+            // Prepare email content with variable substitution
+            const dateFormatter = new Intl.DateTimeFormat('de-AT', { 
+              weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+              timeZone: 'Europe/Vienna'
+            });
+            const timeFormatter = new Intl.DateTimeFormat('de-AT', {
+              hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Vienna'
+            });
+
+            const formattedDate = dateFormatter.format(bookingDate);
+            const formattedTime = timeFormatter.format(bookingDate) + ' Uhr';
+            const questionnaireLink = rule.questionnaireSlug 
+              ? `https://www.newagefotografie.com/questionnaire/${rule.questionnaireSlug}`
+              : '';
+
+            const emailHtml = rule.emailBodyHtml
+              .replace(/\{\{clientName\}\}/g, booking.clientName || 'Kunde')
+              .replace(/\{\{bookingDate\}\}/g, formattedDate)
+              .replace(/\{\{bookingTime\}\}/g, formattedTime)
+              .replace(/\{\{questionnaireLink\}\}/g, questionnaireLink);
+
+            const emailSubject = rule.emailSubject
+              .replace(/\{\{clientName\}\}/g, booking.clientName || 'Kunde')
+              .replace(/\{\{bookingDate\}\}/g, formattedDate)
+              .replace(/\{\{bookingTime\}\}/g, formattedTime);
+
+            // Send the email
+            await transporter.sendMail({
+              from: `"New Age Fotografie" <${fromEmail}>`,
+              to: booking.clientEmail,
+              subject: emailSubject,
+              html: emailHtml
+            });
+
+            // Log the sent email
+            await db.insert(emailAutomationLogs).values({
+              automationId: rule.id,
+              bookingId: booking.id,
+              clientEmail: booking.clientEmail,
+              clientName: booking.clientName,
+              status: 'sent'
+            });
+
+            emailsSent++;
+            console.log(`📧 Automation "${rule.name}" sent to ${booking.clientEmail} for booking ${booking.id}`);
+          } catch (sendError: any) {
+            console.error(`❌ Automation "${rule.name}" failed for booking ${booking.id}:`, sendError.message);
+            // Log the failure
+            try {
+              await db.insert(emailAutomationLogs).values({
+                automationId: rule.id,
+                bookingId: booking.id,
+                clientEmail: booking.clientEmail || 'unknown',
+                clientName: booking.clientName,
+                status: 'failed',
+                errorMessage: sendError.message
+              });
+            } catch (_) {}
+          }
+        }
+      }
+
+      if (emailsSent > 0) {
+        console.log(`✅ Automation check complete: ${emailsSent} email(s) sent`);
+      }
+    } catch (error) {
+      console.error('❌ Automation check error:', error);
+    } finally {
+      isAutomationRunning = false;
+    }
+  };
+
+  // Start the automation cron job
+  const startAutomationCron = () => {
+    if (process.env.DEMO_MODE === 'true') {
+      console.log('🤖 Email automations disabled in demo mode');
+      return;
+    }
+
+    // First check after 60 seconds
+    setTimeout(() => runAutomationCheck(), 60 * 1000);
+
+    // Then every 30 minutes
+    automationInterval = setInterval(() => runAutomationCheck(), AUTOMATION_CHECK_INTERVAL_MS);
+    console.log('✅ Email automation cron started (checks every 30 min)');
+  };
+
+  startAutomationCron();
 
   const httpServer = createServer(app);
   return httpServer;

@@ -124,6 +124,7 @@ import QuestionnaireFormPage from './pages/QuestionnaireFormPage';
 import ImageTestPage from './pages/ImageTestPage';
 import PublicSchedulerPage from './pages/public/PublicSchedulerPage';
 import AdminSchedulersPage from './pages/admin/AdminSchedulersPage';
+import AdminAutomationsPage from './pages/admin/AdminAutomationsPage';
 import CalculatorPage from './pages/CalculatorPage';
 import SetupWizard from './pages/setup/SetupWizard';
 import ScrollToTop from './components/ScrollToTop';
@@ -421,6 +422,14 @@ function App() {
                   element={
                     <NeonProtectedRoute>
                       <CampaignsPage />
+                    </NeonProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/automations"
+                  element={
+                    <NeonProtectedRoute>
+                      <AdminAutomationsPage />
                     </NeonProtectedRoute>
                   }
                 />
