@@ -1,5 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import { Lock } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
+
+const invoiceI18n: Record<string, Record<string, string>> = {
+  en: {
+    invoice: 'INVOICE',
+    invoiced: 'INVOICED',
+    shipTo: 'SHIP TO:',
+    billTo: 'BILL TO:',
+    name: 'Name',
+    price: 'Price',
+    qty: 'Qty',
+    lineTotal: 'Line Total',
+    taxable: 'Taxable',
+    subtotal: 'Subtotal:',
+    vat: 'VAT (0%):',
+    discount: 'Discount',
+    total: 'Total:',
+    paidToDate: 'Paid to Date:',
+    balance: 'Balance:',
+    invoiceSubtotal: 'Invoice Subtotal:',
+    invoiceTotal: 'Invoice Total:',
+    paid: 'Paid',
+    invoiceBalance: 'Invoice Balance:',
+    paidInFull: 'PAID IN FULL',
+    payNow: 'PAY NOW',
+    processing: 'Processing...',
+    imageProduct: 'Image & Product file',
+    contactStudioName: 'CONTACT STUDIO/NAME',
+    address: 'Address',
+  },
+  de: {
+    invoice: 'RECHNUNG',
+    invoiced: 'RECHNUNGSDATUM',
+    shipTo: 'LIEFERADRESSE:',
+    billTo: 'RECHNUNGSADRESSE:',
+    name: 'Bezeichnung',
+    price: 'Preis',
+    qty: 'Menge',
+    lineTotal: 'Gesamt',
+    taxable: 'Steuer',
+    subtotal: 'Zwischensumme:',
+    vat: 'USt. (0%):',
+    discount: 'Rabatt',
+    total: 'Gesamtbetrag:',
+    paidToDate: 'Bereits bezahlt:',
+    balance: 'Offener Betrag:',
+    invoiceSubtotal: 'Rechnungs-Zwischensumme:',
+    invoiceTotal: 'Rechnungsbetrag:',
+    paid: 'Bezahlt',
+    invoiceBalance: 'Offener Rechnungsbetrag:',
+    paidInFull: 'VOLLSTÄNDIG BEZAHLT',
+    payNow: 'JETZT BEZAHLEN',
+    processing: 'Wird verarbeitet...',
+    imageProduct: 'Bild & Produktdatei',
+    contactStudioName: 'KONTAKT STUDIO/NAME',
+    address: 'Adresse',
+  }
+};
 
 interface StudioConfig {
   logo: string | null;
@@ -59,6 +117,9 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
   // Debug: Log what the template receives
   console.log('📄 INVOICE TEMPLATE RECEIVED:', invoice);
   
+  const { language } = useLanguage();
+  const tx = (key: string) => (invoiceI18n[language] || invoiceI18n.en)[key] || invoiceI18n.en[key] || key;
+  
   // State for studio configuration
   const [studioConfig, setStudioConfig] = useState<StudioConfig>({
     logo: null,
@@ -97,7 +158,8 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return 'Invalid Date';
-      return date.toLocaleDateString('de-DE', { 
+      const locale = language === 'en' ? 'en-US' : 'de-DE';
+      return date.toLocaleDateString(locale, { 
         day: '2-digit', 
         month: 'long', 
         year: 'numeric' 
@@ -109,6 +171,12 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
 
   const formatCurrency = (amount: number, currency: string = 'EUR') => {
     if (amount === null || amount === undefined || isNaN(amount)) return '0,00 €';
+    if (language === 'en') {
+      return '€' + new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(amount);
+    }
     return new Intl.NumberFormat('de-DE', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
@@ -201,7 +269,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             textTransform: 'uppercase',
             letterSpacing: '1px'
           }}>
-            INVOICED: {formatDate(invoice.created_at)}
+            {tx('invoiced')}: {formatDate(invoice.created_at)}
           </div>
         </div>
       </div>
@@ -223,7 +291,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             color: '#667eea',
             marginBottom: '12px'
           }}>
-            SHIP TO:
+            {tx('shipTo')}
           </div>
           <div style={{ fontSize: '13px', lineHeight: '1.6', color: '#2c3e50' }}>
             <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
@@ -256,7 +324,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             color: '#667eea',
             marginBottom: '12px'
           }}>
-            BILL TO:
+            {tx('billTo')}
           </div>
           <div style={{ fontSize: '13px', lineHeight: '1.6', color: '#2c3e50' }}>
             <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
@@ -299,7 +367,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
               textTransform: 'uppercase',
               letterSpacing: '1px'
             }}>
-              Name
+              {tx('name')}
             </th>
             <th style={{
               padding: '15px 10px',
@@ -310,7 +378,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
               textTransform: 'uppercase',
               letterSpacing: '1px'
             }}>
-              Price
+              {tx('price')}
             </th>
             <th style={{
               padding: '15px 10px',
@@ -321,7 +389,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
               textTransform: 'uppercase',
               letterSpacing: '1px'
             }}>
-              Qty
+              {tx('qty')}
             </th>
             <th style={{
               padding: '15px 10px',
@@ -332,7 +400,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
               textTransform: 'uppercase',
               letterSpacing: '1px'
             }}>
-              Line Total
+              {tx('lineTotal')}
             </th>
             <th style={{
               padding: '15px 10px',
@@ -343,7 +411,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
               textTransform: 'uppercase',
               letterSpacing: '1px'
             }}>
-              Taxable
+              {tx('taxable')}
             </th>
           </tr>
         </thead>
@@ -360,7 +428,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
                   {item.description}
                 </div>
                 <div style={{ fontSize: '11px', color: '#999' }}>
-                  Image & Produktdatei
+                  {tx('imageProduct')}
                 </div>
               </td>
               <td style={{ 
@@ -416,7 +484,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             fontSize: '13px',
             color: '#666'
           }}>
-            <span>Subtotal:</span>
+            <span>{tx('subtotal')}</span>
             <span style={{ fontWeight: '500', color: '#2c3e50' }}>
               {formatCurrency(invoice.subtotal_amount, invoice.currency)}
             </span>
@@ -430,7 +498,10 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             fontSize: '13px',
             color: '#666'
           }}>
-            <span>VAT (20%):</span>
+            <span>{(() => {
+              const rate = invoice.items?.[0]?.tax_rate || (invoice.tax_amount > 0 ? 20 : 0);
+              return language === 'en' ? `VAT (${rate}%):` : `USt. (${rate}%):`;
+            })()}</span>
             <span style={{ fontWeight: '500', color: '#2c3e50' }}>
               {formatCurrency(invoice.tax_amount, invoice.currency)}
             </span>
@@ -446,7 +517,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
               color: '#28a745'
             }}>
               <span>
-                Discount{invoice.discount_type === 'percentage' && invoice.discount_value ? ` (${invoice.discount_value}%)` : ''}:
+                {tx('discount')}{invoice.discount_type === 'percentage' && invoice.discount_value ? ` (${invoice.discount_value}%)` : ''}:
               </span>
               <span style={{ fontWeight: '500' }}>
                 -{formatCurrency(invoice.discount_amount, invoice.currency)}
@@ -465,7 +536,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             marginTop: '10px',
             borderRadius: '4px'
           }}>
-            <span style={{ color: '#2c3e50' }}>Total:</span>
+            <span style={{ color: '#2c3e50' }}>{tx('total')}</span>
             <span style={{ color: '#667eea', fontSize: '16px' }}>
               {formatCurrency(invoice.total_amount, invoice.currency)}
             </span>
@@ -479,7 +550,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             fontSize: '13px',
             color: '#666'
           }}>
-            <span>Paid to Date:</span>
+            <span>{tx('paidToDate')}</span>
             <span style={{ fontWeight: '500', color: '#2c3e50' }}>
               {formatCurrency(paidAmount, invoice.currency)}
             </span>
@@ -493,7 +564,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             fontSize: '13px',
             color: '#666'
           }}>
-            <span>Balance:</span>
+            <span>{tx('balance')}</span>
             <span style={{ fontWeight: '500', color: '#2c3e50' }}>
               {formatCurrency(balanceDue, invoice.currency)}
             </span>
@@ -521,7 +592,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             fontSize: '13px',
             color: '#666'
           }}>
-            <span>Invoice Subtotal:</span>
+            <span>{tx('invoiceSubtotal')}</span>
             <span>{formatCurrency(invoice.subtotal_amount, invoice.currency)}</span>
           </div>
           
@@ -535,7 +606,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
               color: '#28a745'
             }}>
               <span>
-                Discount{invoice.discount_type === 'percentage' && invoice.discount_value ? ` (${invoice.discount_value}%)` : ''}:
+                {tx('discount')}{invoice.discount_type === 'percentage' && invoice.discount_value ? ` (${invoice.discount_value}%)` : ''}:
               </span>
               <span>-{formatCurrency(invoice.discount_amount, invoice.currency)}</span>
             </div>
@@ -549,7 +620,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             fontWeight: '600',
             color: '#2c3e50'
           }}>
-            <span>Invoice Total:</span>
+            <span>{tx('invoiceTotal')}</span>
             <span>{formatCurrency(invoice.total_amount, invoice.currency)}</span>
           </div>
           
@@ -561,7 +632,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
               fontSize: '13px',
               color: '#27ae60'
             }}>
-              <span>Paid {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}:</span>
+              <span>{tx('paid')} {new Date().toLocaleDateString(language === 'en' ? 'en-US' : 'de-DE', { month: 'short', day: 'numeric' })}:</span>
               <span>{formatCurrency(paidAmount, invoice.currency)}</span>
             </div>
           )}
@@ -575,7 +646,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             fontWeight: 'bold',
             color: balanceDue > 0 ? '#e74c3c' : '#27ae60'
           }}>
-            <span>Invoice Balance:</span>
+            <span>{tx('invoiceBalance')}</span>
             <span>{formatCurrency(balanceDue, invoice.currency)}</span>
           </div>
           
@@ -605,7 +676,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
               onMouseOut={(e) => !isProcessingPayment && (e.currentTarget.style.backgroundColor = '#667eea')}
             >
               <Lock size={16} />
-              {isProcessingPayment ? 'Processing...' : 'PAY NOW'}
+              {isProcessingPayment ? tx('processing') : tx('payNow')}
             </button>
           )}
         </div>
@@ -683,7 +754,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
           opacity: 0.3,
           letterSpacing: '3px'
         }}>
-          PAID IN FULL
+          {tx('paidInFull')}
         </div>
       )}
     </div>
