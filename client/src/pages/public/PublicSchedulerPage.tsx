@@ -27,7 +27,8 @@ import {
   parseISO,
   isToday,
   isBefore,
-  startOfDay
+  startOfDay,
+  isAfter
 } from 'date-fns';
 
 interface Scheduler {
@@ -82,6 +83,8 @@ export default function PublicSchedulerPage() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [bookingResult, setBookingResult] = useState<any>(null);
+  const [autoScrolling, setAutoScrolling] = useState(false);
+  const [hasAutoScrolled, setHasAutoScrolled] = useState(false);
 
   // Fetch scheduler info
   useEffect(() => {
@@ -144,6 +147,62 @@ export default function PublicSchedulerPage() {
     const slots = availability.availability[dateKey];
     return slots && slots.length > 0;
   };
+
+  // Find the first available date in current availability data
+  const getFirstAvailableDate = (): Date | null => {
+    if (!availability) return null;
+    const now = startOfDay(new Date());
+    const sortedKeys = Object.keys(availability.availability)
+      .filter(key => availability.availability[key]?.length > 0)
+      .sort();
+    for (const key of sortedKeys) {
+      const d = parseISO(key);
+      if (!isBefore(d, now)) return d;
+    }
+    return null;
+  };
+
+  // Auto-scroll to next month with availability if current month is empty
+  useEffect(() => {
+    if (!availability || availabilityLoading || hasAutoScrolled) return;
+    
+    const firstAvail = getFirstAvailableDate();
+    if (firstAvail) {
+      // Current month has availability — no need to scroll
+      setHasAutoScrolled(true);
+      return;
+    }
+    
+    // No availability this month — auto-advance up to 6 months
+    const tryNextMonth = async () => {
+      setAutoScrolling(true);
+      let searchMonth = addMonths(currentMonth, 1);
+      const maxSearch = 6;
+      
+      for (let i = 0; i < maxSearch; i++) {
+        try {
+          const monthStr = format(searchMonth, 'yyyy-MM');
+          const response = await fetch(`/api/schedulers/public/${slug}/availability?month=${monthStr}`);
+          if (response.ok) {
+            const data: AvailabilityData = await response.json();
+            const hasAny = Object.values(data.availability).some(slots => slots && slots.length > 0);
+            if (hasAny) {
+              setCurrentMonth(searchMonth);
+              setHasAutoScrolled(true);
+              setAutoScrolling(false);
+              return;
+            }
+          }
+        } catch {}
+        searchMonth = addMonths(searchMonth, 1);
+      }
+      // No availability found in next 6 months
+      setHasAutoScrolled(true);
+      setAutoScrolling(false);
+    };
+    
+    tryNextMonth();
+  }, [availability, availabilityLoading]);
 
   // Get slots for selected date
   const getSlotsForDate = (date: Date): TimeSlot[] => {
@@ -250,6 +309,7 @@ export default function PublicSchedulerPage() {
             const isPast = isBefore(day, startOfDay(new Date()));
             const isSelected = selectedDate && isSameDay(day, selectedDate);
             const today = isToday(day);
+            const isFirstAvailable = !isPast && hasSlots && getFirstAvailableDate() && isSameDay(day, getFirstAvailableDate()!);
 
             return (
               <button
@@ -259,11 +319,11 @@ export default function PublicSchedulerPage() {
                 className={`
                   aspect-square flex items-center justify-center rounded-lg text-sm font-medium
                   transition-all duration-200
-                  ${isPast ? 'text-gray-300 cursor-not-allowed' : ''}
-                  ${!isPast && !hasSlots ? 'text-gray-400 cursor-not-allowed' : ''}
-                  ${hasSlots && !isPast ? 'text-gray-900 hover:bg-teal-50 cursor-pointer' : ''}
-                  ${hasSlots && !isPast ? 'border-2 border-teal-200' : ''}
-                  ${isSelected ? 'bg-teal-600 text-white hover:bg-teal-700 border-teal-600' : ''}
+                  ${isPast ? 'bg-gray-100 text-gray-300 cursor-not-allowed line-through' : ''}
+                  ${!isPast && !hasSlots ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : ''}
+                  ${hasSlots && !isPast && !isSelected ? 'bg-green-50 text-green-800 hover:bg-green-100 cursor-pointer border-2 border-green-400' : ''}
+                  ${isFirstAvailable && !isSelected ? 'bg-green-100 border-green-500 ring-2 ring-green-400 ring-offset-1 font-bold' : ''}
+                  ${isSelected ? 'bg-green-600 text-white hover:bg-green-700 border-2 border-green-600' : ''}
                   ${today && !isSelected ? 'ring-2 ring-teal-400 ring-offset-2' : ''}
                 `}
                 style={isSelected ? { backgroundColor: scheduler?.brandColor } : {}}
@@ -274,10 +334,24 @@ export default function PublicSchedulerPage() {
           })}
         </div>
 
-        {availabilityLoading && (
+        {(availabilityLoading || autoScrolling) && (
           <div className="flex items-center justify-center py-4 text-gray-500">
             <Loader2 className="w-5 h-5 animate-spin mr-2" />
-            Loading availability...
+            {autoScrolling ? 'Finding next available dates...' : 'Loading availability...'}
+          </div>
+        )}
+
+        {/* Legend */}
+        {!availabilityLoading && !autoScrolling && (
+          <div className="flex items-center justify-center gap-6 mt-4 text-xs text-gray-500">
+            <div className="flex items-center gap-1">
+              <span className="inline-block w-4 h-4 rounded bg-green-50 border-2 border-green-400"></span>
+              Available
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="inline-block w-4 h-4 rounded bg-gray-100"></span>
+              Not available
+            </div>
           </div>
         )}
       </div>
