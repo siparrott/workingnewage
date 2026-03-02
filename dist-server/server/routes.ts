@@ -8899,6 +8899,24 @@ New Age Fotografie Team`;
     }
   });
 
+  // Delete campaign
+  app.delete("/api/admin/email/campaigns/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const [deleted] = await db.delete(emailCampaigns)
+        .where(eq(emailCampaigns.id, req.params.id))
+        .returning();
+      
+      if (!deleted) {
+        return res.status(404).json({ error: 'Campaign not found' });
+      }
+      
+      res.json({ message: 'Campaign deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting campaign:', error);
+      res.status(500).json({ error: 'Failed to delete campaign' });
+    }
+  });
+
   // Send campaign
   app.post("/api/email/campaigns/send", authenticateUser, async (req: Request, res: Response) => {
     try {

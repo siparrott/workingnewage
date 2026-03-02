@@ -82,6 +82,26 @@ const AdvancedEmailMarketingHub: React.FC = () => {
   };
 
   useEffect(() => { loadCampaigns(); }, []);
+
+  const handleDeleteCampaign = async (campaignId: string, campaignName: string) => {
+    if (!confirm(`Delete campaign "${campaignName}"? This cannot be undone.`)) return;
+    try {
+      const response = await fetch(`/api/admin/email/campaigns/${campaignId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (response.ok) {
+        loadCampaigns();
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to delete campaign');
+      }
+    } catch (error) {
+      console.error('Error deleting campaign:', error);
+      alert('Failed to delete campaign');
+    }
+  };
+
   const handleCreateCampaign = () => {
     setEditingCampaign(null);
     setShowCampaignBuilder(true);
@@ -415,6 +435,13 @@ const AdvancedEmailMarketingHub: React.FC = () => {
                           title="Edit Campaign"
                         >
                           <Settings size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteCampaign(c.id, c.name)}
+                          className="text-gray-400 hover:text-red-600"
+                          title="Delete Campaign"
+                        >
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </td>
