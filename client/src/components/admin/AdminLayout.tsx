@@ -49,6 +49,7 @@ interface AdminLayoutProps {
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const { language, setLanguage, t } = useLanguage();
   const [newLeadsCount, setNewLeadsCount] = useState(0);
   const [unreadEmailsCount, setUnreadEmailsCount] = useState(0);
@@ -488,12 +489,44 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 <span>{t('nav.viewWebsite')}</span>
               </a>
 
-              {/* User Avatar */}
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-                  <User size={16} className="text-white" />
-                </div>
-                <span className="ml-2 text-sm text-gray-700">{user?.email}</span>
+              {/* User Avatar / Account Menu */}
+              <div className="relative">
+                <button
+                  onClick={() => setAccountMenuOpen(!accountMenuOpen)}
+                  className="flex items-center rounded-lg hover:bg-gray-100 px-2 py-1 transition-colors"
+                >
+                  <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                    <User size={16} className="text-white" />
+                  </div>
+                </button>
+
+                {accountMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setAccountMenuOpen(false)} />
+                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-2">
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <p className="text-sm font-medium text-gray-900">{user?.email}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Administrator</p>
+                      </div>
+                      <button
+                        onClick={() => { setAccountMenuOpen(false); navigate('/admin/settings'); }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <Settings size={16} className="mr-2 text-gray-400" />
+                        Settings
+                      </button>
+                      <div className="border-t border-gray-100 mt-1 pt-1">
+                        <button
+                          onClick={() => { setAccountMenuOpen(false); handleSignOut(); }}
+                          className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <LogOut size={16} className="mr-2" />
+                          Sign Out
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
