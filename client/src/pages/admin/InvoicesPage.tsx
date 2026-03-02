@@ -146,20 +146,18 @@ const InvoicesPage: React.FC = () => {
   const handleDeleteInvoice = async (id: string) => {
     try {
       setLoading(true);
-      // Mark as cancelled instead of hard delete
-      const response = await fetch(`/api/invoices/update-status`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      // Permanently delete the invoice
+      const response = await fetch(`/api/crm/invoices/${id}`, {
+        method: 'DELETE',
         credentials: 'include',
-        body: JSON.stringify({ invoice_id: id, status: 'cancelled' })
       });
-      if (!response.ok) throw new Error('Failed to cancel invoice');
+      if (!response.ok) throw new Error('Failed to delete invoice');
       
       // Remove from local state
       setInvoices(prevInvoices => prevInvoices.filter(invoice => invoice.id !== id));
       setDeleteConfirmation(null);
     } catch (err) {
-      setError('Failed to cancel invoice. Please try again.');
+      setError('Failed to delete invoice. Please try again.');
     } finally {
       setLoading(false);
     }

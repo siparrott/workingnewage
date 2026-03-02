@@ -135,6 +135,7 @@ exports.crmClients = (0, pg_core_1.pgTable)("crm_clients", {
     zip: (0, pg_core_1.text)("zip"),
     country: (0, pg_core_1.text)("country"),
     company: (0, pg_core_1.text)("company"),
+    leadSource: (0, pg_core_1.text)("lead_source"),
     notes: (0, pg_core_1.text)("notes"),
     status: (0, pg_core_1.text)("status").default("active"),
     createdAt: (0, pg_core_1.timestamp)("created_at").defaultNow(),
@@ -978,6 +979,7 @@ exports.insertCrmClientSchema = (0, drizzle_zod_1.createInsertSchema)(exports.cr
     zip: true,
     country: true,
     company: true,
+    leadSource: true,
     notes: true,
     status: true,
 });

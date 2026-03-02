@@ -160,6 +160,7 @@ export const crmClients = pgTable("crm_clients", {
   zip: text("zip"),
   country: text("country"),
   company: text("company"),
+  leadSource: text("lead_source"),
   notes: text("notes"),
   status: text("status").default("active"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -1127,6 +1128,7 @@ export const insertCrmClientSchema = createInsertSchema(crmClients).pick({
   zip: true,
   country: true,
   company: true,
+  leadSource: true,
   notes: true,
   status: true,
 });

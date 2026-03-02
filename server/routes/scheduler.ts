@@ -174,9 +174,9 @@ router.post('/', async (req: Request, res: Response) => {
     }).returning();
 
     res.status(201).json(newScheduler);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating scheduler:', error);
-    res.status(500).json({ error: 'Failed to create scheduler' });
+    res.status(500).json({ error: 'Failed to create scheduler', detail: error?.message || String(error) });
   }
 });
 
