@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { X, Plus, CreditCard, Calendar, DollarSign, Trash2, ChevronDown, Mail, FileText, Settings, PlusCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { addInvoicePayment } from '../../api/invoices';
-import { useLanguage } from '../../hooks/useLanguage';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface Payment {
   id: string;
