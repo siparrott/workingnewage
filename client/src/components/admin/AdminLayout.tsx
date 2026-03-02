@@ -116,7 +116,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { icon: FolderOpen, label: t('nav.digitalFiles'), path: '/admin/digital-files' },
     { icon: PenTool, label: t('nav.blogAdmin'), path: '/admin/blog' },
     { icon: Mail, label: t('nav.emailCampaigns'), path: '/admin/campaigns' },
-    { icon: Zap, label: 'Automatisierungen', path: '/admin/automations' },
+    { icon: Zap, label: t('nav.automations'), path: '/admin/automations' },
     { icon: MessageSquare, label: t('nav.communications'), path: '/admin/communications' },
     { icon: Inbox, label: t('nav.inbox'), path: '/admin/inbox', badge: unreadEmailsCount },
     { icon: ClipboardList, label: t('nav.questionnaires'), path: '/admin/questionnaires' },
