@@ -51,6 +51,17 @@ const AdminBlogEditPage: React.FC = () => {
       
       const postData = await response.json();
       
+      // Compute real status from published boolean + date
+      let computedStatus: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' = 'DRAFT';
+      if (postData.published) {
+        const pubDate = postData.publishedAt ? new Date(postData.publishedAt) : null;
+        if (pubDate && pubDate > new Date()) {
+          computedStatus = 'SCHEDULED';
+        } else {
+          computedStatus = 'PUBLISHED';
+        }
+      }
+      
       // Format the post data to match our interface
       const formattedPost: BlogPost = {
         id: postData.id,
@@ -60,7 +71,7 @@ const AdminBlogEditPage: React.FC = () => {
         content_html: postData.contentHtml || postData.content_html || postData.content || '',
         cover_image: postData.imageUrl || postData.cover_image || '',
         tags: postData.tags || [],
-        status: postData.published ? 'PUBLISHED' : 'DRAFT',
+        status: computedStatus,
         seo_title: postData.seoTitle || postData.seo_title || '',
         meta_description: postData.metaDescription || postData.meta_description || '',
         author_id: postData.authorId || postData.author_id || '',

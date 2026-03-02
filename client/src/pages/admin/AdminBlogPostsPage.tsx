@@ -66,25 +66,37 @@ const AdminBlogPostsPage: React.FC = () => {
       
       // Map the API response to match the expected format
       // Use the actual status field from the API - don't override based on published boolean
-      const mappedPosts = data.posts.map((post: any) => ({
-        id: post.id,
-        title: post.title,
-        slug: post.slug,
-        excerpt: post.excerpt,
-        content_html: post.contentHtml || post.content,
-        cover_image: post.imageUrl,
-        // Use actual status from API - PUBLISHED, SCHEDULED, or DRAFT
-        status: post.status || (post.published ? 'PUBLISHED' : 'DRAFT'),
-        published: post.published,
-        author_id: post.authorId,
-        published_at: post.publishedAt,
-        scheduled_for: post.scheduledFor, // Include scheduled date
-        created_at: post.createdAt,
-        updated_at: post.updatedAt,
-        seo_title: post.seoTitle,
-        meta_description: post.metaDescription,
-        tags: post.tags || []
-      }));
+      const mappedPosts = data.posts.map((post: any) => {
+        // Compute the real status from published boolean + publishedAt date
+        let computedStatus = 'DRAFT';
+        if (post.published) {
+          const pubDate = post.publishedAt ? new Date(post.publishedAt) : null;
+          if (pubDate && pubDate > new Date()) {
+            computedStatus = 'SCHEDULED';
+          } else {
+            computedStatus = 'PUBLISHED';
+          }
+        }
+        
+        return {
+          id: post.id,
+          title: post.title,
+          slug: post.slug,
+          excerpt: post.excerpt,
+          content_html: post.contentHtml || post.content,
+          cover_image: post.imageUrl,
+          status: computedStatus,
+          published: post.published,
+          author_id: post.authorId,
+          published_at: post.publishedAt,
+          scheduled_for: post.scheduledFor || (pubDate && pubDate > new Date() ? post.publishedAt : null),
+          created_at: post.createdAt,
+          updated_at: post.updatedAt,
+          seo_title: post.seoTitle,
+          meta_description: post.metaDescription,
+          tags: post.tags || []
+        };
+      });
       
       // Filter by status
       let filteredByStatus = mappedPosts;
@@ -162,7 +174,8 @@ const AdminBlogPostsPage: React.FC = () => {
         credentials: 'include',
         body: JSON.stringify({
           published: newPublished,
-          publishedAt: newPublished ? new Date().toISOString() : null
+          publishedAt: newPublished ? new Date().toISOString() : null,
+          status: newPublished ? 'PUBLISHED' : 'DRAFT'
         })
       });
       

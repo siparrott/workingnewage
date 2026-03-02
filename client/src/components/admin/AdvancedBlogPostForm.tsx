@@ -247,6 +247,7 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
         contentHtml: formData.content_html || '',
         imageUrl: formData.cover_image || '',
         published: publish || formData.status === 'PUBLISHED',
+        status: publish || formData.status === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT',
         metaDescription: formData.meta_description || '',
         seoTitle: formData.seo_title || '',
         tags: formData.tags || []
@@ -254,6 +255,7 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
       
       if (publish || formData.status === 'PUBLISHED') {
         postData.publishedAt = new Date().toISOString();
+        postData.status = 'PUBLISHED';
       }
       
       // Get admin token from localStorage

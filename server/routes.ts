@@ -2105,6 +2105,19 @@ Bitte versuchen Sie es später noch einmal.`;
       };
       // Remove authorId from validation data
       delete postData.authorId;
+      
+      // Auto-sync the status column with the published boolean
+      if (postData.published === true) {
+        const pubDate = postData.publishedAt;
+        if (pubDate && pubDate > new Date()) {
+          postData.status = 'SCHEDULED';
+        } else {
+          postData.status = 'PUBLISHED';
+        }
+      } else {
+        postData.status = 'DRAFT';
+      }
+      
       console.log("[BLOG CREATE] Received blog post data:", postData);
       const validatedData = insertBlogPostSchema.parse(postData);
       console.log("[BLOG CREATE] Validated blog post data:", validatedData);
@@ -2138,6 +2151,19 @@ Bitte versuchen Sie es später noch einmal.`;
         // Always update the updatedAt timestamp
         updatedAt: new Date()
       };
+      
+      // Auto-sync the status column with the published boolean
+      if (updates.published === true) {
+        // Check if this is a scheduled post (publishedAt is in the future)
+        const pubDate = updates.publishedAt || null;
+        if (pubDate && pubDate > new Date()) {
+          updates.status = 'SCHEDULED';
+        } else {
+          updates.status = 'PUBLISHED';
+        }
+      } else if (updates.published === false) {
+        updates.status = 'DRAFT';
+      }
       
       // Remove undefined values
       Object.keys(updates).forEach(key => {
