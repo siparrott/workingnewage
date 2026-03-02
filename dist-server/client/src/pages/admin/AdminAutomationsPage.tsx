@@ -193,10 +193,36 @@ const i18n: Record<string, Record<string, string>> = {
   }
 };
 
+// Client-side translations for DB-stored automation content (DE → EN)
+const CONTENT_DE_TO_EN: Record<string, string> = {
+  // Names
+  'Fragebogen vor dem Shooting': 'Pre-Shoot Questionnaire',
+  'Termin-Erinnerung': 'Appointment Reminder',
+  'Newsletter Gutschein (50€)': 'Newsletter Voucher (€50)',
+  'Bewertung & Qualitätskontrolle': 'Review & Quality Control',
+  // Descriptions
+  'Sendet einen Vorbereitungs-Fragebogen 7 Tage vor dem Termin': 'Sends a preparation questionnaire 7 days before the appointment',
+  'Sendet eine Erinnerung 2 Tage vor dem Termin': 'Sends a reminder 2 days before the appointment',
+  'Automatische E-Mail mit 50€ Gutschein bei Newsletter-Anmeldung auf der Website': 'Automatic email with €50 voucher on website newsletter signup',
+  'Sendet eine Bitte um Bewertung 1 Stunde nach dem Termin': 'Sends a review request 1 hour after the appointment',
+  // Email subjects
+  'Ihr Fotoshooting naht – bitte füllen Sie unseren Kundenfragebogen aus!': 'Your photoshoot is coming – please fill out our client questionnaire!',
+  'Erinnerung: Ihr Fotoshooting am {{bookingDate}}': 'Reminder: Your photoshoot on {{bookingDate}}',
+  'Ihr 50€ Fotoshooting-Gutschein ist da!': 'Your €50 Photoshoot Voucher is here!',
+  'Wie war Ihr Fotoshooting? Wir freuen uns auf Ihr Feedback! ⭐': 'How was your photoshoot? We\'d love your feedback! ⭐',
+};
+
 const AdminAutomationsPage: React.FC = () => {
   const { language } = useLanguage();
   const tx = (key: string) => (i18n[language] || i18n.en)[key] || (i18n.en)[key] || key;
   const OFFSET_PRESETS = language === 'en' ? OFFSET_PRESETS_EN : OFFSET_PRESETS_DE;
+
+  // Translate DB content when EN is selected
+  const tc = (text: string | null): string => {
+    if (!text) return '';
+    if (language === 'en' && CONTENT_DE_TO_EN[text]) return CONTENT_DE_TO_EN[text];
+    return text;
+  };
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -435,12 +461,12 @@ const AdminAutomationsPage: React.FC = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-1">
-                        <h3 className="text-lg font-semibold text-gray-900">{a.name}</h3>
+                        <h3 className="text-lg font-semibold text-gray-900">{tc(a.name)}</h3>
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${a.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                           {a.enabled ? <><CheckCircle size={12} /> {tx('active')}</> : <><Pause size={12} /> {tx('paused')}</>}
                         </span>
                       </div>
-                      {a.description && <p className="text-gray-500 text-sm mb-2">{a.description}</p>}
+                      {a.description && <p className="text-gray-500 text-sm mb-2">{tc(a.description)}</p>}
                       <div className="flex items-center gap-4 text-sm text-gray-600">
                         <span className="flex items-center gap-1">
                           <Clock size={14} />
@@ -448,7 +474,7 @@ const AdminAutomationsPage: React.FC = () => {
                         </span>
                         <span className="flex items-center gap-1">
                           <Mail size={14} />
-                          {a.emailSubject.substring(0, 50)}{a.emailSubject.length > 50 ? '...' : ''}
+                          {(() => { const subj = tc(a.emailSubject); return subj.substring(0, 50) + (subj.length > 50 ? '...' : ''); })()}
                         </span>
                         {a.questionnaireSlug && (
                           <span className="flex items-center gap-1 text-purple-600">
