@@ -9,6 +9,7 @@ import { db } from '../db';
 import { calendarSyncSettings, calendarSyncLogs } from '@shared/schema';
 import { eq, desc } from 'drizzle-orm';
 import { requireAuth } from '../auth';
+import { importGoogleCalendarEvents } from '../services/calendarService';
 
 const router = Router();
 
@@ -167,6 +168,15 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     } catch (e) {
       console.warn('[GOOGLE-OAUTH] Could not update other configs:', e);
     }
+
+    // Trigger a full import in the background (don't block the response)
+    importGoogleCalendarEvents(undefined, userId)
+      .then(result => {
+        console.log(`[GOOGLE-OAUTH] Auto-import after reconnection: ${result.imported} imported, ${result.updated} updated, ${result.skipped} skipped`);
+      })
+      .catch(err => {
+        console.error('[GOOGLE-OAUTH] Auto-import failed:', err?.message || err);
+      });
 
     // Redirect to success page
     res.send(`
