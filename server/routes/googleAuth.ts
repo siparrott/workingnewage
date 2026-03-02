@@ -6,8 +6,8 @@
 import { Router, Request, Response } from 'express';
 import { google } from 'googleapis';
 import { db } from '../db';
-import { calendarSyncSettings } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { calendarSyncSettings, calendarSyncLogs } from '@shared/schema';
+import { eq, desc } from 'drizzle-orm';
 import { requireAuth } from '../auth';
 
 const router = Router();
@@ -317,9 +317,34 @@ router.get('/google/status', requireAuth, async (req: Request, res: Response) =>
 
     const userConfig = config[0];
 
-    // Validate token health by attempting a lightweight API call
+    // Check recent sync logs for invalid_grant errors (most reliable detection)
     let tokenExpired = false;
-    if (userConfig.accessToken && userConfig.refreshToken) {
+    try {
+      const recentLogs = await db
+        .select()
+        .from(calendarSyncLogs)
+        .where(eq(calendarSyncLogs.syncSettingId, userConfig.id))
+        .orderBy(desc(calendarSyncLogs.createdAt))
+        .limit(3);
+
+      // If any of the last 3 sync logs contain invalid_grant, tokens are expired
+      tokenExpired = recentLogs.some(log => {
+        const errors = log.errors as any;
+        if (Array.isArray(errors)) {
+          return errors.some((e: any) => String(e).includes('invalid_grant'));
+        }
+        return String(errors || '').includes('invalid_grant');
+      });
+
+      if (tokenExpired) {
+        console.warn('[Google-Status] Token expired (detected from sync logs) for user', userId);
+      }
+    } catch (logErr) {
+      console.warn('[Google-Status] Could not check sync logs:', logErr);
+    }
+
+    // Also try a live API call if sync logs didn't detect expiry
+    if (!tokenExpired && userConfig.accessToken && userConfig.refreshToken) {
       try {
         const testClient = new google.auth.OAuth2(
           process.env.GOOGLE_CLIENT_ID,
@@ -331,17 +356,16 @@ router.get('/google/status', requireAuth, async (req: Request, res: Response) =>
           refresh_token: userConfig.refreshToken,
         });
         const cal = google.calendar({ version: 'v3', auth: testClient });
-        // Quick lightweight check: just list 1 event
         await cal.events.list({
           calendarId: userConfig.calendarId || 'primary',
           maxResults: 1,
           timeMin: new Date().toISOString(),
         });
       } catch (tokenErr: any) {
-        const errMsg = tokenErr?.message || '';
-        if (errMsg.includes('invalid_grant') || errMsg.includes('Token has been expired') || errMsg.includes('Token has been revoked')) {
+        const errMsg = String(tokenErr?.message || tokenErr?.response?.data?.error || '');
+        if (errMsg.includes('invalid_grant') || errMsg.includes('Token has been expired') || errMsg.includes('Token has been revoked') || errMsg.includes('unauthorized')) {
           tokenExpired = true;
-          console.warn('[Google-Status] Token expired for user', userId, ':', errMsg);
+          console.warn('[Google-Status] Token expired (detected from API test) for user', userId, ':', errMsg);
         }
       }
     }
@@ -352,7 +376,7 @@ router.get('/google/status', requireAuth, async (req: Request, res: Response) =>
       syncEnabled: userConfig.syncEnabled,
       calendarId: userConfig.calendarId,
       lastSyncAt: userConfig.lastSyncAt,
-      email: userConfig.calendarId, // calendarId is often the email
+      email: userConfig.calendarId,
     });
   } catch (error: any) {
     console.error('Error getting sync status:', error);
