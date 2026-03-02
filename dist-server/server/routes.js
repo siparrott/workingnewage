@@ -1048,61 +1048,46 @@ async function registerRoutes(app) {
         }
     });
     // Calendar routes (Studio Appointments)
-    // Fetch Google Calendar ICS data
+    // Fetch Google Calendar events via OAuth API (using calendarSyncSettings tokens)
     app.get("/api/calendar/google-events", async (req, res) => {
         try {
-            const https = require('https');
-            const icsUrl = 'https://calendar.google.com/calendar/ical/newagefotografen%40gmail.com/private-08da3063a40ffdd19da69b7f3264baf6/basic.ics';
-            https.get(icsUrl, (icsRes) => {
-                let data = '';
-                icsRes.on('data', (chunk) => data += chunk);
-                icsRes.on('end', () => {
-                    // Parse ICS data into events
-                    const events = [];
-                    const lines = data.split('\n');
-                    let currentEvent = null;
-                    for (let i = 0; i < lines.length; i++) {
-                        const line = lines[i].trim();
-                        if (line === 'BEGIN:VEVENT') {
-                            currentEvent = {};
-                        }
-                        else if (line === 'END:VEVENT' && currentEvent) {
-                            events.push(currentEvent);
-                            currentEvent = null;
-                        }
-                        else if (currentEvent) {
-                            if (line.startsWith('SUMMARY:')) {
-                                currentEvent.title = line.substring(8);
-                            }
-                            else if (line.startsWith('DTSTART')) {
-                                const dateStr = line.split(':')[1];
-                                currentEvent.start = parseICSDate(dateStr);
-                            }
-                            else if (line.startsWith('DTEND')) {
-                                const dateStr = line.split(':')[1];
-                                currentEvent.end = parseICSDate(dateStr);
-                            }
-                            else if (line.startsWith('DESCRIPTION:')) {
-                                currentEvent.description = line.substring(12);
-                            }
-                            else if (line.startsWith('LOCATION:')) {
-                                currentEvent.location = line.substring(9);
-                            }
-                            else if (line.startsWith('UID:')) {
-                                currentEvent.id = line.substring(4);
-                            }
-                        }
-                    }
-                    res.json({ success: true, events });
-                });
-            }).on('error', (e) => {
-                console.error('Error fetching Google Calendar:', e);
-                res.status(500).json({ error: 'Failed to fetch calendar data' });
+            const { google } = await import('googleapis');
+            const configs = await runSql(`SELECT access_token, refresh_token, calendar_id FROM calendar_sync_settings WHERE sync_enabled = true LIMIT 1`);
+            if (!configs || configs.length === 0) {
+                return res.status(200).json({ success: true, events: [], message: 'No Google Calendar sync configured' });
+            }
+            const syncConfig = configs[0];
+            if (!syncConfig.access_token || !syncConfig.refresh_token) {
+                return res.status(200).json({ success: true, events: [], message: 'Google Calendar OAuth tokens missing' });
+            }
+            const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
+            oauth2Client.setCredentials({ access_token: syncConfig.access_token, refresh_token: syncConfig.refresh_token });
+            const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+            const sixMonthsAhead = new Date();
+            sixMonthsAhead.setMonth(sixMonthsAhead.getMonth() + 6);
+            const response = await calendar.events.list({
+                calendarId: syncConfig.calendar_id || 'primary',
+                timeMin: sixMonthsAgo.toISOString(),
+                timeMax: sixMonthsAhead.toISOString(),
+                maxResults: 2500,
+                singleEvents: true,
+                orderBy: 'startTime',
             });
+            const events = (response.data.items || []).map((event) => ({
+                id: event.id,
+                title: event.summary || 'Untitled',
+                start: event.start?.dateTime || event.start?.date,
+                end: event.end?.dateTime || event.end?.date,
+                description: event.description || '',
+                location: event.location || '',
+            }));
+            res.json({ success: true, events });
         }
         catch (error) {
-            console.error('Google Calendar sync error:', error);
-            res.status(500).json({ error: 'Calendar sync unavailable' });
+            console.error('Google Calendar fetch error:', error?.message || error);
+            res.status(200).json({ success: true, events: [], message: 'Failed to fetch Google Calendar events' });
         }
     });
     app.post("/api/calendar/appointments", async (req, res) => {
@@ -2402,25 +2387,32 @@ Bitte versuchen Sie es später noch einmal.`;
     // GET /api/calendar/sessions - Retrieve calendar sessions with filters
     app.get("/api/calendar/sessions", authenticateUser, async (req, res) => {
         try {
-            const { start_date, end_date, client_id, session_type, status, limit = '20' } = req.query;
+            const { start_date, end_date, client_id, session_type, status, limit = '200' } = req.query;
             let query = `
         SELECT 
           ps.id,
           ps.client_id,
+          ps.title,
           ps.session_type,
-          ps.session_date,
-          ps.duration_minutes,
-          ps.location,
+          ps.start_time as "startTime",
+          ps.end_time as "endTime",
+          ps.location_name as "locationName",
+          ps.location_address as "locationAddress",
           ps.notes,
-          ps.price,
-          ps.deposit_required,
-          ps.equipment_needed,
+          ps.base_price as "basePrice",
+          ps.deposit_amount as "depositAmount",
+          ps.deposit_paid as "depositPaid",
+          ps.equipment_list as "equipmentList",
           ps.status,
-          ps.created_at,
-          ps.updated_at,
-          c.first_name || ' ' || c.last_name as client_name,
-          c.email as client_email,
-          c.phone as client_phone
+          ps.client_name as "clientName",
+          ps.client_email as "clientEmail",
+          ps.client_phone as "clientPhone",
+          ps.google_calendar_event_id as "googleCalendarEventId",
+          ps.created_at as "createdAt",
+          ps.updated_at as "updatedAt",
+          c.first_name || ' ' || c.last_name as "joinedClientName",
+          c.email as "joinedClientEmail",
+          c.phone as "joinedClientPhone"
         FROM photography_sessions ps
         LEFT JOIN crm_clients c ON ps.client_id = c.id::text
       `;
@@ -2428,12 +2420,12 @@ Bitte versuchen Sie es später noch einmal.`;
             const values = [];
             let paramIndex = 1;
             if (start_date) {
-                conditions.push(`ps.session_date >= $${paramIndex}`);
+                conditions.push(`ps.start_time >= $${paramIndex}`);
                 values.push(start_date);
                 paramIndex++;
             }
             if (end_date) {
-                conditions.push(`ps.session_date <= $${paramIndex}`);
+                conditions.push(`ps.start_time <= $${paramIndex}`);
                 values.push(end_date);
                 paramIndex++;
             }
@@ -2455,7 +2447,7 @@ Bitte versuchen Sie es später noch einmal.`;
             if (conditions.length > 0) {
                 query += ' WHERE ' + conditions.join(' AND ');
             }
-            query += ` ORDER BY ps.session_date ASC LIMIT $${paramIndex}`;
+            query += ` ORDER BY ps.start_time ASC LIMIT $${paramIndex}`;
             values.push(parseInt(limit));
             const sessions = await runSql(query, values);
             res.json(sessions);
@@ -2468,20 +2460,24 @@ Bitte versuchen Sie es später noch einmal.`;
     // POST /api/calendar/sessions - Create new photography session
     app.post("/api/calendar/sessions", authenticateUser, async (req, res) => {
         try {
-            const { client_id, session_type, session_date, duration_minutes = 120, location, notes = '', price = 0, deposit_required = 0, equipment_needed = [] } = req.body;
-            // Validate required fields
-            if (!client_id || !session_type || !session_date || !location) {
+            const { client_id, session_type, title, start_time, end_time, session_date, duration_minutes = 120, location_name, location_address, location, notes = '', base_price = 0, price = 0, deposit_amount = 0, deposit_required = 0, equipment_list = [], equipment_needed = [] } = req.body;
+            const actualStartTime = start_time || session_date;
+            const actualEndTime = end_time || (actualStartTime ? new Date(new Date(actualStartTime).getTime() + (duration_minutes * 60 * 1000)).toISOString() : null);
+            const actualLocation = location_name || location || '';
+            const actualPrice = base_price || price || 0;
+            const actualDeposit = deposit_amount || deposit_required || 0;
+            const actualEquipment = equipment_list.length > 0 ? equipment_list : equipment_needed;
+            if (!client_id || !session_type || !actualStartTime) {
                 return res.status(400).json({
-                    error: 'Missing required fields: client_id, session_type, session_date, location'
+                    error: 'Missing required fields: client_id, session_type, start_time (or session_date)'
                 });
             }
             const sessionId = crypto.randomUUID();
-            // Use parameterized query via pool
             await runSql(`INSERT INTO photography_sessions (
-          id, client_id, session_type, session_date, duration_minutes,
-          location, notes, price, deposit_required, equipment_needed,
+          id, client_id, session_type, title, start_time, end_time,
+          location_name, location_address, notes, base_price, deposit_amount, equipment_list,
           status, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'CONFIRMED', NOW(), NOW())`, [sessionId, client_id, session_type, session_date, duration_minutes, location, notes, price, deposit_required, JSON.stringify(equipment_needed)]);
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'scheduled', NOW(), NOW())`, [sessionId, client_id, session_type, title || session_type, actualStartTime, actualEndTime, actualLocation, location_address || '', notes, actualPrice, actualDeposit, JSON.stringify(actualEquipment)]);
             const [newSession] = (await runSql(`SELECT * FROM photography_sessions WHERE id = $1`, [sessionId]));
             res.status(201).json(newSession);
         }
@@ -2562,20 +2558,21 @@ Bitte versuchen Sie es später noch einmal.`;
                 return res.status(400).json({ error: 'Date parameter is required' });
             }
             // Get existing sessions for the date
-            const existingSessions = await runSql(`SELECT session_date, duration_minutes
+            const existingSessions = await runSql(`SELECT start_time, end_time
         FROM photography_sessions
-        WHERE DATE(session_date) = $1
-        AND status IN ('CONFIRMED', 'PENDING')
-        ORDER BY session_date`, [date]);
+        WHERE DATE(start_time) = $1
+        AND status IN ('scheduled', 'confirmed', 'CONFIRMED', 'PENDING')
+        ORDER BY start_time`, [date]);
             // Define working hours (9 AM to 6 PM)
             const workingHours = { start: 9, end: 18 };
             const requestedDuration = parseInt(duration_minutes);
             const availableSlots = [];
             const bookedSlots = existingSessions.map(session => {
-                const sessionDate = new Date(session.session_date);
+                const sessionStart = new Date(session.start_time);
+                const sessionEnd = new Date(session.end_time);
                 return {
-                    start: sessionDate.getHours() + (sessionDate.getMinutes() / 60),
-                    end: sessionDate.getHours() + (sessionDate.getMinutes() / 60) + (session.duration_minutes / 60)
+                    start: sessionStart.getHours() + (sessionStart.getMinutes() / 60),
+                    end: sessionEnd.getHours() + (sessionEnd.getMinutes() / 60)
                 };
             });
             // Check each hour slot

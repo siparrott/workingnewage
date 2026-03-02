@@ -31,6 +31,7 @@ import {
   setHours,
   setMinutes
 } from 'date-fns';
+import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import {
   createGoogleCalendarEvent,
   deleteGoogleCalendarEvent,
@@ -868,6 +869,9 @@ function generateAvailableSlots(
   const bufferBefore = scheduler.bufferBefore || 0;
   const bufferAfter = scheduler.bufferAfter || 0;
   const totalBlockedTime = duration + bufferBefore + bufferAfter;
+  
+  // Use the scheduler's configured timezone (default: Europe/Vienna)
+  const tz = scheduler.timezone || 'Europe/Vienna';
 
   // For date_range, clamp the iteration window to the scheduler's start/end dates
   let iterStart = startDate;
@@ -927,8 +931,14 @@ function generateAvailableSlots(
       const [startHour, startMin] = window.start.split(':').map(Number);
       const [endHour, endMin] = window.end.split(':').map(Number);
 
-      let slotStart = setMinutes(setHours(day, startHour), startMin);
-      const windowEnd = setMinutes(setHours(day, endHour), endMin);
+      // Use fromZonedTime to convert "local timezone" times to correct UTC
+      // setHours/setMinutes create a date in server-local time (UTC on Heroku),
+      // fromZonedTime interprets those values as being in the scheduler's timezone
+      // and returns the correct UTC Date
+      const localSlotStart = setMinutes(setHours(day, startHour), startMin);
+      let slotStart = fromZonedTime(localSlotStart, tz);
+      const localWindowEnd = setMinutes(setHours(day, endHour), endMin);
+      const windowEnd = fromZonedTime(localWindowEnd, tz);
 
       while (addMinutes(slotStart, totalBlockedTime) <= windowEnd) {
         const slotEnd = addMinutes(slotStart, duration);
@@ -972,7 +982,8 @@ function generateAvailableSlots(
           slots.push({
             start: slotStart,
             end: slotEnd,
-            formatted: format(slotStart, 'HH:mm')
+            // Format the time in the scheduler's timezone for display
+            formatted: formatInTimeZone(slotStart, tz, 'HH:mm')
           });
         }
 

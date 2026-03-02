@@ -164,12 +164,18 @@ export class GoogleCalendarSyncService {
     const results = { imported: 0, updated: 0, deleted: 0, errors: [] as string[] };
 
     try {
-      // Get events modified in the last 6 minutes
+      // Get events modified in the last 6 minutes (covers any changes since last sync)
       const sixMinutesAgo = new Date(Date.now() - 6 * 60 * 1000);
+      // Use a wide time window (1 year back, 2 years ahead) to catch changes to past events too
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      const twoYearsAhead = new Date();
+      twoYearsAhead.setFullYear(twoYearsAhead.getFullYear() + 2);
 
       const response = await this.calendar.events.list({
         calendarId: this.config.calendarId,
-        timeMin: sixMinutesAgo.toISOString(),
+        timeMin: oneYearAgo.toISOString(),
+        timeMax: twoYearsAhead.toISOString(),
         singleEvents: true,
         orderBy: 'updated',
         updatedMin: sixMinutesAgo.toISOString(),
