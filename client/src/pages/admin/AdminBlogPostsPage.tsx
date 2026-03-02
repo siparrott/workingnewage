@@ -54,7 +54,8 @@ const AdminBlogPostsPage: React.FC = () => {
       
       // Fetch all posts - we'll filter by status on the client side
       // This ensures we get SCHEDULED posts which have published=false
-      const response = await fetch('/api/blog/posts', {
+      // Use high limit to get ALL posts (default API limit is 10 which misses older posts)
+      const response = await fetch('/api/blog/posts?limit=200', {
         credentials: 'include'
       });
       
