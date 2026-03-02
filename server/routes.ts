@@ -14845,6 +14845,22 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
 
       const newLead = await db.insert(crmLeads).values(leadData).returning();
 
+      // Also add to email_subscribers for newsletter campaigns
+      try {
+        const existingSub = await db.select().from(emailSubscribers).where(eq(emailSubscribers.email, email)).limit(1);
+        if (existingSub.length === 0) {
+          await db.insert(emailSubscribers).values({
+            email: email,
+            firstName: email.split('@')[0] || 'Subscriber',
+            status: 'active',
+            source: 'form',
+            tags: ['newsletter', 'voucher'],
+          });
+        }
+      } catch (subError) {
+        console.error('Error adding to email_subscribers:', subError);
+      }
+
       // Send voucher email to customer
       try {
         const transporter = nodemailer.createTransport({

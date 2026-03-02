@@ -30,6 +30,73 @@ interface BlogTag {
   slug: string;
 }
 
+// Newsletter signup form component
+function NewsletterForm({ language }: { language: string }) {
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [message, setMessage] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !email.includes('@')) {
+      setStatus('error');
+      setMessage(language === 'de' ? 'Bitte geben Sie eine gültige E-Mail-Adresse ein.' : 'Please enter a valid email address.');
+      return;
+    }
+    setStatus('loading');
+    try {
+      const res = await fetch('/api/newsletter/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setStatus('success');
+        setMessage(data.message || (language === 'de' ? 'Vielen Dank! Prüfen Sie Ihre E-Mails.' : 'Thank you! Check your email.'));
+        setEmail('');
+      } else {
+        setStatus('error');
+        setMessage(data.error || (language === 'de' ? 'Ein Fehler ist aufgetreten.' : 'An error occurred.'));
+      }
+    } catch {
+      setStatus('error');
+      setMessage(language === 'de' ? 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.' : 'An error occurred. Please try again later.');
+    }
+  };
+
+  if (status === 'success') {
+    return (
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+        <p className="text-green-700 font-medium">{message}</p>
+      </div>
+    );
+  }
+
+  return (
+    <form className="space-y-4" onSubmit={handleSubmit}>
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => { setEmail(e.target.value); if (status === 'error') setStatus('idle'); }}
+        placeholder={language === 'de' ? 'Ihre E-Mail-Adresse' : 'Your email address'}
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-purple-600"
+        disabled={status === 'loading'}
+      />
+      {status === 'error' && <p className="text-red-600 text-sm">{message}</p>}
+      <button
+        type="submit"
+        disabled={status === 'loading'}
+        className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+      >
+        {status === 'loading'
+          ? (language === 'de' ? 'Wird gesendet...' : 'Sending...')
+          : (language === 'de' ? 'Abonnieren' : 'Subscribe')}
+      </button>
+    </form>
+  );
+}
+
 const BlogPage: React.FC = () => {
   const { language } = useLanguage();
   const t = useManualPageContent('blog');
@@ -474,19 +541,7 @@ const BlogPage: React.FC = () => {
               <p className="text-gray-600 mb-4">
                 {language === 'de' ? 'Bleiben Sie auf dem Laufenden mit unseren neuesten Fotografie-Tipps und Sonderangeboten.' : 'Stay updated with our latest photography tips and special offers.'}
               </p>
-              <form className="space-y-4">
-                <input
-                  type="email"
-                  placeholder={language === 'de' ? 'Ihre E-Mail-Adresse' : 'Your email address'}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-purple-600"
-                />
-                <button
-                  type="submit"
-                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-                >
-                  {language === 'de' ? 'Abonnieren' : 'Subscribe'}
-                </button>
-              </form>
+              <NewsletterForm language={language} />
             </div>
 
             {/* Popular Services */}
