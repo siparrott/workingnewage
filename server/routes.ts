@@ -1118,6 +1118,29 @@ const audioUpload = multer({
   }
 });
 
+// Configure multer for document uploads (price guide PDF/JPG/Word)
+const documentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 25 * 1024 * 1024, // 25MB limit for documents
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.pdf', '.doc', '.docx'];
+    const ext = file.originalname.toLowerCase().substring(file.originalname.lastIndexOf('.'));
+    if (allowedTypes.includes(file.mimetype) || allowedExtensions.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only PDF, JPG, PNG, WebP, DOC, and DOCX files are allowed.'));
+    }
+  }
+});
+
 // Convert plain text content to structured HTML with proper headings and paragraphs
 function convertPlainTextToStructuredHTML(content: string): string {
   console.log('🔧 Converting text to structured HTML...');
@@ -13134,6 +13157,94 @@ New Age Fotografie CRM System
       res.json(priceList);
     } catch (error) {
       console.error("Error fetching price list:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ==================== PRICE GUIDE DOCUMENT UPLOAD ====================
+  
+  // Upload price guide document (PDF, JPG, Word) to Backblaze B2
+  app.post("/api/crm/price-guide/upload", authenticateUser, documentUpload.single('file'), async (req: Request, res: Response) => {
+    try {
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ error: "No file provided" });
+      }
+
+      const s3Config = getS3Config();
+      const s3 = getS3Client();
+      const ext = file.originalname.substring(file.originalname.lastIndexOf('.')).toLowerCase();
+      const timestamp = Date.now();
+      const key = `price-guides/price-guide-${timestamp}${ext}`;
+
+      await s3.send(new PutObjectCommand({
+        Bucket: s3Config.bucket,
+        Key: key,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+        ACL: 'public-read',
+      }));
+
+      const publicUrl = buildPublicUrl(s3Config.bucket, s3Config.endpoint, key);
+
+      console.log(`[Price Guide] Uploaded: ${file.originalname} -> ${publicUrl}`);
+
+      res.json({
+        success: true,
+        url: publicUrl,
+        filename: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+      });
+    } catch (error) {
+      console.error("Error uploading price guide:", error);
+      res.status(500).json({ error: "Failed to upload price guide" });
+    }
+  });
+
+  // Get/set price guide metadata (stored in a simple key-value approach using studio_configs notes)
+  app.get("/api/crm/price-guide/info", async (req: Request, res: Response) => {
+    try {
+      // Try to get from database - we'll store as a simple JSON in a known location
+      const result = await db.select().from(priceListItems).where(eq(priceListItems.category, '__PRICE_GUIDE_DOC__')).limit(1);
+      if (result.length > 0) {
+        const meta = result[0];
+        res.json({
+          url: meta.description || '',
+          filename: meta.name || '',
+          mimetype: meta.unit || '',
+          uploadedAt: meta.createdAt,
+        });
+      } else {
+        res.json({ url: null, filename: null });
+      }
+    } catch (error) {
+      console.error("Error fetching price guide info:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Save price guide metadata after upload
+  app.post("/api/crm/price-guide/save-info", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { url, filename, mimetype } = req.body;
+      
+      // Delete old metadata entry
+      await db.delete(priceListItems).where(eq(priceListItems.category, '__PRICE_GUIDE_DOC__'));
+      
+      // Insert new entry with metadata 
+      await db.insert(priceListItems).values({
+        name: filename || 'Price Guide',
+        description: url,
+        category: '__PRICE_GUIDE_DOC__',
+        price: '0',
+        unit: mimetype || 'application/pdf',
+        isActive: false, // Hidden from normal price list queries (which filter isActive=true)
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error saving price guide info:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });

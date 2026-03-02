@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../../components/admin/AdminLayout';
 import { useLanguage } from '../../../context/LanguageContext';
 import {
@@ -12,7 +12,10 @@ import {
   FileText,
   CheckCircle,
   AlertCircle,
-  X
+  X,
+  Eye,
+  Image as ImageIcon,
+  File
 } from 'lucide-react';
 import { Tag, RefreshCcw, ShieldCheck, Clock } from 'lucide-react';
 import { priceListService, PriceListItem } from '../../../lib/invoicing';
@@ -44,23 +47,32 @@ const PriceListSettingsPage: React.FC = () => {
     category: '',
     price: '',
     currency: 'EUR',
-    taxRate: '19.00',
+    taxRate: '20.00',
     unit: 'piece',
     notes: '',
     isActive: true
   });
 
+  // Price guide document state
+  const [priceGuideUrl, setPriceGuideUrl] = useState<string | null>(null);
+  const [priceGuideFilename, setPriceGuideFilename] = useState<string | null>(null);
+  const [priceGuideMimetype, setPriceGuideMimetype] = useState<string | null>(null);
+  const [uploadingGuide, setUploadingGuide] = useState(false);
+  const [showPriceGuidePreview, setShowPriceGuidePreview] = useState(false);
+  const priceGuideInputRef = useRef<HTMLInputElement>(null);
+
   const categories = [
     'ALL',
+    'PRINTS',
+    'LEINWAND',
+    'LUXUSRAHMEN',
     'DIGITAL',
-    'CANVAS', 
-    'LUXURY_FRAME',
-    'PRINT',
     'EXTRAS'
   ];
 
   useEffect(() => {
     fetchPriceList();
+    fetchPriceGuideInfo();
   }, []);
 
   const saveAdminToken = (val: string) => {
@@ -125,6 +137,63 @@ const PriceListSettingsPage: React.FC = () => {
       console.error('Failed to fetch price list:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPriceGuideInfo = async () => {
+    try {
+      const response = await fetch('/api/crm/price-guide/info');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.url) {
+          setPriceGuideUrl(data.url);
+          setPriceGuideFilename(data.filename);
+          setPriceGuideMimetype(data.mimetype);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch price guide info:', error);
+    }
+  };
+
+  const handlePriceGuideUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingGuide(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const uploadResponse = await fetch('/api/crm/price-guide/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) throw new Error('Upload failed');
+      const uploadResult = await uploadResponse.json();
+
+      // Save metadata
+      await fetch('/api/crm/price-guide/save-info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: uploadResult.url,
+          filename: uploadResult.filename,
+          mimetype: uploadResult.mimetype,
+        }),
+      });
+
+      setPriceGuideUrl(uploadResult.url);
+      setPriceGuideFilename(uploadResult.filename);
+      setPriceGuideMimetype(uploadResult.mimetype);
+      alert('Price guide uploaded successfully!');
+    } catch (error) {
+      console.error('Failed to upload price guide:', error);
+      alert('Failed to upload price guide. Please try again.');
+    } finally {
+      setUploadingGuide(false);
+      if (priceGuideInputRef.current) priceGuideInputRef.current.value = '';
     }
   };
 
@@ -349,6 +418,94 @@ const PriceListSettingsPage: React.FC = () => {
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          {/* Price Guide Document Upload */}
+          <div className="mb-8">
+            <div className="flex items-center mb-3">
+              <FileText className="h-5 w-5 text-green-600 mr-2" />
+              <h2 className="text-lg font-semibold text-gray-900">Price Guide Document</h2>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Upload your price guide (PDF, JPG, or Word document) as a reference. This will be stored alongside your price list items.
+            </p>
+            
+            <div className="flex items-start gap-4">
+              {/* Upload Area */}
+              <div className="flex-1">
+                <input
+                  ref={priceGuideInputRef}
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"
+                  onChange={handlePriceGuideUpload}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => priceGuideInputRef.current?.click()}
+                  disabled={uploadingGuide}
+                  className="w-full flex items-center justify-center px-4 py-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-400 focus:outline-none focus:border-green-400 disabled:opacity-50 transition-colors"
+                >
+                  {uploadingGuide ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600 mr-2"></div>
+                      <span className="text-sm text-gray-600">Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-5 h-5 mr-2 text-gray-400" />
+                      <span className="text-sm text-gray-600">
+                        {priceGuideUrl ? 'Replace price guide document' : 'Upload price guide (PDF, JPG, Word)'}
+                      </span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Current Document Preview */}
+              {priceGuideUrl && (
+                <div className="flex-shrink-0 bg-green-50 border border-green-200 rounded-lg p-4 min-w-[250px]">
+                  <div className="flex items-center gap-2 mb-2">
+                    {priceGuideMimetype?.startsWith('image/') ? (
+                      <ImageIcon className="h-5 w-5 text-green-600" />
+                    ) : priceGuideMimetype === 'application/pdf' ? (
+                      <FileText className="h-5 w-5 text-red-500" />
+                    ) : (
+                      <File className="h-5 w-5 text-blue-500" />
+                    )}
+                    <span className="text-sm font-medium text-gray-900 truncate max-w-[180px]">
+                      {priceGuideFilename || 'Price Guide'}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <a
+                      href={priceGuideUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center px-3 py-1.5 text-xs font-medium text-green-700 bg-green-100 rounded hover:bg-green-200 transition-colors"
+                    >
+                      <Eye className="h-3 w-3 mr-1" /> View
+                    </a>
+                    <a
+                      href={priceGuideUrl}
+                      download={priceGuideFilename}
+                      className="flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+                    >
+                      <Download className="h-3 w-3 mr-1" /> Download
+                    </a>
+                  </div>
+                  {priceGuideMimetype?.startsWith('image/') && (
+                    <div className="mt-3">
+                      <img 
+                        src={priceGuideUrl} 
+                        alt="Price Guide Preview" 
+                        className="w-full rounded border border-green-200 cursor-pointer hover:opacity-90"
+                        onClick={() => setShowPriceGuidePreview(true)}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Coupons Status (Admin) */}
           <div className="mb-8">
             <div className="flex items-center mb-3">
@@ -796,6 +953,29 @@ const PriceListSettingsPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Price Guide Full Preview Modal */}
+      {showPriceGuidePreview && priceGuideUrl && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-8"
+          onClick={() => setShowPriceGuidePreview(false)}
+        >
+          <div className="relative max-w-4xl max-h-full">
+            <button
+              onClick={() => setShowPriceGuidePreview(false)}
+              className="absolute -top-10 right-0 text-white hover:text-gray-300"
+            >
+              <X className="h-8 w-8" />
+            </button>
+            <img 
+              src={priceGuideUrl} 
+              alt="Price Guide" 
+              className="max-w-full max-h-[85vh] object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 };

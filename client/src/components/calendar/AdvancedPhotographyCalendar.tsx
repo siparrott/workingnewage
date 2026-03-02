@@ -988,9 +988,9 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
               onChange={(e) => setView(e.target.value as CalendarView)}
               className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
             >
-              <option value="month">Month</option>
-              <option value="week">Week</option>
               <option value="day">Day</option>
+              <option value="week">Week</option>
+              <option value="month">Month</option>
               <option value="agenda">Agenda</option>
               <option value="list">List</option>
             </select>
@@ -1070,7 +1070,7 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
           <div className="flex items-center space-x-4">
             {/* View tabs - pill style */}
             <div className="flex bg-gray-100 rounded-lg p-1">
-              {(['month', 'week', 'day', 'agenda', 'list'] as CalendarView[]).map(viewType => (
+              {(['day', 'week', 'month', 'agenda', 'list'] as CalendarView[]).map(viewType => (
                 <button
                   key={viewType}
                   onClick={() => setView(viewType)}
