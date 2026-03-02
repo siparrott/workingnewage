@@ -380,8 +380,13 @@ const PhotographyCalendarPage: React.FC = () => {
   const fetchSessions = async () => {
     try {
       setIsLoading(true);
+      // Limit to ±2 years to avoid loading 24k+ historical sessions
+      const now = new Date();
+      const from = new Date(now.getFullYear() - 2, 0, 1).toISOString();
+      const to = new Date(now.getFullYear() + 2, 11, 31).toISOString();
+
       // Try authenticated endpoint first, fallback to debug endpoint
-      let response = await fetch('/api/photography/sessions', {
+      let response = await fetch(`/api/photography/sessions?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, {
         credentials: 'include',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token') || ''}`

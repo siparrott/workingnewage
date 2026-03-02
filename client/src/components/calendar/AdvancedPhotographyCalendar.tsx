@@ -265,8 +265,8 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
     );
   };
 
-  // Filter and search sessions
-  const filteredSessions = sessions.filter(session => {
+  // Filter and search sessions (memoized to avoid re-computing on every render)
+  const filteredSessions = React.useMemo(() => sessions.filter(session => {
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -308,7 +308,25 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
     }
 
     return true;
-  });
+  }), [sessions, searchQuery, filterType, filterValue, filterMonth, filterYear]);
+
+  // Pre-compute date-indexed map for O(1) per-cell lookups
+  // Eliminates ~1M parseISO+isSameDay calls per render (24k sessions × 42 cells)
+  const sessionsByDate = React.useMemo(() => {
+    const map = new Map<string, PhotographySession[]>();
+    for (const session of filteredSessions) {
+      const st = session.startTime ? parseISO(session.startTime) : null;
+      const et = !st && session.endTime ? parseISO(session.endTime) : null;
+      const date = st || et;
+      if (date && !isNaN(date.getTime())) {
+        const key = format(date, 'yyyy-MM-dd');
+        const list = map.get(key);
+        if (list) list.push(session);
+        else map.set(key, [session]);
+      }
+    }
+    return map;
+  }, [filteredSessions]);
 
   // Get unique values for filters
   const sessionTypes = Array.from(new Set(sessions.map(s => s.sessionType)));
@@ -416,11 +434,7 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
         {/* Calendar grid */}
         <div className="grid grid-cols-7">
           {calendarDays.map((day, index) => {
-            const daysSessions = filteredSessions.filter(session => {
-              const st = session.startTime ? parseISO(session.startTime) : null;
-              const et = !st && session.endTime ? parseISO(session.endTime) : null;
-              return (st && isSameDay(st, day)) || (et && isSameDay(et, day));
-            });
+            const daysSessions = sessionsByDate.get(format(day, 'yyyy-MM-dd')) || [];
             const isCurrentMonth = isSameMonth(day, currentDate);
             const isToday = isSameDay(day, new Date());
             const isSelected = selectedDate && isSameDay(day, selectedDate);
@@ -517,11 +531,7 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
 
           {/* Day columns */}
           {weekDays.map(day => {
-            const daysSessions = filteredSessions.filter(session => {
-              const st = session.startTime ? parseISO(session.startTime) : null;
-              const et = !st && session.endTime ? parseISO(session.endTime) : null;
-              return (st && isSameDay(st, day)) || (et && isSameDay(et, day));
-            });
+            const daysSessions = sessionsByDate.get(format(day, 'yyyy-MM-dd')) || [];
             const isToday = isSameDay(day, new Date());
 
             return (
@@ -585,11 +595,7 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
 
   const renderDayView = () => {
     const hours = Array.from({ length: 24 }, (_, i) => i);
-    const daysSessions = filteredSessions.filter(session => {
-      const st = session.startTime ? parseISO(session.startTime) : null;
-      const et = !st && session.endTime ? parseISO(session.endTime) : null;
-      return (st && isSameDay(st, currentDate)) || (et && isSameDay(et, currentDate));
-    });
+    const daysSessions = sessionsByDate.get(format(currentDate, 'yyyy-MM-dd')) || [];
 
     return (
       <div className="overflow-auto max-h-[600px]">
