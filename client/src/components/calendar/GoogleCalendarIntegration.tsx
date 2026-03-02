@@ -37,10 +37,29 @@ const GoogleCalendarIntegration: React.FC<GoogleCalendarIntegrationProps> = ({
 
   // Listen for OAuth callback from popup
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
+    const handleMessage = async (event: MessageEvent) => {
       if (event.data.type === 'GOOGLE_CALENDAR_CONNECTED') {
         fetchSyncStatus();
         onConnectionSuccess?.();
+        // Auto-trigger a full sync after fresh OAuth connection
+        try {
+          setSyncing(true);
+          const resp = await fetch('/api/calendar/manual-sync', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+          });
+          const data = await resp.json();
+          if (resp.ok && data.success) {
+            alert(`Calendar synced!\nImported: ${data.imported || 0}\nUpdated: ${data.updated || 0}`);
+            fetchSyncStatus();
+            onConnectionSuccess?.();
+          }
+        } catch (e) {
+          console.error('Auto-sync after connect failed:', e);
+        } finally {
+          setSyncing(false);
+        }
       }
     };
     window.addEventListener('message', handleMessage);
