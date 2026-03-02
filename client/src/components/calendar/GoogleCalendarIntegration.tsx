@@ -14,6 +14,7 @@ interface SyncStatus {
   calendarId?: string;
   lastSyncAt?: string;
   email?: string;
+  tokenExpired?: boolean;
 }
 
 const GoogleCalendarIntegration: React.FC<GoogleCalendarIntegrationProps> = ({
@@ -139,17 +140,22 @@ const GoogleCalendarIntegration: React.FC<GoogleCalendarIntegrationProps> = ({
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      if (response.ok) {
-        const results = await response.json();
-        alert(`Sync complete!\nImported: ${results.imported || 0}\nUpdated: ${results.updated || 0}`);
+      const data = await response.json();
+      if (response.ok && data.success) {
+        alert(`Sync complete!\nImported: ${data.imported || 0}\nUpdated: ${data.updated || 0}`);
         fetchSyncStatus();
         onConnectionSuccess?.();
+      } else if (data.tokenExpired) {
+        // Token expired - show clear message and update status
+        setSyncStatus(prev => ({ ...prev, tokenExpired: true }));
+        alert('Google Calendar authorization has expired.\n\nPlease click "Disconnect" and then "Connect Google Calendar" again to re-authorize.');
       } else {
-        alert('Sync failed');
+        const errorMsg = data.errors?.join(', ') || data.error || 'Unknown error';
+        alert(`Sync failed: ${errorMsg}`);
       }
     } catch (error) {
       console.error('Error syncing:', error);
-      alert('Failed to sync');
+      alert('Failed to sync - network error');
     } finally {
       setSyncing(false);
     }
@@ -321,19 +327,27 @@ const GoogleCalendarIntegration: React.FC<GoogleCalendarIntegrationProps> = ({
               ) : syncStatus.connected ? (
                 <>
                   {/* Connected Status */}
-                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <div className={`${syncStatus.tokenExpired ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'} p-4 rounded-lg border`}>
                     <div className="flex items-center space-x-3">
-                      <Check className="text-green-600" size={24} />
+                      {syncStatus.tokenExpired ? (
+                        <AlertCircle className="text-red-600" size={24} />
+                      ) : (
+                        <Check className="text-green-600" size={24} />
+                      )}
                       <div>
-                        <h4 className="font-medium text-green-900">Google Calendar Connected</h4>
-                        {syncStatus.email && (
-                          <p className="text-sm text-green-700">Connected as: {syncStatus.email}</p>
+                        <h4 className={`font-medium ${syncStatus.tokenExpired ? 'text-red-900' : 'text-green-900'}`}>
+                          {syncStatus.tokenExpired ? 'Google Calendar Authorization Expired' : 'Google Calendar Connected'}
+                        </h4>
+                        {syncStatus.tokenExpired && (
+                          <p className="text-sm text-red-700 font-medium">
+                            Please disconnect and reconnect to re-authorize.
+                          </p>
                         )}
-                        {syncStatus.calendarId && (
-                          <p className="text-sm text-green-700">Calendar: {syncStatus.calendarId}</p>
+                        {syncStatus.email && (
+                          <p className={`text-sm ${syncStatus.tokenExpired ? 'text-red-700' : 'text-green-700'}`}>Calendar: {syncStatus.email}</p>
                         )}
                         {syncStatus.lastSyncAt && (
-                          <p className="text-sm text-green-600">
+                          <p className={`text-sm ${syncStatus.tokenExpired ? 'text-red-600' : 'text-green-600'}`}>
                             Last synced: {new Date(syncStatus.lastSyncAt).toLocaleString()}
                           </p>
                         )}

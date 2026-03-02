@@ -213,7 +213,31 @@ app.use((req, res, next) => {
     
     // Manual Google Calendar sync endpoint (per-user) - does FULL import of all events
     // MUST be registered BEFORE serveStatic to avoid catch-all interference
-    app.post('/api/calendar/manual-sync', requireAuth, async (req: Request, res: Response) => {
+    // Supports both session auth (requireAuth) and JWT Bearer tokens
+    const manualSyncAuth = async (req: any, res: any, next: any) => {
+      // Check session first
+      if (req.session && req.session.userId) {
+        return requireAuth(req, res, next);
+      }
+      // Fall back to JWT Bearer token
+      const authHeader = req.headers['authorization'] as string;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+          const jwt = await import('jsonwebtoken');
+          const secret = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'default-secret';
+          const decoded = jwt.default.verify(authHeader.substring(7), secret) as any;
+          if (decoded && decoded.userId) {
+            req.user = { id: decoded.userId, role: decoded.role || 'admin' };
+            return next();
+          }
+        } catch (jwtErr) {
+          console.warn('[manual-sync] JWT verification failed:', (jwtErr as any)?.message);
+        }
+      }
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    };
+
+    app.post('/api/calendar/manual-sync', manualSyncAuth, async (req: Request, res: Response) => {
       try {
         const userId = (req as any).user?.id;
         if (!userId) return res.status(401).json({ error: 'Not authenticated' });
@@ -222,8 +246,18 @@ app.use((req, res, next) => {
         const results = await importGoogleCalendarEvents(undefined, userId);
         res.json({ success: true, ...results });
       } catch (e: any) {
-        console.error('Manual sync error:', e?.message || e);
-        res.status(500).json({ success: false, errors: [e?.message || 'Manual sync failed'] });
+        const msg = e?.message || 'Manual sync failed';
+        console.error('Manual sync error:', msg);
+        // Detect invalid_grant = tokens expired, user must re-authorize
+        if (msg.includes('invalid_grant')) {
+          return res.status(401).json({
+            success: false,
+            tokenExpired: true,
+            error: 'Google Calendar authorization has expired. Please disconnect and reconnect your Google Calendar in the Calendar Sync settings.',
+            errors: [msg]
+          });
+        }
+        res.status(500).json({ success: false, errors: [msg] });
       }
     });
 

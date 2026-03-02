@@ -1091,31 +1091,27 @@ const PhotographyCalendarPage: React.FC = () => {
           }}
           onSyncExternalCalendar={async () => {
             try {
-              // Prefer a configured ICS URL; otherwise prompt the user
-              const preset = (import.meta as any).env?.VITE_GOOGLE_ICS_URL || (import.meta as any).env?.VITE_ICS_URL || '';
-              const icsUrl = preset || window.prompt('Paste your Google "Secret address in iCal format" (ends with /basic.ics):', '');
-              if (!icsUrl) return;
-
-              const params = new URLSearchParams({ includePast: 'true' });
-              const resp = await fetch(`/api/calendar/import/google?${params.toString()}`, {
+              // Use the OAuth-based manual sync endpoint (not the old ICS import)
+              const resp = await fetch('/api/calendar/manual-sync', {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
                   'Content-Type': 'application/json',
                   'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
                 },
-                body: JSON.stringify({ icsUrl })
               });
-              if (!resp.ok) {
-                const err = await resp.json().catch(() => ({}));
-                alert(`Sync failed: ${err.error || resp.statusText}`);
-                return;
-              }
               const data = await resp.json();
-              alert(`Sync complete. Imported ${data.imported ?? 0} events.`);
-              fetchSessions();
+              if (resp.ok && data.success) {
+                alert(`Sync complete! Imported ${data.imported ?? 0}, Updated ${data.updated ?? 0} events.`);
+                fetchSessions();
+              } else if (data.tokenExpired) {
+                alert('Google Calendar authorization has expired.\n\nPlease open Calendar Sync settings and click "Disconnect", then "Connect Google Calendar" to re-authorize.');
+              } else {
+                const errorMsg = data.errors?.join(', ') || data.error || resp.statusText;
+                alert(`Sync failed: ${errorMsg}`);
+              }
             } catch (e) {
-              alert('Error syncing from Google Calendar.');
+              alert('Error syncing from Google Calendar. Please check Calendar Sync settings.');
             }
           }}
           onOpenSettings={() => setShowGoogleCalendarModal(true)}
