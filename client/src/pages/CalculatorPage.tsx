@@ -17,7 +17,7 @@ const CalculatorPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-center mb-8">Calculator</h1>
           <div className="qk-widget" style={{ maxWidth: '720px', margin: '0 auto' }}>
             <iframe
-              src="https://pricingembed.com/embed/embed_ai_1772205603334_ga23a4r92"
+              src="https://pricingembed.com/embed/embed_ai_1772535371344_q0lkcwv9x"
               width="100%"
               height="600"
               frameBorder="0"
