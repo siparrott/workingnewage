@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { formatAppDateTime } from '../../lib/dateFormat';
 
 type LeadRow = {
   id: string;
@@ -72,7 +73,7 @@ export default function NewLeadsSimplePage() {
           <tbody className="bg-white divide-y divide-gray-200">
             {rows.map((r) => (
               <tr key={r.id} className="hover:bg-gray-50">
-                <td className="px-4 py-2 text-sm text-gray-600">{new Date(r.created_at).toLocaleString()}</td>
+                <td className="px-4 py-2 text-sm text-gray-600">{formatAppDateTime(r.created_at)}</td>
                 <td className="px-4 py-2 text-sm">{r.form_type}</td>
                 <td className="px-4 py-2 text-sm">{r.full_name || '—'}</td>
                 <td className="px-4 py-2 text-sm">{r.email}</td>

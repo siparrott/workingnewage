@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Plus, Search, Filter, Eye, Edit, Trash2, Phone, Mail, Calendar, CheckCircle, MessageSquare, UserCheck } from 'lucide-react';
 import { Lead, getLeads, updateLeadStatus, deleteLead, bulkMarkNewAsContacted } from '../../lib/leads';
+import { formatAppDateTime } from '../../lib/dateFormat';
 
 const AdminLeadsPage: React.FC = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -286,10 +287,7 @@ const AdminLeadsPage: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-  };
+  const formatDate = (dateString: string) => formatAppDateTime(dateString);
 
   return (
     <AdminLayout>

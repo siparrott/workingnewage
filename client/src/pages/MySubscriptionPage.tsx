@@ -6,6 +6,7 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { formatAppDateLong } from './../../lib/dateFormat';
 import {
   CreditCard,
   Package,
@@ -128,11 +129,7 @@ function formatBytes(bytes: number, decimals: number = 2): string {
 }
 
 function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  return formatAppDateLong(dateString);
 }
 
 export default function MySubscriptionPage() {

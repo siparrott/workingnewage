@@ -1,16 +1,17 @@
 import nodemailer from 'nodemailer';
+import { config } from '../config-reader';
 
 // Email service for questionnaire notifications
 export async function sendStudioNotificationEmail(clientName: string, clientEmail: string, answers: any, link: any) {
   try {
-    // Get email settings from database or environment
+    // Get email settings from DB first, then environment variables
     const emailSettings = {
-      host: process.env.SMTP_HOST || 'smtp.easyname.com',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      user: process.env.SMTP_USER || process.env.EMAIL_USER,
-      pass: process.env.SMTP_PASS || process.env.EMAIL_PASS,
-      fromEmail: process.env.FROM_EMAIL || 'studio@newagefotografie.com',
-      studioEmail: process.env.STUDIO_NOTIFY_EMAIL || 'studio@newagefotografie.com'
+      host: await config.getOrDefault('smtp_host', 'smtp.easyname.com'),
+      port: await config.getNumber('smtp_port', 587),
+      user: await config.get('smtp_user') || process.env.EMAIL_USER,
+      pass: await config.get('smtp_pass') || process.env.EMAIL_PASS,
+      fromEmail: await config.getOrDefault('from_email', ''),
+      studioEmail: await config.getOrDefault('studio_notify_email', '')
     };
 
     if (!emailSettings.user || !emailSettings.pass) {

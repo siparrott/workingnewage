@@ -60,6 +60,7 @@ export const studioConfigs = pgTable("studio_configs", {
   latitude: decimal("latitude", { precision: 10, scale: 7 }), // e.g., 48.2082000 (Vienna)
   longitude: decimal("longitude", { precision: 10, scale: 7 }), // e.g., 16.3738000 (Vienna)
   timezone: text("timezone").default("Europe/Vienna"),
+  dateFormat: text("date_format").default("auto"), // 'auto' | BCP-47 locale e.g. 'de-AT', 'en-US'
   
   // Social Media
   facebookUrl: text("facebook_url"),
@@ -75,6 +76,19 @@ export const studioConfigs = pgTable("studio_configs", {
   // SEO
   metaTitle: text("meta_title"),
   metaDescription: text("meta_description"),
+  
+  // URLs (configurable per deployment)
+  appUrl: text("app_url"),                     // e.g. https://app.mystudio.com
+  frontendUrl: text("frontend_url"),             // e.g. https://mystudio.com
+  publicSiteBaseUrl: text("public_site_base_url"), // e.g. https://www.mystudio.com
+  
+  // Analytics & Tracking
+  ga4MeasurementId: text("ga4_measurement_id"),  // e.g. G-XXXXXXXXXX
+  metaPixelId: text("meta_pixel_id"),            // e.g. 123456789
+  
+  // Onboarding / Setup
+  technicalSetupComplete: boolean("technical_setup_complete").default(false),
+  creativeSetupComplete: boolean("creative_setup_complete").default(false),
   
   // Status
   isActive: boolean("is_active").default(true),
@@ -1457,16 +1471,52 @@ export const studioIntegrations = pgTable("studio_integrations", {
   smtp_port: integer("smtp_port").default(587),
   smtp_user: text("smtp_user"),
   smtp_pass_encrypted: text("smtp_pass_encrypted"),
+  smtp_secure: boolean("smtp_secure").default(false),
   inbound_email_address: text("inbound_email_address"),
   default_from_email: text("default_from_email"),
+  email_from_name: text("email_from_name"),
+  
+  // IMAP Configuration (for inbox feature)
+  imap_host: text("imap_host"),
+  imap_port: integer("imap_port").default(993),
+  imap_user: text("imap_user"),
+  imap_pass_encrypted: text("imap_pass_encrypted"),
+  imap_tls: boolean("imap_tls").default(true),
   
   // Stripe Configuration
   stripe_account_id: text("stripe_account_id"),
   stripe_publishable_key: text("stripe_publishable_key"),
   stripe_secret_key_encrypted: text("stripe_secret_key_encrypted"),
+  stripe_webhook_secret_encrypted: text("stripe_webhook_secret_encrypted"),
   
   // OpenAI Configuration
   openai_api_key_encrypted: text("openai_api_key_encrypted"),
+  openai_assistant_id: text("openai_assistant_id"),
+  
+  // Anthropic Configuration
+  anthropic_api_key_encrypted: text("anthropic_api_key_encrypted"),
+  
+  // File Storage (Backblaze B2 / S3 / R2)
+  storage_provider: text("storage_provider").default("backblaze"), // backblaze, s3, r2
+  storage_access_key_id: text("storage_access_key_id"),
+  storage_secret_key_encrypted: text("storage_secret_key_encrypted"),
+  storage_bucket: text("storage_bucket"),
+  storage_endpoint: text("storage_endpoint"),
+  storage_region: text("storage_region"),
+  
+  // Google OAuth & Calendar
+  google_client_id: text("google_client_id"),
+  google_client_secret_encrypted: text("google_client_secret_encrypted"),
+  google_calendar_id: text("google_calendar_id"),
+  
+  // Brevo (email marketing)
+  brevo_api_key_encrypted: text("brevo_api_key_encrypted"),
+  
+  // SMS / WhatsApp
+  sms_provider: text("sms_provider"),            // vonage, twilio, none
+  sms_account_sid: text("sms_account_sid"),
+  sms_auth_token_encrypted: text("sms_auth_token_encrypted"),
+  sms_from_number: text("sms_from_number"),
   
   // Currency and Regional Settings
   default_currency: text("default_currency").default("EUR"),

@@ -318,6 +318,7 @@ let lastCalendarImportStatus: {
 } = {};
 import workflowWizardRoutes from './routes/workflow-wizard';
 import setupRoutes from './setup-routes';
+import technicalSetupRoutes from './technical-setup-routes';
 import questionnairesRouter from './routes/questionnaires';
 import galleryShopRouter from './routes/gallery-shop';
 import authRoutes from './routes/auth';
@@ -373,6 +374,25 @@ async function resolveContactEmail(): Promise<string> {
   }
 }
 
+/**
+ * Centralised business identity helpers.
+ * Reads from studioConfigs (DB) first, then env vars, then empty-string fallback.
+ * These are synchronous but rely on env vars or values resolved earlier.
+ */
+function getBizName(): string {
+  return process.env.BUSINESS_NAME || 'My Studio';
+}
+function getBizWebsite(): string {
+  return process.env.WEBSITE_URL || process.env.FRONTEND_URL || '';
+}
+function getBizDomain(): string {
+  if (process.env.WEBSITE_DOMAIN) return process.env.WEBSITE_DOMAIN;
+  try { return new URL(getBizWebsite()).hostname; } catch { return 'localhost'; }
+}
+function getBaseUrl(): string {
+  return process.env.FRONTEND_URL || process.env.APP_URL || '';
+}
+
 // Modern PDF invoice generator with actual logo and all required sections
 async function generateModernInvoicePDF(invoice: any, client: any): Promise<Buffer> {
   // Load invoice items from database
@@ -382,10 +402,10 @@ async function generateModernInvoicePDF(invoice: any, client: any): Promise<Buff
   // Default studio configuration
   let studioConfig = {
     logo: null as string | null,
-    studioName: 'New Age Fotografie',
-    address: 'Wehrgasse 11A/2+5, 1050 Wien',
-    phone: '+43 699 194 77 607',
-    email: contactEmail || 'kontakt@newagefotografie.com'
+    studioName: getBizName(),
+    address: process.env.BUSINESS_ADDRESS || '',
+    phone: process.env.BUSINESS_PHONE || '',
+    email: contactEmail || getEnvContactEmailSync() || 'no-reply@localhost'
   };
   
   // Try to fetch dynamic studio configuration
@@ -661,7 +681,7 @@ async function generateModernInvoicePDF(invoice: any, client: any): Promise<Buff
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text('New Age Fotografie – Professionelle Fotografie seit 2020', 20, footerY + 2);
+  doc.text(getBizName(), 20, footerY + 2);
   doc.text('Vielen Dank für Ihr Vertrauen! 🙏', 20, footerY + 8);
 
   return Buffer.from(doc.output('arraybuffer'));
@@ -676,8 +696,7 @@ function generateTextInvoice(invoice: any, client: any): string {
   const total = parseFloat(invoice.total?.toString() || invoice.total_amount?.toString() || '0');
   
   return `
-NEW AGE FOTOGRAFIE
-Professionelle Fotografie in Wien
+${getBizName().toUpperCase()}
 =================================
 
 RECHNUNG
@@ -701,11 +720,11 @@ Status: ${invoice.status === 'paid' ? 'BEZAHLT' : 'OFFEN'}
 
 Kontakt:
 --------
-New Age Fotografie
-Wehrgasse 11A/2+5, 1050 Wien
-Tel: +43 677 633 99210
+${getBizName()}
+${process.env.BUSINESS_ADDRESS || ''}
+Tel: ${process.env.BUSINESS_PHONE || ''}
 Email: ${contactEmail}
-Web: www.newagefotografie.com
+Web: ${getBizWebsite()}
 
 Vielen Dank für Ihr Vertrauen!
   `.trim();
@@ -945,13 +964,13 @@ function generateInvoiceHTML(invoice: any, client: any): string {
         <div class="company-info">
           <div class="logo-section">
             <!-- Logo removed for PDF generation -->
-            <h1>New Age Fotografie</h1>
+            <h1>${getBizName()}</h1>
           </div>
           <div class="company-details">
             <p><strong>Adresse:</strong> Wehrgasse 11A/2+5, 1050 Wien, Austria</p>
             <p><strong>Telefon:</strong> +43 677 633 99210</p>
             <p><strong>Email:</strong> ${getEnvContactEmailSync()}</p>
-            <p><strong>Website:</strong> www.newagefotografie.com</p>
+            <p><strong>Website:</strong> ${getBizWebsite()}</p>
             <p><strong>UID:</strong> ATU12345678 | <strong>FN:</strong> 123456a</p>
           </div>
         </div>
@@ -1046,9 +1065,9 @@ function generateInvoiceHTML(invoice: any, client: any): string {
         <div class="footer-content">
           <div class="footer-section">
             <h4>Kontakt</h4>
-            <p><strong>New Age Fotografie</strong></p>
-            <p>Wehrgasse 11A/2+5, 1050 Wien</p>
-            <p>Tel: +43 677 633 99210</p>
+            <p><strong>${getBizName()}</strong></p>
+            <p>${process.env.BUSINESS_ADDRESS || ''}</p>
+            <p>Tel: ${process.env.BUSINESS_PHONE || ''}</p>
             <p>Email: ${getEnvContactEmailSync()}</p>
           </div>
           <div class="footer-section">
@@ -1056,7 +1075,7 @@ function generateInvoiceHTML(invoice: any, client: any): string {
             <p>UID-Nr.: ATU12345678</p>
             <p>Firmenbuchnummer: FN 123456a</p>
             <p>Gerichtsstand: Wien</p>
-            <p>Website: www.newagefotografie.com</p>
+            <p>Website: ${getBizWebsite()}</p>
           </div>
           <div class="footer-section">
             <h4>Bankverbindung</h4>
@@ -1412,6 +1431,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Wizard - SmartTog Hub onboarding integration
   app.use('/api/setup', setupRoutes);
   console.log('✅ /api/setup routes registered');
+
+  // Technical Setup Wizard - Stage 1 onboarding (infrastructure & credentials)
+  app.use('/api/setup/technical', technicalSetupRoutes);
+  console.log('✅ /api/setup/technical routes registered');
 
   // Health check endpoint for deployment
   app.get("/api/health", (req, res) => {
@@ -2921,7 +2944,7 @@ Bitte versuchen Sie es später noch einmal.`;
         id: msg.id,
         subject: msg.subject,
         from: msg.senderEmail,
-        to: msg.recipientEmail || 'hallo@newagefotografie.com',
+        to: msg.recipientEmail || getEnvContactEmailSync() || 'no-reply@localhost',
         content: msg.content,
         timestamp: msg.createdAt || msg.sentAt || new Date().toISOString(),
         type: msg.direction === 'outbound' ? 'sent' : 'received'
@@ -4984,7 +5007,7 @@ Bitte versuchen Sie es später noch einmal.`;
       }
       
       // Use frontend-provided gallery_url, or build from environment/host
-      const link = gallery_url || `https://www.newagefotografie.com/gallery/${gallery.slug}`;
+      const link = gallery_url || `${getBaseUrl()}/gallery/${gallery.slug}`;
       const pwdNote = (gallery.is_password_protected && gallery.password) 
         ? `<p>Password: <strong>${gallery.password}</strong></p>` 
         : '';
@@ -4996,7 +5019,7 @@ Bitte versuchen Sie es später noch einmal.`;
           <p><a href="${link}">Open the gallery</a></p>
           ${pwdNote}
           ${message ? `<p>${String(message)}</p>` : ''}
-          <p>— New Age Fotografie</p>
+          <p>— ${getBizName()}</p>
         </div>`;
       
       const textContent = `Gallery link: ${link}${gallery.is_password_protected && gallery.password ? `\nPassword: ${gallery.password}` : ''}${message ? `\n\n${message}` : ''}`;
@@ -5037,7 +5060,7 @@ Bitte versuchen Sie es später noch einmal.`;
       }
       
       // Use frontend-provided gallery_url, or build with production domain
-      const link = gallery_url || `https://www.newagefotografie.com/gallery/${gallery.slug}`;
+      const link = gallery_url || `${getBaseUrl()}/gallery/${gallery.slug}`;
       
       // Generate WhatsApp share link
       const text = `Here's your photo gallery "${gallery.title}": ${link}${gallery.is_password_protected && gallery.password ? `\nPassword: ${gallery.password}` : ''}`;
@@ -5074,7 +5097,7 @@ Bitte versuchen Sie es später noch einmal.`;
       }
       
       // Use frontend-provided gallery_url, or build with production domain
-      const link = gallery_url || `https://www.newagefotografie.com/gallery/${gallery.slug}`;
+      const link = gallery_url || `${getBaseUrl()}/gallery/${gallery.slug}`;
       
       // Build SMS message
       const smsText = `Here's your photo gallery "${gallery.title}": ${link}${gallery.is_password_protected && gallery.password ? ` (Password: ${gallery.password})` : ''}`;
@@ -5099,14 +5122,15 @@ Bitte versuchen Sie es später noch einmal.`;
   // ==================== STUDIO CONFIG FOR INVOICES ====================
   app.get("/api/studio-config", async (req: Request, res: Response) => {
     // Return defaults - this endpoint will be enhanced when CMS is ready
-    const studioConfig = {
+    const studioConfig: any = {
       logo: null,
-      studioName: 'New Age Fotografie',
-      address: 'Wehrgasse 11A/2+5, 1050 Wien',
+      studioName: getBizName(),
+      address: process.env.BUSINESS_ADDRESS || '',
       addressNote: '',
-      phone: '+43 699 194 77 607',
-      email: 'kontakt@newagefotografie.com',
-      openingHours: 'Termine nach Vereinbarung'
+      phone: process.env.BUSINESS_PHONE || '',
+      email: getEnvContactEmailSync() || 'no-reply@localhost',
+      openingHours: process.env.BUSINESS_HOURS || '',
+      dateFormat: 'auto'
     };
     
     try {
@@ -5156,6 +5180,16 @@ Bitte versuchen Sie es später noch einmal.`;
         if (contactContent['contact.phone']) studioConfig.phone = contactContent['contact.phone'];
         if (contactContent['contact.email']) studioConfig.email = contactContent['contact.email'];
         if (contactContent['contact.openingHours']) studioConfig.openingHours = contactContent['contact.openingHours'];
+      }
+      
+      // Fetch dateFormat from studio_configs table
+      const [dbConfig] = await db
+        .select({ dateFormat: studioConfigs.dateFormat })
+        .from(studioConfigs)
+        .limit(1)
+        .catch(() => [null as any]);
+      if (dbConfig?.dateFormat) {
+        studioConfig.dateFormat = dbConfig.dateFormat;
       }
     } catch (error) {
       console.warn('Could not fetch studio config from database, using defaults:', (error as any)?.message);
@@ -5533,7 +5567,7 @@ Bitte versuchen Sie es später noch einmal.`;
           <p><strong>Due Date:</strong> ${invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : 'N/A'}</p>
           <p><a href="${link}" style="display:inline-block;padding:12px 24px;background-color:#7C3AED;color:white;text-decoration:none;border-radius:6px;">View Invoice</a></p>
           <p>Thank you for your business.</p>
-          <p>— New Age Fotografie</p>
+          <p>— ${getBizName()}</p>
         </div>`;
       
       const textContent = `Invoice ${invoice.invoice_number}\nAmount Due: €${(invoice.total || 0).toFixed(2)}\nView Invoice: ${link}`;
@@ -5542,7 +5576,7 @@ Bitte versuchen Sie es später noch einmal.`;
       const { EnhancedEmailService } = await import('./services/enhancedEmailService');
       await EnhancedEmailService.sendEmail({
         to,
-        subject: `Invoice ${invoice.invoice_number} from New Age Fotografie`,
+        subject: `Invoice ${invoice.invoice_number} from ${getBizName()}`,
         content: textContent,
         html: html
       });
@@ -5587,7 +5621,7 @@ Bitte versuchen Sie es später noch einmal.`;
       const link = `${baseUrl}/inv/${invoice_id}`;
       
       // Generate WhatsApp share link using the correct API format
-      const text = `Hello! Here is your invoice ${invoice.invoice_number} for €${(invoice.total || 0).toFixed(2)}.\n\nView and pay online: ${link}\n\nThank you! - New Age Fotografie`;
+      const text = `Hello! Here is your invoice ${invoice.invoice_number} for €${(invoice.total || 0).toFixed(2)}.\n\nView and pay online: ${link}\n\nThank you! - ${getBizName()}`;
       
       // Clean phone number - remove all non-digits
       const cleanPhone = to_phone ? to_phone.replace(/[^0-9]/g, '') : '';
@@ -5632,7 +5666,7 @@ Bitte versuchen Sie es später noch einmal.`;
       const link = `${baseUrl}/inv/${invoice_id}`;
       
       // Build SMS message
-      const smsText = `Invoice ${invoice.invoice_number}: €${(invoice.total || 0).toFixed(2)}. View: ${link} - New Age Fotografie`;
+      const smsText = `Invoice ${invoice.invoice_number}: €${(invoice.total || 0).toFixed(2)}. View: ${link} - ${getBizName()}`;
       
       // Try to send via SMS service if configured
       try {
@@ -5777,23 +5811,15 @@ Bitte versuchen Sie es später noch einmal.`;
         });
       }
 
-      // Create email transporter (prefer configured SMTP, fallback to env)
-      const transporter = nodemailer.createTransport({
-        host: 'smtp.easyname.com',
-        port: 465,
-        secure: true,
-        auth: {
-          // Use mailbox username from environment when available; otherwise use request-provided username
-          user: process.env.BUSINESS_MAILBOX_USER || '30840mail10',
-          pass: process.env.EMAIL_PASSWORD || 'your-email-password'
-        }
-      });
+      // Create email transporter via shared smtp-helper
+      const { getSmtpTransporter } = await import('./utils/smtp-helper');
+      const transporter = await getSmtpTransporter();
 
       // Send email
       const emailOptions = {
         from: getEnvContactEmailSync() || 'no-reply@localhost',
         to: client.email,
-        subject: subject || `Rechnung ${invoice.invoiceNumber} - New Age Fotografie`,
+        subject: subject || `Rechnung ${invoice.invoiceNumber} - ${getBizName()}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #333;">Rechnung ${invoice.invoiceNumber}</h2>
@@ -5808,10 +5834,9 @@ Bitte versuchen Sie es später noch einmal.`;
             </div>
             <p>Bei Fragen stehen wir Ihnen gerne zur Verfügung.</p>
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px;">
-              <p><strong>New Age Fotografie</strong><br>
-              Schönbrunner Str. 25<br>
-              1050 Wien, Austria<br>
-              Tel: +43 677 633 99210<br>
+              <p><strong>${getBizName()}</strong><br>
+              ${process.env.BUSINESS_ADDRESS || ''}<br>
+              Tel: ${process.env.BUSINESS_PHONE || ''}<br>
               Email: ${getEnvContactEmailSync()}</p>
             </div>
           </div>
@@ -5853,14 +5878,14 @@ Bitte versuchen Sie es später noch einmal.`;
       }
 
       // Create invoice link
-      const baseUrl = process.env.FRONTEND_URL || 'https://newagefotografie.com';
+      const baseUrl = getBaseUrl();
       const invoiceUrl = `${baseUrl}/invoice/${invoice.id}`;
       
       // Create SMS message
       const clientName = `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'Kunde';
       const defaultMessage = `Hallo ${clientName},
 
-hier ist Ihre Rechnung von New Age Fotografie:
+hier ist Ihre Rechnung von ${getBizName()}:
 
 📄 Rechnungsnummer: ${invoice.invoiceNumber}
 💰 Betrag: €${parseFloat(invoice.total?.toString() || '0').toFixed(2)}
@@ -5870,7 +5895,7 @@ hier ist Ihre Rechnung von New Age Fotografie:
 
 Bei Fragen: +43 677 633 99210
 
-New Age Fotografie Team`;
+${getBizName()} Team`;
 
       const finalMessage = customMessage || defaultMessage;
 
@@ -5937,14 +5962,14 @@ New Age Fotografie Team`;
       }
 
       // Create invoice link
-      const baseUrl = process.env.FRONTEND_URL || 'https://newagefotografie.com';
+      const baseUrl = getBaseUrl();
       const invoiceUrl = `${baseUrl}/invoice/${invoice.id}`;
       
       // Create WhatsApp message
       const clientName = `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'Kunde';
       const defaultMessage = `Hallo ${clientName},
 
-hier ist Ihre Rechnung von New Age Fotografie:
+hier ist Ihre Rechnung von ${getBizName()}:
 
 📄 Rechnungsnummer: ${invoice.invoiceNumber}
 💰 Betrag: €${parseFloat(invoice.total?.toString() || '0').toFixed(2)}
@@ -5955,7 +5980,7 @@ hier ist Ihre Rechnung von New Age Fotografie:
 Bei Fragen stehe ich Ihnen gerne zur Verfügung!
 
 Mit freundlichen Grüßen,
-New Age Fotografie Team`;
+${getBizName()} Team`;
 
       const finalMessage = customMessage || defaultMessage;
       
@@ -6022,14 +6047,14 @@ New Age Fotografie Team`;
       }
 
       // Create invoice link
-      const baseUrl = process.env.FRONTEND_URL || req.get('origin') || 'https://newagefotografie.com';
+      const baseUrl = getBaseUrl() || req.get('origin') || '';
       const invoiceUrl = `${baseUrl}/invoice/${invoice.id}`;
       
       // Create WhatsApp message
       const clientName = `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'Kunde';
       const message = `Hallo ${clientName} 👋
 
-Hier ist Ihre Rechnung von New Age Fotografie:
+Hier ist Ihre Rechnung von ${getBizName()}:
 
 📄 Rechnungsnummer: ${invoice.invoiceNumber}
 💰 Betrag: €${parseFloat(invoice.total?.toString() || '0').toFixed(2)}
@@ -6040,7 +6065,7 @@ Hier ist Ihre Rechnung von New Age Fotografie:
 Bei Fragen stehe ich Ihnen gerne zur Verfügung! 📸
 
 Vielen Dank für Ihr Vertrauen!
-New Age Fotografie Team`;
+${getBizName()} Team`;
 
       // Create WhatsApp URL
       const cleanPhone = phone_number.replace(/[^\d+]/g, '');
@@ -6450,7 +6475,7 @@ New Age Fotografie Team`;
       // Special handling for EasyName/business email
       // Check for EasyName SMTP host or known business mailbox usernames
       const isEasyNameHost = smtpHost.includes('easyname');
-      const isBusinessMailbox = username === '30840mail10' || 
+      const isBusinessMailbox = username === (process.env.BUSINESS_MAILBOX_USER || '') || 
                                 username === (process.env.STUDIO_NOTIFY_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER) || 
                                 username === process.env.BUSINESS_MAILBOX_USER;
       
@@ -8228,11 +8253,11 @@ New Age Fotografie Team`;
       const icalLines = [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
-        'PRODID:-//New Age Fotografie//Photography CRM//EN',
+        `PRODID:-//${getBizName()}//Photography CRM//EN`,
         'CALSCALE:GREGORIAN',
         'METHOD:PUBLISH',
         'X-WR-CALNAME:Photography Sessions',
-        'X-WR-CALDESC:Photography sessions from New Age Fotografie CRM'
+        `X-WR-CALDESC:Photography sessions from ${getBizName()} CRM`
       ];
 
       // Add each session as an event
@@ -8246,7 +8271,7 @@ New Age Fotografie Team`;
             return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
           };
           
-          const uid = `session-${session.id}@newagefotografie.com`;
+          const uid = `session-${session.id}@${getBizDomain()}`;
           const now = new Date();
           const dtstamp = formatICalDate(now);
           
@@ -8299,7 +8324,7 @@ New Age Fotografie Team`;
 
       // Check for EasyName/business email - actually test the IMAP connection
       const isEasyNameHost = smtpHost.includes('easyname');
-      const isBusinessMailbox = username === '30840mail10' || 
+      const isBusinessMailbox = username === (process.env.BUSINESS_MAILBOX_USER || '') || 
                                 username === (process.env.STUDIO_NOTIFY_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER) || 
                                 username === process.env.BUSINESS_MAILBOX_USER;
       
@@ -8501,12 +8526,12 @@ New Age Fotografie Team`;
       } catch (settingsError) {
         console.log('Using fallback email settings');
         emailSettings = {
-          smtp_host: 'smtp.easyname.com',
-          smtp_port: 587,
-          smtp_user: '30840mail10',
-          smtp_pass: process.env.EMAIL_PASSWORD || 'HoveBN41!',
+          smtp_host: process.env.SMTP_HOST || 'smtp.easyname.com',
+          smtp_port: parseInt(process.env.SMTP_PORT || '587'),
+          smtp_user: process.env.BUSINESS_MAILBOX_USER || process.env.SMTP_USER || '',
+          smtp_pass: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || '',
           from_email: getEnvContactEmailSync(),
-          from_name: 'New Age Fotografie'
+          from_name: process.env.EMAIL_FROM_NAME || 'Studio'
         };
       }
 
@@ -8554,7 +8579,7 @@ New Age Fotografie Team`;
       // Save a copy to CRM messages (best-effort)
       try {
         await storage.createCrmMessage({
-          senderName: 'New Age Fotografie (Sent)',
+          senderName: `${getBizName()} (Sent)`,
           senderEmail: getEnvContactEmailSync(),
           subject: `[SENT] ${subject}`,
           content: `SENT TO: ${to}\n\n${typeof body === 'string' ? body : ''}`,
@@ -8574,10 +8599,10 @@ New Age Fotografie Team`;
           try {
             const { importEmailsFromIMAP } = await import('./email-import');
             await importEmailsFromIMAP({
-              host: 'imap.easyname.com',
-              port: 993,
-              username: '30840mail10',
-              password: process.env.EMAIL_PASSWORD || 'HoveBN41!',
+              host: process.env.IMAP_HOST || 'imap.easyname.com',
+              port: parseInt(process.env.IMAP_PORT || '993'),
+              username: process.env.BUSINESS_MAILBOX_USER || process.env.IMAP_USER || '',
+              password: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || '',
               useTLS: true
             });
             console.log('Automatic email refresh completed after send');
@@ -8749,7 +8774,7 @@ New Age Fotografie Team`;
       
       const result = await BrevoService.sendEmail({
         to,
-        subject: subject || 'Test Email from New Age Fotografie CRM',
+        subject: subject || `Test Email from ${getBizName()} CRM`,
         textContent: content || 'This is a test email sent via Brevo to verify the email configuration is working correctly.',
         htmlContent: content ? content.replace(/\n/g, '<br>') : '<p>This is a test email sent via Brevo to verify the email configuration is working correctly.</p>',
         autoLinkClient: false,
@@ -9830,10 +9855,10 @@ New Age Fotografie Team`;
       console.log('Starting email refresh...');
       
       const importedEmails = await importEmailsFromIMAP({
-        host: 'imap.easyname.com',
-        port: 993,
-        username: '30840mail10',
-        password: process.env.EMAIL_PASSWORD || 'HoveBN41!',
+        host: process.env.IMAP_HOST || 'imap.easyname.com',
+        port: parseInt(process.env.IMAP_PORT || '993'),
+        username: process.env.BUSINESS_MAILBOX_USER || process.env.IMAP_USER || '',
+        password: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || '',
         useTLS: true
       });
 
@@ -9974,9 +9999,9 @@ New Age Fotografie Team`;
       
       // Set a timeout for the entire import operation
       const importPromise = importEmailsFromIMAP({
-        host: 'imap.easyname.com',
-        port: 993,
-        username: '30840mail10',
+        host: process.env.IMAP_HOST || 'imap.easyname.com',
+        port: parseInt(process.env.IMAP_PORT || '993'),
+        username: process.env.BUSINESS_MAILBOX_USER || process.env.IMAP_USER || '',
         password: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || '',
         useTLS: true
       });
@@ -10174,12 +10199,12 @@ New Age Fotografie Team`;
   async function sendNewLeadNotification(lead: any) {
     const nodemailer = await import('nodemailer');
     const transporter = nodemailer.createTransport({
-      host: 'smtp.easyname.com',
-      port: 587,
+      host: process.env.SMTP_HOST || 'smtp.easyname.com',
+      port: parseInt(process.env.SMTP_PORT || '587'),
       secure: false,
       auth: {
-        user: '30840mail10',
-        pass: 'HoveBN41!'
+        user: process.env.BUSINESS_MAILBOX_USER || process.env.SMTP_USER || '',
+        pass: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || ''
       },
       tls: {
         rejectUnauthorized: false
@@ -10191,7 +10216,7 @@ New Age Fotografie Team`;
     
     const emailSubject = `🔔 New Lead: ${lead.name} from ${leadSource}`;
     const emailBody = `
-New Lead Notification - New Age Fotografie
+New Lead Notification - ${getBizName()}
 
 📋 Lead Details:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -10222,10 +10247,10 @@ ${leadMessage}
 • Contact the prospect within 24 hours
 • Update lead status after initial contact
 
-🔗 CRM Dashboard: https://www.newagefotografie.com/admin/leads
+🔗 CRM Dashboard: ${getBaseUrl()}/admin/leads
 
 Best regards,
-New Age Fotografie CRM System
+${getBizName()} CRM System
     `;
 
     const studioEmail = getEnvContactEmailSync();
@@ -10243,8 +10268,8 @@ New Age Fotografie CRM System
     // Save the notification email to the database for tracking
     try {
       await storage.createCrmMessage({
-        senderName: 'New Age Fotografie System',
-        senderEmail: 'system@newagefotografie.com',
+        senderName: `${getBizName()} System`,
+        senderEmail: `system@${getBizDomain()}`,
         subject: `[LEAD NOTIFICATION] ${emailSubject}`,
         content: `Lead notification sent to ${studioEmail || '<unset>'}\n\n${emailBody}`,
         status: 'archived'
@@ -11071,7 +11096,7 @@ New Age Fotografie CRM System
           customerEmail: customerDetails.email,
           voucherName: voucher.name
         },
-        description: `${quantity}x ${voucher.name} - New Age Fotografie`,
+        description: `${quantity}x ${voucher.name} - ${getBizName()}`,
         receipt_email: customerDetails.email,
       });
 
@@ -12702,8 +12727,8 @@ New Age Fotografie CRM System
 
       // Contact details below logo
       doc.fontSize(9).fillColor('#222222');
-      doc.text('www.newagefotografie.com', pageMargin, footerY + 50, { align: 'center', width: contentWidth });
-      doc.text('hallo@newagefotografie.com', { align: 'center' });
+      doc.text(getBizWebsite(), pageMargin, footerY + 50, { align: 'center', width: contentWidth });
+      doc.text(getEnvContactEmailSync() || 'no-reply@localhost', { align: 'center' });
       doc.text('WhatsApp: 0043 677 633 99210', { align: 'center' });
       
       doc.end();
@@ -12889,8 +12914,8 @@ New Age Fotografie CRM System
 
       // Contact details below logo
       doc.fontSize(9).fillColor('#222222');
-      doc.text('www.newagefotografie.com', pageMargin, footerY + 50, { align: 'center', width: contentWidth });
-      doc.text('hallo@newagefotografie.com', { align: 'center' });
+      doc.text(getBizWebsite(), pageMargin, footerY + 50, { align: 'center', width: contentWidth });
+      doc.text(getEnvContactEmailSync() || 'no-reply@localhost', { align: 'center' });
       doc.text('WhatsApp: 0043 677 633 99210', { align: 'center' });
       
       doc.end();
@@ -13904,7 +13929,7 @@ Welche Art von Shooting interessiert Sie? Familie, Neugeborene, Schwangerschaft 
     if (lowerMessage.includes('hallo') || lowerMessage.includes('hi') || lowerMessage.includes('guten tag')) {
       return `Hallo! Schön, dass Sie da sind! 😊
 
-Ich bin Alex von New Age Fotografie Wien. Wir sind spezialisiert auf:
+Ich bin Alex von ${getBizName()} Wien. Wir sind spezialisiert auf:
 • Familienfotografie
 • Neugeborenen-Shootings  
 • Schwangerschaftsfotos
@@ -13978,7 +14003,7 @@ Email: ${getEnvContactEmailSync()}`;
       // For general questions, provide focused response based on article content
       return `Basierend auf Ihrem Interesse kann ich Ihnen folgende Informationen geben:
 
-Als Ihr Photo Consultant bei New Age Fotografie unterstütze ich Sie gerne bei allen Fragen rund um professionelle Fotoshootings in Wien.
+Als Ihr Photo Consultant bei ${getBizName()} unterstütze ich Sie gerne bei allen Fragen rund um professionelle Fotoshootings in Wien.
 
 **Unsere Spezialgebiete:**
 • Familienfotografie & Kinderporträts
@@ -13999,7 +14024,7 @@ Was interessiert Sie am meisten? Preise, Terminbuchung oder spezielle Fotoshooti
     
     return `Vielen Dank für Ihre Nachricht! 😊
 
-Ich bin Alex von New Age Fotografie Wien. Gerne helfe ich Ihnen bei:
+Ich bin Alex von ${getBizName()} Wien. Gerne helfe ich Ihnen bei:
 • **Preisanfragen** (ab €95 für Foto-Pakete)
 • **Terminbuchungen** (meist ausgebucht, aber Warteliste verfügbar)  
 • **Informationen** über unsere Services
@@ -14582,8 +14607,8 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
           port: 465,
           secure: true,
           auth: {
-            user: process.env.BUSINESS_MAILBOX_USER || '30840mail10',
-            pass: process.env.EMAIL_PASSWORD || 'your-email-password'
+            user: process.env.BUSINESS_MAILBOX_USER || process.env.SMTP_USER || '',
+            pass: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || ''
           }
         });
 
@@ -14616,7 +14641,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
         `;
 
         await transporter.sendMail({
-          from: `"New Age Fotografie Website" <${getEnvContactEmailSync() || 'no-reply@localhost'}>`,
+          from: `"${getBizName()} Website" <${getEnvContactEmailSync() || 'no-reply@localhost'}>`,
           to: getEnvContactEmailSync() || 'no-reply@localhost',
           subject: `Neue Kontaktanfrage von ${fullName}`,
           html: emailHtml
@@ -14668,8 +14693,8 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
           port: 465,
           secure: true,
           auth: {
-            user: process.env.BUSINESS_MAILBOX_USER || '30840mail10',
-            pass: process.env.EMAIL_PASSWORD || 'your-email-password'
+            user: process.env.BUSINESS_MAILBOX_USER || process.env.SMTP_USER || '',
+            pass: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || ''
           }
         });
 
@@ -14743,7 +14768,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
         `;
 
         await transporter.sendMail({
-          from: `"New Age Fotografie Website" <${getEnvContactEmailSync() || 'no-reply@localhost'}>`,
+          from: `"${getBizName()} Website" <${getEnvContactEmailSync() || 'no-reply@localhost'}>`,
           to: getEnvContactEmailSync() || 'no-reply@localhost',
           subject: `📅 Neue Terminanfrage: ${fullName} für ${formatDate(preferredDate)}`,
           html: appointmentEmailHtml
@@ -14753,7 +14778,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
         const customerConfirmationHtml = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #7C3AED; margin: 0;">New Age Fotografie</h1>
+              <h1 style="color: #7C3AED; margin: 0;">${getBizName()}</h1>
               <p style="color: #666; margin: 5px 0;">Familienfotograf Wien</p>
             </div>
 
@@ -14794,7 +14819,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
 
             <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
               <p style="margin: 0; color: #666; font-size: 14px;">
-                New Age Fotografie | Wehrgasse 11A/2+5, 1050 Wien<br>
+                ${getBizName()} | Wehrgasse 11A/2+5, 1050 Wien<br>
                 Tel/WhatsApp: +43 677 633 99210 | E-Mail: ${getEnvContactEmailSync()}
               </p>
             </div>
@@ -14802,7 +14827,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
         `;
 
         await transporter.sendMail({
-          from: `"New Age Fotografie" <${getEnvContactEmailSync() || 'no-reply@localhost'}>`,
+          from: `"${getBizName()}" <${getEnvContactEmailSync() || 'no-reply@localhost'}>`,
           to: email,
           subject: '📅 Terminanfrage erhalten - Wir melden uns bald!',
           html: customerConfirmationHtml
@@ -14869,8 +14894,8 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
           port: 465,
           secure: true,
           auth: {
-            user: process.env.BUSINESS_MAILBOX_USER || '30840mail10',
-            pass: process.env.EMAIL_PASSWORD || 'your-email-password'
+            user: process.env.BUSINESS_MAILBOX_USER || process.env.SMTP_USER || '',
+            pass: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || ''
           }
         });
 
@@ -14904,7 +14929,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
         }
 
         await transporter.sendMail({
-          from: `"New Age Fotografie" <${getEnvContactEmailSync() || 'no-reply@localhost'}>`,
+          from: `"${getBizName()}" <${getEnvContactEmailSync() || 'no-reply@localhost'}>`,
           to: email,
           subject: emailSubject,
           html: emailHtml
@@ -14912,7 +14937,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
 
         // Send notification to business
         await transporter.sendMail({
-          from: `"New Age Fotografie Website" <${getEnvContactEmailSync() || 'no-reply@localhost'}>`,
+          from: `"${getBizName()} Website" <${getEnvContactEmailSync() || 'no-reply@localhost'}>`,
           to: getEnvContactEmailSync() || 'no-reply@localhost',
           subject: `Neue Newsletter-Anmeldung: ${email}`,
           html: `
@@ -15100,7 +15125,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
         .replace(/\{\{clientName\}\}/g, 'Max Mustermann')
         .replace(/\{\{bookingDate\}\}/g, '15. März 2026')
         .replace(/\{\{bookingTime\}\}/g, '14:00 Uhr')
-        .replace(/\{\{questionnaireLink\}\}/g, `https://www.newagefotografie.com/questionnaire/${rule.questionnaireSlug || 'pre-shoot'}`);
+        .replace(/\{\{questionnaireLink\}\}/g, `${getBaseUrl()}/questionnaire/${rule.questionnaireSlug || 'pre-shoot'}`);
 
       const testSubject = rule.emailSubject
         .replace(/\{\{clientName\}\}/g, 'Max Mustermann')
@@ -15109,12 +15134,12 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
 
       const transporter = nodemailer.createTransport({
         host: 'smtp.easyname.com', port: 465, secure: true,
-        auth: { user: process.env.BUSINESS_MAILBOX_USER || '30840mail10', pass: process.env.EMAIL_PASSWORD || '' }
+        auth: { user: process.env.BUSINESS_MAILBOX_USER || process.env.SMTP_USER || '', pass: process.env.EMAIL_PASSWORD || '' }
       });
 
       const adminEmail = getEnvContactEmailSync();
       await transporter.sendMail({
-        from: `"New Age Fotografie" <${adminEmail || 'no-reply@localhost'}>`,
+        from: `"${getBizName()}" <${adminEmail || 'no-reply@localhost'}>`,
         to: adminEmail,
         subject: `[TEST] ${testSubject}`,
         html: testHtml
@@ -15159,7 +15184,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
 
       const transporter = nodemailer.createTransport({
         host: 'smtp.easyname.com', port: 465, secure: true,
-        auth: { user: process.env.BUSINESS_MAILBOX_USER || '30840mail10', pass: emailPassword }
+        auth: { user: process.env.BUSINESS_MAILBOX_USER || process.env.SMTP_USER || '', pass: emailPassword }
       });
       const fromEmail = getEnvContactEmailSync() || 'no-reply@localhost';
 
@@ -15204,7 +15229,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
             const formattedDate = dateFormatter.format(bookingDate);
             const formattedTime = timeFormatter.format(bookingDate) + ' Uhr';
             const questionnaireLink = rule.questionnaireSlug 
-              ? `https://www.newagefotografie.com/questionnaire/${rule.questionnaireSlug}`
+              ? `${getBaseUrl()}/questionnaire/${rule.questionnaireSlug}`
               : '';
 
             const emailHtml = rule.emailBodyHtml
@@ -15220,7 +15245,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
 
             // Send the email
             await transporter.sendMail({
-              from: `"New Age Fotografie" <${fromEmail}>`,
+              from: `"${getBizName()}" <${fromEmail}>`,
               to: booking.clientEmail,
               subject: emailSubject,
               html: emailHtml

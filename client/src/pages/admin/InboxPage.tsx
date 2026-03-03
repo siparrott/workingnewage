@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import SimpleEmailComposer from '../../components/inbox/SimpleEmailComposer';
 import AdminLayout from '../../components/admin/AdminLayout';
+import { formatAppDateSmart } from '../../lib/dateFormat';
 // Supabase removed: inbox now backed by Neon + hourly server-side IMAP polling
 import { 
   Search, 
@@ -376,23 +377,7 @@ const InboxPage: React.FC = () => {
     );
   };
 
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    const now = new Date();
-    
-    // If it's today, show the time
-    if (date.toDateString() === now.toDateString()) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-    
-    // If it's this year, show the month and day
-    if (date.getFullYear() === now.getFullYear()) {
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    }
-    
-    // Otherwise, show the full date
-    return date.toLocaleDateString();
-  };
+  const formatDate = (dateString: string): string => formatAppDateSmart(dateString);
 
   return (
     <AdminLayout>

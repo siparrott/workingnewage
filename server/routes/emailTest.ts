@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import nodemailer from 'nodemailer';
+import { getSmtpTransporter, getFromAddress } from '../utils/smtp-helper';
+import { config } from '../config-reader';
 
 const router = Router();
 
@@ -16,16 +18,8 @@ router.post('/test', async (req, res) => {
       });
     }
 
-  // Create a test transporter (this will test SMTP settings without sending)
-  const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.mail.yahoo.com',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS || 'demo-password'
-      }
-    });
+  // Create a test transporter using shared smtp-helper (DB first, env fallback)
+  const transporter = await getSmtpTransporter();
 
     // Verify the connection
     try {
@@ -33,7 +27,7 @@ router.post('/test', async (req, res) => {
       
       // If verification passes, send a test email
       const mailOptions = {
-        from: `"${process.env.BUSINESS_NAME || 'New Age Fotografie'}" <${process.env.SMTP_FROM}>`,
+        from: await getFromAddress(),
         to: testEmail,
         subject: 'Test Email from CRM Communications System',
         html: `
@@ -44,10 +38,7 @@ router.post('/test', async (req, res) => {
             <div style="background-color: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
               <h3 style="color: #374151; margin-top: 0;">Configuration Details:</h3>
               <ul style="color: #6b7280;">
-                <li><strong>SMTP Host:</strong> ${process.env.SMTP_HOST}</li>
-                <li><strong>SMTP Port:</strong> ${process.env.SMTP_PORT}</li>
-                <li><strong>From Email:</strong> ${process.env.SMTP_FROM}</li>
-                <li><strong>Business Name:</strong> ${process.env.BUSINESS_NAME}</li>
+                <li><strong>From Address:</strong> ${await getFromAddress()}</li>
                 <li><strong>Test Time:</strong> ${new Date().toLocaleString()}</li>
               </ul>
             </div>
@@ -64,12 +55,6 @@ router.post('/test', async (req, res) => {
         success: true,
         message: 'Test email sent successfully',
         messageId: result.messageId,
-        config: {
-          host: process.env.SMTP_HOST,
-          port: process.env.SMTP_PORT,
-          from: process.env.SMTP_FROM,
-          businessName: process.env.BUSINESS_NAME
-        }
       });
 
     } catch (verifyError) {

@@ -1097,8 +1097,8 @@ if (!connectionString) {
         
         // IMAP Configuration from environment variables
         const imapConfig = {
-          user: process.env.IMAP_USER || process.env.SMTP_USER || 'hallo@newagefotografie.com',
-          password: process.env.IMAP_PASS || process.env.SMTP_PASS || 'HoveBN41!',
+          user: process.env.IMAP_USER || process.env.SMTP_USER || process.env.BUSINESS_MAILBOX_USER || '',
+          password: process.env.IMAP_PASS || process.env.SMTP_PASS || process.env.EMAIL_PASSWORD || '',
           host: process.env.IMAP_HOST || 'imap.easyname.com',
           port: parseInt(process.env.IMAP_PORT || '993'),
           tls: (process.env.IMAP_TLS || 'true').toLowerCase() !== 'false',
@@ -2103,26 +2103,26 @@ if (!connectionString) {
         if (result.rows.length > 0) {
           return result.rows[0];
         } else {
-          // Return default EasyName settings if no custom settings exist
+          // Return env-based settings if no custom settings exist
           return {
-            smtp_host: 'smtp.easyname.com',
-            smtp_port: 587,
-            smtp_user: '30840mail10',
-            smtp_pass: process.env.EMAIL_PASSWORD || 'HoveBN41!',
-            from_email: 'hallo@newagefotografie.com',
-            from_name: 'New Age Fotografie'
+            smtp_host: process.env.SMTP_HOST || 'smtp.easyname.com',
+            smtp_port: parseInt(process.env.SMTP_PORT || '587'),
+            smtp_user: process.env.BUSINESS_MAILBOX_USER || process.env.SMTP_USER || '',
+            smtp_pass: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || '',
+            from_email: process.env.SMTP_FROM || process.env.STUDIO_NOTIFY_EMAIL || '',
+            from_name: process.env.EMAIL_FROM_NAME || 'Studio'
           };
         }
       } catch (error) {
         console.error('❌ Error getting email settings:', error.message);
-        // Return default settings on error
+        // Return env-based settings on error
         return {
-          smtp_host: 'smtp.easyname.com',
-          smtp_port: 587,
-          smtp_user: '30840mail10',
-          smtp_pass: process.env.EMAIL_PASSWORD || 'HoveBN41!',
-          from_email: 'hallo@newagefotografie.com',
-          from_name: 'New Age Fotografie'
+          smtp_host: process.env.SMTP_HOST || 'smtp.easyname.com',
+          smtp_port: parseInt(process.env.SMTP_PORT || '587'),
+          smtp_user: process.env.BUSINESS_MAILBOX_USER || process.env.SMTP_USER || '',
+          smtp_pass: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || '',
+          from_email: process.env.SMTP_FROM || process.env.STUDIO_NOTIFY_EMAIL || '',
+          from_name: process.env.EMAIL_FROM_NAME || 'Studio'
         };
       }
     }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useDateFormatSync } from '../../hooks/useDateFormatSync';
 import NotificationBell from './NotificationBell';
 import AgentChatWidget from './AgentChatWidget';
 import {
@@ -52,6 +53,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const { language, setLanguage, t } = useLanguage();
+  useDateFormatSync(); // Sync date format preference from server → localStorage
   const [newLeadsCount, setNewLeadsCount] = useState(0);
   const [unreadEmailsCount, setUnreadEmailsCount] = useState(0);
   const [notificationEmail, setNotificationEmail] = useState<string | null>(null);

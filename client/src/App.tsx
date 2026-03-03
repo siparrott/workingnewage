@@ -127,6 +127,7 @@ import AdminSchedulersPage from './pages/admin/AdminSchedulersPage';
 import AdminAutomationsPage from './pages/admin/AdminAutomationsPage';
 import CalculatorPage from './pages/CalculatorPage';
 import SetupWizard from './pages/setup/SetupWizard';
+import TechnicalSetupWizard from './pages/setup/TechnicalSetupWizard';
 import ScrollToTop from './components/ScrollToTop';
 
 function App() {
@@ -560,7 +561,11 @@ function App() {
                 {/* Public onboarding wizard entry */}
                 <Route path="/onboarding" element={<WebsiteWizard />} />
                 
-                {/* SmartTog Hub Setup Wizard */}
+                {/* Technical Setup Wizard — Stage 1 */}
+                <Route path="/setup/technical" element={<TechnicalSetupWizard />} />
+                <Route path="/setup/technical/*" element={<TechnicalSetupWizard />} />
+                
+                {/* SmartTog Hub Setup Wizard — Stage 2 (Creative) */}
                 <Route path="/setup" element={<SetupWizard />} />
                 <Route path="/setup/*" element={<SetupWizard />} />
                 <Route

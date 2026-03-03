@@ -26,6 +26,7 @@ import {
 } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 import nodemailer from 'nodemailer';
+import { getSmtpTransporter, getFromAddress } from '../utils/smtp-helper';
 
 interface ExecutionContext {
   workflowId: string;
@@ -49,31 +50,12 @@ export class WorkflowExecutionService {
   }
 
   /**
-   * Initialize email transporter from environment variables
+   * Initialize email transporter from DB config / environment variables
    */
   private async initializeEmailTransporter() {
     try {
-      const smtpHost = process.env.SMTP_HOST || 'smtp.easyname.com';
-      const smtpPort = parseInt(process.env.SMTP_PORT || '587');
-      const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
-      const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
-
-      if (!smtpUser || !smtpPass) {
-        console.warn('[WorkflowExecution] SMTP credentials not configured');
-        return;
-      }
-
-      this.emailTransporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: false,
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-      });
-
-      console.log('[WorkflowExecution] Email transporter initialized');
+      this.emailTransporter = await getSmtpTransporter();
+      console.log('[WorkflowExecution] Email transporter initialized via smtp-helper');
     } catch (error) {
       console.error('[WorkflowExecution] Failed to initialize email transporter:', error);
     }

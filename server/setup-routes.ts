@@ -116,9 +116,18 @@ router.post('/basics', async (req: Request, res: Response) => {
       businessType,
       timezone,
       currency,
+      dateFormat,
       logo,
       primaryColor,
-      tagline
+      tagline,
+      address,
+      phone,
+      website,
+      latitude,
+      longitude,
+      facebookUrl,
+      instagramUrl,
+      twitterUrl
     } = req.body;
     
     // Validate required fields
@@ -133,9 +142,18 @@ router.post('/basics', async (req: Request, res: Response) => {
       businessType,
       timezone,
       currency: currency || 'EUR',
+      dateFormat: dateFormat || 'auto',
       logo: logo || null,
       primaryColor: primaryColor || '#3B82F6',
-      tagline: tagline || ''
+      tagline: tagline || '',
+      address: address || null,
+      phone: phone || null,
+      website: website || null,
+      latitude: latitude || null,
+      longitude: longitude || null,
+      facebookUrl: facebookUrl || null,
+      instagramUrl: instagramUrl || null,
+      twitterUrl: twitterUrl || null
     };
     
     // Update or create studio config
@@ -147,20 +165,38 @@ router.post('/basics', async (req: Request, res: Response) => {
         .set({
           businessName: businessName,
           timezone: timezone,
+          dateFormat: dateFormat || 'auto',
           primaryColor: primaryColor || '#3B82F6',
-          metaDescription: tagline || '' // Store tagline in metaDescription
+          metaDescription: tagline || '',
+          address: address || null,
+          phone: phone || null,
+          website: website || null,
+          latitude: latitude || null,
+          longitude: longitude || null,
+          facebookUrl: facebookUrl || null,
+          instagramUrl: instagramUrl || null,
+          twitterUrl: twitterUrl || null,
         })
         .where(eq(studioConfigs.id, existingConfig.id));
     } else {
       await db
         .insert(studioConfigs)
         .values({
-          studioName: businessName, // Required field
-          ownerEmail: 'setup@togninja.com', // Required field placeholder
+          studioName: businessName,
+          ownerEmail: 'setup@togninja.com',
           businessName: businessName,
           timezone: timezone,
+          dateFormat: dateFormat || 'auto',
           primaryColor: primaryColor || '#3B82F6',
-          metaDescription: tagline || ''
+          metaDescription: tagline || '',
+          address: address || null,
+          phone: phone || null,
+          website: website || null,
+          latitude: latitude || null,
+          longitude: longitude || null,
+          facebookUrl: facebookUrl || null,
+          instagramUrl: instagramUrl || null,
+          twitterUrl: twitterUrl || null,
         });
     }
     

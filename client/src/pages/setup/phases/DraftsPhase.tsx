@@ -9,7 +9,7 @@
  * - Service descriptions
  */
 
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,8 +27,15 @@ import {
   Mail,
   FileText,
   User,
-  X
+  X,
+  Upload,
+  ChevronDown,
+  ChevronUp,
+  Users
 } from 'lucide-react';
+
+// Lazy-load the CSV importer to keep the bundle lean
+const SmartCSVImporter = lazy(() => import('@/components/clients/SmartCSVImporter'));
 
 interface DraftsPhaseProps {
   onComplete: () => void;
@@ -48,6 +55,7 @@ interface Draft {
 export default function DraftsPhase({ onComplete }: DraftsPhaseProps) {
   const queryClient = useQueryClient();
   const [selectedDraft, setSelectedDraft] = useState<Draft | null>(null);
+  const [showCsvImport, setShowCsvImport] = useState(false);
   const [editedContent, setEditedContent] = useState('');
   
   // Fetch drafts
@@ -262,6 +270,45 @@ export default function DraftsPhase({ onComplete }: DraftsPhaseProps) {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* CSV Client Import Panel */}
+        <div className="border rounded-xl overflow-hidden">
+          <button
+            type="button"
+            className="w-full flex items-center justify-between p-4 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            onClick={() => setShowCsvImport(!showCsvImport)}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900 rounded-lg flex items-center justify-center">
+                <Users className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-900 dark:text-white text-sm">
+                  Import Existing Clients from CSV
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Have an existing client list? Import it now to get started quickly.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs">Optional</Badge>
+              {showCsvImport ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </div>
+          </button>
+          {showCsvImport && (
+            <div className="border-t p-4">
+              <Suspense fallback={
+                <div className="text-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-emerald-500" />
+                  <p className="text-sm text-gray-500 mt-2">Loading CSV Importer...</p>
+                </div>
+              }>
+                <SmartCSVImporter />
+              </Suspense>
+            </div>
+          )}
         </div>
         
         {/* Draft List */}

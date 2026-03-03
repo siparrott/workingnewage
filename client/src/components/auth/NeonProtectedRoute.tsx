@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { useNeonAuth } from '../../context/NeonAuthContext';
+import { useTechnicalSetupGuard } from '../../hooks/useTechnicalSetupGuard';
 
 interface NeonProtectedRouteProps {
   children: React.ReactNode;
@@ -12,9 +13,10 @@ export const NeonProtectedRoute: React.FC<NeonProtectedRouteProps> = ({
   requireAdmin = false,
 }) => {
   const { user, isAdmin, loading } = useNeonAuth();
+  const { isReady: setupReady } = useTechnicalSetupGuard();
 
   // Show loading only briefly
-  if (loading) {
+  if (loading || !setupReady) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50">
         <div className="text-center">

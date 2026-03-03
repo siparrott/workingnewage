@@ -3,6 +3,8 @@ import { db } from '../db';
 import { crmMessages, crmClients } from '@shared/schema';
 import { eq, or, ilike } from 'drizzle-orm';
 import { BrevoService } from './brevoService';
+import { getSmtpTransporter, getFromAddress } from '../utils/smtp-helper';
+import { config } from '../config-reader';
 
 export interface EmailAttachment {
   filename: string;
@@ -30,8 +32,9 @@ export class EnhancedEmailService {
    */
   static async initialize() {
     try {
-      // Check if Brevo is configured (preferred)
-      if (process.env.BREVO_API_KEY || process.env.EMAIL_PROVIDER === 'brevo') {
+      // Check if Brevo is configured (preferred) — check DB first, then env
+      const brevoKey = await config.get('brevo_api_key') || process.env.BREVO_API_KEY;
+      if (brevoKey || process.env.EMAIL_PROVIDER === 'brevo') {
         const brevoInitialized = BrevoService.initialize();
         if (brevoInitialized) {
           this.useBrevo = true;
@@ -40,50 +43,20 @@ export class EnhancedEmailService {
         }
       }
 
-      // Fall back to SMTP if Brevo not available
-      if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-        console.warn('⚠️ SMTP configuration incomplete. Required: SMTP_HOST, SMTP_USER, SMTP_PASS');
+      // Fall back to SMTP via shared smtp-helper (reads from DB then env)
+      try {
+        this.transporter = await getSmtpTransporter();
+        console.log('✅ Email transporter created via smtp-helper');
+        return true;
+      } catch (smtpErr) {
+        console.warn('⚠️ SMTP configuration incomplete:', smtpErr);
         console.warn('📧 Email service will work in demo mode');
         return false;
       }
 
-      console.log(`📧 Initializing SMTP: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
-      console.log(`📧 SMTP User: ${process.env.SMTP_USER}`);
-      
-      this.transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-        // Force LOGIN auth method instead of PLAIN (better compatibility with some providers)
-        authMethod: 'LOGIN',
-        // Additional options for better compatibility
-        tls: {
-          rejectUnauthorized: false, // Allow self-signed certificates
-          ciphers: 'SSLv3'
-        },
-        // Longer timeouts for slow servers
-        connectionTimeout: 15000,
-        greetingTimeout: 15000,
-        socketTimeout: 20000,
-        // Debug mode to help troubleshoot
-        debug: process.env.SMTP_DEBUG === 'true',
-        logger: process.env.SMTP_DEBUG === 'true'
-      });
-
-      // Skip verify() to avoid timeout issues - we'll know if it works when we send
-      console.log('✅ Email transporter created successfully');
-      console.log(`📧 SMTP Host: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
-      console.log(`📧 SMTP From: ${process.env.SMTP_FROM || process.env.SMTP_USER}`);
-      return true;
-
     } catch (error) {
       console.error('❌ Email service initialization failed:', error.message);
       console.warn('📧 Email service will work in demo mode');
-      // Don't throw error, just warn and continue in demo mode
       return false;
     }
   }
@@ -157,9 +130,12 @@ export class EnhancedEmailService {
         console.log('📧 Demo mode: Content preview:', options.content.substring(0, 100) + '...');
         
         // Save demo email to database
+  const demoFromEmail = (await config.get('from_email')) || process.env.SMTP_FROM || process.env.SMTP_USER || 'demo@example.com';
+  const demoBizName = (await config.get('business_name')) || process.env.BUSINESS_NAME || 'Studio';
+
   await db.insert(crmMessages).values({
-          senderName: process.env.BUSINESS_NAME || 'New Age Fotografie',
-          senderEmail: process.env.SMTP_FROM || process.env.SMTP_USER || 'demo@example.com',
+          senderName: demoBizName,
+          senderEmail: demoFromEmail,
           recipientEmail: options.to, // Store the recipient for sent emails view
           subject: options.subject,
           content: options.content,
@@ -179,8 +155,11 @@ export class EnhancedEmailService {
       }
 
       // Real email sending
+      const fromAddr = await getFromAddress();
+      const fromEmail = (await config.get('from_email')) || process.env.SMTP_FROM || process.env.SMTP_USER || '';
+      const bizName = (await config.get('business_name')) || process.env.BUSINESS_NAME || 'Studio';
       const mailOptions = {
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        from: fromAddr,
         to: options.to,
         subject: options.subject,
         text: options.content,
@@ -192,8 +171,8 @@ export class EnhancedEmailService {
 
       // Save to database with recipient info for sent emails view
   await db.insert(crmMessages).values({
-        senderName: process.env.BUSINESS_NAME || 'New Age Fotografie',
-        senderEmail: process.env.SMTP_FROM || process.env.SMTP_USER || '',
+        senderName: bizName,
+        senderEmail: fromEmail,
         recipientEmail: options.to, // Store the recipient for sent emails view
         subject: options.subject,
         content: options.content,
@@ -244,9 +223,11 @@ export class EnhancedEmailService {
         }
 
         // Save demo email to database with recipient info
+  const fbFromEmail = (await config.get('from_email')) || process.env.SMTP_FROM || process.env.SMTP_USER || 'demo@example.com';
+  const fbBizName = (await config.get('business_name')) || process.env.BUSINESS_NAME || 'Studio';
   await db.insert(crmMessages).values({
-          senderName: process.env.BUSINESS_NAME || 'New Age Fotografie',
-          senderEmail: process.env.SMTP_FROM || process.env.SMTP_USER || 'demo@example.com',
+          senderName: fbBizName,
+          senderEmail: fbFromEmail,
           recipientEmail: options.to, // Store the recipient for sent emails view
           subject: options.subject,
           content: options.content,
