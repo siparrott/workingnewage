@@ -293,7 +293,7 @@ async function setupDemoData() {
 
     console.log('✅ Demo data setup complete!');
     console.log('\nDemo Accounts:');
-    console.log('Admin: demo@newagefotografie.com / demo2024');
+    console.log('Admin: demo@example.com / demo2024');
     console.log('Client: client@demo.com / client2024');
     console.log('\nDemo galleries:');
     console.log('- Schmidt Family: /galerie/schmidt-family-winter-2024');

@@ -182,10 +182,10 @@ export class AssistantFirstAutoBlogGenerator {
     // 7. BUSINESS INTELLIGENCE
     console.log('📊 STEP 7: Business intelligence...');
     comprehensiveContext += `BUSINESS INTELLIGENCE:\n`;
-    comprehensiveContext += `- Studio: New Age Fotografie\n`;
-    comprehensiveContext += `- Location: Schönbrunner Str. 25, 1050 Wien\n`;
-    comprehensiveContext += `- Phone: +43 677 633 99210\n`;
-    comprehensiveContext += `- Email: hallo@newagefotografie.com\n`;
+    comprehensiveContext += `- Studio: ${process.env.STUDIO_NAME || 'My Studio'}\n`;
+    comprehensiveContext += `- Location: ${process.env.STUDIO_ADDRESS || 'Not configured'}\n`;
+    comprehensiveContext += `- Phone: ${process.env.STUDIO_PHONE || ''}\n`;
+    comprehensiveContext += `- Email: ${process.env.SMTP_FROM || process.env.SMTP_USER || 'info@example.com'}\n`;
     comprehensiveContext += `- Hours: Fr-So: 09:00 - 17:00\n`;
     comprehensiveContext += `- Services: Family, newborn, maternity, business portraits\n`;
     comprehensiveContext += `- Unique selling points: Professional studio, Vienna location, weekend availability\n\n`;
@@ -236,7 +236,7 @@ CRITICAL: Generate the COMPLETE FULL BLOG ARTICLE with proper H2/H3 structure, N
    */
   private async gatherWebsiteContext(): Promise<string> {
     try {
-      const response = await fetch('https://www.newagefotografie.com');
+      const response = await fetch(process.env.APP_URL || process.env.BASE_URL || 'http://localhost:3001');
       if (!response.ok) throw new Error('Website fetch failed');
       
       const html = await response.text();

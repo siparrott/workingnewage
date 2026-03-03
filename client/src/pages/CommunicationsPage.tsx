@@ -585,7 +585,7 @@ const CommunicationsPage: React.FC = () => {
                     <span className="text-green-600 font-medium">✅ API Key Configured</span>
                   </div>
                   <p className="text-sm text-green-700 mt-1">
-                    API Key: BPGlC0W6GktNXeO8
+                    API Key: ••••••••••••
                   </p>
                 </div>
                 
@@ -620,8 +620,8 @@ const CommunicationsPage: React.FC = () => {
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                               provider: 'vonage',
-                              apiKey: 'BPGlC0W6GktNXeO8',
-                              apiSecret: 'from-env', // Will be read from VONAGE_API_SECRET
+                              apiKey: 'from-env', // Read from server env VONAGE_API_KEY
+                              apiSecret: 'from-env', // Read from server env VONAGE_API_SECRET
                               fromNumber: 'TogNinja CRM'
                             })
                           });

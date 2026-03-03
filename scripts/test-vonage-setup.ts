@@ -12,7 +12,8 @@ const testVonageSetup = async () => {
   console.log('🧪 Testing Vonage Configuration...\n');
 
   // Check API Key
-  const apiKey = process.env.VONAGE_API_KEY || 'BPGlC0W6GktNXeO8';
+  const apiKey = process.env.VONAGE_API_KEY;
+  if (!apiKey) { console.error('VONAGE_API_KEY not set'); process.exit(1); }
   console.log(`📋 API Key: ${apiKey}`);
   
   // Check API Secret

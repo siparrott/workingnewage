@@ -696,7 +696,7 @@ Key Features: High-quality photography, professional editing, personal service
     console.log('🌐 STEP 2: Gathering comprehensive website context...');
     let websiteContext = '';
     try {
-      const homepageResponse = await fetch('https://www.newagefotografie.com');
+      const homepageResponse = await fetch(this.publicSiteUrl);
       if (homepageResponse.ok) {
         const htmlContent = await homepageResponse.text();
         
@@ -755,9 +755,9 @@ WEBSITE TONE ANALYSIS:
     const businessContext = `
 NEW AGE FOTOGRAFIE COMPREHENSIVE BUSINESS DETAILS:
 - Studio address: Schönbrunner Str. 25, 1050 Wien, Austria
-- Contact: hallo@newagefotografie.com, +43 677 633 99210
+- Contact: ${process.env.SMTP_FROM || process.env.SMTP_USER || 'info@example.com'}, ${process.env.STUDIO_PHONE || ''}
 - Business hours: Fr-So: 09:00 - 17:00 (weekend focused for family convenience)
-- Website: https://www.newagefotografie.com
+- Website: ${this.publicSiteUrl}
 - Booking system: /warteliste/ (waitlist page for high demand)
 - Primary services: Family portraits, newborn photography, maternity sessions, business headshots
 - Secondary services: Event photography, couples sessions, individual portraits
@@ -874,10 +874,10 @@ ADDITIONAL CONTEXT SOURCES:
       
       // FIX #2: Pass FULL form data and context as user message
       const userMessage = `Photography session: ${imageContext}
-Studio: New Age Fotografie, Vienna
+Studio: ${process.env.STUDIO_NAME || 'My Studio'}, Vienna
 User request: ${input.contentGuidance || 'German blog post about photography session'}
 Language: ${(input as any).language || 'German'}
-Site URL: ${(input as any).siteUrl || 'https://www.newagefotografie.com'}
+Site URL: ${(input as any).siteUrl || this.publicSiteUrl}
 
 FULL CONTEXT:
 ${siteContext}
@@ -2175,7 +2175,7 @@ PHOTOGRAPHY BLOG POST REQUEST:
 
 Language: ${input.language || 'German'}
 Content Guidance: ${input.contentGuidance || 'Professional photography session blog post'}
-Site URL: ${input.siteUrl || 'https://www.newagefotografie.com'}
+Site URL: ${input.siteUrl || this.publicSiteUrl}
 Publish Option: ${(input as any).publishOption || 'draft'}
 Custom Slug: ${(input as any).customSlug || 'auto-generated'}
 

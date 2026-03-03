@@ -216,8 +216,8 @@ export class BrevoService {
       // Send via Brevo API
       const emailPayload: any = {
         sender: {
-          name: options.senderName || process.env.BUSINESS_NAME || 'New Age Fotografie',
-          email: options.senderEmail || process.env.SMTP_FROM || 'hallo@newagefotografie.com',
+          name: options.senderName || process.env.BUSINESS_NAME || 'My Studio',
+          email: options.senderEmail || process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@example.com',
         },
         to: recipients,
         subject: options.subject,
@@ -240,8 +240,8 @@ export class BrevoService {
 
       // Save to database
       await db.insert(crmMessages).values({
-        senderName: options.senderName || process.env.BUSINESS_NAME || 'New Age Fotografie',
-        senderEmail: options.senderEmail || process.env.SMTP_FROM || 'hallo@newagefotografie.com',
+        senderName: options.senderName || process.env.BUSINESS_NAME || 'My Studio',
+        senderEmail: options.senderEmail || process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@example.com',
         recipientEmail: recipientEmail,
         subject: options.subject,
         content: options.textContent || options.htmlContent || '',

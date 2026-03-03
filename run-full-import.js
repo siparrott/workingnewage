@@ -27,7 +27,7 @@ async function importEvents() {
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    'https://www.newagefotografie.com/api/auth/google/callback'
+    `${process.env.APP_URL || process.env.BASE_URL || 'http://localhost:3001'}/api/auth/google/callback`
   );
   
   oauth2Client.setCredentials({

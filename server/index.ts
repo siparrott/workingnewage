@@ -2,6 +2,11 @@
 // import '../silence-console.js';
 
 import "dotenv/config";
+import { validateEnv } from "./lib/validateEnv";
+
+// PHASE 0: Fail fast on misconfiguration before anything else runs
+validateEnv();
+
 import express, { type Request, Response, NextFunction } from "express";
 import http from "node:http";
 // Import routes and jobs directly to fix client database access
@@ -27,8 +32,9 @@ import { sessionConfig, requireAuth } from './auth';
 // Import email service for initialization
 import { EnhancedEmailService } from './services/enhancedEmailService';
 import { SMSService } from './services/smsService';
-import { sql } from 'drizzle-orm';
+import { sql, eq } from 'drizzle-orm';
 import { db } from './db';
+import { studioConfigs, studioIntegrations, adminUsers } from '../shared/schema';
 
 // Prevent process crashes from unhandled errors
 process.on('unhandledRejection', (reason, promise) => {
@@ -125,8 +131,10 @@ app.use('/blog-images', express.static('server/public/blog-images', {
 
 // Domain redirect middleware - redirect root domain to www
 app.use((req, res, next) => {
-  if (req.headers.host === 'newagefotografie.com') {
-    return res.redirect(301, `https://www.newagefotografie.com${req.url}`);
+  const wwwHost = process.env.CANONICAL_HOST; // e.g. 'www.newagefotografie.com'
+  const bareHost = wwwHost?.replace(/^www\./, '');
+  if (wwwHost && bareHost && req.headers.host === bareHost) {
+    return res.redirect(301, `https://${wwwHost}${req.url}`);
   }
   next();
 });
@@ -195,6 +203,38 @@ app.use((req, res, next) => {
         console.log('✅ Gallery images size tracking migration completed');
       } catch (migrationError) {
         console.warn('⚠️ Gallery migration already applied or failed:', migrationError.message);
+      }
+
+      // Run onboarding columns migration
+      try {
+        await db.execute(sql`ALTER TABLE studio_configs ADD COLUMN IF NOT EXISTS technical_setup_complete BOOLEAN DEFAULT FALSE`);
+        await db.execute(sql`ALTER TABLE studio_configs ADD COLUMN IF NOT EXISTS creative_setup_complete BOOLEAN DEFAULT FALSE`);
+        await db.execute(sql`ALTER TABLE studio_configs ADD COLUMN IF NOT EXISTS app_url TEXT`);
+        await db.execute(sql`ALTER TABLE studio_configs ADD COLUMN IF NOT EXISTS frontend_url TEXT`);
+        await db.execute(sql`ALTER TABLE studio_configs ADD COLUMN IF NOT EXISTS public_site_base_url TEXT`);
+        await db.execute(sql`ALTER TABLE studio_configs ADD COLUMN IF NOT EXISTS ga4_measurement_id TEXT`);
+        await db.execute(sql`ALTER TABLE studio_configs ADD COLUMN IF NOT EXISTS meta_pixel_id TEXT`);
+        await db.execute(sql`ALTER TABLE studio_configs ADD COLUMN IF NOT EXISTS date_format TEXT DEFAULT 'auto'`);
+        console.log('✅ Onboarding columns migration completed');
+      } catch (migrationError: any) {
+        console.warn('⚠️ Onboarding columns migration already applied or failed:', migrationError.message);
+      }
+
+      // Auto-detect: if existing instance already has key infra, mark setup complete
+      try {
+        const [sc] = await db.select().from(studioConfigs).limit(1);
+        if (sc && !sc.technicalSetupComplete) {
+          // Check if core infrastructure is already configured
+          const [si] = await db.select().from(studioIntegrations).limit(1);
+          const [admin] = await db.select().from(adminUsers).limit(1);
+          const hasInfra = !!si && !!admin;
+          if (hasInfra) {
+            await db.update(studioConfigs).set({ technicalSetupComplete: true, creativeSetupComplete: true }).where(eq(studioConfigs.id, sc.id));
+            console.log('✅ Existing instance detected — auto-marked onboarding complete');
+          }
+        }
+      } catch (autoDetectError: any) {
+        console.warn('⚠️ Onboarding auto-detect skipped:', autoDetectError.message);
       }
     } catch (error) {
       console.warn('⚠️ Database connection issue:', error.message);

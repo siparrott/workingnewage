@@ -20,8 +20,10 @@ app.use((req, res, next) => {
 
 // Domain redirect middleware - redirect root domain to www
 app.use((req, res, next) => {
-  if (req.headers.host === 'newagefotografie.com') {
-    return res.redirect(301, `https://www.newagefotografie.com${req.url}`);
+  const wwwHost = process.env.CANONICAL_HOST; // e.g. 'www.newagefotografie.com'
+  const bareHost = wwwHost?.replace(/^www\./, '');
+  if (wwwHost && bareHost && req.headers.host === bareHost) {
+    return res.redirect(301, `https://${wwwHost}${req.url}`);
   }
   next();
 });

@@ -144,6 +144,8 @@ import-*.mjs
 !README.md
 !VERCEL-ENVIRONMENT-VARIABLES.md
 !GITHUB-DEPLOYMENT-READY.md
+!PHASE-0-SECURITY-REPORT.md
+!HANDOFF-DOCUMENT.md
 
 # Migration and export directories
 attached_assets/
@@ -220,3 +222,37 @@ deployment_response.html
 jest.config.cjs
 tests/
 # tools/ - REMOVED: was blocking agent/v2/tools/ from being tracked!
+
+# ================================================================
+# PHASE 0 SECURITY: Files containing secrets or sensitive data
+# ================================================================
+
+# Server log files (may contain key fragments)
+server-log.txt
+
+# Ad-hoc scripts with hardcoded DB connection strings
+seed-newsletter-automation.js
+check-sync-status.js
+copy-images-to-gallery.js
+create-print-orders-table.ts
+seed-prices.js
+fix-blog-status.js
+check-gallery-be65.js
+check-crm-messages.js
+add-email-automations.ts
+
+# Temp / stale server files with hardcoded credentials
+server/routes.ts.tmp
+full-server.js
+
+# Batch files with credential hints
+setup-stripe-live.bat
+
+# Generated preview files with domain references
+preview.pdf
+
+# Backup archives
+*.zip
+
+# Stray git directory copies
+workingnewage.git/

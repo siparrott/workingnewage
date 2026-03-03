@@ -1910,9 +1910,9 @@ export const emailCampaigns = pgTable("email_campaigns", {
   previewText: text("preview_text"),
   content: text("content").notNull(),
   
-  senderName: text("sender_name").default("New Age Fotografie"),
-  senderEmail: text("sender_email").default("info@newagefotografie.com"),
-  replyTo: text("reply_to").default("info@newagefotografie.com"),
+  senderName: text("sender_name").default("My Studio"),
+  senderEmail: text("sender_email").default("noreply@example.com"),
+  replyTo: text("reply_to").default("noreply@example.com"),
   
   // Scheduling
   scheduledAt: timestamp("scheduled_at"),

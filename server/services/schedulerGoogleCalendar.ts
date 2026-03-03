@@ -58,9 +58,7 @@ async function getCalendarClient(): Promise<{ calendar: any; calendarId: string 
       return null;
     }
 
-    const redirectUri = process.env.NODE_ENV === 'production'
-      ? 'https://www.newagefotografie.com/api/auth/google/callback'
-      : `${process.env.BASE_URL || 'http://localhost:3001'}/api/auth/google/callback`;
+    const redirectUri = `${process.env.APP_URL || process.env.BASE_URL || 'http://localhost:3001'}/api/auth/google/callback`;
 
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
@@ -126,8 +124,8 @@ export async function createGoogleCalendarEvent(data: BookingEventData): Promise
       colorId: '2',
       // Add source to identify scheduler-created events
       source: {
-        title: 'New Age Fotografie Scheduler',
-        url: 'https://www.newagefotografie.com',
+        title: 'SmartTog Scheduler',
+        url: process.env.APP_URL || process.env.BASE_URL || 'http://localhost:3001',
       },
     };
 

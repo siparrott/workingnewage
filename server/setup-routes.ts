@@ -98,7 +98,7 @@ router.get('/status', async (req: Request, res: Response) => {
       currentStep: onboardingStep || localOnboardingState.step,
       progressPct: progress || localOnboardingState.progressPct,
       phases,
-      setupMode: hubIntegration.isSetupMode() || !localOnboardingState.draftsComplete,
+      setupMode: hubIntegration.isSetupMode() || (!localOnboardingState.draftsComplete && !studioConfig?.creativeSetupComplete),
       features: hubIntegration.getFeatureFlags()
     });
   } catch (error) {
@@ -653,6 +653,16 @@ router.post('/complete', async (req: Request, res: Response) => {
     localOnboardingState.draftsComplete = true;
     localOnboardingState.step = 'ready';
     localOnboardingState.progressPct = 100;
+    
+    // Persist to DB so state survives server restarts
+    try {
+      const [sc] = await db.select().from(studioConfigs).limit(1);
+      if (sc) {
+        await db.update(studioConfigs).set({ creativeSetupComplete: true }).where(eq(studioConfigs.id, sc.id));
+      }
+    } catch (dbErr) {
+      console.warn('[setup] Could not persist creative setup flag:', dbErr);
+    }
     
     // Mark onboarding as complete in Hub
     if (hubIntegration.isConfigured()) {

@@ -29,7 +29,7 @@ async function resetDemoData() {
     // Note: In production, you'd hash these passwords properly
     const demoUsers = [
       {
-        email: 'demo@newagefotografie.com',
+        email: 'demo@example.com',
         password: 'demo2024', // In production: await hash('demo2024')
         isAdmin: true
       },
@@ -51,7 +51,7 @@ async function resetDemoData() {
     console.log('🔄 Run "npm run demo:setup" to repopulate fresh demo data');
     console.log('');
     console.log('Demo Accounts After Reset:');
-    console.log('Admin: demo@newagefotografie.com / demo2024');
+    console.log('Admin: demo@example.com / demo2024');
     console.log('Client: client@demo.com / client2024');
 
   } catch (error) {

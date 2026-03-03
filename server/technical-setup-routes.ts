@@ -43,8 +43,19 @@ router.get('/status', async (_req: Request, res: Response) => {
     const completedCount = Object.values(steps).filter(Boolean).length;
     const totalSteps = Object.keys(steps).length;
 
+    // Auto-detect: if key infrastructure exists, treat as complete even if flag missing
+    let isComplete = sc?.technicalSetupComplete ?? false;
+    if (!isComplete && sc && completedCount >= 3) {
+      // At least 3 of 6 steps configured → existing instance, auto-mark done
+      try {
+        await db.update(studioConfigs).set({ technicalSetupComplete: true }).where(eq(studioConfigs.id, sc.id));
+        isComplete = true;
+        console.log('[technical-setup] Auto-detected existing setup, marked complete');
+      } catch { /* best-effort */ }
+    }
+
     res.json({
-      technicalSetupComplete: sc?.technicalSetupComplete ?? false,
+      technicalSetupComplete: isComplete,
       steps,
       progress: Math.round((completedCount / totalSteps) * 100),
       hasStudioConfig: !!sc,

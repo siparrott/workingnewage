@@ -48,7 +48,7 @@ Antworten:
 ${answersText}
 
 ---
-New Age Fotografie CRM System
+${process.env.STUDIO_NAME || 'My Studio'} CRM System
     `;
 
     const html = `
@@ -63,11 +63,11 @@ New Age Fotografie CRM System
       </div>
       
       <hr>
-      <p style="color: #666; font-size: 12px;">New Age Fotografie CRM System</p>
+      <p style="color: #666; font-size: 12px;">${process.env.STUDIO_NAME || 'My Studio'} CRM System</p>
     `;
 
     await transporter.sendMail({
-      from: `"New Age Fotografie" <${emailSettings.fromEmail}>`,
+      from: `"${process.env.STUDIO_NAME || 'My Studio'}" <${emailSettings.fromEmail}>`,
       to: emailSettings.studioEmail,
       subject,
       text,
@@ -88,7 +88,7 @@ export async function sendClientConfirmationEmail(clientEmail: string, clientNam
       port: parseInt(process.env.SMTP_PORT || '587'),
       user: process.env.SMTP_USER || process.env.EMAIL_USER,
       pass: process.env.SMTP_PASS || process.env.EMAIL_PASS,
-      fromEmail: process.env.FROM_EMAIL || 'studio@newagefotografie.com'
+      fromEmail: process.env.FROM_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@example.com'
     };
 
     if (!emailSettings.user || !emailSettings.pass) {
@@ -106,7 +106,9 @@ export async function sendClientConfirmationEmail(clientEmail: string, clientNam
       }
     });
 
-    const subject = 'Vielen Dank für Ihren Fragebogen - New Age Fotografie';
+    const subject = 'Vielen Dank für Ihren Fragebogen';
+    const studioName = process.env.STUDIO_NAME || 'My Studio';
+    const siteUrl = process.env.APP_URL || process.env.BASE_URL || '';
     const text = `
 Liebe/r ${clientName},
 
@@ -117,11 +119,11 @@ Wir haben Ihre Antworten erhalten und werden uns in Kürze bei Ihnen melden, um 
 Bei Fragen können Sie uns jederzeit kontaktieren.
 
 Mit freundlichen Grüßen,
-Ihr Team von New Age Fotografie
+Ihr Team von ${studioName}
 
 ---
-New Age Fotografie
-Website: https://newagefotografie.com
+${studioName}
+${siteUrl ? `Website: ${siteUrl}` : ''}
     `;
 
     const html = `
@@ -137,18 +139,18 @@ Website: https://newagefotografie.com
         <p>Bei Fragen können Sie uns jederzeit kontaktieren.</p>
         
         <p>Mit freundlichen Grüßen,<br>
-        Ihr Team von New Age Fotografie</p>
+        Ihr Team von ${studioName}</p>
         
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
         <p style="color: #666; font-size: 12px;">
-          New Age Fotografie<br>
-          Website: <a href="https://newagefotografie.com">https://newagefotografie.com</a>
+          ${studioName}<br>
+          ${siteUrl ? `Website: <a href="${siteUrl}">${siteUrl}</a>` : ''}
         </p>
       </div>
     `;
 
     await transporter.sendMail({
-      from: `"New Age Fotografie" <${emailSettings.fromEmail}>`,
+      from: `"${studioName}" <${emailSettings.fromEmail}>`,
       to: clientEmail,
       subject,
       text,

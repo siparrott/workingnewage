@@ -1,0 +1,141 @@
+/**
+ * PHASE 0: Environment Validation Module
+ *
+ * Runs at server startup. Fails fast on misconfigurations to prevent
+ * silent production-damaging defaults.
+ *
+ * Validates:
+ *  - Required variables are present
+ *  - Stripe live keys cannot be used in DEMO_MODE
+ *  - SESSION_SECRET is not an API key and is long enough
+ *  - No dangerous fall-through defaults
+ */
+
+interface EnvError {
+  variable: string;
+  message: string;
+  severity: 'fatal' | 'warn';
+}
+
+export function validateEnv(): void {
+  const errors: EnvError[] = [];
+  const warnings: EnvError[] = [];
+
+  // ── 1. Required variables ────────────────────────────────────────
+  const required = ['DATABASE_URL'];
+  for (const key of required) {
+    if (!process.env[key]) {
+      errors.push({ variable: key, message: `Missing required env var: ${key}`, severity: 'fatal' });
+    }
+  }
+
+  // ── 2. SESSION_SECRET quality ────────────────────────────────────
+  const sessionSecret = process.env.SESSION_SECRET || '';
+
+  if (!sessionSecret) {
+    errors.push({ variable: 'SESSION_SECRET', message: 'SESSION_SECRET is not set', severity: 'fatal' });
+  } else {
+    if (sessionSecret.length < 32) {
+      errors.push({
+        variable: 'SESSION_SECRET',
+        message: `SESSION_SECRET is only ${sessionSecret.length} chars — must be ≥ 32`,
+        severity: 'fatal',
+      });
+    }
+
+    // Detect API key misuse as session secret
+    const apiKeyPatterns = [
+      /^sk_live_/,
+      /^sk_test_/,
+      /^pk_live_/,
+      /^pk_test_/,
+      /^sk-proj-/,
+      /^sk-ant-api/,
+      /^whsec_/,
+    ];
+    for (const pattern of apiKeyPatterns) {
+      if (pattern.test(sessionSecret)) {
+        errors.push({
+          variable: 'SESSION_SECRET',
+          message: `SESSION_SECRET looks like an API key (matches ${pattern}). Generate a real random secret.`,
+          severity: 'fatal',
+        });
+        break;
+      }
+    }
+  }
+
+  // ── 3. Stripe live/demo conflict ─────────────────────────────────
+  const stripeKey = process.env.STRIPE_SECRET_KEY || '';
+  const demoMode = (process.env.DEMO_MODE || '').toLowerCase() === 'true';
+
+  if (demoMode && stripeKey.startsWith('sk_live_')) {
+    errors.push({
+      variable: 'STRIPE_SECRET_KEY',
+      message: 'DEMO_MODE=true but STRIPE_SECRET_KEY is a LIVE key. Use sk_test_ keys for demo.',
+      severity: 'fatal',
+    });
+  }
+
+  if (demoMode && process.env.STRIPE_PUBLISHABLE_KEY?.startsWith('pk_live_')) {
+    errors.push({
+      variable: 'STRIPE_PUBLISHABLE_KEY',
+      message: 'DEMO_MODE=true but STRIPE_PUBLISHABLE_KEY is a LIVE key. Use pk_test_ keys for demo.',
+      severity: 'fatal',
+    });
+  }
+
+  // ── 4. DATABASE_URL basic shape check ────────────────────────────
+  const dbUrl = process.env.DATABASE_URL || '';
+  if (dbUrl && !dbUrl.startsWith('postgres')) {
+    warnings.push({
+      variable: 'DATABASE_URL',
+      message: `DATABASE_URL does not start with "postgres" — is this correct?`,
+      severity: 'warn',
+    });
+  }
+
+  // ── 5. Warn if production flags are mixed ────────────────────────
+  const allowDemoLogin = (process.env.ALLOW_DEMO_LOGIN || '').toLowerCase() === 'true';
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (isProduction && allowDemoLogin && !demoMode) {
+    warnings.push({
+      variable: 'ALLOW_DEMO_LOGIN',
+      message: 'ALLOW_DEMO_LOGIN=true in production without DEMO_MODE=true. This bypasses auth.',
+      severity: 'warn',
+    });
+  }
+
+  // ── 6. Warn on missing optional but important vars ───────────────
+  const recommended = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'];
+  for (const key of recommended) {
+    if (!process.env[key]) {
+      warnings.push({ variable: key, message: `${key} not set — email sending will fail`, severity: 'warn' });
+    }
+  }
+
+  // ── Report ───────────────────────────────────────────────────────
+  if (warnings.length > 0) {
+    console.warn('⚠️  Environment warnings:');
+    for (const w of warnings) {
+      console.warn(`   ⚠️  [${w.variable}] ${w.message}`);
+    }
+  }
+
+  if (errors.length > 0) {
+    console.error('');
+    console.error('🚨 ═══════════════════════════════════════════════════════');
+    console.error('🚨  FATAL: Environment validation failed. Server cannot start.');
+    console.error('🚨 ═══════════════════════════════════════════════════════');
+    for (const e of errors) {
+      console.error(`   ❌ [${e.variable}] ${e.message}`);
+    }
+    console.error('');
+    console.error('Fix the above and restart. See PHASE-0-SECURITY-REPORT.md for rotation instructions.');
+    console.error('');
+    process.exit(1);
+  }
+
+  console.log('✅ Environment validation passed');
+}

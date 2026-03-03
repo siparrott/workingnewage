@@ -7,7 +7,7 @@ const url = process.env.APP_URL || 'https://clean-crm-photography-cf3af67a2afe.h
     const payload = {
       title: 'Quick Test',
       description: 'Server e2e',
-      notifyEmail: 'hallo@newagefotografie.com',
+      notifyEmail: process.env.SMTP_FROM || 'test@example.com',
       fields: [
         { key: 'note', label: 'Note', type: 'text', required: true }
       ],
