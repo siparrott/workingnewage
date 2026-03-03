@@ -6,7 +6,7 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { formatAppDateLong } from './../../lib/dateFormat';
+import { formatAppDateLong } from '../lib/dateFormat';
 import {
   CreditCard,
   Package,

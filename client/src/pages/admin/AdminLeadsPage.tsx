@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
-import { Plus, Search, Filter, Eye, Edit, Trash2, Phone, Mail, Calendar, CheckCircle, MessageSquare, UserCheck } from 'lucide-react';
+import { Plus, Search, Filter, Eye, Edit, Trash2, Phone, Mail, Calendar, CheckCircle, MessageSquare, UserCheck, UserPlus } from 'lucide-react';
 import { Lead, getLeads, updateLeadStatus, deleteLead, bulkMarkNewAsContacted } from '../../lib/leads';
 import { formatAppDateTime } from '../../lib/dateFormat';
 
@@ -12,6 +12,7 @@ const AdminLeadsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
+  const [convertingLeadId, setConvertingLeadId] = useState<string | null>(null);
   const [viewingLead, setViewingLead] = useState<Lead | null>(null);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -213,6 +214,51 @@ const AdminLeadsPage: React.FC = () => {
     } catch (err) {
       // console.error removed
       setError('Failed to delete lead. Please try again.');
+    }
+  };
+
+  const handleConvertToClient = async (lead: Lead) => {
+    setConvertingLeadId(lead.id);
+    try {
+      const res = await fetch(`/api/leads/${lead.id}/convert-to-client`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(err.error || 'Failed to convert lead');
+      }
+      const data = await res.json();
+
+      // Update lead status locally to CONVERTED
+      setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: 'CONVERTED' as const } : l));
+
+      if (data.alreadyExisted) {
+        toast({
+          title: 'Client already exists',
+          description: data.message,
+          variant: 'success',
+          action: {
+            label: 'View Client',
+            onClick: () => window.location.href = `/admin/clients/${data.clientId}`,
+          },
+        });
+      } else {
+        toast({
+          title: 'Added to Clients',
+          description: `${lead.first_name} ${lead.last_name} is now a client`,
+          variant: 'success',
+          action: {
+            label: 'View Client',
+            onClick: () => window.location.href = `/admin/clients/${data.clientId}`,
+          },
+        });
+      }
+    } catch (err: any) {
+      toast({ title: 'Conversion failed', description: err.message || 'Please try again', variant: 'error' });
+    } finally {
+      setConvertingLeadId(null);
     }
   };
 
@@ -465,6 +511,18 @@ const AdminLeadsPage: React.FC = () => {
                             title="Edit Lead"
                           >
                             <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleConvertToClient(lead)}
+                            disabled={convertingLeadId === lead.id || lead.status === 'CONVERTED'}
+                            className={`${lead.status === 'CONVERTED' ? 'text-gray-300 cursor-not-allowed' : 'text-emerald-600 hover:text-emerald-900'} disabled:opacity-50`}
+                            title={lead.status === 'CONVERTED' ? 'Already converted' : 'Add to Clients'}
+                          >
+                            {convertingLeadId === lead.id ? (
+                              <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <UserPlus size={16} />
+                            )}
                           </button>
                           <button 
                             onClick={() => handleStatusChange(lead.id, 'CONTACTED')}

@@ -2773,6 +2773,75 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
+  // ── Convert Lead to Client ──────────────────────────────────
+  app.post("/api/leads/:id/convert-to-client", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const leadId = req.params.id;
+
+      // 1. Fetch the lead
+      const leadRows = await runSql('SELECT * FROM crm_leads WHERE id = $1 LIMIT 1', [leadId]);
+      if (!leadRows || leadRows.length === 0) {
+        return res.status(404).json({ error: 'Lead not found' });
+      }
+      const lead = leadRows[0];
+
+      // Split "full_name / name" into first + last
+      const fullName = (lead.name || '').trim();
+      const nameParts = fullName.split(/\s+/);
+      const firstName = nameParts[0] || 'Unknown';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      // 2. Check for existing client with the same email
+      if (lead.email) {
+        const existing = await runSql(
+          'SELECT id, first_name, last_name FROM crm_clients WHERE LOWER(email) = LOWER($1) LIMIT 1',
+          [lead.email]
+        );
+        if (existing && existing.length > 0) {
+          // Mark lead converted even if client already exists
+          await runSql("UPDATE crm_leads SET status = 'converted', updated_at = NOW() WHERE id = $1", [leadId]);
+          return res.json({
+            success: true,
+            alreadyExisted: true,
+            clientId: existing[0].id,
+            message: `Client already exists: ${existing[0].first_name} ${existing[0].last_name}`,
+          });
+        }
+      }
+
+      // 3. Create the client
+      const insertResult = await runSql(
+        `INSERT INTO crm_clients (first_name, last_name, email, phone, lead_source, notes, status)
+         VALUES ($1, $2, $3, $4, $5, $6, 'active')
+         RETURNING id, first_name, last_name, email`,
+        [
+          firstName,
+          lastName,
+          lead.email || '',
+          lead.phone || null,
+          lead.source || 'Lead Conversion',
+          lead.message || null,
+        ]
+      );
+
+      const newClient = insertResult[0];
+
+      // 4. Mark lead as converted
+      await runSql("UPDATE crm_leads SET status = 'converted', updated_at = NOW() WHERE id = $1", [leadId]);
+
+      console.log(`[lead-convert] Lead ${leadId} → Client ${newClient.id}`);
+      res.json({
+        success: true,
+        alreadyExisted: false,
+        clientId: newClient.id,
+        client: newClient,
+        message: `${newClient.first_name} ${newClient.last_name} added to clients`,
+      });
+    } catch (error) {
+      console.error('Error converting lead to client:', error);
+      res.status(500).json({ error: 'Failed to convert lead to client' });
+    }
+  });
   app.get("/api/crm/clients/:id", authenticateUser, async (req: Request, res: Response) => {
     console.log(`/api/crm/clients/${req.params.id} GET received`);
     try {
