@@ -1,13 +1,20 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import Layout from '../../components/layout/Layout';
+import { useLanguage } from '../../context/LanguageContext';
 
 const DatenschutzPage: React.FC = () => {
+  const { language } = useLanguage();
+  const de = language === 'de';
+
   return (
     <Layout>
       <Helmet>
-        <title>Datenschutz & Impressum | New Age Fotografie Wien</title>
-        <meta name="description" content="Datenschutzerklärung und Impressum von New Age Fotografie Wien. DSGVO-konform, transparent, Österreich." />
+        <title>{de ? 'Datenschutz & Impressum | New Age Fotografie Wien' : 'Privacy Policy & Legal Notice | New Age Fotografie Vienna'}</title>
+        <meta name="description" content={de
+          ? 'Datenschutzerklärung und Impressum von New Age Fotografie Wien. DSGVO-konform, transparent, Österreich.'
+          : 'Privacy policy and legal notice of New Age Fotografie Vienna. GDPR compliant, transparent, Austria.'
+        } />
         <link rel="canonical" href="https://www.newagefotografie.com/datenschutz/" />
       </Helmet>
 
@@ -15,89 +22,91 @@ const DatenschutzPage: React.FC = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white rounded-2xl shadow-lg p-8 md:p-12">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">
-              Impressum & Datenschutzerklärung
+              {de ? 'Impressum & Datenschutzerklärung' : 'Legal Notice & Privacy Policy'}
             </h1>
 
             <div className="prose prose-lg max-w-none text-gray-700">
               
               {/* Impressum Section */}
-              <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Anbieter</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">{de ? 'Anbieter' : 'Provider'}</h2>
               <div className="bg-gray-50 rounded-xl p-6 mb-8">
                 <p className="font-semibold text-gray-900 text-lg mb-2">New Age Fotografie</p>
                 <p>Simon Parrott</p>
                 
-                <p className="font-semibold text-gray-900 mt-4 mb-1">📍 Studio:</p>
-                <p>Eingang Ecke Schönbrunnerstraße<br />
+                <p className="font-semibold text-gray-900 mt-4 mb-1">📍 {de ? 'Studio:' : 'Studio:'}</p>
+                <p>{de ? 'Eingang Ecke Schönbrunnerstraße' : 'Entrance corner Schönbrunnerstraße'}<br />
                 Wehrgasse 11A/2+5<br />
-                1050 Wien</p>
+                1050 {de ? 'Wien' : 'Vienna'}</p>
                 
-                <p className="font-semibold text-gray-900 mt-4 mb-1">📮 Büro & Korrespondenz:</p>
+                <p className="font-semibold text-gray-900 mt-4 mb-1">📮 {de ? 'Büro & Korrespondenz:' : 'Office & Correspondence:'}</p>
                 <p>Julius-Tandler-Platz 5 / 13<br />
-                1090 Wien</p>
+                1090 {de ? 'Wien' : 'Vienna'}</p>
                 
                 <p className="mt-4">
-                  📞 <strong>Telefon:</strong> <a href="tel:+4367763399210" className="text-purple-600 hover:text-purple-700">+43 677 633 99210</a><br />
-                  📧 <strong>E-Mail:</strong> <a href="mailto:hallo@newagefotografie.com" className="text-purple-600 hover:text-purple-700">hallo@newagefotografie.com</a><br />
+                  📞 <strong>{de ? 'Telefon:' : 'Phone:'}</strong> <a href="tel:+4367763399210" className="text-purple-600 hover:text-purple-700">+43 677 633 99210</a><br />
+                  📧 <strong>{de ? 'E-Mail:' : 'Email:'}</strong> <a href="mailto:hallo@newagefotografie.com" className="text-purple-600 hover:text-purple-700">hallo@newagefotografie.com</a><br />
                   🌐 <strong>Website:</strong> <a href="https://www.newagefotografie.com" className="text-purple-600 hover:text-purple-700">www.newagefotografie.com</a>
                 </p>
                 
-                <p className="mt-4 text-sm text-gray-500">Keine UID-Nummer (nicht umsatzsteuerpflichtig).</p>
+                <p className="mt-4 text-sm text-gray-500">{de ? 'Keine UID-Nummer (nicht umsatzsteuerpflichtig).' : 'No VAT number (not subject to VAT).'}</p>
               </div>
 
               {/* Datenschutz Section */}
-              <h2 className="text-2xl font-bold text-gray-900 mt-10 mb-4">Datenschutz – Kurz & Klar</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mt-10 mb-4">{de ? 'Datenschutz – Kurz & Klar' : 'Privacy – Short & Clear'}</h2>
               <p>
-                Wir nehmen Datenschutz ernst und verarbeiten personenbezogene Daten ausschließlich im Rahmen der DSGVO.
+                {de
+                  ? 'Wir nehmen Datenschutz ernst und verarbeiten personenbezogene Daten ausschließlich im Rahmen der DSGVO.'
+                  : 'We take data protection seriously and process personal data exclusively in accordance with GDPR.'}
               </p>
 
-              <h3 className="text-xl font-bold text-gray-900 mt-8 mb-4">Welche Daten wir verarbeiten</h3>
+              <h3 className="text-xl font-bold text-gray-900 mt-8 mb-4">{de ? 'Welche Daten wir verarbeiten' : 'What Data We Process'}</h3>
               <ul className="list-disc pl-6 space-y-2">
-                <li>Name, E-Mail, Telefonnummer</li>
-                <li>Buchungs- & Rechnungsdaten</li>
-                <li>Fotos aus dem Shooting</li>
-                <li>Website-Daten (nur mit Zustimmung)</li>
+                <li>{de ? 'Name, E-Mail, Telefonnummer' : 'Name, email, phone number'}</li>
+                <li>{de ? 'Buchungs- & Rechnungsdaten' : 'Booking & billing data'}</li>
+                <li>{de ? 'Fotos aus dem Shooting' : 'Photos from the photoshoot'}</li>
+                <li>{de ? 'Website-Daten (nur mit Zustimmung)' : 'Website data (only with consent)'}</li>
               </ul>
 
-              <h3 className="text-xl font-bold text-gray-900 mt-8 mb-4">Zweck der Verarbeitung</h3>
+              <h3 className="text-xl font-bold text-gray-900 mt-8 mb-4">{de ? 'Zweck der Verarbeitung' : 'Purpose of Processing'}</h3>
               <ul className="list-disc pl-6 space-y-2">
-                <li>Terminabwicklung</li>
-                <li>Vertragserfüllung</li>
-                <li>Bildbearbeitung & Lieferung</li>
-                <li>Buchhaltung</li>
-                <li>Kommunikation</li>
-                <li>Marketing nur mit Einwilligung</li>
+                <li>{de ? 'Terminabwicklung' : 'Appointment scheduling'}</li>
+                <li>{de ? 'Vertragserfüllung' : 'Contract fulfilment'}</li>
+                <li>{de ? 'Bildbearbeitung & Lieferung' : 'Image editing & delivery'}</li>
+                <li>{de ? 'Buchhaltung' : 'Accounting'}</li>
+                <li>{de ? 'Kommunikation' : 'Communication'}</li>
+                <li>{de ? 'Marketing nur mit Einwilligung' : 'Marketing only with consent'}</li>
               </ul>
 
-              <h3 className="text-xl font-bold text-gray-900 mt-8 mb-4">Fotos & personenbezogene Daten</h3>
+              <h3 className="text-xl font-bold text-gray-900 mt-8 mb-4">{de ? 'Fotos & personenbezogene Daten' : 'Photos & Personal Data'}</h3>
               <ul className="list-disc pl-6 space-y-2">
-                <li>Fotos gelten als personenbezogene Daten.</li>
-                <li>Speicherung erfolgt sicher.</li>
-                <li>Keine Weitergabe ohne Zustimmung.</li>
-                <li>Veröffentlichung nur mit Einwilligung oder wenn nicht widersprochen wurde.</li>
+                <li>{de ? 'Fotos gelten als personenbezogene Daten.' : 'Photos are considered personal data.'}</li>
+                <li>{de ? 'Speicherung erfolgt sicher.' : 'Storage is secure.'}</li>
+                <li>{de ? 'Keine Weitergabe ohne Zustimmung.' : 'No sharing without consent.'}</li>
+                <li>{de ? 'Veröffentlichung nur mit Einwilligung oder wenn nicht widersprochen wurde.' : 'Publication only with consent or if no objection was raised.'}</li>
               </ul>
 
               <h3 className="text-xl font-bold text-gray-900 mt-8 mb-4">Cookies</h3>
               <ul className="list-disc pl-6 space-y-2">
-                <li>Notwendige Cookies für den Betrieb</li>
-                <li>Analyse & Marketing nur nach Zustimmung</li>
-                <li>Einwilligung jederzeit widerrufbar</li>
+                <li>{de ? 'Notwendige Cookies für den Betrieb' : 'Necessary cookies for operation'}</li>
+                <li>{de ? 'Analyse & Marketing nur nach Zustimmung' : 'Analytics & marketing only with consent'}</li>
+                <li>{de ? 'Einwilligung jederzeit widerrufbar' : 'Consent can be revoked at any time'}</li>
               </ul>
 
-              <h3 className="text-xl font-bold text-gray-900 mt-8 mb-4">Deine Rechte</h3>
-              <p>Du hast jederzeit das Recht auf:</p>
+              <h3 className="text-xl font-bold text-gray-900 mt-8 mb-4">{de ? 'Deine Rechte' : 'Your Rights'}</h3>
+              <p>{de ? 'Du hast jederzeit das Recht auf:' : 'You have the right at any time to:'}</p>
               <ul className="list-disc pl-6 space-y-2">
-                <li>Auskunft</li>
-                <li>Berichtigung</li>
-                <li>Löschung</li>
-                <li>Einschränkung</li>
-                <li>Widerruf deiner Einwilligung</li>
+                <li>{de ? 'Auskunft' : 'Access to your data'}</li>
+                <li>{de ? 'Berichtigung' : 'Rectification'}</li>
+                <li>{de ? 'Löschung' : 'Deletion'}</li>
+                <li>{de ? 'Einschränkung' : 'Restriction of processing'}</li>
+                <li>{de ? 'Widerruf deiner Einwilligung' : 'Withdrawal of your consent'}</li>
               </ul>
 
               <div className="bg-purple-50 rounded-xl p-6 mt-8">
-                <p className="font-semibold text-gray-900">Beschwerdestelle:</p>
-                <p>Österreichische Datenschutzbehörde (DSB)</p>
+                <p className="font-semibold text-gray-900">{de ? 'Beschwerdestelle:' : 'Supervisory authority:'}</p>
+                <p>{de ? 'Österreichische Datenschutzbehörde (DSB)' : 'Austrian Data Protection Authority (DSB)'}</p>
                 <p className="mt-4">
-                  📧 Kontakt: <a href="mailto:hallo@newagefotografie.com" className="text-purple-600 hover:text-purple-700">hallo@newagefotografie.com</a>
+                  📧 {de ? 'Kontakt:' : 'Contact:'} <a href="mailto:hallo@newagefotografie.com" className="text-purple-600 hover:text-purple-700">hallo@newagefotografie.com</a>
                 </p>
               </div>
 
