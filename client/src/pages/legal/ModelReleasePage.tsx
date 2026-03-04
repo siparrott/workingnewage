@@ -2,13 +2,20 @@ import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import Layout from '../../components/layout/Layout';
 import { Users, Baby, Briefcase } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 const ModelReleasePage: React.FC = () => {
+  const { language } = useLanguage();
+  const de = language === 'de';
+
   return (
     <Layout>
       <Helmet>
-        <title>Model-Release Klauseln | New Age Fotografie Wien</title>
-        <meta name="description" content="Model-Release Klauseln für Familien-, Baby- und Business-Shootings bei New Age Fotografie Wien. DSGVO-konform." />
+        <title>{de ? 'Model-Release Klauseln | New Age Fotografie Wien' : 'Model Release Clauses | New Age Fotografie Vienna'}</title>
+        <meta name="description" content={de
+          ? 'Model-Release Klauseln für Familien-, Baby- und Business-Shootings bei New Age Fotografie Wien. DSGVO-konform.'
+          : 'Model release clauses for family, baby and business photoshoots at New Age Fotografie Vienna. GDPR compliant.'
+        } />
         <link rel="canonical" href="https://www.newagefotografie.com/model-release/" />
       </Helmet>
 
@@ -16,10 +23,12 @@ const ModelReleasePage: React.FC = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white rounded-2xl shadow-lg p-8 md:p-12">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Model-Release Klauseln
+              {de ? 'Model-Release Klauseln' : 'Model Release Clauses'}
             </h1>
             <p className="text-gray-600 mb-8">
-              Je nach Art des Shootings gelten unterschiedliche Einwilligungsklauseln für die Verwendung der Bilder.
+              {de
+                ? 'Je nach Art des Shootings gelten unterschiedliche Einwilligungsklauseln für die Verwendung der Bilder.'
+                : 'Different consent clauses apply for the use of images depending on the type of photoshoot.'}
             </p>
 
             <div className="space-y-8">
@@ -30,15 +39,20 @@ const ModelReleasePage: React.FC = () => {
                   <div className="p-3 bg-purple-100 rounded-full">
                     <Users className="w-6 h-6 text-purple-600" />
                   </div>
-                  <h2 className="text-xl font-bold text-gray-900">Familien- & Lifestyle-Shootings</h2>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {de ? 'Familien- & Lifestyle-Shootings' : 'Family & Lifestyle Photoshoots'}
+                  </h2>
                 </div>
                 <div className="bg-white rounded-lg p-4 border border-gray-200">
                   <p className="text-gray-700 leading-relaxed">
-                    Ich erteile New Age Fotografie die Erlaubnis, ausgewählte Bilder aus dem Shooting für 
-                    Portfolio-, Website-, Social-Media- und Marketingzwecke zu verwenden.
+                    {de
+                      ? 'Ich erteile New Age Fotografie die Erlaubnis, ausgewählte Bilder aus dem Shooting für Portfolio-, Website-, Social-Media- und Marketingzwecke zu verwenden.'
+                      : 'I grant New Age Fotografie permission to use selected images from the photoshoot for portfolio, website, social media, and marketing purposes.'}
                   </p>
                   <p className="text-gray-700 leading-relaxed mt-3">
-                    Diese Einwilligung gilt zeitlich unbegrenzt und kann jederzeit per E-Mail widerrufen werden.
+                    {de
+                      ? 'Diese Einwilligung gilt zeitlich unbegrenzt und kann jederzeit per E-Mail widerrufen werden.'
+                      : 'This consent is valid indefinitely and can be revoked at any time via email.'}
                   </p>
                 </div>
               </div>
@@ -49,18 +63,25 @@ const ModelReleasePage: React.FC = () => {
                   <div className="p-3 bg-pink-100 rounded-full">
                     <Baby className="w-6 h-6 text-pink-600" />
                   </div>
-                  <h2 className="text-xl font-bold text-gray-900">Baby- & Neugeborenenfotografie</h2>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {de ? 'Baby- & Neugeborenenfotografie' : 'Baby & Newborn Photography'}
+                  </h2>
                 </div>
                 <div className="bg-white rounded-lg p-4 border border-gray-200">
                   <p className="text-gray-700 leading-relaxed">
-                    Mir ist bewusst, dass es sich bei den Fotos um sensible personenbezogene Daten handelt.
+                    {de
+                      ? 'Mir ist bewusst, dass es sich bei den Fotos um sensible personenbezogene Daten handelt.'
+                      : 'I am aware that the photos constitute sensitive personal data.'}
                   </p>
                   <p className="text-gray-700 leading-relaxed mt-3">
-                    Ich erteile New Age Fotografie ausdrücklich die Erlaubnis, ausgewählte Bilder meines 
-                    Kindes für Portfolio- und Marketingzwecke zu verwenden.
+                    {de
+                      ? 'Ich erteile New Age Fotografie ausdrücklich die Erlaubnis, ausgewählte Bilder meines Kindes für Portfolio- und Marketingzwecke zu verwenden.'
+                      : 'I expressly grant New Age Fotografie permission to use selected images of my child for portfolio and marketing purposes.'}
                   </p>
                   <p className="text-gray-700 leading-relaxed mt-3">
-                    Eine Weitergabe an Dritte erfolgt nicht. Die Einwilligung kann jederzeit widerrufen werden.
+                    {de
+                      ? 'Eine Weitergabe an Dritte erfolgt nicht. Die Einwilligung kann jederzeit widerrufen werden.'
+                      : 'Images will not be shared with third parties. Consent can be revoked at any time.'}
                   </p>
                 </div>
               </div>
@@ -71,15 +92,20 @@ const ModelReleasePage: React.FC = () => {
                   <div className="p-3 bg-blue-100 rounded-full">
                     <Briefcase className="w-6 h-6 text-blue-600" />
                   </div>
-                  <h2 className="text-xl font-bold text-gray-900">Business- & Corporate-Shootings</h2>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {de ? 'Business- & Corporate-Shootings' : 'Business & Corporate Photoshoots'}
+                  </h2>
                 </div>
                 <div className="bg-white rounded-lg p-4 border border-gray-200">
                   <p className="text-gray-700 leading-relaxed">
-                    Ich / unser Unternehmen erteilen New Age Fotografie das Recht, die entstandenen Bilder 
-                    für eigene Marketing-, Portfolio- und Referenzzwecke zu nutzen.
+                    {de
+                      ? 'Ich / unser Unternehmen erteilen New Age Fotografie das Recht, die entstandenen Bilder für eigene Marketing-, Portfolio- und Referenzzwecke zu nutzen.'
+                      : 'I / our company grant New Age Fotografie the right to use the resulting images for their own marketing, portfolio, and reference purposes.'}
                   </p>
                   <p className="text-gray-700 leading-relaxed mt-3">
-                    Die kommerzielle Nutzung durch den Auftraggeber ist im vereinbarten Umfang gestattet.
+                    {de
+                      ? 'Die kommerzielle Nutzung durch den Auftraggeber ist im vereinbarten Umfang gestattet.'
+                      : 'Commercial use by the client is permitted within the agreed scope.'}
                   </p>
                 </div>
               </div>
@@ -89,7 +115,8 @@ const ModelReleasePage: React.FC = () => {
             {/* Contact Note */}
             <div className="mt-10 bg-gray-50 rounded-xl p-6">
               <p className="text-gray-600">
-                <strong>Fragen?</strong> Schreib uns an{' '}
+                <strong>{de ? 'Fragen?' : 'Questions?'}</strong>{' '}
+                {de ? 'Schreib uns an' : 'Contact us at'}{' '}
                 <a href="mailto:hallo@newagefotografie.com" className="text-purple-600 hover:text-purple-700">
                   hallo@newagefotografie.com
                 </a>
