@@ -221,16 +221,18 @@ app.use((req, res, next) => {
       }
 
       // Auto-detect: if existing instance already has key infra, mark setup complete
+      // Uses raw SQL to avoid Drizzle column-mapping failures if columns don't exist yet
       try {
-        const [sc] = await db.select().from(studioConfigs).limit(1);
-        if (sc && !sc.technicalSetupComplete) {
-          // If an admin user exists, this is an established instance — mark complete
-          const admins = await db.select().from(adminUsers).limit(1);
-          const hasAdmin = admins.length > 0;
-          if (hasAdmin) {
-            await db.update(studioConfigs).set({ technicalSetupComplete: true, creativeSetupComplete: true }).where(eq(studioConfigs.id, sc.id));
-            console.log('✅ Existing instance detected (admin exists) — auto-marked onboarding complete');
-          }
+        const adminCheck = await db.execute(sql`SELECT EXISTS(SELECT 1 FROM admin_users LIMIT 1) AS has_admin`);
+        const hasAdmin = !!(adminCheck.rows?.[0] as any)?.has_admin;
+        if (hasAdmin) {
+          // Use raw SQL to update — more reliable than Drizzle if schema is out of sync
+          await db.execute(sql`
+            UPDATE studio_configs 
+            SET technical_setup_complete = true, creative_setup_complete = true
+            WHERE id = (SELECT id FROM studio_configs LIMIT 1)
+          `);
+          console.log('✅ Existing instance detected (admin exists) — auto-marked onboarding complete via raw SQL');
         }
       } catch (autoDetectError: any) {
         console.warn('⚠️ Onboarding auto-detect skipped:', autoDetectError.message);
