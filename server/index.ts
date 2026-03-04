@@ -224,13 +224,12 @@ app.use((req, res, next) => {
       try {
         const [sc] = await db.select().from(studioConfigs).limit(1);
         if (sc && !sc.technicalSetupComplete) {
-          // Check if core infrastructure is already configured
-          const [si] = await db.select().from(studioIntegrations).limit(1);
-          const [admin] = await db.select().from(adminUsers).limit(1);
-          const hasInfra = !!si && !!admin;
-          if (hasInfra) {
+          // If an admin user exists, this is an established instance — mark complete
+          const admins = await db.select().from(adminUsers).limit(1);
+          const hasAdmin = admins.length > 0;
+          if (hasAdmin) {
             await db.update(studioConfigs).set({ technicalSetupComplete: true, creativeSetupComplete: true }).where(eq(studioConfigs.id, sc.id));
-            console.log('✅ Existing instance detected — auto-marked onboarding complete');
+            console.log('✅ Existing instance detected (admin exists) — auto-marked onboarding complete');
           }
         }
       } catch (autoDetectError: any) {

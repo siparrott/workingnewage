@@ -45,13 +45,16 @@ router.get('/status', async (_req: Request, res: Response) => {
 
     // Auto-detect: if key infrastructure exists, treat as complete even if flag missing
     let isComplete = sc?.technicalSetupComplete ?? false;
-    if (!isComplete && sc && completedCount >= 3) {
-      // At least 3 of 6 steps configured → existing instance, auto-mark done
-      try {
-        await db.update(studioConfigs).set({ technicalSetupComplete: true }).where(eq(studioConfigs.id, sc.id));
-        isComplete = true;
-        console.log('[technical-setup] Auto-detected existing setup, marked complete');
-      } catch { /* best-effort */ }
+    if (!isComplete && sc) {
+      // If admin user exists OR at least 1 step is configured → established instance
+      const hasAdmin = steps.security;
+      if (hasAdmin || completedCount >= 1) {
+        try {
+          await db.update(studioConfigs).set({ technicalSetupComplete: true, creativeSetupComplete: true }).where(eq(studioConfigs.id, sc.id));
+          isComplete = true;
+          console.log('[technical-setup] Auto-detected existing setup (admin exists), marked complete');
+        } catch { /* best-effort */ }
+      }
     }
 
     res.json({
