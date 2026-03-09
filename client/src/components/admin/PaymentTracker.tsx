@@ -233,7 +233,17 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
       }
       
       const data = await response.json();
-      setPayments(data || []);
+      // Normalize camelCase from Drizzle ORM to snake_case used by the UI
+      const normalized = (data || []).map((p: any) => ({
+        id: p.id,
+        amount: parseFloat(p.amount) || 0,
+        payment_method: p.payment_method || p.paymentMethod || '',
+        payment_reference: p.payment_reference || p.paymentReference || '',
+        payment_date: p.payment_date || p.paymentDate || '',
+        notes: p.notes || '',
+        created_at: p.created_at || p.createdAt || ''
+      }));
+      setPayments(normalized);
     } catch (err) {
       // console.error removed
       setError('Failed to load payments');
@@ -290,13 +300,18 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
     }
   };
 
-  const handleAddPayment = async () => {
+  const handleAddPayment = async (withEmailReceipt: boolean = false) => {
     try {
       setLoading(true);
       setError(null);
 
       // Use custom method input if in custom mode
       const paymentMethod = useCustomMethod ? customMethodInput : newPayment.payment_method;
+
+      // Capture payment data before resetting form
+      const capturedAmount = newPayment.amount;
+      const capturedDate = newPayment.payment_date;
+      const capturedMethod = paymentMethod;
 
       const response = await fetch(`/api/crm/invoices/${invoiceId}/payments`, {
         method: 'POST',
@@ -330,9 +345,8 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
       await fetchPayments();
       onPaymentAdded();
 
-      // If email receipt was requested, show preview instead of sending immediately
-      if (sendEmailReceipt) {
-        // Fetch invoice & client info to build the email preview
+      // If email receipt was requested, show preview (use captured values since form is reset)
+      if (withEmailReceipt) {
         try {
           const invResponse = await fetch(`/api/crm/invoices/${invoiceId}`, { credentials: 'include' });
           if (invResponse.ok) {
@@ -352,9 +366,9 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
               } catch (_) {}
             }
             const invoiceNum = invoice.invoice_number || invoice.invoiceNumber || invoiceId.slice(0, 8).toUpperCase();
-            const pMethod = getPaymentMethodLabel(paymentMethod);
-            const pAmount = formatCurrency(newPayment.amount);
-            const pDate = newPayment.payment_date;
+            const pMethod = getPaymentMethodLabel(capturedMethod);
+            const pAmount = formatCurrency(capturedAmount);
+            const pDate = capturedDate;
 
             setEmailReceiptData({
               to: clientEmail,
@@ -759,7 +773,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
                   <div className="relative">
                     <div className="flex">
                       <button
-                        onClick={() => { setSendEmailReceipt(false); handleAddPayment(); }}
+                        onClick={() => handleAddPayment(false)}
                         disabled={loading || newPayment.amount <= 0 || (!newPayment.payment_method && !customMethodInput)}
                         className="px-4 py-2 bg-cyan-500 text-white rounded-l-lg hover:bg-cyan-600 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium flex items-center"
                       >
@@ -779,8 +793,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
                         <button
                           onClick={() => {
                             setShowActionDropdown(false);
-                            setSendEmailReceipt(true);
-                            handleAddPayment();
+                            handleAddPayment(true);
                           }}
                           className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center text-gray-700"
                         >
@@ -790,8 +803,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
                         <button
                           onClick={() => {
                             setShowActionDropdown(false);
-                            setSendEmailReceipt(false);
-                            handleAddPayment();
+                            handleAddPayment(false);
                           }}
                           className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center text-gray-700 border-t"
                         >
@@ -824,11 +836,22 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
               {payments.map((payment) => (
                 <div key={payment.id} className="grid grid-cols-3 gap-4 px-4 py-3 bg-white border border-gray-100 rounded-lg hover:bg-gray-50">
                   <div className="text-sm text-gray-700">
-                    {new Date(payment.payment_date).toLocaleDateString(language === 'de' ? 'de-DE' : 'en-US', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric'
-                    })}
+                    {(() => {
+                      const dateStr = payment.payment_date;
+                      if (!dateStr) return '—';
+                      // PostgreSQL date column returns 'YYYY-MM-DD' — parse explicitly to avoid timezone issues
+                      const parts = dateStr.split('-');
+                      if (parts.length === 3) {
+                        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                        return d.toLocaleDateString(language === 'de' ? 'de-DE' : 'en-GB', {
+                          day: 'numeric', month: 'short', year: 'numeric'
+                        });
+                      }
+                      const d = new Date(dateStr);
+                      return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString(language === 'de' ? 'de-DE' : 'en-GB', {
+                        day: 'numeric', month: 'short', year: 'numeric'
+                      });
+                    })()}
                   </div>
                   <div className="text-center">
                     <span className="font-medium text-gray-900">
