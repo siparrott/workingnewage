@@ -425,34 +425,23 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
     }
     try {
       setSendingReceipt(true);
-      const response = await fetch(`/api/crm/invoices/${invoiceId}/email`, {
+      // Use the general email send endpoint with HTML body
+      const htmlBody = emailReceiptData.body.replace(/\n/g, '<br>');
+      const response = await fetch('/api/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           to: emailReceiptData.to,
           subject: emailReceiptData.subject,
-          body: emailReceiptData.body,
-          type: 'payment_receipt'
+          body: htmlBody
         })
       });
       if (!response.ok) {
-        // Fallback: try the general email send endpoint
-        const fallbackResponse = await fetch('/api/email/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            to: emailReceiptData.to,
-            subject: emailReceiptData.subject,
-            text: emailReceiptData.body,
-            html: emailReceiptData.body.replace(/\n/g, '<br>')
-          })
-        });
-        if (!fallbackResponse.ok) throw new Error('Failed');
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to send');
       }
       setShowEmailPreview(false);
-      // Brief success toast
       setError(null);
     } catch (err) {
       setError(t.receiptFailed);
