@@ -8548,21 +8548,17 @@ New Age Fotografie Team`;
 
       const emailConfig = {
         host: emailSettings.smtp_host,
-        port: emailSettings.smtp_port,
-        secure: false, // Use STARTTLS instead of SSL
+        port: emailSettings.smtp_port === 587 ? 465 : emailSettings.smtp_port,
+        secure: true,
         auth: {
           user: emailSettings.smtp_user,
           pass: emailSettings.smtp_pass
         },
         tls: {
-          rejectUnauthorized: false,
-          ciphers: 'SSLv3'
+          rejectUnauthorized: false
         },
-        // Enhanced debugging and reliability
-        debug: true,
-        logger: true,
-        // Add delivery status tracking
-        pool: true,
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
       };
 
       // Create transporter and send the email
