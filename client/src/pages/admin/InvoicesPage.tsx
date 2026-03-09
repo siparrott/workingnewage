@@ -28,7 +28,7 @@ interface Invoice {
   amount: number;
   tax_amount: number;
   total_amount: number;
-  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+  status: 'draft' | 'sent' | 'paid' | 'partially_paid' | 'overdue' | 'cancelled';
   due_date: string;
   paid_date?: string;
   notes?: string;
@@ -196,6 +196,7 @@ const InvoicesPage: React.FC = () => {
       draft: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Draft' },
       sent: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Sent' },
       paid: { bg: 'bg-green-100', text: 'text-green-800', label: 'Paid' },
+      partially_paid: { bg: 'bg-amber-100', text: 'text-amber-800', label: 'Partially Paid' },
       overdue: { bg: 'bg-red-100', text: 'text-red-800', label: 'Overdue' },
       cancelled: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Cancelled' }
     };

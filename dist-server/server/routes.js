@@ -4539,6 +4539,31 @@ Bitte versuchen Sie es später noch einmal.`;
             res.status(500).json({ error: "Internal server error" });
         }
     });
+    // Helper: recalculate invoice paidAmount and status from payments
+    async function recalcInvoicePaid(invoiceId) {
+        try {
+            const payments = await storage_1.storage.getCrmInvoicePayments(invoiceId);
+            const totalPaid = payments.reduce((sum, p) => sum + (parseFloat(p.amount?.toString() || '0')), 0);
+            const invoice = await storage_1.storage.getCrmInvoice(invoiceId);
+            if (!invoice) return;
+            const invoiceTotal = parseFloat(invoice.total?.toString() || '0');
+            let status = invoice.status || 'draft';
+            if (totalPaid >= invoiceTotal && invoiceTotal > 0) {
+                status = 'paid';
+            } else if (totalPaid > 0) {
+                status = 'partially_paid';
+            } else if (status === 'paid' || status === 'partially_paid') {
+                status = 'sent';
+            }
+            await storage_1.storage.updateCrmInvoice(invoiceId, {
+                paidAmount: totalPaid.toFixed(2),
+                status
+            });
+            console.log(`[PAYMENT] Invoice ${invoiceId} updated: paidAmount=${totalPaid.toFixed(2)}, status=${status}`);
+        } catch (err) {
+            console.error('[PAYMENT] Error recalculating invoice paid amount:', err);
+        }
+    }
     app.post("/api/crm/invoices/:invoiceId/payments", authenticateUser, async (req, res) => {
         try {
             // Transform snake_case from frontend to camelCase for Drizzle ORM
@@ -4552,6 +4577,8 @@ Bitte versuchen Sie es später noch einmal.`;
             };
             console.log('[PAYMENT] Creating payment:', JSON.stringify(paymentData));
             const payment = await storage_1.storage.createCrmInvoicePayment(paymentData);
+            // Update invoice paidAmount and status
+            await recalcInvoicePaid(req.params.invoiceId);
             res.json(payment);
         }
         catch (error) {
@@ -4562,6 +4589,8 @@ Bitte versuchen Sie es später noch einmal.`;
     app.delete("/api/crm/invoices/:invoiceId/payments/:paymentId", authenticateUser, async (req, res) => {
         try {
             await storage_1.storage.deleteCrmInvoicePayment(req.params.paymentId);
+            // Recalculate invoice paidAmount and status
+            await recalcInvoicePaid(req.params.invoiceId);
             res.json({ success: true });
         }
         catch (error) {

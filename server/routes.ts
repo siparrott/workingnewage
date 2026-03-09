@@ -5765,6 +5765,32 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
+  // Helper: recalculate invoice paidAmount and status from payments
+  async function recalcInvoicePaid(invoiceId: string) {
+    try {
+      const payments = await storage.getCrmInvoicePayments(invoiceId);
+      const totalPaid = payments.reduce((sum, p) => sum + (parseFloat(p.amount?.toString() || '0')), 0);
+      const invoice = await storage.getCrmInvoice(invoiceId);
+      if (!invoice) return;
+      const invoiceTotal = parseFloat(invoice.total?.toString() || '0');
+      let status = invoice.status || 'draft';
+      if (totalPaid >= invoiceTotal && invoiceTotal > 0) {
+        status = 'paid';
+      } else if (totalPaid > 0) {
+        status = 'partially_paid';
+      } else if (status === 'paid' || status === 'partially_paid') {
+        status = 'sent'; // Revert to sent if all payments removed
+      }
+      await storage.updateCrmInvoice(invoiceId, {
+        paidAmount: totalPaid.toFixed(2),
+        status
+      } as any);
+      console.log(`[PAYMENT] Invoice ${invoiceId} updated: paidAmount=${totalPaid.toFixed(2)}, status=${status}`);
+    } catch (err) {
+      console.error('[PAYMENT] Error recalculating invoice paid amount:', err);
+    }
+  }
+
   app.post("/api/crm/invoices/:invoiceId/payments", authenticateUser, async (req: Request, res: Response) => {
     try {
       // Transform snake_case from frontend to camelCase for Drizzle ORM
@@ -5778,6 +5804,8 @@ Bitte versuchen Sie es später noch einmal.`;
       };
       console.log('[PAYMENT] Creating payment:', JSON.stringify(paymentData));
       const payment = await storage.createCrmInvoicePayment(paymentData as any);
+      // Update invoice paidAmount and status
+      await recalcInvoicePaid(req.params.invoiceId);
       res.json(payment);
     } catch (error) {
       console.error("Error creating payment:", error);
@@ -5788,6 +5816,8 @@ Bitte versuchen Sie es später noch einmal.`;
   app.delete("/api/crm/invoices/:invoiceId/payments/:paymentId", authenticateUser, async (req: Request, res: Response) => {
     try {
       await storage.deleteCrmInvoicePayment(req.params.paymentId);
+      // Recalculate invoice paidAmount and status
+      await recalcInvoicePaid(req.params.invoiceId);
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting payment:", error);
