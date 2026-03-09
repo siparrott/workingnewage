@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 // Using Neon database with Express API endpoints
 import { invoiceService, priceListService, Invoice, InvoiceItem, PriceListItem, Client } from '../../lib/invoicing';
 import { sendInvoiceEmail, shareInvoiceWhatsApp } from '../../api/invoices';
@@ -677,10 +678,19 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
         </div>
       )}
 
-      {/* Edit Description Modal */}
-      {showEditDescriptionModal && pendingPriceItem && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-lg mx-4">
+      {/* Edit Description Modal - rendered via portal to escape stacking context */}
+      {showEditDescriptionModal && pendingPriceItem && createPortal(
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+          style={{ zIndex: 9999 }}
+          onClick={() => setShowEditDescriptionModal(false)}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div
+            className="bg-white rounded-lg shadow-lg w-full max-w-lg mx-4"
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-gray-900">Edit Invoice Description</h3>
@@ -710,7 +720,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                   <textarea
                     value={editableDescription}
                     onChange={(e) => setEditableDescription(e.target.value)}
+                    onMouseDown={(e) => e.stopPropagation()}
                     rows={4}
+                    autoFocus
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="Enter description for the invoice line item..."
                   />
@@ -740,7 +752,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Email Modal */}
