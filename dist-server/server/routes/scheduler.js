@@ -413,13 +413,18 @@ router.get('/public/:slug/availability', async (req, res) => {
             startDate = (0, date_fns_1.startOfDay)(new Date());
             endDate = (0, date_fns_1.addDays)(startDate, 30);
         }
-        // Apply min/max advance rules
+        // Apply min notice rule
         const minDate = (0, date_fns_1.addMinutes)(new Date(), scheduler.minNotice * 60);
-        const maxDate = (0, date_fns_1.addDays)(new Date(), scheduler.maxAdvance);
         if (startDate < minDate)
             startDate = minDate;
-        if (endDate > maxDate)
-            endDate = maxDate;
+        // Apply max advance rule — but NOT for specific_dates availability,
+        // because the photographer explicitly chose those dates and they
+        // should all be bookable regardless of the maxAdvance window.
+        if (scheduler.availabilityType !== 'specific_dates') {
+            const maxDate = (0, date_fns_1.addDays)(new Date(), scheduler.maxAdvance);
+            if (endDate > maxDate)
+                endDate = maxDate;
+        }
         // Get existing bookings for this scheduler
         const existingBookings = await db_1.db
             .select({
@@ -582,25 +587,67 @@ router.post('/public/:slug/book', async (req, res) => {
     }
 });
 // Helper function to generate available time slots
-function generateAvailableSlots(scheduler, startDate, endDate, existingBookings, existingSessions, blockedTimes) {
+function generateAvailableSlots(scheduler, startDate, endDate, existingBookings, existingSessions, blockedTimes, googleBusyTimes) {
+    if (!googleBusyTimes) googleBusyTimes = [];
     const slots = [];
     const weeklyAvailability = scheduler.weeklyAvailability;
-    if (!weeklyAvailability)
-        return slots;
+    const specificDates = scheduler.specificDates;
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const increment = scheduler.availabilityIncrements || 60;
     const duration = scheduler.duration || 60;
     const bufferBefore = scheduler.bufferBefore || 0;
     const bufferAfter = scheduler.bufferAfter || 0;
     const totalBlockedTime = duration + bufferBefore + bufferAfter;
-    // Iterate through each day
-    const days = (0, date_fns_1.eachDayOfInterval)({ start: startDate, end: endDate });
+    // Use the scheduler's configured timezone (default: Europe/Vienna)
+    const tz = scheduler.timezone || 'Europe/Vienna';
+    // Try to load date-fns-tz for timezone handling
+    let fromZonedTime, formatInTimeZone;
+    try {
+        const dateFnsTz = require('date-fns-tz');
+        fromZonedTime = dateFnsTz.fromZonedTime;
+        formatInTimeZone = dateFnsTz.formatInTimeZone;
+    } catch (e) {
+        // Fallback: no timezone conversion
+        fromZonedTime = null;
+        formatInTimeZone = null;
+    }
+    // For date_range, clamp the iteration window to the scheduler's start/end dates
+    let iterStart = startDate;
+    let iterEnd = endDate;
+    if (scheduler.availabilityType === 'date_range') {
+        if (scheduler.startDate && new Date(scheduler.startDate) > iterStart) {
+            iterStart = (0, date_fns_1.startOfDay)(new Date(scheduler.startDate));
+        }
+        if (scheduler.endDate && new Date(scheduler.endDate) < iterEnd) {
+            iterEnd = (0, date_fns_1.endOfDay)(new Date(scheduler.endDate));
+        }
+        if (iterStart > iterEnd) return slots;
+    }
+    // Iterate through each day in the range
+    const days = (0, date_fns_1.eachDayOfInterval)({ start: iterStart, end: iterEnd });
     for (const day of days) {
-        const dayOfWeek = (0, date_fns_1.getDay)(day);
-        const dayName = dayNames[dayOfWeek];
-        const dayAvailability = weeklyAvailability[dayName];
-        if (!dayAvailability || dayAvailability.length === 0)
-            continue;
+        // Determine the time windows for this day based on availability type
+        let dayWindows = [];
+        if (scheduler.availabilityType === 'specific_dates' && specificDates) {
+            // Only allow dates explicitly listed in specificDates
+            const dayStr = (0, date_fns_1.format)(day, 'yyyy-MM-dd');
+            const match = specificDates.find(sd => sd.date === dayStr);
+            if (!match) continue; // Day not in the allowed specific dates
+            dayWindows = match.windows || [];
+            // If the specific date entry has no windows, use the weekly availability as fallback
+            if (dayWindows.length === 0 && weeklyAvailability) {
+                const dayOfWeek = (0, date_fns_1.getDay)(day);
+                const dayName = dayNames[dayOfWeek];
+                dayWindows = weeklyAvailability[dayName] || [];
+            }
+        } else {
+            // For 'ongoing' and 'date_range', use weekly availability
+            if (!weeklyAvailability) continue;
+            const dayOfWeek = (0, date_fns_1.getDay)(day);
+            const dayName = dayNames[dayOfWeek];
+            dayWindows = weeklyAvailability[dayName] || [];
+        }
+        if (dayWindows.length === 0) continue;
         // Count bookings for this day (for maxPerDay check)
         const dayStart = (0, date_fns_1.startOfDay)(day);
         const dayEnd = (0, date_fns_1.endOfDay)(day);
@@ -611,11 +658,14 @@ function generateAvailableSlots(scheduler, startDate, endDate, existingBookings,
         if (scheduler.maxPerDay && bookingsOnDay.length >= scheduler.maxPerDay)
             continue;
         // Generate slots for each availability window
-        for (const window of dayAvailability) {
+        for (const window of dayWindows) {
             const [startHour, startMin] = window.start.split(':').map(Number);
             const [endHour, endMin] = window.end.split(':').map(Number);
-            let slotStart = (0, date_fns_1.setMinutes)((0, date_fns_1.setHours)(day, startHour), startMin);
-            const windowEnd = (0, date_fns_1.setMinutes)((0, date_fns_1.setHours)(day, endHour), endMin);
+            // Use fromZonedTime for timezone-correct conversion if available
+            const localSlotStart = (0, date_fns_1.setMinutes)((0, date_fns_1.setHours)(day, startHour), startMin);
+            let slotStart = fromZonedTime ? fromZonedTime(localSlotStart, tz) : localSlotStart;
+            const localWindowEnd = (0, date_fns_1.setMinutes)((0, date_fns_1.setHours)(day, endHour), endMin);
+            const windowEnd = fromZonedTime ? fromZonedTime(localWindowEnd, tz) : localWindowEnd;
             while ((0, date_fns_1.addMinutes)(slotStart, totalBlockedTime) <= windowEnd) {
                 const slotEnd = (0, date_fns_1.addMinutes)(slotStart, duration);
                 const bufferedStart = (0, date_fns_1.addMinutes)(slotStart, -bufferBefore);
@@ -644,11 +694,15 @@ function generateAvailableSlots(scheduler, startDate, endDate, existingBookings,
                     const blockedEnd = new Date(blocked.endDate);
                     return slotStart < blockedEnd && slotEnd > blockedStart;
                 });
-                if (!hasBookingConflict && !hasSessionConflict && !isBlocked) {
+                // Check for Google Calendar conflicts
+                const hasGoogleConflict = googleBusyTimes.some(busy => {
+                    return bufferedStart < busy.end && bufferedEnd > busy.start;
+                });
+                if (!hasBookingConflict && !hasSessionConflict && !isBlocked && !hasGoogleConflict) {
                     slots.push({
                         start: slotStart,
                         end: slotEnd,
-                        formatted: (0, date_fns_1.format)(slotStart, 'HH:mm')
+                        formatted: formatInTimeZone ? formatInTimeZone(slotStart, tz, 'HH:mm') : (0, date_fns_1.format)(slotStart, 'HH:mm')
                     });
                 }
                 slotStart = (0, date_fns_1.addMinutes)(slotStart, increment);

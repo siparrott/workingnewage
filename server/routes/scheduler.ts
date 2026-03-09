@@ -590,12 +590,17 @@ router.get('/public/:slug/availability', async (req: Request, res: Response) => 
       endDate = addDays(startDate, 30);
     }
 
-    // Apply min/max advance rules
+    // Apply min notice rule
     const minDate = addMinutes(new Date(), scheduler.minNotice * 60);
-    const maxDate = addDays(new Date(), scheduler.maxAdvance);
-
     if (startDate < minDate) startDate = minDate;
-    if (endDate > maxDate) endDate = maxDate;
+
+    // Apply max advance rule — but NOT for specific_dates availability,
+    // because the photographer explicitly chose those dates and they
+    // should all be bookable regardless of the maxAdvance window.
+    if (scheduler.availabilityType !== 'specific_dates') {
+      const maxDate = addDays(new Date(), scheduler.maxAdvance);
+      if (endDate > maxDate) endDate = maxDate;
+    }
 
     // Get existing bookings for this scheduler
     const existingBookings = await db
