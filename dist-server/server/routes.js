@@ -4728,6 +4728,47 @@ Bitte versuchen Sie es später noch einmal.`;
             res.status(500).json({ error: "Failed to send email" });
         }
     });
+    // Send payment receipt email (uses same SMTP as invoice email)
+    app.post("/api/crm/invoices/:invoiceId/receipt", authenticateUser, async (req, res) => {
+        try {
+            const { to, subject, body } = req.body;
+            if (!to) {
+                return res.status(400).json({ error: 'Recipient email required' });
+            }
+            const transporter = nodemailer_1.default.createTransport({
+                host: 'smtp.easyname.com',
+                port: 465,
+                secure: true,
+                auth: {
+                    user: process.env.BUSINESS_MAILBOX_USER || '30840mail10',
+                    pass: process.env.EMAIL_PASSWORD || 'your-email-password'
+                }
+            });
+            const htmlBody = typeof body === 'string' ? body.replace(/\n/g, '<br>') : body;
+            await transporter.sendMail({
+                from: getEnvContactEmailSync() || 'no-reply@localhost',
+                to,
+                subject: subject || 'Payment Receipt',
+                html: htmlBody,
+                text: typeof body === 'string' ? body.replace(/<[^>]+>/g, '') : undefined
+            });
+            // Save copy to CRM messages
+            try {
+                await storage_1.storage.createCrmMessage({
+                    senderName: 'New Age Fotografie (Sent)',
+                    senderEmail: getEnvContactEmailSync(),
+                    subject: `[SENT] ${subject}`,
+                    content: `SENT TO: ${to}\n\n${typeof body === 'string' ? body : ''}`,
+                    status: 'sent',
+                    messageType: 'sent'
+                });
+            } catch (_) {}
+            res.json({ success: true, message: `Receipt sent to ${to}` });
+        } catch (error) {
+            console.error('Error sending payment receipt:', error);
+            res.status(500).json({ error: 'Failed to send receipt: ' + (error.message || error) });
+        }
+    });
     // SMS invoice to client
     app.post("/api/crm/invoices/:id/sms", authenticateUser, async (req, res) => {
         try {

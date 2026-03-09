@@ -425,9 +425,9 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
     }
     try {
       setSendingReceipt(true);
-      // Use the general email send endpoint with HTML body
+      // Use dedicated receipt endpoint with the same SMTP config as invoice emails
       const htmlBody = emailReceiptData.body.replace(/\n/g, '<br>');
-      const response = await fetch('/api/email/send', {
+      const response = await fetch(`/api/crm/invoices/${invoiceId}/receipt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
