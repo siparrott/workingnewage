@@ -184,6 +184,53 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
   };
 
   return (
+    <>
+    <style>{`
+      @media (max-width: 640px) {
+        .invoice-template {
+          padding: 20px !important;
+          box-shadow: none !important;
+        }
+        .invoice-header {
+          flex-direction: column !important;
+          gap: 20px !important;
+        }
+        .invoice-title {
+          font-size: 28px !important;
+          text-align: left !important;
+        }
+        .invoice-header-right {
+          text-align: left !important;
+        }
+        .invoice-addresses {
+          grid-template-columns: 1fr !important;
+          gap: 20px !important;
+        }
+        .invoice-table-wrapper {
+          overflow-x: auto !important;
+          -webkit-overflow-scrolling: touch !important;
+        }
+        .invoice-table {
+          min-width: 500px !important;
+        }
+        .invoice-totals-container {
+          justify-content: stretch !important;
+        }
+        .invoice-totals-box,
+        .invoice-payment-summary {
+          width: 100% !important;
+        }
+        .invoice-paid-stamp {
+          font-size: 32px !important;
+          top: 200px !important;
+          right: 20px !important;
+          padding: 10px 20px !important;
+        }
+        .invoice-footer-text-box {
+          margin-bottom: 20px !important;
+        }
+      }
+    `}</style>
     <div className="invoice-template bg-white" style={{
       maxWidth: '850px',
       margin: '0 auto',
@@ -195,7 +242,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
       position: 'relative'
     }}>
       {/* Header with Logo and Company Info */}
-      <div style={{
+      <div className="invoice-header" style={{
         display: 'flex',
         justifyContent: 'space-between',
         marginBottom: '50px'
@@ -244,8 +291,8 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
         </div>
 
         {/* Right: Invoice Header */}
-        <div style={{ textAlign: 'right' }}>
-          <h1 style={{
+        <div className="invoice-header-right" style={{ textAlign: 'right' }}>
+          <h1 className="invoice-title" style={{
             fontSize: '48px',
             fontWeight: '300',
             margin: '0 0 15px 0',
@@ -275,7 +322,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
       </div>
 
       {/* Ship To and Bill To Section */}
-      <div style={{
+      <div className="invoice-addresses" style={{
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
         gap: '40px',
@@ -349,7 +396,8 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
       </div>
 
       {/* Items Table */}
-      <table style={{
+      <div className="invoice-table-wrapper" style={{ marginBottom: '40px', overflowX: 'auto' }}>
+      <table className="invoice-table" style={{
         width: '100%',
         borderCollapse: 'collapse',
         marginBottom: '40px'
@@ -468,14 +516,15 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
           ))}
         </tbody>
       </table>
+      </div>
 
       {/* Totals Section */}
-      <div style={{
+      <div className="invoice-totals-container" style={{
         display: 'flex',
         justifyContent: 'flex-end',
         marginBottom: '60px'
       }}>
-        <div style={{ width: '350px' }}>
+        <div className="invoice-totals-box" style={{ width: '350px' }}>
           {/* Subtotal */}
           <div style={{
             display: 'flex',
@@ -573,12 +622,12 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
       </div>
 
       {/* Payment Summary Box - matches screenshot design */}
-      <div style={{
+      <div className="invoice-totals-container" style={{
         display: 'flex',
         justifyContent: 'flex-end',
         marginBottom: '30px'
       }}>
-        <div style={{
+        <div className="invoice-payment-summary" style={{
           width: '350px',
           border: '1px solid #e0e0e0',
           borderRadius: '8px',
@@ -684,7 +733,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
 
       {/* Custom Footer Text (Terms, Bank Details, etc.) */}
       {invoice.footer_text && (
-        <div style={{
+        <div className="invoice-footer-text-box" style={{
           marginBottom: '30px',
           padding: '20px',
           backgroundColor: '#f8f9fa',
@@ -740,7 +789,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
 
       {/* Paid Stamp - only show if paid */}
       {invoice.status === 'paid' && (
-        <div style={{
+        <div className="invoice-paid-stamp" style={{
           position: 'absolute',
           top: '300px',
           right: '100px',
@@ -758,6 +807,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
         </div>
       )}
     </div>
+    </>
   );
 };
 

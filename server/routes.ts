@@ -452,10 +452,11 @@ async function generateModernInvoicePDF(invoice: any, client: any): Promise<Buff
     
     if (contactDetails[0]?.publishedContent) {
       const contactContent = contactDetails[0].publishedContent as any;
-      if (contactContent['contact.studioName']) studioConfig.studioName = contactContent['contact.studioName'];
-      if (contactContent['contact.studioAddress']) studioConfig.address = contactContent['contact.studioAddress'];
-      if (contactContent['contact.phone']) studioConfig.phone = contactContent['contact.phone'];
-      if (contactContent['contact.email']) studioConfig.email = contactContent['contact.email'];
+      const isValidValue = (v: string) => v && !v.startsWith('contact.') && !v.startsWith('site.');
+      if (contactContent['contact.studioName'] && isValidValue(contactContent['contact.studioName'])) studioConfig.studioName = contactContent['contact.studioName'];
+      if (contactContent['contact.studioAddress'] && isValidValue(contactContent['contact.studioAddress'])) studioConfig.address = contactContent['contact.studioAddress'];
+      if (contactContent['contact.phone'] && isValidValue(contactContent['contact.phone'])) studioConfig.phone = contactContent['contact.phone'];
+      if (contactContent['contact.email'] && isValidValue(contactContent['contact.email'])) studioConfig.email = contactContent['contact.email'];
     }
   } catch (error) {
     console.warn('Failed to fetch studio config for PDF, using defaults:', (error as any)?.message);
@@ -5243,12 +5244,14 @@ Bitte versuchen Sie es später noch einmal.`;
       
       if (contactDetails?.publishedContent) {
         const contactContent = contactDetails.publishedContent as any;
-        if (contactContent['contact.studioName']) studioConfig.studioName = contactContent['contact.studioName'];
-        if (contactContent['contact.studioAddress']) studioConfig.address = contactContent['contact.studioAddress'];
-        if (contactContent['contact.addressNote']) studioConfig.addressNote = contactContent['contact.addressNote'];
-        if (contactContent['contact.phone']) studioConfig.phone = contactContent['contact.phone'];
-        if (contactContent['contact.email']) studioConfig.email = contactContent['contact.email'];
-        if (contactContent['contact.openingHours']) studioConfig.openingHours = contactContent['contact.openingHours'];
+        // Only use values that are actual content, not translation keys (e.g., 'contact.studioName')
+        const isValidValue = (v: string) => v && !v.startsWith('contact.') && !v.startsWith('site.');
+        if (contactContent['contact.studioName'] && isValidValue(contactContent['contact.studioName'])) studioConfig.studioName = contactContent['contact.studioName'];
+        if (contactContent['contact.studioAddress'] && isValidValue(contactContent['contact.studioAddress'])) studioConfig.address = contactContent['contact.studioAddress'];
+        if (contactContent['contact.addressNote'] && isValidValue(contactContent['contact.addressNote'])) studioConfig.addressNote = contactContent['contact.addressNote'];
+        if (contactContent['contact.phone'] && isValidValue(contactContent['contact.phone'])) studioConfig.phone = contactContent['contact.phone'];
+        if (contactContent['contact.email'] && isValidValue(contactContent['contact.email'])) studioConfig.email = contactContent['contact.email'];
+        if (contactContent['contact.openingHours'] && isValidValue(contactContent['contact.openingHours'])) studioConfig.openingHours = contactContent['contact.openingHours'];
       }
       
       // Fetch dateFormat from studio_configs table
