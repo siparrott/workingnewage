@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Plus, CreditCard, Calendar, DollarSign, Trash2, ChevronDown, Mail, FileText, Settings, PlusCircle } from 'lucide-react';
+import { X, Plus, CreditCard, Calendar, DollarSign, Trash2, ChevronDown, Mail, FileText, Settings, PlusCircle, Eye, Send } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { addInvoicePayment } from '../../api/invoices';
 import { useLanguage } from '../../context/LanguageContext';
@@ -71,6 +71,21 @@ const PAYMENT_METHOD_LABELS = {
     paidVia: 'BEZAHLT MIT',
     noPayments: 'Keine Zahlungen erfasst',
     loadingPayments: 'Zahlungen werden geladen...',
+    // Email preview labels
+    emailReceiptPreview: 'E-Mail-Beleg Vorschau',
+    emailReceiptSubject: 'Betreff',
+    emailReceiptTo: 'An',
+    emailReceiptBody: 'Nachricht',
+    sendReceipt: 'Beleg senden',
+    skipReceipt: 'Überspringen',
+    previewNote: 'Vorschau des Zahlungsbelegs vor dem Versand',
+    receiptSent: 'Beleg wurde gesendet',
+    receiptFailed: 'Beleg konnte nicht gesendet werden',
+    paymentReceivedSubject: 'Zahlungseingang für Rechnung',
+    paymentReceivedBody: 'wir bestätigen den Eingang Ihrer Zahlung.',
+    paymentDetailsLabel: 'Zahlungsdetails',
+    thankYou: 'Vielen Dank für Ihre Zahlung!',
+    dearClient: 'Sehr geehrte/r',
   },
   en: {
     bank_transfer: 'Bank Transfer',
@@ -119,6 +134,21 @@ const PAYMENT_METHOD_LABELS = {
     paidVia: 'PAID VIA',
     noPayments: 'No payments recorded',
     loadingPayments: 'Loading payments...',
+    // Email preview labels
+    emailReceiptPreview: 'Email Receipt Preview',
+    emailReceiptSubject: 'Subject',
+    emailReceiptTo: 'To',
+    emailReceiptBody: 'Message',
+    sendReceipt: 'Send Receipt',
+    skipReceipt: 'Skip',
+    previewNote: 'Preview the payment receipt before sending',
+    receiptSent: 'Receipt sent successfully',
+    receiptFailed: 'Failed to send receipt',
+    paymentReceivedSubject: 'Payment received for invoice',
+    paymentReceivedBody: 'we confirm receipt of your payment.',
+    paymentDetailsLabel: 'Payment Details',
+    thankYou: 'Thank you for your payment!',
+    dearClient: 'Dear',
   }
 };
 
@@ -161,6 +191,14 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
   const [newCustomMethodLabel, setNewCustomMethodLabel] = useState('');
   const [useCustomMethod, setUseCustomMethod] = useState(false);
   const [customMethodInput, setCustomMethodInput] = useState('');
+  const [showEmailPreview, setShowEmailPreview] = useState(false);
+  const [pendingPaymentForReceipt, setPendingPaymentForReceipt] = useState<any>(null);
+  const [emailReceiptData, setEmailReceiptData] = useState({
+    to: '',
+    subject: '',
+    body: ''
+  });
+  const [sendingReceipt, setSendingReceipt] = useState(false);
   const [newPayment, setNewPayment] = useState({
     amount: 0,
     payment_method: '',
@@ -291,6 +329,44 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
       setSendEmailReceipt(false);
       await fetchPayments();
       onPaymentAdded();
+
+      // If email receipt was requested, show preview instead of sending immediately
+      if (sendEmailReceipt) {
+        // Fetch invoice & client info to build the email preview
+        try {
+          const invResponse = await fetch(`/api/crm/invoices/${invoiceId}`, { credentials: 'include' });
+          if (invResponse.ok) {
+            const invData = await invResponse.json();
+            const invoice = invData.invoice || invData;
+            let clientEmail = '';
+            let clientName = '';
+            if (invoice.client_id || invoice.clientId) {
+              const cid = invoice.client_id || invoice.clientId;
+              try {
+                const cResponse = await fetch(`/api/crm/clients/${cid}`, { credentials: 'include' });
+                if (cResponse.ok) {
+                  const clientData = await cResponse.json();
+                  clientEmail = clientData.email || '';
+                  clientName = [clientData.firstName, clientData.lastName].filter(Boolean).join(' ') || clientEmail;
+                }
+              } catch (_) {}
+            }
+            const invoiceNum = invoice.invoice_number || invoice.invoiceNumber || invoiceId.slice(0, 8).toUpperCase();
+            const pMethod = getPaymentMethodLabel(paymentMethod);
+            const pAmount = formatCurrency(newPayment.amount);
+            const pDate = newPayment.payment_date;
+
+            setEmailReceiptData({
+              to: clientEmail,
+              subject: `${t.paymentReceivedSubject} ${invoiceNum}`,
+              body: `${t.dearClient} ${clientName},\n\n${t.paymentReceivedBody}\n\n${t.paymentDetailsLabel}:\n- ${t.amount}: ${pAmount}\n- ${t.paymentMethod}: ${pMethod}\n- ${t.paymentDate}: ${pDate}\n- ${t.invoiceTotal}: ${formatCurrency(invoiceTotal)}\n\n${t.thankYou}\n\nNew Age Fotografie`
+            });
+            setShowEmailPreview(true);
+          }
+        } catch (_) {
+          // Silently fail - payment was already added successfully
+        }
+      }
     } catch (err) {
       // console.error removed
       setError('Failed to add payment');
@@ -326,6 +402,50 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
 
   const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
   const remainingBalance = invoiceTotal - totalPaid;
+
+  const handleSendReceipt = async () => {
+    if (!emailReceiptData.to) {
+      setError(t.receiptFailed + ' - No email address');
+      setShowEmailPreview(false);
+      return;
+    }
+    try {
+      setSendingReceipt(true);
+      const response = await fetch(`/api/crm/invoices/${invoiceId}/email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          to: emailReceiptData.to,
+          subject: emailReceiptData.subject,
+          body: emailReceiptData.body,
+          type: 'payment_receipt'
+        })
+      });
+      if (!response.ok) {
+        // Fallback: try the general email send endpoint
+        const fallbackResponse = await fetch('/api/email/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            to: emailReceiptData.to,
+            subject: emailReceiptData.subject,
+            text: emailReceiptData.body,
+            html: emailReceiptData.body.replace(/\n/g, '<br>')
+          })
+        });
+        if (!fallbackResponse.ok) throw new Error('Failed');
+      }
+      setShowEmailPreview(false);
+      // Brief success toast
+      setError(null);
+    } catch (err) {
+      setError(t.receiptFailed);
+    } finally {
+      setSendingReceipt(false);
+    }
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat(language === 'de' ? 'de-DE' : 'en-US', {
@@ -737,6 +857,78 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
           )}
         </div>
       </div>
+
+      {/* Email Receipt Preview Modal */}
+      {showEmailPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-xl">
+            <div className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center">
+                <Eye size={20} className="mr-2 text-cyan-500" />
+                <h3 className="text-lg font-semibold text-gray-900">{t.emailReceiptPreview}</h3>
+              </div>
+              <button
+                onClick={() => setShowEmailPreview(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 rounded"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-gray-500">{t.previewNote}</p>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">{t.emailReceiptTo}</label>
+                <input
+                  type="email"
+                  value={emailReceiptData.to}
+                  onChange={(e) => setEmailReceiptData(prev => ({ ...prev, to: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-700"
+                  placeholder="client@example.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">{t.emailReceiptSubject}</label>
+                <input
+                  type="text"
+                  value={emailReceiptData.subject}
+                  onChange={(e) => setEmailReceiptData(prev => ({ ...prev, subject: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-700"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">{t.emailReceiptBody}</label>
+                <textarea
+                  value={emailReceiptData.body}
+                  onChange={(e) => setEmailReceiptData(prev => ({ ...prev, body: e.target.value }))}
+                  rows={10}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-700 font-mono text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border-t bg-gray-50 rounded-b-xl">
+              <button
+                onClick={() => setShowEmailPreview(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
+              >
+                {t.skipReceipt}
+              </button>
+              <button
+                onClick={handleSendReceipt}
+                disabled={sendingReceipt || !emailReceiptData.to}
+                className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium flex items-center"
+              >
+                <Send size={16} className="mr-2" />
+                {sendingReceipt ? t.adding : t.sendReceipt}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

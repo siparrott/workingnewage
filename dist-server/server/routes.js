@@ -4541,10 +4541,17 @@ Bitte versuchen Sie es später noch einmal.`;
     });
     app.post("/api/crm/invoices/:invoiceId/payments", authenticateUser, async (req, res) => {
         try {
-            const payment = await storage_1.storage.createCrmInvoicePayment({
-                ...req.body,
-                invoiceId: req.params.invoiceId
-            });
+            // Transform snake_case from frontend to camelCase for Drizzle ORM
+            const paymentData = {
+                invoiceId: req.params.invoiceId,
+                amount: req.body.amount?.toString() || '0',
+                paymentMethod: req.body.payment_method || req.body.paymentMethod || 'bank_transfer',
+                paymentReference: req.body.payment_reference || req.body.paymentReference || '',
+                paymentDate: req.body.payment_date || req.body.paymentDate || new Date().toISOString().split('T')[0],
+                notes: req.body.notes || ''
+            };
+            console.log('[PAYMENT] Creating payment:', JSON.stringify(paymentData));
+            const payment = await storage_1.storage.createCrmInvoicePayment(paymentData);
             res.json(payment);
         }
         catch (error) {
