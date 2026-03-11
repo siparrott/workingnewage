@@ -47,13 +47,13 @@ router.post("/api/questionnaires", async (req, res) => {
   }
 });
 
-router.get("/q/:slug", async (req, res) => {
+router.get("/q/:slug", async (req, res, next) => {
   const slug = req.params.slug;
   const rows = await q(
     `SELECT * FROM questionnaires WHERE slug=$1 AND is_active=true`,
     [slug]
   );
-  if (!rows.length) return res.status(404).send("Questionnaire not found");
+  if (!rows.length) return next(); // Fall through to SPA for new questionnaire_links system
 
   const qn = rows[0];
   const fields = qn.fields as any[];
