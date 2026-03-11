@@ -28,10 +28,13 @@ const GoogleCalendarIntegration: React.FC<GoogleCalendarIntegrationProps> = ({
   const [syncing, setSyncing] = useState(false);
   const [connecting, setConnecting] = useState(false);
 
-  // Fetch sync status when OAuth tab is active
+  // Fetch sync status when OAuth tab is active, and periodically check
   useEffect(() => {
     if (isOpen && activeTab === 'oauth') {
       fetchSyncStatus();
+      // Poll every 60s to detect if token refresh resolved
+      const interval = setInterval(() => fetchSyncStatus(), 60000);
+      return () => clearInterval(interval);
     }
   }, [isOpen, activeTab]);
 
@@ -165,9 +168,11 @@ const GoogleCalendarIntegration: React.FC<GoogleCalendarIntegrationProps> = ({
         fetchSyncStatus();
         onConnectionSuccess?.();
       } else if (data.tokenExpired) {
-        // Token expired - show clear message and update status
+        // Token expired - auto-reconnect 
         setSyncStatus(prev => ({ ...prev, tokenExpired: true }));
-        alert('Google Calendar authorization has expired.\n\nPlease click "Disconnect" and then "Connect Google Calendar" again to re-authorize.');
+        if (confirm('Google Calendar authorization has expired.\n\nWould you like to reconnect now?')) {
+          handleReconnect();
+        }
       } else {
         const errorMsg = data.errors?.join(', ') || data.error || 'Unknown error';
         alert(`Sync failed: ${errorMsg}`);
@@ -177,6 +182,42 @@ const GoogleCalendarIntegration: React.FC<GoogleCalendarIntegrationProps> = ({
       alert('Failed to sync - network error');
     } finally {
       setSyncing(false);
+    }
+  };
+
+  // One-click reconnect: disconnect then immediately re-connect
+  const handleReconnect = async () => {
+    try {
+      setConnecting(true);
+      // First disconnect
+      await fetch('/api/auth/google/disconnect', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+      });
+      // Then immediately start new OAuth flow
+      const response = await fetch('/api/auth/google/connect', {
+        credentials: 'include',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+      });
+      if (response.ok) {
+        const { authUrl } = await response.json();
+        const popup = window.open(
+          authUrl,
+          'Google Calendar Authorization',
+          'width=600,height=700,left=200,top=100'
+        );
+        if (!popup) {
+          alert('Please allow popups for this site to connect Google Calendar');
+        }
+      } else {
+        alert('Failed to start reconnection. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error reconnecting:', error);
+      alert('Failed to reconnect Google Calendar');
+    } finally {
+      setConnecting(false);
     }
   };
 
@@ -353,13 +394,13 @@ const GoogleCalendarIntegration: React.FC<GoogleCalendarIntegrationProps> = ({
                       ) : (
                         <Check className="text-green-600" size={24} />
                       )}
-                      <div>
+                      <div className="flex-1">
                         <h4 className={`font-medium ${syncStatus.tokenExpired ? 'text-red-900' : 'text-green-900'}`}>
                           {syncStatus.tokenExpired ? 'Google Calendar Authorization Expired' : 'Google Calendar Connected'}
                         </h4>
                         {syncStatus.tokenExpired && (
-                          <p className="text-sm text-red-700 font-medium">
-                            Please disconnect and reconnect to re-authorize.
+                          <p className="text-sm text-red-700">
+                            Authorization expired. Click Reconnect to re-authorize instantly.
                           </p>
                         )}
                         {syncStatus.email && (
@@ -371,6 +412,20 @@ const GoogleCalendarIntegration: React.FC<GoogleCalendarIntegrationProps> = ({
                           </p>
                         )}
                       </div>
+                      {syncStatus.tokenExpired && (
+                        <button
+                          onClick={handleReconnect}
+                          disabled={connecting}
+                          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium whitespace-nowrap"
+                        >
+                          {connecting ? (
+                            <Loader2 className="animate-spin" size={16} />
+                          ) : (
+                            <RotateCcw size={16} />
+                          )}
+                          <span>{connecting ? 'Reconnecting...' : 'Reconnect'}</span>
+                        </button>
+                      )}
                     </div>
                   </div>
 

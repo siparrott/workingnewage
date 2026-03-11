@@ -63,6 +63,22 @@ export class GoogleCalendarSyncService {
       refresh_token: config.refreshToken,
     });
 
+    // Handle token refresh - persist new tokens to DB when googleapis auto-refreshes
+    this.oauth2Client.on('tokens', async (tokens: any) => {
+      try {
+        const updates: any = { updatedAt: new Date() };
+        if (tokens.access_token) updates.accessToken = tokens.access_token;
+        if (tokens.refresh_token) updates.refreshToken = tokens.refresh_token;
+        await db
+          .update(calendarSyncSettings)
+          .set(updates)
+          .where(eq(calendarSyncSettings.userId, config.userId));
+        console.log('[GCalSync] Refreshed OAuth tokens saved to DB');
+      } catch (err) {
+        console.warn('[GCalSync] Failed to save refreshed tokens:', err);
+      }
+    });
+
     // Initialize Calendar API
     this.calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
   }

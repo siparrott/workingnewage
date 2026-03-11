@@ -56,6 +56,22 @@ export async function importGoogleCalendarEvents(fromDate?: Date, userId?: strin
       refresh_token: syncConfig.refreshToken,
     });
 
+    // Handle token refresh - persist new tokens to DB when googleapis auto-refreshes
+    oauth2Client.on('tokens', async (tokens: any) => {
+      try {
+        const updates: Record<string, any> = { updatedAt: new Date() };
+        if (tokens.access_token) updates.accessToken = tokens.access_token;
+        if (tokens.refresh_token) updates.refreshToken = tokens.refresh_token;
+        await db
+          .update(calendarSyncSettings)
+          .set(updates)
+          .where(eq(calendarSyncSettings.id, syncConfig.id));
+        console.log('[CalendarService] Refreshed OAuth tokens saved to DB');
+      } catch (err) {
+        console.warn('[CalendarService] Failed to save refreshed tokens:', err);
+      }
+    });
+
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
     // Fetch events from 1 year ago to 2 years in future to ensure past AND future events

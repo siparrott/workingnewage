@@ -77,14 +77,12 @@ async function performScheduledSync() {
         if (syncService) {
           const results = await syncService.performSync();
           
-          // Check if token is expired — disable sync to stop hammering Google
+          // Check if token is expired — try to re-enable on next cycle rather than permanently disabling
           const hasInvalidGrant = results.errors?.some(e => e.includes('invalid_grant'));
           if (hasInvalidGrant) {
-            console.error(`🔑 Token expired for user ${config.userId} — disabling auto-sync until re-authorization`);
-            await db
-              .update(calendarSyncSettings)
-              .set({ syncEnabled: false, updatedAt: new Date() })
-              .where(eq(calendarSyncSettings.id, config.id));
+            console.error(`🔑 Token expired for user ${config.userId} — will retry on next cycle. Re-authorization may be needed.`);
+            // Don't disable sync — the refresh token may still be valid
+            // Just log the error and skip this cycle
             continue;
           }
 

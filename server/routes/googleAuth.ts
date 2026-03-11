@@ -361,12 +361,38 @@ router.get('/google/status', requireAuth, async (req: Request, res: Response) =>
           access_token: userConfig.accessToken,
           refresh_token: userConfig.refreshToken,
         });
+
+        // Persist refreshed tokens from the test call
+        testClient.on('tokens', async (tokens: any) => {
+          try {
+            const updates: any = { updatedAt: new Date() };
+            if (tokens.access_token) updates.accessToken = tokens.access_token;
+            if (tokens.refresh_token) updates.refreshToken = tokens.refresh_token;
+            await db
+              .update(calendarSyncSettings)
+              .set(updates)
+              .where(eq(calendarSyncSettings.id, userConfig.id));
+            console.log('[Google-Status] Refreshed OAuth tokens saved during status check');
+          } catch (err) {
+            console.warn('[Google-Status] Failed to save refreshed tokens:', err);
+          }
+        });
+
         const cal = google.calendar({ version: 'v3', auth: testClient });
         await cal.events.list({
           calendarId: userConfig.calendarId || 'primary',
           maxResults: 1,
           timeMin: new Date().toISOString(),
         });
+
+        // If we got here, token is valid — re-enable sync if it was disabled
+        if (!userConfig.syncEnabled) {
+          await db
+            .update(calendarSyncSettings)
+            .set({ syncEnabled: true, updatedAt: new Date() })
+            .where(eq(calendarSyncSettings.id, userConfig.id));
+          console.log('[Google-Status] Re-enabled sync for user', userId, '(token is valid)');
+        }
       } catch (tokenErr: any) {
         const errMsg = String(tokenErr?.message || tokenErr?.response?.data?.error || '');
         if (errMsg.includes('invalid_grant') || errMsg.includes('Token has been expired') || errMsg.includes('Token has been revoked') || errMsg.includes('unauthorized')) {

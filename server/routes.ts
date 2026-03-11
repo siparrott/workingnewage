@@ -1552,6 +1552,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         access_token: syncConfig.access_token,
         refresh_token: syncConfig.refresh_token,
       });
+
+      // Handle token refresh - persist new tokens to DB
+      oauth2Client.on('tokens', async (tokens: any) => {
+        try {
+          const updates: string[] = [];
+          const vals: any[] = [];
+          if (tokens.access_token) { updates.push('access_token = $1'); vals.push(tokens.access_token); }
+          if (tokens.refresh_token) { updates.push(`refresh_token = $${vals.length + 1}`); vals.push(tokens.refresh_token); }
+          if (updates.length > 0) {
+            updates.push(`updated_at = NOW()`);
+            await runSql(`UPDATE calendar_sync_settings SET ${updates.join(', ')} WHERE sync_enabled = true`);
+            console.log('[routes/google-events] Refreshed OAuth tokens saved');
+          }
+        } catch (err) {
+          console.warn('[routes/google-events] Failed to save refreshed tokens:', err);
+        }
+      });
       
       const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
       
