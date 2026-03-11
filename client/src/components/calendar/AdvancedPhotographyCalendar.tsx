@@ -112,6 +112,7 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [view, setView] = useState<CalendarView>('month');
+  const [expandedDay, setExpandedDay] = useState<{ date: Date; sessions: PhotographySession[]; anchorRect: DOMRect } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [filterValue, setFilterValue] = useState('');
@@ -395,25 +396,25 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
   };
 
   // Calendar view renderers
+  // Get event dot color based on session type
+  const getEventDotColor = (sessionType: string) => {
+    const colors: Record<string, string> = {
+      'wedding': 'bg-pink-500',
+      'portrait': 'bg-blue-500',
+      'commercial': 'bg-green-500',
+      'event': 'bg-purple-500',
+      'family': 'bg-teal-500',
+      'fashion': 'bg-indigo-500',
+    };
+    return colors[sessionType] || 'bg-gray-500';
+  };
+
   const renderMonthView = () => {
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
     const calendarStart = startOfWeek(monthStart);
     const calendarEnd = endOfWeek(monthEnd);
     const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
-
-    // Get event dot color based on session type
-    const getEventDotColor = (sessionType: string) => {
-      const colors: Record<string, string> = {
-        'wedding': 'bg-pink-500',
-        'portrait': 'bg-blue-500',
-        'commercial': 'bg-green-500',
-        'event': 'bg-purple-500',
-        'family': 'bg-teal-500',
-        'fashion': 'bg-indigo-500',
-      };
-      return colors[sessionType] || 'bg-gray-500';
-    };
 
     return (
       <div className="border border-gray-200 rounded-lg overflow-hidden">
@@ -497,9 +498,16 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
                     );
                   })}
                   {daysSessions.length > 4 && (
-                    <div className="text-xs text-gray-500 px-1">
+                    <button
+                      className="text-xs text-teal-600 font-medium px-1 hover:text-teal-800 hover:underline cursor-pointer bg-teal-50 rounded w-full text-left"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        setExpandedDay({ date: day, sessions: daysSessions, anchorRect: rect });
+                      }}
+                    >
                       +{daysSessions.length - 4} more
-                    </div>
+                    </button>
                   )}
                 </div>
               </div>
@@ -1238,6 +1246,78 @@ const AdvancedPhotographyCalendar: React.FC<CalendarProps> = ({
         {view === 'agenda' && renderAgendaView()}
         {view === 'list' && renderListView()}
       </div>
+
+      {/* Expanded Day Popup - shows all sessions for a day when +N more is clicked */}
+      {expandedDay && (
+        <div
+          className="fixed inset-0 z-50"
+          onClick={() => setExpandedDay(null)}
+        >
+          <div className="fixed inset-0 bg-black bg-opacity-20" />
+          <div
+            className="absolute bg-white rounded-lg shadow-2xl border border-gray-200 w-80 max-h-96 overflow-hidden flex flex-col"
+            style={{
+              top: Math.min(expandedDay.anchorRect.bottom + 4, window.innerHeight - 400),
+              left: Math.min(expandedDay.anchorRect.left, window.innerWidth - 340),
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
+              <h3 className="font-semibold text-gray-800">{format(expandedDay.date, 'EEEE, MMMM d')}</h3>
+              <button
+                onClick={() => setExpandedDay(null)}
+                className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-2 space-y-1">
+              {expandedDay.sessions
+                .sort((a, b) => {
+                  const at = a.startTime ? new Date(a.startTime).getTime() : 0;
+                  const bt = b.startTime ? new Date(b.startTime).getTime() : 0;
+                  return at - bt;
+                })
+                .map(session => {
+                  const startTime = session.startTime ? parseISO(session.startTime) : null;
+                  const timeStr = startTime ? format(startTime, 'h:mm a') : '';
+                  const clientName = getDisplayClientName(session);
+                  const displayTitle = clientName
+                    ? `${session.title} mit ${clientName.split(' ')[0]}`
+                    : session.title;
+
+                  return (
+                    <button
+                      key={session.id}
+                      className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm hover:bg-blue-50 rounded-lg transition-colors"
+                      onClick={() => {
+                        setExpandedDay(null);
+                        onSessionClick(session);
+                      }}
+                    >
+                      <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${getEventDotColor(session.sessionType)}`}></span>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-800 truncate">{displayTitle}</div>
+                        <div className="text-xs text-gray-500">{timeStr}{session.locationName ? ` · ${session.locationName}` : ''}</div>
+                      </div>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+                        session.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                        session.status === 'completed' ? 'bg-blue-100 text-blue-700' :
+                        session.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>
+                        {session.status}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+            <div className="px-4 py-2 border-t bg-gray-50 text-xs text-gray-500 text-center">
+              {expandedDay.sessions.length} session{expandedDay.sessions.length !== 1 ? 's' : ''} · Click to view details
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer - View Legend */}
       <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
