@@ -171,6 +171,12 @@ const PhotographyCalendarPage: React.FC = () => {
   const [manualEndOverride, setManualEndOverride] = useState(false);
   const [manualStartOverride, setManualStartOverride] = useState(false);
   const [clientNameSuggestions, setClientNameSuggestions] = useState<ClientLight[]>([]);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [showClientAttach, setShowClientAttach] = useState(false);
+  const [clientAttachSearch, setClientAttachSearch] = useState('');
+  const [showNewClientForm, setShowNewClientForm] = useState(false);
+  const [newClientData, setNewClientData] = useState({ firstName: '', lastName: '', email: '', phone: '' });
+  const [savingClient, setSavingClient] = useState(false);
 
   const [stats, setStats] = useState<DashboardStats>({
     totalSessions: 0,
@@ -547,6 +553,7 @@ const PhotographyCalendarPage: React.FC = () => {
   const handleCreateSession = () => {
     // Load CRM clients when opening the form to enable linking
     fetchClients();
+    setEditingSessionId(null); // Ensure we're in create mode
     // Ensure start & end time default visibility
     setFormData(prev => {
       if (!prev.startTime) {
@@ -581,18 +588,23 @@ const PhotographyCalendarPage: React.FC = () => {
         endTime: formData.endTime ? new Date(formData.endTime).toISOString() : undefined
       };
 
-    const response = await fetch('/api/photography/sessions', {
-        method: 'POST',
+      const isEditing = !!editingSessionId;
+      const url = isEditing ? `/api/photography/sessions/${editingSessionId}` : '/api/photography/sessions';
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         credentials: 'include',
         headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
         },
         body: JSON.stringify(sessionData),
       });
 
       if (response.ok) {
         setShowSessionForm(false);
+        setEditingSessionId(null);
         setFormData({
           title: '',
           description: '',
@@ -615,11 +627,10 @@ const PhotographyCalendarPage: React.FC = () => {
         });
         fetchSessions(); // Refresh the sessions list
       } else {
-        alert('Failed to create session. Please try again.');
+        alert(`Failed to ${isEditing ? 'update' : 'create'} session. Please try again.`);
       }
     } catch (error) {
-      // console.error removed
-      alert('Error creating session. Please try again.');
+      alert(`Error ${editingSessionId ? 'updating' : 'creating'} session. Please try again.`);
     }
   };
 
@@ -1160,7 +1171,7 @@ const PhotographyCalendarPage: React.FC = () => {
         {showSessionForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
-              <h3 className="text-lg font-medium mb-4">Create New Photography Session</h3>
+              <h3 className="text-lg font-medium mb-4">{editingSessionId ? 'Edit Photography Session' : 'Create New Photography Session'}</h3>
               
               <form onSubmit={handleSubmitSession} className="space-y-4">
                 <div>
@@ -1509,7 +1520,7 @@ const PhotographyCalendarPage: React.FC = () => {
                     type="submit"
                     className="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
                   >
-                    Create Session
+                    {editingSessionId ? 'Save Changes' : 'Create Session'}
                   </button>
                   <button
                     type="button"
@@ -1583,6 +1594,160 @@ const PhotographyCalendarPage: React.FC = () => {
                         </div>
                       )}
                     </div>
+                  </div>
+
+                  {/* Client Attach / Create Section */}
+                  <div className="border rounded-lg p-3 bg-gray-50">
+                    <h4 className="font-medium mb-2 text-sm">Client Assignment</h4>
+                    {selectedSession.clientId ? (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-green-700">✅ Linked to: {selectedSession.clientName || selectedSession.clientId}</span>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await fetch(`/api/photography/sessions/${selectedSession.id}`, {
+                                method: 'PUT',
+                                credentials: 'include',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
+                                body: JSON.stringify({ clientId: null, clientName: '', clientEmail: '' }),
+                              });
+                              setSelectedSession({ ...selectedSession, clientId: undefined, clientName: undefined, clientEmail: undefined });
+                              fetchSessions();
+                            } catch { alert('Failed to unlink client'); }
+                          }}
+                          className="text-xs text-red-600 hover:underline"
+                        >
+                          Unlink
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-xs text-amber-600">⚠️ No client linked</p>
+                        {!showClientAttach && !showNewClientForm && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => { fetchClients(); setShowClientAttach(true); }}
+                              className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                            >
+                              Attach Existing Client
+                            </button>
+                            <button
+                              onClick={() => setShowNewClientForm(true)}
+                              className="px-3 py-1.5 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                            >
+                              + New Client
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Existing client picker */}
+                        {showClientAttach && (
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              placeholder="Search by name or email..."
+                              value={clientAttachSearch}
+                              onChange={(e) => setClientAttachSearch(e.target.value)}
+                              className="w-full border rounded px-2 py-1.5 text-sm"
+                              autoFocus
+                            />
+                            <div className="max-h-40 overflow-y-auto border rounded bg-white">
+                              {clients
+                                .filter(c => {
+                                  if (!clientAttachSearch) return true;
+                                  const t = clientAttachSearch.toLowerCase();
+                                  const name = `${c.firstName} ${c.lastName}`.toLowerCase();
+                                  return name.includes(t) || (c.email || '').toLowerCase().includes(t);
+                                })
+                                .slice(0, 15)
+                                .map(c => (
+                                  <button
+                                    key={c.id}
+                                    className="w-full text-left px-2 py-1.5 text-sm hover:bg-blue-50 border-b last:border-0"
+                                    onClick={async () => {
+                                      try {
+                                        await fetch(`/api/photography/sessions/${selectedSession.id}`, {
+                                          method: 'PUT',
+                                          credentials: 'include',
+                                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
+                                          body: JSON.stringify({ clientId: c.id, clientName: `${c.firstName} ${c.lastName}`.trim(), clientEmail: c.email || '' }),
+                                        });
+                                        setSelectedSession({ ...selectedSession, clientId: c.id, clientName: `${c.firstName} ${c.lastName}`.trim(), clientEmail: c.email });
+                                        setShowClientAttach(false);
+                                        setClientAttachSearch('');
+                                        fetchSessions();
+                                      } catch { alert('Failed to attach client'); }
+                                    }}
+                                  >
+                                    <div className="font-medium">{c.firstName} {c.lastName}</div>
+                                    {c.email && <div className="text-xs text-gray-500">{c.email}</div>}
+                                  </button>
+                                ))}
+                              {clients.filter(c => {
+                                if (!clientAttachSearch) return true;
+                                const t = clientAttachSearch.toLowerCase();
+                                const name = `${c.firstName} ${c.lastName}`.toLowerCase();
+                                return name.includes(t) || (c.email || '').toLowerCase().includes(t);
+                              }).length === 0 && (
+                                <div className="px-2 py-3 text-sm text-gray-500 text-center">No clients found</div>
+                              )}
+                            </div>
+                            <button onClick={() => { setShowClientAttach(false); setClientAttachSearch(''); }} className="text-xs text-gray-500 hover:underline">Cancel</button>
+                          </div>
+                        )}
+
+                        {/* New client form */}
+                        {showNewClientForm && (
+                          <div className="space-y-2 border rounded p-2 bg-white">
+                            <div className="grid grid-cols-2 gap-2">
+                              <input placeholder="First name*" value={newClientData.firstName} onChange={e => setNewClientData(d => ({ ...d, firstName: e.target.value }))} className="border rounded px-2 py-1 text-sm" />
+                              <input placeholder="Last name*" value={newClientData.lastName} onChange={e => setNewClientData(d => ({ ...d, lastName: e.target.value }))} className="border rounded px-2 py-1 text-sm" />
+                            </div>
+                            <input placeholder="Email" value={newClientData.email} onChange={e => setNewClientData(d => ({ ...d, email: e.target.value }))} className="w-full border rounded px-2 py-1 text-sm" />
+                            <input placeholder="Phone" value={newClientData.phone} onChange={e => setNewClientData(d => ({ ...d, phone: e.target.value }))} className="w-full border rounded px-2 py-1 text-sm" />
+                            <div className="flex gap-2">
+                              <button
+                                disabled={savingClient || !newClientData.firstName.trim() || !newClientData.lastName.trim()}
+                                onClick={async () => {
+                                  setSavingClient(true);
+                                  try {
+                                    const cRes = await fetch('/api/crm/clients', {
+                                      method: 'POST',
+                                      credentials: 'include',
+                                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
+                                      body: JSON.stringify({ firstName: newClientData.firstName.trim(), lastName: newClientData.lastName.trim(), email: newClientData.email.trim(), phone: newClientData.phone.trim(), status: 'active' }),
+                                    });
+                                    if (!cRes.ok) throw new Error('Failed to create client');
+                                    const newClient = await cRes.json();
+                                    const clientId = newClient.id;
+                                    const clientName = `${newClientData.firstName.trim()} ${newClientData.lastName.trim()}`;
+                                    await fetch(`/api/photography/sessions/${selectedSession.id}`, {
+                                      method: 'PUT',
+                                      credentials: 'include',
+                                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
+                                      body: JSON.stringify({ clientId, clientName, clientEmail: newClientData.email.trim() }),
+                                    });
+                                    setSelectedSession({ ...selectedSession, clientId, clientName, clientEmail: newClientData.email.trim() });
+                                    setShowNewClientForm(false);
+                                    setNewClientData({ firstName: '', lastName: '', email: '', phone: '' });
+                                    fetchSessions();
+                                    fetchClients();
+                                  } catch (err: any) {
+                                    alert(err.message || 'Failed to create client');
+                                  } finally {
+                                    setSavingClient(false);
+                                  }
+                                }}
+                                className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                              >
+                                {savingClient ? 'Saving...' : 'Create & Attach'}
+                              </button>
+                              <button onClick={() => { setShowNewClientForm(false); setNewClientData({ firstName: '', lastName: '', email: '', phone: '' }); }} className="text-xs text-gray-500 hover:underline">Cancel</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {selectedSession.description && (
@@ -1662,8 +1827,34 @@ const PhotographyCalendarPage: React.FC = () => {
                 </button>
                 <button
                   onClick={() => {
-                    // Edit functionality can be added later
-                    // console.log removed
+                    // Populate form with selected session data and open in edit mode
+                    if (!selectedSession) return;
+                    fetchClients();
+                    setEditingSessionId(selectedSession.id);
+                    setFormData({
+                      title: selectedSession.title || '',
+                      description: selectedSession.description || '',
+                      sessionType: selectedSession.sessionType || 'portrait',
+                      status: selectedSession.status || 'scheduled',
+                      startTime: selectedSession.startTime ? formatLocalDateTime(new Date(selectedSession.startTime)) : '',
+                      endTime: selectedSession.endTime ? formatLocalDateTime(new Date(selectedSession.endTime)) : '',
+                      clientId: selectedSession.clientId || '',
+                      clientName: selectedSession.clientName || '',
+                      clientEmail: selectedSession.clientEmail || '',
+                      locationName: selectedSession.locationName || '',
+                      locationAddress: selectedSession.locationAddress || '',
+                      locationCoordinates: selectedSession.locationCoordinates || '',
+                      basePrice: selectedSession.basePrice ? String(selectedSession.basePrice) : '',
+                      depositAmount: selectedSession.depositAmount ? String(selectedSession.depositAmount) : '',
+                      equipmentList: selectedSession.equipmentList || [],
+                      weatherDependent: selectedSession.weatherDependent || false,
+                      goldenHourOptimized: selectedSession.goldenHourOptimized || false,
+                      portfolioWorthy: selectedSession.portfolioWorthy || false
+                    });
+                    setManualEndOverride(true);
+                    setManualStartOverride(true);
+                    setSelectedSession(null);
+                    setShowSessionForm(true);
                   }}
                   className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
