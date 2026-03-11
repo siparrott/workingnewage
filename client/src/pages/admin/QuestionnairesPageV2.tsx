@@ -195,7 +195,17 @@ const QuestionnairesPageV2: React.FC = () => {
       setLoading(true);
       setError(null);
       const clientId = (explicitClientId ?? attachInputs[responseId] ?? '').toString().trim();
-      if (!clientId) { alert('Please enter a client identifier'); return; }
+      if (!clientId) {
+        // Focus the search input and show client list
+        const container = containerRefs.current[responseId];
+        if (container) {
+          const input = container.querySelector('input');
+          if (input) { input.focus(); }
+        }
+        setOpenSearchId(responseId);
+        debouncedSearch(responseId, '', 0);
+        return;
+      }
       const res = await fetch('/api/admin/attach-response-to-client', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -213,8 +223,7 @@ const QuestionnairesPageV2: React.FC = () => {
 
   const searchClients = async (responseId: string, q: string) => {
     try {
-      if (!q || q.length < 2) { setClientOptions(prev => ({ ...prev, [responseId]: [] })); setSearchLoading(prev => ({ ...prev, [responseId]: false })); return; }
-      const u = `/api/admin/clients/search?q=${encodeURIComponent(q)}&limit=8`;
+      const u = `/api/admin/clients/search?q=${encodeURIComponent(q)}&limit=20`;
       const res = await fetch(u);
       if (!res.ok) return;
       const data = await res.json();
@@ -654,7 +663,7 @@ const QuestionnairesPageV2: React.FC = () => {
                         placeholder="Search name or email (Client will be linked by ID)"
                         value={attachInputs[r.id] ?? ''}
                         onChange={(e) => { const v = e.target.value; setAttachInputs(prev => ({ ...prev, [r.id]: v })); setOpenSearchId(r.id); debouncedSearch(r.id, v); }}
-                        onFocus={() => { setOpenSearchId(r.id); const v = attachInputs[r.id] ?? (r.client_id || ''); if (v && v.length >= 2) debouncedSearch(r.id, v, 0); }}
+                        onFocus={() => { setOpenSearchId(r.id); debouncedSearch(r.id, attachInputs[r.id] ?? '', 0); }}
                         onKeyDown={(e) => {
                           const opts = clientOptions[r.id] || [];
                           const idx = highlightIdx[r.id] ?? -1;

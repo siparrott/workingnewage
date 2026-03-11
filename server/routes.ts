@@ -7231,20 +7231,31 @@ ${getBizName()} Team`;
   app.get("/api/admin/clients/search", authenticateUser, async (req: Request, res: Response) => {
     try {
       const q = (req.query.q as string || '').trim();
-      const limit = Math.min(parseInt(req.query.limit as string) || 8, 50);
-      if (q.length < 2) return res.json({ clients: [] });
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
 
-      const pattern = `%${q}%`;
-      const clients = await runSql(
-        `SELECT id, first_name, last_name, email
-         FROM crm_clients
-         WHERE LOWER(first_name || ' ' || last_name) LIKE LOWER($1)
-            OR LOWER(email) LIKE LOWER($1)
-            OR id::text LIKE $1
-         ORDER BY first_name, last_name
-         LIMIT $2`,
-        [pattern, limit]
-      );
+      let clients;
+      if (q.length < 2) {
+        // Return recent clients when no search query
+        clients = await runSql(
+          `SELECT id, first_name, last_name, email
+           FROM crm_clients
+           ORDER BY created_at DESC NULLS LAST, first_name, last_name
+           LIMIT $1`,
+          [limit]
+        );
+      } else {
+        const pattern = `%${q}%`;
+        clients = await runSql(
+          `SELECT id, first_name, last_name, email
+           FROM crm_clients
+           WHERE LOWER(first_name || ' ' || last_name) LIKE LOWER($1)
+              OR LOWER(email) LIKE LOWER($1)
+              OR id::text LIKE $1
+           ORDER BY first_name, last_name
+           LIMIT $2`,
+          [pattern, limit]
+        );
+      }
       res.json({ clients });
     } catch (error) {
       console.error('Error searching clients:', error);
