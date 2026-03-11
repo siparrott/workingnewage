@@ -75,10 +75,6 @@ const QuestionnairesPageV2: React.FC = () => {
   }, []);
 
   const handleCreateQuestionnaireLink = async () => {
-    if (!linkClientId) {
-      alert('Please select a client first.');
-      return;
-    }
     try {
       setLoading(true);
       setError(null);
@@ -87,14 +83,15 @@ const QuestionnairesPageV2: React.FC = () => {
       const response = await fetch('/api/admin/create-questionnaire-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ client_id: linkClientId, template_id: template }),
+        body: JSON.stringify({ client_id: linkClientId || 'anonymous', template_id: template }),
       });
 
       if (!response.ok) throw new Error('Failed to create questionnaire link');
 
       const data = await response.json();
       navigator.clipboard.writeText(data.link);
-      alert(`✅ Questionnaire link created and copied to clipboard!\n\nLink: ${data.link}\nClient: ${linkClientName}\n\nYou can now send this to your client via WhatsApp or email.`);
+      const clientLabel = linkClientName || 'General (no client selected)';
+      alert(`✅ Questionnaire link created and copied to clipboard!\n\nLink: ${data.link}\nClient: ${clientLabel}\n\nYou can now send this to your client via WhatsApp or email.`);
     } catch (err) {
       console.error('Error creating questionnaire link:', err);
       setError('Failed to create questionnaire link. Please try again.');
@@ -423,10 +420,10 @@ const QuestionnairesPageV2: React.FC = () => {
                 </svg>
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">Create Questionnaire Link</h3>
-              <p className="text-gray-500 mb-2">Select a client and questionnaire to generate a shareable link</p>
-              {/* Client search for link creation */}
+              <p className="text-gray-500 mb-2">Select a questionnaire to generate a shareable link</p>
+              {/* Client search for link creation (optional) */}
               <div className="mb-3 relative text-left" ref={linkClientRef}>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Client</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Client <span className="text-gray-400">(optional)</span></label>
                 <input
                   value={linkClientSearch}
                   onChange={(e) => { setLinkClientSearch(e.target.value); setLinkClientId(null); setLinkClientName(''); setLinkClientOpen(true); debouncedLinkSearch(e.target.value); }}
@@ -453,7 +450,7 @@ const QuestionnairesPageV2: React.FC = () => {
                   {surveys.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
                 </select>
               </div>
-              <button onClick={handleCreateQuestionnaireLink} disabled={loading || !selectedSurveyId || !linkClientId} className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
+              <button onClick={handleCreateQuestionnaireLink} disabled={loading || !selectedSurveyId} className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
                 {loading ? 'Creating...' : 'Create Link'}
               </button>
             </div>

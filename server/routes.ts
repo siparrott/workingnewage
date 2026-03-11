@@ -13763,10 +13763,7 @@ ${getBizName()} CRM System
   app.post("/api/admin/create-questionnaire-link", authenticateUser, async (req: Request, res: Response) => {
     try {
       const { client_id, template_id } = req.body;
-      
-      if (!client_id) {
-        return res.status(400).json({ error: "client_id is required" });
-      }
+      const effectiveClientId = client_id || 'anonymous';
 
       // Generate short token (16 hex chars)
       const token = require('crypto').randomBytes(8).toString('hex');
@@ -13778,7 +13775,7 @@ ${getBizName()} CRM System
       // Insert questionnaire link
       await runSql(
         'INSERT INTO questionnaire_links (token, client_id, template_id, expires_at) VALUES ($1, $2, $3, $4)',
-        [token, client_id, template_id || 'default-questionnaire', expiresAt]
+        [token, effectiveClientId, template_id || 'default-questionnaire', expiresAt]
       );
       
       // Generate public URL from request origin or env var
