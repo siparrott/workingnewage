@@ -14,6 +14,8 @@ const QuestionnairesPageV2: React.FC = () => {
   const [formDescription, setFormDescription] = useState('');
   // Builder-specific state
   const [logoUrl, setLogoUrl] = useState('');
+  const [logoUploading, setLogoUploading] = useState(false);
+  const logoFileRef = useRef<HTMLInputElement>(null);
   const [questions, setQuestions] = useState<string[]>([]);
   // Responses UI state
   const [responses, setResponses] = useState<any[]>([]);
@@ -266,6 +268,43 @@ const QuestionnairesPageV2: React.FC = () => {
     }
   };
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file (JPG, PNG, WebP).');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Logo file must be under 5 MB.');
+      return;
+    }
+    setLogoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/upload/image', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      const url = data.url || data.imageUrl || data.publicUrl || '';
+      if (url) {
+        setLogoUrl(url);
+      } else {
+        throw new Error('No URL returned from upload');
+      }
+    } catch (err) {
+      console.error('Logo upload error:', err);
+      alert('Failed to upload logo. Please try again or paste a URL instead.');
+    } finally {
+      setLogoUploading(false);
+      if (logoFileRef.current) logoFileRef.current.value = '';
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="max-w-4xl mx-auto space-y-6">
@@ -348,8 +387,34 @@ const QuestionnairesPageV2: React.FC = () => {
                 <input value={formTitle} onChange={e => setFormTitle(e.target.value)} className="mt-1 block w-full border rounded px-2 py-1" />
                 <label className="block text-sm font-medium text-gray-700 mt-3">Description</label>
                 <textarea value={formDescription} onChange={e => setFormDescription(e.target.value)} className="mt-1 block w-full border rounded px-2 py-1" rows={3} />
-                <label className="block text-sm font-medium text-gray-700 mt-3">Company Logo URL</label>
-                <input value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="https://example.com/logo.png" className="mt-1 block w-full border rounded px-2 py-1" />
+                <label className="block text-sm font-medium text-gray-700 mt-3">Company Logo</label>
+                <div className="mt-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={logoFileRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => logoFileRef.current?.click()}
+                      disabled={logoUploading}
+                      className="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 disabled:opacity-50"
+                    >
+                      {logoUploading ? 'Uploading...' : 'Upload Logo'}
+                    </button>
+                    <span className="text-xs text-gray-500">or paste a URL below</span>
+                  </div>
+                  <input value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="https://example.com/logo.png" className="block w-full border rounded px-2 py-1" />
+                  {logoUrl && (
+                    <div className="flex items-center gap-3 p-2 bg-gray-50 rounded border">
+                      <img src={logoUrl} alt="Logo preview" className="h-10 max-w-[160px] object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                      <button type="button" onClick={() => setLogoUrl('')} className="text-xs text-red-500 hover:text-red-700">Remove</button>
+                    </div>
+                  )}
+                </div>
 
                 <div className="mt-4">
                   <div className="flex items-center justify-between">
