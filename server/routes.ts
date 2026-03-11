@@ -1334,8 +1334,8 @@ async function importEmailsFromIMAP(config: {
 
           console.log(`Found ${results.length} emails in inbox`);
           
-          // Fetch the last 50 emails to capture any new messages
-          const recentResults = results.slice(-50);
+          // Fetch only the last 20 emails to keep memory usage low
+          const recentResults = results.slice(-20);
           const f = imap.fetch(recentResults, { 
             bodies: '', 
             struct: true 
@@ -6641,15 +6641,10 @@ ${getBizName()} Team`;
 
         // Store emails in database, avoid duplicates
         let newEmailCount = 0;
-        const existingMessages = await storage.getCrmMessages();
         
         for (const email of importedEmails) {
-          // Check if email already exists (improved duplicate check)
-          const isDuplicate = existingMessages.some(msg => 
-            msg.subject === email.subject && 
-            msg.senderEmail === email.from &&
-            msg.createdAt && Math.abs(new Date(msg.createdAt).getTime() - new Date(email.date).getTime()) < 300000 // Within 5 minutes
-          );
+          // Check if email already exists using DB query instead of loading all messages into memory
+          const isDuplicate = await checkEmailExists(email);
           
           if (!isDuplicate) {
             try {
@@ -10265,12 +10260,12 @@ Ihr Team von {{studioName}}`,
       clearInterval(emailImportInterval);
     }
     
-    // Initial import after 30 seconds (give server time to start)
+    // Initial import after 5 minutes (give server time to stabilise and serve requests)
     setTimeout(() => {
       if (!isEmailImportRunning) {
         runSafeEmailImport();
       }
-    }, 30 * 1000);
+    }, 5 * 60 * 1000);
     
     // Set up recurring import every 2 hours
     emailImportInterval = setInterval(async () => {
