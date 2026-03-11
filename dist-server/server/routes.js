@@ -8215,11 +8215,20 @@ New Age Fotografie Team`;
     app.post("/api/email/refresh", authenticateUser, async (req, res) => {
         try {
             console.log('Starting email refresh...');
+            const imapUser = process.env.IMAP_USER || process.env.BUSINESS_MAILBOX_USER || '';
+            const imapPass = process.env.IMAP_PASS || process.env.EMAIL_PASSWORD || '';
+            if (!imapUser || !imapPass) {
+                console.error('IMAP credentials missing: IMAP_USER and IMAP_PASS must be set in .env');
+                return res.status(500).json({
+                    success: false,
+                    error: 'IMAP credentials not configured. Please set IMAP_USER and IMAP_PASS in your environment.'
+                });
+            }
             const importedEmails = await importEmailsFromIMAP({
-                host: 'imap.easyname.com',
-                port: 993,
-                username: '30840mail10',
-                password: process.env.EMAIL_PASSWORD || 'HoveBN41!',
+                host: process.env.IMAP_HOST || 'imap.easyname.com',
+                port: parseInt(process.env.IMAP_PORT || '993'),
+                username: imapUser,
+                password: imapPass,
                 useTLS: true
             });
             console.log(`Successfully fetched ${importedEmails.length} emails from business account`);

@@ -8742,8 +8742,8 @@ ${getBizName()} Team`;
             await importEmailsFromIMAP({
               host: process.env.IMAP_HOST || 'imap.easyname.com',
               port: parseInt(process.env.IMAP_PORT || '993'),
-              username: process.env.BUSINESS_MAILBOX_USER || process.env.IMAP_USER || '',
-              password: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || '',
+              username: process.env.IMAP_USER || process.env.BUSINESS_MAILBOX_USER || '',
+              password: process.env.IMAP_PASS || process.env.EMAIL_PASSWORD || '',
               useTLS: true
             });
             console.log('Automatic email refresh completed after send');
@@ -9995,11 +9995,22 @@ ${getBizName()} Team`;
     try {
       console.log('Starting email refresh...');
       
+      const imapUser = process.env.IMAP_USER || process.env.BUSINESS_MAILBOX_USER || '';
+      const imapPass = process.env.IMAP_PASS || process.env.EMAIL_PASSWORD || '';
+      
+      if (!imapUser || !imapPass) {
+        console.error('IMAP credentials missing: IMAP_USER and IMAP_PASS must be set in .env');
+        return res.status(500).json({
+          success: false,
+          error: 'IMAP credentials not configured. Please set IMAP_USER and IMAP_PASS in your environment.'
+        });
+      }
+      
       const importedEmails = await importEmailsFromIMAP({
         host: process.env.IMAP_HOST || 'imap.easyname.com',
         port: parseInt(process.env.IMAP_PORT || '993'),
-        username: process.env.BUSINESS_MAILBOX_USER || process.env.IMAP_USER || '',
-        password: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || '',
+        username: imapUser,
+        password: imapPass,
         useTLS: true
       });
 
@@ -10142,8 +10153,8 @@ ${getBizName()} Team`;
       const importPromise = importEmailsFromIMAP({
         host: process.env.IMAP_HOST || 'imap.easyname.com',
         port: parseInt(process.env.IMAP_PORT || '993'),
-        username: process.env.BUSINESS_MAILBOX_USER || process.env.IMAP_USER || '',
-        password: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || '',
+        username: process.env.IMAP_USER || process.env.BUSINESS_MAILBOX_USER || '',
+        password: process.env.IMAP_PASS || process.env.EMAIL_PASSWORD || '',
         useTLS: true
       });
       

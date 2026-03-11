@@ -8,7 +8,16 @@ export async function importEmailsFromIMAP(config: any) {
     const collectedEmails: any[] = [];
     console.log('Connecting to IMAP server...');
     
-    const connection = new imap(config);
+    const connection = new imap({
+      user: config.username || config.user,
+      password: config.password,
+      host: config.host,
+      port: config.port,
+      tls: config.useTLS !== undefined ? config.useTLS : (config.tls !== undefined ? config.tls : true),
+      tlsOptions: { rejectUnauthorized: false },
+      connTimeout: 30000,
+      authTimeout: 30000,
+    });
     let newEmails = 0;
     let totalEmails = 0;
     let processedEmails = 0;
