@@ -46,6 +46,9 @@ const QuestionnairesPageV2: React.FC = () => {
   const [emailBody, setEmailBody] = useState('');
   const [emailFooter, setEmailFooter] = useState('');
   const [emailTemplateSaving, setEmailTemplateSaving] = useState(false);
+  // Thank-you message customization
+  const [thankYouMessage, setThankYouMessage] = useState('');
+  const responsesRef = useRef<HTMLDivElement>(null);
 
   // Search clients for link creation
   const searchLinkClients = async (q: string) => {
@@ -161,6 +164,8 @@ const QuestionnairesPageV2: React.FC = () => {
       const data = await res.json();
       setResponses(data.responses || []);
       setTotal(data.total || 0);
+      // Scroll to responses section
+      setTimeout(() => { responsesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
     } catch (err) {
       console.error('Error fetching responses:', err);
       setError('Failed to fetch questionnaire responses.');
@@ -270,6 +275,7 @@ const QuestionnairesPageV2: React.FC = () => {
     setFormDescription('');
     setLogoUrl('');
     setQuestions([]);
+    setThankYouMessage('');
   };
 
   const handleSaveNew = async () => {
@@ -284,7 +290,8 @@ const QuestionnairesPageV2: React.FC = () => {
         }
       ];
 
-      const settings = { logo: logoUrl };
+      const settings: any = { logo: logoUrl };
+      if (thankYouMessage.trim()) settings.thankYouMessage = thankYouMessage.trim();
       const body = { title: formTitle, description: formDescription, pages, settings };
       const res = await fetch('/api/surveys', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (!res.ok) throw new Error('Failed to create survey');
@@ -314,6 +321,7 @@ const QuestionnairesPageV2: React.FC = () => {
       setQuestions([]);
     }
     setLogoUrl((survey.settings && survey.settings.logo) || '');
+    setThankYouMessage((survey.settings && survey.settings.thankYouMessage) || '');
   };
 
   const handleSaveEdit = async () => {
@@ -547,6 +555,9 @@ const QuestionnairesPageV2: React.FC = () => {
                     ))}
                   </div>
                 </div>
+
+                <label className="block text-sm font-medium text-gray-700 mt-4">Thank-You Message <span className="text-gray-400 font-normal">(shown after submission)</span></label>
+                <textarea value={thankYouMessage} onChange={e => setThankYouMessage(e.target.value)} placeholder="Vielen Dank für das Ausfüllen unseres Fragebogens! Wir werden uns bald bei Ihnen melden." className="mt-1 block w-full border rounded px-2 py-1" rows={2} />
               </div>
             )}
 
@@ -569,7 +580,7 @@ const QuestionnairesPageV2: React.FC = () => {
         </div>
 
         {/* Responses filters */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div ref={responsesRef} className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <div>
               <label className="block text-sm font-medium text-gray-700">Client Filter</label>

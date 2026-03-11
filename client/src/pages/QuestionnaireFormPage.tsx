@@ -257,14 +257,14 @@ const QuestionnaireFormPage: React.FC = () => {
           <h2 className="text-2xl font-semibold text-gray-900 mb-4">Vielen Dank!</h2>
           <p className="text-gray-600 mb-6">
             {questionnaire?.survey.settings.thankYouMessage || 
-             'Your questionnaire has been submitted successfully. We will be in touch soon!'}
+             'Vielen Dank für das Ausfüllen unseres Fragebogens! Wir werden uns bald bei Ihnen melden.'}
           </p>
           <div className="space-y-3">
             <p className="text-sm text-gray-500">
-              Your response has been recorded and we will contact you shortly.
+              Ihre Antwort wurde gespeichert und wir werden uns in Kürze bei Ihnen melden.
             </p>
             <p className="text-xs text-gray-400">
-              You can safely close this page.
+              Sie können diese Seite jetzt schließen.
             </p>
           </div>
         </div>
