@@ -7277,6 +7277,19 @@ ${getBizName()} Team`;
     }
   });
 
+  // Delete a questionnaire response
+  app.delete("/api/admin/questionnaire-responses/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      if (!id) return res.status(400).json({ error: 'Response ID is required' });
+      await runSql('DELETE FROM questionnaire_responses WHERE id = $1', [id]);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting questionnaire response:', error);
+      res.status(500).json({ error: 'Failed to delete response' });
+    }
+  });
+
   // Get/save questionnaire confirmation email template
   app.get("/api/admin/questionnaire-email-template", authenticateUser, async (req: Request, res: Response) => {
     try {

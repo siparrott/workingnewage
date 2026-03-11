@@ -174,6 +174,22 @@ const QuestionnairesPageV2: React.FC = () => {
     }
   };
 
+  const handleDeleteResponse = async (responseId: string) => {
+    if (!confirm('Are you sure you want to delete this response? This cannot be undone.')) return;
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/admin/questionnaire-responses/${responseId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete response');
+      setResponses(prev => prev.filter(r => r.id !== responseId));
+      setTotal(prev => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error('Error deleting response:', err);
+      setError('Failed to delete response.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAttach = async (responseId: string, explicitClientId?: string) => {
     try {
       setLoading(true);
@@ -688,6 +704,7 @@ const QuestionnairesPageV2: React.FC = () => {
                     </div>
                     <button onClick={() => handleAttach(r.id)} className="px-3 py-2 bg-green-600 text-white rounded" disabled={loading}>Attach</button>
                     <button onClick={() => handlePrintResponse(r)} className="px-3 py-2 bg-blue-500 text-white rounded" title="Print response">Print</button>
+                    <button onClick={() => handleDeleteResponse(r.id)} className="px-3 py-2 bg-red-500 text-white rounded" disabled={loading}>Delete</button>
                     <button onClick={() => setOpenDetailId(openDetailId === r.id ? null : r.id)} className="px-3 py-2 bg-gray-200 rounded">Details</button>
                   </div>
                   {openDetailId === r.id && (
