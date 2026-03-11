@@ -13803,7 +13803,7 @@ ${getBizName()} CRM System
       const linkResult = await runSql(
         `SELECT ql.*, c.first_name, c.last_name, c.email 
          FROM questionnaire_links ql 
-         JOIN crm_clients c ON ql.client_id = c.id 
+         LEFT JOIN crm_clients c ON ql.client_id = c.id 
          WHERE ql.token = $1 AND (ql.expires_at IS NULL OR ql.expires_at > NOW())`,
         [token]
       );
@@ -13857,7 +13857,7 @@ ${getBizName()} CRM System
       const linkResult = await runSql(
         `SELECT ql.*, c.first_name, c.last_name 
          FROM questionnaire_links ql 
-         JOIN crm_clients c ON ql.client_id = c.id 
+         LEFT JOIN crm_clients c ON ql.client_id = c.id 
          WHERE ql.token = $1 AND (ql.expires_at IS NULL OR ql.expires_at > NOW()) AND ql.is_used = FALSE`,
         [token]
       );
