@@ -13641,8 +13641,10 @@ ${getBizName()} CRM System
         [token, client_id, template_id || 'default-questionnaire', expiresAt]
       );
       
-      // Generate public URL
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `http://localhost:3001`;
+      // Generate public URL from request origin or env var
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+      const host = req.headers['x-forwarded-host'] || req.headers.host || '';
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.APP_URL || `${protocol}://${host}`;
       const link = `${baseUrl}/q/${token}`;
       
       res.json({ token, link });
