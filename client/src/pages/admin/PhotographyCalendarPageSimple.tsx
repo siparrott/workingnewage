@@ -1692,7 +1692,11 @@ const PhotographyCalendarPage: React.FC = () => {
                                 <div className="px-2 py-3 text-sm text-gray-500 text-center">No clients found</div>
                               )}
                             </div>
-                            <button onClick={() => { setShowClientAttach(false); setClientAttachSearch(''); }} className="text-xs text-gray-500 hover:underline">Cancel</button>
+                            <div className="flex gap-2 items-center">
+                              <button onClick={() => { setShowClientAttach(false); setClientAttachSearch(''); }} className="text-xs text-gray-500 hover:underline">Cancel</button>
+                              <span className="text-gray-300">|</span>
+                              <button onClick={() => { setShowClientAttach(false); setClientAttachSearch(''); setShowNewClientForm(true); }} className="text-xs text-green-600 hover:underline font-medium">+ Add New Client</button>
+                            </div>
                           </div>
                         )}
 

@@ -3168,7 +3168,37 @@ Bitte versuchen Sie es später noch einmal.`;
 
   app.put("/api/photography/sessions/:id", authenticateUser, async (req: Request, res: Response) => {
     try {
-      const session = await storage.updatePhotographySession(req.params.id, req.body);
+      const body = req.body;
+      // Build a clean updates object with only recognized photography_sessions columns
+      const updates: Record<string, any> = {};
+      if (body.title !== undefined) updates.title = body.title;
+      if (body.description !== undefined) updates.description = body.description || null;
+      if (body.sessionType !== undefined) updates.sessionType = body.sessionType;
+      if (body.status !== undefined) updates.status = body.status;
+      if (body.startTime !== undefined) updates.startTime = body.startTime ? new Date(body.startTime) : null;
+      if (body.endTime !== undefined) updates.endTime = body.endTime ? new Date(body.endTime) : null;
+      if (body.clientId !== undefined) updates.clientId = body.clientId || null;
+      if (body.clientName !== undefined) updates.clientName = body.clientName || null;
+      if (body.clientEmail !== undefined) updates.clientEmail = body.clientEmail || null;
+      if (body.clientPhone !== undefined) updates.clientPhone = body.clientPhone || null;
+      if (body.locationName !== undefined) updates.locationName = body.locationName || null;
+      if (body.locationAddress !== undefined) updates.locationAddress = body.locationAddress || null;
+      if (body.locationCoordinates !== undefined) updates.locationCoordinates = body.locationCoordinates || null;
+      if (body.basePrice !== undefined) updates.basePrice = body.basePrice ? String(body.basePrice) : null;
+      if (body.depositAmount !== undefined) updates.depositAmount = body.depositAmount ? String(body.depositAmount) : null;
+      if (body.depositPaid !== undefined) updates.depositPaid = body.depositPaid;
+      if (body.equipmentList !== undefined) updates.equipmentList = Array.isArray(body.equipmentList) ? body.equipmentList : [];
+      if (body.weatherDependent !== undefined) updates.weatherDependent = body.weatherDependent;
+      if (body.goldenHourOptimized !== undefined) updates.goldenHourOptimized = body.goldenHourOptimized;
+      if (body.portfolioWorthy !== undefined) updates.portfolioWorthy = body.portfolioWorthy;
+      if (body.notes !== undefined) updates.notes = body.notes || null;
+      if (body.backupPlan !== undefined) updates.backupPlan = body.backupPlan || null;
+      if (body.editingStatus !== undefined) updates.editingStatus = body.editingStatus;
+      if (body.deliveryStatus !== undefined) updates.deliveryStatus = body.deliveryStatus;
+      updates.updatedAt = new Date();
+
+      console.log("PUT /api/photography/sessions/:id - updating with:", JSON.stringify(updates, null, 2));
+      const session = await storage.updatePhotographySession(req.params.id, updates);
       res.json(session);
     } catch (error) {
       console.error("Error updating photography session:", error);
