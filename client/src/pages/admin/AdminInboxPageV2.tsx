@@ -108,6 +108,12 @@ const AdminInboxPage: React.FC = () => {
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [isLinkingClient, setIsLinkingClient] = useState(false);
   const [isAutoLinking, setIsAutoLinking] = useState(false);
+  
+  // Bulk delete & spam filter state
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isSpamFiltering, setIsSpamFiltering] = useState(false);
+  const [spamFilterResult, setSpamFilterResult] = useState<{ spamCount: number; deletedCount: number; scannedCount: number; spamDetails: any[] } | null>(null);
+  const [showSpamResult, setShowSpamResult] = useState(false);
 
   // Fetch custom folders
   const fetchCustomFolders = async () => {
@@ -359,6 +365,71 @@ const AdminInboxPage: React.FC = () => {
       alert('Failed to refresh emails. Please try again.');
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  // Bulk delete all unread emails
+  const handleBulkDeleteUnread = async () => {
+    const unreadCount = messages.filter(m => !m.isRead && m.folder !== 'sent').length;
+    if (unreadCount === 0) {
+      alert('No unread emails to delete.');
+      return;
+    }
+    if (!confirm(`Are you sure you want to permanently delete ALL ${unreadCount} unread emails? This action cannot be undone.`)) {
+      return;
+    }
+    setIsBulkDeleting(true);
+    try {
+      const response = await fetch('/api/inbox/emails/bulk-delete-unread', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (response.ok) {
+        const result = await response.json();
+        alert(`Successfully deleted ${result.deletedCount} unread emails.`);
+        await fetchMessages();
+        await fetchFolderCounts();
+      } else {
+        throw new Error('Failed to bulk delete');
+      }
+    } catch (error) {
+      console.error('Bulk delete failed:', error);
+      alert('Failed to delete unread emails. Please try again.');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  // Spam filter
+  const handleSpamFilter = async () => {
+    if (!confirm('Run spam filter? This will scan all emails and permanently delete detected spam. Messages from known clients are always kept.')) {
+      return;
+    }
+    setIsSpamFiltering(true);
+    setSpamFilterResult(null);
+    try {
+      const response = await fetch('/api/inbox/emails/spam-filter', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (response.ok) {
+        const result = await response.json();
+        setSpamFilterResult(result);
+        setShowSpamResult(true);
+        if (result.deletedCount > 0) {
+          await fetchMessages();
+          await fetchFolderCounts();
+        }
+      } else {
+        throw new Error('Spam filter failed');
+      }
+    } catch (error) {
+      console.error('Spam filter failed:', error);
+      alert('Failed to run spam filter. Please try again.');
+    } finally {
+      setIsSpamFiltering(false);
     }
   };
 
@@ -1002,6 +1073,24 @@ const AdminInboxPage: React.FC = () => {
             >
               <Link size={16} className={isAutoLinking ? 'animate-pulse' : ''} />
               <span>{isAutoLinking ? 'Linking...' : 'Auto-link Clients'}</span>
+            </button>
+            <button 
+              onClick={handleBulkDeleteUnread}
+              disabled={isBulkDeleting}
+              className="flex items-center space-x-2 px-4 py-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50 disabled:opacity-50"
+              title="Permanently delete all unread emails"
+            >
+              <Trash2 size={16} className={isBulkDeleting ? 'animate-pulse' : ''} />
+              <span>{isBulkDeleting ? 'Deleting...' : 'Delete All Unread'}</span>
+            </button>
+            <button 
+              onClick={handleSpamFilter}
+              disabled={isSpamFiltering}
+              className="flex items-center space-x-2 px-4 py-2 border border-orange-300 text-orange-700 rounded-md hover:bg-orange-50 disabled:opacity-50"
+              title="Scan inbox for spam and remove detected spam emails"
+            >
+              <AlertCircle size={16} className={isSpamFiltering ? 'animate-spin' : ''} />
+              <span>{isSpamFiltering ? 'Scanning...' : 'Spam Filter'}</span>
             </button>            <button 
               onClick={() => setShowSettings(true)}
               className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
@@ -1233,6 +1322,66 @@ const AdminInboxPage: React.FC = () => {
             fetchMessages();
           }}
         />
+      )}
+
+      {/* Spam Filter Results Modal */}
+      {showSpamResult && spamFilterResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Spam Filter Results</h3>
+              <button onClick={() => setShowSpamResult(false)} className="p-1 hover:bg-gray-100 rounded">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-4 space-y-4 overflow-y-auto">
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="text-2xl font-bold text-gray-900">{spamFilterResult.scannedCount}</div>
+                  <div className="text-xs text-gray-500">Scanned</div>
+                </div>
+                <div className="p-3 bg-red-50 rounded-lg">
+                  <div className="text-2xl font-bold text-red-600">{spamFilterResult.spamCount}</div>
+                  <div className="text-xs text-red-500">Spam Found</div>
+                </div>
+                <div className="p-3 bg-green-50 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">{spamFilterResult.deletedCount}</div>
+                  <div className="text-xs text-green-500">Deleted</div>
+                </div>
+              </div>
+
+              {spamFilterResult.spamDetails && spamFilterResult.spamDetails.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Removed spam emails:</h4>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {spamFilterResult.spamDetails.map((spam: any, i: number) => (
+                      <div key={i} className="p-2 bg-red-50 border border-red-100 rounded text-sm">
+                        <div className="font-medium text-gray-900 truncate">{spam.subject}</div>
+                        <div className="text-xs text-gray-500">{spam.sender}</div>
+                        <div className="text-xs text-red-600 mt-1">{spam.reason}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {spamFilterResult.spamCount === 0 && (
+                <div className="text-center py-4">
+                  <Check size={32} className="mx-auto text-green-500 mb-2" />
+                  <p className="text-gray-600">No spam detected. Your inbox is clean!</p>
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t border-gray-200">
+              <button
+                onClick={() => setShowSpamResult(false)}
+                className="w-full px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </AdminLayout>
   );

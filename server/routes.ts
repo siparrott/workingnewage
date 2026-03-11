@@ -7037,6 +7037,182 @@ ${getBizName()} Team`;
     }
   });
 
+  // ==================== BULK DELETE UNREAD EMAILS ====================
+  app.post("/api/inbox/emails/bulk-delete-unread", authenticateUser, async (_req: Request, res: Response) => {
+    try {
+      // Delete all inbound emails with status 'unread'
+      const result = await runSql(
+        `DELETE FROM crm_messages WHERE status = 'unread' AND (direction = 'inbound' OR direction IS NULL) RETURNING id`
+      );
+      const deletedCount = result.length;
+      console.log(`🗑️ Bulk deleted ${deletedCount} unread emails`);
+      res.json({ success: true, deletedCount, message: `Deleted ${deletedCount} unread emails` });
+    } catch (error) {
+      console.error('Error bulk deleting unread emails:', error);
+      res.status(500).json({ error: 'Failed to bulk delete unread emails' });
+    }
+  });
+
+  // ==================== SPAM FILTER ====================
+  app.post("/api/inbox/emails/spam-filter", authenticateUser, async (_req: Request, res: Response) => {
+    try {
+      const allMessages = await storage.getCrmMessages();
+      const clients = await storage.getCrmClients();
+      
+      // Build set of known client emails for whitelisting
+      const clientEmails = new Set<string>();
+      for (const c of clients) {
+        if (c.email) clientEmails.add(c.email.toLowerCase().trim());
+      }
+
+      // Spam detection patterns
+      const spamSubjectPatterns = [
+        /\bfree\s+(gift|offer|trial|money|sample|shipping)\b/i,
+        /\b(viagra|cialis|pharmacy|pills|medication)\b/i,
+        /\b(casino|lottery|jackpot|prize|winner|won)\b/i,
+        /\b(unsubscribe|click\s+here|act\s+now|limited\s+time)\b/i,
+        /\b(earn\s+money|make\s+money|extra\s+income|work\s+from\s+home)\b/i,
+        /\b(bitcoin|crypto|investment\s+opportunity)\b/i,
+        /\b(weight\s+loss|lose\s+weight|diet\s+pill)\b/i,
+        /\b(nigerian|prince|inheritance|beneficiary|million\s+dollars)\b/i,
+        /\b(upgrade\s+now|account\s+suspended|verify\s+your\s+account)\b/i,
+        /\b(congratulations|you\s+have\s+been\s+selected)\b/i,
+        /\b(cheap|discount|sale|deal|offer|promo|coupon)\b/i,
+        /\b(replica|knockoff|luxury\s+watches)\b/i,
+        /\b(dating|singles|hookup|adult)\b/i,
+        /\b(newsletter|abmelden|abbestellen)\b/i,
+      ];
+      
+      const spamSenderPatterns = [
+        /noreply@/i,
+        /no-reply@/i,
+        /newsletter@/i,
+        /marketing@/i,
+        /promo(tions?)?@/i,
+        /info@(?!newagefotografie)/i,
+        /support@(?!newagefotografie)/i,
+        /sales@/i,
+        /deals@/i,
+        /offers@/i,
+        /notification@/i,
+        /update@/i,
+        /mailer-daemon@/i,
+        /bounce@/i,
+      ];
+
+      const spamContentPatterns = [
+        /\bunsubscribe\b/i,
+        /\bclick\s+here\s+to\s+(remove|opt[\s-]?out|unsubscribe)\b/i,
+        /\bthis\s+(is\s+a\s+)?marketing\s+(email|message)\b/i,
+        /\byou\s+are\s+receiving\s+this\s+(because|email)\b/i,
+        /\bview\s+(this\s+)?in\s+browser\b/i,
+        /\bemail\s+preferences\b/i,
+        /\bpowered\s+by\s+(mailchimp|sendgrid|hubspot|constant\s+contact|brevo|sendinblue)\b/i,
+      ];
+
+      const spamIds: string[] = [];
+      const spamDetails: Array<{ id: string; subject: string; sender: string; reason: string }> = [];
+
+      for (const msg of allMessages) {
+        // Skip outbound messages
+        if (msg.direction === 'outbound' || msg.status === 'sent' || msg.status === 'demo_sent') continue;
+        
+        // Skip messages from known clients (whitelist)
+        if (msg.senderEmail && clientEmails.has(msg.senderEmail.toLowerCase().trim())) continue;
+        
+        let spamScore = 0;
+        let reasons: string[] = [];
+
+        // Check sender patterns
+        if (msg.senderEmail) {
+          for (const pattern of spamSenderPatterns) {
+            if (pattern.test(msg.senderEmail)) {
+              spamScore += 2;
+              reasons.push(`Sender pattern: ${msg.senderEmail}`);
+              break;
+            }
+          }
+        }
+
+        // Check subject patterns
+        if (msg.subject) {
+          let subjectHits = 0;
+          for (const pattern of spamSubjectPatterns) {
+            if (pattern.test(msg.subject)) {
+              subjectHits++;
+            }
+          }
+          if (subjectHits > 0) {
+            spamScore += subjectHits * 2;
+            reasons.push(`Subject spam keywords (${subjectHits} hits)`);
+          }
+        }
+
+        // Check content patterns
+        if (msg.content) {
+          let contentHits = 0;
+          for (const pattern of spamContentPatterns) {
+            if (pattern.test(msg.content)) {
+              contentHits++;
+            }
+          }
+          if (contentHits >= 2) {
+            spamScore += contentHits;
+            reasons.push(`Content spam markers (${contentHits} hits)`);
+          }
+        }
+
+        // ALL CAPS subject check
+        if (msg.subject && msg.subject.length > 10 && msg.subject === msg.subject.toUpperCase()) {
+          spamScore += 2;
+          reasons.push('ALL CAPS subject');
+        }
+
+        // Excessive exclamation/question marks
+        if (msg.subject && (msg.subject.match(/[!?]{2,}/g) || []).length > 0) {
+          spamScore += 1;
+          reasons.push('Excessive punctuation');
+        }
+
+        // If spam score is 3 or higher, mark as spam
+        if (spamScore >= 3) {
+          spamIds.push(msg.id);
+          spamDetails.push({
+            id: msg.id,
+            subject: msg.subject || '(No Subject)',
+            sender: msg.senderEmail || 'unknown',
+            reason: reasons.join('; ')
+          });
+        }
+      }
+
+      // Delete identified spam
+      let deletedCount = 0;
+      if (spamIds.length > 0) {
+        // Delete in batches
+        for (let i = 0; i < spamIds.length; i += 50) {
+          const batch = spamIds.slice(i, i + 50);
+          const placeholders = batch.map((_, j) => `$${j + 1}::uuid`).join(', ');
+          await runSql(`DELETE FROM crm_messages WHERE id IN (${placeholders})`, batch);
+          deletedCount += batch.length;
+        }
+      }
+
+      console.log(`🛡️ Spam filter: scanned ${allMessages.length} messages, detected ${spamIds.length} spam, deleted ${deletedCount}`);
+      res.json({
+        success: true,
+        scannedCount: allMessages.length,
+        spamCount: spamIds.length,
+        deletedCount,
+        spamDetails: spamDetails.slice(0, 50), // Return first 50 for preview
+        message: `Detected and removed ${deletedCount} spam emails out of ${allMessages.length} scanned`
+      });
+    } catch (error) {
+      console.error('Error running spam filter:', error);
+      res.status(500).json({ error: 'Failed to run spam filter' });
+    }
+  });
+
   // ==================== ADMIN DASHBOARD ====================
   app.get("/api/admin/dashboard-stats", authenticateUser, async (_req: Request, res: Response) => {
     const safe = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => {
