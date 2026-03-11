@@ -13566,6 +13566,59 @@ ${getBizName()} CRM System
     }
   });
 
+  // Create a new survey / questionnaire
+  app.post("/api/surveys", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { title, description, pages, settings } = req.body;
+      if (!title) return res.status(400).json({ error: 'Title is required' });
+
+      const id = require('crypto').randomUUID();
+      const rows = await runSql(
+        `INSERT INTO surveys (id, title, description, status, pages, settings, created_at, updated_at)
+         VALUES ($1, $2, $3, 'active', $4, $5, NOW(), NOW())
+         RETURNING *`,
+        [id, title, description || '', JSON.stringify(pages || []), JSON.stringify(settings || {})]
+      );
+      res.json({ survey: rows[0] });
+    } catch (error) {
+      console.error("Error creating survey:", error);
+      res.status(500).json({ error: "Failed to create survey" });
+    }
+  });
+
+  // Update an existing survey / questionnaire
+  app.put("/api/surveys/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { title, description, pages, settings, status } = req.body;
+      const rows = await runSql(
+        `UPDATE surveys SET title = COALESCE($1, title), description = COALESCE($2, description),
+         pages = COALESCE($3, pages), settings = COALESCE($4, settings),
+         status = COALESCE($5, status), updated_at = NOW()
+         WHERE id = $6 RETURNING *`,
+        [title || null, description ?? null, pages ? JSON.stringify(pages) : null, settings ? JSON.stringify(settings) : null, status || null, id]
+      );
+      if (rows.length === 0) return res.status(404).json({ error: 'Survey not found' });
+      res.json({ survey: rows[0] });
+    } catch (error) {
+      console.error("Error updating survey:", error);
+      res.status(500).json({ error: "Failed to update survey" });
+    }
+  });
+
+  // Delete a survey / questionnaire
+  app.delete("/api/surveys/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const rows = await runSql('DELETE FROM surveys WHERE id = $1 RETURNING id', [id]);
+      if (rows.length === 0) return res.status(404).json({ error: 'Survey not found' });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting survey:", error);
+      res.status(500).json({ error: "Failed to delete survey" });
+    }
+  });
+
   // Create questionnaire link for client
   app.post("/api/admin/create-questionnaire-link", authenticateUser, async (req: Request, res: Response) => {
     try {
