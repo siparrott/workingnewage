@@ -245,11 +245,15 @@ const AdminAutomationsPage: React.FC = () => {
   const [formEnabled, setFormEnabled] = useState(true);
   const [saving, setSaving] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [editorMode, setEditorMode] = useState<'visual' | 'html'>('visual'); // visual = plain text with auto-wrap, html = raw HTML
 
   const fetchAutomations = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/admin/automations', { credentials: 'include' });
+      const res = await fetch('/api/admin/automations', {
+        credentials: 'include',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
+      });
       if (!res.ok) throw new Error('Failed to fetch');
       const data = await res.json();
       setAutomations(data);
@@ -270,7 +274,10 @@ const AdminAutomationsPage: React.FC = () => {
     setLogsLoading(true);
     setExpandedLogs(automationId);
     try {
-      const res = await fetch(`/api/admin/automations/${automationId}/logs`, { credentials: 'include' });
+      const res = await fetch(`/api/admin/automations/${automationId}/logs`, {
+        credentials: 'include',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
+      });
       if (res.ok) {
         const data = await res.json();
         setLogs(data);
@@ -293,6 +300,8 @@ const AdminAutomationsPage: React.FC = () => {
 
   const openNew = () => {
     resetForm();
+    setPreviewMode(false);
+    setEditorMode('visual');
     setShowForm(true);
   };
 
@@ -306,6 +315,8 @@ const AdminAutomationsPage: React.FC = () => {
     setFormQuestionnaire(a.questionnaireSlug || '');
     setFormEnabled(a.enabled);
     setEditingId(a.id);
+    setPreviewMode(false);
+    setEditorMode('visual');
     setShowForm(true);
   };
 
@@ -328,12 +339,18 @@ const AdminAutomationsPage: React.FC = () => {
         enabled: formEnabled,
       };
 
+      // Auto-wrap plain text in HTML template if no HTML tags detected
+      if (!payload.emailBodyHtml.includes('<') || !payload.emailBodyHtml.includes('>')) {
+        const lines = payload.emailBodyHtml.split('\n').map((line: string) => line.trim() ? `<p style="margin: 0 0 10px 0; line-height: 1.6;">${line}</p>` : '<br/>').join('\n');
+        payload.emailBodyHtml = `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">\n${lines}\n</div>`;
+      }
+
       const url = editingId ? `/api/admin/automations/${editingId}` : '/api/admin/automations';
       const method = editingId ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
         method, credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
         body: JSON.stringify(payload),
       });
 
@@ -353,7 +370,10 @@ const AdminAutomationsPage: React.FC = () => {
   const handleDelete = async (id: number) => {
     if (!confirm(tx('confirmDelete'))) return;
     try {
-      await fetch(`/api/admin/automations/${id}`, { method: 'DELETE', credentials: 'include' });
+      await fetch(`/api/admin/automations/${id}`, {
+        method: 'DELETE', credentials: 'include',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
+      });
       fetchAutomations();
     } catch {
       setError(tx('errorDeleting'));
@@ -364,7 +384,7 @@ const AdminAutomationsPage: React.FC = () => {
     try {
       await fetch(`/api/admin/automations/${a.id}`, {
         method: 'PUT', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
         body: JSON.stringify({ enabled: !a.enabled }),
       });
       fetchAutomations();
@@ -378,6 +398,7 @@ const AdminAutomationsPage: React.FC = () => {
     try {
       const res = await fetch(`/api/admin/automations/${id}/test`, {
         method: 'POST', credentials: 'include',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
       });
       const data = await res.json();
       if (res.ok) {
@@ -663,9 +684,18 @@ const AdminAutomationsPage: React.FC = () => {
                     <div className="flex rounded-lg border border-gray-300 overflow-hidden">
                       <button
                         type="button"
-                        onClick={() => setPreviewMode(false)}
+                        onClick={() => { setEditorMode('visual'); setPreviewMode(false); }}
                         className={`flex items-center gap-1 px-3 py-1 text-xs font-medium transition-colors ${
-                          !previewMode ? 'bg-purple-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                          editorMode === 'visual' && !previewMode ? 'bg-purple-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Edit size={12} /> Write
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setEditorMode('html'); setPreviewMode(false); }}
+                        className={`flex items-center gap-1 px-3 py-1 text-xs font-medium transition-colors ${
+                          editorMode === 'html' && !previewMode ? 'bg-purple-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
                         }`}
                       >
                         <Code size={12} /> {tx('htmlCode')}
@@ -682,7 +712,50 @@ const AdminAutomationsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {!previewMode ? (
+                  {editorMode === 'visual' && !previewMode ? (
+                    <>
+                      <div className="bg-blue-50 border border-blue-200 rounded-t-lg px-3 py-2">
+                        <p className="text-xs text-blue-700">
+                          ✏️ Write your email message here in plain text. Line breaks will be preserved. 
+                          Use placeholders like <code className="bg-blue-100 px-1 rounded">{'{{clientName}}'}</code> and <code className="bg-blue-100 px-1 rounded">{'{{bookingDate}}'}</code> — they get replaced with real values when sent.
+                        </p>
+                      </div>
+                      <textarea
+                        value={(() => {
+                          // Strip HTML for visual mode display
+                          const tmp = formBody;
+                          if (!tmp.includes('<')) return tmp;
+                          // Simple extraction of text content from HTML
+                          const stripped = tmp
+                            .replace(/<br\s*\/?>/gi, '\n')
+                            .replace(/<\/p>/gi, '\n')
+                            .replace(/<\/div>/gi, '\n')
+                            .replace(/<\/h[1-6]>/gi, '\n\n')
+                            .replace(/<[^>]+>/g, '')
+                            .replace(/&nbsp;/g, ' ')
+                            .replace(/&amp;/g, '&')
+                            .replace(/&lt;/g, '<')
+                            .replace(/&gt;/g, '>')
+                            .replace(/&quot;/g, '"')
+                            .replace(/\n{3,}/g, '\n\n')
+                            .trim();
+                          return stripped;
+                        })()}
+                        onChange={(e) => {
+                          // Store as plain text — will be auto-wrapped in HTML on save
+                          setFormBody(e.target.value);
+                        }}
+                        rows={10}
+                        placeholder={language === 'de'
+                          ? 'Hallo {{clientName}},\n\nIhr Fotoshooting am {{bookingDate}} um {{bookingTime}} rückt näher!\n\nBitte füllen Sie unseren kurzen Fragebogen aus:\n{{questionnaireLink}}\n\nVielen Dank!\nNew Age Fotografie'
+                          : 'Hello {{clientName}},\n\nYour photoshoot on {{bookingDate}} at {{bookingTime}} is coming up!\n\nPlease fill out our short questionnaire:\n{{questionnaireLink}}\n\nThank you!\nNew Age Fotografie'}
+                        className="w-full px-3 py-2 border border-gray-300 border-t-0 rounded-b-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">
+                        {tx('placeholders')} {'{{clientName}}'}, {'{{clientEmail}}'}, {'{{bookingDate}}'}, {'{{bookingTime}}'}, {'{{questionnaireLink}}'}
+                      </p>
+                    </>
+                  ) : !previewMode ? (
                     <>
                       <textarea
                         value={formBody} onChange={(e) => setFormBody(e.target.value)}
