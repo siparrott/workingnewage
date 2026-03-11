@@ -644,7 +644,7 @@ const AdminInboxPage: React.FC = () => {
   };
 
   const renderEmailList = () => (
-    <div className="flex-1 bg-white rounded-lg shadow overflow-hidden">
+    <div className={`${currentMessage ? 'w-2/5' : 'flex-1'} bg-white rounded-lg shadow overflow-hidden flex-shrink-0`}>
       {/* Email List Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
@@ -805,7 +805,7 @@ const AdminInboxPage: React.FC = () => {
     if (!currentMessage) return null;
 
     return (
-      <div className="w-1/2 bg-white rounded-lg shadow ml-6">
+      <div className="flex-1 min-w-0 bg-white rounded-lg shadow ml-4 flex flex-col max-h-[700px]">
         {/* Email Header */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
@@ -899,7 +899,7 @@ const AdminInboxPage: React.FC = () => {
         </div>
 
         {/* Email Content */}
-        <div className="p-4">
+        <div className="p-4 overflow-y-auto flex-1 min-h-0">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-gray-900 mb-2">
               {currentMessage.subject}
@@ -1290,7 +1290,7 @@ const AdminInboxPage: React.FC = () => {
           </div>
 
           {/* Email List and Detail */}
-          <div className="flex-1 flex">
+          <div className="flex-1 flex min-w-0 overflow-hidden">
             {renderEmailList()}
             {currentMessage && renderEmailDetail()}
           </div>        </div>
