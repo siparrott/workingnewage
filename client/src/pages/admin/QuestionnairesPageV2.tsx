@@ -32,8 +32,53 @@ const QuestionnairesPageV2: React.FC = () => {
   const searchTimeoutsRef = useRef<Record<string, any>>({});
   const containerRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [searchLoading, setSearchLoading] = useState<Record<string, boolean>>({});
+  // Client picker for link creation
+  const [linkClientSearch, setLinkClientSearch] = useState('');
+  const [linkClientResults, setLinkClientResults] = useState<any[]>([]);
+  const [linkClientId, setLinkClientId] = useState<string | null>(null);
+  const [linkClientName, setLinkClientName] = useState('');
+  const [linkClientOpen, setLinkClientOpen] = useState(false);
+  const linkClientRef = useRef<HTMLDivElement>(null);
+  const linkSearchTimeout = useRef<any>(null);
+  // Email template customization
+  const [showEmailTemplate, setShowEmailTemplate] = useState(false);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [emailFooter, setEmailFooter] = useState('');
+  const [emailTemplateSaving, setEmailTemplateSaving] = useState(false);
+
+  // Search clients for link creation
+  const searchLinkClients = async (q: string) => {
+    if (q.length < 2) { setLinkClientResults([]); return; }
+    try {
+      const res = await fetch(`/api/admin/clients/search?q=${encodeURIComponent(q)}&limit=6`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setLinkClientResults(data.clients || []);
+    } catch {}
+  };
+
+  const debouncedLinkSearch = (q: string) => {
+    if (linkSearchTimeout.current) clearTimeout(linkSearchTimeout.current);
+    linkSearchTimeout.current = setTimeout(() => searchLinkClients(q), 250);
+  };
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (linkClientRef.current && e.target instanceof Node && !linkClientRef.current.contains(e.target)) {
+        setLinkClientOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const handleCreateQuestionnaireLink = async () => {
+    if (!linkClientId) {
+      alert('Please select a client first.');
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
@@ -42,20 +87,68 @@ const QuestionnairesPageV2: React.FC = () => {
       const response = await fetch('/api/admin/create-questionnaire-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ client_id: 'demo-client', questionnaire_id: template }),
+        body: JSON.stringify({ client_id: linkClientId, template_id: template }),
       });
 
       if (!response.ok) throw new Error('Failed to create questionnaire link');
 
       const data = await response.json();
       navigator.clipboard.writeText(data.link);
-      alert(`✅ Questionnaire link created and copied to clipboard!\n\nLink: ${data.link}\n\nYou can now send this to your client via WhatsApp or email.`);
+      alert(`✅ Questionnaire link created and copied to clipboard!\n\nLink: ${data.link}\nClient: ${linkClientName}\n\nYou can now send this to your client via WhatsApp or email.`);
     } catch (err) {
       console.error('Error creating questionnaire link:', err);
       setError('Failed to create questionnaire link. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Load email template
+  const loadEmailTemplate = async () => {
+    try {
+      const res = await fetch('/api/admin/questionnaire-email-template');
+      if (!res.ok) return;
+      const data = await res.json();
+      setEmailSubject(data.subject || '');
+      setEmailBody(data.body || '');
+      setEmailFooter(data.footer || '');
+    } catch {}
+  };
+
+  const saveEmailTemplate = async () => {
+    try {
+      setEmailTemplateSaving(true);
+      const res = await fetch('/api/admin/questionnaire-email-template', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: emailSubject, body: emailBody, footer: emailFooter })
+      });
+      if (!res.ok) throw new Error('Save failed');
+      alert('✅ Email template saved successfully!');
+    } catch {
+      alert('Failed to save email template.');
+    } finally {
+      setEmailTemplateSaving(false);
+    }
+  };
+
+  // Print a questionnaire response
+  const handlePrintResponse = (r: any) => {
+    const answers = typeof r.answers === 'string' ? JSON.parse(r.answers) : (r.answers || {});
+    const answersHtml = Object.entries(answers).map(([key, val]) => {
+      const label = key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+      return `<tr><td style="padding:6px 12px;border:1px solid #ddd;font-weight:600;">${label}</td><td style="padding:6px 12px;border:1px solid #ddd;">${val}</td></tr>`;
+    }).join('');
+    const printHtml = `
+      <html><head><title>Questionnaire Response</title>
+      <style>body{font-family:Arial,sans-serif;max-width:700px;margin:0 auto;padding:30px}table{border-collapse:collapse;width:100%}h1{font-size:20px}h2{font-size:16px;color:#555}.meta{color:#888;font-size:13px;margin-bottom:20px}@media print{body{padding:10px}}</style>
+      </head><body>
+      <h1>${r.questionnaire_title || 'Questionnaire Response'}</h1>
+      <div class="meta">Client: ${r.client_name || 'Unknown'} &bull; Email: ${r.client_email || '-'} &bull; Submitted: ${new Date(r.submitted_at).toLocaleString()}</div>
+      <table>${answersHtml}</table>
+      </body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(printHtml); w.document.close(); w.focus(); w.print(); }
   };
 
   const handleViewResponses = async () => {
@@ -330,13 +423,37 @@ const QuestionnairesPageV2: React.FC = () => {
                 </svg>
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">Create Questionnaire Link</h3>
-              <p className="text-gray-500 mb-2">Select a questionnaire and generate a shareable link for clients</p>
+              <p className="text-gray-500 mb-2">Select a client and questionnaire to generate a shareable link</p>
+              {/* Client search for link creation */}
+              <div className="mb-3 relative text-left" ref={linkClientRef}>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Client</label>
+                <input
+                  value={linkClientSearch}
+                  onChange={(e) => { setLinkClientSearch(e.target.value); setLinkClientId(null); setLinkClientName(''); setLinkClientOpen(true); debouncedLinkSearch(e.target.value); }}
+                  onFocus={() => { if (linkClientSearch.length >= 2) { setLinkClientOpen(true); debouncedLinkSearch(linkClientSearch); } }}
+                  placeholder="Search client by name or email..."
+                  className="w-full border rounded px-2 py-1 text-sm"
+                />
+                {linkClientOpen && linkClientResults.length > 0 && (
+                  <div className="absolute z-20 w-full bg-white border rounded shadow max-h-48 overflow-auto mt-1">
+                    {linkClientResults.map((c) => (
+                      <button key={c.id} type="button" className="w-full text-left px-3 py-2 hover:bg-blue-50 text-sm"
+                        onClick={() => { setLinkClientId(c.id); const name = [c.first_name, c.last_name].filter(Boolean).join(' '); setLinkClientName(name); setLinkClientSearch(name + (c.email ? ` (${c.email})` : '')); setLinkClientOpen(false); setLinkClientResults([]); }}>
+                        <div className="font-medium">{[c.first_name, c.last_name].filter(Boolean).join(' ')}</div>
+                        <div className="text-xs text-gray-500">{c.email}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {linkClientId && <p className="text-xs text-green-600 mt-1">✓ {linkClientName} selected</p>}
+              </div>
               <div className="mb-3">
-                <select value={selectedSurveyId || ''} onChange={e => setSelectedSurveyId(e.target.value)} className="border rounded px-2 py-1">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Questionnaire</label>
+                <select value={selectedSurveyId || ''} onChange={e => setSelectedSurveyId(e.target.value)} className="w-full border rounded px-2 py-1 text-sm">
                   {surveys.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
                 </select>
               </div>
-              <button onClick={handleCreateQuestionnaireLink} disabled={loading || !selectedSurveyId} className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
+              <button onClick={handleCreateQuestionnaireLink} disabled={loading || !selectedSurveyId || !linkClientId} className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
                 {loading ? 'Creating...' : 'Create Link'}
               </button>
             </div>
@@ -562,6 +679,7 @@ const QuestionnairesPageV2: React.FC = () => {
                       )}
                     </div>
                     <button onClick={() => handleAttach(r.id)} className="px-3 py-2 bg-green-600 text-white rounded" disabled={loading}>Attach</button>
+                    <button onClick={() => handlePrintResponse(r)} className="px-3 py-2 bg-blue-500 text-white rounded" title="Print response">Print</button>
                     <button onClick={() => setOpenDetailId(openDetailId === r.id ? null : r.id)} className="px-3 py-2 bg-gray-200 rounded">Details</button>
                   </div>
                   {openDetailId === r.id && (
@@ -582,6 +700,44 @@ const QuestionnairesPageV2: React.FC = () => {
             </div>
           )}
           <div className="mt-4 text-sm text-gray-600">Page {page} • Total {total}</div>
+        </div>
+
+        {/* Confirmation Email Template Customization */}
+        <div className="bg-white shadow rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium text-gray-900">Confirmation Email Template</h3>
+            <button
+              onClick={() => { if (!showEmailTemplate) loadEmailTemplate(); setShowEmailTemplate(!showEmailTemplate); }}
+              className="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm"
+            >
+              {showEmailTemplate ? 'Hide' : 'Customize'}
+            </button>
+          </div>
+          <p className="text-sm text-gray-500 mb-2">Customise the confirmation email sent to clients after they submit a questionnaire.</p>
+          {showEmailTemplate && (
+            <div className="space-y-4 border-t pt-4">
+              <div className="bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-800">
+                <strong>Available placeholders:</strong> {'{{clientName}}'} {'{{studioName}}'} {'{{siteUrl}}'}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Subject</label>
+                <input value={emailSubject} onChange={e => setEmailSubject(e.target.value)} className="mt-1 block w-full border rounded px-3 py-2" placeholder="e.g. Vielen Dank für Ihren Fragebogen" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Body</label>
+                <textarea value={emailBody} onChange={e => setEmailBody(e.target.value)} rows={10} className="mt-1 block w-full border rounded px-3 py-2 font-mono text-sm" placeholder="Email body with {{clientName}} etc." />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Footer</label>
+                <input value={emailFooter} onChange={e => setEmailFooter(e.target.value)} className="mt-1 block w-full border rounded px-3 py-2" placeholder="e.g. {{studioName}} • {{siteUrl}}" />
+              </div>
+              <div className="flex justify-end">
+                <button onClick={saveEmailTemplate} disabled={emailTemplateSaving} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">
+                  {emailTemplateSaving ? 'Saving...' : 'Save Template'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </AdminLayout>

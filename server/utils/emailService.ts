@@ -106,11 +106,12 @@ export async function sendClientConfirmationEmail(clientEmail: string, clientNam
       }
     });
 
-    const subject = 'Vielen Dank für Ihren Fragebogen';
     const studioName = process.env.STUDIO_NAME || 'My Studio';
     const siteUrl = process.env.APP_URL || process.env.BASE_URL || '';
-    const text = `
-Liebe/r ${clientName},
+
+    // Try to load customised template from database
+    let tplSubject = 'Vielen Dank für Ihren Fragebogen';
+    let tplBody = `Liebe/r {{clientName}},
 
 vielen Dank, dass Sie unseren Fragebogen ausgefüllt haben!
 
@@ -119,32 +120,43 @@ Wir haben Ihre Antworten erhalten und werden uns in Kürze bei Ihnen melden, um 
 Bei Fragen können Sie uns jederzeit kontaktieren.
 
 Mit freundlichen Grüßen,
-Ihr Team von ${studioName}
+Ihr Team von {{studioName}}`;
+    let tplFooter = '{{studioName}} • {{siteUrl}}';
 
----
-${studioName}
-${siteUrl ? `Website: ${siteUrl}` : ''}
-    `;
+    try {
+      // Dynamic import to avoid circular dependency
+      const { neon } = await import('@neondatabase/serverless');
+      const sql = neon(process.env.DATABASE_URL!);
+      const rows = await sql`SELECT value FROM app_settings WHERE key = 'questionnaire_confirmation_email' LIMIT 1`;
+      if (rows.length > 0) {
+        const saved = typeof rows[0].value === 'string' ? JSON.parse(rows[0].value) : rows[0].value;
+        if (saved.subject) tplSubject = saved.subject;
+        if (saved.body) tplBody = saved.body;
+        if (saved.footer) tplFooter = saved.footer;
+      }
+    } catch (dbErr) {
+      console.log('Using default email template (DB lookup failed):', dbErr);
+    }
+
+    // Replace placeholders
+    const replacePlaceholders = (text: string) =>
+      text.replace(/\{\{clientName\}\}/g, clientName)
+          .replace(/\{\{studioName\}\}/g, studioName)
+          .replace(/\{\{siteUrl\}\}/g, siteUrl);
+
+    const subject = replacePlaceholders(tplSubject);
+    const bodyText = replacePlaceholders(tplBody);
+    const footerText = replacePlaceholders(tplFooter);
+
+    const text = bodyText + '\n\n---\n' + footerText;
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2c3e50;">Vielen Dank für Ihren Fragebogen!</h2>
-        
-        <p>Liebe/r ${clientName},</p>
-        
-        <p>vielen Dank, dass Sie unseren Fragebogen ausgefüllt haben!</p>
-        
-        <p>Wir haben Ihre Antworten erhalten und werden uns in Kürze bei Ihnen melden, um weitere Details für Ihr Fotoshooting zu besprechen.</p>
-        
-        <p>Bei Fragen können Sie uns jederzeit kontaktieren.</p>
-        
-        <p>Mit freundlichen Grüßen,<br>
-        Ihr Team von ${studioName}</p>
+        ${bodyText.split('\n').map(line => line.trim() ? `<p>${line}</p>` : '<br>').join('\n        ')}
         
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
         <p style="color: #666; font-size: 12px;">
-          ${studioName}<br>
-          ${siteUrl ? `Website: <a href="${siteUrl}">${siteUrl}</a>` : ''}
+          ${footerText}
         </p>
       </div>
     `;

@@ -7184,17 +7184,162 @@ ${getBizName()} Team`;
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
       const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
-      
-      // TODO: Implement questionnaire responses storage
-      res.json({
-        rows: [],
-        total: 0,
-        limit,
-        offset
-      });
+      const clientFilter = req.query.client_id as string | undefined;
+      const questionnaireFilter = req.query.questionnaire_id as string | undefined;
+
+      let where = 'WHERE 1=1';
+      const params: any[] = [];
+      let idx = 1;
+
+      if (clientFilter) {
+        where += ` AND qr.client_id = $${idx++}`;
+        params.push(clientFilter);
+      }
+      if (questionnaireFilter) {
+        where += ` AND qr.template_slug = $${idx++}`;
+        params.push(questionnaireFilter);
+      }
+
+      const countResult = await runSql(
+        `SELECT COUNT(*) as cnt FROM questionnaire_responses qr ${where}`,
+        params
+      );
+      const total = parseInt(countResult[0]?.cnt || '0');
+
+      const rows = await runSql(
+        `SELECT qr.id, qr.client_id, qr.token, qr.template_slug, qr.answers, qr.submitted_at,
+                c.first_name, c.last_name, c.email as client_email,
+                s.title as questionnaire_title
+         FROM questionnaire_responses qr
+         LEFT JOIN crm_clients c ON qr.client_id = c.id
+         LEFT JOIN surveys s ON qr.template_slug = s.id
+         ${where}
+         ORDER BY qr.submitted_at DESC
+         LIMIT $${idx++} OFFSET $${idx++}`,
+        [...params, limit, offset]
+      );
+
+      const responses = rows.map((r: any) => ({
+        ...r,
+        client_name: [r.first_name, r.last_name].filter(Boolean).join(' ') || 'Unknown',
+        answers: typeof r.answers === 'string' ? JSON.parse(r.answers) : r.answers
+      }));
+
+      res.json({ responses, total, limit, offset });
     } catch (error) {
       console.error('Error fetching questionnaire responses:', error);
-      res.status(500).json({ error: 'Failed to fetch responses', rows: [], total: 0 });
+      res.status(500).json({ error: 'Failed to fetch responses', responses: [], total: 0 });
+    }
+  });
+
+  // Search clients by name/email for typeahead
+  app.get("/api/admin/clients/search", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const q = (req.query.q as string || '').trim();
+      const limit = Math.min(parseInt(req.query.limit as string) || 8, 50);
+      if (q.length < 2) return res.json({ clients: [] });
+
+      const pattern = `%${q}%`;
+      const clients = await runSql(
+        `SELECT id, first_name, last_name, email
+         FROM crm_clients
+         WHERE LOWER(first_name || ' ' || last_name) LIKE LOWER($1)
+            OR LOWER(email) LIKE LOWER($1)
+            OR id::text LIKE $1
+         ORDER BY first_name, last_name
+         LIMIT $2`,
+        [pattern, limit]
+      );
+      res.json({ clients });
+    } catch (error) {
+      console.error('Error searching clients:', error);
+      res.status(500).json({ error: 'Search failed', clients: [] });
+    }
+  });
+
+  // Attach a questionnaire response to a client
+  app.post("/api/admin/attach-response-to-client", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { response_id, client_id } = req.body;
+      if (!response_id || !client_id) {
+        return res.status(400).json({ error: 'response_id and client_id are required' });
+      }
+      // Verify client exists
+      const clientRows = await runSql('SELECT id FROM crm_clients WHERE id = $1', [client_id]);
+      if (clientRows.length === 0) {
+        return res.status(404).json({ error: 'Client not found' });
+      }
+      await runSql('UPDATE questionnaire_responses SET client_id = $1 WHERE id = $2', [client_id, response_id]);
+      // Also update the corresponding questionnaire_links row if present
+      const resp = await runSql('SELECT token FROM questionnaire_responses WHERE id = $1', [response_id]);
+      if (resp.length > 0 && resp[0].token) {
+        await runSql('UPDATE questionnaire_links SET client_id = $1 WHERE token = $2', [client_id, resp[0].token]);
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error attaching response to client:', error);
+      res.status(500).json({ error: 'Failed to attach response' });
+    }
+  });
+
+  // Get/save questionnaire confirmation email template
+  app.get("/api/admin/questionnaire-email-template", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const rows = await runSql(
+        `SELECT value FROM app_settings WHERE key = 'questionnaire_confirmation_email' LIMIT 1`
+      );
+      if (rows.length > 0) {
+        const tpl = typeof rows[0].value === 'string' ? JSON.parse(rows[0].value) : rows[0].value;
+        return res.json(tpl);
+      }
+      // Return defaults
+      res.json({
+        subject: 'Vielen Dank für Ihren Fragebogen',
+        body: `Liebe/r {{clientName}},
+
+vielen Dank, dass Sie unseren Fragebogen ausgefüllt haben!
+
+Wir haben Ihre Antworten erhalten und werden uns in Kürze bei Ihnen melden, um weitere Details für Ihr Fotoshooting zu besprechen.
+
+Bei Fragen können Sie uns jederzeit kontaktieren.
+
+Mit freundlichen Grüßen,
+Ihr Team von {{studioName}}`,
+        footer: '{{studioName}} • {{siteUrl}}'
+      });
+    } catch (error) {
+      console.error('Error fetching email template:', error);
+      // Return defaults even on error (table may not exist)
+      res.json({
+        subject: 'Vielen Dank für Ihren Fragebogen',
+        body: `Liebe/r {{clientName}},\n\nvielen Dank, dass Sie unseren Fragebogen ausgefüllt haben!\n\nMit freundlichen Grüßen,\nIhr Team von {{studioName}}`,
+        footer: '{{studioName}} • {{siteUrl}}'
+      });
+    }
+  });
+
+  app.put("/api/admin/questionnaire-email-template", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { subject, body, footer } = req.body;
+      const value = JSON.stringify({ subject, body, footer });
+
+      // Ensure app_settings table exists
+      await runSql(`CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY,
+        value JSONB NOT NULL,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )`);
+
+      await runSql(
+        `INSERT INTO app_settings (key, value, updated_at)
+         VALUES ('questionnaire_confirmation_email', $1::jsonb, NOW())
+         ON CONFLICT (key) DO UPDATE SET value = $1::jsonb, updated_at = NOW()`,
+        [value]
+      );
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error saving email template:', error);
+      res.status(500).json({ error: 'Failed to save template' });
     }
   });
 
