@@ -3310,6 +3310,11 @@ Bitte versuchen Sie es später noch einmal.`;
         paramIndex++;
       }
 
+      // Always exclude cancelled sessions unless explicitly requested
+      if (!status) {
+        conditions.push(`ps.status != 'cancelled'`);
+      }
+
       if (conditions.length > 0) {
         query += ' WHERE ' + conditions.join(' AND ');
       }
@@ -7678,18 +7683,42 @@ Ihr Team von {{studioName}}`,
 
   app.post("/api/calendar/google/sync", authenticateUser, async (req: Request, res: Response) => {
     try {
-      // In a real implementation, you would:
-      // 1. Fetch events from Google Calendar API
-      // 2. Compare with local photography sessions
-      // 3. Sync bidirectionally based on settings
-      // 4. Handle conflicts and duplicates
+      // Get user ID from session or auth
+      const userId = (req as any).user?.id || (req as any).session?.userId || 'default';
       
-      res.json({ 
-        success: true, 
-        message: "Calendar sync completed successfully",
-        imported: 0,
-        exported: 0,
-        conflicts: 0
+      const { createSyncServiceForUser } = await import('./services/googleCalendarSyncService');
+      const syncService = await createSyncServiceForUser(userId);
+      
+      if (!syncService) {
+        // Fallback: try to find any enabled sync config
+        const configs = await runSql(
+          `SELECT user_id FROM calendar_sync_settings WHERE sync_enabled = true LIMIT 1`
+        );
+        if (configs && configs.length > 0) {
+          const fallbackService = await createSyncServiceForUser(configs[0].user_id);
+          if (fallbackService) {
+            const results = await fallbackService.performSync();
+            return res.json({
+              success: results.success,
+              message: `Calendar sync completed: ${results.imported} imported, ${results.updated} updated, ${results.deleted} deleted`,
+              imported: results.imported,
+              updated: results.updated,
+              deleted: results.deleted,
+              errors: results.errors
+            });
+          }
+        }
+        return res.status(400).json({ error: 'No Google Calendar sync configured' });
+      }
+      
+      const results = await syncService.performSync();
+      res.json({
+        success: results.success,
+        message: `Calendar sync completed: ${results.imported} imported, ${results.updated} updated, ${results.deleted} deleted`,
+        imported: results.imported,
+        updated: results.updated,
+        deleted: results.deleted,
+        errors: results.errors
       });
     } catch (error) {
       console.error("Error syncing Google Calendar:", error);

@@ -8,7 +8,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { randomUUID } from 'node:crypto';
 import { db } from '../db';
 import { photographySessions, calendarSyncLogs, calendarSyncSettings } from '@shared/schema';
-import { eq, and, gte } from 'drizzle-orm';
+import { eq, and, gte, ne } from 'drizzle-orm';
 
 interface SyncConfig {
   clientId: string;
@@ -180,32 +180,45 @@ export class GoogleCalendarSyncService {
     const results = { imported: 0, updated: 0, deleted: 0, errors: [] as string[] };
 
     try {
-      // Get events modified in the last 6 minutes (covers any changes since last sync)
-      const sixMinutesAgo = new Date(Date.now() - 6 * 60 * 1000);
       // Use a wide time window (1 year back, 2 years ahead) to catch changes to past events too
       const oneYearAgo = new Date();
       oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
       const twoYearsAhead = new Date();
       twoYearsAhead.setFullYear(twoYearsAhead.getFullYear() + 2);
 
-      const response = await this.calendar.events.list({
-        calendarId: this.config.calendarId,
-        timeMin: oneYearAgo.toISOString(),
-        timeMax: twoYearsAhead.toISOString(),
-        singleEvents: true,
-        orderBy: 'updated',
-        updatedMin: sixMinutesAgo.toISOString(),
-      });
+      // Fetch ALL events (including cancelled ones) — showDeleted is required
+      // to detect events that were removed from Google Calendar
+      const allEvents: any[] = [];
+      let pageToken: string | undefined;
 
-      const events = response.data.items || [];
+      do {
+        const response = await this.calendar.events.list({
+          calendarId: this.config.calendarId,
+          timeMin: oneYearAgo.toISOString(),
+          timeMax: twoYearsAhead.toISOString(),
+          singleEvents: true,
+          showDeleted: true,
+          maxResults: 2500,
+          pageToken,
+        });
 
-      for (const event of events) {
+        const events = response.data.items || [];
+        allEvents.push(...events);
+        pageToken = response.data.nextPageToken;
+      } while (pageToken);
+
+      // Build a set of active Google Calendar event IDs for reconciliation
+      const activeGoogleEventIds = new Set<string>();
+
+      for (const event of allEvents) {
         try {
           if (event.status === 'cancelled') {
             // Handle deleted events
             await this.handleDeletedGoogleEvent(event.id);
             results.deleted++;
           } else {
+            activeGoogleEventIds.add(event.id);
+
             // Check if event exists locally
             const existingSession = await db
               .select()
@@ -226,6 +239,34 @@ export class GoogleCalendarSyncService {
         } catch (error: any) {
           console.error(`Error processing event ${event.id}:`, error.message);
           results.errors.push(`Event ${event.id}: ${error.message}`);
+        }
+      }
+
+      // Reconciliation: find local sessions with a Google Calendar event ID
+      // that no longer exists in Google Calendar and mark them as cancelled
+      if (activeGoogleEventIds.size > 0) {
+        const localSyncedSessions = await db
+          .select({ id: photographySessions.id, googleCalendarEventId: photographySessions.googleCalendarEventId, status: photographySessions.status })
+          .from(photographySessions)
+          .where(
+            and(
+              // Only consider sessions that were synced from Google
+              eq(photographySessions.externalCalendarSync, true),
+              // Only consider non-cancelled sessions
+              ne(photographySessions.status, 'cancelled')
+            )
+          ) as any[];
+
+        for (const session of localSyncedSessions) {
+          if (session.googleCalendarEventId && !activeGoogleEventIds.has(session.googleCalendarEventId)) {
+            // This session's Google Calendar event no longer exists — cancel it
+            await db
+              .update(photographySessions)
+              .set({ status: 'cancelled' } as any)
+              .where(eq(photographySessions.id, session.id));
+            console.log(`🗑️ Reconciliation: cancelled orphaned session ${session.id} (Google event ${session.googleCalendarEventId} no longer exists)`);
+            results.deleted++;
+          }
         }
       }
     } catch (error: any) {
