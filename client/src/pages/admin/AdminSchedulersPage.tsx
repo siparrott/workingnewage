@@ -1261,7 +1261,7 @@ export default function AdminSchedulersPage() {
                             </button>
                           )}
                           <a
-                            href={`mailto:${booking.clientEmail}`}
+                            href={`mailto:${booking.clientEmail}?subject=${encodeURIComponent(`Your appointment on ${format(parseISO(booking.scheduledDate), 'MMMM d, yyyy')} at ${format(parseISO(booking.scheduledDate), 'h:mm a')}`)}`}
                             className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
                             title="Email client"
                           >
