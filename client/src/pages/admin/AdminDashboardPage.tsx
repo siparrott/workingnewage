@@ -440,7 +440,10 @@ const AdminDashboardPage: React.FC = () => {
             {(dashboardData?.recentInvoices || []).slice(0, 5).map((invoice, index) => (
               <div key={index} className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-gray-900">Invoice #{invoice.id?.substring(0, 8)}</p>
+                  <p className="font-medium text-gray-900">Invoice #{invoice.invoiceNumber || invoice.invoice_number || invoice.id?.substring(0, 8)}</p>
+                  {(invoice.client?.name || invoice.clientName || invoice.client_name) && (
+                    <p className="text-xs text-gray-500">{invoice.client?.name || invoice.clientName || invoice.client_name}</p>
+                  )}
                   <p className="text-sm text-gray-600">€{(parseFloat(invoice.total) || 0).toFixed(2)}</p>
                   <span className={`inline-block px-2 py-1 text-xs rounded-full ${
                     invoice.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
