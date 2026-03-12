@@ -1025,9 +1025,25 @@ const AdminInboxPage: React.FC = () => {
           </div>
 
           <div className="prose max-w-full overflow-hidden">
-            <p className="text-gray-700 whitespace-pre-wrap break-words max-w-full overflow-x-auto">
-              {currentMessage.body}
-            </p>
+            {currentMessage.body && /<[a-z][\s\S]*>/i.test(currentMessage.body) ? (
+              <iframe
+                srcDoc={currentMessage.body}
+                sandbox=""
+                className="w-full border-0 min-h-[300px]"
+                style={{ height: '60vh' }}
+                title="Email content"
+                onLoad={(e) => {
+                  const frame = e.target as HTMLIFrameElement;
+                  if (frame.contentDocument?.body) {
+                    frame.style.height = frame.contentDocument.body.scrollHeight + 40 + 'px';
+                  }
+                }}
+              />
+            ) : (
+              <p className="text-gray-700 whitespace-pre-wrap break-words max-w-full overflow-x-auto">
+                {currentMessage.body}
+              </p>
+            )}
           </div>
 
           {currentMessage.hasAttachments && (
