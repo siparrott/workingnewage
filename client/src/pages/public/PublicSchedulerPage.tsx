@@ -30,6 +30,8 @@ import {
   startOfDay,
   isAfter
 } from 'date-fns';
+import { de, enUS } from 'date-fns/locale';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface Scheduler {
   id: string;
@@ -62,6 +64,9 @@ interface AvailabilityData {
 export default function PublicSchedulerPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { language, t } = useLanguage();
+  const dateLocale = language === 'de' ? de : enUS;
+  const dayNames = t('scheduler.dayNames').split(',');
 
   // State
   const [scheduler, setScheduler] = useState<Scheduler | null>(null);
@@ -280,7 +285,7 @@ export default function PublicSchedulerPage() {
             <ChevronLeft className="w-5 h-5 text-gray-600" />
           </button>
           <h2 className="text-xl font-semibold text-gray-900">
-            {format(currentMonth, 'MMMM yyyy')}
+            {format(currentMonth, 'MMMM yyyy', { locale: dateLocale })}
           </h2>
           <button
             onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
@@ -292,7 +297,7 @@ export default function PublicSchedulerPage() {
 
         {/* Day headers */}
         <div className="grid grid-cols-7 gap-1 mb-2">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+          {dayNames.map(day => (
             <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
               {day}
             </div>
@@ -337,7 +342,7 @@ export default function PublicSchedulerPage() {
         {(availabilityLoading || autoScrolling) && (
           <div className="flex items-center justify-center py-4 text-gray-500">
             <Loader2 className="w-5 h-5 animate-spin mr-2" />
-            {autoScrolling ? 'Finding next available dates...' : 'Loading availability...'}
+            {autoScrolling ? t('scheduler.findingDates') : t('scheduler.loadingAvailability')}
           </div>
         )}
 
@@ -346,11 +351,11 @@ export default function PublicSchedulerPage() {
           <div className="flex items-center justify-center gap-6 mt-4 text-xs text-gray-500">
             <div className="flex items-center gap-1">
               <span className="inline-block w-4 h-4 rounded bg-green-50 border-2 border-green-400"></span>
-              Available
+              {t('scheduler.available')}
             </div>
             <div className="flex items-center gap-1">
               <span className="inline-block w-4 h-4 rounded bg-gray-100"></span>
-              Not available
+              {t('scheduler.notAvailable')}
             </div>
           </div>
         )}
@@ -370,14 +375,14 @@ export default function PublicSchedulerPage() {
           className="flex items-center text-gray-600 hover:text-gray-900 mb-4"
         >
           <ChevronLeft className="w-4 h-4 mr-1" />
-          Back to calendar
+          {t('scheduler.backToCalendar')}
         </button>
 
         <h2 className="text-xl font-semibold text-gray-900 mb-2">
-          Select a Time
+          {t('scheduler.selectTime')}
         </h2>
         <p className="text-gray-600 mb-6">
-          {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+          {format(selectedDate, 'EEEE, d. MMMM yyyy', { locale: dateLocale })}
         </p>
 
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
@@ -400,7 +405,7 @@ export default function PublicSchedulerPage() {
 
         {slots.length === 0 && (
           <p className="text-center text-gray-500 py-8">
-            No available times for this date.
+            {t('scheduler.noTimes')}
           </p>
         )}
       </div>
@@ -418,22 +423,22 @@ export default function PublicSchedulerPage() {
           className="flex items-center text-gray-600 hover:text-gray-900 mb-4"
         >
           <ChevronLeft className="w-4 h-4 mr-1" />
-          Back to time selection
+          {t('scheduler.backToTime')}
         </button>
 
         <h2 className="text-xl font-semibold text-gray-900 mb-6">
-          Your Details
+          {t('scheduler.yourDetails')}
         </h2>
 
         {/* Selected time summary */}
         <div className="bg-gray-50 rounded-lg p-4 mb-6">
           <div className="flex items-center text-gray-700">
             <CalendarIcon className="w-5 h-5 mr-2" />
-            <span>{format(selectedDate, 'EEEE, MMMM d, yyyy')}</span>
+            <span>{format(selectedDate, 'EEEE, d. MMMM yyyy', { locale: dateLocale })}</span>
           </div>
           <div className="flex items-center text-gray-700 mt-2">
             <Clock className="w-5 h-5 mr-2" />
-            <span>{selectedSlot.formatted} ({scheduler?.duration} minutes)</span>
+            <span>{selectedSlot.formatted} ({scheduler?.duration} {t('scheduler.minutes')})</span>
           </div>
           {scheduler?.location && (
             <div className="flex items-center text-gray-700 mt-2">
@@ -447,7 +452,7 @@ export default function PublicSchedulerPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               <User className="w-4 h-4 inline mr-1" />
-              Your Name *
+              {t('scheduler.yourName')} *
             </label>
             <input
               type="text"
@@ -455,14 +460,14 @@ export default function PublicSchedulerPage() {
               value={formData.clientName}
               onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-              placeholder="Enter your full name"
+              placeholder={t('scheduler.namePlaceholder')}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               <Mail className="w-4 h-4 inline mr-1" />
-              Email Address *
+              {t('scheduler.email')} *
             </label>
             <input
               type="email"
@@ -477,7 +482,7 @@ export default function PublicSchedulerPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               <Phone className="w-4 h-4 inline mr-1" />
-              Phone Number
+              {t('scheduler.phone')}
             </label>
             <input
               type="tel"
@@ -491,14 +496,14 @@ export default function PublicSchedulerPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               <MessageSquare className="w-4 h-4 inline mr-1" />
-              Notes (optional)
+              {t('scheduler.notes')}
             </label>
             <textarea
               value={formData.clientNotes}
               onChange={(e) => setFormData({ ...formData, clientNotes: e.target.value })}
               rows={3}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-              placeholder="Any special requests or information..."
+              placeholder={t('scheduler.notesPlaceholder')}
             />
           </div>
 
@@ -518,12 +523,12 @@ export default function PublicSchedulerPage() {
             {submitting ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                Booking...
+                {t('scheduler.booking')}
               </>
             ) : (
               <>
                 <Check className="w-5 h-5 mr-2" />
-                Confirm Booking
+                {t('scheduler.confirmBooking')}
               </>
             )}
           </button>
@@ -546,18 +551,18 @@ export default function PublicSchedulerPage() {
         </div>
 
         <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-          Booking Confirmed!
+          {t('scheduler.bookingConfirmed')}
         </h2>
         <p className="text-gray-600 mb-6">
           {bookingResult.message}
         </p>
 
         <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
-          <h3 className="font-medium text-gray-900 mb-3">Appointment Details</h3>
+          <h3 className="font-medium text-gray-900 mb-3">{t('scheduler.appointmentDetails')}</h3>
           <div className="space-y-2 text-gray-700">
             <div className="flex items-center">
               <CalendarIcon className="w-5 h-5 mr-2 text-gray-500" />
-              <span>{format(selectedDate, 'EEEE, MMMM d, yyyy')}</span>
+              <span>{format(selectedDate, 'EEEE, d. MMMM yyyy', { locale: dateLocale })}</span>
             </div>
             <div className="flex items-center">
               <Clock className="w-5 h-5 mr-2 text-gray-500" />
@@ -571,7 +576,7 @@ export default function PublicSchedulerPage() {
             )}
           </div>
           <div className="mt-4 pt-4 border-t border-gray-200">
-            <p className="text-sm text-gray-500">Confirmation #</p>
+            <p className="text-sm text-gray-500">{t('scheduler.confirmationNumber')}</p>
             <p className="font-mono font-semibold text-gray-900">
               {bookingResult.booking?.confirmationNumber}
             </p>
@@ -579,7 +584,7 @@ export default function PublicSchedulerPage() {
         </div>
 
         <p className="text-sm text-gray-500">
-          A confirmation email has been sent to {formData.clientEmail}
+          {t('scheduler.confirmationEmail')} {formData.clientEmail}
         </p>
       </div>
     );
@@ -591,7 +596,7 @@ export default function PublicSchedulerPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-teal-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading booking page...</p>
+          <p className="text-gray-600">{t('scheduler.loading')}</p>
         </div>
       </div>
     );
@@ -604,7 +609,7 @@ export default function PublicSchedulerPage() {
         <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Booking Unavailable
+            {t('scheduler.unavailable')}
           </h2>
           <p className="text-gray-600">{error}</p>
         </div>
@@ -638,7 +643,7 @@ export default function PublicSchedulerPage() {
           <div className="flex flex-wrap items-center justify-center gap-4 mt-4 text-sm text-gray-600">
             <div className="flex items-center">
               <Clock className="w-4 h-4 mr-1" />
-              {scheduler.duration} minutes
+              {scheduler.duration} {t('scheduler.minutes')}
             </div>
             {scheduler.location && (
               <div className="flex items-center">
@@ -663,7 +668,7 @@ export default function PublicSchedulerPage() {
 
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-gray-500">
-          <p>Timezone: {scheduler.timezone}</p>
+          <p>{t('scheduler.timezone')}: {scheduler.timezone}</p>
         </div>
       </div>
     </div>

@@ -904,7 +904,35 @@ const translations = {
   // CTAs
   'faq.ctaWaitlist': 'Join the Waitlist',
   'faq.ctaGuide': 'Read Our Prep Guide',
-  'faq.ctaContact': 'Still have questions?'
+  'faq.ctaContact': 'Still have questions?',
+
+  // Scheduler / Booking page
+  'scheduler.minutes': 'minutes',
+  'scheduler.available': 'Available',
+  'scheduler.notAvailable': 'Not available',
+  'scheduler.findingDates': 'Finding next available dates...',
+  'scheduler.loadingAvailability': 'Loading availability...',
+  'scheduler.noTimes': 'No available times for this date.',
+  'scheduler.backToCalendar': 'Back to calendar',
+  'scheduler.selectTime': 'Select a Time',
+  'scheduler.backToTime': 'Back to time selection',
+  'scheduler.yourDetails': 'Your Details',
+  'scheduler.yourName': 'Your Name',
+  'scheduler.email': 'Email Address',
+  'scheduler.phone': 'Phone Number',
+  'scheduler.notes': 'Notes (optional)',
+  'scheduler.namePlaceholder': 'Enter your full name',
+  'scheduler.notesPlaceholder': 'Any special requests or information...',
+  'scheduler.booking': 'Booking...',
+  'scheduler.confirmBooking': 'Confirm Booking',
+  'scheduler.bookingConfirmed': 'Booking Confirmed!',
+  'scheduler.appointmentDetails': 'Appointment Details',
+  'scheduler.confirmationNumber': 'Confirmation #',
+  'scheduler.confirmationEmail': 'A confirmation email has been sent to',
+  'scheduler.loading': 'Loading booking page...',
+  'scheduler.unavailable': 'Booking Unavailable',
+  'scheduler.timezone': 'Timezone',
+  'scheduler.dayNames': 'Sun,Mon,Tue,Wed,Thu,Fri,Sat'
   },
   de: {
     'nav.home': 'Startseite',
@@ -1789,7 +1817,35 @@ const translations = {
   // CTAs
   'faq.ctaWaitlist': 'Zur Warteliste',
   'faq.ctaGuide': 'Vorbereitungsguide lesen',
-  'faq.ctaContact': 'Noch Fragen?'
+  'faq.ctaContact': 'Noch Fragen?',
+
+  // Scheduler / Booking page
+  'scheduler.minutes': 'Minuten',
+  'scheduler.available': 'Verfügbar',
+  'scheduler.notAvailable': 'Nicht verfügbar',
+  'scheduler.findingDates': 'Nächste verfügbare Termine werden gesucht...',
+  'scheduler.loadingAvailability': 'Verfügbarkeit wird geladen...',
+  'scheduler.noTimes': 'Keine verfügbaren Zeiten für dieses Datum.',
+  'scheduler.backToCalendar': 'Zurück zum Kalender',
+  'scheduler.selectTime': 'Uhrzeit auswählen',
+  'scheduler.backToTime': 'Zurück zur Zeitauswahl',
+  'scheduler.yourDetails': 'Ihre Daten',
+  'scheduler.yourName': 'Ihr Name',
+  'scheduler.email': 'E-Mail-Adresse',
+  'scheduler.phone': 'Telefonnummer',
+  'scheduler.notes': 'Anmerkungen (optional)',
+  'scheduler.namePlaceholder': 'Vollständigen Namen eingeben',
+  'scheduler.notesPlaceholder': 'Besondere Wünsche oder Informationen...',
+  'scheduler.booking': 'Wird gebucht...',
+  'scheduler.confirmBooking': 'Buchung bestätigen',
+  'scheduler.bookingConfirmed': 'Buchung bestätigt!',
+  'scheduler.appointmentDetails': 'Termindetails',
+  'scheduler.confirmationNumber': 'Bestätigungsnr.',
+  'scheduler.confirmationEmail': 'Eine Bestätigungsmail wurde gesendet an',
+  'scheduler.loading': 'Buchungsseite wird geladen...',
+  'scheduler.unavailable': 'Buchung nicht verfügbar',
+  'scheduler.timezone': 'Zeitzone',
+  'scheduler.dayNames': 'So,Mo,Di,Mi,Do,Fr,Sa'
   }
 };
 
