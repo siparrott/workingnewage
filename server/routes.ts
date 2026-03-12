@@ -15745,7 +15745,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
         .replace(/\{\{clientName\}\}/g, 'Max Mustermann')
         .replace(/\{\{bookingDate\}\}/g, '15. März 2026')
         .replace(/\{\{bookingTime\}\}/g, '14:00 Uhr')
-        .replace(/\{\{questionnaireLink\}\}/g, `${getBaseUrl()}/questionnaire/${rule.questionnaireSlug || 'pre-shoot'}`);
+        .replace(/\{\{questionnaireLink\}\}/g, `${getBaseUrl()}/q/${rule.questionnaireSlug || 'pre-shoot'}`);
 
       const testSubject = rule.emailSubject
         .replace(/\{\{clientName\}\}/g, 'Max Mustermann')
@@ -15849,7 +15849,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
             const formattedDate = dateFormatter.format(bookingDate);
             const formattedTime = timeFormatter.format(bookingDate) + ' Uhr';
             const questionnaireLink = rule.questionnaireSlug 
-              ? `${getBaseUrl()}/questionnaire/${rule.questionnaireSlug}`
+              ? `${getBaseUrl()}/q/${rule.questionnaireSlug}`
               : '';
 
             const emailHtml = rule.emailBodyHtml

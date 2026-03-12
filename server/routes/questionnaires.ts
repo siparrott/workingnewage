@@ -47,6 +47,11 @@ router.post("/api/questionnaires", async (req, res) => {
   }
 });
 
+// Redirect /questionnaire/:slug to /q/:slug (legacy email links)
+router.get("/questionnaire/:slug", (req, res) => {
+  res.redirect(301, `/q/${encodeURIComponent(req.params.slug)}`);
+});
+
 router.get("/q/:slug", async (req, res, next) => {
   const slug = req.params.slug;
   const rows = await q(
