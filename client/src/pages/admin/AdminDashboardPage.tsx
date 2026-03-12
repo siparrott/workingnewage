@@ -216,14 +216,36 @@ const AdminDashboardPage: React.FC = () => {
         upcomingBookings: metrics.upcomingSessions || 0,
   revenueChart,
   leadConversionChart,
-  serviceDistribution: [],
+  serviceDistribution: (() => {
+          // Group bookings by session type to build real service distribution
+          const typeMap: Record<string, { count: number; revenue: number }> = {};
+          bookings.forEach((b: any) => {
+            const sType = b.sessionType || b.session_type || 'Other';
+            if (!typeMap[sType]) typeMap[sType] = { count: 0, revenue: 0 };
+            typeMap[sType].count += 1;
+            typeMap[sType].revenue += parseFloat(b.price || b.totalPrice || 0);
+          });
+          return Object.entries(typeMap).map(([service, data]) => ({
+            service,
+            count: data.count,
+            revenue: data.revenue
+          }));
+        })(),
         recentLeads: newLeads.slice(0, 5),
-        recentBookings: bookings.slice(0, 5),
+        recentBookings: bookings
+          .filter((b: any) => {
+            try {
+              const d = new Date(b.startTime || b.start_time || b.sessionDate);
+              return !isNaN(d.getTime()) && d >= new Date();
+            } catch { return false; }
+          })
+          .sort((a: any, b: any) => new Date(a.startTime || a.start_time).getTime() - new Date(b.startTime || b.start_time).getTime())
+          .slice(0, 5),
         recentInvoices: paidInvoices.slice(0, 5),
         monthlyGrowth: 0, // Would need historical data
         conversionRate: allLeads.length > 0 ? (allLeads.filter(l => l.status === 'CONVERTED').length / allLeads.length) * 100 : 0,
         averageOrderValue: metrics.avgOrderValue || 0,
-        clientSatisfaction: 4.8 // Mock data
+        clientSatisfaction: 0 // Computed from real data when reviews are available
       };
 
       setDashboardData(dashboardData);
@@ -357,7 +379,7 @@ const AdminDashboardPage: React.FC = () => {
               <div key={index} className="flex items-center justify-between">
                 <div>
                   <p className="font-medium text-gray-900">
-                    {lead.name}
+                    {lead.full_name || lead.name || lead.email}
                   </p>
                   <p className="text-sm text-gray-600">{lead.email}</p>
                   <span className={`inline-block px-2 py-1 text-xs rounded-full ${
@@ -402,13 +424,13 @@ const AdminDashboardPage: React.FC = () => {
             {(dashboardData?.recentBookings || []).slice(0, 5).map((booking, index) => (
               <div key={index} className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-gray-900">{booking.client_name || 'Client'}</p>
-                  <p className="text-sm text-gray-600">{booking.service_type}</p>
+                  <p className="font-medium text-gray-900">{booking.clientName || booking.client_name || booking.title || 'Client'}</p>
+                  <p className="text-sm text-gray-600">{booking.sessionType || booking.session_type || ''}</p>
                   <div className="flex items-center text-xs text-gray-500 mt-1">
                     <Clock className="h-3 w-3 mr-1" />
                     {(() => {
                       try {
-                        const date = new Date(booking.booking_date || booking.sessionDate || booking.created_at);
+                        const date = new Date(booking.startTime || booking.start_time || booking.sessionDate || booking.created_at);
                         return isNaN(date.getTime()) ? 'No date' : format(date, 'MMM dd, HH:mm');
                       } catch (error) {
                         return 'No date';
