@@ -3244,7 +3244,7 @@ Bitte versuchen Sie es später noch einmal.`;
         client_id, 
         session_type, 
         status,
-        limit = '200'
+        limit = '5000'
       } = req.query;
 
       let query = `
@@ -3312,7 +3312,7 @@ Bitte versuchen Sie es später noch einmal.`;
 
       // Always exclude cancelled sessions unless explicitly requested
       if (!status) {
-        conditions.push(`ps.status != 'cancelled'`);
+        conditions.push(`LOWER(ps.status) != 'cancelled'`);
       }
 
       if (conditions.length > 0) {

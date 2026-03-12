@@ -5,7 +5,7 @@
 
 import { db } from '../db';
 import { studioAppointments, googleCalendarConfig, crmClients, calendarSyncSettings, photographySessions } from '@shared/schema';
-import { eq, and, gte, lte, desc } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, ne } from 'drizzle-orm';
 import { google } from 'googleapis';
 
 /**
@@ -551,7 +551,8 @@ class StudioCalendarService {
         .where(
           and(
             gte(studioAppointments.startDateTime, startDate),
-            lte(studioAppointments.startDateTime, endDate)
+            lte(studioAppointments.startDateTime, endDate),
+            ne(studioAppointments.status, 'cancelled')
           )
         )
         .orderBy(studioAppointments.startDateTime);
@@ -584,7 +585,8 @@ class StudioCalendarService {
         .where(
           and(
             gte(photographySessions.startTime, startDate),
-            lte(photographySessions.startTime, endDate)
+            lte(photographySessions.startTime, endDate),
+            ne(photographySessions.status, 'cancelled')
           )
         )
         .orderBy(photographySessions.startTime);
