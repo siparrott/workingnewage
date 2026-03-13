@@ -1128,12 +1128,12 @@ const AdminInboxPage: React.FC = () => {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex-shrink-0">
             <h1 className="text-2xl font-semibold text-gray-900">Inbox</h1>
             <p className="text-gray-600">Manage client messages and inquiries</p>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-wrap items-center gap-2">
             <button 
               onClick={handleRefreshEmails}
               disabled={isRefreshing}
