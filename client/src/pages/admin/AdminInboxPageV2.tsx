@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import InboxSettings from '../../components/admin/InboxSettings';
 import SimpleEmailComposer from '../../components/inbox/SimpleEmailComposer';
@@ -109,6 +109,55 @@ const AdminInboxPage: React.FC = () => {
   const [isLinkingClient, setIsLinkingClient] = useState(false);
   const [isAutoLinking, setIsAutoLinking] = useState(false);
   
+  // Resizable pane widths (pixels)
+  const [sidebarWidth, setSidebarWidth] = useState(256); // 16rem default
+  const [listWidth, setListWidth] = useState(420);
+  const isDraggingSidebar = useRef(false);
+  const isDraggingList = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    if (isDraggingSidebar.current) {
+      const newWidth = Math.min(Math.max(e.clientX - rect.left, 180), 400);
+      setSidebarWidth(newWidth);
+    } else if (isDraggingList.current) {
+      const newWidth = Math.min(Math.max(e.clientX - rect.left - sidebarWidth - 8, 250), rect.width - sidebarWidth - 300);
+      setListWidth(newWidth);
+    }
+  }, [sidebarWidth]);
+
+  const handleMouseUp = useCallback(() => {
+    isDraggingSidebar.current = false;
+    isDraggingList.current = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp]);
+
+  const startSidebarDrag = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingSidebar.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, []);
+
+  const startListDrag = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingList.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, []);
+
   // Bulk delete & spam filter state
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [isSpamFiltering, setIsSpamFiltering] = useState(false);
@@ -644,7 +693,7 @@ const AdminInboxPage: React.FC = () => {
   };
 
   const renderEmailList = () => (
-    <div className={`${currentMessage ? 'w-2/5' : 'flex-1'} bg-white rounded-lg shadow overflow-hidden flex-shrink-0`}>
+    <div style={currentMessage ? { width: listWidth, minWidth: 250, flexShrink: 0 } : { flex: 1, minWidth: 250 }} className="bg-white rounded-lg shadow overflow-hidden">
       {/* Email List Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
@@ -805,7 +854,7 @@ const AdminInboxPage: React.FC = () => {
     if (!currentMessage) return null;
 
     return (
-      <div className="flex-1 min-w-0 bg-white rounded-lg shadow ml-4 flex flex-col max-h-[700px]">
+      <div className="flex-1 min-w-0 bg-white rounded-lg shadow flex flex-col max-h-[700px]">
         {/* Email Header */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
@@ -1137,9 +1186,9 @@ const AdminInboxPage: React.FC = () => {
         </div>
 
         {/* Main Content */}
-        <div className="flex space-x-6">
+        <div className="flex" ref={containerRef}>
           {/* Sidebar */}
-          <div className="w-64 bg-white rounded-lg shadow p-4">
+          <div style={{ width: sidebarWidth, minWidth: 180, flexShrink: 0 }} className="bg-white rounded-lg shadow p-4">
             <nav className="space-y-2">
               {folders.map(folder => (
                 <div key={folder.id} className="group relative">
@@ -1305,10 +1354,31 @@ const AdminInboxPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Sidebar resize handle */}
+          <div
+            onMouseDown={startSidebarDrag}
+            className="w-2 cursor-col-resize flex-shrink-0 group flex items-center justify-center hover:bg-blue-100 transition-colors rounded"
+            title="Drag to resize"
+          >
+            <div className="w-0.5 h-8 bg-gray-300 group-hover:bg-blue-400 rounded-full transition-colors" />
+          </div>
+
           {/* Email List and Detail */}
           <div className="flex-1 flex min-w-0 overflow-hidden">
             {renderEmailList()}
-            {currentMessage && renderEmailDetail()}
+            {currentMessage && (
+              <>
+                {/* List / Detail resize handle */}
+                <div
+                  onMouseDown={startListDrag}
+                  className="w-2 cursor-col-resize flex-shrink-0 group flex items-center justify-center hover:bg-blue-100 transition-colors rounded"
+                  title="Drag to resize"
+                >
+                  <div className="w-0.5 h-8 bg-gray-300 group-hover:bg-blue-400 rounded-full transition-colors" />
+                </div>
+                {renderEmailDetail()}
+              </>
+            )}
           </div>        </div>
       </div>
 
