@@ -3162,12 +3162,20 @@ Bitte versuchen Sie es später noch einmal.`;
     try {
       console.log("Received session data:", JSON.stringify(req.body, null, 2));
       const sessionData = { 
-        ...req.body, 
+        ...req.body,
+        id: req.body.id || crypto.randomUUID(),
         createdBy: req.user!.id, 
         photographerId: req.user!.id,
+        title: req.body.title || 'Untitled Session',
         // Convert string dates to Date objects if they're strings
         startTime: req.body.startTime ? new Date(req.body.startTime) : undefined,
         endTime: req.body.endTime ? new Date(req.body.endTime) : undefined,
+        // Clean up empty strings to null for optional fields
+        clientId: req.body.clientId || null,
+        clientEmail: req.body.clientEmail || null,
+        locationName: req.body.locationName || null,
+        locationAddress: req.body.locationAddress || null,
+        locationCoordinates: req.body.locationCoordinates || null,
       };
       console.log("Session data with user info:", JSON.stringify(sessionData, null, 2));
       const validatedData = insertPhotographySessionSchema.parse(sessionData);
