@@ -6999,6 +6999,27 @@ ${getBizName()} Team`;
     }
   });
 
+  // PUT /api/inbox/emails/mark-read - Mark emails as read or unread
+  app.put("/api/inbox/emails/mark-read", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { messageIds, isRead } = req.body;
+      if (!messageIds || !Array.isArray(messageIds)) {
+        return res.status(400).json({ error: 'messageIds array is required' });
+      }
+      const newStatus = isRead ? 'read' : 'unread';
+      for (const msgId of messageIds) {
+        await runSql(
+          `UPDATE crm_messages SET status = $1, updated_at = NOW() WHERE id = $2::uuid`,
+          [newStatus, msgId]
+        );
+      }
+      res.json({ success: true, updated: messageIds.length });
+    } catch (error) {
+      console.error('Error marking emails as read:', error);
+      res.status(500).json({ error: 'Failed to update email status' });
+    }
+  });
+
   // PUT /api/inbox/emails/:id/link-client - Manually link an email to a client
   app.put("/api/inbox/emails/:id/link-client", authenticateUser, async (req: Request, res: Response) => {
     try {

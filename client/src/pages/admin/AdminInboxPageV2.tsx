@@ -615,6 +615,13 @@ const AdminInboxPage: React.FC = () => {
           : message
       )
     );
+    // Persist to server
+    fetch('/api/inbox/emails/mark-read', {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messageIds, isRead }),
+    }).catch(() => {});
   };
 
   const handleStar = (messageIds: string[], isStarred: boolean) => {
@@ -761,7 +768,12 @@ const AdminInboxPage: React.FC = () => {
               className={`p-4 hover:bg-gray-50 cursor-pointer relative group ${
                 selectedMessages.includes(message.id) ? 'bg-blue-50' : ''
               } ${!message.isRead ? 'bg-blue-25' : ''}`}
-              onClick={() => setCurrentMessage(message)}
+              onClick={() => {
+                setCurrentMessage(message);
+                if (!message.isRead) {
+                  handleMarkAsRead([message.id], true);
+                }
+              }}
             >
               <div className="flex items-center space-x-3">
                 <input
