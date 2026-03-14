@@ -122,8 +122,15 @@ const QuestionnaireFormPage: React.FC = () => {
       }
     }
     
-    if (!formData.clientName.trim() || !formData.clientEmail.trim()) {
-      setError('Please provide your name and email address.');
+    if (!formData.clientName.trim()) {
+      setError('Bitte geben Sie Ihren Namen ein. / Please provide your name.');
+      const nameField = document.getElementById('client-name-field');
+      if (nameField) nameField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    
+    if (!formData.clientEmail.trim()) {
+      setError('Bitte geben Sie Ihre E-Mail-Adresse ein. / Please provide your email.');
       return;
     }
     
@@ -319,16 +326,18 @@ const QuestionnaireFormPage: React.FC = () => {
             <div className="bg-gray-50 p-6 rounded-lg">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+                <div id="client-name-field">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name *
+                    Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={formData.clientName}
                     onChange={(e) => setFormData(prev => ({ ...prev, clientName: e.target.value }))}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      error?.includes('Namen') && !formData.clientName.trim() ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
                     placeholder="Your full name"
                   />
                 </div>

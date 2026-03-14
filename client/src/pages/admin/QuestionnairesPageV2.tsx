@@ -148,7 +148,7 @@ const QuestionnairesPageV2: React.FC = () => {
     } catch {}
     // Also try matching from loaded surveys state
     if (Object.keys(labelMap).length === 0 && r.template_slug) {
-      const survey = surveys.find(s => s.id === r.template_slug);
+      const survey = surveys.find((s: any) => s.id === r.template_slug);
       if (survey) {
         try {
           const pages = survey.pages || [];
@@ -163,14 +163,28 @@ const QuestionnairesPageV2: React.FC = () => {
     return labelMap;
   };
 
-  // Build formatted HTML for a response (used by both View and Print)
-  const buildResponseHtml = (r: any) => {
+  // Get the display entries for a response (resolved labels, non-empty values)
+  const getDisplayEntries = (r: any): [string, string][] => {
+    // Prefer server-resolved answers (already has proper question labels as keys)
+    if (r.resolved_answers && Object.keys(r.resolved_answers).length > 0) {
+      return Object.entries(r.resolved_answers)
+        .filter(([, val]) => val !== null && val !== undefined && String(val).trim() !== '') as [string, string][];
+    }
+    // Fallback: resolve labels client-side
     const answers = typeof r.answers === 'string' ? JSON.parse(r.answers) : (r.answers || {});
     const labelMap = buildLabelMap(r);
-    const answersHtml = Object.entries(answers)
+    return Object.entries(answers)
       .filter(([, val]) => val !== null && val !== undefined && String(val).trim() !== '')
       .map(([key, val]) => {
         const label = labelMap[key] || key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+        return [label, String(val)] as [string, string];
+      });
+  };
+
+  // Build formatted HTML for a response (used by both View and Print)
+  const buildResponseHtml = (r: any) => {
+    const entries = getDisplayEntries(r);
+    const answersHtml = entries.map(([label, val]) => {
         const safeVal = String(val).replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const safeLabel = label.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         return `<tr><td style="padding:10px 14px;border:1px solid #e5e7eb;font-weight:600;background:#f9fafb;width:40%;vertical-align:top;color:#374151;">${safeLabel}</td><td style="padding:10px 14px;border:1px solid #e5e7eb;color:#1f2937;">${safeVal}</td></tr>`;
@@ -374,12 +388,12 @@ const QuestionnairesPageV2: React.FC = () => {
   const handleSaveNew = async () => {
     try {
       setLoading(true);
-      // Build survey payload with pages and settings
+      // Build survey payload with pages and settings — all questions are required by default
       const pages = [
         {
           id: 'page-1',
           title: formTitle,
-          questions: questions.map((q, idx) => ({ id: `q${idx+1}`, type: 'text', title: q }))
+          questions: questions.map((q, idx) => ({ id: `q${idx+1}`, type: 'text', title: q, required: true }))
         }
       ];
 
@@ -425,7 +439,7 @@ const QuestionnairesPageV2: React.FC = () => {
         {
           id: 'page-1',
           title: formTitle,
-          questions: questions.map((q, idx) => ({ id: `q${idx+1}`, type: 'text', title: q }))
+          questions: questions.map((q, idx) => ({ id: `q${idx+1}`, type: 'text', title: q, required: true }))
         }
       ];
       const settings = { logo: logoUrl };
@@ -709,9 +723,7 @@ const QuestionnairesPageV2: React.FC = () => {
           ) : (
             <div className="divide-y">
               {responses.map((r) => {
-                const answers = typeof r.answers === 'string' ? JSON.parse(r.answers) : (r.answers || {});
-                const labelMap = buildLabelMap(r);
-                const answeredEntries = Object.entries(answers).filter(([, val]) => val !== null && val !== undefined && String(val).trim() !== '');
+                const displayEntries = getDisplayEntries(r);
                 return (
                 <div key={r.id} className="py-3">
                   <div className="flex items-center justify-between">
@@ -721,19 +733,16 @@ const QuestionnairesPageV2: React.FC = () => {
                     </div>
                     <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">{r.questionnaire_title || 'Questionnaire'}</span>
                   </div>
-                  {answeredEntries.length > 0 && (
+                  {displayEntries.length > 0 && (
                     <details className="mt-2">
-                      <summary className="cursor-pointer text-sm text-blue-600 font-medium hover:text-blue-800">View answers ({answeredEntries.length} fields)</summary>
+                      <summary className="cursor-pointer text-sm text-blue-600 font-medium hover:text-blue-800">View answers ({displayEntries.length} fields)</summary>
                       <div className="mt-2 bg-gray-50 rounded-lg p-3 space-y-2">
-                        {answeredEntries.map(([key, val]) => {
-                          const label = labelMap[key] || key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
-                          return (
-                            <div key={key} className="flex gap-2">
+                        {displayEntries.map(([label, val], idx) => (
+                            <div key={idx} className="flex gap-2">
                               <span className="text-sm font-semibold text-gray-700 min-w-[120px] shrink-0">{label}:</span>
-                              <span className="text-sm text-gray-900">{String(val)}</span>
+                              <span className="text-sm text-gray-900">{val}</span>
                             </div>
-                          );
-                        })}
+                          ))}
                       </div>
                     </details>
                   )}

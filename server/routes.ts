@@ -7432,6 +7432,16 @@ ${getBizName()} Team`;
   });
 
   // Admin questionnaire responses endpoint
+  // Ensure questionnaire_responses has all needed columns
+  try {
+    await runSql(`ALTER TABLE questionnaire_responses ADD COLUMN IF NOT EXISTS client_name text`);
+    await runSql(`ALTER TABLE questionnaire_responses ADD COLUMN IF NOT EXISTS client_email text`);
+    await runSql(`ALTER TABLE questionnaire_responses ADD COLUMN IF NOT EXISTS template_slug text`);
+    console.log('✅ Ensured questionnaire_responses columns exist');
+  } catch (e: any) {
+    console.log('questionnaire_responses column check:', e?.message);
+  }
+
   app.get("/api/admin/questionnaire-responses", authenticateUser, async (req: Request, res: Response) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
@@ -7465,20 +7475,49 @@ ${getBizName()} Team`;
                 s.title as questionnaire_title, s.pages as survey_pages
          FROM questionnaire_responses qr
          LEFT JOIN crm_clients c ON qr.client_id = c.id::text
-         LEFT JOIN surveys s ON qr.template_slug = s.id
+         LEFT JOIN surveys s ON qr.template_slug::text = s.id::text
          ${where}
          ORDER BY qr.submitted_at DESC
          LIMIT $${idx++} OFFSET $${idx++}`,
         [...params, limit, offset]
       );
 
-      const responses = rows.map((r: any) => ({
-        ...r,
-        client_name: [r.first_name, r.last_name].filter(Boolean).join(' ') || r.stored_client_name || 'Unknown',
-        client_email: r.crm_email || r.stored_client_email || '-',
-        answers: typeof r.answers === 'string' ? JSON.parse(r.answers) : r.answers,
-        survey_pages: typeof r.survey_pages === 'string' ? JSON.parse(r.survey_pages) : r.survey_pages
-      }));
+      // Build question label map from survey pages
+      const buildLabelMap = (surveyPages: any): Record<string, string> => {
+        const map: Record<string, string> = {};
+        try {
+          const pages = typeof surveyPages === 'string' ? JSON.parse(surveyPages) : surveyPages;
+          if (Array.isArray(pages)) {
+            for (const page of pages) {
+              for (const q of (page.questions || [])) {
+                if (q.id && (q.title || q.text)) map[q.id] = q.title || q.text;
+              }
+            }
+          }
+        } catch {}
+        return map;
+      };
+
+      const responses = rows.map((r: any) => {
+        const labelMap = buildLabelMap(r.survey_pages);
+        const rawAnswers = typeof r.answers === 'string' ? JSON.parse(r.answers) : (r.answers || {});
+        
+        // Build resolved answers with proper question labels
+        const resolvedAnswers: Record<string, string> = {};
+        for (const [key, val] of Object.entries(rawAnswers)) {
+          const label = labelMap[key] || key;
+          resolvedAnswers[label] = String(val);
+        }
+        
+        return {
+          ...r,
+          client_name: [r.first_name, r.last_name].filter(Boolean).join(' ') || r.stored_client_name || 'Unknown',
+          client_email: r.crm_email || r.stored_client_email || '-',
+          answers: rawAnswers,
+          resolved_answers: resolvedAnswers,
+          survey_pages: typeof r.survey_pages === 'string' ? JSON.parse(r.survey_pages) : r.survey_pages
+        };
+      });
 
       res.json({ responses, total, limit, offset });
     } catch (error) {
@@ -14131,16 +14170,28 @@ ${getBizName()} CRM System
       
       const survey = surveyResult[0];
       
+      // Parse pages and ensure all questions have required flag set
+      let surveyPages = typeof survey.pages === 'string' ? JSON.parse(survey.pages) : (survey.pages || []);
+      if (Array.isArray(surveyPages)) {
+        surveyPages = surveyPages.map((page: any) => ({
+          ...page,
+          questions: (page.questions || []).map((q: any) => ({
+            ...q,
+            required: q.required !== false // default to true if not explicitly false
+          }))
+        }));
+      }
+      
       res.json({
         token,
         clientName: `${link.first_name || ''} ${link.last_name || ''}`.trim(),
-        clientEmail: link.email,
+        clientEmail: link.email || '',
         isUsed: link.is_used,
         survey: {
           title: survey.title,
-          description: survey.description,
-          pages: survey.pages,
-          settings: survey.settings
+          description: survey.description || 'Bitte fülle den Fragebogen so detailliert wie möglich aus.',
+          pages: surveyPages,
+          settings: typeof survey.settings === 'string' ? JSON.parse(survey.settings) : (survey.settings || {})
         }
       });
     } catch (error) {
@@ -14154,8 +14205,12 @@ ${getBizName()} CRM System
     try {
       const { token, clientName, clientEmail, answers } = req.body;
       
-      if (!token || !clientName || !clientEmail || !answers) {
-        return res.status(400).json({ error: "Missing required fields" });
+      if (!token || !answers) {
+        return res.status(400).json({ error: "Missing required fields (token and answers)" });
+      }
+      
+      if (!clientName || !clientName.trim()) {
+        return res.status(400).json({ error: "Name is required. Please provide your name." });
       }
       
       // Verify token and get client info
