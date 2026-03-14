@@ -132,23 +132,91 @@ const QuestionnairesPageV2: React.FC = () => {
     }
   };
 
+  // Build a label map from survey pages data (maps q1 -> actual question text)
+  const buildLabelMap = (r: any): Record<string, string> => {
+    const labelMap: Record<string, string> = {};
+    try {
+      const pages = r.survey_pages || [];
+      const parsedPages = typeof pages === 'string' ? JSON.parse(pages) : pages;
+      if (Array.isArray(parsedPages)) {
+        for (const page of parsedPages) {
+          for (const q of (page.questions || [])) {
+            if (q.id && q.title) labelMap[q.id] = q.title;
+          }
+        }
+      }
+    } catch {}
+    // Also try matching from loaded surveys state
+    if (Object.keys(labelMap).length === 0 && r.template_slug) {
+      const survey = surveys.find(s => s.id === r.template_slug);
+      if (survey) {
+        try {
+          const pages = survey.pages || [];
+          for (const page of pages) {
+            for (const q of (page.questions || [])) {
+              if (q.id && (q.title || q.text)) labelMap[q.id] = q.title || q.text;
+            }
+          }
+        } catch {}
+      }
+    }
+    return labelMap;
+  };
+
+  // Build formatted HTML for a response (used by both View and Print)
+  const buildResponseHtml = (r: any) => {
+    const answers = typeof r.answers === 'string' ? JSON.parse(r.answers) : (r.answers || {});
+    const labelMap = buildLabelMap(r);
+    const answersHtml = Object.entries(answers)
+      .filter(([, val]) => val !== null && val !== undefined && String(val).trim() !== '')
+      .map(([key, val]) => {
+        const label = labelMap[key] || key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+        const safeVal = String(val).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const safeLabel = label.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return `<tr><td style="padding:10px 14px;border:1px solid #e5e7eb;font-weight:600;background:#f9fafb;width:40%;vertical-align:top;color:#374151;">${safeLabel}</td><td style="padding:10px 14px;border:1px solid #e5e7eb;color:#1f2937;">${safeVal}</td></tr>`;
+      }).join('');
+    return `
+      <html><head><title>${r.questionnaire_title || 'Questionnaire Response'}</title>
+      <style>
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:800px;margin:0 auto;padding:40px 30px;color:#1f2937;background:#f3f4f6}
+        .card{background:white;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.1);overflow:hidden}
+        .header{background:linear-gradient(135deg,#6C2BD9,#9D50BB);color:white;padding:24px 30px}
+        .header h1{margin:0;font-size:22px;font-weight:600}
+        .client-box{background:#f0fdf4;border-left:4px solid #22c55e;padding:16px 20px;margin:20px 24px}
+        .client-name{font-size:18px;font-weight:700;color:#166534;margin:0 0 4px 0}
+        .client-detail{color:#15803d;font-size:14px;margin:0}
+        .meta{color:#6b7280;font-size:13px;padding:0 24px 12px}
+        table{border-collapse:collapse;width:calc(100% - 48px);margin:0 24px 24px}
+        .section-title{font-size:16px;font-weight:600;color:#374151;padding:16px 24px 8px;margin:0}
+        @media print{body{padding:10px;background:white}.card{box-shadow:none}}
+      </style>
+      </head><body>
+      <div class="card">
+        <div class="header">
+          <h1>${r.questionnaire_title || 'Questionnaire Response'}</h1>
+        </div>
+        <div class="client-box">
+          <p class="client-name">${r.client_name || 'Unknown'}</p>
+          <p class="client-detail">Email: ${r.client_email || '-'} &bull; Submitted: ${new Date(r.submitted_at).toLocaleString()}</p>
+        </div>
+        <p class="section-title">Responses</p>
+        <table>${answersHtml}</table>
+      </div>
+      </body></html>`;
+  };
+
+  // View a questionnaire response (formatted, no print dialog)
+  const handleViewResponse = (r: any) => {
+    const html = buildResponseHtml(r);
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); }
+  };
+
   // Print a questionnaire response
   const handlePrintResponse = (r: any) => {
-    const answers = typeof r.answers === 'string' ? JSON.parse(r.answers) : (r.answers || {});
-    const answersHtml = Object.entries(answers).map(([key, val]) => {
-      const label = key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
-      return `<tr><td style="padding:6px 12px;border:1px solid #ddd;font-weight:600;">${label}</td><td style="padding:6px 12px;border:1px solid #ddd;">${val}</td></tr>`;
-    }).join('');
-    const printHtml = `
-      <html><head><title>Questionnaire Response</title>
-      <style>body{font-family:Arial,sans-serif;max-width:700px;margin:0 auto;padding:30px}table{border-collapse:collapse;width:100%}h1{font-size:20px}h2{font-size:16px;color:#555}.meta{color:#888;font-size:13px;margin-bottom:20px}@media print{body{padding:10px}}</style>
-      </head><body>
-      <h1>${r.questionnaire_title || 'Questionnaire Response'}</h1>
-      <div class="meta">Client: ${r.client_name || 'Unknown'} &bull; Email: ${r.client_email || '-'} &bull; Submitted: ${new Date(r.submitted_at).toLocaleString()}</div>
-      <table>${answersHtml}</table>
-      </body></html>`;
+    const html = buildResponseHtml(r);
     const w = window.open('', '_blank');
-    if (w) { w.document.write(printHtml); w.document.close(); w.focus(); w.print(); }
+    if (w) { w.document.write(html); w.document.close(); w.focus(); w.print(); }
   };
 
   const handleViewResponses = async () => {
@@ -640,19 +708,33 @@ const QuestionnairesPageV2: React.FC = () => {
             <p className="text-gray-500">No responses yet.</p>
           ) : (
             <div className="divide-y">
-              {responses.map((r) => (
+              {responses.map((r) => {
+                const answers = typeof r.answers === 'string' ? JSON.parse(r.answers) : (r.answers || {});
+                const labelMap = buildLabelMap(r);
+                const answeredEntries = Object.entries(answers).filter(([, val]) => val !== null && val !== undefined && String(val).trim() !== '');
+                return (
                 <div key={r.id} className="py-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">{r.client_name || 'Unknown Client'}</p>
-                      <p className="text-sm text-gray-500">{new Date(r.submitted_at).toLocaleString()}</p>
+                      <p className="font-medium text-lg">{r.client_name || 'Unknown Client'}</p>
+                      <p className="text-sm text-gray-500">{r.client_email && r.client_email !== '-' ? `${r.client_email} • ` : ''}{new Date(r.submitted_at).toLocaleString()}</p>
                     </div>
                     <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">{r.questionnaire_title || 'Questionnaire'}</span>
                   </div>
-                  {r.answers && (
+                  {answeredEntries.length > 0 && (
                     <details className="mt-2">
-                      <summary className="cursor-pointer text-sm text-gray-600">View answers</summary>
-                      <pre className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-auto">{JSON.stringify(r.answers, null, 2)}</pre>
+                      <summary className="cursor-pointer text-sm text-blue-600 font-medium hover:text-blue-800">View answers ({answeredEntries.length} fields)</summary>
+                      <div className="mt-2 bg-gray-50 rounded-lg p-3 space-y-2">
+                        {answeredEntries.map(([key, val]) => {
+                          const label = labelMap[key] || key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+                          return (
+                            <div key={key} className="flex gap-2">
+                              <span className="text-sm font-semibold text-gray-700 min-w-[120px] shrink-0">{label}:</span>
+                              <span className="text-sm text-gray-900">{String(val)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </details>
                   )}
                   <div className="mt-3 flex gap-2 items-end">
@@ -712,6 +794,7 @@ const QuestionnairesPageV2: React.FC = () => {
                       )}
                     </div>
                     <button onClick={() => handleAttach(r.id)} className="px-3 py-2 bg-green-600 text-white rounded" disabled={loading}>Attach</button>
+                    <button onClick={() => handleViewResponse(r)} className="px-3 py-2 bg-purple-600 text-white rounded" title="View formatted response">View</button>
                     <button onClick={() => handlePrintResponse(r)} className="px-3 py-2 bg-blue-500 text-white rounded" title="Print response">Print</button>
                     <button onClick={() => handleDeleteResponse(r.id)} className="px-3 py-2 bg-red-500 text-white rounded" disabled={loading}>Delete</button>
                     <button onClick={() => setOpenDetailId(openDetailId === r.id ? null : r.id)} className="px-3 py-2 bg-gray-200 rounded">Details</button>
@@ -730,7 +813,8 @@ const QuestionnairesPageV2: React.FC = () => {
                   )}
                   {/* duplicate attach input removed; typeahead above handles attach */}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
           <div className="mt-4 text-sm text-gray-600">Page {page} • Total {total}</div>

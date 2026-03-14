@@ -7460,8 +7460,9 @@ ${getBizName()} Team`;
 
       const rows = await runSql(
         `SELECT qr.id, qr.client_id, qr.token, qr.template_slug, qr.answers, qr.submitted_at,
-                c.first_name, c.last_name, c.email as client_email,
-                s.title as questionnaire_title
+                qr.client_name as stored_client_name, qr.client_email as stored_client_email,
+                c.first_name, c.last_name, c.email as crm_email,
+                s.title as questionnaire_title, s.pages as survey_pages
          FROM questionnaire_responses qr
          LEFT JOIN crm_clients c ON qr.client_id = c.id::text
          LEFT JOIN surveys s ON qr.template_slug = s.id
@@ -7473,8 +7474,10 @@ ${getBizName()} Team`;
 
       const responses = rows.map((r: any) => ({
         ...r,
-        client_name: [r.first_name, r.last_name].filter(Boolean).join(' ') || 'Unknown',
-        answers: typeof r.answers === 'string' ? JSON.parse(r.answers) : r.answers
+        client_name: [r.first_name, r.last_name].filter(Boolean).join(' ') || r.stored_client_name || 'Unknown',
+        client_email: r.crm_email || r.stored_client_email || '-',
+        answers: typeof r.answers === 'string' ? JSON.parse(r.answers) : r.answers,
+        survey_pages: typeof r.survey_pages === 'string' ? JSON.parse(r.survey_pages) : r.survey_pages
       }));
 
       res.json({ responses, total, limit, offset });
@@ -14170,10 +14173,10 @@ ${getBizName()} CRM System
       
       const link = linkResult[0];
       
-      // Store response in database
+      // Store response in database (include client name and email)
       await runSql(
-        'INSERT INTO questionnaire_responses (client_id, token, template_slug, answers) VALUES ($1, $2, $3, $4)',
-        [link.client_id, token, link.template_id, JSON.stringify(answers)]
+        'INSERT INTO questionnaire_responses (client_id, token, template_slug, answers, client_name, client_email) VALUES ($1, $2, $3, $4, $5, $6)',
+        [link.client_id, token, link.template_id, JSON.stringify(answers), clientName, clientEmail]
       );
       
       // Mark link as used
