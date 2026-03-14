@@ -1208,11 +1208,25 @@ export default function AdminSchedulersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {bookings.map(booking => (
-                    <tr key={booking.id} className="hover:bg-gray-50">
+                  {bookings.map(booking => {
+                    const isNew = (() => {
+                      try {
+                        const created = new Date(booking.createdAt);
+                        return !isNaN(created.getTime()) && (Date.now() - created.getTime()) < 48 * 60 * 60 * 1000;
+                      } catch { return false; }
+                    })();
+                    return (
+                    <tr key={booking.id} className={`hover:bg-gray-50 ${isNew ? 'bg-blue-50/50' : ''}`}>
                       <td className="px-4 py-3">
                         <div>
-                          <p className="font-medium text-gray-900">{booking.clientName}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-900">{booking.clientName}</p>
+                            {isNew && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-600 text-white animate-pulse">
+                                New
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-500">{booking.clientEmail}</p>
                           {booking.clientPhone && (
                             <p className="text-sm text-gray-500">{booking.clientPhone}</p>
