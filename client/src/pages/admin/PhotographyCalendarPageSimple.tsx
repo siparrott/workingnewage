@@ -721,6 +721,25 @@ const PhotographyCalendarPage: React.FC = () => {
     }));
   };
 
+  const handleDeleteSession = async (sessionId: string) => {
+    if (!confirm('Are you sure you want to delete this session? This cannot be undone.')) return;
+    try {
+      const response = await fetch(`/api/photography/sessions/${sessionId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
+      });
+      if (response.ok) {
+        setSelectedSession(null);
+        fetchSessions();
+      } else {
+        alert('Failed to delete session. Please try again.');
+      }
+    } catch {
+      alert('Error deleting session. Please try again.');
+    }
+  };
+
   const handleSessionClick = (session: PhotographySession) => {
     setSelectedSession(session);
   };
@@ -1060,7 +1079,7 @@ const PhotographyCalendarPage: React.FC = () => {
           onSessionClick={handleSessionClick}
           onCreateSession={handleCreateSession}
           onUpdateSession={() => {}} // Will be implemented
-          onDeleteSession={() => {}} // Will be implemented
+          onDeleteSession={(sessionId: string) => handleDeleteSession(sessionId)}
           onDuplicateSession={() => {}} // Will be implemented
           onExportCalendar={async () => {
             try {
@@ -1823,6 +1842,12 @@ const PhotographyCalendarPage: React.FC = () => {
               </div>
 
               <div className="flex justify-end space-x-3 pt-6 mt-6 border-t">
+                <button
+                  onClick={() => handleDeleteSession(selectedSession.id)}
+                  className="px-4 py-2 text-red-600 border border-red-300 rounded hover:bg-red-50"
+                >
+                  Delete Session
+                </button>
                 <button
                   onClick={() => setSelectedSession(null)}
                   className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
