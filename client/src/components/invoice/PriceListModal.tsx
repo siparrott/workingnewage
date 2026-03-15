@@ -37,9 +37,7 @@ const PriceListModal: React.FC<PriceListModalProps> = ({ onClose, onSelectItem }
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [addedItems, setAddedItems] = useState<Set<string>>(new Set());
-    {
-      id: 'wedding-premium',
-      name: 'Wedding Photography - Premium',
+
   // Fetch price list from database API
   useEffect(() => {
     const fetchPriceList = async () => {

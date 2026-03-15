@@ -1291,7 +1291,8 @@ export default function AdminSchedulersPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  );
+                  })}
                 </tbody>
               </table>
             )}

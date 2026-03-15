@@ -105,23 +105,7 @@ const QuestionnaireFormPage: React.FC = () => {
     
     if (!questionnaire) return;
     
-    // Validate required fields
-    const allQuestions = questionnaire.survey.pages.flatMap(page => page.questions);
-    const requiredQuestions = allQuestions.filter(q => q.required);
-    
-    for (const question of requiredQuestions) {
-      const answer = formData.answers[question.id];
-      if (!answer || answer.trim() === '') {
-        setError(`Please answer: ${question.title}`);
-        // Scroll to the first unanswered required question
-        const questionElement = document.getElementById(`question-${question.id}`);
-        if (questionElement) {
-          questionElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-        return;
-      }
-    }
-    
+    // Validate name and email FIRST (mandatory contact info)
     if (!formData.clientName.trim()) {
       setError('Bitte geben Sie Ihren Namen ein. / Please provide your name.');
       const nameField = document.getElementById('client-name-field');
@@ -131,7 +115,25 @@ const QuestionnaireFormPage: React.FC = () => {
     
     if (!formData.clientEmail.trim()) {
       setError('Bitte geben Sie Ihre E-Mail-Adresse ein. / Please provide your email.');
+      const nameField = document.getElementById('client-name-field');
+      if (nameField) nameField.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
+    }
+    
+    // Validate required questions
+    const allQuestions = questionnaire.survey.pages.flatMap(page => page.questions);
+    const requiredQuestions = allQuestions.filter(q => q.required);
+    
+    for (const question of requiredQuestions) {
+      const answer = formData.answers[question.id];
+      if (!answer || answer.trim() === '') {
+        setError(`Please answer: ${question.title}`);
+        const questionElement = document.getElementById(`question-${question.id}`);
+        if (questionElement) {
+          questionElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+      }
     }
     
     try {

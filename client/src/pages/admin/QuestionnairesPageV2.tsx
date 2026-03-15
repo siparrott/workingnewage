@@ -184,20 +184,23 @@ const QuestionnairesPageV2: React.FC = () => {
   // Build formatted HTML for a response (used by both View and Print)
   const buildResponseHtml = (r: any) => {
     const entries = getDisplayEntries(r);
+    const safeClientName = (r.client_name || 'Unknown').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safeClientEmail = (r.client_email || '-').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const answersHtml = entries.map(([label, val]) => {
         const safeVal = String(val).replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const safeLabel = label.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         return `<tr><td style="padding:10px 14px;border:1px solid #e5e7eb;font-weight:600;background:#f9fafb;width:40%;vertical-align:top;color:#374151;">${safeLabel}</td><td style="padding:10px 14px;border:1px solid #e5e7eb;color:#1f2937;">${safeVal}</td></tr>`;
       }).join('');
     return `
-      <html><head><title>${r.questionnaire_title || 'Questionnaire Response'}</title>
+      <html><head><title>${r.questionnaire_title || 'Questionnaire Response'} - ${safeClientName}</title>
       <style>
         body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:800px;margin:0 auto;padding:40px 30px;color:#1f2937;background:#f3f4f6}
         .card{background:white;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.1);overflow:hidden}
         .header{background:linear-gradient(135deg,#6C2BD9,#9D50BB);color:white;padding:24px 30px}
         .header h1{margin:0;font-size:22px;font-weight:600}
+        .header .client-subtitle{margin:8px 0 0;font-size:16px;font-weight:400;opacity:0.95}
         .client-box{background:#f0fdf4;border-left:4px solid #22c55e;padding:16px 20px;margin:20px 24px}
-        .client-name{font-size:18px;font-weight:700;color:#166534;margin:0 0 4px 0}
+        .client-name{font-size:20px;font-weight:700;color:#166534;margin:0 0 4px 0}
         .client-detail{color:#15803d;font-size:14px;margin:0}
         .meta{color:#6b7280;font-size:13px;padding:0 24px 12px}
         table{border-collapse:collapse;width:calc(100% - 48px);margin:0 24px 24px}
@@ -208,10 +211,11 @@ const QuestionnairesPageV2: React.FC = () => {
       <div class="card">
         <div class="header">
           <h1>${r.questionnaire_title || 'Questionnaire Response'}</h1>
+          <p class="client-subtitle">Client: ${safeClientName}</p>
         </div>
         <div class="client-box">
-          <p class="client-name">${r.client_name || 'Unknown'}</p>
-          <p class="client-detail">Email: ${r.client_email || '-'} &bull; Submitted: ${new Date(r.submitted_at).toLocaleString()}</p>
+          <p class="client-name">${safeClientName}</p>
+          <p class="client-detail">Email: ${safeClientEmail} &bull; Submitted: ${new Date(r.submitted_at).toLocaleString()}</p>
         </div>
         <p class="section-title">Responses</p>
         <table>${answersHtml}</table>
