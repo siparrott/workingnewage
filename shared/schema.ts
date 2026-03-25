@@ -2223,4 +2223,17 @@ export const insertEmailAutomationSchema = createInsertSchema(emailAutomations, 
 
 export type EmailAutomation = typeof emailAutomations.$inferSelect;
 export type InsertEmailAutomation = z.infer<typeof insertEmailAutomationSchema>;
+
+// Spam Rules - user-defined rules for blocking senders, domains, and keywords
+export const spamRules = pgTable("spam_rules", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ruleType: text("rule_type").notNull(), // "sender", "domain", "keyword"
+  value: text("value").notNull(), // email address, domain, or keyword
+  reason: text("reason"), // optional user note
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type SpamRule = typeof spamRules.$inferSelect;
+export type InsertSpamRule = Omit<SpamRule, 'id' | 'createdAt'>;
 export type EmailAutomationLog = typeof emailAutomationLogs.$inferSelect;

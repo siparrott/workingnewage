@@ -13,7 +13,7 @@ async function runSql(query: string, params?: any[]) {
 }
 import { sql, or, desc, and } from 'drizzle-orm';
 import { eq } from "drizzle-orm";
-import { priceListItems, emailCampaigns, emailTemplates, emailSegments, emailEvents, emailLinks, emailSubscribers, insertLeadSourceSchema, crmLeads, studioConfigs, crmMessages, manualPageContent, emailAutomations, emailAutomationLogs, schedulerBookings } from "../shared/schema";
+import { priceListItems, emailCampaigns, emailTemplates, emailSegments, emailEvents, emailLinks, emailSubscribers, insertLeadSourceSchema, crmLeads, studioConfigs, crmMessages, manualPageContent, emailAutomations, emailAutomationLogs, schedulerBookings, spamRules } from "../shared/schema";
 import path from 'path';
 import os from 'os';
 // Removed duplicate fs import (already imported earlier)
@@ -7141,12 +7141,76 @@ ${getBizName()} Team`;
     }
   });
 
+  // ==================== SPAM RULES CRUD ====================
+  // GET all spam rules
+  app.get("/api/inbox/spam-rules", authenticateUser, async (_req: Request, res: Response) => {
+    try {
+      const rules = await db.select().from(spamRules).orderBy(desc(spamRules.createdAt));
+      res.json(rules);
+    } catch (error) {
+      console.error('Error fetching spam rules:', error);
+      res.status(500).json({ error: 'Failed to fetch spam rules' });
+    }
+  });
+
+  // POST create spam rule
+  app.post("/api/inbox/spam-rules", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { ruleType, value, reason } = req.body;
+      if (!ruleType || !value) {
+        return res.status(400).json({ error: 'ruleType and value are required' });
+      }
+      if (!['sender', 'domain', 'keyword'].includes(ruleType)) {
+        return res.status(400).json({ error: 'ruleType must be sender, domain, or keyword' });
+      }
+      const [rule] = await db.insert(spamRules).values({
+        ruleType,
+        value: value.trim().toLowerCase(),
+        reason: reason || null,
+        isActive: true,
+      }).returning();
+      res.json(rule);
+    } catch (error) {
+      console.error('Error creating spam rule:', error);
+      res.status(500).json({ error: 'Failed to create spam rule' });
+    }
+  });
+
+  // DELETE spam rule
+  app.delete("/api/inbox/spam-rules/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      await db.delete(spamRules).where(eq(spamRules.id, req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting spam rule:', error);
+      res.status(500).json({ error: 'Failed to delete spam rule' });
+    }
+  });
+
+  // PATCH toggle spam rule active/inactive
+  app.patch("/api/inbox/spam-rules/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { isActive } = req.body;
+      const [rule] = await db.update(spamRules).set({ isActive }).where(eq(spamRules.id, req.params.id)).returning();
+      res.json(rule);
+    } catch (error) {
+      console.error('Error updating spam rule:', error);
+      res.status(500).json({ error: 'Failed to update spam rule' });
+    }
+  });
+
   // ==================== SPAM FILTER ====================
   app.post("/api/inbox/emails/spam-filter", authenticateUser, async (_req: Request, res: Response) => {
     try {
       const allMessages = await storage.getCrmMessages();
       const clients = await storage.getCrmClients();
       
+      // Load user-defined spam rules
+      const customRules = await db.select().from(spamRules).where(eq(spamRules.isActive, true));
+      const blockedSenders = new Set(customRules.filter(r => r.ruleType === 'sender').map(r => r.value.toLowerCase()));
+      const blockedDomains = customRules.filter(r => r.ruleType === 'domain').map(r => r.value.toLowerCase());
+      const blockedKeywords = customRules.filter(r => r.ruleType === 'keyword').map(r => r.value.toLowerCase());
+
       // Build set of known client emails for whitelisting
       const clientEmails = new Set<string>();
       for (const c of clients) {
@@ -7210,6 +7274,37 @@ ${getBizName()} Team`;
         
         let spamScore = 0;
         let reasons: string[] = [];
+
+        // Check user-defined blocked senders (exact match)
+        if (msg.senderEmail && blockedSenders.has(msg.senderEmail.toLowerCase().trim())) {
+          spamScore += 10;
+          reasons.push(`Blocked sender: ${msg.senderEmail}`);
+        }
+
+        // Check user-defined blocked domains
+        if (msg.senderEmail) {
+          const emailDomain = msg.senderEmail.toLowerCase().split('@')[1];
+          if (emailDomain) {
+            for (const domain of blockedDomains) {
+              if (emailDomain === domain || emailDomain.endsWith('.' + domain)) {
+                spamScore += 10;
+                reasons.push(`Blocked domain: ${emailDomain}`);
+                break;
+              }
+            }
+          }
+        }
+
+        // Check user-defined blocked keywords in subject and content
+        for (const keyword of blockedKeywords) {
+          const subjectMatch = msg.subject && msg.subject.toLowerCase().includes(keyword);
+          const contentMatch = msg.content && msg.content.toLowerCase().includes(keyword);
+          if (subjectMatch || contentMatch) {
+            spamScore += 10;
+            reasons.push(`Blocked keyword: "${keyword}"`);
+            break;
+          }
+        }
 
         // Check sender patterns
         if (msg.senderEmail) {

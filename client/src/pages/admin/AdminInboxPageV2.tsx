@@ -35,7 +35,8 @@ import {
   Link,
   Unlink,
   UserPlus,
-  Loader2
+  Loader2,
+  Shield
 } from 'lucide-react';
 
 interface EmailMessage {
@@ -163,6 +164,9 @@ const AdminInboxPage: React.FC = () => {
   const [isSpamFiltering, setIsSpamFiltering] = useState(false);
   const [spamFilterResult, setSpamFilterResult] = useState<{ spamCount: number; deletedCount: number; scannedCount: number; spamDetails: any[] } | null>(null);
   const [showSpamResult, setShowSpamResult] = useState(false);
+  const [showSpamRules, setShowSpamRules] = useState(false);
+  const [spamRules, setSpamRules] = useState<Array<{ id: string; ruleType: string; value: string; reason: string | null; isActive: boolean; createdAt: string }>>([]);
+  const [newRule, setNewRule] = useState({ ruleType: 'sender', value: '', reason: '' });
 
   // Fetch custom folders
   const fetchCustomFolders = async () => {
@@ -451,6 +455,39 @@ const AdminInboxPage: React.FC = () => {
   };
 
   // Spam filter
+  const fetchSpamRules = async () => {
+    try {
+      const response = await fetch('/api/inbox/spam-rules', { credentials: 'include' });
+      if (response.ok) {
+        const data = await response.json();
+        setSpamRules(data);
+      }
+    } catch (err) { /* ignore */ }
+  };
+
+  const handleAddSpamRule = async () => {
+    if (!newRule.value.trim()) return;
+    try {
+      const response = await fetch('/api/inbox/spam-rules', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newRule),
+      });
+      if (response.ok) {
+        setNewRule({ ruleType: 'sender', value: '', reason: '' });
+        await fetchSpamRules();
+      }
+    } catch (err) { /* ignore */ }
+  };
+
+  const handleDeleteSpamRule = async (id: string) => {
+    try {
+      await fetch(`/api/inbox/spam-rules/${id}`, { method: 'DELETE', credentials: 'include' });
+      await fetchSpamRules();
+    } catch (err) { /* ignore */ }
+  };
+
   const handleSpamFilter = async () => {
     if (!confirm('Run spam filter? This will scan all emails and permanently delete detected spam. Messages from known clients are always kept.')) {
       return;
@@ -1168,6 +1205,14 @@ const AdminInboxPage: React.FC = () => {
             >
               <AlertCircle size={16} className={isSpamFiltering ? 'animate-spin' : ''} />
               <span>{isSpamFiltering ? 'Scanning...' : 'Spam Filter'}</span>
+            </button>
+            <button 
+              onClick={() => { setShowSpamRules(true); fetchSpamRules(); }}
+              className="flex items-center space-x-2 px-3 py-2 border border-purple-300 text-purple-700 rounded-md hover:bg-purple-50"
+              title="Manage blocked senders, domains, and keywords"
+            >
+              <Shield size={16} />
+              <span>Spam Rules</span>
             </button>            <button 
               onClick={() => setShowSettings(true)}
               className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
@@ -1470,9 +1515,133 @@ const AdminInboxPage: React.FC = () => {
                 </div>
               )}
             </div>
-            <div className="p-4 border-t border-gray-200">
+            <div className="p-4 border-t border-gray-200 flex space-x-2">
+              <button
+                onClick={() => { setShowSpamResult(false); setShowSpamRules(true); fetchSpamRules(); }}
+                className="flex-1 px-4 py-2 border border-purple-300 text-purple-700 rounded-md hover:bg-purple-50 flex items-center justify-center space-x-2"
+              >
+                <Shield size={16} />
+                <span>Manage Spam Rules</span>
+              </button>
               <button
                 onClick={() => setShowSpamResult(false)}
+                className="flex-1 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Spam Rules Management Modal */}
+      {showSpamRules && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[85vh] overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Shield size={20} className="text-purple-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Spam Rules</h3>
+              </div>
+              <button onClick={() => setShowSpamRules(false)} className="p-1 hover:bg-gray-100 rounded">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4 overflow-y-auto flex-1">
+              {/* Explanation */}
+              <p className="text-sm text-gray-500">
+                Add rules to automatically block emails from specific senders, domains, or containing certain keywords. 
+                Blocked emails will be deleted when you run the Spam Filter.
+              </p>
+
+              {/* Add New Rule */}
+              <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                <h4 className="text-sm font-semibold text-gray-700">Add New Rule</h4>
+                <div className="grid grid-cols-12 gap-3">
+                  <div className="col-span-3">
+                    <select
+                      value={newRule.ruleType}
+                      onChange={(e) => setNewRule(prev => ({ ...prev, ruleType: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    >
+                      <option value="sender">Sender Email</option>
+                      <option value="domain">Domain</option>
+                      <option value="keyword">Keyword</option>
+                    </select>
+                  </div>
+                  <div className="col-span-5">
+                    <input
+                      type="text"
+                      value={newRule.value}
+                      onChange={(e) => setNewRule(prev => ({ ...prev, value: e.target.value }))}
+                      placeholder={newRule.ruleType === 'sender' ? 'spam@example.com' : newRule.ruleType === 'domain' ? 'example.com' : 'unsubscribe'}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <input
+                      type="text"
+                      value={newRule.reason}
+                      onChange={(e) => setNewRule(prev => ({ ...prev, reason: e.target.value }))}
+                      placeholder="Note (optional)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <button
+                      onClick={handleAddSpamRule}
+                      disabled={!newRule.value.trim()}
+                      className="w-full px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm"
+                    >
+                      <Plus size={16} className="mx-auto" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Existing Rules */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Active Rules ({spamRules.length})</h4>
+                {spamRules.length === 0 ? (
+                  <div className="text-center py-6 text-gray-400">
+                    <Shield size={32} className="mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No custom spam rules yet. Add rules above to block unwanted senders.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {spamRules.map(rule => (
+                      <div key={rule.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
+                            rule.ruleType === 'sender' ? 'bg-red-100 text-red-700' :
+                            rule.ruleType === 'domain' ? 'bg-orange-100 text-orange-700' :
+                            'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {rule.ruleType === 'sender' ? 'Sender' : rule.ruleType === 'domain' ? 'Domain' : 'Keyword'}
+                          </span>
+                          <span className="text-sm font-mono text-gray-900 truncate">{rule.value}</span>
+                          {rule.reason && (
+                            <span className="text-xs text-gray-400 truncate">— {rule.reason}</span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleDeleteSpamRule(rule.id)}
+                          className="ml-2 p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
+                          title="Delete rule"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-gray-200">
+              <button
+                onClick={() => setShowSpamRules(false)}
                 className="w-full px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800"
               >
                 Close
