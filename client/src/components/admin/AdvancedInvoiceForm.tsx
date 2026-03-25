@@ -12,6 +12,7 @@ import {
   Mail,
   CreditCard,
   Eye,
+  EyeOff,
   ChevronLeft,
   ChevronRight,
   AlertCircle,
@@ -1234,8 +1235,14 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
 
   if (!isOpen) return null;
 
+  const [privacyMask, setPrivacyMask] = useState(false);
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className={`fixed inset-0 flex items-center justify-center z-50 p-4 transition-colors duration-300 ${
+      privacyMask
+        ? 'bg-gray-900 backdrop-blur-xl'
+        : 'bg-black bg-opacity-50'
+    }`}>
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -1250,12 +1257,25 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
             </h2>
             <p className="text-gray-600">Step {currentStep} of {steps.length}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 p-2"
-          >
-            <X size={24} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPrivacyMask(m => !m)}
+              className={`p-2 rounded-lg transition-colors ${
+                privacyMask
+                  ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+              }`}
+              title={privacyMask ? 'Show background' : 'Hide background (privacy mode)'}
+            >
+              {privacyMask ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 p-2"
+            >
+              <X size={24} />
+            </button>
+          </div>
         </div>
 
         {/* Step Progress */}
