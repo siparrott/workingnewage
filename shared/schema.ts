@@ -317,6 +317,19 @@ export const voucherProducts = pgTable("voucher_products", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Voucher Templates (hero images for PDF personalization)
+export const voucherTemplates = pgTable("voucher_templates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  category: text("category").notNull(), // "birthday", "love", "christmas", "gratitude", "celebration"
+  imageUrl: text("image_url").notNull(),
+  occasion: text("occasion").notNull(), // Display text: "Happy Birthday", "Merry Christmas", etc.
+  isActive: boolean("is_active").default(true),
+  displayOrder: integer("display_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Discount Coupons
 export const discountCoupons = pgTable("discount_coupons", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -1330,6 +1343,19 @@ export const insertVoucherProductSchema = z.object({
 
 export type InsertVoucherProduct = z.infer<typeof insertVoucherProductSchema>;
 export type VoucherProduct = typeof voucherProducts.$inferSelect;
+
+// Voucher Template schemas
+export const insertVoucherTemplateSchema = z.object({
+  name: z.string().min(1, "Template name is required"),
+  category: z.string().min(1, "Category is required"),
+  imageUrl: z.string().min(1, "Image URL is required"),
+  occasion: z.string().min(1, "Occasion is required"),
+  isActive: z.boolean().optional(),
+  displayOrder: z.number().optional(),
+});
+
+export type InsertVoucherTemplate = z.infer<typeof insertVoucherTemplateSchema>;
+export type VoucherTemplate = typeof voucherTemplates.$inferSelect;
 
 // Discount Coupon schemas
 export const insertDiscountCouponSchema = createInsertSchema(discountCoupons, {

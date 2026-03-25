@@ -67,7 +67,19 @@ let serverInstance: any = null;
 app.set('trust proxy', 1);
 
 // Increase body size limits to accommodate large image payloads (base64 encoded images can be 10MB+)
-app.use(express.json({ limit: '50mb' }));
+// Skip JSON body parsing for Stripe webhook endpoints — they need the raw body Buffer
+// for signature verification via express.raw()
+const jsonParser = express.json({ limit: '50mb' });
+app.use((req, res, next) => {
+  if (
+    req.path === '/api/stripe/webhook' ||
+    req.path === '/api/invoices/webhook' ||
+    req.path === '/api/vouchers/stripe-webhook'
+  ) {
+    return next();
+  }
+  jsonParser(req, res, next);
+});
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
 // Add CORS headers for API requests

@@ -35,7 +35,41 @@ const CheckoutPage: React.FC = () => {
   // Check if this is a voucher personalization request from URL
   const isVoucherPersonalization = isPersonalize && location.pathname.includes('/checkout/voucher/');
   
-  const voucher = getVoucherById(id || '');
+  const mockVoucher = getVoucherById(id || '');
+
+  // When mock data doesn't have the product (API-sourced products have UUIDs),
+  // fetch from the API so ALL products work identically through the checkout flow.
+  const [apiProduct, setApiProduct] = useState<any>(null);
+  useEffect(() => {
+    if (id && !mockVoucher && isVoucherPersonalization) {
+      (async () => {
+        try {
+          const r = await fetch(`/api/vouchers/products/${encodeURIComponent(id)}`);
+          if (r.ok) {
+            const p = await r.json();
+            setApiProduct(p);
+          }
+        } catch { /* ignore */ }
+      })();
+    }
+  }, [id, mockVoucher, isVoucherPersonalization]);
+
+  // Unified voucher: prefer mock data, fall back to API product
+  const voucher = mockVoucher || (apiProduct ? {
+    id: apiProduct.id,
+    title: apiProduct.name,
+    slug: apiProduct.slug || id,
+    discountPrice: parseFloat(apiProduct.price) || 0,
+    price: parseFloat(apiProduct.originalPrice || apiProduct.price) || 0,
+    category: apiProduct.category,
+    description: apiProduct.description,
+    image: apiProduct.imageUrl,
+    validFrom: '',
+    validUntil: '',
+    terms: apiProduct.termsAndConditions || '',
+    stock: apiProduct.stockLimit ?? 999,
+    partner: { id: '1', title: 'New Age Fotografie', logo: '', description: '' },
+  } : null);
   
   // If this is a voucher personalization request, show VoucherFlow immediately
   if (isVoucherPersonalization && voucher) {
@@ -52,6 +86,7 @@ const CheckoutPage: React.FC = () => {
       <VoucherFlow
         voucherType={voucher.title}
         baseAmount={voucher.discountPrice * quantityParam}
+        productSlug={voucher.slug}
         onComplete={handleVoucherFlowComplete}
         onBack={handleBackToVoucher}
       />
@@ -122,6 +157,7 @@ const CheckoutPage: React.FC = () => {
       <VoucherFlow
         voucherType={voucherItem.title}
         baseAmount={voucherItem.price}
+        productSlug={voucherItem.productSlug || voucherItem.slug}
         onComplete={handleVoucherFlowComplete}
         onBack={handleBackToCart}
       />
@@ -129,10 +165,11 @@ const CheckoutPage: React.FC = () => {
   }
   
   useEffect(() => {
-    if (id && !voucher) {
+    // Only redirect if this is NOT a personalization request (API fetch may still be pending)
+    if (id && !voucher && !isVoucherPersonalization) {
       navigate('/vouchers');
     }
-  }, [voucher, navigate, id]);
+  }, [voucher, navigate, id, isVoucherPersonalization]);
   
   // If we have a specific voucher ID but no voucher found
   if (id && !voucher) {

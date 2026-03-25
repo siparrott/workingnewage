@@ -6604,7 +6604,7 @@ ${getBizName()} Team`;
   }
 
   // Stripe webhook for invoice payments
-  app.post("/api/invoices/webhook", async (req: Request, res: Response) => {
+  app.post("/api/invoices/webhook", express.raw({ type: 'application/json' }), async (req: Request, res: Response) => {
     if (!stripe || !stripeConfigured) {
       return res.status(503).json({ error: "Payment service not configured" });
     }
@@ -6626,40 +6626,47 @@ ${getBizName()} Team`;
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    // Handle checkout session completed
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const invoiceId = session.metadata?.invoiceId;
+    // RESPOND IMMEDIATELY to prevent Stripe timeouts
+    res.status(200).json({ received: true });
 
-      if (invoiceId && session.payment_status === 'paid') {
-        try {
-          const invoice = await storage.getCrmInvoice(invoiceId);
-          if (invoice) {
-            const totalAmount = parseFloat(invoice.total?.toString() || '0');
+    // Process asynchronously after response
+    setImmediate(async () => {
+      try {
+        if (event.type === 'checkout.session.completed') {
+          const session = event.data.object as Stripe.Checkout.Session;
+          const invoiceId = session.metadata?.invoiceId;
+
+          if (invoiceId && session.payment_status === 'paid') {
+            try {
+              const invoice = await storage.getCrmInvoice(invoiceId);
+              if (invoice) {
+                const totalAmount = parseFloat(invoice.total?.toString() || '0');
             
-            await storage.updateCrmInvoice(invoiceId, {
-              status: 'paid',
-              paidAmount: totalAmount.toString(),
-            });
+                await storage.updateCrmInvoice(invoiceId, {
+                  status: 'paid',
+                  paidAmount: totalAmount.toString(),
+                });
 
-            await storage.createCrmInvoicePayment({
-              invoiceId: invoiceId,
-              amount: totalAmount.toString(),
-              paymentMethod: 'stripe',
-              paymentReference: session.payment_intent as string,
-              paymentDate: new Date().toISOString(),
-              notes: `Stripe checkout completed - Session: ${session.id}`,
-            });
+                await storage.createCrmInvoicePayment({
+                  invoiceId: invoiceId,
+                  amount: totalAmount.toString(),
+                  paymentMethod: 'stripe',
+                  paymentReference: session.payment_intent as string,
+                  paymentDate: new Date().toISOString(),
+                  notes: `Stripe checkout completed - Session: ${session.id}`,
+                });
 
-            console.log(`✅ Invoice ${invoiceId} marked as paid via Stripe webhook`);
+                console.log(`✅ Invoice ${invoiceId} marked as paid via Stripe webhook`);
+              }
+            } catch (err) {
+              console.error('Error processing invoice payment webhook:', err);
+            }
           }
-        } catch (err) {
-          console.error('Error processing invoice payment webhook:', err);
         }
+      } catch (err) {
+        console.error('Error in invoice webhook async processing:', err);
       }
-    }
-
-    res.json({ received: true });
+    });
   });
 
   // ==================== EMAIL ROUTES ====================
@@ -11753,100 +11760,127 @@ ${getBizName()} CRM System
   });
 
   // Stripe webhook endpoint for payment confirmations (simplified, signature not verified here)
-  app.post("/api/vouchers/stripe-webhook", async (req: Request, res: Response) => {
-    try {
-      const event = req.body;
-      if (event?.type === 'checkout.session.completed') {
-        const session = event.data?.object;
-        console.log('[WEBHOOK] checkout.session.completed', session?.id);
-        
-        // Extract metadata from the Stripe session
-        const metadata = session?.metadata || {};
-        const isPaid = session?.payment_status === 'paid';
-        
-        if (isPaid) {
-          // Extract coupon code from metadata (key is voucher_used)
-          const appliedCouponCode = metadata.voucher_used && metadata.voucher_used !== 'none' ? metadata.voucher_used : null;
-          
-          // Extract billing address from customer_details
-          const customerAddress = session.customer_details?.address || {};
-          const billingAddress = customerAddress.line1 || '';
-          const billingCity = customerAddress.city || '';
-          const billingZip = customerAddress.postal_code || '';
-          const billingCountry = customerAddress.country || '';
-          
-          // Create voucher sale record from Stripe session
-          const voucherSale = {
-            stripe_session_id: session.id,
-            stripe_payment_intent_id: session.payment_intent,
-            product_id: metadata.product_id || metadata.sku || null,
-            purchaser_name: metadata.purchaser_name || session.customer_details?.name || 'Unknown',
-            purchaser_email: metadata.purchaser_email || session.customer_email || session.customer_details?.email || '',
-            purchaser_phone: session.customer_details?.phone || '',
-            recipient_name: metadata.recipient_name || '',
-            recipient_email: metadata.recipient_email || '',
-            gift_message: metadata.gift_message || metadata.message || '',
-            custom_image: metadata.custom_image || null,
-            design_image: metadata.design_image || null,
-            voucher_code: metadata.voucher_code || `VOUCHER-${session.id.substring(0, 12).toUpperCase()}`,
-            original_amount: session.amount_total ? (session.amount_total / 100).toString() : '0',
-            discount_amount: metadata.discount_cents ? (parseFloat(metadata.discount_cents) / 100).toString() : metadata.discount_amount || '0',
-            final_amount: session.amount_total ? (session.amount_total / 100).toString() : '0',
-            currency: session.currency?.toUpperCase() || 'EUR',
-            coupon_code: appliedCouponCode,
-            payment_intent_id: session.payment_intent,
-            payment_status: 'paid',
-            payment_method: metadata.payment_method || 'stripe_card',
-            billing_address: billingAddress,
-            billing_city: billingCity,
-            billing_zip: billingZip,
-            billing_country: billingCountry,
-            is_redeemed: false,
-            valid_from: new Date(),
-            valid_until: metadata.valid_until ? new Date(metadata.valid_until) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year default
-          };
-          
-          try {
-            const createdSale = await storage.createVoucherSale(voucherSale as any);
-            console.log('[WEBHOOK] ✅ Voucher sale created:', createdSale.id, 'Code:', voucherSale.voucher_code);
-            
-            // Try to get card details from payment intent
-            if (session.payment_intent) {
+  app.post("/api/vouchers/stripe-webhook", express.raw({ type: 'application/json' }), async (req: Request, res: Response) => {
+    // RESPOND IMMEDIATELY to prevent Stripe timeouts
+    res.status(200).json({ received: true });
+
+    // Process the event ASYNCHRONOUSLY after response
+    setImmediate(async () => {
+      try {
+        // Parse raw body (express.raw provides a Buffer)
+        const event = Buffer.isBuffer(req.body) ? JSON.parse(req.body.toString('utf8')) : req.body;
+        if (event?.type === 'checkout.session.completed') {
+          const session = event.data?.object;
+          console.log('[WEBHOOK] checkout.session.completed', session?.id);
+
+          // Extract metadata from the Stripe session
+          const metadata = session?.metadata || {};
+          const isPaid = session?.payment_status === 'paid';
+
+          if (isPaid) {
+            // Extract coupon code from metadata (key is voucher_used)
+            const appliedCouponCode = metadata.voucher_used && metadata.voucher_used !== 'none' ? metadata.voucher_used : null;
+
+            // Extract billing address from customer_details
+            const customerAddress = session.customer_details?.address || {};
+            const billingAddress = customerAddress.line1 || '';
+            const billingCity = customerAddress.city || '';
+            const billingZip = customerAddress.postal_code || '';
+            const billingCountry = customerAddress.country || '';
+
+            // Fetch product validity period from DB for accurate valid_until
+            let webhookValidityDays = 1460; // Default to ~4 years (schema default)
+            const webhookProductId = metadata.product_id || metadata.sku || null;
+            if (webhookProductId && neonDb) {
               try {
-                const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-                if (stripeSecretKey) {
-                  const StripeLib = (await import('stripe')).default;
-                  const stripe = new StripeLib(stripeSecretKey, { apiVersion: '2025-08-27.basil' });
-                  const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent, {
-                    expand: ['payment_method']
-                  });
-                  const pm = paymentIntent.payment_method;
-                  if (pm && typeof pm === 'object' && 'card' in pm) {
-                    const card = (pm as any).card;
-                    if (card) {
-                      await runSql(`UPDATE voucher_sales SET card_brand = $1, card_last4 = $2 WHERE id = $3`,
-                        [card.brand || '', card.last4 || '', createdSale.id]);
-                      console.log('[WEBHOOK] ✅ Card details saved:', card.brand, '****' + card.last4);
-                    }
-                  }
+                let webhookProduct: any = null;
+                if (typeof neonDb.getVoucherProduct === 'function') {
+                  webhookProduct = await neonDb.getVoucherProduct(webhookProductId);
                 }
-              } catch (cardErr: any) {
-                console.log('[WEBHOOK] Could not fetch card details:', cardErr.message);
+                if (!webhookProduct && typeof neonDb.getVoucherProducts === 'function') {
+                  const all = await neonDb.getVoucherProducts();
+                  const slug = webhookProductId.toLowerCase();
+                  webhookProduct = all.find((p: any) => (p.slug || '').toLowerCase() === slug)
+                                || all.find((p: any) => (p.name || '').toLowerCase().replace(/\s+/g, '-') === slug);
+                }
+                if (webhookProduct) {
+                  webhookValidityDays = webhookProduct.validityPeriod ?? webhookProduct.validity_period ?? webhookValidityDays;
+                }
+              } catch (e) {
+                console.warn('[WEBHOOK] Could not fetch product for validity:', e);
               }
             }
-          } catch (saleError: any) {
-            console.error('[WEBHOOK] ⚠️ Failed to create voucher sale:', saleError.message);
-            // Don't fail the webhook - Stripe expects 200 OK
+
+            // Create voucher sale record from Stripe session
+            const voucherSale = {
+              stripe_session_id: session.id,
+              stripe_payment_intent_id: session.payment_intent,
+              product_id: webhookProductId,
+              purchaser_name: metadata.purchaser_name || session.customer_details?.name || 'Unknown',
+              purchaser_email: metadata.purchaser_email || session.customer_email || session.customer_details?.email || '',
+              purchaser_phone: session.customer_details?.phone || '',
+              recipient_name: metadata.recipient_name || '',
+              recipient_email: metadata.recipient_email || '',
+              gift_message: metadata.gift_message || metadata.message || '',
+              custom_image: metadata.custom_image || null,
+              design_image: metadata.design_image || null,
+              voucher_code: metadata.voucher_code || `VOUCHER-${session.id.substring(0, 12).toUpperCase()}`,
+              original_amount: session.amount_total ? (session.amount_total / 100).toString() : '0',
+              discount_amount: metadata.discount_cents ? (parseFloat(metadata.discount_cents) / 100).toString() : metadata.discount_amount || '0',
+              final_amount: session.amount_total ? (session.amount_total / 100).toString() : '0',
+              currency: session.currency?.toUpperCase() || 'EUR',
+              coupon_code: appliedCouponCode,
+              payment_intent_id: session.payment_intent,
+              payment_status: 'paid',
+              payment_method: metadata.payment_method || 'stripe_card',
+              billing_address: billingAddress,
+              billing_city: billingCity,
+              billing_zip: billingZip,
+              billing_country: billingCountry,
+              is_redeemed: false,
+              valid_from: new Date(),
+              valid_until: metadata.valid_until ? new Date(metadata.valid_until) : new Date(Date.now() + webhookValidityDays * 24 * 60 * 60 * 1000)
+            };
+
+            try {
+              const createdSale = await storage.createVoucherSale(voucherSale as any);
+              console.log('[WEBHOOK] ✅ Voucher sale created:', createdSale.id, 'Code:', voucherSale.voucher_code);
+
+              // Try to get card details from payment intent
+              if (session.payment_intent) {
+                try {
+                  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+                  if (stripeSecretKey) {
+                    const StripeLib = (await import('stripe')).default;
+                    const stripe = new StripeLib(stripeSecretKey, { apiVersion: '2025-08-27.basil' });
+                    const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent, {
+                      expand: ['payment_method']
+                    });
+                    const pm = paymentIntent.payment_method;
+                    if (pm && typeof pm === 'object' && 'card' in pm) {
+                      const card = (pm as any).card;
+                      if (card) {
+                        await runSql(`UPDATE voucher_sales SET card_brand = $1, card_last4 = $2 WHERE id = $3`,
+                          [card.brand || '', card.last4 || '', createdSale.id]);
+                        console.log('[WEBHOOK] ✅ Card details saved:', card.brand, '****' + card.last4);
+                      }
+                    }
+                  }
+                } catch (cardErr: any) {
+                  console.log('[WEBHOOK] Could not fetch card details:', cardErr.message);
+                }
+              }
+            } catch (saleError: any) {
+              console.error('[WEBHOOK] ⚠️ Failed to create voucher sale:', saleError.message);
+            }
           }
+        } else {
+          console.log('[WEBHOOK] Unhandled event type:', event?.type);
         }
-      } else {
-        console.log('[WEBHOOK] Unhandled event type:', event?.type);
+      } catch (error: any) {
+        console.error('[WEBHOOK] Error processing webhook async:', error);
       }
-      res.json({ received: true });
-    } catch (error: any) {
-      console.error('[WEBHOOK] Error handling webhook:', error);
-      res.status(400).json({ error: error.message });
-    }
+    });
   });
 
   // DEMO ENDPOINT: Create a voucher purchase directly (for testing without Stripe)
@@ -12309,7 +12343,163 @@ ${getBizName()} CRM System
       res.status(500).json({ error: 'Internal server error' });
     }
   });
-  
+
+  // ==================== VOUCHER TEMPLATES ====================
+
+  // Public: get active templates (ordered by display_order)
+  app.get("/api/vouchers/templates", async (req: Request, res: Response) => {
+    try {
+      const templates = await neonDb.getVoucherTemplates(true); // active only
+      const mapped = templates.map((t: any) => ({
+        id: t.id,
+        name: t.name,
+        category: t.category,
+        image: t.image_url || t.imageUrl,
+        occasion: t.occasion,
+        isActive: t.is_active ?? t.isActive,
+        displayOrder: t.display_order ?? t.displayOrder,
+      }));
+      res.json(mapped);
+    } catch (error) {
+      console.error("Error fetching voucher templates:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Admin: get all templates (including inactive)
+  app.get("/api/admin/vouchers/templates", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const templates = await neonDb.getVoucherTemplates(false); // all
+      const mapped = templates.map((t: any) => ({
+        id: t.id,
+        name: t.name,
+        category: t.category,
+        imageUrl: t.image_url || t.imageUrl,
+        occasion: t.occasion,
+        isActive: t.is_active ?? t.isActive,
+        displayOrder: t.display_order ?? t.displayOrder,
+        createdAt: t.created_at || t.createdAt,
+        updatedAt: t.updated_at || t.updatedAt,
+      }));
+      res.json(mapped);
+    } catch (error) {
+      console.error("Error fetching admin voucher templates:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Admin: create template
+  app.post("/api/admin/vouchers/templates", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { name, category, imageUrl, occasion, isActive, displayOrder } = req.body;
+      if (!name || !category || !imageUrl || !occasion) {
+        return res.status(400).json({ error: "name, category, imageUrl, and occasion are required" });
+      }
+      const template = await neonDb.createVoucherTemplate({
+        name, category, imageUrl, occasion,
+        isActive: isActive !== undefined ? isActive : true,
+        displayOrder: displayOrder !== undefined ? displayOrder : 0,
+      });
+      res.json({
+        id: template.id,
+        name: template.name,
+        category: template.category,
+        imageUrl: template.image_url || template.imageUrl,
+        occasion: template.occasion,
+        isActive: template.is_active ?? template.isActive,
+        displayOrder: template.display_order ?? template.displayOrder,
+        createdAt: template.created_at || template.createdAt,
+        updatedAt: template.updated_at || template.updatedAt,
+      });
+    } catch (error) {
+      console.error("Error creating voucher template:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Admin: update template
+  app.put("/api/admin/vouchers/templates/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const existing = await neonDb.getVoucherTemplate(id);
+      if (!existing) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+      const updates: any = {};
+      if (req.body.name !== undefined) updates.name = req.body.name;
+      if (req.body.category !== undefined) updates.category = req.body.category;
+      if (req.body.imageUrl !== undefined) updates.imageUrl = req.body.imageUrl;
+      if (req.body.occasion !== undefined) updates.occasion = req.body.occasion;
+      if (req.body.isActive !== undefined) updates.isActive = req.body.isActive;
+      if (req.body.displayOrder !== undefined) updates.displayOrder = req.body.displayOrder;
+
+      const template = await neonDb.updateVoucherTemplate(id, updates);
+      res.json({
+        id: template.id,
+        name: template.name,
+        category: template.category,
+        imageUrl: template.image_url || template.imageUrl,
+        occasion: template.occasion,
+        isActive: template.is_active ?? template.isActive,
+        displayOrder: template.display_order ?? template.displayOrder,
+        createdAt: template.created_at || template.createdAt,
+        updatedAt: template.updated_at || template.updatedAt,
+      });
+    } catch (error) {
+      console.error("Error updating voucher template:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Admin: delete template
+  app.delete("/api/admin/vouchers/templates/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const existing = await neonDb.getVoucherTemplate(id);
+      if (!existing) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+      await neonDb.deleteVoucherTemplate(id);
+      res.json({ success: true, id });
+    } catch (error) {
+      console.error("Error deleting voucher template:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Admin: upload template image to B2
+  app.post("/api/admin/vouchers/templates/upload-image", authenticateUser, upload.single('image'), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+      const { bucket, endpoint, isConfigured } = getS3Config();
+      if (!isConfigured) {
+        return res.status(503).json({ error: "Storage service not configured" });
+      }
+      const optimizedBuffer = await sharp(req.file.buffer)
+        .rotate()
+        .resize(2400, 2400, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 88 })
+        .toBuffer();
+
+      const key = `vouchers/templates/${Date.now()}_${Math.random().toString(36).slice(2)}.webp`;
+      await getS3Client().send(new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: optimizedBuffer,
+        ContentType: 'image/webp',
+        CacheControl: 'public, max-age=31536000',
+      }));
+
+      const url = buildPublicUrl(bucket, endpoint, key);
+      res.json({ success: true, url, key });
+    } catch (error: any) {
+      console.error("Error uploading template image:", error);
+      res.status(500).json({ error: "Failed to upload template image", message: error.message });
+    }
+  });
+
   // ====== FIX VOUCHER PRODUCT IMAGE URLS (encode spaces) ======
   app.post("/api/admin/vouchers/fix-image-urls", authenticateUser, async (req: Request, res: Response) => {
     try {
@@ -13214,7 +13404,28 @@ ${getBizName()} CRM System
       const from = m.from_name || '—';
       const note = m.message || '';
       const vId = m.voucher_id || session.id;
-      const exp = m.expiry_date || '12 Monate ab Kaufdatum';
+
+      // Fetch the actual product from DB to get dynamic name & validity
+      let pdfProduct: any = null;
+      const pdfIdOrSlug = String(m.sku || m.product_id || '').trim();
+      if (pdfIdOrSlug && neonDb) {
+        try {
+          if (typeof neonDb.getVoucherProduct === 'function') {
+            pdfProduct = await neonDb.getVoucherProduct(pdfIdOrSlug);
+          }
+          if (!pdfProduct && typeof neonDb.getVoucherProducts === 'function') {
+            const all = await neonDb.getVoucherProducts();
+            const slug = pdfIdOrSlug.toLowerCase();
+            pdfProduct = all.find((p: any) => (p.slug || '').toLowerCase() === slug)
+                      || all.find((p: any) => (p.name || '').toLowerCase().replace(/\s+/g, '-') === slug)
+                      || all.find((p: any) => (p.name || '').toLowerCase().includes(slug.replace(/-/g, ' ')));
+          }
+        } catch (dbErr) {
+          console.warn('Could not fetch voucher product for PDF:', dbErr);
+        }
+      }
+
+      // Title: prefer DB product name, then metadata product_name, then fallback map
       const titleMap: Record<string, string> = {
         'Maternity-Basic': 'Schwangerschafts Fotoshooting - Basic',
         'Family-Basic': 'Family Fotoshooting - Basic',
@@ -13226,7 +13437,24 @@ ${getBizName()} CRM System
         'Family-Deluxe': 'Family Fotoshooting - Deluxe',
         'Newborn-Deluxe': 'Newborn Fotoshooting - Deluxe',
       };
-      const title = titleMap[String(sku)] || 'Gutschein';
+      const title = pdfProduct?.name || m.product_name || titleMap[String(sku)] || 'Gutschein';
+
+      // Expiry: compute from product's validityPeriod + purchase date, then metadata, then fallback
+      let exp = '';
+      if (m.expiry_date && m.expiry_date.trim()) {
+        exp = m.expiry_date;
+      } else {
+        const validityDays = pdfProduct?.validityPeriod ?? pdfProduct?.validity_period ?? null;
+        const purchaseTimestamp = session.created ? session.created * 1000 : Date.now();
+        if (validityDays && validityDays > 0) {
+          const expiryDate = new Date(purchaseTimestamp + validityDays * 24 * 60 * 60 * 1000);
+          exp = expiryDate.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        } else {
+          // Generic fallback using schema default (4 years)
+          const expiryDate = new Date(purchaseTimestamp + 1460 * 24 * 60 * 60 * 1000);
+          exp = expiryDate.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+      }
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${vId}.pdf"`);
@@ -13295,26 +13523,9 @@ ${getBizName()} CRM System
       // 4. VOUCHER DETAILS
       doc.fillColor('#222222');
       
-      // Dynamic product description
+      // Dynamic product description (reuse pdfProduct fetched above)
       try {
-        let product: any = null;
-        const idOrSlug = String(m.sku || '').trim();
-        if (idOrSlug && neonDb && typeof neonDb.getVoucherProduct === 'function') {
-          try { product = await neonDb.getVoucherProduct(idOrSlug); } catch (dbErr) {
-            console.warn('Could not fetch voucher product:', dbErr);
-          }
-          if (!product && typeof neonDb.getVoucherProducts === 'function') {
-            try {
-              const all = await neonDb.getVoucherProducts();
-              const slug = idOrSlug.toLowerCase();
-              product = all.find((p: any) => (p.slug || '').toLowerCase() === slug)
-                     || all.find((p: any) => (p.name || '').toLowerCase().includes(slug.replace(/-/g, ' ')));
-            } catch (dbErr2) {
-              console.warn('Could not fetch all voucher products:', dbErr2);
-            }
-          }
-        }
-        const dynamicSub = (product?.description || product?.detailedDescription || product?.detailed_description || '').toString();
+        const dynamicSub = (pdfProduct?.description || pdfProduct?.detailedDescription || pdfProduct?.detailed_description || m.product_description || '').toString();
         
         if (dynamicSub && dynamicSub.trim()) {
           doc.fontSize(10).text(dynamicSub, pageMargin, currentY, { width: contentWidth, align: 'left' });
@@ -13386,21 +13597,32 @@ ${getBizName()} CRM System
       const from = String(qp.from || qp.from_name || 'Max Beispiel');
       const note = String(qp.message || 'Alles Gute zum besonderen Anlass!');
       const vId = String(qp.voucher_id || 'VCHR-PREVIEW-1234');
-      const exp = String(qp.expiry_date || '12 Monate ab Kaufdatum');
       const amount = parseFloat(String(qp.amount || '95.00'));
       const currency = String(qp.currency || 'EUR');
+
+      // Fetch product from DB for dynamic name & validity
+      let previewProduct: any = null;
+      if (sku && neonDb) {
+        try {
+          if (typeof neonDb.getVoucherProduct === 'function') {
+            previewProduct = await neonDb.getVoucherProduct(sku);
+          }
+          if (!previewProduct && typeof neonDb.getVoucherProducts === 'function') {
+            const all = await neonDb.getVoucherProducts();
+            const slug = sku.toLowerCase();
+            previewProduct = all.find((p: any) => (p.slug || '').toLowerCase() === slug)
+                          || all.find((p: any) => (p.name || '').toLowerCase().replace(/\s+/g, '-') === slug)
+                          || all.find((p: any) => (p.name || '').toLowerCase().includes(slug.replace(/-/g, ' ')));
+          }
+        } catch (e) {
+          console.warn('Could not fetch product for preview:', e);
+        }
+      }
       
       // Try custom_image or design_image from query, otherwise fetch product default
       let customImageUrl = String(qp.custom_image || qp.design_image || '').trim();
-      if (!customImageUrl && sku) {
-        try {
-          if (neonDb && typeof neonDb.getVoucherProduct === 'function') {
-            const product = await neonDb.getVoucherProduct(sku);
-            customImageUrl = product?.imageUrl || '';
-          }
-        } catch (e) {
-          console.warn('Could not fetch product default image for preview:', e);
-        }
+      if (!customImageUrl && previewProduct) {
+        customImageUrl = previewProduct.imageUrl || '';
       }
 
       const titleMap: Record<string, string> = {
@@ -13414,7 +13636,20 @@ ${getBizName()} CRM System
         'Family-Deluxe': 'Family Fotoshooting - Deluxe',
         'Newborn-Deluxe': 'Newborn Fotoshooting - Deluxe',
       };
-      const title = titleMap[sku] || 'Gutschein';
+      const title = previewProduct?.name || titleMap[sku] || 'Gutschein';
+
+      // Compute expiry from product's validityPeriod
+      let exp = String(qp.expiry_date || '').trim();
+      if (!exp) {
+        const validityDays = previewProduct?.validityPeriod ?? previewProduct?.validity_period ?? null;
+        if (validityDays && validityDays > 0) {
+          const expiryDate = new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000);
+          exp = expiryDate.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        } else {
+          const expiryDate = new Date(Date.now() + 1460 * 24 * 60 * 60 * 1000);
+          exp = expiryDate.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+      }
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${vId}.pdf"`);
@@ -13482,26 +13717,9 @@ ${getBizName()} CRM System
       // 4. VOUCHER DETAILS
       doc.fillColor('#222222');
 
-      // Dynamic product description (preview mode - fetch from DB if available)
+      // Dynamic product description (reuse previewProduct fetched above)
       try {
-        let product: any = null;
-        const idOrSlug = String(sku || '').trim();
-        if (idOrSlug && neonDb && typeof neonDb.getVoucherProduct === 'function') {
-          try { product = await neonDb.getVoucherProduct(idOrSlug); } catch (dbErr) {
-            console.warn('Preview: Could not fetch voucher product:', dbErr);
-          }
-          if (!product && typeof neonDb.getVoucherProducts === 'function') {
-            try {
-              const all = await neonDb.getVoucherProducts();
-              const slug = idOrSlug.toLowerCase();
-              product = all.find((p: any) => (p.slug || '').toLowerCase() === slug)
-                     || all.find((p: any) => (p.name || '').toLowerCase().includes(slug.replace(/-/g, ' ')));
-            } catch (dbErr2) {
-              console.warn('Preview: Could not fetch all voucher products:', dbErr2);
-            }
-          }
-        }
-        const dynamicSub = (product?.description || product?.detailedDescription || product?.detailed_description || '').toString();
+        const dynamicSub = (previewProduct?.description || previewProduct?.detailedDescription || previewProduct?.detailed_description || '').toString();
         
         if (dynamicSub && dynamicSub.trim()) {
           doc.fontSize(10).text(dynamicSub, pageMargin, currentY, { width: contentWidth, align: 'left' });

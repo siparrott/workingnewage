@@ -1948,6 +1948,84 @@ if (!connectionString) {
       }
     },
 
+    // ==================== VOUCHER TEMPLATES ====================
+    async getVoucherTemplates(activeOnly = false) {
+      try {
+        const query = activeOnly
+          ? 'SELECT * FROM voucher_templates WHERE is_active = true ORDER BY display_order ASC, created_at DESC'
+          : 'SELECT * FROM voucher_templates ORDER BY display_order ASC, created_at DESC';
+        const result = await pool.query(query);
+        return result.rows;
+      } catch (error) {
+        console.error('❌ Error fetching voucher templates:', error.message);
+        throw error;
+      }
+    },
+
+    async getVoucherTemplate(id) {
+      try {
+        const result = await pool.query('SELECT * FROM voucher_templates WHERE id = $1', [id]);
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('❌ Error fetching voucher template:', error.message);
+        throw error;
+      }
+    },
+
+    async createVoucherTemplate(data) {
+      try {
+        const { name, category, imageUrl, occasion, isActive = true, displayOrder = 0 } = data;
+        const result = await pool.query(`
+          INSERT INTO voucher_templates (name, category, image_url, occasion, is_active, display_order)
+          VALUES ($1, $2, $3, $4, $5, $6)
+          RETURNING *
+        `, [name, category, imageUrl || data.image_url, occasion, isActive ?? data.is_active ?? true, displayOrder ?? data.display_order ?? 0]);
+        return result.rows[0];
+      } catch (error) {
+        console.error('❌ Error creating voucher template:', error.message);
+        throw error;
+      }
+    },
+
+    async updateVoucherTemplate(id, data) {
+      try {
+        const name = data.name ?? null;
+        const category = data.category ?? null;
+        const image_url = (data.image_url ?? data.imageUrl) ?? null;
+        const occasion = data.occasion ?? null;
+        const is_active = (data.is_active ?? data.isActive) ?? null;
+        const display_order = (data.display_order ?? data.displayOrder) ?? null;
+
+        const result = await pool.query(`
+          UPDATE voucher_templates SET
+            name = COALESCE($2, name),
+            category = COALESCE($3, category),
+            image_url = COALESCE($4, image_url),
+            occasion = COALESCE($5, occasion),
+            is_active = COALESCE($6, is_active),
+            display_order = COALESCE($7, display_order),
+            updated_at = NOW()
+          WHERE id = $1
+          RETURNING *
+        `, [id, name, category, image_url, occasion, is_active, display_order]);
+
+        return result.rows[0];
+      } catch (error) {
+        console.error('❌ Error updating voucher template:', error.message);
+        throw error;
+      }
+    },
+
+    async deleteVoucherTemplate(id) {
+      try {
+        const result = await pool.query('DELETE FROM voucher_templates WHERE id = $1 RETURNING *', [id]);
+        return result.rows[0];
+      } catch (error) {
+        console.error('❌ Error deleting voucher template:', error.message);
+        throw error;
+      }
+    },
+
     // ==================== VOUCHER SALES ====================
     async createVoucherSale(saleData) {
       try {

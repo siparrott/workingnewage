@@ -13,6 +13,7 @@ import {
   galleryImages,
   photographySessions,
   voucherProducts,
+  voucherTemplates,
   discountCoupons,
   voucherSales,
   couponUsage,
@@ -42,6 +43,8 @@ import {
   type InsertGallery,
   type VoucherProduct,
   type InsertVoucherProduct,
+  type VoucherTemplate,
+  type InsertVoucherTemplate,
   type DiscountCoupon,
   type InsertDiscountCoupon,
   type VoucherSale,
@@ -148,6 +151,13 @@ export interface IStorage {
   createVoucherProduct(product: InsertVoucherProduct): Promise<VoucherProduct>;
   updateVoucherProduct(id: string, updates: Partial<VoucherProduct>): Promise<VoucherProduct>;
   deleteVoucherProduct(id: string): Promise<void>;
+
+  // Voucher Templates management
+  getVoucherTemplates(): Promise<VoucherTemplate[]>;
+  getVoucherTemplate(id: string): Promise<VoucherTemplate | undefined>;
+  createVoucherTemplate(template: InsertVoucherTemplate): Promise<VoucherTemplate>;
+  updateVoucherTemplate(id: string, updates: Partial<VoucherTemplate>): Promise<VoucherTemplate>;
+  deleteVoucherTemplate(id: string): Promise<void>;
 
   // Discount Coupons management
   getDiscountCoupons(): Promise<DiscountCoupon[]>;
@@ -808,6 +818,33 @@ export class DatabaseStorage implements IStorage {
 
   async deleteVoucherProduct(id: string): Promise<void> {
     await db.delete(voucherProducts).where(eq(voucherProducts.id, id));
+  }
+
+  // Voucher Templates management
+  async getVoucherTemplates(): Promise<VoucherTemplate[]> {
+    return await db.select().from(voucherTemplates).orderBy(asc(voucherTemplates.displayOrder), desc(voucherTemplates.createdAt));
+  }
+
+  async getVoucherTemplate(id: string): Promise<VoucherTemplate | undefined> {
+    const results = await db.select().from(voucherTemplates).where(eq(voucherTemplates.id, id));
+    return results[0];
+  }
+
+  async createVoucherTemplate(template: InsertVoucherTemplate): Promise<VoucherTemplate> {
+    const results = await db.insert(voucherTemplates).values(template as any).returning();
+    return results[0];
+  }
+
+  async updateVoucherTemplate(id: string, updates: Partial<VoucherTemplate>): Promise<VoucherTemplate> {
+    const results = await db.update(voucherTemplates)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(voucherTemplates.id, id))
+      .returning();
+    return results[0];
+  }
+
+  async deleteVoucherTemplate(id: string): Promise<void> {
+    await db.delete(voucherTemplates).where(eq(voucherTemplates.id, id));
   }
 
   // Discount Coupons management

@@ -37,6 +37,7 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [productDescription, setProductDescription] = useState<string | undefined>(undefined);
   const [productHeroImage, setProductHeroImage] = useState<string | undefined>(undefined);
+  const [productNameFromApi, setProductNameFromApi] = useState<string | undefined>(undefined);
 
   const deliveryAmount = voucherData?.deliveryOption.price || 0;
   const subtotal = baseAmount + deliveryAmount;
@@ -64,7 +65,9 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
         const j = await r.json();
         const desc = j?.description || j?.detailedDescription || j?.detailed_description || undefined;
         const heroImg = j?.imageUrl || j?.image_url || undefined;
+        const pName = j?.name || undefined;
         if (active) {
+          setProductNameFromApi(typeof pName === 'string' ? pName : undefined);
           setProductDescription(typeof desc === 'string' ? desc : undefined);
           setProductHeroImage(typeof heroImg === 'string' ? heroImg : undefined);
         }
@@ -75,26 +78,15 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
     return () => { active = false; };
   }, [productSlug]);
 
-  // Map productSlug to a clear product name for Stripe line item naming/matching
+  // Map productSlug to a human-readable product name for Stripe line item naming.
+  // Handles ANY slug generically by capitalizing each segment.
   const productNameFromSlug = (slug?: string): string | undefined => {
     if (!slug) return undefined;
-    const s = slug.toLowerCase();
-    if (s.startsWith('maternity-')) {
-      const tier = s.split('-')[1] || '';
-      const cap = tier.charAt(0).toUpperCase() + tier.slice(1);
-      return `Schwangerschafts Fotoshooting - ${cap}`;
-    }
-    if (s.startsWith('family-')) {
-      const tier = s.split('-')[1] || '';
-      const cap = tier.charAt(0).toUpperCase() + tier.slice(1);
-      return `Family Fotoshooting - ${cap}`;
-    }
-    if (s.startsWith('newborn-')) {
-      const tier = s.split('-')[1] || '';
-      const cap = tier.charAt(0).toUpperCase() + tier.slice(1);
-      return `Newborn Fotoshooting - ${cap}`;
-    }
-    return undefined;
+    // Convert "family-classic" → "Family Classic", "studio-fotografie-basic" → "Studio Fotografie Basic"
+    return slug
+      .split('-')
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
   };
 
   // Backend validation for voucher codes using product context
@@ -110,7 +102,7 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
             {
               productSlug: productSlug,
               sku: productSlug,
-              name: productNameFromSlug(productSlug) || `Fotoshooting Gutschein - ${voucherData?.selectedDesign?.occasion || 'Personalisiert'}`,
+              name: productNameFromApi || productNameFromSlug(productSlug) || `Fotoshooting Gutschein - ${voucherData?.selectedDesign?.occasion || 'Personalisiert'}`,
               price: baseAmount,
               quantity: 1,
             },
@@ -155,7 +147,7 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
       const payload = {
         items: [
           {
-            name: productNameFromSlug(productSlug) || `Fotoshooting Gutschein - ${voucherData.selectedDesign?.occasion || 'Personalisiert'}`,
+            name: productNameFromApi || productNameFromSlug(productSlug) || `Fotoshooting Gutschein - ${voucherData.selectedDesign?.occasion || 'Personalisiert'}`,
             price: Math.round(baseAmount * 100),
             quantity: 1,
             sku: productSlug,

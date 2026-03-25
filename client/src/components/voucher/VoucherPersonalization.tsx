@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Upload, Check, ChevronRight, ChevronLeft, Camera, Eye, Download, ArrowLeft } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -54,6 +54,9 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
   const [customImageUrl, setCustomImageUrl] = useState<string | undefined>(undefined);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [designTemplates, setDesignTemplates] = useState<DesignTemplate[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [personalMessage, setPersonalMessage] = useState('');
   const [recipientName, setRecipientName] = useState('');
   const [senderName, setSenderName] = useState('');
@@ -97,6 +100,24 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
     shipping: language === 'en' ? 'Shipping' : 'Versand',
   };
 
+  // Fetch design templates from API
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/vouchers/templates');
+        if (res.ok && !cancelled) {
+          const data = await res.json();
+          setDesignTemplates(data);
+        }
+      } catch (e) {
+        console.error('Failed to fetch design templates:', e);
+      }
+      if (!cancelled) setTemplatesLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const deliveryOptions: DeliveryOption[] = [
     {
       id: 'pdf',
@@ -132,15 +153,11 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
     }
   ];
 
-  const designTemplates: DesignTemplate[] = [
-    { id: 'birthday', name: 'Birthday Celebration', category: 'birthday', image: 'https://i.postimg.cc/cCLh7639/827ee647-a4cc-4f99-ac43-a7165efa0314.webp', occasion: 'Happy Birthday' },
-    { id: 'anniversary', name: 'Anniversary', category: 'anniversary', image: 'https://images.unsplash.com/photo-1469371670807-013ccf25f16a?w=400&h=300&fit=crop', occasion: 'Happy Anniversary' },
-    { id: 'mothers-day', name: 'Mother\'s Day', category: 'mothers-day', image: 'https://i.postimg.cc/br5xQgpr/stock-photo-top-view-greeting-card-happy-mothers-day-lettering-pink-carnations.webp', occasion: 'Happy Mother\'s Day' },
-    { id: 'valentines', name: 'Valentine\'s Day', category: 'love', image: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=400&h=300&fit=crop', occasion: 'I Love You' },
-    { id: 'christmas', name: 'Christmas', category: 'christmas', image: 'https://images.unsplash.com/photo-1512389098783-66b81f86e199?w=400&h=300&fit=crop', occasion: 'Merry Christmas' },
-    { id: 'thank-you', name: 'Thank You', category: 'gratitude', image: 'https://i.postimg.cc/Mp5y5zWg/writing-thank-you.webp', occasion: 'Thank You' },
-    { id: 'congratulations', name: 'Congratulations', category: 'celebration', image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&h=300&fit=crop', occasion: 'Congratulations' }
-  ];
+  // Derive categories from fetched templates
+  const templateCategories = Array.from(new Set(designTemplates.map(t => t.category)));
+  const filteredTemplates = selectedCategory === 'all'
+    ? designTemplates
+    : designTemplates.filter(t => t.category === selectedCategory);
 
   const handleDeliverySelect = (delivery: DeliveryOption) => {
     setSelectedDelivery(delivery);
@@ -356,9 +373,48 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
               </label>
             </div>
 
+            {/* Category Filter Tabs */}
+            {templateCategories.length > 1 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                <button
+                  onClick={() => setSelectedCategory('all')}
+                  className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                    selectedCategory === 'all'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {language === 'en' ? 'All' : 'Alle'}
+                </button>
+                {templateCategories.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-3 py-1.5 text-sm rounded-full transition-colors capitalize ${
+                      selectedCategory === cat
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {cat.replace(/-/g, ' ')}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Design Templates Grid */}
+            {templatesLoading ? (
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <div key={i} className="border-2 border-gray-200 rounded-lg overflow-hidden animate-pulse">
+                    <div className="aspect-square bg-gray-200" />
+                    <div className="p-2"><div className="h-4 bg-gray-200 rounded w-3/4 mx-auto" /></div>
+                  </div>
+                ))}
+              </div>
+            ) : (
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-              {designTemplates.map((template) => (
+              {filteredTemplates.map((template) => (
                 <div
                   key={template.id}
                   onClick={() => handleDesignSelect(template)}
@@ -396,6 +452,7 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
                 </div>
               ))}
             </div>
+            )}
           </div>
 
           {/* Right Column: Voucher Preview */}

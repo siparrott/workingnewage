@@ -83,17 +83,15 @@ export class StripeVoucherService {
 
   private static deriveSkuFromName(name?: string): string | undefined {
     if (!name) return undefined;
-    const n = name.toLowerCase();
-    if (n.includes('schwangerschaft') && n.includes('basic')) return 'Maternity-Basic';
-    if (n.includes('family') && n.includes('basic')) return 'Family-Basic';
-    if (n.includes('newborn') && n.includes('basic')) return 'Newborn-Basic';
-    if (n.includes('schwangerschaft') && n.includes('premium')) return 'Maternity-Premium';
-    if (n.includes('family') && n.includes('premium')) return 'Family-Premium';
-    if (n.includes('newborn') && n.includes('premium')) return 'Newborn-Premium';
-    if (n.includes('schwangerschaft') && n.includes('deluxe')) return 'Maternity-Deluxe';
-    if (n.includes('family') && n.includes('deluxe')) return 'Family-Deluxe';
-    if (n.includes('newborn') && n.includes('deluxe')) return 'Newborn-Deluxe';
-    return undefined;
+    // Generate a slug-style SKU from the product name, matching server slugify conventions.
+    // e.g. "Family Classic" → "family-classic", "Bewerbungsfotos & LinkedIn" → "bewerbungsfotos-und-linkedin"
+    return name
+      .trim()
+      .toLowerCase()
+      .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+      .replace(/&/g, 'und')
+      .replace(/[^a-z0-9]+/g, '-')  // non-alphanumeric runs → single hyphen
+      .replace(/^-|-$/g, '');        // trim leading/trailing hyphens
   }
 
   private static applyCustomCouponToAmount(
@@ -315,6 +313,9 @@ export class StripeVoucherService {
       const productHeroImage = String(personalization.productHeroImage || '').trim(); // Product default image fallback
       const productDescription = String(personalization.productDescription || '').trim();
 
+      // Store the actual product name from line items for PDF generation
+      const productName = String(primaryName || '').trim();
+
       sessionParams.metadata = {
         source: 'photography_website',
         voucher_used: data.appliedVoucherCode || data.appliedVoucher?.code || 'none',
@@ -323,6 +324,7 @@ export class StripeVoucherService {
         voucher_data: data.voucherData ? JSON.stringify(data.voucherData).substring(0, 500) : '',
         // Voucher-specific metadata for PDF generation
         sku: String(primarySku || ''),
+        product_name: productName, // Actual product name for PDF title
         voucher_id: voucherId,
         recipient_name: recipientName,
         from_name: fromName,

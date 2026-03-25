@@ -1298,6 +1298,19 @@ export default function AdminVoucherSalesPageV3() {
                   Sales ({stats.totalSales})
                 </div>
               </button>
+              <button
+                onClick={() => setActiveView("templates")}
+                className={`py-3 px-4 text-sm font-medium transition-colors rounded-t-lg ${
+                  activeView === "templates"
+                    ? "bg-teal-50 text-teal-700 border-b-2 border-teal-500"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                <div className="flex items-center">
+                  <Palette className="h-4 w-4 mr-2" />
+                  Templates
+                </div>
+              </button>
             </nav>
           </div>
 
@@ -1339,6 +1352,9 @@ export default function AdminVoucherSalesPageV3() {
                 isLoading={isLoadingSales}
                 onCreateClient={handleCreateClientFromSale}
               />
+            )}
+            {activeView === "templates" && (
+              <TemplatesView />
             )}
           </div>
         </div>
@@ -2344,6 +2360,283 @@ const SalesView: React.FC<{
           </CardContent>
         </Card>
       )}
+    </div>
+  );
+};
+
+// TemplatesView Component — Admin CRUD for voucher PDF design templates
+const TEMPLATE_CATEGORIES = [
+  { value: 'birthday', label: 'Birthday' },
+  { value: 'anniversary', label: 'Anniversary' },
+  { value: 'mothers-day', label: "Mother's Day" },
+  { value: 'love', label: 'Love / Valentine' },
+  { value: 'christmas', label: 'Christmas' },
+  { value: 'gratitude', label: 'Gratitude' },
+  { value: 'celebration', label: 'Celebration' },
+  { value: 'wedding', label: 'Wedding' },
+  { value: 'baby', label: 'Baby / Newborn' },
+  { value: 'other', label: 'Other' },
+];
+
+interface VoucherTemplateAdmin {
+  id: string;
+  name: string;
+  category: string;
+  imageUrl: string;
+  occasion: string;
+  isActive: boolean;
+  displayOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+const TemplatesView: React.FC = () => {
+  const [templates, setTemplates] = useState<VoucherTemplateAdmin[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<VoucherTemplateAdmin | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [formData, setFormData] = useState({ name: '', category: 'birthday', occasion: '', imageUrl: '' });
+
+  const getAdminToken = () => localStorage.getItem('ADMIN_TOKEN') || '';
+  const adminHeaders = () => ({ 'x-admin-token': getAdminToken() });
+
+  const fetchTemplates = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/vouchers/templates', { headers: adminHeaders() });
+      if (res.ok) setTemplates(await res.json());
+    } catch (e) { console.error('Failed to fetch templates:', e); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchTemplates(); }, []);
+
+  const openCreate = () => {
+    setEditingTemplate(null);
+    setFormData({ name: '', category: 'birthday', occasion: '', imageUrl: '' });
+    setDialogOpen(true);
+  };
+
+  const openEdit = (t: VoucherTemplateAdmin) => {
+    setEditingTemplate(t);
+    setFormData({ name: t.name, category: t.category, occasion: t.occasion, imageUrl: t.imageUrl });
+    setDialogOpen(true);
+  };
+
+  const handleImageUpload = async (file: File) => {
+    setUploadingImage(true);
+    try {
+      const fd = new FormData();
+      fd.append('image', file);
+      const res = await fetch('/api/admin/vouchers/templates/upload-image', {
+        method: 'POST',
+        headers: adminHeaders(),
+        body: fd,
+      });
+      const data = await res.json();
+      if (data.url) setFormData(prev => ({ ...prev, imageUrl: data.url }));
+    } catch (e) { console.error('Image upload failed:', e); }
+    setUploadingImage(false);
+  };
+
+  const handleSave = async () => {
+    if (!formData.name || !formData.category || !formData.occasion || !formData.imageUrl) {
+      alert('Please fill in all fields and upload an image');
+      return;
+    }
+    setSaving(true);
+    try {
+      const url = editingTemplate
+        ? `/api/admin/vouchers/templates/${editingTemplate.id}`
+        : '/api/admin/vouchers/templates';
+      const method = editingTemplate ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', ...adminHeaders() },
+        body: JSON.stringify(formData),
+      });
+      if (res.ok) {
+        setDialogOpen(false);
+        fetchTemplates();
+      }
+    } catch (e) { console.error('Save failed:', e); }
+    setSaving(false);
+  };
+
+  const handleToggleActive = async (t: VoucherTemplateAdmin) => {
+    try {
+      await fetch(`/api/admin/vouchers/templates/${t.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...adminHeaders() },
+        body: JSON.stringify({ isActive: !t.isActive }),
+      });
+      fetchTemplates();
+    } catch (e) { console.error('Toggle failed:', e); }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await fetch(`/api/admin/vouchers/templates/${id}`, {
+        method: 'DELETE',
+        headers: adminHeaders(),
+      });
+      setDeleteConfirmId(null);
+      fetchTemplates();
+    } catch (e) { console.error('Delete failed:', e); }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="animate-pulse bg-gray-100 rounded-lg h-32" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">Design Templates</h3>
+          <p className="text-sm text-gray-500">Manage hero images that customers choose for their voucher PDF</p>
+        </div>
+        <Button onClick={openCreate} className="bg-teal-600 hover:bg-teal-700 text-white">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Template
+        </Button>
+      </div>
+
+      {templates.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Palette className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No templates yet</h3>
+            <p className="text-gray-600 mb-4">Create design templates for voucher PDFs</p>
+            <Button onClick={openCreate} className="bg-teal-600 hover:bg-teal-700 text-white">
+              <Plus className="h-4 w-4 mr-2" /> Create First Template
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {templates.map(t => (
+            <Card key={t.id} className={`overflow-hidden transition-shadow hover:shadow-md ${!t.isActive ? 'opacity-60' : ''}`}>
+              <div className="aspect-[4/3] bg-gray-100 relative">
+                <img src={t.imageUrl} alt={t.name} className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                {!t.isActive && (
+                  <div className="absolute top-2 right-2">
+                    <Badge variant="secondary">Inactive</Badge>
+                  </div>
+                )}
+              </div>
+              <CardContent className="p-3">
+                <p className="font-medium text-sm truncate">{t.name}</p>
+                <p className="text-xs text-gray-500">{t.occasion}</p>
+                <div className="flex items-center justify-between mt-2">
+                  <Badge variant="outline" className="text-xs">{t.category}</Badge>
+                  <div className="flex items-center gap-1">
+                    <Switch
+                      checked={t.isActive}
+                      onCheckedChange={() => handleToggleActive(t)}
+                      className="scale-75"
+                    />
+                    <button onClick={() => openEdit(t)} className="p-1 text-gray-400 hover:text-teal-600" title="Edit">
+                      <Edit className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => setDeleteConfirmId(t.id)} className="p-1 text-gray-400 hover:text-red-600" title="Delete">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogPortal>
+          <DialogOverlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" />
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto bg-white border-2 shadow-2xl">
+            <DialogHeader>
+              <DialogTitle>{editingTemplate ? 'Edit Template' : 'New Template'}</DialogTitle>
+              <DialogDescription>Configure the voucher design template hero image</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>Name</Label>
+                <Input value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Birthday Celebration" />
+              </div>
+              <div>
+                <Label>Category</Label>
+                <Select value={formData.category} onValueChange={v => setFormData(p => ({ ...p, category: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TEMPLATE_CATEGORIES.map(c => (
+                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Occasion Text</Label>
+                <Input value={formData.occasion} onChange={e => setFormData(p => ({ ...p, occasion: e.target.value }))} placeholder="e.g. Happy Birthday" />
+              </div>
+              <div>
+                <Label>Hero Image</Label>
+                {formData.imageUrl && (
+                  <div className="mb-2 rounded-lg overflow-hidden border">
+                    <img src={formData.imageUrl} alt="Preview" className="w-full h-40 object-cover" />
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <label className="flex-1">
+                    <div className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50 transition-colors ${
+                      uploadingImage ? 'border-teal-400 bg-teal-50' : 'border-gray-300'
+                    }`}>
+                      <Camera className="h-6 w-6 mx-auto mb-1 text-gray-400" />
+                      <p className="text-sm text-gray-600">{uploadingImage ? 'Uploading...' : 'Upload Image'}</p>
+                    </div>
+                    <input type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0]); }} />
+                  </label>
+                  <div className="flex-1">
+                    <Input value={formData.imageUrl} onChange={e => setFormData(p => ({ ...p, imageUrl: e.target.value }))} placeholder="Or paste image URL" className="h-full" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleSave} disabled={saving} className="bg-teal-600 hover:bg-teal-700 text-white">
+                {saving ? 'Saving...' : (editingTemplate ? 'Update' : 'Create')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </DialogPortal>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteConfirmId} onOpenChange={o => { if (!o) setDeleteConfirmId(null); }}>
+        <DialogPortal>
+          <DialogOverlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" />
+          <DialogContent className="sm:max-w-[400px] bg-white border-2 shadow-2xl">
+            <DialogHeader>
+              <DialogTitle>Delete Template</DialogTitle>
+              <DialogDescription>Are you sure? This action cannot be undone.</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>Cancel</Button>
+              <Button variant="destructive" onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}>Delete</Button>
+            </DialogFooter>
+          </DialogContent>
+        </DialogPortal>
+      </Dialog>
     </div>
   );
 };
