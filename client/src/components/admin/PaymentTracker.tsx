@@ -66,6 +66,11 @@ const PAYMENT_METHOD_LABELS = {
     dueNow: 'Fällig',
     dueIn: 'Demnächst',
     schedule: 'Zeitplan',
+    dueInDays: 'Fällig in',
+    days: 'Tagen',
+    setDueDate: 'Fälligkeitsdatum setzen',
+    dueDateUpdated: 'Fälligkeitsdatum aktualisiert',
+    dueDateFailed: 'Fehler beim Aktualisieren des Fälligkeitsdatums',
     paidOn: 'BEZAHLT AM',
     amount: 'BETRAG',
     paidVia: 'BEZAHLT MIT',
@@ -129,6 +134,11 @@ const PAYMENT_METHOD_LABELS = {
     dueNow: 'Due Now',
     dueIn: 'Due In',
     schedule: 'Schedule',
+    dueInDays: 'Due in',
+    days: 'days',
+    setDueDate: 'Set Due Date',
+    dueDateUpdated: 'Due date updated',
+    dueDateFailed: 'Failed to update due date',
     paidOn: 'PAID ON',
     amount: 'AMOUNT',
     paidVia: 'PAID VIA',
@@ -192,6 +202,10 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
   const [useCustomMethod, setUseCustomMethod] = useState(false);
   const [customMethodInput, setCustomMethodInput] = useState('');
   const [showEmailPreview, setShowEmailPreview] = useState(false);
+  const [showDueInPopover, setShowDueInPopover] = useState(false);
+  const [showSchedulePopover, setShowSchedulePopover] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState(new Date().toISOString().split('T')[0]);
+  const [dueDateMessage, setDueDateMessage] = useState<string | null>(null);
   const [pendingPaymentForReceipt, setPendingPaymentForReceipt] = useState<any>(null);
   const [emailReceiptData, setEmailReceiptData] = useState({
     to: '',
@@ -417,6 +431,47 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
   const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
   const remainingBalance = invoiceTotal - totalPaid;
 
+  const handleDueNow = () => {
+    // Pre-fill the add payment form with remaining balance and today's date
+    setNewPayment({
+      amount: Math.round(remainingBalance * 100) / 100,
+      payment_method: '',
+      payment_reference: '',
+      payment_date: new Date().toISOString().split('T')[0],
+      notes: ''
+    });
+    setShowDueInPopover(false);
+    setShowSchedulePopover(false);
+    setShowAddPayment(true);
+  };
+
+  const handleUpdateDueDate = async (newDueDate: string) => {
+    try {
+      const response = await fetch(`/api/crm/invoices/${invoiceId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ dueDate: newDueDate })
+      });
+      if (!response.ok) throw new Error('Failed to update');
+      setDueDateMessage(t.dueDateUpdated);
+      setShowDueInPopover(false);
+      setShowSchedulePopover(false);
+      onPaymentAdded(); // refresh parent
+      setTimeout(() => setDueDateMessage(null), 3000);
+    } catch (err) {
+      setDueDateMessage(t.dueDateFailed);
+      setTimeout(() => setDueDateMessage(null), 3000);
+    }
+  };
+
+  const handleDueIn = (days: number) => {
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    const formatted = date.toISOString().split('T')[0];
+    handleUpdateDueDate(formatted);
+  };
+
   const handleSendReceipt = async () => {
     if (!emailReceiptData.to) {
       setError(t.receiptFailed + ' - No email address');
@@ -533,16 +588,62 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
               <FileText className="h-5 w-5 text-gray-500" />
               <h3 className="text-base font-semibold text-gray-800 uppercase tracking-wide">{t.payments}</h3>
             </div>
-            <div className="flex items-center space-x-2">
-              <button className="px-3 py-1 text-sm font-medium text-white bg-cyan-500 rounded hover:bg-cyan-600">
+            <div className="flex items-center space-x-2 relative">
+              <button 
+                onClick={handleDueNow}
+                className="px-3 py-1 text-sm font-medium text-white bg-cyan-500 rounded hover:bg-cyan-600"
+              >
                 {t.dueNow}
               </button>
-              <button className="px-3 py-1 text-sm font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200">
+              <button 
+                onClick={() => { setShowDueInPopover(!showDueInPopover); setShowSchedulePopover(false); }}
+                className={`px-3 py-1 text-sm font-medium rounded ${showDueInPopover ? 'text-white bg-cyan-500' : 'text-gray-600 bg-gray-100 hover:bg-gray-200'}`}
+              >
                 {t.dueIn}
               </button>
-              <button className="px-3 py-1 text-sm font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200">
+              <button 
+                onClick={() => { setShowSchedulePopover(!showSchedulePopover); setShowDueInPopover(false); }}
+                className={`px-3 py-1 text-sm font-medium rounded ${showSchedulePopover ? 'text-white bg-cyan-500' : 'text-gray-600 bg-gray-100 hover:bg-gray-200'}`}
+              >
                 {t.schedule}
               </button>
+
+              {/* Due In Popover */}
+              {showDueInPopover && (
+                <div className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-10 p-3 min-w-[200px]">
+                  <p className="text-xs font-medium text-gray-500 mb-2 uppercase">{t.dueInDays}</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[7, 14, 30, 60, 90].map(d => (
+                      <button
+                        key={d}
+                        onClick={() => handleDueIn(d)}
+                        className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-50 rounded hover:bg-cyan-50 hover:text-cyan-700 border border-gray-200"
+                      >
+                        {d} {t.days}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Schedule Popover */}
+              {showSchedulePopover && (
+                <div className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-10 p-3 min-w-[220px]">
+                  <p className="text-xs font-medium text-gray-500 mb-2 uppercase">{t.setDueDate}</p>
+                  <input
+                    type="date"
+                    value={scheduleDate}
+                    onChange={(e) => setScheduleDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-700 text-sm mb-2"
+                  />
+                  <button
+                    onClick={() => handleUpdateDueDate(scheduleDate)}
+                    className="w-full px-3 py-1.5 text-sm font-medium text-white bg-cyan-500 rounded hover:bg-cyan-600"
+                  >
+                    {t.setDueDate}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           
@@ -568,6 +669,13 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
               {error}
+            </div>
+          )}
+
+          {/* Due Date Update Message */}
+          {dueDateMessage && (
+            <div className={`px-4 py-3 rounded-lg mb-4 ${dueDateMessage === t.dueDateUpdated ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+              {dueDateMessage}
             </div>
           )}
 
