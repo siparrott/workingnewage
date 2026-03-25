@@ -584,18 +584,21 @@ const InvoicesPage: React.FC = () => {
             fetchInvoices();
             setEditingInvoiceId(null);
           }}
-          editingInvoice={invoices.find(inv => inv.id === editingInvoiceId) ? {
-            id: editingInvoiceId,
-            client_id: invoices.find(inv => inv.id === editingInvoiceId)?.client_id || '',
-            due_date: invoices.find(inv => inv.id === editingInvoiceId)?.due_date || '',
-            payment_terms: 'Net 30',
-            currency: 'EUR',
-            notes: invoices.find(inv => inv.id === editingInvoiceId)?.notes || '',
-            discount_type: 'fixed',
-            discount_value: 0,
-            discount_amount: 0,
-            items: []
-          } : undefined}
+          editingInvoice={invoices.find(inv => inv.id === editingInvoiceId) ? (() => {
+            const inv = invoices.find(inv => inv.id === editingInvoiceId)!;
+            return {
+              id: editingInvoiceId,
+              client_id: inv.client_id || '',
+              due_date: inv.due_date || '',
+              payment_terms: 'Net 30',
+              currency: 'EUR',
+              notes: inv.notes || '',
+              discount_type: 'fixed' as const,
+              discount_value: 0,
+              discount_amount: 0,
+              items: []
+            };
+          })() : undefined}
         />
       )}
     </AdminLayout>

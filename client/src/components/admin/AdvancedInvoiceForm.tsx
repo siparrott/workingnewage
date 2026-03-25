@@ -364,7 +364,8 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
         const items = data.items || invoice.items || [];
         
         // Find the client for this invoice - convert both to string for comparison
-        const invoiceClientId = invoice.client_id ? String(invoice.client_id) : null;
+        // Support both camelCase (Drizzle ORM) and snake_case field names
+        const invoiceClientId = invoice.client_id || invoice.clientId ? String(invoice.client_id || invoice.clientId) : null;
         console.log('🔍 Looking for client:', invoiceClientId, 'in', clients.length, 'clients');
         
         if (invoiceClientId) {
@@ -382,22 +383,24 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
         }
         
         // Load invoice data into form
+        // Support both camelCase (from Drizzle ORM) and snake_case field names
+        const dueDate = invoice.due_date || invoice.dueDate;
         setFormData({
           client_id: invoiceClientId || '',
-          due_date: invoice.due_date ? new Date(invoice.due_date).toISOString().split('T')[0] : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          payment_terms: invoice.payment_terms || 'Net 30',
+          due_date: dueDate ? new Date(dueDate).toISOString().split('T')[0] : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          payment_terms: invoice.payment_terms || invoice.paymentTerms || 'Net 30',
           currency: invoice.currency || 'EUR',
           notes: invoice.notes || '',
-          footer_text: invoice.footer_text || '',
-          discount_type: invoice.discount_type || 'fixed',
-          discount_value: parseFloat(invoice.discount_value || '0') || 0,
-          discount_amount: parseFloat(invoice.discount_amount || '0') || 0,
+          footer_text: invoice.footer_text || invoice.footerText || '',
+          discount_type: invoice.discount_type || invoice.discountType || 'fixed',
+          discount_value: parseFloat(invoice.discount_value || invoice.discountValue || '0') || 0,
+          discount_amount: parseFloat(invoice.discount_amount || invoice.discountAmount || '0') || 0,
           items: items.length > 0 ? items.map((item: any, index: number) => ({
             id: item.id || String(index + 1),
             description: item.description || '',
             quantity: parseFloat(item.quantity) || 1,
-            unit_price: parseFloat(item.unit_price) || 0,
-            tax_rate: parseFloat(item.tax_rate) || 0
+            unit_price: parseFloat(item.unit_price || item.unitPrice) || 0,
+            tax_rate: parseFloat(item.tax_rate || item.taxRate) || 0
           })) : [{
             id: '1',
             description: '',
@@ -406,7 +409,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
             tax_rate: getLastUsedVatRate()
           }]
         });
-        console.log('✅ Form data loaded');
+        console.log('✅ Form data loaded with', items.length, 'items');
       } else {
         console.error('❌ Failed to fetch invoice:', response.status);
       }
