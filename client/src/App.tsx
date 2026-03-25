@@ -597,6 +597,10 @@ function App() {
                   element={<Navigate to="/admin/calendar" replace />}
                 />
                 <Route
+                  path="/admin/gallery"
+                  element={<Navigate to="/admin/galleries" replace />}
+                />
+                <Route
                   path="/admin/blog"
                   element={
                     <NeonProtectedRoute>

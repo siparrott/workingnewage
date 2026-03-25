@@ -437,7 +437,7 @@ const AdminDashboardPage: React.FC = () => {
           <span className="text-sm font-medium">Create Invoice</span>
         </button>
         <button
-          onClick={() => navigate('/admin/gallery')}
+          onClick={() => navigate('/admin/galleries')}
           className="flex items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
         >
           <Camera className="h-5 w-5 text-orange-600 mr-2" />
