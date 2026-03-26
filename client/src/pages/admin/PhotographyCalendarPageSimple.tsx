@@ -73,14 +73,25 @@ interface DashboardStats {
   newLeads?: number;
 }
 
+// Get UTC offset in hours for a given IANA timezone on a specific date
+const getTimezoneOffsetHours = (timezone: string, date: Date): number => {
+  try {
+    const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
+    const tzDate = new Date(date.toLocaleString('en-US', { timeZone: timezone }));
+    return (tzDate.getTime() - utcDate.getTime()) / 3600000;
+  } catch {
+    return 1; // default CET
+  }
+};
+
 // Golden Hour calculation returning formatted windows plus raw Date objects for scheduling suggestions
 // Default coordinates: Vienna, Austria (48.2082°N, 16.3738°E)
-const calculateGoldenHour = (date: Date, latitude: number = 48.2082, longitude: number = 16.3738) => {
+const calculateGoldenHour = (date: Date, latitude: number = 48.2082, longitude: number = 16.3738, utcOffsetHours: number = 1) => {
   const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000);
   const solarDeclination = 23.45 * Math.sin((2 * Math.PI * (284 + dayOfYear)) / 365) * Math.PI / 180;
   const latRad = latitude * Math.PI / 180;
   const hourAngle = Math.acos(-Math.tan(latRad) * Math.tan(solarDeclination));
-  const solarNoon = 12 - (longitude / 15);
+  const solarNoon = 12 - (longitude / 15) + utcOffsetHours;
   const sunriseHour = solarNoon - (hourAngle * 12 / Math.PI);
   const sunsetHour = solarNoon + (hourAngle * 12 / Math.PI);
   const morningGoldenStart = sunriseHour;
@@ -675,13 +686,14 @@ const PhotographyCalendarPage: React.FC = () => {
           const [plat, plon] = formData.locationCoordinates.split(',').map(parseFloat);
             if (!isNaN(plat) && !isNaN(plon)) { lat = plat; lon = plon; }
         }
-        const golden = calculateGoldenHour(base, lat, lon);
+        const tzOff = getTimezoneOffsetHours(studioLocation.timezone, base);
+        const golden = calculateGoldenHour(base, lat, lon, tzOff);
         const now = new Date();
         let target = golden.windows.evening.start > now ? golden.windows.evening.start : golden.windows.morning.start;
         if (golden.windows.evening.end < now) {
           // choose tomorrow morning
           const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-          const goldenTomorrow = calculateGoldenHour(tomorrow, lat, lon);
+          const goldenTomorrow = calculateGoldenHour(tomorrow, lat, lon, tzOff);
           target = goldenTomorrow.windows.morning.start;
         }
         const tzOffsetMs = target.getTimezoneOffset() * 60000;
@@ -989,8 +1001,8 @@ const PhotographyCalendarPage: React.FC = () => {
                 <h4 className="font-medium text-gray-900">Golden Hour Optimization</h4>
                 <div className="text-sm text-gray-700 mt-1">
                   <p className="text-xs text-gray-500">Today in {studioLocation.city}:</p>
-                  <p>🌅 Morning: <span className="font-medium">{calculateGoldenHour(new Date(), studioLocation.latitude, studioLocation.longitude).morning}</span></p>
-                  <p>🌇 Evening: <span className="font-medium">{calculateGoldenHour(new Date(), studioLocation.latitude, studioLocation.longitude).evening}</span></p>
+                  <p>🌅 Morning: <span className="font-medium">{calculateGoldenHour(new Date(), studioLocation.latitude, studioLocation.longitude, getTimezoneOffsetHours(studioLocation.timezone, new Date())).morning}</span></p>
+                  <p>🌇 Evening: <span className="font-medium">{calculateGoldenHour(new Date(), studioLocation.latitude, studioLocation.longitude, getTimezoneOffsetHours(studioLocation.timezone, new Date())).evening}</span></p>
                 </div>
               </div>
             </div>
@@ -1056,14 +1068,25 @@ const PhotographyCalendarPage: React.FC = () => {
                 </div>
               </div>
             </div>
-            {/* Workflow Automation - Show delivery/editing status */}
+            {/* Workflow Automation - Show delivery/editing status (recent completed sessions only) */}
             <div className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
               <CheckCircle className="w-5 h-5 text-blue-600 mt-1" />
               <div>
                 <h4 className="font-medium text-gray-900">Workflow Automation</h4>
                 <div className="text-sm text-gray-700 mt-1">
-                  <p>📸 {sessions.filter(s => s.editingStatus === 'pending' || s.editingStatus === 'in_progress').length} in editing queue</p>
-                  <p>📬 {sessions.filter(s => s.deliveryStatus === 'pending').length} pending delivery</p>
+                  {(() => {
+                    const cutoff = new Date();
+                    cutoff.setDate(cutoff.getDate() - 90);
+                    const recent = sessions.filter(s => s.status === 'completed' && new Date(s.startTime) >= cutoff);
+                    const editing = recent.filter(s => s.editingStatus === 'pending' || s.editingStatus === 'in_progress').length;
+                    const delivery = recent.filter(s => s.editingStatus === 'completed' && s.deliveryStatus === 'pending').length;
+                    return (
+                      <>
+                        <p>📸 {editing} in editing queue</p>
+                        <p>📬 {delivery} pending delivery</p>
+                      </>
+                    );
+                  })()}
                   <p className="text-xs text-gray-500 mt-1">{stats.pendingDeposits} deposits pending</p>
                 </div>
               </div>
@@ -1277,7 +1300,7 @@ const PhotographyCalendarPage: React.FC = () => {
                       {(() => {
                         const sessionDate = new Date(formData.startTime);
                         // Vienna, Austria coordinates for Golden Hour calculation
-                        const goldenHours = calculateGoldenHour(sessionDate, 48.2082, 16.3738);
+                        const goldenHours = calculateGoldenHour(sessionDate, studioLocation.latitude, studioLocation.longitude, getTimezoneOffsetHours(studioLocation.timezone, sessionDate));
                         return (
                           <div className="text-xs text-yellow-700 space-y-1">
                             <p><strong>Morning Golden Hour:</strong> {goldenHours.morning}</p>

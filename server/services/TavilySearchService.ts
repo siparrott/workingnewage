@@ -46,15 +46,19 @@ export class TavilySearchService {
     maxResults: number = 12
   ): Promise<CompetitorSearchResult[]> {
     console.log(`🔍 Tavily: Searching for photographers in ${location}...`);
+    console.log(`   API key configured: ${this.apiKey ? 'Yes (' + this.apiKey.substring(0, 8) + '...)' : 'NO!'}`);
 
     // Build search queries for different services
     const searchQueries = this.buildSearchQueries(location, services);
     const allResults: CompetitorSearchResult[] = [];
     const seenDomains = new Set<string>();
+    const errors: string[] = [];
 
     for (const query of searchQueries) {
       try {
+        console.log(`   🔎 Query: "${query}"`);
         const results = await this.search(query, Math.ceil(maxResults / searchQueries.length) + 2);
+        console.log(`   📋 Got ${results.length} results`);
         
         for (const result of results) {
           const domain = this.extractDomain(result.url);
@@ -76,7 +80,13 @@ export class TavilySearchService {
         await this.delay(500);
       } catch (error: any) {
         console.error(`  ❌ Search failed for "${query}":`, error.message);
+        errors.push(error.message);
       }
+    }
+
+    // If ALL queries failed, throw with details so the session records the reason
+    if (allResults.length === 0 && errors.length > 0) {
+      throw new Error(`All Tavily searches failed: ${errors[0]}`);
     }
 
     // Sort by relevance and return top results
@@ -120,9 +130,9 @@ export class TavilySearchService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify({
-        api_key: this.apiKey,
         query,
         search_depth: 'advanced', // Gets more content from pages
         include_answer: false,
@@ -154,13 +164,20 @@ export class TavilySearchService {
     const queries: string[] = [];
     
     // German search terms (Austria)
+    // Keys support both short IDs (family) and full display names (Family Portrait)
     const serviceTermsDE: Record<string, string[]> = {
-      family: ['Familienfotograf', 'Familienfotografie'],
-      portrait: ['Portraitfotograf', 'Porträtfotografie'],
-      wedding: ['Hochzeitsfotograf', 'Hochzeitsfotografie'],
-      newborn: ['Neugeborenenfotograf', 'Babyfotograf', 'Newborn Fotograf'],
-      corporate: ['Business Fotograf', 'Unternehmensfotografie'],
-      event: ['Eventfotograf', 'Veranstaltungsfotografie'],
+      'family': ['Familienfotograf', 'Familienfotografie'],
+      'family portrait': ['Familienfotograf', 'Familienfotografie'],
+      'portrait': ['Portraitfotograf', 'Porträtfotografie'],
+      'portrait photography': ['Portraitfotograf', 'Porträtfotografie'],
+      'wedding': ['Hochzeitsfotograf', 'Hochzeitsfotografie'],
+      'wedding photography': ['Hochzeitsfotograf', 'Hochzeitsfotografie'],
+      'newborn': ['Neugeborenenfotograf', 'Babyfotograf', 'Newborn Fotograf'],
+      'newborn photography': ['Neugeborenenfotograf', 'Babyfotograf', 'Newborn Fotograf'],
+      'corporate': ['Business Fotograf', 'Unternehmensfotografie'],
+      'corporate photography': ['Business Fotograf', 'Unternehmensfotografie'],
+      'event': ['Eventfotograf', 'Veranstaltungsfotografie'],
+      'event photography': ['Eventfotograf', 'Veranstaltungsfotografie'],
     };
 
     // Main query with pricing intent
@@ -168,7 +185,8 @@ export class TavilySearchService {
 
     // Service-specific queries
     for (const service of services) {
-      const terms = serviceTermsDE[service] || [service];
+      const key = service.toLowerCase();
+      const terms = serviceTermsDE[key] || [service];
       queries.push(`${terms[0]} ${location} Preise`);
     }
 

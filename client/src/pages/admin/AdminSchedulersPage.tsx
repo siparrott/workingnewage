@@ -91,6 +91,7 @@ export default function AdminSchedulersPage() {
   // Form state
   const [formData, setFormData] = useState({
     name: '',
+    slug: '',
     description: '',
     sessionType: 'portrait',
     duration: 60,
@@ -111,6 +112,9 @@ export default function AdminSchedulersPage() {
     autoApprove: true,
     sendReminders: true,
     reminderHours: 24,
+    reminderTimings: [] as Array<{ value: number; unit: string }>,
+    reminderEmailSubject: '',
+    reminderEmailBody: '',
     confirmationMessage: '',
     brandName: '',
     brandColor: '#0d9488'
@@ -291,6 +295,7 @@ export default function AdminSchedulersPage() {
   const resetForm = () => {
     setFormData({
       name: '',
+      slug: '',
       description: '',
       sessionType: 'portrait',
       duration: 60,
@@ -311,6 +316,9 @@ export default function AdminSchedulersPage() {
       autoApprove: true,
       sendReminders: true,
       reminderHours: 24,
+      reminderTimings: [],
+      reminderEmailSubject: '',
+      reminderEmailBody: '',
       confirmationMessage: '',
       brandName: '',
       brandColor: '#0d9488'
@@ -320,6 +328,7 @@ export default function AdminSchedulersPage() {
   const openEditModal = (scheduler: Scheduler) => {
     setFormData({
       name: scheduler.name,
+      slug: scheduler.slug || '',
       description: scheduler.description || '',
       sessionType: scheduler.sessionType,
       duration: scheduler.duration,
@@ -340,6 +349,9 @@ export default function AdminSchedulersPage() {
       autoApprove: scheduler.autoApprove,
       sendReminders: scheduler.sendReminders,
       reminderHours: scheduler.reminderHours,
+      reminderTimings: (scheduler as any).reminderTimings || [],
+      reminderEmailSubject: (scheduler as any).reminderEmailSubject || '',
+      reminderEmailBody: (scheduler as any).reminderEmailBody || '',
       confirmationMessage: (scheduler as any).confirmationMessage || '',
       brandName: scheduler.brandName || '',
       brandColor: scheduler.brandColor || '#0d9488'
@@ -382,6 +394,27 @@ export default function AdminSchedulersPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
                 placeholder="e.g., Shooting, Consultation"
               />
+            </div>
+
+            {/* Custom Slug (URL) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Booking URL Slug {editingScheduler && <span className="text-gray-400 font-normal">(change to customise your link)</span>}
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500 whitespace-nowrap">{window.location.origin}/book/</span>
+                <input
+                  type="text"
+                  value={formData.slug}
+                  onChange={(e) => {
+                    const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/--+/g, '-');
+                    setFormData({ ...formData, slug: val });
+                  }}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                  placeholder={formData.name ? formData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : 'auto-generated-from-name'}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Leave empty to auto-generate from the name. Use only lowercase letters, numbers, and hyphens.</p>
             </div>
 
             <div>
@@ -812,22 +845,94 @@ export default function AdminSchedulersPage() {
             {/* Email Reminder Settings (visible when sendReminders is checked) */}
             {formData.sendReminders && (
               <div className="ml-6 space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                {/* Multiple Reminder Timings */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Reminder Timing</label>
-                  <select
-                    value={formData.reminderHours}
-                    onChange={(e) => setFormData({ ...formData, reminderHours: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Reminder Schedule</label>
+                  <p className="text-xs text-gray-500 mb-2">Add one or more reminders to send before the appointment.</p>
+                  {(formData.reminderTimings.length > 0 ? formData.reminderTimings : [{ value: formData.reminderHours >= 24 ? formData.reminderHours / 24 : formData.reminderHours, unit: formData.reminderHours >= 24 ? 'days' : 'hours' }]).map((timing, idx) => (
+                    <div key={idx} className="flex items-center gap-2 mb-2">
+                      <input
+                        type="number"
+                        min={1}
+                        value={timing.value}
+                        onChange={(e) => {
+                          const timings = formData.reminderTimings.length > 0
+                            ? [...formData.reminderTimings]
+                            : [{ value: formData.reminderHours >= 24 ? formData.reminderHours / 24 : formData.reminderHours, unit: formData.reminderHours >= 24 ? 'days' : 'hours' }];
+                          timings[idx] = { ...timings[idx], value: parseInt(e.target.value) || 1 };
+                          setFormData({ ...formData, reminderTimings: timings });
+                        }}
+                        className="w-20 px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 text-sm"
+                      />
+                      <select
+                        value={timing.unit}
+                        onChange={(e) => {
+                          const timings = formData.reminderTimings.length > 0
+                            ? [...formData.reminderTimings]
+                            : [{ value: formData.reminderHours >= 24 ? formData.reminderHours / 24 : formData.reminderHours, unit: formData.reminderHours >= 24 ? 'days' : 'hours' }];
+                          timings[idx] = { ...timings[idx], unit: e.target.value };
+                          setFormData({ ...formData, reminderTimings: timings });
+                        }}
+                        className="px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 text-sm"
+                      >
+                        <option value="hours">hours before</option>
+                        <option value="days">days before</option>
+                        <option value="weeks">weeks before</option>
+                      </select>
+                      {(formData.reminderTimings.length > 1 || idx > 0) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const timings = [...(formData.reminderTimings.length > 0 ? formData.reminderTimings : [{ value: formData.reminderHours >= 24 ? formData.reminderHours / 24 : formData.reminderHours, unit: formData.reminderHours >= 24 ? 'days' : 'hours' }])];
+                            timings.splice(idx, 1);
+                            setFormData({ ...formData, reminderTimings: timings });
+                          }}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const timings = formData.reminderTimings.length > 0
+                        ? [...formData.reminderTimings]
+                        : [{ value: formData.reminderHours >= 24 ? formData.reminderHours / 24 : formData.reminderHours, unit: formData.reminderHours >= 24 ? 'days' : 'hours' }];
+                      timings.push({ value: 2, unit: 'hours' });
+                      setFormData({ ...formData, reminderTimings: timings });
+                    }}
+                    className="text-sm text-teal-600 hover:text-teal-700 flex items-center gap-1"
                   >
-                    <option value={1}>1 hour before</option>
-                    <option value={2}>2 hours before</option>
-                    <option value={4}>4 hours before</option>
-                    <option value={12}>12 hours before</option>
-                    <option value={24}>24 hours before (1 day)</option>
-                    <option value={48}>48 hours before (2 days)</option>
-                    <option value={72}>72 hours before (3 days)</option>
-                    <option value={168}>1 week before</option>
-                  </select>
+                    <Plus className="w-3 h-3" /> Add another reminder
+                  </button>
+                </div>
+
+                {/* Custom Reminder Email Template */}
+                <div className="pt-3 border-t border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Reminder Email Subject</label>
+                  <input
+                    type="text"
+                    value={formData.reminderEmailSubject}
+                    onChange={(e) => setFormData({ ...formData, reminderEmailSubject: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 text-sm"
+                    placeholder="Reminder: Your {{session_type}} session on {{date}}"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Reminder Email Body</label>
+                  <textarea
+                    value={formData.reminderEmailBody}
+                    onChange={(e) => setFormData({ ...formData, reminderEmailBody: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 text-sm"
+                    rows={5}
+                    placeholder={`Hi {{client_name}},\n\nThis is a friendly reminder about your upcoming {{session_type}} session.\n\n📅 Date: {{date}}\n🕐 Time: {{time}}\n📍 Location: {{location}}\n\nWe look forward to seeing you!\n\nBest regards,\n{{brand_name}}`}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Placeholders: {'{{client_name}}'}, {'{{date}}'}, {'{{time}}'}, {'{{location}}'}, {'{{session_type}}'}, {'{{brand_name}}'}, {'{{booking_link}}'}
+                  </p>
                 </div>
 
                 <div>
@@ -835,9 +940,9 @@ export default function AdminSchedulersPage() {
                   <textarea
                     value={formData.confirmationMessage}
                     onChange={(e) => setFormData({ ...formData, confirmationMessage: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 text-sm"
                     rows={3}
-                    placeholder="Custom message included in the confirmation and reminder emails. Leave empty for the default message."
+                    placeholder="Custom message included in the booking confirmation email. Leave empty for the default."
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Available placeholders: {'{{client_name}}'}, {'{{date}}'}, {'{{time}}'}, {'{{location}}'}, {'{{session_type}}'}

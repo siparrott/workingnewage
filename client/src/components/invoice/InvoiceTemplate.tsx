@@ -349,7 +349,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             )}
             {invoice.client?.city && (
               <div style={{ color: '#666' }}>
-                {invoice.client.city}, {invoice.client?.country || 'Austria'}
+                {invoice.client.zip ? `${invoice.client.zip} ` : ''}{invoice.client.city}, {invoice.client?.country || 'Austria'}
               </div>
             )}
             <div style={{ color: '#666', marginTop: '6px' }}>
@@ -382,7 +382,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             )}
             {invoice.client?.city && (
               <div style={{ color: '#666' }}>
-                {invoice.client.city}, {invoice.client?.country || 'Austria'}
+                {invoice.client.zip ? `${invoice.client.zip} ` : ''}{invoice.client.city}, {invoice.client?.country || 'Austria'}
               </div>
             )}
             <div style={{ color: '#666', marginTop: '6px' }}>

@@ -956,6 +956,71 @@ const AdminPriceWizardPage: React.FC = () => {
                               )}
                             </div>
 
+                            {/* Sources / Provenance */}
+                            {(() => {
+                              const serviceKey = suggestion.service_type.toLowerCase();
+                              const relevantPrices = prices.filter(p => {
+                                const pService = (p.service_type || '').toLowerCase();
+                                return pService === serviceKey || pService.includes(serviceKey) || serviceKey.includes(pService);
+                              });
+                              // Deduplicate by competitor
+                              const sourceMap = new Map<string, { name: string; url: string; prices: { amount: number; currency: string; confidence: number }[] }>();
+                              for (const p of relevantPrices) {
+                                const key = p.competitor_name || p.website_url;
+                                if (!sourceMap.has(key)) {
+                                  sourceMap.set(key, { name: p.competitor_name, url: p.website_url, prices: [] });
+                                }
+                                sourceMap.get(key)!.prices.push({ amount: Number(p.price_amount), currency: p.currency || 'EUR', confidence: Number(p.confidence_score) || 0 });
+                              }
+                              const sources = Array.from(sourceMap.values());
+                              if (sources.length === 0) return null;
+                              return (
+                                <div className="mt-4 pt-3 border-t border-gray-100">
+                                  <div className="flex items-center gap-1 mb-2">
+                                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Sources ({sources.length} competitors)</span>
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    {sources.map((src, idx) => (
+                                      <div key={idx} className="flex items-center justify-between text-xs bg-gray-50 rounded px-3 py-1.5">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                          <span className="text-gray-400 font-mono">{idx + 1}.</span>
+                                          {src.url ? (
+                                            <a
+                                              href={src.url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-600 hover:text-blue-800 hover:underline truncate"
+                                              title={src.url}
+                                            >
+                                              {src.name || new URL(src.url).hostname}
+                                            </a>
+                                          ) : (
+                                            <span className="text-gray-700 truncate">{src.name}</span>
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                          {src.prices.map((sp, spIdx) => (
+                                            <span key={spIdx} className="font-medium text-gray-700">
+                                              €{sp.amount.toFixed(0)}
+                                            </span>
+                                          ))}
+                                          {src.prices[0]?.confidence > 0 && (
+                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                              src.prices[0].confidence >= 0.7 ? 'bg-green-100 text-green-700' :
+                                              src.prices[0].confidence >= 0.4 ? 'bg-yellow-100 text-yellow-700' :
+                                              'bg-red-100 text-red-700'
+                                            }`}>
+                                              {Math.round(src.prices[0].confidence * 100)}%
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
                             {/* Action Buttons */}
                             {suggestion.status === 'pending_review' && (
                               <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">

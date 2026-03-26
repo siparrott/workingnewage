@@ -162,8 +162,9 @@ const AdminDashboardPage: React.FC = () => {
         fetch('/api/crm/dashboard/metrics'),
         // Pull a small recent window of leads server-side for efficiency
         fetch('/api/leads/list?status=any&limit=50&offset=0'),
-        fetch('/api/photography/sessions'),
-        fetch('/api/crm/invoices')
+        // Only fetch future sessions (upcoming bookings) to avoid loading 24k+ historical records
+        fetch(`/api/photography/sessions?from=${new Date().toISOString()}`),
+        fetch('/api/crm/invoices?limit=20')
       ]);
 
       // Process API responses

@@ -1165,16 +1165,16 @@ const AdminInboxPage: React.FC = () => {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex-shrink-0">
             <h1 className="text-2xl font-semibold text-gray-900">Inbox</h1>
             <p className="text-gray-600">Manage client messages and inquiries</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0 sticky top-0 z-10">
             <button 
               onClick={handleRefreshEmails}
               disabled={isRefreshing}
-              className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+              className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 whitespace-nowrap"
             >
               <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
               <span>{isRefreshing ? 'Syncing...' : 'Sync'}</span>
@@ -1182,7 +1182,7 @@ const AdminInboxPage: React.FC = () => {
             <button 
               onClick={handleAutoLinkAll}
               disabled={isAutoLinking}
-              className="flex items-center space-x-2 px-4 py-2 border border-green-300 text-green-700 rounded-md hover:bg-green-50 disabled:opacity-50"
+              className="flex items-center space-x-2 px-4 py-2 border border-green-300 text-green-700 rounded-md hover:bg-green-50 disabled:opacity-50 whitespace-nowrap"
               title="Auto-link all unlinked emails to matching clients by email address"
             >
               <Link size={16} className={isAutoLinking ? 'animate-pulse' : ''} />
@@ -1191,7 +1191,7 @@ const AdminInboxPage: React.FC = () => {
             <button 
               onClick={handleBulkDeleteUnread}
               disabled={isBulkDeleting}
-              className="flex items-center space-x-2 px-4 py-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50 disabled:opacity-50"
+              className="flex items-center space-x-2 px-4 py-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50 disabled:opacity-50 whitespace-nowrap"
               title="Permanently delete all unread emails"
             >
               <Trash2 size={16} className={isBulkDeleting ? 'animate-pulse' : ''} />
@@ -1200,7 +1200,7 @@ const AdminInboxPage: React.FC = () => {
             <button 
               onClick={handleSpamFilter}
               disabled={isSpamFiltering}
-              className="flex items-center space-x-2 px-4 py-2 border border-orange-300 text-orange-700 rounded-md hover:bg-orange-50 disabled:opacity-50"
+              className="flex items-center space-x-2 px-4 py-2 border border-orange-300 text-orange-700 rounded-md hover:bg-orange-50 disabled:opacity-50 whitespace-nowrap"
               title="Scan inbox for spam and remove detected spam emails"
             >
               <AlertCircle size={16} className={isSpamFiltering ? 'animate-spin' : ''} />
@@ -1208,21 +1208,22 @@ const AdminInboxPage: React.FC = () => {
             </button>
             <button 
               onClick={() => { setShowSpamRules(true); fetchSpamRules(); }}
-              className="flex items-center space-x-2 px-3 py-2 border border-purple-300 text-purple-700 rounded-md hover:bg-purple-50"
+              className="flex items-center space-x-2 px-3 py-2 border border-purple-300 text-purple-700 rounded-md hover:bg-purple-50 whitespace-nowrap"
               title="Manage blocked senders, domains, and keywords"
             >
               <Shield size={16} />
               <span>Spam Rules</span>
-            </button>            <button 
+            </button>
+            <button 
               onClick={() => setShowSettings(true)}
-              className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+              className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 whitespace-nowrap"
             >
               <Settings size={16} />
               <span>Settings</span>
             </button>
             <button
               onClick={() => setShowComposer(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 whitespace-nowrap"
             >
               <Plus size={16} />
               <span>Compose</span>

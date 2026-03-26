@@ -83,6 +83,7 @@ router.post('/', async (req: Request, res: Response) => {
   try {
     const {
       name,
+      slug: customSlug,
       description,
       sessionType = 'portrait',
       duration = 60,
@@ -105,6 +106,9 @@ router.post('/', async (req: Request, res: Response) => {
       autoApprove = true,
       sendReminders = true,
       reminderHours = 24,
+      reminderTimings,
+      reminderEmailSubject,
+      reminderEmailBody,
       brandName,
       brandColor = '#0d9488'
     } = req.body;
@@ -113,8 +117,8 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Scheduler name is required' });
     }
 
-    // Generate URL-friendly slug
-    const baseSlug = name.toLowerCase()
+    // Use custom slug if provided, otherwise generate from name
+    const baseSlug = (customSlug || name).toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
     
@@ -167,6 +171,9 @@ router.post('/', async (req: Request, res: Response) => {
       autoApprove,
       sendReminders,
       reminderHours,
+      reminderTimings: reminderTimings || null,
+      reminderEmailSubject: reminderEmailSubject || null,
+      reminderEmailBody: reminderEmailBody || null,
       brandName,
       brandColor,
       isActive: true,
@@ -190,6 +197,24 @@ router.put('/:id', async (req: Request, res: Response) => {
     // Don't allow changing ID
     delete updates.id;
     delete updates.createdAt;
+
+    // Validate slug uniqueness if slug is being changed
+    if (updates.slug !== undefined && updates.slug !== '') {
+      const cleanSlug = updates.slug.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-|-$/g, '').replace(/--+/g, '-');
+      if (!cleanSlug) {
+        return res.status(400).json({ error: 'Invalid slug. Use only lowercase letters, numbers, and hyphens.' });
+      }
+      const existing = await db
+        .select({ id: schedulers.id })
+        .from(schedulers)
+        .where(and(eq(schedulers.slug, cleanSlug), ne(schedulers.id, id)));
+      if (existing.length > 0) {
+        return res.status(409).json({ error: `The slug "${cleanSlug}" is already in use by another scheduler.` });
+      }
+      updates.slug = cleanSlug;
+    } else if (updates.slug === '') {
+      delete updates.slug; // Don't clear slug to empty
+    }
 
     // Convert price to string if provided (empty string → '0' for decimal column)
     if (updates.price !== undefined) {

@@ -987,7 +987,7 @@ function generateInvoiceHTML(invoice: any, client: any): string {
         <p><strong>${client.firstName || ''} ${client.lastName || ''}</strong></p>
         <p>${client.email || ''}</p>
         ${client.address ? `<p>${client.address}</p>` : ''}
-        ${client.city ? `<p>${client.city}, ${client.country || ''}</p>` : ''}
+        ${client.city ? `<p>${client.zip ? client.zip + ' ' : ''}${client.city}, ${client.country || ''}</p>` : ''}
       </div>
 
       <div class="invoice-details">
@@ -1532,7 +1532,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use OAuth-based Google Calendar API instead of hardcoded ICS feed
       const { google } = await import('googleapis');
       const configs = await runSql(
-        `SELECT access_token, refresh_token, calendar_id FROM calendar_sync_settings WHERE sync_enabled = true LIMIT 1`
+        `SELECT id, access_token, refresh_token, calendar_id FROM calendar_sync_settings WHERE sync_enabled = true LIMIT 1`
       );
       
       if (!configs || configs.length === 0) {
@@ -1543,10 +1543,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!syncConfig.access_token || !syncConfig.refresh_token) {
         return res.status(200).json({ success: true, events: [], message: 'Google Calendar OAuth tokens missing' });
       }
-      
+
+      const redirectUri = `${process.env.APP_URL || process.env.BASE_URL || 'http://localhost:3001'}/api/auth/google/callback`;
       const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET
+        process.env.GOOGLE_CLIENT_SECRET,
+        redirectUri
       );
       oauth2Client.setCredentials({
         access_token: syncConfig.access_token,
@@ -1556,19 +1558,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle token refresh - persist new tokens to DB
       oauth2Client.on('tokens', async (tokens: any) => {
         try {
-          const updates: string[] = [];
+          const sets: string[] = [];
           const vals: any[] = [];
-          if (tokens.access_token) { updates.push('access_token = $1'); vals.push(tokens.access_token); }
-          if (tokens.refresh_token) { updates.push(`refresh_token = $${vals.length + 1}`); vals.push(tokens.refresh_token); }
-          if (updates.length > 0) {
-            updates.push(`updated_at = NOW()`);
-            await runSql(`UPDATE calendar_sync_settings SET ${updates.join(', ')} WHERE sync_enabled = true`);
+          let idx = 1;
+          if (tokens.access_token) { sets.push(`access_token = $${idx++}`); vals.push(tokens.access_token); }
+          if (tokens.refresh_token) { sets.push(`refresh_token = $${idx++}`); vals.push(tokens.refresh_token); }
+          if (sets.length > 0) {
+            sets.push('updated_at = NOW()');
+            vals.push(syncConfig.id);
+            await runSql(`UPDATE calendar_sync_settings SET ${sets.join(', ')} WHERE id = $${idx}`, vals);
             console.log('[routes/google-events] Refreshed OAuth tokens saved');
           }
         } catch (err) {
           console.warn('[routes/google-events] Failed to save refreshed tokens:', err);
         }
       });
+
+      // Force a token refresh if the access token might be stale
+      try {
+        const { credentials } = await oauth2Client.refreshAccessToken();
+        oauth2Client.setCredentials(credentials);
+      } catch (refreshErr: any) {
+        console.warn('[routes/google-events] Token refresh failed, trying with existing token:', refreshErr?.message);
+      }
       
       const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
       
@@ -4229,86 +4241,50 @@ Bitte versuchen Sie es später noch einmal.`;
   const metricsAuth: any = (devBypassAuth || disableAuthFlag) ? ((_: any, __: any, next: any) => next()) : authenticateUser;
 
   app.get("/api/crm/dashboard/metrics", metricsAuth, async (_req: Request, res: Response) => {
-    // Helper to guard DB calls and always return an array fallback
-    const safe = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => {
-      try {
-        return await fn();
-      } catch (err: any) {
-        console.warn("[dashboard-metrics] datasource failed:", err?.message || err);
-        return fallback;
-      }
-    };
-
     try {
-      // Fetch with safeguards so a transient DB hiccup doesn't 500 the page
-      const [invoices, leads, sessions, clients] = await Promise.all([
-        safe(() => storage.getCrmInvoices(), [] as any[]),
-        safe(() => storage.getCrmLeads(), [] as any[]),
-        safe(() => storage.getPhotographySessions(), [] as any[]),
-        safe(() => storage.getCrmClients(), [] as any[]),
+      // Use SQL aggregation queries instead of loading all records into memory
+      const [revenueResult, invoiceCountResult, leadResult, sessionResult, clientResult, trendResult] = await Promise.all([
+        // Total paid revenue + avg order value
+        runSql(`SELECT COALESCE(SUM(total::numeric), 0) as total_revenue, COUNT(*) as paid_count FROM crm_invoices WHERE status = 'paid'`),
+        // Total invoice count
+        runSql(`SELECT COUNT(*) as total_count FROM crm_invoices`),
+        // Active leads (new or contacted)
+        runSql(`SELECT COUNT(*) as active_leads FROM crm_leads WHERE LOWER(status) IN ('new', 'contacted')`),
+        // Upcoming sessions (future start_time)
+        runSql(`SELECT COUNT(*) as upcoming FROM photography_sessions WHERE start_time > NOW()`),
+        // Total clients
+        runSql(`SELECT COUNT(*) as total_clients FROM crm_clients`),
+        // Revenue trend last 7 days
+        runSql(`
+          SELECT d::date as date, COALESCE(SUM(i.total::numeric), 0) as value
+          FROM generate_series(CURRENT_DATE - INTERVAL '6 days', CURRENT_DATE, '1 day') AS d
+          LEFT JOIN crm_invoices i ON i.created_at::date = d::date AND i.status = 'paid'
+          GROUP BY d::date
+          ORDER BY d::date ASC
+        `)
       ]);
 
-      // Calculate revenue metrics from PAID invoices only
-      const paidInvoices = (invoices || []).filter((inv: any) => inv?.status === "paid");
-      const toNumber = (v: any) => {
-        const n = parseFloat(v?.toString?.() ?? "0");
-        return Number.isFinite(n) ? n : 0;
-      };
-      const totalRevenue = paidInvoices.reduce((sum: number, invoice: any) => sum + toNumber(invoice.total), 0);
-      const paidRevenue = totalRevenue;
-      const avgOrderValue = paidInvoices.length > 0 ? totalRevenue / paidInvoices.length : 0;
+      const totalRevenue = parseFloat(revenueResult[0]?.total_revenue || '0');
+      const paidCount = parseInt(revenueResult[0]?.paid_count || '0', 10);
+      const avgOrderValue = paidCount > 0 ? totalRevenue / paidCount : 0;
+      const totalInvoices = parseInt(invoiceCountResult[0]?.total_count || '0', 10);
+      const activeLeads = parseInt(leadResult[0]?.active_leads || '0', 10);
+      const upcomingSessions = parseInt(sessionResult[0]?.upcoming || '0', 10);
+      const totalClients = parseInt(clientResult[0]?.total_clients || '0', 10);
 
-      // Calculate trend data from PAID invoices over last 7 days
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-      const parseDate = (v: any): Date | null => {
-        try {
-          const d = new Date(v);
-          return isNaN(d.getTime()) ? null : d;
-        } catch {
-          return null;
-        }
-      };
-
-      const recentInvoices = paidInvoices.filter((invoice: any) => {
-        const created = parseDate(invoice.createdAt || invoice.created_at);
-        return created ? created >= sevenDaysAgo : false;
-      });
-
-      const trendData: Array<{ date: string; value: number }> = [];
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split("T")[0];
-
-        const dayRevenue = recentInvoices.reduce((sum: number, invoice: any) => {
-          const created = parseDate(invoice.createdAt || invoice.created_at);
-          const isSameDay = created ? created.toISOString().split("T")[0] === dateStr : false;
-          return isSameDay ? sum + toNumber(invoice.total) : sum;
-        }, 0);
-
-        trendData.push({ date: dateStr, value: dayRevenue });
-      }
-
-      const activeLeads = (leads || []).filter((lead: any) => {
-        const s = (lead?.status || "").toString().toLowerCase();
-        return s === "new" || s === "contacted";
-      }).length;
-
-      const upcomingSessions = (sessions || []).filter((session: any) => {
-        const start = parseDate(session?.startTime || session?.start_time);
-        return start ? start > new Date() : false;
-      }).length;
+      const trendData = (trendResult || []).map((row: any) => ({
+        date: new Date(row.date).toISOString().split('T')[0],
+        value: parseFloat(row.value || '0')
+      }));
 
       res.json({
-        totalRevenue: Number((totalRevenue || 0).toFixed(2)),
-        paidRevenue: Number((paidRevenue || 0).toFixed(2)),
-        avgOrderValue: Number((avgOrderValue || 0).toFixed(2)),
-        totalInvoices: (invoices || []).length,
-        paidInvoices: paidInvoices.length,
+        totalRevenue: Number(totalRevenue.toFixed(2)),
+        paidRevenue: Number(totalRevenue.toFixed(2)),
+        avgOrderValue: Number(avgOrderValue.toFixed(2)),
+        totalInvoices,
+        paidInvoices: paidCount,
         activeLeads,
-        totalClients: (clients || []).length,
+        totalClients,
         upcomingSessions,
         trendData,
       });
@@ -5336,11 +5312,17 @@ Bitte versuchen Sie es später noch einmal.`;
   app.get("/api/crm/invoices", authenticateUser, async (req: Request, res: Response) => {
     try {
       const clientId = req.query.clientId as string;
+      const limitParam = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
       let invoices = await storage.getCrmInvoices();
       
       // Filter by clientId if provided
       if (clientId) {
         invoices = invoices.filter(inv => inv.client_id === clientId);
+      }
+      
+      // Apply limit if provided (results are already ordered by created_at DESC)
+      if (limitParam && limitParam > 0) {
+        invoices = invoices.slice(0, limitParam);
       }
       
       // Transform the data to match frontend expectations
@@ -7398,29 +7380,28 @@ ${getBizName()} Team`;
 
   // ==================== ADMIN DASHBOARD ====================
   app.get("/api/admin/dashboard-stats", authenticateUser, async (_req: Request, res: Response) => {
-    const safe = async <T>(fn: () => Promise<T>, fallback: T): Promise<T> => {
-      try { return await fn(); } catch { return fallback; }
-    };
-    const countOf = async (arrPromise: Promise<any[]>) => (await safe(() => arrPromise, [])).length;
-
     try {
-      const [sessionsCount, clientsCount, leadsCount] = await Promise.all([
-        countOf(storage.getPhotographySessions()),
-        countOf(storage.getCrmClients()),
-        countOf(storage.getCrmLeads('new'))
+      const [totalRows, upcomingRows, completedRows, revenueRows, depositsRows, leadsRows] = await Promise.all([
+        runSql(`SELECT COUNT(*) as cnt FROM photography_sessions`),
+        runSql(`SELECT COUNT(*) as cnt FROM photography_sessions WHERE start_time >= NOW() AND start_time <= NOW() + interval '30 days' AND status != 'cancelled'`),
+        runSql(`SELECT COUNT(*) as cnt FROM photography_sessions WHERE status = 'completed' AND start_time >= date_trunc('month', NOW()) AND start_time < date_trunc('month', NOW()) + interval '1 month'`),
+        runSql(`SELECT COALESCE(SUM(base_price::numeric), 0) as total FROM photography_sessions WHERE status = 'completed' AND start_time >= date_trunc('month', NOW()) AND start_time < date_trunc('month', NOW()) + interval '1 month'`),
+        runSql(`SELECT COUNT(*) as cnt FROM photography_sessions WHERE deposit_paid = false AND deposit_amount IS NOT NULL AND deposit_amount::numeric > 0 AND start_time >= NOW()`),
+        runSql(`SELECT COUNT(*) as cnt FROM crm_leads WHERE status = 'new'`),
       ]);
 
       res.json({
-        success: true,
-        metrics: {
-          sessions: sessionsCount,
-          clients: clientsCount,
-          newLeads: leadsCount,
-        }
+        totalSessions: parseInt(totalRows?.[0]?.cnt) || 0,
+        upcomingSessions: parseInt(upcomingRows?.[0]?.cnt) || 0,
+        completedSessions: parseInt(completedRows?.[0]?.cnt) || 0,
+        totalRevenue: parseFloat(revenueRows?.[0]?.total) || 0,
+        pendingDeposits: parseInt(depositsRows?.[0]?.cnt) || 0,
+        equipmentConflicts: 0,
+        newLeads: parseInt(leadsRows?.[0]?.cnt) || 0,
       });
     } catch (error) {
       console.error('Dashboard stats error:', error);
-      res.json({ success: false, metrics: { sessions: 0, clients: 0, newLeads: 0 } });
+      res.json({ totalSessions: 0, upcomingSessions: 0, completedSessions: 0, totalRevenue: 0, pendingDeposits: 0, equipmentConflicts: 0, newLeads: 0 });
     }
   });
 

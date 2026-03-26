@@ -987,6 +987,9 @@ export const schedulers = pgTable("schedulers", {
   autoApprove: boolean("auto_approve").default(true), // Auto-confirm or require manual approval
   sendReminders: boolean("send_reminders").default(true),
   reminderHours: integer("reminder_hours").default(24),
+  reminderTimings: jsonb("reminder_timings"), // Array of {value, unit} e.g. [{value:2,unit:'days'},{value:2,unit:'hours'}]
+  reminderEmailSubject: text("reminder_email_subject"), // Custom reminder email subject
+  reminderEmailBody: text("reminder_email_body"), // Custom reminder email body (HTML or plain text)
   
   // Branding
   brandName: text("brand_name"),
