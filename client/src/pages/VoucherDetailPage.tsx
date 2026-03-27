@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
-import { Calendar, Tag, AlertCircle, Info, ShoppingCart, ArrowLeft } from 'lucide-react';
+import { Calendar, Tag, AlertCircle, Info, ArrowLeft } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 interface ApiVoucher {
@@ -112,10 +112,6 @@ const VoucherDetailPage: React.FC = () => {
     const value = parseInt(e.target.value);
     if (!isNaN(value) && value >= 1 && value <= 99) setQuantity(value);
   };
-  
-  const handleCheckout = () => {
-    navigate(`/checkout/voucher/${voucher.id}?quantity=${quantity}`);
-  };
 
   return (
     <Layout>
@@ -209,23 +205,13 @@ const VoucherDetailPage: React.FC = () => {
                       <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002 2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
-                      {language === 'de' ? 'Personalisieren' : 'Personalize'} - €{(voucher.price * quantity).toFixed(2)}
-                    </button>
-                    
-                    {/* Quick Checkout Button - Direct purchase without personalization */}
-                    <button 
-                      onClick={handleCheckout}
-                      className="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
-                    >
-                      <ShoppingCart size={18} className="mr-2" />
-                      {language === 'de' ? 'Schnellkauf' : 'Quick Buy'} - €{(voucher.price * quantity).toFixed(2)}
+                      {language === 'de' ? 'Jetzt kaufen & Personalisieren' : 'Buy Now & Personalize'} - €{(voucher.price * quantity).toFixed(2)}
                     </button>
                   </div>
                   
                   <div className="mt-3 text-center">
                     <p className="text-sm text-gray-600">
-                      💎 <strong>{language === 'de' ? 'Personalisieren:' : 'Personalize:'}</strong> {language === 'de' ? 'Fügen Sie eigene Fotos und Nachrichten hinzu' : 'Add your own photos and messages'}<br/>
-                      ⚡ <strong>{language === 'de' ? 'Schnellkauf:' : 'Quick Buy:'}</strong> {language === 'de' ? 'Sofortiger Kauf ohne Anpassung' : 'Instant purchase without customization'}
+                      💎 {language === 'de' ? 'Wählen Sie ein Design, fügen Sie eine persönliche Nachricht hinzu und zahlen Sie sicher per Karte oder Klarna.' : 'Choose a design, add a personal message, and pay securely via card or Klarna.'}
                     </p>
                   </div>
                 </div>

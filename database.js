@@ -1974,12 +1974,18 @@ if (!connectionString) {
 
     async createVoucherTemplate(data) {
       try {
-        const { name, category, imageUrl, occasion, isActive = true, displayOrder = 0 } = data;
+        const { name, category, imageUrl, occasion, isActive = true, displayOrder = 0,
+                bannerColor, bannerTextColor, fontFamily, messageFontSize,
+                logoUrl, footerText, footerEmail, footerPhone, termsText, layoutStyle } = data;
         const result = await pool.query(`
-          INSERT INTO voucher_templates (name, category, image_url, occasion, is_active, display_order)
-          VALUES ($1, $2, $3, $4, $5, $6)
+          INSERT INTO voucher_templates (name, category, image_url, occasion, is_active, display_order,
+            banner_color, banner_text_color, font_family, message_font_size,
+            logo_url, footer_text, footer_email, footer_phone, terms_text, layout_style)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
           RETURNING *
-        `, [name, category, imageUrl || data.image_url, occasion, isActive ?? data.is_active ?? true, displayOrder ?? data.display_order ?? 0]);
+        `, [name, category, imageUrl || data.image_url, occasion, isActive ?? data.is_active ?? true, displayOrder ?? data.display_order ?? 0,
+            bannerColor || null, bannerTextColor || null, fontFamily || null, messageFontSize || null,
+            logoUrl || null, footerText || null, footerEmail || null, footerPhone || null, termsText || null, layoutStyle || null]);
         return result.rows[0];
       } catch (error) {
         console.error('❌ Error creating voucher template:', error.message);
@@ -1995,6 +2001,16 @@ if (!connectionString) {
         const occasion = data.occasion ?? null;
         const is_active = (data.is_active ?? data.isActive) ?? null;
         const display_order = (data.display_order ?? data.displayOrder) ?? null;
+        const banner_color = (data.banner_color ?? data.bannerColor) ?? null;
+        const banner_text_color = (data.banner_text_color ?? data.bannerTextColor) ?? null;
+        const font_family = (data.font_family ?? data.fontFamily) ?? null;
+        const message_font_size = (data.message_font_size ?? data.messageFontSize) ?? null;
+        const logo_url = (data.logo_url ?? data.logoUrl) ?? null;
+        const footer_text = (data.footer_text ?? data.footerText) ?? null;
+        const footer_email = (data.footer_email ?? data.footerEmail) ?? null;
+        const footer_phone = (data.footer_phone ?? data.footerPhone) ?? null;
+        const terms_text = (data.terms_text ?? data.termsText) ?? null;
+        const layout_style = (data.layout_style ?? data.layoutStyle) ?? null;
 
         const result = await pool.query(`
           UPDATE voucher_templates SET
@@ -2004,10 +2020,22 @@ if (!connectionString) {
             occasion = COALESCE($5, occasion),
             is_active = COALESCE($6, is_active),
             display_order = COALESCE($7, display_order),
+            banner_color = COALESCE($8, banner_color),
+            banner_text_color = COALESCE($9, banner_text_color),
+            font_family = COALESCE($10, font_family),
+            message_font_size = COALESCE($11, message_font_size),
+            logo_url = COALESCE($12, logo_url),
+            footer_text = COALESCE($13, footer_text),
+            footer_email = COALESCE($14, footer_email),
+            footer_phone = COALESCE($15, footer_phone),
+            terms_text = COALESCE($16, terms_text),
+            layout_style = COALESCE($17, layout_style),
             updated_at = NOW()
           WHERE id = $1
           RETURNING *
-        `, [id, name, category, image_url, occasion, is_active, display_order]);
+        `, [id, name, category, image_url, occasion, is_active, display_order,
+            banner_color, banner_text_color, font_family, message_font_size,
+            logo_url, footer_text, footer_email, footer_phone, terms_text, layout_style]);
 
         return result.rows[0];
       } catch (error) {

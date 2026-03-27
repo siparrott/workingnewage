@@ -309,6 +309,7 @@ export class StripeVoucherService {
       const message = String(personalization.message || personalization.personalMessage || '').trim();
       const expiryDate = String(personalization.expiryDate || '').trim();
       const designImage = String(personalization.selectedDesign?.image || '').trim();
+      const designTemplateId = String(personalization.selectedDesign?.id || '').trim();
       const customImage = String(personalization.customImageUrl || '').trim();
       const productHeroImage = String(personalization.productHeroImage || '').trim(); // Product default image fallback
       const productDescription = String(personalization.productDescription || '').trim();
@@ -336,6 +337,7 @@ export class StripeVoucherService {
         shipping_address: data.voucherData?.shippingAddress ? JSON.stringify(data.voucherData.shippingAddress).substring(0, 500) : '',
         // Optional art for PDF rendering (priority: custom > design > product default)
         design_image: designImage,
+        design_template_id: designTemplateId,
         custom_image: customImage,
         product_hero_image: productHeroImage, // Fallback to product's default hero image
         product_description: productDescription.substring(0, 1200),

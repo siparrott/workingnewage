@@ -2386,6 +2386,16 @@ interface VoucherTemplateAdmin {
   occasion: string;
   isActive: boolean;
   displayOrder: number;
+  bannerColor?: string;
+  bannerTextColor?: string;
+  fontFamily?: string;
+  messageFontSize?: number;
+  logoUrl?: string | null;
+  footerText?: string | null;
+  footerEmail?: string | null;
+  footerPhone?: string | null;
+  termsText?: string | null;
+  layoutStyle?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -2398,7 +2408,11 @@ const TemplatesView: React.FC = () => {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [formData, setFormData] = useState({ name: '', category: 'birthday', occasion: '', imageUrl: '' });
+  const [formData, setFormData] = useState({
+    name: '', category: 'birthday', occasion: '', imageUrl: '',
+    bannerColor: '#b3202e', bannerTextColor: '#ffffff', fontFamily: 'Helvetica', messageFontSize: 22,
+    logoUrl: '', footerText: '', footerEmail: '', footerPhone: '', termsText: '', layoutStyle: 'classic',
+  });
 
   const getAdminToken = () => localStorage.getItem('ADMIN_TOKEN') || '';
   const adminHeaders = () => ({ 'x-admin-token': getAdminToken() });
@@ -2416,13 +2430,23 @@ const TemplatesView: React.FC = () => {
 
   const openCreate = () => {
     setEditingTemplate(null);
-    setFormData({ name: '', category: 'birthday', occasion: '', imageUrl: '' });
+    setFormData({
+      name: '', category: 'birthday', occasion: '', imageUrl: '',
+      bannerColor: '#b3202e', bannerTextColor: '#ffffff', fontFamily: 'Helvetica', messageFontSize: 22,
+      logoUrl: '', footerText: '', footerEmail: '', footerPhone: '', termsText: '', layoutStyle: 'classic',
+    });
     setDialogOpen(true);
   };
 
   const openEdit = (t: VoucherTemplateAdmin) => {
     setEditingTemplate(t);
-    setFormData({ name: t.name, category: t.category, occasion: t.occasion, imageUrl: t.imageUrl });
+    setFormData({
+      name: t.name, category: t.category, occasion: t.occasion, imageUrl: t.imageUrl,
+      bannerColor: t.bannerColor || '#b3202e', bannerTextColor: t.bannerTextColor || '#ffffff',
+      fontFamily: t.fontFamily || 'Helvetica', messageFontSize: t.messageFontSize ?? 22,
+      logoUrl: t.logoUrl || '', footerText: t.footerText || '', footerEmail: t.footerEmail || '',
+      footerPhone: t.footerPhone || '', termsText: t.termsText || '', layoutStyle: t.layoutStyle || 'classic',
+    });
     setDialogOpen(true);
   };
 
@@ -2563,10 +2587,10 @@ const TemplatesView: React.FC = () => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogPortal>
           <DialogOverlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" />
-          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto bg-white border-2 shadow-2xl">
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-white border-2 shadow-2xl">
             <DialogHeader>
               <DialogTitle>{editingTemplate ? 'Edit Template' : 'New Template'}</DialogTitle>
-              <DialogDescription>Configure the voucher design template hero image</DialogDescription>
+              <DialogDescription>Configure the voucher design template and PDF styling</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
@@ -2608,6 +2632,74 @@ const TemplatesView: React.FC = () => {
                   <div className="flex-1">
                     <Input value={formData.imageUrl} onChange={e => setFormData(p => ({ ...p, imageUrl: e.target.value }))} placeholder="Or paste image URL" className="h-full" />
                   </div>
+                </div>
+              </div>
+
+              {/* PDF Design Customization Section */}
+              <div className="border-t pt-4 mt-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">PDF Design Settings</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Banner Color</Label>
+                    <div className="flex items-center gap-2">
+                      <input type="color" value={formData.bannerColor} onChange={e => setFormData(p => ({ ...p, bannerColor: e.target.value }))} className="w-8 h-8 rounded border cursor-pointer" />
+                      <Input value={formData.bannerColor} onChange={e => setFormData(p => ({ ...p, bannerColor: e.target.value }))} className="text-xs h-8" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Banner Text Color</Label>
+                    <div className="flex items-center gap-2">
+                      <input type="color" value={formData.bannerTextColor} onChange={e => setFormData(p => ({ ...p, bannerTextColor: e.target.value }))} className="w-8 h-8 rounded border cursor-pointer" />
+                      <Input value={formData.bannerTextColor} onChange={e => setFormData(p => ({ ...p, bannerTextColor: e.target.value }))} className="text-xs h-8" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Font Family</Label>
+                    <Select value={formData.fontFamily} onValueChange={v => setFormData(p => ({ ...p, fontFamily: v }))}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Helvetica">Helvetica</SelectItem>
+                        <SelectItem value="Times-Roman">Times Roman</SelectItem>
+                        <SelectItem value="Courier">Courier</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Message Font Size</Label>
+                    <Input type="number" min={12} max={36} value={formData.messageFontSize} onChange={e => setFormData(p => ({ ...p, messageFontSize: parseInt(e.target.value) || 22 }))} className="text-xs h-8" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <Label className="text-xs">Custom Logo URL (leave empty for default)</Label>
+                  <Input value={formData.logoUrl} onChange={e => setFormData(p => ({ ...p, logoUrl: e.target.value }))} placeholder="https://..." className="text-xs h-8" />
+                </div>
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div>
+                    <Label className="text-xs">Footer Email</Label>
+                    <Input value={formData.footerEmail} onChange={e => setFormData(p => ({ ...p, footerEmail: e.target.value }))} placeholder="info@example.com" className="text-xs h-8" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Footer Phone</Label>
+                    <Input value={formData.footerPhone} onChange={e => setFormData(p => ({ ...p, footerPhone: e.target.value }))} placeholder="+43 ..." className="text-xs h-8" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <Label className="text-xs">Footer Text</Label>
+                  <Input value={formData.footerText} onChange={e => setFormData(p => ({ ...p, footerText: e.target.value }))} placeholder="Custom footer line" className="text-xs h-8" />
+                </div>
+                <div className="mt-3">
+                  <Label className="text-xs">Custom Terms & Conditions</Label>
+                  <textarea value={formData.termsText} onChange={e => setFormData(p => ({ ...p, termsText: e.target.value }))} placeholder="Leave empty for default terms" rows={2} className="w-full text-xs border rounded-md px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500" />
+                </div>
+              </div>
+
+              {/* Banner Preview */}
+              <div className="border rounded-lg p-3 bg-gray-50">
+                <p className="text-xs text-gray-500 mb-2">Banner Preview</p>
+                <div className="rounded" style={{ backgroundColor: formData.bannerColor, padding: '8px 14px' }}>
+                  <span style={{ color: formData.bannerTextColor, fontFamily: formData.fontFamily, fontSize: '14px' }}>
+                    {formData.occasion || 'Gutschein'}
+                  </span>
                 </div>
               </div>
             </div>

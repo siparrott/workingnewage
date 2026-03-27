@@ -12434,6 +12434,10 @@ ${getBizName()} CRM System
         occasion: t.occasion,
         isActive: t.is_active ?? t.isActive,
         displayOrder: t.display_order ?? t.displayOrder,
+        bannerColor: t.banner_color || t.bannerColor || '#b3202e',
+        bannerTextColor: t.banner_text_color || t.bannerTextColor || '#ffffff',
+        fontFamily: t.font_family || t.fontFamily || 'Helvetica',
+        messageFontSize: t.message_font_size ?? t.messageFontSize ?? 22,
       }));
       res.json(mapped);
     } catch (error) {
@@ -12454,6 +12458,16 @@ ${getBizName()} CRM System
         occasion: t.occasion,
         isActive: t.is_active ?? t.isActive,
         displayOrder: t.display_order ?? t.displayOrder,
+        bannerColor: t.banner_color || t.bannerColor || '#b3202e',
+        bannerTextColor: t.banner_text_color || t.bannerTextColor || '#ffffff',
+        fontFamily: t.font_family || t.fontFamily || 'Helvetica',
+        messageFontSize: t.message_font_size ?? t.messageFontSize ?? 22,
+        logoUrl: t.logo_url || t.logoUrl || null,
+        footerText: t.footer_text || t.footerText || null,
+        footerEmail: t.footer_email || t.footerEmail || null,
+        footerPhone: t.footer_phone || t.footerPhone || null,
+        termsText: t.terms_text || t.termsText || null,
+        layoutStyle: t.layout_style || t.layoutStyle || 'classic',
         createdAt: t.created_at || t.createdAt,
         updatedAt: t.updated_at || t.updatedAt,
       }));
@@ -12467,7 +12481,9 @@ ${getBizName()} CRM System
   // Admin: create template
   app.post("/api/admin/vouchers/templates", authenticateUser, async (req: Request, res: Response) => {
     try {
-      const { name, category, imageUrl, occasion, isActive, displayOrder } = req.body;
+      const { name, category, imageUrl, occasion, isActive, displayOrder,
+              bannerColor, bannerTextColor, fontFamily, messageFontSize,
+              logoUrl, footerText, footerEmail, footerPhone, termsText, layoutStyle } = req.body;
       if (!name || !category || !imageUrl || !occasion) {
         return res.status(400).json({ error: "name, category, imageUrl, and occasion are required" });
       }
@@ -12475,6 +12491,8 @@ ${getBizName()} CRM System
         name, category, imageUrl, occasion,
         isActive: isActive !== undefined ? isActive : true,
         displayOrder: displayOrder !== undefined ? displayOrder : 0,
+        bannerColor, bannerTextColor, fontFamily, messageFontSize,
+        logoUrl, footerText, footerEmail, footerPhone, termsText, layoutStyle,
       });
       res.json({
         id: template.id,
@@ -12484,6 +12502,16 @@ ${getBizName()} CRM System
         occasion: template.occasion,
         isActive: template.is_active ?? template.isActive,
         displayOrder: template.display_order ?? template.displayOrder,
+        bannerColor: template.banner_color || '#b3202e',
+        bannerTextColor: template.banner_text_color || '#ffffff',
+        fontFamily: template.font_family || 'Helvetica',
+        messageFontSize: template.message_font_size ?? 22,
+        logoUrl: template.logo_url || null,
+        footerText: template.footer_text || null,
+        footerEmail: template.footer_email || null,
+        footerPhone: template.footer_phone || null,
+        termsText: template.terms_text || null,
+        layoutStyle: template.layout_style || 'classic',
         createdAt: template.created_at || template.createdAt,
         updatedAt: template.updated_at || template.updatedAt,
       });
@@ -12508,6 +12536,16 @@ ${getBizName()} CRM System
       if (req.body.occasion !== undefined) updates.occasion = req.body.occasion;
       if (req.body.isActive !== undefined) updates.isActive = req.body.isActive;
       if (req.body.displayOrder !== undefined) updates.displayOrder = req.body.displayOrder;
+      if (req.body.bannerColor !== undefined) updates.bannerColor = req.body.bannerColor;
+      if (req.body.bannerTextColor !== undefined) updates.bannerTextColor = req.body.bannerTextColor;
+      if (req.body.fontFamily !== undefined) updates.fontFamily = req.body.fontFamily;
+      if (req.body.messageFontSize !== undefined) updates.messageFontSize = req.body.messageFontSize;
+      if (req.body.logoUrl !== undefined) updates.logoUrl = req.body.logoUrl;
+      if (req.body.footerText !== undefined) updates.footerText = req.body.footerText;
+      if (req.body.footerEmail !== undefined) updates.footerEmail = req.body.footerEmail;
+      if (req.body.footerPhone !== undefined) updates.footerPhone = req.body.footerPhone;
+      if (req.body.termsText !== undefined) updates.termsText = req.body.termsText;
+      if (req.body.layoutStyle !== undefined) updates.layoutStyle = req.body.layoutStyle;
 
       const template = await neonDb.updateVoucherTemplate(id, updates);
       res.json({
@@ -12518,6 +12556,16 @@ ${getBizName()} CRM System
         occasion: template.occasion,
         isActive: template.is_active ?? template.isActive,
         displayOrder: template.display_order ?? template.displayOrder,
+        bannerColor: template.banner_color || '#b3202e',
+        bannerTextColor: template.banner_text_color || '#ffffff',
+        fontFamily: template.font_family || 'Helvetica',
+        messageFontSize: template.message_font_size ?? 22,
+        logoUrl: template.logo_url || null,
+        footerText: template.footer_text || null,
+        footerEmail: template.footer_email || null,
+        footerPhone: template.footer_phone || null,
+        termsText: template.terms_text || null,
+        layoutStyle: template.layout_style || 'classic',
         createdAt: template.created_at || template.createdAt,
         updatedAt: template.updated_at || template.updatedAt,
       });
@@ -13486,9 +13534,7 @@ ${getBizName()} CRM System
       const pdfIdOrSlug = String(m.sku || m.product_id || '').trim();
       if (pdfIdOrSlug && neonDb) {
         try {
-          if (typeof neonDb.getVoucherProduct === 'function') {
-            pdfProduct = await neonDb.getVoucherProduct(pdfIdOrSlug);
-          }
+          // Try slug-based lookup first (most common path), then fall back to UUID lookup
           if (!pdfProduct && typeof neonDb.getVoucherProducts === 'function') {
             const all = await neonDb.getVoucherProducts();
             const slug = pdfIdOrSlug.toLowerCase();
@@ -13496,8 +13542,22 @@ ${getBizName()} CRM System
                       || all.find((p: any) => (p.name || '').toLowerCase().replace(/\s+/g, '-') === slug)
                       || all.find((p: any) => (p.name || '').toLowerCase().includes(slug.replace(/-/g, ' ')));
           }
+          if (!pdfProduct && typeof neonDb.getVoucherProduct === 'function') {
+            pdfProduct = await neonDb.getVoucherProduct(pdfIdOrSlug);
+          }
         } catch (dbErr) {
           console.warn('Could not fetch voucher product for PDF:', dbErr);
+        }
+      }
+
+      // Fetch design template from DB for reliable image URL + custom styling
+      let pdfTemplate: any = null;
+      const templateId = String(m.design_template_id || '').trim();
+      if (templateId && neonDb && typeof neonDb.getVoucherTemplate === 'function') {
+        try {
+          pdfTemplate = await neonDb.getVoucherTemplate(templateId);
+        } catch (tplErr) {
+          console.warn('Could not fetch voucher template for PDF:', tplErr);
         }
       }
 
@@ -13548,7 +13608,19 @@ ${getBizName()} CRM System
       // 1. HERO IMAGE AT THE TOP (customer-selected or template photo)
       let heroRendered = false;
       try {
-        const artUrl = String(m.custom_image || m.design_image || m.product_hero_image || '').trim();
+        // Priority: custom upload > metadata design_image > DB template image > product hero image
+        const templateImageUrl = pdfTemplate?.image_url || pdfTemplate?.imageUrl || '';
+        const productImageUrl = pdfProduct?.image_url || pdfProduct?.imageUrl || '';
+        const artUrl = String(m.custom_image || m.design_image || templateImageUrl || m.product_hero_image || productImageUrl || '').trim();
+        console.log('[VOUCHER PDF] Hero image resolution:', {
+          custom_image: m.custom_image || '(empty)',
+          design_image: m.design_image || '(empty)',
+          template_id: templateId || '(none)',
+          template_image: templateImageUrl || '(empty)',
+          product_hero_image: m.product_hero_image || '(empty)',
+          product_db_image: productImageUrl || '(empty)',
+          resolved_artUrl: artUrl || '(empty)',
+        });
         if (artUrl) {
           const respImg = await fetch(artUrl);
           if (respImg && respImg.ok) {
@@ -13558,6 +13630,8 @@ ${getBizName()} CRM System
             doc.image(artBuf, pageMargin, currentY, { fit: [imgWidth, 280], align: 'center' });
             currentY += 290;
             heroRendered = true;
+          } else {
+            console.warn('[VOUCHER PDF] Hero image fetch failed:', artUrl, 'status:', respImg?.status);
           }
         }
       } catch (e) {
@@ -13619,9 +13693,10 @@ ${getBizName()} CRM System
       doc.text(`Gültig bis: ${exp}`);
       currentY = doc.y + 10;
 
-      // Terms
+      // Terms (template-customizable)
+      const termsContent = tplTermsText || 'Einlösbar für die oben genannte Leistung in unserem Studio. Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.';
       doc.fontSize(8).fillColor('#444444').text(
-        'Einlösbar für die oben genannte Leistung in unserem Studio. Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.',
+        termsContent,
         pageMargin, currentY,
         { align: 'justify', width: contentWidth }
       );
@@ -13636,9 +13711,9 @@ ${getBizName()} CRM System
       // 5. FOOTER WITH LOGO AND CONTACT DETAILS (positioned at bottom of page)
       const footerY = pageHeight - 120;
       
-      // Logo centered in footer
+      // Logo centered in footer (template-customizable)
       try {
-        const logoUrl = process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
+        const logoUrl = tplLogoUrl || process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
         const resp = await fetch(logoUrl);
         if (resp && resp.ok) {
           const arr = await resp.arrayBuffer();
@@ -13651,11 +13726,11 @@ ${getBizName()} CRM System
         console.warn('Voucher logo fetch error:', e);
       }
 
-      // Contact details below logo
+      // Contact details below logo (template-customizable)
       doc.fontSize(9).fillColor('#222222');
-      doc.text(getBizWebsite(), pageMargin, footerY + 50, { align: 'center', width: contentWidth });
-      doc.text(getEnvContactEmailSync() || 'no-reply@localhost', { align: 'center' });
-      doc.text('WhatsApp: 0043 677 633 99210', { align: 'center' });
+      doc.text(tplFooterText || getBizWebsite(), pageMargin, footerY + 50, { align: 'center', width: contentWidth });
+      doc.text(tplFooterEmail || getEnvContactEmailSync() || 'no-reply@localhost', { align: 'center' });
+      doc.text(tplFooterPhone || 'WhatsApp: 0043 677 633 99210', { align: 'center' });
       
       doc.end();
     } catch (e) {
@@ -13695,8 +13770,33 @@ ${getBizName()} CRM System
         }
       }
       
-      // Try custom_image or design_image from query, otherwise fetch product default
+      // Look up PDF template if design_template_id provided
+      let previewTemplate: any = null;
+      const previewTemplateId = String(qp.design_template_id || '').trim();
+      if (previewTemplateId && neonDb && typeof neonDb.getVoucherTemplate === 'function') {
+        try {
+          previewTemplate = await neonDb.getVoucherTemplate(previewTemplateId);
+        } catch (e) {
+          console.warn('Could not fetch template for preview:', e);
+        }
+      }
+
+      // Resolve template styling variables
+      const pvBannerColor = previewTemplate?.bannerColor || previewTemplate?.banner_color || '#b3202e';
+      const pvBannerTextColor = previewTemplate?.bannerTextColor || previewTemplate?.banner_text_color || '#ffffff';
+      const pvFontFamily = previewTemplate?.fontFamily || previewTemplate?.font_family || 'Helvetica';
+      const pvMsgFontSize = parseInt(previewTemplate?.messageFontSize || previewTemplate?.message_font_size || '22', 10) || 22;
+      const pvLogoUrl = previewTemplate?.logoUrl || previewTemplate?.logo_url || process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
+      const pvFooterText = previewTemplate?.footerText || previewTemplate?.footer_text || '';
+      const pvFooterEmail = previewTemplate?.footerEmail || previewTemplate?.footer_email || '';
+      const pvFooterPhone = previewTemplate?.footerPhone || previewTemplate?.footer_phone || 'WhatsApp: 0043 677 633 99210';
+      const pvTermsText = previewTemplate?.termsText || previewTemplate?.terms_text || 'Einlösbar für die oben genannte Leistung in unserem Studio. Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.';
+
+      // Try custom_image or design_image from query, template image, or product default
       let customImageUrl = String(qp.custom_image || qp.design_image || '').trim();
+      if (!customImageUrl && previewTemplate) {
+        customImageUrl = previewTemplate.imageUrl || previewTemplate.image_url || '';
+      }
       if (!customImageUrl && previewProduct) {
         customImageUrl = previewProduct.imageUrl || '';
       }
@@ -13761,31 +13861,31 @@ ${getBizName()} CRM System
         currentY += 20; // Small gap if no image
       }
 
-      // 2. USER'S PERSONAL MESSAGE AS MAIN HEADING (instead of generic "PERSONALISIERTER GUTSCHEIN")
+      // 2. USER'S PERSONAL MESSAGE AS MAIN HEADING (template-aware font)
       if (note && note.trim()) {
-        doc.fontSize(22).fillColor('#222222').text(note, pageMargin, currentY, { 
+        doc.font(pvFontFamily).fontSize(pvMsgFontSize).fillColor('#222222').text(note, pageMargin, currentY, { 
           align: 'center', 
           width: contentWidth 
         });
         currentY = doc.y + 15;
       } else {
         // Fallback if no message provided
-        doc.fontSize(22).fillColor('#222222').text('Gutschein', pageMargin, currentY, { 
+        doc.font(pvFontFamily).fontSize(pvMsgFontSize).fillColor('#222222').text('Gutschein', pageMargin, currentY, { 
           align: 'center', 
           width: contentWidth 
         });
         currentY = doc.y + 15;
       }
 
-      // 3. RED BANNER with product title
+      // 3. BANNER with product title (template-aware colors)
       try {
         const bannerY = currentY;
         const bannerX = pageMargin;
         const bannerW = contentWidth;
         const bannerH = 32;
         doc.save();
-        doc.rect(bannerX, bannerY, bannerW, bannerH).fill('#b3202e');
-        doc.fillColor('#ffffff').fontSize(16).text(title, bannerX + 14, bannerY + 8, { width: bannerW - 28, align: 'left' });
+        doc.rect(bannerX, bannerY, bannerW, bannerH).fill(pvBannerColor);
+        doc.fillColor(pvBannerTextColor).fontSize(16).text(title, bannerX + 14, bannerY + 8, { width: bannerW - 28, align: 'left' });
         doc.restore();
         currentY = bannerY + bannerH + 20;
       } catch {}
@@ -13813,9 +13913,9 @@ ${getBizName()} CRM System
       doc.text(`Gültig bis: ${exp}`);
       currentY = doc.y + 10;
 
-      // Terms
+      // Terms (template-aware)
       doc.fontSize(8).fillColor('#444444').text(
-        'Einlösbar für die oben genannte Leistung in unserem Studio. Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.',
+        pvTermsText,
         pageMargin, currentY,
         { align: 'justify', width: contentWidth }
       );
@@ -13830,10 +13930,9 @@ ${getBizName()} CRM System
       // 5. FOOTER WITH LOGO AND CONTACT DETAILS (positioned at bottom of page)
       const footerY = pageHeight - 120;
       
-      // Logo centered in footer
+      // Logo centered in footer (template-aware)
       try {
-        const logoUrl = process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
-        const resp = await fetch(logoUrl);
+        const resp = await fetch(pvLogoUrl);
         if (resp && resp.ok) {
           const arr = await resp.arrayBuffer();
           const imgBuf = Buffer.from(arr);
@@ -13845,11 +13944,11 @@ ${getBizName()} CRM System
         console.warn('Logo fetch error:', e);
       }
 
-      // Contact details below logo
+      // Contact details below logo (template-aware)
       doc.fontSize(9).fillColor('#222222');
-      doc.text(getBizWebsite(), pageMargin, footerY + 50, { align: 'center', width: contentWidth });
-      doc.text(getEnvContactEmailSync() || 'no-reply@localhost', { align: 'center' });
-      doc.text('WhatsApp: 0043 677 633 99210', { align: 'center' });
+      doc.text(pvFooterText || getBizWebsite(), pageMargin, footerY + 50, { align: 'center', width: contentWidth });
+      doc.text(pvFooterEmail || getEnvContactEmailSync() || 'no-reply@localhost', { align: 'center' });
+      doc.text(pvFooterPhone, { align: 'center' });
       
       doc.end();
     } catch (e) {

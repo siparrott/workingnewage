@@ -326,6 +326,17 @@ export const voucherTemplates = pgTable("voucher_templates", {
   occasion: text("occasion").notNull(), // Display text: "Happy Birthday", "Merry Christmas", etc.
   isActive: boolean("is_active").default(true),
   displayOrder: integer("display_order").default(0),
+  // PDF design customization (admin-configurable per template)
+  bannerColor: text("banner_color").default('#b3202e'),
+  bannerTextColor: text("banner_text_color").default('#ffffff'),
+  fontFamily: text("font_family").default('Helvetica'),
+  messageFontSize: integer("message_font_size").default(22),
+  logoUrl: text("logo_url"), // per-template logo override (null = use default)
+  footerText: text("footer_text"), // custom footer text
+  footerEmail: text("footer_email"), // custom footer email
+  footerPhone: text("footer_phone"), // custom footer phone
+  termsText: text("terms_text"), // custom terms & conditions
+  layoutStyle: text("layout_style").default('classic'), // for future layout variants
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
