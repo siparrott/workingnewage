@@ -9,6 +9,8 @@
 
 import { TavilySearchService } from './TavilySearchService.js';
 import { OpenAIPriceExtractor } from './OpenAIPriceExtractor.js';
+import { CompetitorDiscoveryService } from './CompetitorDiscoveryService.js';
+import { PriceScraperService } from './PriceScraperService.js';
 import { pool } from '../db.js';
 
 interface ResearchConfig {
@@ -29,10 +31,14 @@ interface ResearchProgress {
 export class PriceResearchService {
   private tavily: TavilySearchService;
   private openai: OpenAIPriceExtractor;
+  private discovery: CompetitorDiscoveryService;
+  private scraper: PriceScraperService;
 
   constructor() {
     this.tavily = new TavilySearchService();
     this.openai = new OpenAIPriceExtractor();
+    this.discovery = new CompetitorDiscoveryService();
+    this.scraper = new PriceScraperService();
   }
 
   /**
@@ -47,14 +53,46 @@ export class PriceResearchService {
     console.log(`${'='.repeat(60)}\n`);
 
     try {
-      // Stage 1: Search for competitors
+      // Stage 1: Search for competitors (Tavily → fallback to Google scraping + curated list)
       await this.updateSessionStatus(sessionId, 'discovering');
       console.log('📍 STAGE 1: Searching for competitors...');
       
-      const competitors = await this.tavily.searchCompetitors(location, services, maxCompetitors);
-      
+      let competitors: { name: string; website: string; content: string; relevanceScore: number }[] = [];
+      let discoverySource = 'tavily';
+
+      // Try Tavily first
+      if (process.env.TAVILY_API_KEY) {
+        try {
+          competitors = await this.tavily.searchCompetitors(location, services, maxCompetitors);
+          console.log(`   ✅ Tavily found ${competitors.length} competitors`);
+        } catch (tavilyError: any) {
+          console.warn(`   ⚠️ Tavily search failed: ${tavilyError.message}`);
+          console.log('   🔄 Falling back to Google scraping + curated competitors...');
+        }
+      } else {
+        console.log('   ⚠️ TAVILY_API_KEY not set, using fallback competitor discovery...');
+      }
+
+      // Fallback: Use CompetitorDiscoveryService (Google scraping + curated list)
       if (competitors.length === 0) {
-        throw new Error('No competitors found. Try different search terms.');
+        discoverySource = 'fallback';
+        const fallbackResults = await this.discovery.discoverCompetitors({
+          location,
+          services,
+          maxResults: maxCompetitors,
+        });
+
+        competitors = fallbackResults.map(r => ({
+          name: r.name,
+          website: r.website,
+          content: '', // Will be fetched via direct scraping in Stage 2
+          relevanceScore: r.confidence,
+        }));
+        console.log(`   ✅ Fallback discovery found ${competitors.length} competitors`);
+      }
+
+      if (competitors.length === 0) {
+        throw new Error('No competitors found. Try different search terms or location.');
       }
 
       // Save competitors to database
@@ -63,8 +101,8 @@ export class PriceResearchService {
           INSERT INTO competitor_research (
             session_id, competitor_name, website_url, location, 
             status, discovery_source
-          ) VALUES ($1, $2, $3, $4, 'pending', 'tavily')
-        `, [sessionId, comp.name, comp.website, location]);
+          ) VALUES ($1, $2, $3, $4, 'pending', $5)
+        `, [sessionId, comp.name, comp.website, location, discoverySource]);
       }
 
       await pool.query(`
@@ -83,9 +121,40 @@ export class PriceResearchService {
 
       for (const comp of competitors) {
         try {
-          // Get deeper pricing content
-          const pricingContent = await this.tavily.searchCompetitorPricing(comp.website, comp.name);
-          const fullContent = comp.content + '\n\n' + pricingContent;
+          let fullContent = comp.content || '';
+
+          // If we have Tavily content, try to get deeper pricing content
+          if (fullContent && process.env.TAVILY_API_KEY) {
+            try {
+              const pricingContent = await this.tavily.searchCompetitorPricing(comp.website, comp.name);
+              fullContent = fullContent + '\n\n' + pricingContent;
+            } catch {
+              // Tavily pricing search failed, use what we have
+            }
+          }
+
+          // If no content yet (fallback path), scrape the website directly
+          if (!fullContent || fullContent.trim().length < 50) {
+            console.log(`   📄 Scraping ${comp.name} directly...`);
+            const scrapeResult = await this.scraper.scrapeWebsite(comp.website);
+            if (scrapeResult.success && scrapeResult.metadata) {
+              // Build text content from scraped metadata for AI extraction
+              const meta = scrapeResult.metadata as any;
+              fullContent = [
+                meta.title || '',
+                meta.description || '',
+                meta.textContent || '',
+              ].filter(Boolean).join('\n\n');
+
+              // Also add any directly extracted prices as context
+              if (scrapeResult.prices && scrapeResult.prices.length > 0) {
+                fullContent += '\n\nDirectly found prices:\n' +
+                  scrapeResult.prices.map((p: any) =>
+                    `${p.serviceType}: €${p.amount}`
+                  ).join('\n');
+              }
+            }
+          }
 
           // Extract prices with AI
           const analysis = await this.openai.extractPrices(comp.name, fullContent, comp.website);

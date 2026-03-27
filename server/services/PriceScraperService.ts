@@ -91,6 +91,7 @@ export class PriceScraperService {
       const metadata = {
         title: $('title').text().trim() || undefined,
         description: $('meta[name="description"]').attr('content')?.trim() || undefined,
+        textContent: $('body').text().replace(/\s+/g, ' ').trim().substring(0, 10000),
         contactInfo: {
           email: this.extractEmail(html),
           phone: this.extractPhone(html),

@@ -701,11 +701,15 @@ router.post('/research', async (req, res) => {
 
     const session = sessionResult.rows[0];
 
-    // Check if API keys are configured
-    if (!process.env.TAVILY_API_KEY || !process.env.OPENAI_API_KEY) {
+    // Check if API keys are configured (only OpenAI is required; Tavily is optional with fallback)
+    if (!process.env.OPENAI_API_KEY) {
       return res.status(500).json({ 
-        error: 'API keys not configured. Set TAVILY_API_KEY and OPENAI_API_KEY.' 
+        error: 'OpenAI API key not configured. Set OPENAI_API_KEY in your environment.' 
       });
+    }
+
+    if (!process.env.TAVILY_API_KEY) {
+      console.log('⚠️ TAVILY_API_KEY not set — using fallback competitor discovery (Google scraping + curated list)');
     }
 
     // Clear any previous data for this session (in case of retry)
@@ -763,11 +767,15 @@ router.post('/quick-start', async (req, res) => {
       });
     }
 
-    // Check if API keys are configured
-    if (!process.env.TAVILY_API_KEY || !process.env.OPENAI_API_KEY) {
+    // Check if API keys are configured (only OpenAI is required; Tavily is optional with fallback)
+    if (!process.env.OPENAI_API_KEY) {
       return res.status(500).json({ 
-        error: 'API keys not configured. Set TAVILY_API_KEY and OPENAI_API_KEY.' 
+        error: 'OpenAI API key not configured. Set OPENAI_API_KEY in your environment.' 
       });
+    }
+
+    if (!process.env.TAVILY_API_KEY) {
+      console.log('⚠️ TAVILY_API_KEY not set — using fallback competitor discovery (Google scraping + curated list)');
     }
 
     // Create session

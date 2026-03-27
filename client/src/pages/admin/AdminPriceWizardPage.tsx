@@ -197,7 +197,7 @@ const AdminPriceWizardPage: React.FC = () => {
       await fetchSessions();
       setSelectedSession(sessionId);
 
-      alert(`🚀 Research started!\n\nLocation: ${newResearchLocation}\nServices: ${newResearchServices.join(', ')}\n\nThe AI will search for real competitors, extract prices, and generate recommendations.\n\nThis takes 1-2 minutes. The page will auto-refresh to show progress.`);
+      // No alert - the progress bar in the session details panel will show live progress
 
     } catch (error: any) {
       console.error('Research failed:', error);
@@ -761,28 +761,67 @@ const AdminPriceWizardPage: React.FC = () => {
                         <div className="flex items-center gap-3 mb-3">
                           <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
                           <span className="font-medium text-blue-800">
-                            {selectedSessionData.status === 'discovering' && 'Discovering competitors...'}
-                            {selectedSessionData.status === 'scraping' && 'Scraping competitor websites...'}
-                            {selectedSessionData.status === 'analyzing' && 'Analyzing market prices...'}
+                            {selectedSessionData.status === 'discovering' && 'Searching for competitor photographers...'}
+                            {selectedSessionData.status === 'scraping' && `Extracting prices from ${selectedSessionData.competitors_found} competitor websites...`}
+                            {selectedSessionData.status === 'analyzing' && 'Analyzing market data and generating price recommendations...'}
                           </span>
                         </div>
-                        <div className="flex gap-2 mb-2">
-                          <div className={`h-2 flex-1 rounded-full ${selectedSessionData.status === 'discovering' || selectedSessionData.status === 'scraping' || selectedSessionData.status === 'analyzing' ? 'bg-blue-600' : 'bg-gray-300'}`} />
-                          <div className={`h-2 flex-1 rounded-full ${selectedSessionData.status === 'scraping' || selectedSessionData.status === 'analyzing' ? 'bg-blue-600' : 'bg-gray-300'}`} />
-                          <div className={`h-2 flex-1 rounded-full ${selectedSessionData.status === 'analyzing' ? 'bg-blue-600' : 'bg-gray-300'}`} />
-                          <div className={`h-2 flex-1 rounded-full ${selectedSessionData.status === 'completed' ? 'bg-green-600' : 'bg-gray-300'}`} />
+                        {/* Step indicators */}
+                        <div className="flex gap-1 mb-2">
+                          {[
+                            { key: 'discovering', label: 'Discover' },
+                            { key: 'scraping', label: 'Extract Prices' },
+                            { key: 'analyzing', label: 'Analyze' },
+                            { key: 'completed', label: 'Done' },
+                          ].map((step, idx) => {
+                            const stages = ['discovering', 'scraping', 'analyzing', 'completed'];
+                            const currentIdx = stages.indexOf(selectedSessionData.status);
+                            const stepIdx = stages.indexOf(step.key);
+                            const isActive = stepIdx === currentIdx;
+                            const isDone = stepIdx < currentIdx;
+                            return (
+                              <div key={step.key} className="flex-1">
+                                <div className={`h-2 rounded-full transition-all duration-500 ${
+                                  isDone ? 'bg-blue-600' :
+                                  isActive ? 'bg-blue-400 animate-pulse' :
+                                  'bg-gray-300'
+                                }`} />
+                                <div className={`text-xs mt-1 text-center ${
+                                  isActive ? 'text-blue-700 font-semibold' :
+                                  isDone ? 'text-blue-600' :
+                                  'text-gray-400'
+                                }`}>{step.label}</div>
+                              </div>
+                            );
+                          })}
                         </div>
-                        <div className="flex justify-between text-xs text-gray-600">
-                          <span>Discover</span>
-                          <span>Scrape</span>
-                          <span>Analyze</span>
-                          <span>Done</span>
+                        {/* Live counters */}
+                        <div className="flex gap-4 mt-3 text-xs text-blue-700">
+                          <span>🔍 {selectedSessionData.competitors_found} competitors found</span>
+                          <span>💰 {selectedSessionData.prices_extracted} prices extracted</span>
+                          <span>📊 {selectedSessionData.suggestions_generated} suggestions</span>
                         </div>
                         {selectedSessionData.status === 'scraping' && (
-                          <p className="text-xs text-blue-700 mt-3">
-                            ⚠️ Web scraping may fail for some sites. You can add prices manually using the + button next to each competitor.
+                          <p className="text-xs text-blue-600 mt-2">
+                            Some competitor websites may be slow to respond. You can add prices manually later using the + button.
                           </p>
                         )}
+                      </div>
+                    )}
+
+                    {/* Failed session banner */}
+                    {selectedSessionData.status === 'failed' && (
+                      <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div className="flex items-center gap-3">
+                          <XCircle className="w-5 h-5 text-red-600" />
+                          <div>
+                            <span className="font-medium text-red-800">Research failed</span>
+                            <p className="text-xs text-red-600 mt-1">
+                              The automated research could not complete. You can retry with the "AI Research" button, 
+                              or add competitor prices manually.
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     )}
 

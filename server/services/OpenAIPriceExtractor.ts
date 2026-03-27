@@ -223,7 +223,7 @@ Return a JSON object with this structure:
     }
 
     if (allPrices.length === 0) {
-      return this.getDefaultAnalysis(location, serviceType);
+      return this.getAIEstimatedAnalysis(location, serviceType, competitorData);
     }
 
     // Calculate statistics
@@ -360,6 +360,95 @@ Return JSON with:
         competitiveAdvantage: 'Premium experience and deliverables',
       },
     ];
+  }
+
+  /**
+   * AI-estimated analysis when no scraped prices are available
+   * Uses OpenAI's knowledge of the Austrian photography market
+   */
+  private async getAIEstimatedAnalysis(
+    location: string,
+    serviceType: string,
+    competitorData: CompetitorAnalysis[]
+  ): Promise<MarketAnalysis> {
+    console.log(`   🤖 No scraped prices available - generating AI market estimates for ${serviceType} in ${location}...`);
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: this.model,
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert photography business pricing consultant with deep knowledge of the Austrian and European photography market.
+Generate realistic market pricing data based on your knowledge of typical prices for photography services.
+All prices should be in EUR and reflect the Austrian market (specifically the city provided).`
+          },
+          {
+            role: 'user',
+            content: `I need realistic market pricing data for "${serviceType}" photography in ${location}, Austria.
+
+We found ${competitorData.length} competitor photography businesses but couldn't scrape their actual prices from their websites.
+${competitorData.length > 0 ? `Competitors found: ${competitorData.map(c => c.businessName).join(', ')}` : ''}
+
+Based on your knowledge of the Austrian photography market, provide:
+1. Realistic price statistics (what photographers typically charge for ${serviceType} in ${location})
+2. Three pricing tier recommendations (basic, standard, premium)
+
+Return JSON:
+{
+  "priceStats": {
+    "min": 150,
+    "max": 800,
+    "median": 350,
+    "average": 380,
+    "quartile25": 250,
+    "quartile75": 500
+  },
+  "recommendations": [
+    {
+      "tier": "basic",
+      "suggestedPrice": 250,
+      "reasoning": "Why this price for entry-level",
+      "competitiveAdvantage": "What to emphasize at this price point"
+    },
+    {
+      "tier": "standard",
+      "suggestedPrice": 400,
+      "reasoning": "Why this price for mid-range",
+      "competitiveAdvantage": "What to emphasize"
+    },
+    {
+      "tier": "premium",
+      "suggestedPrice": 650,
+      "reasoning": "Why this price for premium",
+      "competitiveAdvantage": "What to emphasize"
+    }
+  ],
+  "marketInsights": "2-3 sentences about the ${serviceType} photography market in ${location}"
+}`
+          }
+        ],
+        temperature: 0.3,
+        response_format: { type: 'json_object' },
+      });
+
+      const content = response.choices[0]?.message?.content;
+      const parsed = content ? JSON.parse(content) : {};
+
+      return {
+        location,
+        serviceType,
+        competitorCount: competitorData.length,
+        priceStats: parsed.priceStats || { min: 0, max: 0, median: 0, average: 0, quartile25: 0, quartile75: 0 },
+        recommendations: parsed.recommendations || [],
+        marketInsights: (parsed.marketInsights || 'AI-estimated market data.') + 
+          '\n\nNote: These prices are AI estimates based on general market knowledge, not scraped from competitor websites.',
+      };
+
+    } catch (error: any) {
+      console.error('❌ AI market estimation failed:', error.message);
+      return this.getDefaultAnalysis(location, serviceType);
+    }
   }
 
   /**
