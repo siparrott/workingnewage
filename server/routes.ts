@@ -11888,39 +11888,50 @@ ${getBizName()} CRM System
             }
 
             // Create voucher sale record from Stripe session
+            // Use camelCase for Drizzle ORM schema, then raw SQL UPDATE for extra columns
+            const wVoucherCode = metadata.voucher_code || `VOUCHER-${session.id.substring(0, 12).toUpperCase()}`;
             const voucherSale = {
-              stripe_session_id: session.id,
-              stripe_payment_intent_id: session.payment_intent,
-              product_id: webhookProductId,
-              purchaser_name: metadata.purchaser_name || session.customer_details?.name || 'Unknown',
-              purchaser_email: metadata.purchaser_email || session.customer_email || session.customer_details?.email || '',
-              purchaser_phone: session.customer_details?.phone || '',
-              recipient_name: metadata.recipient_name || '',
-              recipient_email: metadata.recipient_email || '',
-              gift_message: metadata.gift_message || metadata.message || '',
-              custom_image: metadata.custom_image || null,
-              design_image: metadata.design_image || null,
-              voucher_code: metadata.voucher_code || `VOUCHER-${session.id.substring(0, 12).toUpperCase()}`,
-              original_amount: session.amount_total ? (session.amount_total / 100).toString() : '0',
-              discount_amount: metadata.discount_cents ? (parseFloat(metadata.discount_cents) / 100).toString() : metadata.discount_amount || '0',
-              final_amount: session.amount_total ? (session.amount_total / 100).toString() : '0',
+              purchaserName: metadata.purchaser_name || session.customer_details?.name || 'Unknown',
+              purchaserEmail: metadata.purchaser_email || session.customer_email || session.customer_details?.email || '',
+              purchaserPhone: session.customer_details?.phone || '',
+              recipientName: metadata.recipient_name || '',
+              recipientEmail: metadata.recipient_email || '',
+              giftMessage: metadata.gift_message || metadata.message || '',
+              customImage: metadata.custom_image || null,
+              designImage: metadata.design_image || null,
+              personalizationData: metadata.voucher_data ? (() => { try { return JSON.parse(metadata.voucher_data); } catch { return {}; } })() : {},
+              voucherCode: wVoucherCode,
+              originalAmount: session.amount_total ? (session.amount_total / 100).toString() : '0',
+              discountAmount: metadata.discount_cents ? (parseFloat(metadata.discount_cents) / 100).toString() : metadata.discount_amount || '0',
+              finalAmount: session.amount_total ? (session.amount_total / 100).toString() : '0',
               currency: session.currency?.toUpperCase() || 'EUR',
-              coupon_code: appliedCouponCode,
-              payment_intent_id: session.payment_intent,
-              payment_status: 'paid',
-              payment_method: metadata.payment_method || 'stripe_card',
-              billing_address: billingAddress,
-              billing_city: billingCity,
-              billing_zip: billingZip,
-              billing_country: billingCountry,
-              is_redeemed: false,
-              valid_from: new Date(),
-              valid_until: metadata.valid_until ? new Date(metadata.valid_until) : new Date(Date.now() + webhookValidityDays * 24 * 60 * 60 * 1000)
+              couponCode: appliedCouponCode,
+              paymentIntentId: session.payment_intent,
+              paymentStatus: 'paid',
+              paymentMethod: metadata.payment_method || 'stripe_card',
+              isRedeemed: false,
+              validFrom: new Date(),
+              validUntil: metadata.valid_until ? new Date(metadata.valid_until) : new Date(Date.now() + webhookValidityDays * 24 * 60 * 60 * 1000)
             };
 
             try {
               const createdSale = await storage.createVoucherSale(voucherSale as any);
-              console.log('[WEBHOOK] ✅ Voucher sale created:', createdSale.id, 'Code:', voucherSale.voucher_code);
+              console.log('[WEBHOOK] ✅ Voucher sale created:', createdSale.id, 'Code:', wVoucherCode,
+                'customImage:', metadata.custom_image || '(none)',
+                'designImage:', metadata.design_image || '(none)');
+
+              // Populate extra DB columns not in Drizzle schema (added via raw SQL migrations)
+              try {
+                await runSql(
+                  `UPDATE voucher_sales SET stripe_session_id = $1, stripe_payment_intent_id = $2, product_id = $3::uuid,
+                   billing_address = $4, billing_city = $5, billing_zip = $6, billing_country = $7
+                   WHERE id = $8`,
+                  [session.id, session.payment_intent, webhookProductId || null,
+                   billingAddress, billingCity, billingZip, billingCountry, createdSale.id]
+                );
+              } catch (extraErr) {
+                console.warn('[WEBHOOK] Could not update extra columns:', (extraErr as any)?.message);
+              }
 
               // Try to get card details from payment intent
               if (session.payment_intent) {
@@ -13425,14 +13436,15 @@ ${getBizName()} CRM System
           const discountAmount = originalAmount - finalAmount;
           const currency = (session.currency || 'EUR').toUpperCase();
 
-          // Insert the voucher sale with billing data
+          // Insert the voucher sale with billing data + images
           const insertResult = await runSql(`
             INSERT INTO voucher_sales (
               voucher_code, product_id, purchaser_email, purchaser_name, purchaser_phone,
               recipient_name, recipient_email, gift_message, original_amount, discount_amount, final_amount,
               currency, payment_status, stripe_session_id, stripe_payment_intent_id,
-              coupon_code, billing_address, billing_city, billing_zip, billing_country, created_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+              coupon_code, billing_address, billing_city, billing_zip, billing_country,
+              custom_image, design_image, personalization_data, created_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23::jsonb, $24)
             RETURNING id
           `, [
             voucherCode,
@@ -13455,6 +13467,9 @@ ${getBizName()} CRM System
             billingCity,
             billingZip,
             billingCountry,
+            metadata.custom_image || null,
+            metadata.design_image || null,
+            metadata.voucher_data || '{}',
             new Date(session.created * 1000).toISOString()
           ]);
           
@@ -13561,6 +13576,17 @@ ${getBizName()} CRM System
         }
       }
 
+      // Resolve template styling variables (with sensible defaults)
+      const tplBannerColor = pdfTemplate?.bannerColor || pdfTemplate?.banner_color || '#b3202e';
+      const tplBannerTextColor = pdfTemplate?.bannerTextColor || pdfTemplate?.banner_text_color || '#ffffff';
+      const tplFontFamily = pdfTemplate?.fontFamily || pdfTemplate?.font_family || 'Helvetica';
+      const tplMsgFontSize = parseInt(pdfTemplate?.messageFontSize || pdfTemplate?.message_font_size || '22', 10) || 22;
+      const tplLogoUrl = pdfTemplate?.logoUrl || pdfTemplate?.logo_url || process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
+      const tplFooterText = pdfTemplate?.footerText || pdfTemplate?.footer_text || '';
+      const tplFooterEmail = pdfTemplate?.footerEmail || pdfTemplate?.footer_email || '';
+      const tplFooterPhone = pdfTemplate?.footerPhone || pdfTemplate?.footer_phone || 'WhatsApp: 0043 677 633 99210';
+      const tplTermsText = pdfTemplate?.termsText || pdfTemplate?.terms_text || 'Einlösbar für die oben genannte Leistung in unserem Studio. Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.';
+
       // Title: prefer DB product name, then metadata product_name, then fallback map
       const titleMap: Record<string, string> = {
         'Maternity-Basic': 'Schwangerschafts Fotoshooting - Basic',
@@ -13612,20 +13638,16 @@ ${getBizName()} CRM System
         const templateImageUrl = pdfTemplate?.image_url || pdfTemplate?.imageUrl || '';
         const productImageUrl = pdfProduct?.image_url || pdfProduct?.imageUrl || '';
         const artUrl = String(m.custom_image || m.design_image || templateImageUrl || m.product_hero_image || productImageUrl || '').trim();
-        console.log('[VOUCHER PDF] Hero image resolution:', {
-          custom_image: m.custom_image || '(empty)',
-          design_image: m.design_image || '(empty)',
-          template_id: templateId || '(none)',
-          template_image: templateImageUrl || '(empty)',
-          product_hero_image: m.product_hero_image || '(empty)',
-          product_db_image: productImageUrl || '(empty)',
-          resolved_artUrl: artUrl || '(empty)',
-        });
         if (artUrl) {
           const respImg = await fetch(artUrl);
           if (respImg && respImg.ok) {
             const artArr = await respImg.arrayBuffer();
-            const artBuf = Buffer.from(artArr);
+            let artBuf = Buffer.from(artArr);
+            // PDFKit only supports JPEG and PNG — convert WebP/other formats to PNG via sharp
+            const isWebp = artUrl.toLowerCase().endsWith('.webp') || (respImg.headers.get('content-type') || '').includes('webp');
+            if (isWebp) {
+              try { artBuf = await sharp(artBuf).png().toBuffer(); } catch (convErr) { console.warn('[VOUCHER PDF] WebP→PNG conversion failed:', convErr); }
+            }
             const imgWidth = contentWidth;
             doc.image(artBuf, pageMargin, currentY, { fit: [imgWidth, 280], align: 'center' });
             currentY += 290;
@@ -13643,14 +13665,14 @@ ${getBizName()} CRM System
 
       // 2. USER'S PERSONAL MESSAGE AS MAIN HEADING (instead of generic "PERSONALISIERTER GUTSCHEIN")
       if (note && note.trim()) {
-        doc.fontSize(22).fillColor('#222222').text(note, pageMargin, currentY, { 
+        doc.font(tplFontFamily).fontSize(tplMsgFontSize).fillColor('#222222').text(note, pageMargin, currentY, { 
           align: 'center', 
           width: contentWidth 
         });
         currentY = doc.y + 15;
       } else {
         // Fallback if no message provided
-        doc.fontSize(22).fillColor('#222222').text('Gutschein', pageMargin, currentY, { 
+        doc.font(tplFontFamily).fontSize(tplMsgFontSize).fillColor('#222222').text('Gutschein', pageMargin, currentY, { 
           align: 'center', 
           width: contentWidth 
         });
@@ -13664,8 +13686,8 @@ ${getBizName()} CRM System
         const bannerW = contentWidth;
         const bannerH = 32;
         doc.save();
-        doc.rect(bannerX, bannerY, bannerW, bannerH).fill('#b3202e');
-        doc.fillColor('#ffffff').fontSize(16).text(title, bannerX + 14, bannerY + 8, { width: bannerW - 28, align: 'left' });
+        doc.rect(bannerX, bannerY, bannerW, bannerH).fill(tplBannerColor);
+        doc.fillColor(tplBannerTextColor).fontSize(16).text(title, bannerX + 14, bannerY + 8, { width: bannerW - 28, align: 'left' });
         doc.restore();
         currentY = bannerY + bannerH + 20;
       } catch {}
@@ -13717,7 +13739,12 @@ ${getBizName()} CRM System
         const resp = await fetch(logoUrl);
         if (resp && resp.ok) {
           const arr = await resp.arrayBuffer();
-          const imgBuf = Buffer.from(arr);
+          let imgBuf = Buffer.from(arr);
+          // PDFKit only supports JPEG and PNG — convert WebP if needed
+          const isWebp = logoUrl.toLowerCase().endsWith('.webp') || (resp.headers.get('content-type') || '').includes('webp');
+          if (isWebp) {
+            try { imgBuf = await sharp(imgBuf).png().toBuffer(); } catch (convErr) { console.warn('[VOUCHER PDF] Logo WebP→PNG conversion failed:', convErr); }
+          }
           const logoWidth = 120;
           const centerX = (pageWidth - logoWidth) / 2;
           doc.image(imgBuf, centerX, footerY, { fit: [logoWidth, 40] });
@@ -13847,7 +13874,12 @@ ${getBizName()} CRM System
           const respImg = await fetch(customImageUrl);
           if (respImg && respImg.ok) {
             const imgArr = await respImg.arrayBuffer();
-            const imgBuf = Buffer.from(imgArr);
+            let imgBuf = Buffer.from(imgArr);
+            // PDFKit only supports JPEG and PNG — convert WebP if needed
+            const isWebp = customImageUrl.toLowerCase().endsWith('.webp') || (respImg.headers.get('content-type') || '').includes('webp');
+            if (isWebp) {
+              try { imgBuf = await sharp(imgBuf).png().toBuffer(); } catch (convErr) { console.warn('[VOUCHER PREVIEW] WebP→PNG conversion failed:', convErr); }
+            }
             const imgWidth = contentWidth;
             doc.image(imgBuf, pageMargin, currentY, { fit: [imgWidth, 280], align: 'center' });
             currentY += 290;
@@ -13935,7 +13967,12 @@ ${getBizName()} CRM System
         const resp = await fetch(pvLogoUrl);
         if (resp && resp.ok) {
           const arr = await resp.arrayBuffer();
-          const imgBuf = Buffer.from(arr);
+          let imgBuf = Buffer.from(arr);
+          // PDFKit only supports JPEG and PNG — convert WebP if needed
+          const isWebp = pvLogoUrl.toLowerCase().endsWith('.webp') || (resp.headers.get('content-type') || '').includes('webp');
+          if (isWebp) {
+            try { imgBuf = await sharp(imgBuf).png().toBuffer(); } catch (convErr) { console.warn('[VOUCHER PREVIEW] Logo WebP→PNG conversion failed:', convErr); }
+          }
           const logoWidth = 120;
           const centerX = (pageWidth - logoWidth) / 2;
           doc.image(imgBuf, centerX, footerY, { fit: [logoWidth, 40] });
