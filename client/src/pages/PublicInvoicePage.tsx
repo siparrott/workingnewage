@@ -118,6 +118,7 @@ const PublicInvoicePage: React.FC = () => {
           country: data.client.country,
           phone: data.client.phone,
         } : undefined,
+        document_type: data.documentType || data.document_type || 'invoice',
         items: data.items?.map((item: any) => ({
           description: item.description,
           quantity: parseFloat(item.quantity || '1'),
