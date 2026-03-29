@@ -17,7 +17,19 @@ app.use((req, res, next) => {
   }
   jsonParser(req, res, next);
 });
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Also skip urlencoded parser for webhook endpoints
+const urlencodedParser = express.urlencoded({ extended: true, limit: '50mb' });
+app.use((req, res, next) => {
+  if (
+    req.path === '/api/stripe/webhook' ||
+    req.path === '/api/invoices/webhook' ||
+    req.path === '/api/vouchers/stripe-webhook'
+  ) {
+    return next();
+  }
+  urlencodedParser(req, res, next);
+});
 
 // Trust proxy for production deployment
 app.set('trust proxy', true);

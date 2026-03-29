@@ -80,7 +80,19 @@ app.use((req, res, next) => {
   }
   jsonParser(req, res, next);
 });
-app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+
+// Also skip urlencoded parser for webhook endpoints to avoid any body stream interference
+const urlencodedParser = express.urlencoded({ extended: false, limit: '50mb' });
+app.use((req, res, next) => {
+  if (
+    req.path === '/api/stripe/webhook' ||
+    req.path === '/api/invoices/webhook' ||
+    req.path === '/api/vouchers/stripe-webhook'
+  ) {
+    return next();
+  }
+  urlencodedParser(req, res, next);
+});
 
 // Add CORS headers for API requests
 app.use((req, res, next) => {
@@ -105,7 +117,18 @@ app.get('/healthz', (_req, res) => {
 });
 
 // Session middleware must be before auth routes (still early but after healthz)
-app.use(sessionConfig);
+// Skip session middleware for webhook endpoints — they don't need sessions,
+// and the PgStore DB pool can hang/timeout causing Stripe webhook failures
+app.use((req, res, next) => {
+  if (
+    req.path === '/api/stripe/webhook' ||
+    req.path === '/api/invoices/webhook' ||
+    req.path === '/api/vouchers/stripe-webhook'
+  ) {
+    return next();
+  }
+  sessionConfig(req, res, next);
+});
 
 // Early auth routes so backend login functions even before lazy route load
 app.use('/api/auth', authRoutes);

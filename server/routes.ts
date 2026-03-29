@@ -5584,6 +5584,13 @@ Bitte versuchen Sie es später noch einmal.`;
       
       console.log('Invoice data being sent to storage:', JSON.stringify(invoiceData, null, 2));
     
+      // Zero-amount invoices (pre-paid products) are automatically marked as paid
+      if (parseFloat(invoiceData.total) === 0 && invoiceData.status === 'draft') {
+        invoiceData.status = 'paid';
+        invoiceData.paidAmount = '0';
+        console.log('[INVOICE] Zero-amount invoice auto-marked as paid');
+      }
+
       // Create the invoice
       const invoice = await storage.createCrmInvoice(invoiceData as any);
       
@@ -5695,9 +5702,11 @@ Bitte versuchen Sie es später noch einmal.`;
         html: html
       });
       
-      // Update invoice status to 'sent' if it was 'draft'
+      // Update invoice status: zero-amount invoices go straight to 'paid', others to 'sent'
       if (invoice.status === 'draft') {
-        await runSql('UPDATE crm_invoices SET status = $1, updated_at = NOW() WHERE id = $2::uuid', ['sent', invoice_id]);
+        const invoiceTotal = parseFloat(invoice.total || '0');
+        const newStatus = invoiceTotal === 0 ? 'paid' : 'sent';
+        await runSql('UPDATE crm_invoices SET status = $1, updated_at = NOW() WHERE id = $2::uuid', [newStatus, invoice_id]);
       }
       
       res.json({ ok: true, link });
@@ -5819,7 +5828,9 @@ Bitte versuchen Sie es später noch einmal.`;
       if (!invoice) return;
       const invoiceTotal = parseFloat(invoice.total?.toString() || '0');
       let status = invoice.status || 'draft';
-      if (totalPaid >= invoiceTotal && invoiceTotal > 0) {
+      if (invoiceTotal === 0) {
+        status = 'paid'; // Zero-amount invoices are always considered paid
+      } else if (totalPaid >= invoiceTotal) {
         status = 'paid';
       } else if (totalPaid > 0) {
         status = 'partially_paid';

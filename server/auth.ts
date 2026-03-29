@@ -12,7 +12,10 @@ const PgStore = pgSession(session);
 // Database pool for session store
 const sessionPool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  max: 5, // Limit session pool to avoid exhausting Neon connection limits
+  connectionTimeoutMillis: 5000, // Fail fast instead of hanging indefinitely
+  idleTimeoutMillis: 30000, // Release idle connections after 30s
 });
 
 // Session configuration with PostgreSQL store for production
