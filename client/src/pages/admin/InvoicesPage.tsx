@@ -17,7 +17,8 @@ import {
   Calendar, 
   FileText,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  ArrowRightCircle
 } from 'lucide-react';
 
 interface Invoice {
@@ -34,6 +35,7 @@ interface Invoice {
   paid_date?: string;
   notes?: string;
   created_at: string;
+  document_type?: string;
 }
 
 const InvoicesPage: React.FC = () => {
@@ -115,7 +117,8 @@ const InvoicesPage: React.FC = () => {
         due_date: r.dueDate || r.due_date,
         paid_date: r.paidDate || r.paid_date,
         notes: r.notes || '',
-        created_at: r.createdAt || r.created_at
+        created_at: r.createdAt || r.created_at,
+        document_type: r.documentType || r.document_type || 'invoice'
       }));
       setInvoices(formatted || []);
     } catch (err) {
@@ -193,7 +196,23 @@ const InvoicesPage: React.FC = () => {
     }
   };
 
-  const getStatusBadge = (status: Invoice['status']) => {
+  const getStatusBadge = (status: Invoice['status'], documentType?: string) => {
+    // Show document type badge for quotes/estimates
+    if (documentType === 'quote') {
+      return (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+          Quote
+        </span>
+      );
+    }
+    if (documentType === 'estimate') {
+      return (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+          Estimate
+        </span>
+      );
+    }
+
     const statusConfig = {
       draft: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Draft' },
       sent: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Sent' },
@@ -213,6 +232,27 @@ const InvoicesPage: React.FC = () => {
 
   const isOverdue = (dueDate: string, status: string) => {
     return status !== 'paid' && new Date(dueDate) < new Date();
+  };
+
+  const convertToInvoice = async (invoiceId: string) => {
+    if (!confirm('Convert this quote/estimate to an invoice?')) return;
+    try {
+      const response = await fetch(`/api/crm/invoices/${invoiceId}/convert-to-invoice`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to convert');
+      const result = await response.json();
+      // Update local state
+      setInvoices(prev => prev.map(inv => 
+        inv.id === invoiceId 
+          ? { ...inv, document_type: 'invoice', invoice_number: result.invoice_number || inv.invoice_number }
+          : inv
+      ));
+      alert('Successfully converted to invoice!');
+    } catch (err) {
+      alert('Failed to convert. Please try again.');
+    }
   };
 
   const downloadInvoicePDF = async (invoiceId?: string, invoiceNumber?: string) => {
@@ -439,7 +479,7 @@ const InvoicesPage: React.FC = () => {
                           €{(invoice.amount || 0).toFixed(2)} + €{(invoice.tax_amount || 0).toFixed(2)} tax
                         </div>
                       </td>                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(invoice.status)}
+                        {getStatusBadge(invoice.status, invoice.document_type)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className={`text-sm ${
@@ -506,6 +546,15 @@ const InvoicesPage: React.FC = () => {
                           <button onClick={() => sendSms(invoice.id)} className="text-emerald-600 hover:text-emerald-900" title="Send SMS">
                             <Send size={16} />
                           </button>
+                          {(invoice.document_type === 'quote' || invoice.document_type === 'estimate') && (
+                            <button 
+                              onClick={() => convertToInvoice(invoice.id)}
+                              className="text-orange-600 hover:text-orange-900" 
+                              title="Convert to Invoice"
+                            >
+                              <ArrowRightCircle size={16} />
+                            </button>
+                          )}
                           <button 
                             onClick={() => setDeleteConfirmation(invoice.id)}
                             className="text-red-600 hover:text-red-900" 

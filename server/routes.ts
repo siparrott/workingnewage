@@ -5347,6 +5347,8 @@ Bitte versuchen Sie es später noch einmal.`;
         notes: invoice.notes,
         createdAt: invoice.created_at,
         created_at: invoice.created_at,
+        documentType: invoice.document_type || 'invoice',
+        document_type: invoice.document_type || 'invoice',
         client: {
           name: invoice.client_name,
           email: invoice.client_email
@@ -5637,6 +5639,31 @@ Bitte versuchen Sie es später noch einmal.`;
       res.json(invoice);
     } catch (error) {
       console.error("Error updating invoice:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Convert quote/estimate to invoice
+  app.post("/api/crm/invoices/:id/convert-to-invoice", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const invoice = await storage.getCrmInvoice(id);
+      if (!invoice) {
+        return res.status(404).json({ error: "Invoice not found" });
+      }
+
+      // Generate new INV- prefixed number
+      const newNumber = `INV-${Date.now()}`;
+
+      // Update document_type and invoice_number
+      await runSql(
+        `UPDATE crm_invoices SET document_type = 'invoice', invoice_number = $1 WHERE id = $2`,
+        [newNumber, id]
+      );
+
+      res.json({ success: true, invoice_number: newNumber });
+    } catch (error) {
+      console.error("Error converting to invoice:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });

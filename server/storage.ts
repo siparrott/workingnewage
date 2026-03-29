@@ -603,6 +603,7 @@ export class DatabaseStorage implements IStorage {
       status: crmInvoices.status,
       notes: crmInvoices.notes,
       created_at: crmInvoices.createdAt,
+      document_type: crmInvoices.documentType,
       client_name: sql`CONCAT(${crmClients.firstName}, ' ', ${crmClients.lastName})`,
       client_email: crmClients.email
     })
