@@ -68,6 +68,7 @@ interface AdvancedInvoiceFormProps {
 interface Invoice {
   id: string;
   client_id: string;
+  status?: string;
   due_date: string;
   payment_terms: string;
   currency: string;
@@ -682,7 +683,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
         discountValue: formData.discount_value.toString(),
         discountAmount: discountAmount.toString(),
         total: total.toString(),
-        status: markAsPaid ? 'paid' : 'draft',
+        status: markAsPaid ? 'paid' : (editingInvoice?.status || 'draft'),
         documentType,
         notes: formData.notes,
         footerText: formData.footer_text,
