@@ -108,13 +108,36 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
   const saveLastUsedVatRate = (rate: number): void => {
     localStorage.setItem('lastUsedVatRate', rate.toString());
   };
+
+  // Invoice defaults memory (footer text, payment terms)
+  const getSavedFooterText = (): string => {
+    return localStorage.getItem('invoiceDefaultFooter') || '';
+  };
+  const saveFooterText = (text: string): void => {
+    localStorage.setItem('invoiceDefaultFooter', text);
+  };
+  const getSavedPaymentTerms = (): string => {
+    return localStorage.getItem('invoiceDefaultPaymentTerms') || 'Net 30';
+  };
+  const savePaymentTerms = (terms: string): void => {
+    localStorage.setItem('invoiceDefaultPaymentTerms', terms);
+  };
+  const getSavedNotes = (): string => {
+    return localStorage.getItem('invoiceDefaultNotes') || '';
+  };
+  const saveNotes = (text: string): void => {
+    localStorage.setItem('invoiceDefaultNotes', text);
+  };
+  const [footerSaved, setFooterSaved] = useState(false);
+  const [notesSaved, setNotesSaved] = useState(false);
+  const [termsSaved, setTermsSaved] = useState(false);
   const [formData, setFormData] = useState<InvoiceFormData>({
     client_id: '',
     due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
-    payment_terms: 'Net 30',
+    payment_terms: getSavedPaymentTerms(),
     currency: 'EUR',
-    notes: '',
-    footer_text: '',
+    notes: getSavedNotes(),
+    footer_text: getSavedFooterText(),
     discount_type: 'fixed',
     discount_value: 0,
     discount_amount: 0,
@@ -1011,9 +1034,20 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Payment Terms *
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Payment Terms *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => { savePaymentTerms(formData.payment_terms); setTermsSaved(true); setTimeout(() => setTermsSaved(false), 2000); }}
+                    className={`text-xs px-2 py-1 rounded transition-colors ${
+                      termsSaved ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-purple-100 hover:text-purple-700'
+                    }`}
+                  >
+                    {termsSaved ? '✓ Saved' : '💾 Save as default'}
+                  </button>
+                </div>
                 <select
                   value={formData.payment_terms}
                   onChange={(e) => setFormData(prev => ({ ...prev, payment_terms: e.target.value }))}
@@ -1138,9 +1172,20 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Notes (Optional)
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Notes (Optional)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => { saveNotes(formData.notes || ''); setNotesSaved(true); setTimeout(() => setNotesSaved(false), 2000); }}
+                  className={`text-xs px-2 py-1 rounded transition-colors ${
+                    notesSaved ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-purple-100 hover:text-purple-700'
+                  }`}
+                >
+                  {notesSaved ? '✓ Saved' : '💾 Save as default'}
+                </button>
+              </div>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
@@ -1151,9 +1196,20 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Invoice Footer (Terms, Bank Details, etc.)
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Invoice Footer (Terms, Bank Details, etc.)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => { saveFooterText(formData.footer_text || ''); setFooterSaved(true); setTimeout(() => setFooterSaved(false), 2000); }}
+                  className={`text-xs px-2 py-1 rounded transition-colors ${
+                    footerSaved ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-purple-100 hover:text-purple-700'
+                  }`}
+                >
+                  {footerSaved ? '✓ Saved' : '💾 Save as default'}
+                </button>
+              </div>
               <textarea
                 value={formData.footer_text}
                 onChange={(e) => setFormData(prev => ({ ...prev, footer_text: e.target.value }))}
