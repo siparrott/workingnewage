@@ -45,6 +45,7 @@ interface InvoiceItem {
 
 interface InvoiceFormData {
   client_id: string;
+  issue_date: string;
   due_date: string;
   payment_terms: string;
   currency: string;
@@ -133,6 +134,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
   const [termsSaved, setTermsSaved] = useState(false);
   const [formData, setFormData] = useState<InvoiceFormData>({
     client_id: '',
+    issue_date: new Date().toISOString().split('T')[0],
     due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
     payment_terms: getSavedPaymentTerms(),
     currency: 'EUR',
@@ -204,6 +206,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
         setCurrentStep(1);
         setFormData({
           client_id: '',
+          issue_date: new Date().toISOString().split('T')[0],
           due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           payment_terms: getSavedPaymentTerms(),
           currency: 'EUR',
@@ -432,8 +435,10 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
         // Load invoice data into form
         // Support both camelCase (from Drizzle ORM) and snake_case field names
         const dueDate = invoice.due_date || invoice.dueDate;
+        const issueDate = invoice.issue_date || invoice.issueDate;
         setFormData({
           client_id: invoiceClientId || '',
+          issue_date: issueDate ? new Date(issueDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           due_date: dueDate ? new Date(dueDate).toISOString().split('T')[0] : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           payment_terms: invoice.payment_terms || invoice.paymentTerms || 'Net 30',
           currency: invoice.currency || 'EUR',
@@ -669,7 +674,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
       // Prepare payload for our invoices API
       const payload = {
         clientId: formData.client_id || null,
-        issueDate: new Date().toISOString().split('T')[0],
+        issueDate: formData.issue_date,
         dueDate: formData.due_date,
         subtotal: subtotal.toString(),
         taxAmount: taxAmount.toString(),
@@ -896,7 +901,19 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Issue Date *
+                </label>
+                <input
+                  type="date"
+                  value={formData.issue_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, issue_date: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  required
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Due Date *
@@ -1262,6 +1279,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
 
                 <div>
                   <h4 className="font-medium text-gray-900 mb-2">{t(`doc.details.${documentType}`)}</h4>
+                  <p className="text-gray-600">Issue Date: {new Date(formData.issue_date).toLocaleDateString()}</p>
                   <p className="text-gray-600">Due Date: {new Date(formData.due_date).toLocaleDateString()}</p>
                   <p className="text-gray-600">Payment Terms: {formData.payment_terms}</p>
                   <p className="text-gray-600">Currency: {formData.currency}</p>

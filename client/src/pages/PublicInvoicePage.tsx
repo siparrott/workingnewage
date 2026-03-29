@@ -107,7 +107,7 @@ const PublicInvoicePage: React.FC = () => {
         notes: data.notes,
         footer_text: data.footerText || data.footer_text,
         paid_amount: parseFloat(data.paidAmount || data.paid_amount || '0'),
-        created_at: data.createdAt || data.created_at || data.issueDate,
+        created_at: data.issueDate || data.issue_date || data.createdAt || data.created_at,
         client: data.client ? {
           name: `${data.client.firstName || ''} ${data.client.lastName || ''}`.trim() || data.client.name || 'Customer',
           email: data.client.email || '',

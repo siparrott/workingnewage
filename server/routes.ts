@@ -5462,7 +5462,7 @@ Bitte versuchen Sie es später noch einmal.`;
   // Invoice edit endpoint - handles full invoice updates including items
   app.post("/api/invoice-edit", authenticateUser, async (req: Request, res: Response) => {
     try {
-      const { invoiceId, clientId, invoiceNumber, status, dueDate, notes, footerText, documentType, items } = req.body;
+      const { invoiceId, clientId, invoiceNumber, status, issueDate, dueDate, notes, footerText, documentType, items } = req.body;
       console.log('[INVOICE-EDIT] Received update request for invoice:', invoiceId);
       console.log('[INVOICE-EDIT] Request body:', JSON.stringify(req.body, null, 2));
       
@@ -5481,8 +5481,9 @@ Bitte versuchen Sie es später noch einmal.`;
           notes = COALESCE($5, notes),
           footer_text = COALESCE($6, footer_text),
           document_type = COALESCE($7, document_type),
+          issue_date = COALESCE($8::timestamp, issue_date),
           updated_at = NOW()
-        WHERE id = $8::uuid
+        WHERE id = $9::uuid
         RETURNING *
       `;
       
@@ -5494,6 +5495,7 @@ Bitte versuchen Sie es später noch einmal.`;
         notes || null,
         footerText || null,
         documentType || null,
+        issueDate || null,
         invoiceId
       ]);
       
