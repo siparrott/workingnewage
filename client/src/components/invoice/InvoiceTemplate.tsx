@@ -39,6 +39,7 @@ const invoiceI18n: Record<string, Record<string, string>> = {
     imageProduct: 'Image & Product file',
     contactStudioName: 'CONTACT STUDIO/NAME',
     address: 'Address',
+    notes: 'Notes',
   },
   de: {
     invoice: 'RECHNUNG',
@@ -76,6 +77,7 @@ const invoiceI18n: Record<string, Record<string, string>> = {
     imageProduct: 'Bild & Produktdatei',
     contactStudioName: 'KONTAKT STUDIO/NAME',
     address: 'Adresse',
+    notes: 'Anmerkungen',
   }
 };
 
@@ -760,6 +762,36 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
           )}
         </div>
       </div>
+
+      {/* Notes */}
+      {invoice.notes && (
+        <div className="invoice-notes-box" style={{
+          marginBottom: '20px',
+          padding: '20px',
+          backgroundColor: '#fffdf0',
+          borderRadius: '8px',
+          borderLeft: '4px solid #f0c040'
+        }}>
+          <div style={{
+            fontSize: '11px',
+            fontWeight: 600,
+            color: '#8a7000',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            marginBottom: '8px'
+          }}>
+            {tx('notes')}
+          </div>
+          <div style={{
+            fontSize: '12px',
+            color: '#666',
+            whiteSpace: 'pre-wrap',
+            lineHeight: '1.6'
+          }}>
+            {invoice.notes}
+          </div>
+        </div>
+      )}
 
       {/* Custom Footer Text (Terms, Bank Details, etc.) */}
       {invoice.footer_text && (
