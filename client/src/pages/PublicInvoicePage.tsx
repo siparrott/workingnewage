@@ -20,6 +20,8 @@ interface Invoice {
   notes?: string;
   footer_text?: string;
   paid_amount?: number;
+  document_type?: string;
+  documentType?: string;
   created_at: string;
   client?: {
     name: string;
@@ -276,7 +278,14 @@ const PublicInvoicePage: React.FC = () => {
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h1 className="text-xl font-semibold text-gray-900">
-                {language === 'en' ? 'Invoice' : 'Rechnung'} #{invoice.invoice_number}
+                {(() => {
+                  const docType = invoice.document_type || invoice.documentType || 'invoice';
+                  const labels: Record<string, Record<string, string>> = {
+                    en: { invoice: 'Invoice', quote: 'Quote', estimate: 'Estimate' },
+                    de: { invoice: 'Rechnung', quote: 'Angebot', estimate: 'Kostenvoranschlag' }
+                  };
+                  return (labels[language] || labels.en)[docType] || (labels.en)[docType] || 'Invoice';
+                })()} #{invoice.invoice_number}
               </h1>
               <p className="text-sm text-gray-600">
                 {language === 'en' ? 'From New Age Fotografie' : 'Von New Age Fotografie'}

@@ -233,6 +233,12 @@ const translations = {
     'doc.new.invoice': 'New Invoice',
     'doc.new.quote': 'New Quote',
     'doc.new.estimate': 'New Estimate',
+    'doc.summary.invoice': 'Invoice Summary',
+    'doc.summary.quote': 'Quote Summary',
+    'doc.summary.estimate': 'Estimate Summary',
+    'doc.details.invoice': 'Invoice Details',
+    'doc.details.quote': 'Quote Details',
+    'doc.details.estimate': 'Estimate Details',
     
     // Survey
     'survey.create': 'Create Survey',
@@ -1131,6 +1137,12 @@ const translations = {
     'doc.new.invoice': 'Neue Rechnung',
     'doc.new.quote': 'Neues Angebot',
     'doc.new.estimate': 'Neuer Kostenvoranschlag',
+    'doc.summary.invoice': 'Rechnungsübersicht',
+    'doc.summary.quote': 'Angebotsübersicht',
+    'doc.summary.estimate': 'Kostenvoranschlagsübersicht',
+    'doc.details.invoice': 'Rechnungsdetails',
+    'doc.details.quote': 'Angebotsdetails',
+    'doc.details.estimate': 'Kostenvoranschlagsdetails',
     
     // Survey
     'survey.create': 'Umfrage erstellen',

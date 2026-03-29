@@ -199,9 +199,29 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      // Reset form state when opening for a NEW invoice (not editing)
+      if (!editingInvoice) {
+        setCurrentStep(1);
+        setFormData({
+          client_id: '',
+          due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          payment_terms: getSavedPaymentTerms(),
+          currency: 'EUR',
+          notes: getSavedNotes(),
+          footer_text: getSavedFooterText(),
+          discount_type: 'fixed',
+          discount_value: 0,
+          discount_amount: 0,
+          items: [{ id: '1', description: '', quantity: 1, unit_price: 0, tax_rate: getLastUsedVatRate() }]
+        });
+        setClientSearch('');
+        setError(null);
+        setCreatedInvoice(null);
+        setMarkAsPaid(false);
+        setDocumentType('invoice');
+      }
       fetchClients();
       fetchPriceList();
-      // Don't load invoice data yet - wait for clients to load
     }
   }, [isOpen]);
 
@@ -1231,7 +1251,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
         return (
           <div className="space-y-6">
             <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Invoice Summary</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t(`doc.summary.${documentType}`)}</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -1241,7 +1261,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
                 </div>
 
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Invoice Details</h4>
+                  <h4 className="font-medium text-gray-900 mb-2">{t(`doc.details.${documentType}`)}</h4>
                   <p className="text-gray-600">Due Date: {new Date(formData.due_date).toLocaleDateString()}</p>
                   <p className="text-gray-600">Payment Terms: {formData.payment_terms}</p>
                   <p className="text-gray-600">Currency: {formData.currency}</p>

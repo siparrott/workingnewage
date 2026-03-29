@@ -5582,7 +5582,8 @@ Bitte versuchen Sie es später noch einmal.`;
       // Add auto-generated invoice number if not provided
       if (!invoiceData.invoiceNumber) {
         const timestamp = Date.now();
-        invoiceData.invoiceNumber = `INV-${timestamp}`;
+        const prefix = invoiceData.documentType === 'quote' ? 'QUO' : invoiceData.documentType === 'estimate' ? 'EST' : 'INV';
+        invoiceData.invoiceNumber = `${prefix}-${timestamp}`;
       }
       
       console.log('Invoice data being sent to storage:', JSON.stringify(invoiceData, null, 2));

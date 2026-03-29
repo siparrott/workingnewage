@@ -5,7 +5,11 @@ import { useLanguage } from '../../context/LanguageContext';
 const invoiceI18n: Record<string, Record<string, string>> = {
   en: {
     invoice: 'INVOICE',
+    quote: 'QUOTE',
+    estimate: 'ESTIMATE',
     invoiced: 'INVOICED',
+    quoted: 'QUOTED',
+    estimated: 'ESTIMATED',
     shipTo: 'SHIP TO:',
     billTo: 'BILL TO:',
     name: 'Name',
@@ -21,6 +25,12 @@ const invoiceI18n: Record<string, Record<string, string>> = {
     balance: 'Balance:',
     invoiceSubtotal: 'Invoice Subtotal:',
     invoiceTotal: 'Invoice Total:',
+    quoteSubtotal: 'Quote Subtotal:',
+    quoteTotal: 'Quote Total:',
+    quoteBalance: 'Quote Balance:',
+    estimateSubtotal: 'Estimate Subtotal:',
+    estimateTotal: 'Estimate Total:',
+    estimateBalance: 'Estimate Balance:',
     paid: 'Paid',
     invoiceBalance: 'Invoice Balance:',
     paidInFull: 'PAID IN FULL',
@@ -32,7 +42,11 @@ const invoiceI18n: Record<string, Record<string, string>> = {
   },
   de: {
     invoice: 'RECHNUNG',
+    quote: 'ANGEBOT',
+    estimate: 'KOSTENVORANSCHLAG',
     invoiced: 'RECHNUNGSDATUM',
+    quoted: 'ANGEBOTSDATUM',
+    estimated: 'DATUM',
     shipTo: 'LIEFERADRESSE:',
     billTo: 'RECHNUNGSADRESSE:',
     name: 'Bezeichnung',
@@ -48,6 +62,12 @@ const invoiceI18n: Record<string, Record<string, string>> = {
     balance: 'Offener Betrag:',
     invoiceSubtotal: 'Rechnungs-Zwischensumme:',
     invoiceTotal: 'Rechnungsbetrag:',
+    quoteSubtotal: 'Angebots-Zwischensumme:',
+    quoteTotal: 'Angebotsbetrag:',
+    quoteBalance: 'Offener Angebotsbetrag:',
+    estimateSubtotal: 'Kostenvoranschlag-Zwischensumme:',
+    estimateTotal: 'Kostenvoranschlagsbetrag:',
+    estimateBalance: 'Offener Kostenvoranschlagsbetrag:',
     paid: 'Bezahlt',
     invoiceBalance: 'Offener Rechnungsbetrag:',
     paidInFull: 'VOLLSTÄNDIG BEZAHLT',
@@ -88,6 +108,7 @@ interface InvoiceTemplateProps {
     notes?: string;
     footer_text?: string;
     paid_amount?: number;
+    document_type?: string;
     created_at: string;
     client?: {
       name: string;
@@ -130,6 +151,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
     email: 'kontakt@newagefotografie.com',
     openingHours: 'Termine nach Vereinbarung'
   });
+  const [configLoaded, setConfigLoaded] = useState(false);
   
   // Fetch studio configuration on mount
   useEffect(() => {
@@ -143,6 +165,8 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
       } catch (error) {
         console.error('Failed to fetch studio config:', error);
         // Keep default values if fetch fails
+      } finally {
+        setConfigLoaded(true);
       }
     };
     
@@ -260,6 +284,12 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
                 objectFit: 'contain'
               }}
             />
+          ) : !configLoaded ? (
+            <div style={{
+              width: '140px',
+              height: '60px',
+              marginBottom: '20px'
+            }} />
           ) : (
             <div style={{
               width: '140px',
@@ -299,7 +329,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             color: '#2c3e50',
             letterSpacing: '3px'
           }}>
-            INVOICE
+            {tx(invoice.document_type || 'invoice')}
           </h1>
           <div style={{ 
             fontSize: '16px', 
@@ -316,7 +346,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             textTransform: 'uppercase',
             letterSpacing: '1px'
           }}>
-            {tx('invoiced')}: {formatDate(invoice.created_at)}
+            {tx(invoice.document_type === 'quote' ? 'quoted' : invoice.document_type === 'estimate' ? 'estimated' : 'invoiced')}: {formatDate(invoice.created_at)}
           </div>
         </div>
       </div>
@@ -641,7 +671,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             fontSize: '13px',
             color: '#666'
           }}>
-            <span>{tx('invoiceSubtotal')}</span>
+            <span>{tx((invoice.document_type || 'invoice') + 'Subtotal')}</span>
             <span>{formatCurrency(invoice.subtotal_amount, invoice.currency)}</span>
           </div>
           
@@ -669,7 +699,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             fontWeight: '600',
             color: '#2c3e50'
           }}>
-            <span>{tx('invoiceTotal')}</span>
+            <span>{tx((invoice.document_type || 'invoice') + 'Total')}</span>
             <span>{formatCurrency(invoice.total_amount, invoice.currency)}</span>
           </div>
           
@@ -695,7 +725,7 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             fontWeight: 'bold',
             color: balanceDue > 0 ? '#e74c3c' : '#27ae60'
           }}>
-            <span>{tx('invoiceBalance')}</span>
+            <span>{tx((invoice.document_type || 'invoice') + 'Balance')}</span>
             <span>{formatCurrency(balanceDue, invoice.currency)}</span>
           </div>
           
