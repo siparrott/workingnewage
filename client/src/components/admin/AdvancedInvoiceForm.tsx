@@ -24,6 +24,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '../../lib/queryClient';
 import { priceListService, PriceListItem, pdfService } from '../../lib/invoicing';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface Client {
   id: string;
@@ -83,6 +84,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
   editingInvoice,
   prefillClientId
 }) => {
+  const { t } = useLanguage();
   const [currentStep, setCurrentStep] = useState(1);
   const [clients, setClients] = useState<Client[]>([]);
   const [filteredClients, setFilteredClients] = useState<Client[]>([]);
@@ -93,6 +95,8 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
   const [showPriceList, setShowPriceList] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [priceList, setPriceList] = useState<PriceListItem[]>([]);
+  const [privacyMask, setPrivacyMask] = useState(false);
+  const [documentType, setDocumentType] = useState<'invoice' | 'quote' | 'estimate'>('invoice');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // VAT memory functionality
@@ -410,6 +414,12 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
           }]
         });
         console.log('✅ Form data loaded with', items.length, 'items');
+        
+        // Load document type
+        const docType = invoice.document_type || invoice.documentType || 'invoice';
+        if (docType === 'invoice' || docType === 'quote' || docType === 'estimate') {
+          setDocumentType(docType);
+        }
       } else {
         console.error('❌ Failed to fetch invoice:', response.status);
       }
@@ -625,6 +635,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
         discountAmount: discountAmount.toString(),
         total: total.toString(),
         status: markAsPaid ? 'paid' : 'draft',
+        documentType,
         notes: formData.notes,
         footerText: formData.footer_text,
         items: formData.items.map(item => ({
@@ -762,7 +773,31 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
     switch (currentStep) {
       case 1: {
         return (
-          <div className="space-y-6">            <div>
+          <div className="space-y-6">
+            {/* Document Type Selector */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('doc.type')}
+              </label>
+              <div className="grid grid-cols-3 gap-3">
+                {(['invoice', 'quote', 'estimate'] as const).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setDocumentType(type)}
+                    className={`p-3 rounded-lg border-2 text-center font-medium transition-all ${
+                      documentType === type
+                        ? 'border-purple-600 bg-purple-50 text-purple-700'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    {t(`doc.type.${type}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Select Client * {clients.length > 0 && <span className="text-sm text-gray-500">({clients.length} clients available)</span>}
               </label>
@@ -1238,8 +1273,6 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
 
   if (!isOpen) return null;
 
-  const [privacyMask, setPrivacyMask] = useState(false);
-
   return (
     <div className={`fixed inset-0 flex items-center justify-center z-50 p-4 transition-colors duration-300 ${
       privacyMask
@@ -1256,7 +1289,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">
-              {editingInvoice ? 'Edit Invoice' : 'Create New Invoice'}
+              {editingInvoice ? t(`doc.edit.${documentType}`) : t(`doc.create.${documentType}`)}
             </h2>
             <p className="text-gray-600">Step {currentStep} of {steps.length}</p>
           </div>
@@ -1412,7 +1445,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
                     ) : (
                       <>
                         <Check size={16} className="mr-2" />
-                        {editingInvoice?.id ? 'Update Invoice' : 'Create Invoice'}
+                        {editingInvoice?.id ? t(`doc.edit.${documentType}`) : t(`doc.create.${documentType}`)}
                       </>
                     )}
                   </button>

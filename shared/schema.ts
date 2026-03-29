@@ -215,6 +215,7 @@ export const crmInvoices = pgTable("crm_invoices", {
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   currency: text("currency").default("EUR"),
   status: text("status").default("draft"),
+  documentType: text("document_type").default("invoice"),
   paymentTerms: text("payment_terms").default("Net 30"),
   notes: text("notes"),
   termsAndConditions: text("terms_and_conditions"),

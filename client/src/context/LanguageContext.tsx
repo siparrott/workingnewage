@@ -219,6 +219,21 @@ const translations = {
     'invoice.paidAmount': 'Paid Amount',
     'invoice.overdueAmount': 'Overdue Amount',
     
+    // Document types
+    'doc.type': 'Document Type',
+    'doc.type.invoice': 'Invoice',
+    'doc.type.quote': 'Quote',
+    'doc.type.estimate': 'Estimate',
+    'doc.create.invoice': 'Create Invoice',
+    'doc.create.quote': 'Create Quote',
+    'doc.create.estimate': 'Create Estimate',
+    'doc.edit.invoice': 'Edit Invoice',
+    'doc.edit.quote': 'Edit Quote',
+    'doc.edit.estimate': 'Edit Estimate',
+    'doc.new.invoice': 'New Invoice',
+    'doc.new.quote': 'New Quote',
+    'doc.new.estimate': 'New Estimate',
+    
     // Survey
     'survey.create': 'Create Survey',
     'survey.edit': 'Edit Survey',
@@ -1101,6 +1116,21 @@ const translations = {
     'invoice.totalInvoiced': 'Gesamt in Rechnung gestellt',
     'invoice.paidAmount': 'Bezahlter Betrag',
     'invoice.overdueAmount': 'Überfälliger Betrag',
+    
+    // Document types
+    'doc.type': 'Dokumenttyp',
+    'doc.type.invoice': 'Rechnung',
+    'doc.type.quote': 'Angebot',
+    'doc.type.estimate': 'Kostenvoranschlag',
+    'doc.create.invoice': 'Rechnung erstellen',
+    'doc.create.quote': 'Angebot erstellen',
+    'doc.create.estimate': 'Kostenvoranschlag erstellen',
+    'doc.edit.invoice': 'Rechnung bearbeiten',
+    'doc.edit.quote': 'Angebot bearbeiten',
+    'doc.edit.estimate': 'Kostenvoranschlag bearbeiten',
+    'doc.new.invoice': 'Neue Rechnung',
+    'doc.new.quote': 'Neues Angebot',
+    'doc.new.estimate': 'Neuer Kostenvoranschlag',
     
     // Survey
     'survey.create': 'Umfrage erstellen',
