@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import VoucherPersonalization, { type VoucherPersonalizationData } from './VoucherPersonalization';
 import EnhancedCheckoutPage from './EnhancedCheckoutPage';
 import { ArrowLeft } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface VoucherFlowProps {
   voucherType: string;
@@ -22,6 +23,7 @@ const VoucherFlow: React.FC<VoucherFlowProps> = ({
   productSlug,
   initialVoucher,
 }) => {
+  const { language } = useLanguage();
   // Use sessionStorage to persist voucher flow state
   const getStoredStep = (): FlowStep => {
     try {
@@ -204,7 +206,9 @@ const VoucherFlow: React.FC<VoucherFlowProps> = ({
             >
               <ArrowLeft size={20} />
               <span>
-                {currentStep === 'checkout' ? 'Zurück zur Personalisierung' : 'Zurück zum Warenkorb'}
+                {currentStep === 'checkout' 
+                  ? (language === 'en' ? 'Back to Personalization' : 'Zurück zur Personalisierung') 
+                  : (language === 'en' ? 'Back to Cart' : 'Zurück zum Warenkorb')}
               </span>
             </button>
           </div>

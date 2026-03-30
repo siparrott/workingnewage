@@ -6,10 +6,12 @@ import VoucherCodeInput from '../components/cart/VoucherCodeInput';
 import VoucherFlow from '../components/voucher/VoucherFlow';
 import { VoucherService, AppliedVoucher } from '../services/voucherService';
 import { Trash2, ShoppingBag, ArrowLeft, Gift } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 const CartPage: React.FC = () => {
   const { items, removeItem, updateQuantity, total, clearCart } = useCart();
   const navigate = useNavigate();
+  const { language } = useLanguage();
   const [appliedVoucher, setAppliedVoucher] = useState<AppliedVoucher | undefined>();
   const [showVoucherFlow, setShowVoucherFlow] = useState(false);
   const [selectedVoucherItem, setSelectedVoucherItem] = useState<any>(null);
@@ -170,11 +172,11 @@ const CartPage: React.FC = () => {
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <button 
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/vouchers')}
           className="flex items-center text-purple-600 hover:text-purple-700 mb-6"
         >
           <ArrowLeft size={20} className="mr-2" />
-          Zurück
+          {language === 'en' ? 'Back' : 'Zurück'}
         </button>
 
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-8">
