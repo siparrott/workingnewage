@@ -17,7 +17,8 @@ import {
   Loader2,
   Download,
   AlertCircle,
-  ChevronDown
+  ChevronDown,
+  ShieldOff
 } from 'lucide-react';
 
 interface Message {
@@ -252,6 +253,28 @@ const InboxPage: React.FC = () => {
     } catch (err) {
       // console.error removed
       setError('Failed to delete message. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMarkAsSpam = async (message: Message) => {
+    try {
+      setLoading(true);
+      // Create a spam rule for this sender
+      await fetch('/api/inbox/spam-rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ruleType: 'sender',
+          value: message.senderEmail,
+          reason: `Marked as spam from inbox (${message.subject})`
+        })
+      });
+      // Delete the message
+      await handleDeleteMessage(message.id);
+    } catch (err) {
+      setError('Failed to mark as spam.');
     } finally {
       setLoading(false);
     }
@@ -641,6 +664,13 @@ const InboxPage: React.FC = () => {
                       <h3 className="font-medium text-gray-700">Message Details</h3>
                     </div>
                     <div className="flex space-x-2">
+                      <button 
+                        onClick={() => handleMarkAsSpam(selectedMessage)}
+                        className="text-orange-500 hover:text-orange-700"
+                        title="Mark as Spam (block sender & delete)"
+                      >
+                        <ShieldOff size={18} />
+                      </button>
                       <button 
                         onClick={() => handleStatusChange(selectedMessage.id, 'archived')}
                         className="text-gray-500 hover:text-gray-700"
