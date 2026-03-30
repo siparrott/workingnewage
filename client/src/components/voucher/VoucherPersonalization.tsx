@@ -23,6 +23,7 @@ interface DesignTemplate {
 interface VoucherPersonalizationProps {
   onComplete: (personalization: VoucherPersonalizationData) => void;
   voucherAmount: number;
+  onBack?: () => void;
 }
 
 export interface VoucherPersonalizationData {
@@ -44,7 +45,8 @@ export interface VoucherPersonalizationData {
 
 const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({ 
   onComplete, 
-  voucherAmount 
+  voucherAmount,
+  onBack 
 }) => {
   const { language } = useLanguage();
   const [currentStep, setCurrentStep] = useState(1);
@@ -274,6 +276,15 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
       {/* Step 1: Delivery Options */}
       {currentStep === 1 && (
         <div>
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4"
+            >
+              <ArrowLeft size={20} />
+              <span>{language === 'en' ? 'Back to Cart' : 'Zurück zum Warenkorb'}</span>
+            </button>
+          )}
           <h2 className="text-2xl font-bold mb-6 text-center">{t.step1Title}</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {deliveryOptions.map((option) => (

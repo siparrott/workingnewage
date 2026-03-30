@@ -216,6 +216,7 @@ const VoucherFlow: React.FC<VoucherFlowProps> = ({
         <VoucherPersonalization
           voucherAmount={baseAmount}
           onComplete={handlePersonalizationComplete}
+          onBack={handleBackToCart}
         />
       )}
 
