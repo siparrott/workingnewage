@@ -1763,6 +1763,20 @@ const ProductsView: React.FC<{
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center space-x-2">
                             <span className="font-medium text-gray-900 truncate">{product.name}</span>
+                            {(product as any).badge && (
+                              <span className="text-xs bg-amber-100 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded-full font-medium">
+                                {(product as any).badge === 'BESTSELLER' ? '⭐ Best Seller' :
+                                 (product as any).badge === 'TOP_SELLER' ? '🔥 Top Seller' :
+                                 (product as any).badge === 'NEW' ? '✨ New' :
+                                 (product as any).badge === 'POPULAR' ? '❤️ Popular' :
+                                 (product as any).badge === 'LIMITED' ? '⏳ Limited' :
+                                 (product as any).badge === 'SALE' ? '💰 Sale' :
+                                 (product as any).badge === 'RECOMMENDED' ? '👍 Recommended' :
+                                 (product as any).badge === 'GIFT_IDEA' ? '🎁 Gift Idea' :
+                                 (product as any).badge === 'SEASONAL' ? '🌸 Seasonal' :
+                                 (product as any).badge}
+                              </span>
+                            )}
                             {hasUnsavedImage && (
                               <span className="text-xs bg-yellow-500 text-white px-1.5 py-0.5 rounded">Unsaved</span>
                             )}
@@ -2893,6 +2907,27 @@ const ProductDialog: React.FC<{
                 <Label htmlFor="sessionType">Session Type</Label>
                 <Input {...form.register('sessionType')} placeholder="e.g., Familie Portrait, Business Headshots" className="bg-white" />
               </div>
+            </div>
+
+            {/* Product Badge */}
+            <div className="space-y-2">
+              <Label htmlFor="badge">Product Badge</Label>
+              <p className="text-xs text-gray-500">Highlight this product with a badge on the storefront</p>
+              <Select onValueChange={(value) => form.setValue('badge', value === '__none__' ? '' : value)} value={form.watch('badge') || '__none__'}>
+                <SelectTrigger className="bg-white"><SelectValue placeholder="No badge" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">No Badge</SelectItem>
+                  <SelectItem value="BESTSELLER">⭐ Best Seller</SelectItem>
+                  <SelectItem value="TOP_SELLER">🔥 Top Seller</SelectItem>
+                  <SelectItem value="NEW">✨ New</SelectItem>
+                  <SelectItem value="POPULAR">❤️ Popular</SelectItem>
+                  <SelectItem value="LIMITED">⏳ Limited Edition</SelectItem>
+                  <SelectItem value="SALE">💰 Sale</SelectItem>
+                  <SelectItem value="RECOMMENDED">👍 Recommended</SelectItem>
+                  <SelectItem value="GIFT_IDEA">🎁 Gift Idea</SelectItem>
+                  <SelectItem value="SEASONAL">🌸 Seasonal</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter className="pt-6">

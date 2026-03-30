@@ -76,7 +76,9 @@ const VouchersPage: React.FC = () => {
           category: p.category || 'family',
           route: `/vouchers/${p.id}`,
           validityMonths: Math.floor((p.validityPeriod || p.validity_period || 365) / 30),
-          isActive: p.isActive !== false && p.is_active !== false
+          isActive: p.isActive !== false && p.is_active !== false,
+          badge: p.badge || null,
+          featured: p.featured || false
         };
       });
   }, [apiProducts, language]);
@@ -278,7 +280,28 @@ const VouchersPage: React.FC = () => {
           {displayedVouchers.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {displayedVouchers.map(voucher => (
-                  <div key={voucher.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                  <div key={voucher.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow relative">
+                    {/* Badge */}
+                    {voucher.badge && (() => {
+                      const badgeConfig: Record<string, { label: string; bg: string; text: string; icon: string }> = {
+                        'BESTSELLER': { label: language === 'de' ? 'Bestseller' : 'Best Seller', bg: 'bg-amber-500', text: 'text-white', icon: '⭐' },
+                        'TOP_SELLER': { label: language === 'de' ? 'Top Seller' : 'Top Seller', bg: 'bg-red-500', text: 'text-white', icon: '🔥' },
+                        'NEW': { label: language === 'de' ? 'Neu' : 'New', bg: 'bg-emerald-500', text: 'text-white', icon: '✨' },
+                        'POPULAR': { label: language === 'de' ? 'Beliebt' : 'Popular', bg: 'bg-pink-500', text: 'text-white', icon: '❤️' },
+                        'LIMITED': { label: language === 'de' ? 'Limitiert' : 'Limited', bg: 'bg-purple-600', text: 'text-white', icon: '⏳' },
+                        'SALE': { label: language === 'de' ? 'Angebot' : 'Sale', bg: 'bg-orange-500', text: 'text-white', icon: '💰' },
+                        'RECOMMENDED': { label: language === 'de' ? 'Empfohlen' : 'Recommended', bg: 'bg-blue-500', text: 'text-white', icon: '👍' },
+                        'GIFT_IDEA': { label: language === 'de' ? 'Geschenkidee' : 'Gift Idea', bg: 'bg-fuchsia-500', text: 'text-white', icon: '🎁' },
+                        'SEASONAL': { label: language === 'de' ? 'Saisonal' : 'Seasonal', bg: 'bg-teal-500', text: 'text-white', icon: '🌸' },
+                      };
+                      const cfg = badgeConfig[voucher.badge] || { label: voucher.badge, bg: 'bg-gray-700', text: 'text-white', icon: '' };
+                      return (
+                        <div className={`absolute top-3 left-3 z-10 ${cfg.bg} ${cfg.text} px-3 py-1.5 rounded-full text-sm font-semibold shadow-lg flex items-center gap-1`}>
+                          <span>{cfg.icon}</span>
+                          <span>{cfg.label}</span>
+                        </div>
+                      );
+                    })()}
                     {/* Image */}
                     <div className="relative">
                       <div className="aspect-[4/3] overflow-hidden">
