@@ -6492,6 +6492,10 @@ ${getBizName()} Team`;
   });
 
   // ==================== PRIMARY STRIPE WEBHOOK ====================
+  // Signal that the full webhook handler is now active (disables the early boot handler)
+  (global as any).__fullWebhookRegistered = true;
+  console.log('✅ Full Stripe webhook handler registered — early boot handler disabled');
+
   // Webhook health check - test if endpoint is reachable
   app.get("/api/stripe/webhook/health", (_req: Request, res: Response) => {
     res.status(200).json({ 

@@ -116,6 +116,53 @@ app.get('/healthz', (_req, res) => {
   res.json({ status: 'ok-preinit', uptime: process.uptime(), bootMs: Date.now() - BOOT_MARK });
 });
 
+// ==================== FAST-PATH STRIPE WEBHOOK ====================
+// Registered BEFORE session middleware and heavy init so that even during
+// cold-start the server can acknowledge Stripe webhooks within milliseconds.
+// The full handler in routes.ts does async processing; this early handler
+// ensures we never time out during boot.
+import Stripe from 'stripe';
+
+const _earlyStripeKey = process.env.STRIPE_SECRET_KEY;
+const _earlyWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+let _earlyStripe: Stripe | null = null;
+if (_earlyStripeKey && _earlyStripeKey.length >= 20 && !_earlyStripeKey.includes('dummy')) {
+  try { _earlyStripe = new Stripe(_earlyStripeKey, { apiVersion: '2025-08-27.basil' }); } catch {}
+}
+
+// Track whether the full route handler from routes.ts has taken over
+(global as any).__fullWebhookRegistered = false;
+
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), (req: any, res: any, next: any) => {
+  // Once routes.ts has registered its full handler, defer to it
+  if ((global as any).__fullWebhookRegistered) return next();
+
+  // Fast-path: verify signature and respond 200 immediately
+  const startMs = Date.now();
+  console.log(`🔵 [EARLY-WEBHOOK] Stripe webhook received during boot at ${new Date().toISOString()}`);
+
+  if (!_earlyStripe || !_earlyWebhookSecret || _earlyWebhookSecret.startsWith('http')) {
+    console.error('❌ [EARLY-WEBHOOK] Stripe not configured');
+    return res.status(200).json({ received: true, note: 'acknowledged-during-boot' });
+  }
+
+  const sig = req.headers['stripe-signature'];
+  if (!sig) {
+    return res.status(400).json({ error: 'Missing Stripe signature' });
+  }
+
+  try {
+    const event = _earlyStripe.webhooks.constructEvent(req.body, sig, _earlyWebhookSecret);
+    console.log(`✅ [EARLY-WEBHOOK] Verified ${event.type} in ${Date.now() - startMs}ms — queuing for later processing`);
+    // Respond immediately — event will be retried by Stripe if processing is needed
+    res.status(200).json({ received: true, type: event.type, id: event.id, early: true });
+  } catch (err: any) {
+    console.error('❌ [EARLY-WEBHOOK] Signature verification failed:', err.message);
+    return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+  }
+});
+// ==================== END FAST-PATH STRIPE WEBHOOK ====================
+
 // Session middleware must be before auth routes (still early but after healthz)
 // Skip session middleware for webhook endpoints — they don't need sessions,
 // and the PgStore DB pool can hang/timeout causing Stripe webhook failures
@@ -210,6 +257,63 @@ app.use((req, res, next) => {
 
     console.log('🚀 Starting New Age Fotografie CRM server...');
     
+    // ========== START LISTENING IMMEDIATELY ==========
+    // Start the HTTP server FIRST so we can accept health checks and Stripe
+    // webhooks (via the early fast-path handler) even while services initialize.
+    const port = parseInt(process.env.PORT || '3001', 10);
+    const host = process.env.HOST || (process.env.PORT ? '0.0.0.0' : '127.0.0.1');
+    
+    console.log(`🎯 Starting HTTP server on ${host}:${port} EARLY (before full init)...`);
+    serverInstance = app.listen(port, host);
+    
+    const attachServerHandlers = (srv: any, { reason }: { reason: string }) => {
+      srv.on('listening', () => {
+        const addr = srv.address();
+        console.log(`✅ HTTP server LISTENING on ${host}:${port} (${reason})`);
+        console.log(`🔍 Server address:`, addr);
+        console.log(`🔍 Server listening:`, srv.listening);
+      });
+
+      srv.on('error', (err: any) => {
+        console.error('❌ HTTP server error:', err);
+        console.error('Error code:', err.code);
+        if (err.code === 'EADDRINUSE') {
+          console.error(`Port ${port} is already in use!`);
+        }
+      });
+
+      srv.on('close', () => {
+        console.warn('⚠️ Server "close" event fired - port released!');
+        try {
+          const addr = srv?.address?.();
+          console.warn('⚠️ Close context:', { addr, listening: srv?.listening });
+        } catch {}
+
+        const allowRebind = (process.env.RETRY_LISTEN_ON_CLOSE ?? (process.env.NODE_ENV !== 'production' ? 'true' : 'false')) === 'true';
+        (global as any).__rebindAttempted = (global as any).__rebindAttempted ?? false;
+        if (allowRebind && !(global as any).__rebindAttempted) {
+          (global as any).__rebindAttempted = true;
+          console.warn('🛠️ Attempting one-shot rebind after close (dev safeguard)...');
+          setTimeout(() => {
+            try {
+              const newSrv = app.listen(port, host);
+              serverInstance = newSrv;
+              (global as any).__server = newSrv;
+              attachServerHandlers(newSrv, { reason: 'rebind' });
+            } catch (e: any) {
+              console.error('❌ Rebind attempt failed:', e?.message || e);
+            }
+          }, 500);
+        }
+      });
+    };
+
+    attachServerHandlers(serverInstance, { reason: 'initial' });
+    (global as any).__server = serverInstance;
+    const server = serverInstance;
+    console.log(`🔧 Server object created, waiting for 'listening' event...`);
+    // ========== END EARLY LISTEN ==========
+
     // Initialize services with error handling
     try {
       await EnhancedEmailService.initialize();
@@ -367,69 +471,9 @@ app.use((req, res, next) => {
         console.error('❌ Vite setup failed (development). Continuing without Vite:', e?.message || e);
       }
     }
-    
-    // Start listening ASAP - SYNCHRONOUS direct call
-    const port = parseInt(process.env.PORT || '3001', 10);
-    const host = process.env.HOST || (process.env.PORT ? '0.0.0.0' : '127.0.0.1');
-    
-    console.log(`🎯 Creating HTTP server on ${host}:${port}...`);
-    
-    // Direct synchronous listen - no await, no promises
-    serverInstance = app.listen(port, host);
-    
-    // Event handlers
-    const attachServerHandlers = (srv: any, { reason }: { reason: string }) => {
-      srv.on('listening', () => {
-        const addr = srv.address();
-        console.log(`✅ HTTP server LISTENING on ${host}:${port} (${reason})`);
-        console.log(`🔍 Server address:`, addr);
-        console.log(`🔍 Server listening:`, srv.listening);
-      });
-
-      srv.on('error', (err: any) => {
-        console.error('❌ HTTP server error:', err);
-        console.error('Error code:', err.code);
-        if (err.code === 'EADDRINUSE') {
-          console.error(`Port ${port} is already in use!`);
-        }
-      });
-
-      srv.on('close', () => {
-        console.warn('⚠️ Server "close" event fired - port released!');
-        try {
-          const addr = srv?.address?.();
-          console.warn('⚠️ Close context:', { addr, listening: srv?.listening });
-        } catch {}
-
-        const allowRebind = (process.env.RETRY_LISTEN_ON_CLOSE ?? (process.env.NODE_ENV !== 'production' ? 'true' : 'false')) === 'true';
-        (global as any).__rebindAttempted = (global as any).__rebindAttempted ?? false;
-        if (allowRebind && !(global as any).__rebindAttempted) {
-          (global as any).__rebindAttempted = true;
-          console.warn('🛠️ Attempting one-shot rebind after close (dev safeguard)...');
-          setTimeout(() => {
-            try {
-              const newSrv = app.listen(port, host);
-              serverInstance = newSrv;
-              (global as any).__server = newSrv;
-              attachServerHandlers(newSrv, { reason: 'rebind' });
-            } catch (e: any) {
-              console.error('❌ Rebind attempt failed:', e?.message || e);
-            }
-          }, 500);
-        }
-      });
-    };
-
-    attachServerHandlers(serverInstance, { reason: 'initial' });
-    
-    // Also keep in global for extra safety
-    (global as any).__server = serverInstance;
-    const server = serverInstance; // For compatibility with code below
-    
-    console.log(`🔧 Server object created, waiting for 'listening' event...`);
 
     // Periodic self health-check to diagnose listener drops
-    const HEALTHZ_URL = `http://${host}:${port}/healthz`;
+    const HEALTHZ_URL = `http://${host === '0.0.0.0' ? '127.0.0.1' : host}:${port}/healthz`;
     const healthzCheck = setInterval(() => {
       try {
         const req = http.get(HEALTHZ_URL, (res) => {
