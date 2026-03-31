@@ -123,6 +123,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { icon: Inbox, label: t('nav.inbox'), path: '/admin/inbox', badge: unreadEmailsCount },
     { icon: ClipboardList, label: t('nav.questionnaires'), path: '/admin/questionnaires' },
     { icon: BarChart3, label: t('nav.reports'), path: '/admin/reports' },
+    { icon: FileText, label: 'Landing Pages', path: '/admin/landing-pages', badge: 'AI' },
     { icon: Bot, label: 'Agent V2 (Enhanced)', path: '/admin/agent-v2', badge: 'NEW' },
     { icon: Activity, label: 'Agent Console', path: '/admin/agent-console' },
     { 

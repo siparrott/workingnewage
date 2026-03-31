@@ -1,0 +1,151 @@
+import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useCallback } from 'react';
+import { useLandingPageEditor } from '../../features/landing-pages/hooks/useLandingPageEditor';
+import { useDuplicateLandingPage } from '../../features/landing-pages/hooks/useDuplicateLandingPage';
+import { useRegenerateLandingPageSection } from '../../features/landing-pages/hooks/useRegenerateLandingPageSection';
+import { usePublishLandingPage } from '../../features/landing-pages/hooks/usePublishLandingPage';
+import { useUnpublishLandingPage } from '../../features/landing-pages/hooks/useUnpublishLandingPage';
+import { useLandingPagePreviewUrl } from '../../features/landing-pages/hooks/useLandingPagePreviewUrl';
+import LandingPageEditorLayout from '../../features/landing-pages/components/editor/LandingPageEditorLayout';
+import type { LandingPageSectionKey } from '../../features/landing-pages/types/landingPageEditor.types';
+import type { LandingPageSectionRegenerationMode } from '../../features/landing-pages/types/landingPageRegeneration.types';
+import { useToast } from '@/hooks/use-toast';
+
+export default function AdminLandingPageEditorPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const editor = useLandingPageEditor(id!);
+
+  const { duplicate: triggerDuplicate, isDuplicating } = useDuplicateLandingPage({
+    onSuccess: (duplicatedId: string) => {
+      navigate(`/admin/landing-pages/${duplicatedId}`);
+    },
+  });
+
+  const { regenerate, regeneratingSection } = useRegenerateLandingPageSection(id!);
+
+  const { publish, isPublishing } = usePublishLandingPage();
+  const { unpublish, isUnpublishing } = useUnpublishLandingPage();
+  const { requestPreviewLink } = useLandingPagePreviewUrl();
+
+  const handleBack = useCallback(() => {
+    navigate('/admin/landing-pages');
+  }, [navigate]);
+
+  const handleDuplicate = useCallback(() => {
+    if (id) triggerDuplicate(id);
+  }, [id, triggerDuplicate]);
+
+  const handleRegenerateSection = useCallback(
+    (key: LandingPageSectionKey, mode: string, customInstruction?: string) => {
+      regenerate({
+        sectionKey: key,
+        mode: mode as LandingPageSectionRegenerationMode,
+        customInstruction,
+      });
+    },
+    [regenerate],
+  );
+
+  const handlePublish = useCallback(() => {
+    if (!id) return;
+    publish(id, {
+      onSuccess: () => {
+        toast({ title: 'Page published', description: 'Your landing page is now live.' });
+      },
+      onError: (err: any) => {
+        const message = err?.validation?.errors?.join(', ') || err?.message || 'Failed to publish';
+        toast({ title: 'Publish failed', description: message, variant: 'destructive' });
+      },
+    });
+  }, [id, publish, toast]);
+
+  const handleUnpublish = useCallback(() => {
+    if (!id) return;
+    unpublish(id, {
+      onSuccess: () => {
+        toast({ title: 'Page unpublished', description: 'Your landing page has been taken offline.' });
+      },
+      onError: () => {
+        toast({ title: 'Unpublish failed', description: 'Could not unpublish the page.', variant: 'destructive' });
+      },
+    });
+  }, [id, unpublish, toast]);
+
+  const handlePreviewLink = useCallback(async () => {
+    if (!id) return;
+    const url = await requestPreviewLink(id);
+    if (url) {
+      const fullUrl = `${window.location.origin}${url}`;
+      await navigator.clipboard.writeText(fullUrl);
+      toast({ title: 'Preview link copied', description: 'The preview link has been copied to your clipboard. It expires in 24 hours.' });
+    }
+  }, [id, requestPreviewLink, toast]);
+
+  if (editor.isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-sm text-gray-500">Loading editor…</p>
+      </div>
+    );
+  }
+
+  if (editor.fetchError || !editor.page) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen gap-3">
+        <p className="text-sm text-red-600">{editor.fetchError?.message || 'Page not found'}</p>
+        <button className="text-sm text-purple-600 underline" onClick={handleBack}>
+          Back to list
+        </button>
+      </div>
+    );
+  }
+
+  if (!editor.content || !editor.meta) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-sm text-gray-500">Initializing editor…</p>
+      </div>
+    );
+  }
+
+  return (
+    <LandingPageEditorLayout
+      page={editor.page}
+      content={editor.content}
+      seo={editor.seo}
+      title={editor.title}
+      sectionOrder={editor.meta.sectionOrder}
+      visibility={editor.meta.sectionVisibility}
+      activeSection={editor.activeSection}
+      readiness={editor.readiness}
+      isDirty={editor.isDirty}
+      isSaving={editor.isSaving}
+      lastSavedAt={editor.lastSavedAt}
+      saveError={editor.saveError}
+      regeneratingSection={regeneratingSection}
+      pageStatus={(editor.page.status as 'draft' | 'published' | 'archived') || 'draft'}
+      publishedUrl={editor.page.published_url || null}
+      isPublishing={isPublishing}
+      isUnpublishing={isUnpublishing}
+      setActiveSection={editor.setActiveSection}
+      updateSection={editor.updateSection}
+      updateTitle={editor.updateTitle}
+      updateSeoField={editor.updateSeoField}
+      moveSectionUp={editor.moveSectionUp}
+      moveSectionDown={editor.moveSectionDown}
+      toggleVisibility={editor.toggleVisibility}
+      removeSection={editor.removeSection}
+      save={editor.save}
+      onBack={handleBack}
+      onDuplicate={handleDuplicate}
+      isDuplicating={isDuplicating}
+      onRegenerateSection={handleRegenerateSection}
+      onPublish={handlePublish}
+      onUnpublish={handleUnpublish}
+      onPreviewLink={handlePreviewLink}
+    />
+  );
+}

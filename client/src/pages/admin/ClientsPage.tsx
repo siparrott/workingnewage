@@ -95,14 +95,27 @@ const ClientsPage: React.FC = () => {
     filterAndSortClients();
   }, [clients, searchTerm, sortOrder, sortBy]);
 
-  const fetchClients = async () => {
+  const fetchClients = async (retryCount = 0) => {
+    const MAX_RETRIES = 3;
     try {
       setLoading(true);
+      setError(null);
       
       // Use the API endpoint with session-based authentication
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      
       const response = await fetch('/api/crm/clients', {
-        credentials: 'include'
+        credentials: 'include',
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
+      
+      if (response.status === 401) {
+        setError('Session expired. Please log in again.');
+        setLoading(false);
+        return;
+      }
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -111,11 +124,12 @@ const ClientsPage: React.FC = () => {
       const data = await response.json();
       
       // Map database fields to our client interface
-      const mappedClients = data?.map((client: any) => ({
+      // Drizzle returns camelCase, but handle snake_case fallback for safety
+      const mappedClients = (Array.isArray(data) ? data : []).map((client: any) => ({
         id: client.id,
-        firstName: client.firstName || '',
-        lastName: client.lastName || '',
-        clientId: client.clientId || client.id,
+        firstName: client.firstName || client.first_name || '',
+        lastName: client.lastName || client.last_name || '',
+        clientId: client.clientId || client.client_id || client.id,
         email: client.email || '',
         phone: client.phone || '',
         address: client.address || '',
@@ -123,16 +137,25 @@ const ClientsPage: React.FC = () => {
         state: client.state || '',
         zip: client.zip || '',
         country: client.country || '',
-        total_sales: client.total_sales || 0,
-        outstanding_balance: client.outstanding_balance || 0,
-        createdAt: client.createdAt,
-        updatedAt: client.updatedAt
+        total_sales: client.total_sales || client.totalSales || 0,
+        outstanding_balance: client.outstanding_balance || client.outstandingBalance || 0,
+        createdAt: client.createdAt || client.created_at,
+        updatedAt: client.updatedAt || client.updated_at
       }));
       
-      setClients(mappedClients || []);
-    } catch (err) {
-      // console.error removed
-      setError('Failed to load clients. Please try again.');
+      setClients(mappedClients);
+    } catch (err: any) {
+      // Retry on network / timeout / server errors
+      if (retryCount < MAX_RETRIES) {
+        const delay = Math.min(1000 * Math.pow(2, retryCount), 4000);
+        console.warn(`Client fetch attempt ${retryCount + 1} failed, retrying in ${delay}ms...`);
+        setTimeout(() => fetchClients(retryCount + 1), delay);
+        return; // keep loading=true while retrying
+      }
+      const message = err?.name === 'AbortError'
+        ? 'Request timed out. The database may be waking up — please try again in a few seconds.'
+        : 'Failed to load clients. Please try again.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -460,8 +483,14 @@ const ClientsPage: React.FC = () => {
             <span className="ml-3 text-gray-600">Loading clients...</span>
           </div>
         ) : error ? (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            {error}
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
+            <span>{error}</span>
+            <button
+              onClick={() => fetchClients()}
+              className="ml-4 px-4 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+            >
+              Retry
+            </button>
           </div>
         ) : filteredClients.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

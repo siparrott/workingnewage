@@ -1,0 +1,260 @@
+import { useState, useCallback } from 'react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import type { LandingPageSectionKey } from '../../types/landingPageEditor.types';
+import type { LandingPageGeneratedContent } from '../../types/landingPageGeneration.types';
+import type { LandingPageSeoState, LandingPageSectionVisibilityMap, LandingPageSectionOrder, LandingPagePublishReadinessResult } from '../../types/landingPageEditor.types';
+import type { LandingPageRecord } from '../../types/landingPage.types';
+import LandingPageEditorToolbar from './LandingPageEditorToolbar';
+import LandingPageSectionSidebar from './LandingPageSectionSidebar';
+import LandingPageEditorCanvas from './LandingPageEditorCanvas';
+import LandingPageSeoPanel from './LandingPageSeoPanel';
+import LandingPageSlugPanel from './LandingPageSlugPanel';
+import LandingPageSettingsPanel from './LandingPageSettingsPanel';
+import LandingPagePublishReadinessPanel from './LandingPagePublishReadinessPanel';
+import LandingPageRevisionPanel from './LandingPageRevisionPanel';
+import LandingPageDuplicateDialog from './LandingPageDuplicateDialog';
+import LandingPageRegenerateSectionDialog from './LandingPageRegenerateSectionDialog';
+import { GrowthInsightsPanel } from '../growth/GrowthInsightsPanel';
+import { AnalyticsOverview } from '../growth/AnalyticsOverview';
+import { ExperimentPanel } from '../growth/ExperimentPanel';
+import { PromoPackPanel } from '../growth/PromoPackPanel';
+import { LandingPageAutomationPanel } from '../automation/LandingPageAutomationPanel';
+import { LandingPageExecutionPanel } from '../execution/LandingPageExecutionPanel';
+import { useLandingPageRevisions } from '../../hooks/useLandingPageRevisions';
+import type { LandingPageSectionRegenerationMode } from '../../types/landingPageRegeneration.types';
+
+interface Props {
+  page: LandingPageRecord;
+  content: LandingPageGeneratedContent;
+  seo: LandingPageSeoState;
+  title: string;
+  sectionOrder: LandingPageSectionKey[];
+  visibility: LandingPageSectionVisibilityMap;
+  activeSection: LandingPageSectionKey | null;
+  readiness: LandingPagePublishReadinessResult;
+  isDirty: boolean;
+  isSaving: boolean;
+  lastSavedAt: string | null;
+  saveError: string | null;
+  regeneratingSection: LandingPageSectionKey | null;
+  // Publishing
+  pageStatus: 'draft' | 'published' | 'archived';
+  publishedUrl: string | null;
+  isPublishing: boolean;
+  isUnpublishing: boolean;
+  // Actions
+  setActiveSection: (key: LandingPageSectionKey | null) => void;
+  updateSection: (key: LandingPageSectionKey, data: unknown) => void;
+  updateTitle: (title: string) => void;
+  updateSeoField: (field: keyof LandingPageSeoState, value: string) => void;
+  moveSectionUp: (key: LandingPageSectionKey) => void;
+  moveSectionDown: (key: LandingPageSectionKey) => void;
+  toggleVisibility: (key: LandingPageSectionKey) => void;
+  removeSection: (key: LandingPageSectionKey) => void;
+  save: () => Promise<void>;
+  onBack: () => void;
+  // Duplicate
+  onDuplicate: () => void;
+  isDuplicating: boolean;
+  // Regenerate
+  onRegenerateSection: (key: LandingPageSectionKey, mode: string, customInstruction?: string) => void;
+  // Publish
+  onPublish: () => void;
+  onUnpublish: () => void;
+  onPreviewLink: () => void;
+}
+
+export default function LandingPageEditorLayout({
+  page,
+  content,
+  seo,
+  title,
+  sectionOrder,
+  visibility,
+  activeSection,
+  readiness,
+  isDirty,
+  isSaving,
+  lastSavedAt,
+  saveError,
+  regeneratingSection,
+  setActiveSection,
+  updateSection,
+  updateTitle,
+  updateSeoField,
+  moveSectionUp,
+  moveSectionDown,
+  toggleVisibility,
+  removeSection,
+  save,
+  onBack,
+  onDuplicate,
+  isDuplicating,
+  onRegenerateSection,
+  pageStatus,
+  publishedUrl,
+  isPublishing,
+  isUnpublishing,
+  onPublish,
+  onUnpublish,
+  onPreviewLink,
+}: Props) {
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+  const [regenerateDialogSection, setRegenerateDialogSection] = useState<LandingPageSectionKey | null>(null);
+  const { revisions, isLoading: revisionsLoading } = useLandingPageRevisions(String(page.id));
+
+  const handleRegenerate = useCallback((key: LandingPageSectionKey) => {
+    setRegenerateDialogSection(key);
+  }, []);
+
+  const handleRegenerateConfirm = useCallback((mode: LandingPageSectionRegenerationMode, customInstruction?: string) => {
+    if (regenerateDialogSection) {
+      onRegenerateSection(regenerateDialogSection, mode, customInstruction);
+    }
+    setRegenerateDialogSection(null);
+  }, [regenerateDialogSection, onRegenerateSection]);
+
+  return (
+    <div className="flex flex-col h-screen bg-gray-100">
+      {/* Top toolbar */}
+      <LandingPageEditorToolbar
+        title={title}
+        isDirty={isDirty}
+        isSaving={isSaving}
+        lastSavedAt={lastSavedAt}
+        saveError={saveError}
+        readinessIsReady={readiness.isReady}
+        readinessErrorCount={readiness.errors.length}
+        pageStatus={pageStatus}
+        publishedUrl={publishedUrl}
+        isPublishing={isPublishing}
+        isUnpublishing={isUnpublishing}
+        onSave={save}
+        onDuplicate={() => setDuplicateDialogOpen(true)}
+        onBack={onBack}
+        onPublish={onPublish}
+        onUnpublish={onUnpublish}
+        onPreviewLink={onPreviewLink}
+      />
+
+      {/* Three-panel body */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left sidebar — section navigator */}
+        <aside className="w-56 shrink-0 border-r bg-white overflow-y-auto p-3">
+          <LandingPageSectionSidebar
+            sectionOrder={sectionOrder}
+            visibility={visibility}
+            activeSection={activeSection}
+            onSelect={setActiveSection}
+            onToggleVisibility={toggleVisibility}
+            onRegenerate={handleRegenerate}
+          />
+        </aside>
+
+        {/* Center — editor canvas */}
+        <main className="flex-1 overflow-y-auto p-6">
+          <div className="max-w-3xl mx-auto">
+            <LandingPageEditorCanvas
+              content={content}
+              sectionOrder={sectionOrder}
+              visibility={visibility}
+              activeSection={activeSection}
+              regeneratingSection={regeneratingSection}
+              onActivateSection={setActiveSection}
+              onUpdateSection={updateSection}
+              onMoveSectionUp={moveSectionUp}
+              onMoveSectionDown={moveSectionDown}
+              onToggleVisibility={toggleVisibility}
+              onRemoveSection={removeSection}
+              onRegenerate={handleRegenerate}
+            />
+          </div>
+        </main>
+
+        {/* Right sidebar — settings / SEO / readiness */}
+        <aside className="w-80 shrink-0 border-l bg-white overflow-y-auto">
+          <Tabs defaultValue="settings">
+            <TabsList className="w-full border-b rounded-none bg-gray-50 px-2 pt-2">
+              <TabsTrigger value="settings" className="text-xs">Settings</TabsTrigger>
+              <TabsTrigger value="seo" className="text-xs">SEO</TabsTrigger>
+              <TabsTrigger value="readiness" className="text-xs">Readiness</TabsTrigger>
+              <TabsTrigger value="revisions" className="text-xs">Revisions</TabsTrigger>
+              <TabsTrigger value="growth" className="text-xs">Growth</TabsTrigger>
+              <TabsTrigger value="automation" className="text-xs">Automation</TabsTrigger>
+              <TabsTrigger value="execution" className="text-xs">Execution</TabsTrigger>
+            </TabsList>
+
+            <div className="p-4">
+              <TabsContent value="settings" className="mt-0">
+                <div className="space-y-6">
+                  <LandingPageSettingsPanel
+                    page={page}
+                    title={title}
+                    onTitleChange={updateTitle}
+                  />
+                  <LandingPageSlugPanel
+                    slug={seo.slug}
+                    pageId={page.id}
+                    onChange={val => updateSeoField('slug', val)}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="seo" className="mt-0">
+                <LandingPageSeoPanel
+                  seo={seo}
+                  onUpdate={updateSeoField}
+                />
+              </TabsContent>
+
+              <TabsContent value="readiness" className="mt-0">
+                <LandingPagePublishReadinessPanel readiness={readiness} />
+              </TabsContent>
+
+              <TabsContent value="revisions" className="mt-0">
+                <LandingPageRevisionPanel revisions={revisions} isLoading={revisionsLoading} />
+              </TabsContent>
+
+              <TabsContent value="growth" className="mt-0">
+                <div className="space-y-6">
+                  <GrowthInsightsPanel landingPageId={String(page.id)} />
+                  <AnalyticsOverview landingPageId={String(page.id)} />
+                  <ExperimentPanel landingPageId={String(page.id)} />
+                  <PromoPackPanel landingPageId={String(page.id)} />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="automation" className="mt-0">
+                <LandingPageAutomationPanel landingPageId={String(page.id)} />
+              </TabsContent>
+
+              <TabsContent value="execution" className="mt-0">
+                <LandingPageExecutionPanel landingPageId={String(page.id)} />
+              </TabsContent>
+            </div>
+          </Tabs>
+        </aside>
+      </div>
+
+      {/* Dialogs */}
+      <LandingPageDuplicateDialog
+        open={duplicateDialogOpen}
+        onClose={() => setDuplicateDialogOpen(false)}
+        pageTitle={title}
+        onConfirm={() => {
+          onDuplicate();
+          setDuplicateDialogOpen(false);
+        }}
+        isDuplicating={isDuplicating}
+      />
+
+      <LandingPageRegenerateSectionDialog
+        open={regenerateDialogSection !== null}
+        onClose={() => setRegenerateDialogSection(null)}
+        sectionKey={regenerateDialogSection}
+        isRegenerating={regeneratingSection !== null}
+        onConfirm={handleRegenerateConfirm}
+      />
+    </div>
+  );
+}

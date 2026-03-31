@@ -2231,6 +2231,926 @@ if (!connectionString) {
           from_name: process.env.EMAIL_FROM_NAME || 'Studio'
         };
       }
+    },
+
+    // ==================== LANDING PAGES ====================
+    async getLandingPages(status = null) {
+      try {
+        let query = 'SELECT * FROM landing_pages';
+        const params = [];
+        if (status) {
+          query += ' WHERE status = $1';
+          params.push(status);
+        }
+        query += ' ORDER BY updated_at DESC';
+        const result = await pool.query(query, params);
+        return result.rows;
+      } catch (error) {
+        console.error('❌ Error fetching landing pages:', error.message);
+        return [];
+      }
+    },
+
+    async getLandingPage(id) {
+      try {
+        const result = await pool.query('SELECT * FROM landing_pages WHERE id = $1', [id]);
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('❌ Error fetching landing page:', error.message);
+        return null;
+      }
+    },
+
+    async getLandingPageBySlug(slug) {
+      try {
+        const result = await pool.query(
+          'SELECT * FROM landing_pages WHERE slug = $1 AND status = $2',
+          [slug, 'published']
+        );
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('❌ Error fetching landing page by slug:', error.message);
+        return null;
+      }
+    },
+
+    async getLandingPageForPreview(slug, previewToken) {
+      try {
+        const result = await pool.query(
+          'SELECT * FROM landing_pages WHERE slug = $1 AND preview_token = $2 AND preview_token_expires_at > NOW()',
+          [slug, previewToken]
+        );
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('❌ Error fetching landing page for preview:', error.message);
+        return null;
+      }
+    },
+
+    async createLandingPage(data) {
+      try {
+        const result = await pool.query(`
+          INSERT INTO landing_pages (
+            user_id, title, slug, status, page_type, primary_service,
+            target_audience, offer_summary, city, tone, seo_title,
+            meta_description, hero_headline, hero_subheadline, cta_text,
+            cta_action, content_json, generation_prompt_json, generation_context_json
+          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+          RETURNING *
+        `, [
+          data.user_id || null,
+          data.title,
+          data.slug,
+          data.status || 'draft',
+          data.page_type || 'general',
+          data.primary_service || null,
+          data.target_audience || null,
+          data.offer_summary || null,
+          data.city || null,
+          data.tone || 'warm',
+          data.seo_title || null,
+          data.meta_description || null,
+          data.hero_headline || null,
+          data.hero_subheadline || null,
+          data.cta_text || 'Book Now',
+          data.cta_action || 'book_now',
+          JSON.stringify(data.content_json || {}),
+          JSON.stringify(data.generation_prompt_json || {}),
+          JSON.stringify(data.generation_context_json || {})
+        ]);
+        return result.rows[0];
+      } catch (error) {
+        console.error('❌ Error creating landing page:', error.message);
+        throw error;
+      }
+    },
+
+    async updateLandingPage(id, data) {
+      try {
+        const fields = [];
+        const values = [];
+        let paramIdx = 1;
+
+        const allowedFields = [
+          'title', 'slug', 'status', 'page_type', 'primary_service',
+          'target_audience', 'offer_summary', 'city', 'tone', 'seo_title',
+          'meta_description', 'hero_headline', 'hero_subheadline', 'cta_text',
+          'cta_action', 'schema_type', 'content_json', 'generation_prompt_json',
+          'generation_context_json', 'preview_image_url', 'published_url', 'published_at',
+          'preview_token', 'preview_token_expires_at', 'canonical_url', 'noindex'
+        ];
+
+        for (const key of allowedFields) {
+          if (data[key] !== undefined) {
+            const dbKey = key; // already snake_case
+            const val = (key === 'content_json' || key === 'generation_prompt_json' || key === 'generation_context_json')
+              ? JSON.stringify(data[key])
+              : data[key];
+            fields.push(`${dbKey} = $${paramIdx}`);
+            values.push(val);
+            paramIdx++;
+          }
+        }
+
+        if (fields.length === 0) return await this.getLandingPage(id);
+
+        fields.push(`updated_at = NOW()`);
+        values.push(id);
+
+        const result = await pool.query(
+          `UPDATE landing_pages SET ${fields.join(', ')} WHERE id = $${paramIdx} RETURNING *`,
+          values
+        );
+        return result.rows[0];
+      } catch (error) {
+        console.error('❌ Error updating landing page:', error.message);
+        throw error;
+      }
+    },
+
+    async deleteLandingPage(id) {
+      try {
+        const result = await pool.query('DELETE FROM landing_pages WHERE id = $1 RETURNING *', [id]);
+        return result.rows[0];
+      } catch (error) {
+        console.error('❌ Error deleting landing page:', error.message);
+        throw error;
+      }
+    },
+
+    async duplicateLandingPage(id) {
+      try {
+        const original = await this.getLandingPage(id);
+        if (!original) throw new Error('Landing page not found');
+
+        // Generate unique slug
+        let newSlug = original.slug + '-copy';
+        let counter = 1;
+        while (true) {
+          const existing = await pool.query('SELECT id FROM landing_pages WHERE slug = $1', [newSlug]);
+          if (existing.rows.length === 0) break;
+          newSlug = original.slug + '-copy-' + (++counter);
+        }
+
+        return await this.createLandingPage({
+          ...original,
+          title: original.title + ' (Copy)',
+          slug: newSlug,
+          status: 'draft',
+          published_at: null,
+          published_url: null,
+          content_json: original.content_json,
+          generation_prompt_json: original.generation_prompt_json,
+          generation_context_json: original.generation_context_json,
+        });
+      } catch (error) {
+        console.error('❌ Error duplicating landing page:', error.message);
+        throw error;
+      }
+    },
+
+    async checkSlugAvailable(slug, excludeId = null) {
+      try {
+        let query = 'SELECT id FROM landing_pages WHERE slug = $1';
+        const params = [slug];
+        if (excludeId) {
+          query += ' AND id != $2';
+          params.push(excludeId);
+        }
+        const result = await pool.query(query, params);
+        return result.rows.length === 0;
+      } catch (error) {
+        console.error('❌ Error checking slug:', error.message);
+        return false;
+      }
+    },
+
+    async createLandingPageRevision(landingPageId, contentJson, contextJson, createdBy) {
+      try {
+        // Get next version number
+        const versionResult = await pool.query(
+          'SELECT COALESCE(MAX(version_number), 0) + 1 as next_version FROM landing_page_revisions WHERE landing_page_id = $1',
+          [landingPageId]
+        );
+        const nextVersion = versionResult.rows[0].next_version;
+
+        const result = await pool.query(`
+          INSERT INTO landing_page_revisions (landing_page_id, version_number, content_json, generation_context_json, created_by)
+          VALUES ($1, $2, $3, $4, $5) RETURNING *
+        `, [landingPageId, nextVersion, JSON.stringify(contentJson), JSON.stringify(contextJson || {}), createdBy]);
+        return result.rows[0];
+      } catch (error) {
+        console.error('❌ Error creating revision:', error.message);
+        throw error;
+      }
+    },
+
+    async getLandingPageRevisions(landingPageId) {
+      try {
+        const result = await pool.query(
+          `SELECT id, landing_page_id, version_number, content_json, generation_context_json, created_by, created_at
+           FROM landing_page_revisions
+           WHERE landing_page_id = $1
+           ORDER BY version_number DESC`,
+          [landingPageId]
+        );
+        return result.rows;
+      } catch (error) {
+        console.error('❌ Error fetching revisions:', error.message);
+        throw error;
+      }
+    },
+
+    // ── Phase 5: Landing Page Events ─────────────────────────
+
+    async recordLandingPageEvent(input) {
+      try {
+        const result = await pool.query(
+          `INSERT INTO landing_page_events
+             (landing_page_id, event_type, event_label, event_value, variant_key,
+              session_id, visitor_id, source, medium, campaign, referrer, page_path, metadata_json)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+           RETURNING *`,
+          [
+            input.landing_page_id, input.event_type, input.event_label || null,
+            input.event_value || null, input.variant_key || null,
+            input.session_id || null, input.visitor_id || null,
+            input.source || null, input.medium || null, input.campaign || null,
+            input.referrer || null, input.page_path || null,
+            JSON.stringify(input.metadata_json || {})
+          ]
+        );
+        return result.rows[0];
+      } catch (error) {
+        console.error('❌ Error recording landing page event:', error.message);
+        throw error;
+      }
+    },
+
+    async getLandingPageEventsByPage(landingPageId, days = 30) {
+      try {
+        const result = await pool.query(
+          `SELECT * FROM landing_page_events
+           WHERE landing_page_id = $1
+             AND occurred_at >= NOW() - INTERVAL '1 day' * $2
+           ORDER BY occurred_at DESC
+           LIMIT 500`,
+          [landingPageId, days]
+        );
+        return result.rows;
+      } catch (error) {
+        console.error('❌ Error fetching landing page events:', error.message);
+        throw error;
+      }
+    },
+
+    async getLandingPageAnalytics(landingPageId, days = 30) {
+      try {
+        const summaryResult = await pool.query(
+          `SELECT
+             COUNT(*) FILTER (WHERE event_type = 'page_view')::int AS total_views,
+             COUNT(*) FILTER (WHERE event_type = 'cta_click')::int AS total_cta_clicks,
+             COUNT(*) FILTER (WHERE event_type = 'form_start')::int AS total_form_starts,
+             COUNT(*) FILTER (WHERE event_type = 'form_submit')::int AS total_form_submits,
+             COUNT(*) FILTER (WHERE event_type = 'booking_click')::int AS total_booking_clicks,
+             COUNT(*) FILTER (WHERE event_type = 'voucher_click')::int AS total_voucher_clicks,
+             COUNT(*) FILTER (WHERE event_type = 'whatsapp_click')::int AS total_whatsapp_clicks,
+             COUNT(*) FILTER (WHERE event_type = 'email_click')::int AS total_email_clicks,
+             COUNT(*) FILTER (WHERE event_type = 'phone_click')::int AS total_phone_clicks
+           FROM landing_page_events
+           WHERE landing_page_id = $1
+             AND occurred_at >= NOW() - INTERVAL '1 day' * $2`,
+          [landingPageId, days]
+        );
+
+        const topCtasResult = await pool.query(
+          `SELECT event_label, COUNT(*)::int AS clicks
+           FROM landing_page_events
+           WHERE landing_page_id = $1
+             AND event_type = 'cta_click'
+             AND occurred_at >= NOW() - INTERVAL '1 day' * $2
+           GROUP BY event_label
+           ORDER BY clicks DESC
+           LIMIT 10`,
+          [landingPageId, days]
+        );
+
+        const timelineResult = await pool.query(
+          `SELECT
+             DATE_TRUNC('day', occurred_at)::date AS date,
+             COUNT(*) FILTER (WHERE event_type = 'page_view')::int AS views,
+             COUNT(*) FILTER (WHERE event_type = 'cta_click')::int AS clicks
+           FROM landing_page_events
+           WHERE landing_page_id = $1
+             AND occurred_at >= NOW() - INTERVAL '1 day' * $2
+           GROUP BY DATE_TRUNC('day', occurred_at)
+           ORDER BY date ASC`,
+          [landingPageId, days]
+        );
+
+        const recentResult = await pool.query(
+          `SELECT * FROM landing_page_events
+           WHERE landing_page_id = $1
+           ORDER BY occurred_at DESC LIMIT 20`,
+          [landingPageId]
+        );
+
+        const summary = summaryResult.rows[0];
+        const totalViews = summary.total_views || 0;
+        const totalCtaClicks = summary.total_cta_clicks || 0;
+        const totalFormStarts = summary.total_form_starts || 0;
+        const totalFormSubmits = summary.total_form_submits || 0;
+
+        return {
+          totalViews,
+          totalCtaClicks,
+          totalFormStarts,
+          totalFormSubmits,
+          totalBookingClicks: summary.total_booking_clicks || 0,
+          totalVoucherClicks: summary.total_voucher_clicks || 0,
+          totalWhatsappClicks: summary.total_whatsapp_clicks || 0,
+          totalEmailClicks: summary.total_email_clicks || 0,
+          totalPhoneClicks: summary.total_phone_clicks || 0,
+          clickThroughRate: totalViews > 0 ? totalCtaClicks / totalViews : 0,
+          conversionRate: totalViews > 0 ? totalFormSubmits / totalViews : 0,
+          conversionFunnel: {
+            views: totalViews,
+            ctaClicks: totalCtaClicks,
+            formStarts: totalFormStarts,
+            formSubmits: totalFormSubmits,
+            ctaRate: totalViews > 0 ? totalCtaClicks / totalViews : 0,
+            startRate: totalCtaClicks > 0 ? totalFormStarts / totalCtaClicks : 0,
+            submitRate: totalFormStarts > 0 ? totalFormSubmits / totalFormStarts : 0,
+          },
+          topCtas: topCtasResult.rows.map(r => ({ label: r.event_label, clicks: r.clicks })),
+          timeline: timelineResult.rows.map(r => ({ date: r.date, views: r.views, clicks: r.clicks })),
+          recentEvents: recentResult.rows,
+        };
+      } catch (error) {
+        console.error('❌ Error fetching landing page analytics:', error.message);
+        throw error;
+      }
+    },
+
+    async getLandingPagesAnalyticsOverview(userId) {
+      try {
+        const result = await pool.query(
+          `SELECT
+             lp.id, lp.title, lp.slug, lp.status,
+             COUNT(e.id)::int AS total_events,
+             COUNT(e.id) FILTER (WHERE e.event_type = 'page_view')::int AS views,
+             COUNT(e.id) FILTER (WHERE e.event_type = 'cta_click')::int AS clicks
+           FROM landing_pages lp
+           LEFT JOIN landing_page_events e
+             ON e.landing_page_id = lp.id
+             AND e.occurred_at >= NOW() - INTERVAL '30 days'
+           WHERE lp.user_id = $1
+           GROUP BY lp.id
+           ORDER BY views DESC`,
+          [userId]
+        );
+        return result.rows.map(r => ({
+          landingPageId: r.id,
+          name: r.title,
+          slug: r.slug,
+          status: r.status,
+          totalEvents: r.total_events,
+          views: r.views,
+          clicks: r.clicks,
+          ctr: r.views > 0 ? r.clicks / r.views : 0,
+        }));
+      } catch (error) {
+        console.error('❌ Error fetching analytics overview:', error.message);
+        throw error;
+      }
+    },
+
+    // ── Phase 5: Landing Page Variants ───────────────────────
+
+    async createLandingPageVariant(data) {
+      try {
+        const result = await pool.query(
+          `INSERT INTO landing_page_variants
+             (landing_page_id, user_id, variant_key, name, slug, status, traffic_weight,
+              content_json, seo_title, meta_description, hero_headline, cta_text)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+           RETURNING *`,
+          [
+            data.landing_page_id, data.user_id, data.variant_key, data.name,
+            data.slug || null, data.status || 'draft', data.traffic_weight ?? 0,
+            JSON.stringify(data.content_json || {}),
+            data.seo_title || null, data.meta_description || null,
+            data.hero_headline || null, data.cta_text || null
+          ]
+        );
+        return result.rows[0];
+      } catch (error) {
+        console.error('❌ Error creating landing page variant:', error.message);
+        throw error;
+      }
+    },
+
+    async listLandingPageVariants(landingPageId) {
+      try {
+        const result = await pool.query(
+          `SELECT v.*,
+             (SELECT COUNT(*)::int FROM landing_page_events e WHERE e.landing_page_id = v.landing_page_id AND e.variant_key = v.variant_key AND e.event_type = 'page_view') AS views,
+             (SELECT COUNT(*)::int FROM landing_page_events e WHERE e.landing_page_id = v.landing_page_id AND e.variant_key = v.variant_key AND e.event_type = 'cta_click') AS clicks
+           FROM landing_page_variants v
+           WHERE v.landing_page_id = $1
+           ORDER BY v.created_at ASC`,
+          [landingPageId]
+        );
+        return result.rows.map(r => ({
+          ...r,
+          views: r.views || 0,
+          clicks: r.clicks || 0,
+          ctr: r.views > 0 ? r.clicks / r.views : 0,
+        }));
+      } catch (error) {
+        console.error('❌ Error listing landing page variants:', error.message);
+        throw error;
+      }
+    },
+
+    async getLandingPageVariant(variantId) {
+      try {
+        const result = await pool.query(
+          `SELECT * FROM landing_page_variants WHERE id = $1`,
+          [variantId]
+        );
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('❌ Error fetching landing page variant:', error.message);
+        throw error;
+      }
+    },
+
+    async updateLandingPageVariant(variantId, data) {
+      try {
+        const fields = [];
+        const values = [];
+        let idx = 1;
+        const allowedFields = [
+          'name', 'slug', 'status', 'traffic_weight', 'content_json',
+          'seo_title', 'seo_description', 'hero_image_url', 'cta_url'
+        ];
+        for (const key of allowedFields) {
+          if (data[key] !== undefined) {
+            fields.push(`${key} = $${idx}`);
+            values.push(key === 'content_json' ? JSON.stringify(data[key]) : data[key]);
+            idx++;
+          }
+        }
+        if (fields.length === 0) return null;
+        fields.push(`updated_at = NOW()`);
+        values.push(variantId);
+        const result = await pool.query(
+          `UPDATE landing_page_variants SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+          values
+        );
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('❌ Error updating landing page variant:', error.message);
+        throw error;
+      }
+    },
+
+    async deleteLandingPageVariant(variantId) {
+      try {
+        const result = await pool.query(
+          `DELETE FROM landing_page_variants WHERE id = $1 RETURNING *`,
+          [variantId]
+        );
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('❌ Error deleting landing page variant:', error.message);
+        throw error;
+      }
+    },
+
+    // ── Phase 6: Landing Page Automation Rules ────────────────────
+
+    async listLandingPageAutomationRules(userId, landingPageId) {
+      try {
+        const result = await pool.query(
+          `SELECT * FROM landing_page_automation_rules
+           WHERE user_id = $1 AND landing_page_id = $2
+           ORDER BY created_at DESC`,
+          [userId, landingPageId]
+        );
+        return result.rows;
+      } catch (error) {
+        console.error('❌ Error listing automation rules:', error.message);
+        throw error;
+      }
+    },
+
+    async createLandingPageAutomationRule(data) {
+      try {
+        const result = await pool.query(
+          `INSERT INTO landing_page_automation_rules
+           (landing_page_id, user_id, rule_type, name, is_enabled, condition_json, action_json, frequency)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           RETURNING *`,
+          [
+            data.landingPageId,
+            data.userId,
+            data.ruleType,
+            data.name,
+            data.isEnabled ?? true,
+            JSON.stringify(data.conditionJson ?? {}),
+            JSON.stringify(data.actionJson ?? {}),
+            data.frequency ?? null,
+          ]
+        );
+        return result.rows[0];
+      } catch (error) {
+        console.error('❌ Error creating automation rule:', error.message);
+        throw error;
+      }
+    },
+
+    async updateLandingPageAutomationRule(ruleId, data) {
+      try {
+        const fields = [];
+        const values = [];
+        let idx = 1;
+
+        if (data.name !== undefined) { fields.push(`name = $${idx++}`); values.push(data.name); }
+        if (data.isEnabled !== undefined) { fields.push(`is_enabled = $${idx++}`); values.push(data.isEnabled); }
+        if (data.conditionJson !== undefined) { fields.push(`condition_json = $${idx++}`); values.push(JSON.stringify(data.conditionJson)); }
+        if (data.actionJson !== undefined) { fields.push(`action_json = $${idx++}`); values.push(JSON.stringify(data.actionJson)); }
+        if (data.frequency !== undefined) { fields.push(`frequency = $${idx++}`); values.push(data.frequency); }
+        if (data.lastEvaluatedAt !== undefined) { fields.push(`last_evaluated_at = $${idx++}`); values.push(data.lastEvaluatedAt); }
+        if (data.lastTriggeredAt !== undefined) { fields.push(`last_triggered_at = $${idx++}`); values.push(data.lastTriggeredAt); }
+
+        if (fields.length === 0) return null;
+
+        fields.push(`updated_at = now()`);
+        values.push(ruleId);
+
+        const result = await pool.query(
+          `UPDATE landing_page_automation_rules SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+          values
+        );
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('❌ Error updating automation rule:', error.message);
+        throw error;
+      }
+    },
+
+    async deleteLandingPageAutomationRule(ruleId) {
+      try {
+        const result = await pool.query(
+          `DELETE FROM landing_page_automation_rules WHERE id = $1 RETURNING *`,
+          [ruleId]
+        );
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('❌ Error deleting automation rule:', error.message);
+        throw error;
+      }
+    },
+
+    // ── Phase 6: Landing Page Automation Events ───────────────────
+
+    async listLandingPageAutomationEvents(userId, landingPageId, limit = 50) {
+      try {
+        const result = await pool.query(
+          `SELECT * FROM landing_page_automation_events
+           WHERE user_id = $1 AND landing_page_id = $2
+           ORDER BY occurred_at DESC
+           LIMIT $3`,
+          [userId, landingPageId, limit]
+        );
+        return result.rows;
+      } catch (error) {
+        console.error('❌ Error listing automation events:', error.message);
+        throw error;
+      }
+    },
+
+    async createLandingPageAutomationEvent(data) {
+      try {
+        const result = await pool.query(
+          `INSERT INTO landing_page_automation_events
+           (landing_page_id, user_id, automation_rule_id, event_type, event_status, summary, detail_json)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           RETURNING *`,
+          [
+            data.landingPageId,
+            data.userId,
+            data.automationRuleId ?? null,
+            data.eventType,
+            data.eventStatus ?? 'info',
+            data.summary,
+            JSON.stringify(data.detailJson ?? {}),
+          ]
+        );
+        return result.rows[0];
+      } catch (error) {
+        console.error('❌ Error creating automation event:', error.message);
+        throw error;
+      }
+    },
+
+    // ── Phase 6: Landing Page Scheduled Actions ───────────────────
+
+    async listLandingPageScheduledActions(userId, landingPageId) {
+      try {
+        const result = await pool.query(
+          `SELECT * FROM landing_page_scheduled_actions
+           WHERE user_id = $1 AND landing_page_id = $2
+           ORDER BY scheduled_for ASC`,
+          [userId, landingPageId]
+        );
+        return result.rows;
+      } catch (error) {
+        console.error('❌ Error listing scheduled actions:', error.message);
+        throw error;
+      }
+    },
+
+    async createLandingPageScheduledAction(data) {
+      try {
+        const result = await pool.query(
+          `INSERT INTO landing_page_scheduled_actions
+           (landing_page_id, user_id, action_type, action_payload, scheduled_for, status)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           RETURNING *`,
+          [
+            data.landingPageId,
+            data.userId,
+            data.actionType,
+            JSON.stringify(data.actionPayload ?? {}),
+            data.scheduledFor,
+            data.status ?? 'pending',
+          ]
+        );
+        return result.rows[0];
+      } catch (error) {
+        console.error('❌ Error creating scheduled action:', error.message);
+        throw error;
+      }
+    },
+
+    async updateLandingPageScheduledAction(actionId, data) {
+      try {
+        const fields = [];
+        const values = [];
+        let idx = 1;
+
+        if (data.status !== undefined) { fields.push(`status = $${idx++}`); values.push(data.status); }
+        if (data.executedAt !== undefined) { fields.push(`executed_at = $${idx++}`); values.push(data.executedAt); }
+
+        if (fields.length === 0) return null;
+
+        values.push(actionId);
+
+        const result = await pool.query(
+          `UPDATE landing_page_scheduled_actions SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+          values
+        );
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('❌ Error updating scheduled action:', error.message);
+        throw error;
+      }
+    },
+
+    async getDueLandingPageScheduledActions() {
+      try {
+        const result = await pool.query(
+          `SELECT * FROM landing_page_scheduled_actions
+           WHERE status = 'pending' AND scheduled_for <= now()
+           ORDER BY scheduled_for ASC
+           LIMIT 100`
+        );
+        return result.rows;
+      } catch (error) {
+        console.error('❌ Error fetching due scheduled actions:', error.message);
+        throw error;
+      }
+    },
+
+    // ── Phase 7: Landing Page Executions ──────────────────────────────────
+
+    async listLandingPageExecutions(landingPageId, { status, approvalStatus, limit = 50, offset = 0 } = {}) {
+      try {
+        const conditions = ['landing_page_id = $1'];
+        const values = [landingPageId];
+        let idx = 2;
+
+        if (status) { conditions.push(`execution_status = $${idx++}`); values.push(status); }
+        if (approvalStatus) { conditions.push(`approval_status = $${idx++}`); values.push(approvalStatus); }
+
+        values.push(limit, offset);
+        const result = await pool.query(
+          `SELECT * FROM landing_page_executions
+           WHERE ${conditions.join(' AND ')}
+           ORDER BY created_at DESC
+           LIMIT $${idx++} OFFSET $${idx}`,
+          values
+        );
+        return result.rows;
+      } catch (error) {
+        console.error('❌ Error listing executions:', error.message);
+        throw error;
+      }
+    },
+
+    async getLandingPageExecution(executionId) {
+      try {
+        const result = await pool.query(
+          'SELECT * FROM landing_page_executions WHERE id = $1',
+          [executionId]
+        );
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('❌ Error getting execution:', error.message);
+        throw error;
+      }
+    },
+
+    async createLandingPageExecution(data) {
+      try {
+        const result = await pool.query(
+          `INSERT INTO landing_page_executions
+           (landing_page_id, user_id, automation_rule_id, source_event_id,
+            execution_type, execution_status, approval_status, is_auto_executable,
+            requested_payload, queued_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
+           RETURNING *`,
+          [
+            data.landingPageId,
+            data.userId,
+            data.automationRuleId || null,
+            data.sourceEventId || null,
+            data.executionType,
+            data.approvalStatus === 'not_required' ? 'queued' : 'awaiting_approval',
+            data.approvalStatus || 'not_required',
+            data.isAutoExecutable || false,
+            JSON.stringify(data.requestedPayload || {}),
+          ]
+        );
+        return result.rows[0];
+      } catch (error) {
+        console.error('❌ Error creating execution:', error.message);
+        throw error;
+      }
+    },
+
+    async updateLandingPageExecutionStatus(executionId, data) {
+      try {
+        const fields = [];
+        const values = [];
+        let idx = 1;
+
+        if (data.executionStatus !== undefined) { fields.push(`execution_status = $${idx++}`); values.push(data.executionStatus); }
+        if (data.approvalStatus !== undefined) { fields.push(`approval_status = $${idx++}`); values.push(data.approvalStatus); }
+        if (data.executionPayload !== undefined) { fields.push(`execution_payload = $${idx++}`); values.push(JSON.stringify(data.executionPayload)); }
+        if (data.resultJson !== undefined) { fields.push(`result_json = $${idx++}`); values.push(JSON.stringify(data.resultJson)); }
+        if (data.errorMessage !== undefined) { fields.push(`error_message = $${idx++}`); values.push(data.errorMessage); }
+        if (data.executedAt !== undefined) { fields.push(`executed_at = $${idx++}`); values.push(data.executedAt); }
+        if (data.completedAt !== undefined) { fields.push(`completed_at = $${idx++}`); values.push(data.completedAt); }
+        if (data.failedAt !== undefined) { fields.push(`failed_at = $${idx++}`); values.push(data.failedAt); }
+        if (data.approvedAt !== undefined) { fields.push(`approved_at = $${idx++}`); values.push(data.approvedAt); }
+        if (data.approvedBy !== undefined) { fields.push(`approved_by = $${idx++}`); values.push(data.approvedBy); }
+        if (data.rejectedAt !== undefined) { fields.push(`rejected_at = $${idx++}`); values.push(data.rejectedAt); }
+        if (data.rejectedBy !== undefined) { fields.push(`rejected_by = $${idx++}`); values.push(data.rejectedBy); }
+        if (data.retryCount !== undefined) { fields.push(`retry_count = $${idx++}`); values.push(data.retryCount); }
+
+        if (fields.length === 0) return null;
+
+        fields.push('updated_at = now()');
+        values.push(executionId);
+
+        const result = await pool.query(
+          `UPDATE landing_page_executions SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+          values
+        );
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('❌ Error updating execution status:', error.message);
+        throw error;
+      }
+    },
+
+    async getLandingPageExecutionQueueSummary(landingPageId) {
+      try {
+        const result = await pool.query(
+          `SELECT
+             COUNT(*) AS total_count,
+             COUNT(*) FILTER (WHERE execution_status = 'pending') AS pending_count,
+             COUNT(*) FILTER (WHERE execution_status = 'awaiting_approval') AS awaiting_approval_count,
+             COUNT(*) FILTER (WHERE execution_status = 'running') AS running_count,
+             COUNT(*) FILTER (WHERE execution_status = 'completed') AS completed_count,
+             COUNT(*) FILTER (WHERE execution_status = 'failed') AS failed_count,
+             COUNT(*) FILTER (WHERE execution_status = 'rejected') AS rejected_count
+           FROM landing_page_executions
+           WHERE landing_page_id = $1`,
+          [landingPageId]
+        );
+        return result.rows[0] || {
+          total_count: 0, pending_count: 0, awaiting_approval_count: 0,
+          running_count: 0, completed_count: 0, failed_count: 0, rejected_count: 0,
+        };
+      } catch (error) {
+        console.error('❌ Error getting execution queue summary:', error.message);
+        throw error;
+      }
+    },
+
+    async getRunnableLandingPageExecutions(limit = 10) {
+      try {
+        const result = await pool.query(
+          `SELECT * FROM landing_page_executions
+           WHERE execution_status = 'queued'
+             AND (approval_status = 'not_required' OR approval_status = 'approved')
+           ORDER BY queued_at ASC
+           LIMIT $1`,
+          [limit]
+        );
+        return result.rows;
+      } catch (error) {
+        console.error('❌ Error getting runnable executions:', error.message);
+        throw error;
+      }
+    },
+
+    async getAwaitingApprovalExecutions(userId, limit = 50) {
+      try {
+        const result = await pool.query(
+          `SELECT e.* FROM landing_page_executions e
+           JOIN landing_pages lp ON lp.id = e.landing_page_id
+           WHERE e.execution_status = 'awaiting_approval'
+             AND lp.user_id = $1
+           ORDER BY e.created_at DESC
+           LIMIT $2`,
+          [userId, limit]
+        );
+        return result.rows;
+      } catch (error) {
+        console.error('❌ Error getting awaiting-approval executions:', error.message);
+        throw error;
+      }
+    },
+
+    // ── Phase 7: Landing Page Execution Settings ──────────────────────────
+
+    async getLandingPageExecutionSettings(userId, landingPageId = null) {
+      try {
+        let result;
+        if (landingPageId) {
+          result = await pool.query(
+            'SELECT * FROM landing_page_execution_settings WHERE user_id = $1 AND landing_page_id = $2',
+            [userId, landingPageId]
+          );
+        } else {
+          result = await pool.query(
+            'SELECT * FROM landing_page_execution_settings WHERE user_id = $1 AND landing_page_id IS NULL',
+            [userId]
+          );
+        }
+        return result.rows[0] || null;
+      } catch (error) {
+        console.error('❌ Error getting execution settings:', error.message);
+        throw error;
+      }
+    },
+
+    async upsertLandingPageExecutionSettings(userId, landingPageId, data) {
+      try {
+        const result = await pool.query(
+          `INSERT INTO landing_page_execution_settings
+           (user_id, landing_page_id, auto_execute_safe_actions,
+            require_approval_for_content_changes, require_approval_for_crm_pushes,
+            require_approval_for_variant_creation)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (user_id, landing_page_id)
+           DO UPDATE SET
+             auto_execute_safe_actions = COALESCE($3, landing_page_execution_settings.auto_execute_safe_actions),
+             require_approval_for_content_changes = COALESCE($4, landing_page_execution_settings.require_approval_for_content_changes),
+             require_approval_for_crm_pushes = COALESCE($5, landing_page_execution_settings.require_approval_for_crm_pushes),
+             require_approval_for_variant_creation = COALESCE($6, landing_page_execution_settings.require_approval_for_variant_creation),
+             updated_at = now()
+           RETURNING *`,
+          [
+            userId,
+            landingPageId || null,
+            data.autoExecuteSafeActions ?? false,
+            data.requireApprovalForContentChanges ?? true,
+            data.requireApprovalForCrmPushes ?? true,
+            data.requireApprovalForVariantCreation ?? true,
+          ]
+        );
+        return result.rows[0];
+      } catch (error) {
+        console.error('❌ Error upserting execution settings:', error.message);
+        throw error;
+      }
     }
   };
 }

@@ -75,6 +75,10 @@ import KnowledgeBasePage from './pages/admin/KnowledgeBasePage';
 import CRMOperationsAssistant from './pages/admin/CRMOperationsAssistant';
 import AgentV2Page from './pages/admin/AgentV2Page';
 import AgentConsolePage from './pages/admin/AgentConsolePage';
+import AdminLandingPagesPage from './pages/admin/AdminLandingPagesPage';
+import AdminLandingPageNewPage from './pages/admin/AdminLandingPageNewPage';
+import AdminLandingPageEditorPage from './pages/admin/AdminLandingPageEditorPage';
+import PublicLandingPage from './pages/PublicLandingPage';
 import WebsiteWizard from './pages/admin/WebsiteWizard';
 import PriceListSettingsPage from './pages/admin/settings/PriceListSettingsPage';
 import ManualWebsiteUpdatePage from './pages/admin/ManualWebsiteUpdatePage';
@@ -187,6 +191,7 @@ function App() {
                 <Route path="/voucher/thank-you" element={<VoucherThankYouPage />} />
                 <Route path="/blog" element={<BlogPage />} />
                 <Route path="/blog/:slug" element={<BlogPostPage />} />
+                <Route path="/lp/:slug" element={<PublicLandingPage />} />
                 <Route path="/warteliste" element={<WartelistePage />} />
                 <Route path="/kontakt" element={<KontaktPage />} />
                 <Route path="/vouchers" element={<VouchersPage />} />
@@ -475,6 +480,30 @@ function App() {
                   element={
                     <NeonProtectedRoute>
                       <AgentV2Page />
+                    </NeonProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/landing-pages"
+                  element={
+                    <NeonProtectedRoute>
+                      <AdminLandingPagesPage />
+                    </NeonProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/landing-pages/new"
+                  element={
+                    <NeonProtectedRoute>
+                      <AdminLandingPageNewPage />
+                    </NeonProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/landing-pages/:id"
+                  element={
+                    <NeonProtectedRoute>
+                      <AdminLandingPageEditorPage />
                     </NeonProtectedRoute>
                   }
                 />

@@ -2350,12 +2350,19 @@ Bitte versuchen Sie es später noch einmal.`;
 
   app.get("/api/crm/clients", authenticateUser, async (req: Request, res: Response) => {
     console.log(`/api/crm/clients GET received - query:`, req.query);
-    try {
-      const clients = await storage.getCrmClients();
-      res.json(clients);
-    } catch (error) {
-      console.error("Error fetching CRM clients:", error);
-      res.status(500).json({ error: "Internal server error" });
+    const MAX_RETRIES = 2;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const clients = await storage.getCrmClients();
+        return res.json(clients);
+      } catch (error: any) {
+        console.error(`Error fetching CRM clients (attempt ${attempt + 1}/${MAX_RETRIES + 1}):`, error?.message || error);
+        if (attempt < MAX_RETRIES) {
+          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+          continue;
+        }
+        return res.status(500).json({ error: "Failed to load clients. The database may be temporarily unavailable." });
+      }
     }
   });
 
@@ -16205,6 +16212,1559 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
 
   // Register test routes
   registerTestRoutes(app);
+
+  // ==================== LANDING PAGES ====================
+
+  // GET all landing pages (admin)
+  app.get("/api/admin/landing-pages", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const status = req.query.status as string || null;
+      const pages = await neonDb.getLandingPages(status);
+      res.json(pages);
+    } catch (error) {
+      console.error('Error fetching landing pages:', error);
+      res.status(500).json({ error: 'Failed to fetch landing pages' });
+    }
+  });
+
+  // GET seasonal template library (must be before /:id to avoid param matching)
+  app.get("/api/admin/landing-pages/templates", authenticateUser, async (_req: Request, res: Response) => {
+    try {
+      const templates = [
+        { id: 'easter', label: 'Easter Mini Sessions', pageType: 'mini_session', targetAudience: 'families' },
+        { id: 'mother-day', label: "Mother's Day Portraits", pageType: 'portrait_session', targetAudience: 'families' },
+        { id: 'christmas', label: 'Christmas Card Sessions', pageType: 'mini_session', targetAudience: 'families' },
+        { id: 'mini-session-spring', label: 'Spring Mini Sessions', pageType: 'mini_session', targetAudience: 'families' },
+        { id: 'newborn', label: 'Newborn Photography', pageType: 'studio_session', targetAudience: 'new_parents' },
+        { id: 'family-wall-portrait', label: 'Family Wall Portrait', pageType: 'studio_session', targetAudience: 'families' },
+        { id: 'summer-holiday', label: 'Summer Holiday Offer', pageType: 'mini_session', targetAudience: 'families' },
+        { id: 'business-headshots', label: 'Business Headshots', pageType: 'commercial', targetAudience: 'professionals' },
+        { id: 'school-holiday', label: 'School Holiday Sessions', pageType: 'mini_session', targetAudience: 'families' },
+      ];
+      res.json(templates);
+    } catch (error: any) {
+      console.error('Error fetching templates:', error.message);
+      res.status(500).json({ error: 'Failed to fetch templates' });
+    }
+  });
+
+  // GET awaiting-approval executions for the current user (must be before /:id route)
+  app.get("/api/admin/landing-pages/executions/awaiting-approval", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const executions = await neonDb.getAwaitingApprovalExecutions(userId, 50);
+
+      const mapped = executions.map((e: any) => ({
+        id: e.id,
+        landingPageId: e.landing_page_id,
+        executionType: e.execution_type,
+        executionStatus: e.execution_status,
+        approvalStatus: e.approval_status,
+        requestedPayload: e.requested_payload,
+        createdAt: e.created_at,
+      }));
+
+      res.json(mapped);
+    } catch (error: any) {
+      console.error('Error listing awaiting-approval executions:', error.message);
+      res.status(500).json({ error: 'Failed to list awaiting-approval executions' });
+    }
+  });
+
+  // GET single landing page (admin)
+  app.get("/api/admin/landing-pages/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const page = await neonDb.getLandingPage(req.params.id);
+      if (!page) return res.status(404).json({ error: 'Landing page not found' });
+      res.json(page);
+    } catch (error) {
+      console.error('Error fetching landing page:', error);
+      res.status(500).json({ error: 'Failed to fetch landing page' });
+    }
+  });
+
+  // POST create landing page
+  app.post("/api/admin/landing-pages", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const data = req.body;
+      if (!data.title || !data.slug) {
+        return res.status(400).json({ error: 'Title and slug are required' });
+      }
+      // Check slug uniqueness
+      const slugAvailable = await neonDb.checkSlugAvailable(data.slug);
+      if (!slugAvailable) {
+        return res.status(409).json({ error: 'Slug already in use' });
+      }
+      const page = await neonDb.createLandingPage(data);
+      res.status(201).json(page);
+    } catch (error) {
+      console.error('Error creating landing page:', error);
+      res.status(500).json({ error: 'Failed to create landing page' });
+    }
+  });
+
+  // PUT update landing page
+  app.put("/api/admin/landing-pages/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const data = req.body;
+      // If slug changed, check uniqueness
+      if (data.slug) {
+        const slugAvailable = await neonDb.checkSlugAvailable(data.slug, req.params.id);
+        if (!slugAvailable) {
+          return res.status(409).json({ error: 'Slug already in use' });
+        }
+      }
+      const page = await neonDb.updateLandingPage(req.params.id, data);
+      if (!page) return res.status(404).json({ error: 'Landing page not found' });
+      res.json(page);
+    } catch (error) {
+      console.error('Error updating landing page:', error);
+      res.status(500).json({ error: 'Failed to update landing page' });
+    }
+  });
+
+  // POST publish landing page (with server-side readiness validation)
+  app.post("/api/admin/landing-pages/:id/publish", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const page = await neonDb.getLandingPage(req.params.id);
+      if (!page) return res.status(404).json({ error: 'Landing page not found' });
+
+      // Server-side readiness validation
+      const content = page.content_json || {};
+      const validationErrors: string[] = [];
+      const validationWarnings: string[] = [];
+
+      if (!page.title?.trim()) validationErrors.push('Page title is missing');
+      if (!page.slug?.trim()) validationErrors.push('URL slug is missing');
+      if (!content.hero?.headline?.trim()) validationErrors.push('Hero headline is missing');
+      if (!content.hero?.ctaText?.trim() && !page.cta_text?.trim()) validationErrors.push('Hero CTA text is missing');
+      const seoTitle = content.seo?.title || page.seo_title;
+      if (!seoTitle?.trim()) validationErrors.push('SEO title is missing');
+      const metaDesc = content.seo?.description || page.meta_description;
+      if (!metaDesc?.trim()) validationErrors.push('Meta description is missing');
+      if (!content.hero && !content.offerSection && !content.finalCta) validationErrors.push('Page has no generated content');
+      if (!content.finalCta?.ctaText?.trim()) validationWarnings.push('Final CTA section is recommended');
+
+      if (validationErrors.length > 0) {
+        return res.status(422).json({
+          success: false,
+          error: 'Page is not ready to publish',
+          validation: {
+            errors: validationErrors,
+            warnings: validationWarnings,
+          }
+        });
+      }
+
+      // Save revision before publishing
+      await neonDb.createLandingPageRevision(page.id, page.content_json, page.generation_context_json, req.user?.id || 'admin');
+
+      const updated = await neonDb.updateLandingPage(req.params.id, {
+        status: 'published',
+        published_at: new Date().toISOString(),
+        published_url: `/lp/${page.slug}`
+      });
+      res.json({
+        success: true,
+        page: updated,
+        publishedUrl: `/lp/${page.slug}`,
+      });
+    } catch (error) {
+      console.error('Error publishing landing page:', error);
+      res.status(500).json({ error: 'Failed to publish landing page' });
+    }
+  });
+
+  // POST unpublish landing page
+  app.post("/api/admin/landing-pages/:id/unpublish", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const updated = await neonDb.updateLandingPage(req.params.id, {
+        status: 'draft',
+        published_url: null
+      });
+      if (!updated) return res.status(404).json({ error: 'Landing page not found' });
+      res.json(updated);
+    } catch (error) {
+      console.error('Error unpublishing landing page:', error);
+      res.status(500).json({ error: 'Failed to unpublish landing page' });
+    }
+  });
+
+  // POST create preview link for landing page
+  app.post("/api/admin/landing-pages/:id/preview-link", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const page = await neonDb.getLandingPage(req.params.id);
+      if (!page) return res.status(404).json({ error: 'Landing page not found' });
+
+      // Generate a random preview token (64-char hex)
+      const { randomBytes } = await import('crypto');
+      const previewToken = randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
+
+      await neonDb.updateLandingPage(req.params.id, {
+        preview_token: previewToken,
+        preview_token_expires_at: expiresAt,
+      });
+
+      const previewUrl = `/lp/${page.slug}?preview=${previewToken}`;
+      res.json({
+        previewUrl,
+        expiresAt,
+      });
+    } catch (error) {
+      console.error('Error creating preview link:', error);
+      res.status(500).json({ error: 'Failed to create preview link' });
+    }
+  });
+
+  // POST duplicate landing page
+  app.post("/api/admin/landing-pages/:id/duplicate", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const duplicate = await neonDb.duplicateLandingPage(req.params.id);
+      res.status(201).json(duplicate);
+    } catch (error) {
+      console.error('Error duplicating landing page:', error);
+      res.status(500).json({ error: 'Failed to duplicate landing page' });
+    }
+  });
+
+  // GET landing page revisions
+  app.get("/api/admin/landing-pages/:id/revisions", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const revisions = await neonDb.getLandingPageRevisions(req.params.id);
+      res.json(revisions);
+    } catch (error) {
+      console.error('Error fetching revisions:', error);
+      res.status(500).json({ error: 'Failed to fetch revisions' });
+    }
+  });
+
+  // DELETE landing page
+  app.delete("/api/admin/landing-pages/:id", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const page = await neonDb.deleteLandingPage(req.params.id);
+      if (!page) return res.status(404).json({ error: 'Landing page not found' });
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting landing page:', error);
+      res.status(500).json({ error: 'Failed to delete landing page' });
+    }
+  });
+
+  // POST check slug availability
+  app.post("/api/admin/landing-pages/check-slug", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { slug, excludeId } = req.body;
+      if (!slug) return res.status(400).json({ error: 'Slug is required' });
+      const available = await neonDb.checkSlugAvailable(slug, excludeId);
+      res.json({ available, slug });
+    } catch (error) {
+      console.error('Error checking slug:', error);
+      res.status(500).json({ error: 'Failed to check slug' });
+    }
+  });
+
+  // POST AI generate landing page content
+  app.post("/api/admin/landing-pages/generate", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const context = req.body;
+      
+      const OpenAI = (await import('openai')).default;
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+      const systemPrompt = `You are an expert landing page copywriter specializing in photography studios and creative businesses. You write high-converting, emotionally compelling landing page copy that balances warmth with persuasion.
+
+Your output must be a valid JSON object with this exact structure:
+{
+  "hero": {
+    "headline": "Main headline (powerful, benefit-driven)",
+    "subheadline": "Supporting text (2-3 sentences, emotional hook)",
+    "ctaText": "Call-to-action button text"
+  },
+  "trustBar": {
+    "items": ["Trust signal 1", "Trust signal 2", "Trust signal 3", "Trust signal 4"]
+  },
+  "problemSection": {
+    "headline": "Agitation headline",
+    "description": "Describe the pain point the audience faces (2-3 sentences)",
+    "painPoints": ["Pain point 1", "Pain point 2", "Pain point 3"]
+  },
+  "offerSection": {
+    "headline": "Offer headline",
+    "description": "Describe the offer compellingly",
+    "price": "Price or pricing hint if provided",
+    "urgency": "Urgency text if applicable",
+    "inclusions": ["What's included 1", "What's included 2", "What's included 3"]
+  },
+  "benefits": [
+    {"title": "Benefit 1 title", "description": "Benefit 1 detail"},
+    {"title": "Benefit 2 title", "description": "Benefit 2 detail"},
+    {"title": "Benefit 3 title", "description": "Benefit 3 detail"}
+  ],
+  "whyChooseUs": {
+    "headline": "Why choose us headline",
+    "reasons": [
+      {"title": "Reason 1", "description": "Detail"},
+      {"title": "Reason 2", "description": "Detail"},
+      {"title": "Reason 3", "description": "Detail"}
+    ]
+  },
+  "testimonials": [
+    {"quote": "Testimonial text", "author": "Name", "role": "Context"}
+  ],
+  "faq": [
+    {"question": "FAQ question 1", "answer": "Answer 1"},
+    {"question": "FAQ question 2", "answer": "Answer 2"},
+    {"question": "FAQ question 3", "answer": "Answer 3"}
+  ],
+  "finalCta": {
+    "headline": "Final closing headline",
+    "description": "Final persuasive text",
+    "ctaText": "Final CTA button text"
+  },
+  "seo": {
+    "title": "SEO page title (under 60 chars)",
+    "metaDescription": "Meta description (under 160 chars)",
+    "slug": "suggested-url-slug"
+  }
+}
+
+Rules:
+- Write copy that sounds natural, warm, and human — not robotic
+- Include local relevance when city/area is provided
+- Use emotional triggers appropriate for the audience
+- Create urgency where deadline or limited availability is mentioned
+- All copy must be in the same language as the user's input
+- If input is in German, write ALL output in German
+- Generate believable but compelling testimonials if none are provided
+- Keep headlines concise and impactful
+- Return ONLY the JSON object, no markdown, no code fences`;
+
+      const userPrompt = `Generate a high-converting landing page for a photography studio with these details:
+
+Service Type: ${context.primaryService || 'Photography'}
+Target Audience: ${context.targetAudience || 'General'}
+City/Area: ${context.city || 'Not specified'}
+Tone: ${context.tone || 'warm'}
+Page Purpose: ${context.pageType || 'leads'}
+
+Offer Details:
+${context.offerSummary || 'Professional photography services'}
+
+Pain Points:
+${context.painPoints || 'Finding a trustworthy photographer who captures authentic moments'}
+
+Trust Signals:
+${context.trustSignals || 'Years of experience, professional equipment, hundreds of happy clients'}
+
+CTA Action: ${context.ctaAction || 'Book Now'}
+CTA Text: ${context.ctaText || 'Book Now'}
+
+${context.urgency ? `Urgency/Deadline: ${context.urgency}` : ''}
+${context.testimonials ? `Existing Testimonials: ${context.testimonials}` : ''}
+${context.keywords ? `Target Keywords: ${context.keywords}` : ''}
+${context.extras || ''}`;
+
+      const completion = await openai.chat.completions.create({
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.8,
+        max_tokens: 3000,
+        response_format: { type: "json_object" }
+      });
+
+      const responseText = completion.choices[0]?.message?.content || '{}';
+      let generatedContent;
+      try {
+        generatedContent = JSON.parse(responseText);
+      } catch {
+        console.error('Failed to parse AI response:', responseText.substring(0, 200));
+        return res.status(500).json({ error: 'AI returned invalid JSON' });
+      }
+
+      res.json({
+        content: generatedContent,
+        usage: completion.usage,
+        model: completion.model
+      });
+    } catch (error: any) {
+      console.error('Error generating landing page:', error.message);
+      res.status(500).json({ error: 'Failed to generate landing page content' });
+    }
+  });
+
+  // POST AI regenerate a specific section
+  app.post("/api/admin/landing-pages/regenerate-section", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { section, context, currentContent } = req.body;
+      
+      const OpenAI = (await import('openai')).default;
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+      const completion = await openai.chat.completions.create({
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: `You are an expert landing page copywriter. Regenerate ONLY the "${section}" section of a landing page. Return ONLY a valid JSON object matching the structure of that section. Keep the same tone and context but write fresh, improved copy. If input is German, write German output.` },
+          { role: 'user', content: `Regenerate the "${section}" section.\n\nContext: ${JSON.stringify(context)}\n\nCurrent content to improve: ${JSON.stringify(currentContent)}` }
+        ],
+        temperature: 0.9,
+        max_tokens: 1000,
+        response_format: { type: "json_object" }
+      });
+
+      const responseText = completion.choices[0]?.message?.content || '{}';
+      let regenerated;
+      try {
+        regenerated = JSON.parse(responseText);
+      } catch {
+        return res.status(500).json({ error: 'AI returned invalid JSON' });
+      }
+
+      res.json({ section, content: regenerated });
+    } catch (error: any) {
+      console.error('Error regenerating section:', error.message);
+      res.status(500).json({ error: 'Failed to regenerate section' });
+    }
+  });
+
+  // POST AI regenerate a specific section (per-page URL, Phase 3)
+  app.post("/api/admin/landing-pages/:id/regenerate-section", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { sectionKey, mode, customInstruction } = req.body;
+      if (!sectionKey) return res.status(400).json({ error: 'sectionKey is required' });
+
+      const page = await neonDb.getLandingPage(req.params.id);
+      if (!page) return res.status(404).json({ error: 'Landing page not found' });
+
+      const contentJson = typeof page.content_json === 'string' ? JSON.parse(page.content_json) : page.content_json;
+      const currentContent = contentJson?.[sectionKey] || {};
+
+      const modeInstruction = mode ? `Mode: ${mode}.` : '';
+      const customPart = customInstruction ? `\nAdditional instruction: ${customInstruction}` : '';
+
+      const OpenAI = (await import('openai')).default;
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+      const completion = await openai.chat.completions.create({
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert landing page copywriter. Regenerate ONLY the "${sectionKey}" section of a landing page. Return ONLY a valid JSON object matching the structure of that section. ${modeInstruction} Keep the same tone and context but write fresh, improved copy. If input is German, write German output.`
+          },
+          {
+            role: 'user',
+            content: `Regenerate the "${sectionKey}" section.\n\nPage context: title="${page.title}", service="${page.primary_service || ''}", city="${page.city || ''}"\n\nCurrent content to improve: ${JSON.stringify(currentContent)}${customPart}`
+          }
+        ],
+        temperature: 0.9,
+        max_tokens: 1000,
+        response_format: { type: "json_object" }
+      });
+
+      const responseText = completion.choices[0]?.message?.content || '{}';
+      let regenerated;
+      try {
+        regenerated = JSON.parse(responseText);
+      } catch {
+        return res.status(500).json({ error: 'AI returned invalid JSON' });
+      }
+
+      res.json({ sectionKey, content: regenerated });
+    } catch (error: any) {
+      console.error('Error regenerating section:', error.message);
+      res.status(500).json({ error: 'Failed to regenerate section' });
+    }
+  });
+
+  // ==================== LANDING PAGE PHASE 5: EVENTS / ANALYTICS / VARIANTS / GROWTH ====================
+
+  // PUBLIC: POST record a landing page event (no auth — public tracking)
+  app.post("/api/landing-pages/events", async (req: Request, res: Response) => {
+    try {
+      const { landing_page_id, event_type } = req.body;
+      if (!landing_page_id || !event_type) {
+        return res.status(400).json({ error: 'landing_page_id and event_type are required' });
+      }
+      await neonDb.recordLandingPageEvent(req.body);
+      res.status(201).json({ ok: true });
+    } catch (error: any) {
+      console.error('Error recording landing page event:', error.message);
+      res.status(500).json({ error: 'Failed to record event' });
+    }
+  });
+
+  // GET analytics for a single landing page
+  app.get("/api/admin/landing-pages/:id/analytics", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const analytics = await neonDb.getLandingPageAnalytics(req.params.id, days);
+      res.json(analytics);
+    } catch (error: any) {
+      console.error('Error fetching landing page analytics:', error.message);
+      res.status(500).json({ error: 'Failed to fetch analytics' });
+    }
+  });
+
+  // GET analytics overview across all landing pages
+  app.get("/api/admin/landing-pages-analytics-overview", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+      const overview = await neonDb.getLandingPagesAnalyticsOverview(userId);
+      res.json(overview);
+    } catch (error: any) {
+      console.error('Error fetching analytics overview:', error.message);
+      res.status(500).json({ error: 'Failed to fetch analytics overview' });
+    }
+  });
+
+  // GET variants for a landing page
+  app.get("/api/admin/landing-pages/:id/variants", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const variants = await neonDb.listLandingPageVariants(req.params.id);
+      res.json(variants);
+    } catch (error: any) {
+      console.error('Error listing variants:', error.message);
+      res.status(500).json({ error: 'Failed to list variants' });
+    }
+  });
+
+  // POST create a variant
+  app.post("/api/admin/landing-pages/:id/variants", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const body = req.body;
+      const variant = await neonDb.createLandingPageVariant({
+        landing_page_id: req.params.id,
+        user_id: userId,
+        variant_key: body.variantKey || body.variant_key,
+        name: body.name,
+        slug: body.slug || null,
+        status: body.status || 'draft',
+        traffic_weight: body.trafficWeight ?? body.traffic_weight ?? 0,
+        content_json: body.contentJson || body.content_json || {},
+        seo_title: body.seoTitle || body.seo_title || null,
+        meta_description: body.metaDescription || body.meta_description || null,
+        hero_headline: body.heroHeadline || body.hero_headline || null,
+        cta_text: body.ctaText || body.cta_text || null,
+      });
+      res.status(201).json(variant);
+    } catch (error: any) {
+      console.error('Error creating variant:', error.message);
+      res.status(500).json({ error: 'Failed to create variant' });
+    }
+  });
+
+  // PUT update a variant
+  app.put("/api/admin/landing-pages/variants/:variantId", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const updated = await neonDb.updateLandingPageVariant(req.params.variantId, req.body);
+      if (!updated) return res.status(404).json({ error: 'Variant not found' });
+      res.json(updated);
+    } catch (error: any) {
+      console.error('Error updating variant:', error.message);
+      res.status(500).json({ error: 'Failed to update variant' });
+    }
+  });
+
+  // DELETE a variant
+  app.delete("/api/admin/landing-pages/variants/:variantId", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const deleted = await neonDb.deleteLandingPageVariant(req.params.variantId);
+      if (!deleted) return res.status(404).json({ error: 'Variant not found' });
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting variant:', error.message);
+      res.status(500).json({ error: 'Failed to delete variant' });
+    }
+  });
+
+  // POST generate promo pack for a landing page
+  app.post("/api/admin/landing-pages/:id/promo-pack", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const page = await neonDb.getLandingPage(req.params.id);
+      if (!page) return res.status(404).json({ error: 'Landing page not found' });
+
+      const { channels, tone, promoObjective } = req.body;
+      const content = typeof page.content_json === 'string' ? JSON.parse(page.content_json) : page.content_json;
+
+      const OpenAI = (await import('openai')).default;
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+      const pageContext = `
+Page: "${page.name}"
+Service: ${page.primary_service || 'Photography'}
+City: ${page.city || 'Not specified'}
+Headline: ${content?.hero?.headline || ''}
+Subheadline: ${content?.hero?.subheadline || ''}
+CTA: ${content?.hero?.ctaText || ''}
+Offer: ${content?.offerSection?.headline || ''} — ${content?.offerSection?.price || ''}
+Tone: ${tone || 'warm and professional'}
+Objective: ${promoObjective || 'Drive bookings'}
+URL: ${page.slug ? `/lp/${page.slug}` : ''}
+      `.trim();
+
+      const requestedChannels = channels || ['facebook', 'instagram', 'email', 'gmb'];
+
+      const channelInstructions = requestedChannels.map((ch: string) => {
+        switch (ch) {
+          case 'facebook': return 'facebookPost: A compelling Facebook post (150-250 words) with emoji and CTA';
+          case 'instagram': return 'instagramCaption: Instagram caption with hashtags (100-200 words)';
+          case 'email': return 'emailSubject: Email subject line (max 60 chars)\nemailBody: Email body (200-400 words, warm tone)';
+          case 'gmb': return 'gmbPost: Google Business Profile post (80-150 words, local focus)';
+          case 'whatsapp': return 'whatsappPromo: WhatsApp message (80-150 words, casual)';
+          case 'hero_image': return 'heroImagePrompt: Detailed DALL-E/Midjourney prompt for hero image';
+          case 'voucher_image': return 'voucherImagePrompt: Image prompt for a voucher/gift card design';
+          case 'social_creative': return 'socialCreativePrompt: Image prompt for social media creative';
+          default: return '';
+        }
+      }).filter(Boolean).join('\n');
+
+      const completion = await openai.chat.completions.create({
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert marketing copywriter for photography studios. Generate promotional content for the specified channels. Return ONLY a valid JSON object with these fields:\n${channelInstructions}`
+          },
+          {
+            role: 'user',
+            content: pageContext
+          }
+        ],
+        temperature: 0.8,
+        max_tokens: 2000,
+        response_format: { type: "json_object" }
+      });
+
+      const responseText = completion.choices[0]?.message?.content || '{}';
+      let promoPack;
+      try {
+        promoPack = JSON.parse(responseText);
+      } catch {
+        return res.status(500).json({ error: 'AI returned invalid JSON for promo pack' });
+      }
+
+      res.json(promoPack);
+    } catch (error: any) {
+      console.error('Error generating promo pack:', error.message);
+      res.status(500).json({ error: 'Failed to generate promo pack' });
+    }
+  });
+
+  // GET growth insights for a landing page
+  app.get("/api/admin/landing-pages/:id/growth-insights", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const analytics = await neonDb.getLandingPageAnalytics(req.params.id, 30);
+      const page = await neonDb.getLandingPage(req.params.id);
+      const variants = await neonDb.listLandingPageVariants(req.params.id);
+
+      const insights: Array<{ type: string; title: string; description: string; metric?: string; actionLabel?: string }> = [];
+
+      // Views insight
+      if (analytics.totalViews === 0) {
+        insights.push({ type: 'warning', title: 'No Traffic Yet', description: 'This page has no views in the last 30 days. Share it on socials or run a promo.', actionLabel: 'Generate Promo Pack' });
+      } else if (analytics.totalViews < 10) {
+        insights.push({ type: 'suggestion', title: 'Low Traffic', description: `Only ${analytics.totalViews} views in 30 days. Consider sharing on more channels.`, metric: `${analytics.totalViews} views` });
+      } else {
+        insights.push({ type: 'success', title: 'Getting Traffic', description: `${analytics.totalViews} views in the last 30 days.`, metric: `${analytics.totalViews} views` });
+      }
+
+      // CTR insight
+      if (analytics.totalViews > 5) {
+        const ctr = analytics.clickThroughRate;
+        if (ctr < 0.02) {
+          insights.push({ type: 'warning', title: 'Low Click-Through Rate', description: 'Less than 2% of visitors click your CTA. Try a more compelling headline or offer.', metric: `${(ctr * 100).toFixed(1)}% CTR` });
+        } else if (ctr >= 0.1) {
+          insights.push({ type: 'success', title: 'Strong CTA Performance', description: `${(ctr * 100).toFixed(1)}% of visitors click your CTA — excellent!`, metric: `${(ctr * 100).toFixed(1)}% CTR` });
+        }
+      }
+
+      // Variants insight
+      if (variants.length === 0) {
+        insights.push({ type: 'suggestion', title: 'Try A/B Testing', description: 'Create a variant with a different headline or CTA to see what converts better.', actionLabel: 'Create Variant' });
+      } else {
+        const best = variants.reduce((a: any, b: any) => (b.ctr > a.ctr ? b : a), variants[0]);
+        if (best.ctr > 0) {
+          insights.push({ type: 'success', title: 'Best Variant', description: `"${best.name}" is performing best with ${(best.ctr * 100).toFixed(1)}% CTR.`, metric: best.name });
+        }
+      }
+
+      // Conversion insight
+      if (analytics.totalFormSubmits > 0) {
+        insights.push({ type: 'success', title: 'Conversions Happening', description: `${analytics.totalFormSubmits} form submissions in 30 days.`, metric: `${analytics.totalFormSubmits} conversions` });
+      } else if (analytics.totalViews > 20) {
+        insights.push({ type: 'warning', title: 'No Conversions', description: 'Lots of views but no form submissions. Review your offer and CTA urgency.' });
+      }
+
+      res.json({
+        landingPageId: req.params.id,
+        totalViews: analytics.totalViews,
+        totalCtaClicks: analytics.totalCtaClicks,
+        ctr: analytics.clickThroughRate,
+        bestCta: analytics.topCtas[0]?.label || null,
+        bestVariant: variants.length > 0 ? variants.reduce((a: any, b: any) => (b.ctr > a.ctr ? b : a), variants[0]).name : null,
+        strongestSource: null,
+        insights,
+        recommendedNextAction: insights.find(i => i.actionLabel)?.actionLabel || null,
+      });
+    } catch (error: any) {
+      console.error('Error fetching growth insights:', error.message);
+      res.status(500).json({ error: 'Failed to fetch growth insights' });
+    }
+  });
+
+  // ==================== LANDING PAGE PHASE 6: AUTOMATION / RECOMMENDATIONS / CAMPAIGN HEALTH ====================
+
+  // GET automation rules for a landing page
+  app.get("/api/admin/landing-pages/:id/automation-rules", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const rules = await neonDb.listLandingPageAutomationRules(req.user!.id, req.params.id);
+      res.json(rules);
+    } catch (error: any) {
+      console.error('Error fetching automation rules:', error.message);
+      res.status(500).json({ error: 'Failed to fetch automation rules' });
+    }
+  });
+
+  // POST create automation rule
+  app.post("/api/admin/landing-pages/:id/automation-rules", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { ruleType, name, isEnabled, conditionJson, actionJson, frequency } = req.body;
+      if (!ruleType || !name) {
+        return res.status(400).json({ error: 'ruleType and name are required' });
+      }
+      const rule = await neonDb.createLandingPageAutomationRule({
+        landingPageId: req.params.id,
+        userId: req.user!.id,
+        ruleType,
+        name,
+        isEnabled,
+        conditionJson,
+        actionJson,
+        frequency,
+      });
+      res.status(201).json(rule);
+    } catch (error: any) {
+      console.error('Error creating automation rule:', error.message);
+      res.status(500).json({ error: 'Failed to create automation rule' });
+    }
+  });
+
+  // PUT update automation rule
+  app.put("/api/admin/landing-pages/automation-rules/:ruleId", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const rule = await neonDb.updateLandingPageAutomationRule(req.params.ruleId, req.body);
+      if (!rule) return res.status(404).json({ error: 'Rule not found' });
+      res.json(rule);
+    } catch (error: any) {
+      console.error('Error updating automation rule:', error.message);
+      res.status(500).json({ error: 'Failed to update automation rule' });
+    }
+  });
+
+  // DELETE automation rule
+  app.delete("/api/admin/landing-pages/automation-rules/:ruleId", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const rule = await neonDb.deleteLandingPageAutomationRule(req.params.ruleId);
+      if (!rule) return res.status(404).json({ error: 'Rule not found' });
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting automation rule:', error.message);
+      res.status(500).json({ error: 'Failed to delete automation rule' });
+    }
+  });
+
+  // GET automation events for a landing page
+  app.get("/api/admin/landing-pages/:id/automation-events", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const events = await neonDb.listLandingPageAutomationEvents(req.user!.id, req.params.id, limit);
+      res.json(events);
+    } catch (error: any) {
+      console.error('Error fetching automation events:', error.message);
+      res.status(500).json({ error: 'Failed to fetch automation events' });
+    }
+  });
+
+  // GET recommendations for a landing page
+  app.get("/api/admin/landing-pages/:id/recommendations", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const analytics = await neonDb.getLandingPageAnalytics(req.params.id, days);
+      const variants = await neonDb.listLandingPageVariants(req.params.id);
+      const page = await neonDb.getLandingPage(req.params.id);
+      if (!page) return res.status(404).json({ error: 'Page not found' });
+
+      const publishedDaysAgo = page.published_at
+        ? Math.floor((Date.now() - new Date(page.published_at).getTime()) / (1000 * 60 * 60 * 24))
+        : 0;
+
+      // Build recommendation context
+      const currentMetrics = {
+        views: analytics.totalViews || 0,
+        ctaClicks: analytics.totalCtaClicks || 0,
+        formStarts: analytics.totalFormStarts || 0,
+        formSubmits: analytics.totalFormSubmits || 0,
+        ctr: analytics.clickThroughRate || 0,
+        conversionRate: analytics.conversionRate || 0,
+        windowDays: days,
+      };
+
+      const recommendations: any[] = [];
+
+      // Low CTR recommendation
+      if (currentMetrics.views >= 20 && currentMetrics.ctr < 3) {
+        recommendations.push({
+          id: `rec_ctr_${Date.now()}`,
+          priority: 'high',
+          category: 'cta',
+          actionType: 'strengthen_cta',
+          title: 'Strengthen Your CTA',
+          description: `CTR is ${currentMetrics.ctr.toFixed(1)}% — try a more compelling call-to-action.`,
+          actionLabel: 'Edit CTA',
+          reasoning: `${currentMetrics.views} views but only ${currentMetrics.ctr.toFixed(1)}% CTR.`,
+        });
+      }
+
+      // No variants
+      if (variants.length === 0 && currentMetrics.views >= 30) {
+        recommendations.push({
+          id: `rec_variant_${Date.now()}`,
+          priority: 'medium',
+          category: 'variant_testing',
+          actionType: 'test_variant',
+          title: 'Try A/B Testing',
+          description: 'Create a variant with a different headline or CTA.',
+          actionLabel: 'Create Variant',
+          reasoning: `Page has ${currentMetrics.views} views but no variants.`,
+        });
+      }
+
+      // Clicks but no conversions
+      if (currentMetrics.ctaClicks >= 5 && currentMetrics.formSubmits === 0) {
+        recommendations.push({
+          id: `rec_conv_${Date.now()}`,
+          priority: 'high',
+          category: 'offer',
+          actionType: 'add_urgency',
+          title: 'Add Urgency to Your Offer',
+          description: 'People click but don\'t convert. Add a deadline or bonus.',
+          actionLabel: 'Edit Offer',
+          reasoning: `${currentMetrics.ctaClicks} CTA clicks with 0 submissions.`,
+        });
+      }
+
+      // No traffic
+      if (currentMetrics.views < 5 && publishedDaysAgo > 7) {
+        recommendations.push({
+          id: `rec_promo_${Date.now()}`,
+          priority: 'medium',
+          category: 'promotion',
+          actionType: 'reshare_social',
+          title: 'Re-share on Social Media',
+          description: 'This page is getting very little traffic. Promote it again.',
+          actionLabel: 'Create Social Post',
+          reasoning: `Only ${currentMetrics.views} views in ${days} days.`,
+        });
+      }
+
+      // Follow up on conversions
+      if (currentMetrics.formSubmits >= 3) {
+        recommendations.push({
+          id: `rec_crm_${Date.now()}`,
+          priority: 'medium',
+          category: 'crm_followup',
+          actionType: 'nurture_leads',
+          title: 'Follow Up on Leads',
+          description: `${currentMetrics.formSubmits} form submissions — make sure you're responding.`,
+          actionLabel: 'View CRM Signals',
+          reasoning: `Active conversions happening.`,
+        });
+      }
+
+      res.json({
+        landingPageId: req.params.id,
+        generatedAt: new Date().toISOString(),
+        recommendations,
+        topRecommendation: recommendations[0] || null,
+      });
+    } catch (error: any) {
+      console.error('Error fetching recommendations:', error.message);
+      res.status(500).json({ error: 'Failed to fetch recommendations' });
+    }
+  });
+
+  // GET campaign health for a landing page
+  app.get("/api/admin/landing-pages/:id/campaign-health", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const analytics = await neonDb.getLandingPageAnalytics(req.params.id, days);
+      const variants = await neonDb.listLandingPageVariants(req.params.id);
+      const page = await neonDb.getLandingPage(req.params.id);
+      if (!page) return res.status(404).json({ error: 'Page not found' });
+
+      const publishedDaysAgo = page.published_at
+        ? Math.floor((Date.now() - new Date(page.published_at).getTime()) / (1000 * 60 * 60 * 24))
+        : 0;
+
+      const views = analytics.totalViews || 0;
+      const ctaClicks = analytics.totalCtaClicks || 0;
+      const formSubmits = analytics.totalFormSubmits || 0;
+      const ctr = analytics.clickThroughRate || 0;
+      const convRate = analytics.conversionRate || 0;
+
+      // Determine health state
+      let state = 'stable';
+      let stateLabel = 'Stable';
+      const reasons: string[] = [];
+      const warnings: string[] = [];
+      const opportunities: string[] = [];
+      let recommendedNextMove: string | null = null;
+
+      if (views === 0 && publishedDaysAgo > 30) {
+        state = 'dormant';
+        stateLabel = 'Dormant';
+        reasons.push('No views in measurement window.', `Published ${publishedDaysAgo} days ago.`);
+        warnings.push('Page has zero traffic. Consider promoting or archiving.');
+        recommendedNextMove = 'Promote this page or archive it.';
+      } else if (views >= 20 && convRate < 1 && ctaClicks > 0) {
+        state = 'needs_attention';
+        stateLabel = 'Needs Attention';
+        reasons.push(`${views} views but conversion rate is ${convRate.toFixed(1)}%.`);
+        warnings.push('CTA clicks exist but no conversions.');
+        recommendedNextMove = 'Improve your offer or form.';
+      } else if (views >= 10 && ctr >= 3) {
+        state = 'healthy';
+        stateLabel = 'Healthy';
+        reasons.push(`${views} views with ${ctr.toFixed(1)}% CTR.`);
+        if (formSubmits > 0) reasons.push(`${formSubmits} conversions.`);
+      } else if (views < 5 && publishedDaysAgo > 7) {
+        state = 'stalled';
+        stateLabel = 'Stalled';
+        reasons.push(`Only ${views} views over ${publishedDaysAgo} days.`);
+        recommendedNextMove = 'Promote this page again.';
+      } else {
+        reasons.push('Traffic and engagement are steady.');
+      }
+
+      if (variants.length === 0 && views >= 30) {
+        opportunities.push('Try A/B testing with a variant.');
+      }
+      if (formSubmits >= 3) {
+        opportunities.push('Follow up on leads — conversions are happening.');
+      }
+
+      res.json({
+        landingPageId: req.params.id,
+        state,
+        stateLabel,
+        reasons,
+        warnings,
+        opportunities,
+        recommendedNextMove,
+        trends: [],
+        lastEvaluatedAt: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      console.error('Error fetching campaign health:', error.message);
+      res.status(500).json({ error: 'Failed to fetch campaign health' });
+    }
+  });
+
+  // GET scheduled actions for a landing page
+  app.get("/api/admin/landing-pages/:id/scheduled-actions", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const actions = await neonDb.listLandingPageScheduledActions(req.user!.id, req.params.id);
+      res.json(actions);
+    } catch (error: any) {
+      console.error('Error fetching scheduled actions:', error.message);
+      res.status(500).json({ error: 'Failed to fetch scheduled actions' });
+    }
+  });
+
+  // POST create scheduled action
+  app.post("/api/admin/landing-pages/:id/scheduled-actions", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { actionType, actionPayload, scheduledFor } = req.body;
+      if (!actionType || !scheduledFor) {
+        return res.status(400).json({ error: 'actionType and scheduledFor are required' });
+      }
+      const action = await neonDb.createLandingPageScheduledAction({
+        landingPageId: req.params.id,
+        userId: req.user!.id,
+        actionType,
+        actionPayload,
+        scheduledFor,
+      });
+      res.status(201).json(action);
+    } catch (error: any) {
+      console.error('Error creating scheduled action:', error.message);
+      res.status(500).json({ error: 'Failed to create scheduled action' });
+    }
+  });
+
+  // GET CRM routing suggestions for a landing page
+  app.get("/api/admin/landing-pages/:id/crm-routing", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const analytics = await neonDb.getLandingPageAnalytics(req.params.id, days);
+
+      const signals: any[] = [];
+      const now = new Date().toISOString();
+
+      if (analytics.totalCtaClicks >= 3 && (analytics.totalVoucherClicks || 0) >= 1) {
+        signals.push({ signalType: 'strong_buyer_intent', label: 'Strong Buyer Intent', description: `${analytics.totalCtaClicks} CTA clicks and voucher interest.`, strength: 'high', eventCount: analytics.totalCtaClicks, detectedAt: now });
+      }
+      if (analytics.totalViews >= 5) {
+        signals.push({ signalType: 'warm_lead', label: 'Warm Lead Activity', description: `${analytics.totalViews} page views indicate interest.`, strength: analytics.totalViews >= 20 ? 'high' : 'medium', eventCount: analytics.totalViews, detectedAt: now });
+      }
+      if (analytics.totalFormStarts > 0 && analytics.totalFormSubmits === 0) {
+        signals.push({ signalType: 'partial_intent', label: 'Partial Lead Intent', description: `${analytics.totalFormStarts} form starts without submission.`, strength: 'medium', eventCount: analytics.totalFormStarts, detectedAt: now });
+      }
+      if ((analytics.totalWhatsappClicks || 0) >= 1) {
+        signals.push({ signalType: 'immediate_contact', label: 'Immediate Contact Intent', description: `${analytics.totalWhatsappClicks} WhatsApp clicks.`, strength: 'high', eventCount: analytics.totalWhatsappClicks, detectedAt: now });
+      }
+
+      const intentScore = signals.reduce((s, sig) => s + (sig.strength === 'high' ? 30 : sig.strength === 'medium' ? 15 : 5), 0);
+
+      const routingRecommendations: any[] = [];
+      if (signals.some(s => s.signalType === 'immediate_contact')) {
+        routingRecommendations.push({ recommendation: 'Respond to direct contact attempts.', category: 'hot_lead', priority: 'high', suggestedAction: 'Check WhatsApp and missed calls.' });
+      }
+      if (signals.some(s => s.strength === 'high') && !signals.some(s => s.signalType === 'immediate_contact')) {
+        routingRecommendations.push({ recommendation: 'Follow up with high-intent leads.', category: 'follow_up', priority: 'high', suggestedAction: 'Send a personalized follow-up.' });
+      }
+      if (signals.some(s => s.signalType === 'partial_intent')) {
+        routingRecommendations.push({ recommendation: 'Nurture partial leads.', category: 'nurture', priority: 'medium', suggestedAction: 'Simplify the form or send a follow-up email.' });
+      }
+
+      res.json({
+        landingPageId: req.params.id,
+        totalSignals: signals.length,
+        overallIntentScore: Math.min(intentScore, 100),
+        topSignals: signals,
+        routingRecommendations,
+        generatedAt: now,
+      });
+    } catch (error: any) {
+      console.error('Error fetching CRM routing:', error.message);
+      res.status(500).json({ error: 'Failed to fetch CRM routing data' });
+    }
+  });
+
+  // POST run automation evaluation for a landing page
+  app.post("/api/admin/landing-pages/:id/automation-run", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const landingPageId = req.params.id;
+      const days = parseInt(req.query.days as string) || 30;
+
+      // 1. Gather context
+      const [analytics, variants, rules, page] = await Promise.all([
+        neonDb.getLandingPageAnalytics(landingPageId, days),
+        neonDb.listLandingPageVariants(landingPageId),
+        neonDb.listLandingPageAutomationRules(userId, landingPageId),
+        neonDb.getLandingPage(landingPageId),
+      ]);
+
+      if (!page) return res.status(404).json({ error: 'Page not found' });
+
+      const publishedDaysAgo = page.published_at
+        ? Math.floor((Date.now() - new Date(page.published_at).getTime()) / (1000 * 60 * 60 * 24))
+        : 0;
+
+      const currentMetrics = {
+        views: analytics.totalViews || 0,
+        ctaClicks: analytics.totalCtaClicks || 0,
+        formStarts: analytics.totalFormStarts || 0,
+        formSubmits: analytics.totalFormSubmits || 0,
+        ctr: analytics.clickThroughRate || 0,
+        conversionRate: analytics.conversionRate || 0,
+      };
+
+      // 2. Evaluate each enabled rule
+      const enabledRules = rules.filter((r: any) => r.is_enabled);
+      const results: any[] = [];
+      let triggeredCount = 0;
+
+      for (const rule of enabledRules) {
+        const condition = typeof rule.condition_json === 'string' ? JSON.parse(rule.condition_json) : rule.condition_json;
+        const minSample = condition.minSampleSize ?? 10;
+        let triggered = false;
+        let reason = '';
+
+        if (currentMetrics.views < minSample) {
+          reason = `Not enough data (${currentMetrics.views} views, need ${minSample}).`;
+        } else if (condition.metric && condition.operator && condition.threshold !== undefined) {
+          const metricMap: Record<string, number> = {
+            views: currentMetrics.views,
+            ctaClicks: currentMetrics.ctaClicks,
+            formStarts: currentMetrics.formStarts,
+            formSubmits: currentMetrics.formSubmits,
+            ctr: currentMetrics.ctr,
+            conversionRate: currentMetrics.conversionRate,
+          };
+          const val = metricMap[condition.metric] ?? 0;
+          switch (condition.operator) {
+            case 'lt': triggered = val < condition.threshold; break;
+            case 'gt': triggered = val > condition.threshold; break;
+            case 'lte': triggered = val <= condition.threshold; break;
+            case 'gte': triggered = val >= condition.threshold; break;
+            case 'eq': triggered = val === condition.threshold; break;
+          }
+          reason = triggered
+            ? `${condition.metric} is ${val} (${condition.operator} ${condition.threshold}).`
+            : `${condition.metric} (${val}) does not meet ${condition.operator} ${condition.threshold}.`;
+        } else {
+          reason = 'Incomplete condition definition.';
+        }
+
+        if (triggered) triggeredCount++;
+
+        const actionJson = typeof rule.action_json === 'string' ? JSON.parse(rule.action_json) : rule.action_json;
+        results.push({
+          ruleId: rule.id,
+          ruleName: rule.name,
+          ruleType: rule.rule_type,
+          triggered,
+          reason,
+          recommendedAction: triggered ? (actionJson.label || null) : null,
+          severity: triggered ? (rule.rule_type.includes('alert') ? 'high' : 'medium') : 'low',
+        });
+
+        // Update last_evaluated_at and optionally last_triggered_at
+        const updateData: any = { lastEvaluatedAt: new Date().toISOString() };
+        if (triggered) updateData.lastTriggeredAt = new Date().toISOString();
+        await neonDb.updateLandingPageAutomationRule(rule.id, updateData);
+
+        // Log event for triggered rules
+        if (triggered) {
+          await neonDb.createLandingPageAutomationEvent({
+            landingPageId,
+            userId,
+            automationRuleId: rule.id,
+            eventType: 'rule_triggered',
+            eventStatus: 'warning',
+            summary: `Rule "${rule.name}" triggered: ${reason}`,
+            detailJson: { ruleType: rule.rule_type, metric: condition.metric, threshold: condition.threshold },
+          });
+        }
+      }
+
+      // 3. Log overall run
+      await neonDb.createLandingPageAutomationEvent({
+        landingPageId,
+        userId,
+        eventType: 'automation_run_completed',
+        eventStatus: 'info',
+        summary: `Automation run: ${enabledRules.length} rules evaluated, ${triggeredCount} triggered.`,
+        detailJson: { evaluatedCount: enabledRules.length, triggeredCount },
+      });
+
+      res.json({
+        landingPageId,
+        evaluatedCount: enabledRules.length,
+        triggeredCount,
+        results,
+        healthUpdate: triggeredCount > 0 ? `${triggeredCount} automation${triggeredCount > 1 ? 's' : ''} triggered.` : null,
+        recommendationUpdates: results.filter(r => r.triggered && r.recommendedAction).map(r => r.recommendedAction),
+      });
+    } catch (error: any) {
+      console.error('Error running automation:', error.message);
+      res.status(500).json({ error: 'Failed to run automation evaluation' });
+    }
+  });
+
+  // ── Phase 7: Landing Page Executions ──────────────────────────────────
+
+  // GET executions for a landing page
+  app.get("/api/admin/landing-pages/:id/executions", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const landingPageId = req.params.id;
+      const status = req.query.status as string | undefined;
+      const approvalStatus = req.query.approval_status as string | undefined;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      const executions = await neonDb.listLandingPageExecutions(landingPageId, { status, approvalStatus, limit, offset });
+
+      const mapped = executions.map((e: any) => ({
+        id: e.id,
+        landingPageId: e.landing_page_id,
+        userId: e.user_id,
+        automationRuleId: e.automation_rule_id,
+        sourceEventId: e.source_event_id,
+        executionType: e.execution_type,
+        executionStatus: e.execution_status,
+        approvalStatus: e.approval_status,
+        isAutoExecutable: e.is_auto_executable,
+        requestedPayload: e.requested_payload,
+        executionPayload: e.execution_payload,
+        resultJson: e.result_json,
+        errorMessage: e.error_message,
+        retryCount: e.retry_count,
+        queuedAt: e.queued_at,
+        executedAt: e.executed_at,
+        completedAt: e.completed_at,
+        failedAt: e.failed_at,
+        approvedAt: e.approved_at,
+        approvedBy: e.approved_by,
+        rejectedAt: e.rejected_at,
+        rejectedBy: e.rejected_by,
+        createdAt: e.created_at,
+        updatedAt: e.updated_at,
+      }));
+
+      res.json(mapped);
+    } catch (error: any) {
+      console.error('Error listing executions:', error.message);
+      res.status(500).json({ error: 'Failed to list executions' });
+    }
+  });
+
+  // GET execution queue summary
+  app.get("/api/admin/landing-pages/:id/executions/summary", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const summary = await neonDb.getLandingPageExecutionQueueSummary(req.params.id);
+      res.json({
+        landingPageId: req.params.id,
+        totalCount: parseInt(summary.total_count) || 0,
+        pendingCount: parseInt(summary.pending_count) || 0,
+        awaitingApprovalCount: parseInt(summary.awaiting_approval_count) || 0,
+        runningCount: parseInt(summary.running_count) || 0,
+        completedCount: parseInt(summary.completed_count) || 0,
+        failedCount: parseInt(summary.failed_count) || 0,
+        rejectedCount: parseInt(summary.rejected_count) || 0,
+      });
+    } catch (error: any) {
+      console.error('Error getting execution summary:', error.message);
+      res.status(500).json({ error: 'Failed to get execution summary' });
+    }
+  });
+
+  // POST create execution
+  app.post("/api/admin/landing-pages/:id/executions", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const landingPageId = req.params.id;
+      const { execution_type, automation_rule_id, source_event_id, requested_payload } = req.body;
+
+      if (!execution_type) {
+        return res.status(400).json({ error: 'execution_type is required' });
+      }
+
+      // Get user settings to determine approval requirements
+      const settings = await neonDb.getLandingPageExecutionSettings(userId, landingPageId);
+
+      // Determine if auto-executable based on policy + settings
+      const safeTypes = ['generate_promo_pack', 'queue_social_promo', 'queue_gmb_promo', 'create_follow_up_task'];
+      const isSafeType = safeTypes.includes(execution_type);
+      const autoExecute = isSafeType && settings?.auto_execute_safe_actions;
+
+      const approvalStatus = autoExecute ? 'not_required' : 'pending';
+      const isAutoExecutable = autoExecute || false;
+
+      const execution = await neonDb.createLandingPageExecution({
+        landingPageId,
+        userId,
+        automationRuleId: automation_rule_id || null,
+        sourceEventId: source_event_id || null,
+        executionType: execution_type,
+        approvalStatus,
+        isAutoExecutable,
+        requestedPayload: requested_payload || {},
+      });
+
+      res.status(201).json({
+        id: execution.id,
+        landingPageId: execution.landing_page_id,
+        userId: execution.user_id,
+        executionType: execution.execution_type,
+        executionStatus: execution.execution_status,
+        approvalStatus: execution.approval_status,
+        isAutoExecutable: execution.is_auto_executable,
+        requestedPayload: execution.requested_payload,
+        queuedAt: execution.queued_at,
+        createdAt: execution.created_at,
+      });
+    } catch (error: any) {
+      console.error('Error creating execution:', error.message);
+      res.status(500).json({ error: 'Failed to create execution' });
+    }
+  });
+
+  // POST approve execution
+  app.post("/api/admin/landing-pages/:id/executions/:executionId/approve", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const execution = await neonDb.getLandingPageExecution(req.params.executionId);
+
+      if (!execution) {
+        return res.status(404).json({ error: 'Execution not found' });
+      }
+      if (execution.execution_status !== 'awaiting_approval') {
+        return res.status(422).json({ error: `Cannot approve execution in status: ${execution.execution_status}` });
+      }
+
+      const updated = await neonDb.updateLandingPageExecutionStatus(execution.id, {
+        executionStatus: 'queued',
+        approvalStatus: 'approved',
+        approvedAt: new Date().toISOString(),
+        approvedBy: userId,
+      });
+
+      res.json({
+        id: updated.id,
+        executionStatus: updated.execution_status,
+        approvalStatus: updated.approval_status,
+        approvedAt: updated.approved_at,
+        approvedBy: updated.approved_by,
+      });
+    } catch (error: any) {
+      console.error('Error approving execution:', error.message);
+      res.status(500).json({ error: 'Failed to approve execution' });
+    }
+  });
+
+  // POST reject execution
+  app.post("/api/admin/landing-pages/:id/executions/:executionId/reject", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const execution = await neonDb.getLandingPageExecution(req.params.executionId);
+
+      if (!execution) {
+        return res.status(404).json({ error: 'Execution not found' });
+      }
+      if (execution.execution_status !== 'awaiting_approval') {
+        return res.status(422).json({ error: `Cannot reject execution in status: ${execution.execution_status}` });
+      }
+
+      const updated = await neonDb.updateLandingPageExecutionStatus(execution.id, {
+        executionStatus: 'rejected',
+        approvalStatus: 'rejected',
+        rejectedAt: new Date().toISOString(),
+        rejectedBy: userId,
+      });
+
+      res.json({
+        id: updated.id,
+        executionStatus: updated.execution_status,
+        approvalStatus: updated.approval_status,
+        rejectedAt: updated.rejected_at,
+        rejectedBy: updated.rejected_by,
+      });
+    } catch (error: any) {
+      console.error('Error rejecting execution:', error.message);
+      res.status(500).json({ error: 'Failed to reject execution' });
+    }
+  });
+
+  // POST retry execution
+  app.post("/api/admin/landing-pages/:id/executions/:executionId/retry", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const execution = await neonDb.getLandingPageExecution(req.params.executionId);
+
+      if (!execution) {
+        return res.status(404).json({ error: 'Execution not found' });
+      }
+      if (execution.execution_status !== 'failed') {
+        return res.status(422).json({ error: `Cannot retry execution in status: ${execution.execution_status}` });
+      }
+      if (execution.retry_count >= 3) {
+        return res.status(422).json({ error: 'Maximum retry limit reached' });
+      }
+
+      const updated = await neonDb.updateLandingPageExecutionStatus(execution.id, {
+        executionStatus: 'queued',
+        approvalStatus: execution.approval_status,
+        retryCount: execution.retry_count + 1,
+        errorMessage: null,
+        failedAt: null,
+      });
+
+      res.json({
+        id: updated.id,
+        executionStatus: updated.execution_status,
+        retryCount: updated.retry_count,
+      });
+    } catch (error: any) {
+      console.error('Error retrying execution:', error.message);
+      res.status(500).json({ error: 'Failed to retry execution' });
+    }
+  });
+
+  // POST cancel execution
+  app.post("/api/admin/landing-pages/:id/executions/:executionId/cancel", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const execution = await neonDb.getLandingPageExecution(req.params.executionId);
+
+      if (!execution) {
+        return res.status(404).json({ error: 'Execution not found' });
+      }
+      const cancellable = ['pending', 'awaiting_approval', 'queued'];
+      if (!cancellable.includes(execution.execution_status)) {
+        return res.status(422).json({ error: `Cannot cancel execution in status: ${execution.execution_status}` });
+      }
+
+      const updated = await neonDb.updateLandingPageExecutionStatus(execution.id, {
+        executionStatus: 'cancelled',
+      });
+
+      res.json({
+        id: updated.id,
+        executionStatus: updated.execution_status,
+      });
+    } catch (error: any) {
+      console.error('Error cancelling execution:', error.message);
+      res.status(500).json({ error: 'Failed to cancel execution' });
+    }
+  });
+
+  // POST run/dispatch execution (simulation — executes and marks complete)
+  app.post("/api/admin/landing-pages/:id/executions/:executionId/run", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const execution = await neonDb.getLandingPageExecution(req.params.executionId);
+
+      if (!execution) {
+        return res.status(404).json({ error: 'Execution not found' });
+      }
+      if (execution.execution_status !== 'queued') {
+        return res.status(422).json({ error: `Cannot run execution in status: ${execution.execution_status}` });
+      }
+
+      // Mark as running
+      await neonDb.updateLandingPageExecutionStatus(execution.id, {
+        executionStatus: 'running',
+        executedAt: new Date().toISOString(),
+      });
+
+      // Simulate execution — in production this would dispatch to actual handlers
+      const resultJson = {
+        executionType: execution.execution_type,
+        simulatedAt: new Date().toISOString(),
+        note: 'Execution dispatched successfully (simulated handler)',
+        requestedPayload: execution.requested_payload,
+      };
+
+      const completed = await neonDb.updateLandingPageExecutionStatus(execution.id, {
+        executionStatus: 'completed',
+        resultJson,
+        completedAt: new Date().toISOString(),
+      });
+
+      res.json({
+        id: completed.id,
+        executionType: completed.execution_type,
+        executionStatus: completed.execution_status,
+        resultJson: completed.result_json,
+        completedAt: completed.completed_at,
+      });
+    } catch (error: any) {
+      console.error('Error running execution:', error.message);
+      // If running fails, mark as failed
+      try {
+        await neonDb.updateLandingPageExecutionStatus(req.params.executionId, {
+          executionStatus: 'failed',
+          errorMessage: error.message,
+          failedAt: new Date().toISOString(),
+        });
+      } catch (_) { /* ignore cleanup error */ }
+      res.status(500).json({ error: 'Failed to run execution' });
+    }
+  });
+
+  // GET single landing page (admin)
+  app.get("/api/admin/landing-pages/:id/execution-settings", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const landingPageId = req.params.id;
+      const settings = await neonDb.getLandingPageExecutionSettings(userId, landingPageId);
+
+      if (!settings) {
+        return res.json({
+          userId,
+          landingPageId,
+          autoExecuteSafeActions: false,
+          requireApprovalForContentChanges: true,
+          requireApprovalForCrmPushes: true,
+          requireApprovalForVariantCreation: true,
+        });
+      }
+
+      res.json({
+        id: settings.id,
+        userId: settings.user_id,
+        landingPageId: settings.landing_page_id,
+        autoExecuteSafeActions: settings.auto_execute_safe_actions,
+        requireApprovalForContentChanges: settings.require_approval_for_content_changes,
+        requireApprovalForCrmPushes: settings.require_approval_for_crm_pushes,
+        requireApprovalForVariantCreation: settings.require_approval_for_variant_creation,
+        createdAt: settings.created_at,
+        updatedAt: settings.updated_at,
+      });
+    } catch (error: any) {
+      console.error('Error getting execution settings:', error.message);
+      res.status(500).json({ error: 'Failed to get execution settings' });
+    }
+  });
+
+  // PUT execution settings
+  app.put("/api/admin/landing-pages/:id/execution-settings", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const landingPageId = req.params.id;
+      const { auto_execute_safe_actions, require_approval_for_content_changes, require_approval_for_crm_pushes, require_approval_for_variant_creation } = req.body;
+
+      const settings = await neonDb.upsertLandingPageExecutionSettings(userId, landingPageId, {
+        autoExecuteSafeActions: auto_execute_safe_actions,
+        requireApprovalForContentChanges: require_approval_for_content_changes,
+        requireApprovalForCrmPushes: require_approval_for_crm_pushes,
+        requireApprovalForVariantCreation: require_approval_for_variant_creation,
+      });
+
+      res.json({
+        id: settings.id,
+        userId: settings.user_id,
+        landingPageId: settings.landing_page_id,
+        autoExecuteSafeActions: settings.auto_execute_safe_actions,
+        requireApprovalForContentChanges: settings.require_approval_for_content_changes,
+        requireApprovalForCrmPushes: settings.require_approval_for_crm_pushes,
+        requireApprovalForVariantCreation: settings.require_approval_for_variant_creation,
+        updatedAt: settings.updated_at,
+      });
+    } catch (error: any) {
+      console.error('Error updating execution settings:', error.message);
+      res.status(500).json({ error: 'Failed to update execution settings' });
+    }
+  });
+
+  // PUBLIC: GET landing page by slug (for live pages + preview token)
+  app.get("/api/lp/:slug", async (req: Request, res: Response) => {
+    try {
+      const previewToken = req.query.preview as string | undefined;
+
+      // If preview token provided, try preview access first (allows viewing unpublished pages)
+      if (previewToken) {
+        const previewPage = await neonDb.getLandingPageForPreview(req.params.slug, previewToken);
+        if (previewPage) {
+          return res.json({ ...previewPage, _isPreview: true });
+        }
+        // Invalid/expired token — fall through to normal published check
+      }
+
+      const page = await neonDb.getLandingPageBySlug(req.params.slug);
+      if (!page) return res.status(404).json({ error: 'Page not found' });
+      res.json(page);
+    } catch (error) {
+      console.error('Error fetching public landing page:', error);
+      res.status(500).json({ error: 'Failed to fetch page' });
+    }
+  });
 
   // ==================== EMAIL AUTOMATIONS CRUD ====================
   
