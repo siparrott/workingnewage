@@ -1,5 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Mail, MessageCircle, Copy, Check } from 'lucide-react';
+
+interface Survey {
+  id: string;
+  title: string;
+  description?: string;
+  status?: string;
+}
 
 interface SendQuestionnaireModalProps {
   isOpen: boolean;
@@ -22,8 +29,33 @@ const SendQuestionnaireModal: React.FC<SendQuestionnaireModalProps> = ({
   const [link, setLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [surveys, setSurveys] = useState<Survey[]>([]);
+  const [selectedSurveyId, setSelectedSurveyId] = useState<string>('');
+  const [loadingSurveys, setLoadingSurveys] = useState(false);
+
+  const fetchSurveys = async () => {
+    try {
+      setLoadingSurveys(true);
+      const response = await fetch('/api/surveys');
+      if (!response.ok) throw new Error('Failed to load questionnaires');
+      const data = await response.json();
+      const activeSurveys = (data.surveys || []).filter((s: Survey) => s.status === 'active');
+      setSurveys(activeSurveys);
+      if (activeSurveys.length === 1) {
+        setSelectedSurveyId(activeSurveys[0].id);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load questionnaires');
+    } finally {
+      setLoadingSurveys(false);
+    }
+  };
 
   const generateLink = async () => {
+    if (!selectedSurveyId) {
+      setError('Please select a questionnaire');
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
@@ -35,7 +67,7 @@ const SendQuestionnaireModal: React.FC<SendQuestionnaireModalProps> = ({
         },
         body: JSON.stringify({
           client_id: client.id,
-          template_id: 'default-questionnaire'
+          template_id: selectedSurveyId
         })
       });
       
@@ -89,11 +121,23 @@ New Age Fotografie Team`;
     return `mailto:${client.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
-  React.useEffect(() => {
-    if (isOpen && !link) {
-      generateLink();
+  useEffect(() => {
+    if (isOpen) {
+      // Reset state when modal opens
+      setLink(null);
+      setSelectedSurveyId('');
+      setError(null);
+      setCopied(false);
+      fetchSurveys();
     }
   }, [isOpen]);
+
+  // Auto-generate link when there's only one survey
+  useEffect(() => {
+    if (surveys.length === 1 && selectedSurveyId && !link && !loading) {
+      generateLink();
+    }
+  }, [selectedSurveyId, surveys]);
 
   if (!isOpen) return null;
 
@@ -121,6 +165,45 @@ New Age Fotografie Team`;
               {client.firstName} {client.lastName}
             </p>
             <p className="text-sm text-gray-600">{client.email}</p>
+          </div>
+
+          {/* Questionnaire Selector */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Questionnaire
+            </label>
+            {loadingSurveys ? (
+              <p className="text-sm text-gray-500">Loading questionnaires...</p>
+            ) : surveys.length === 0 ? (
+              <p className="text-sm text-gray-500">No active questionnaires available.</p>
+            ) : (
+              <div className="space-y-2">
+                <select
+                  value={selectedSurveyId}
+                  onChange={(e) => {
+                    setSelectedSurveyId(e.target.value);
+                    setLink(null);
+                    setCopied(false);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">-- Choose a questionnaire --</option>
+                  {surveys.map((survey) => (
+                    <option key={survey.id} value={survey.id}>
+                      {survey.title}
+                    </option>
+                  ))}
+                </select>
+                {selectedSurveyId && !link && !loading && (
+                  <button
+                    onClick={generateLink}
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                  >
+                    Generate Link
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {error && (
