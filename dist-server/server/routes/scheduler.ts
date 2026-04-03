@@ -823,6 +823,7 @@ router.post('/public/:slug/book', async (req: Request, res: Response) => {
     let googleCalendarEventId: string | null = null;
     if (status === 'confirmed') {
       try {
+        console.log(`[Scheduler] Creating Google Calendar event for booking ${bookingId} - ${clientName}`);
         googleCalendarEventId = await createGoogleCalendarEvent({
           summary: `${scheduler.name} - ${clientName}`,
           description: `Booked via Scheduler\nClient: ${clientName}\nEmail: ${clientEmail}${clientPhone ? '\nPhone: ' + clientPhone : ''}${clientNotes ? '\nNotes: ' + clientNotes : ''}`,
@@ -834,6 +835,7 @@ router.post('/public/:slug/book', async (req: Request, res: Response) => {
         });
 
         if (googleCalendarEventId) {
+          console.log(`[Scheduler] ✅ Google Calendar event created: ${googleCalendarEventId} for booking ${bookingId}`);
           // Store Google Calendar event ID on the booking
           await db
             .update(schedulerBookings)
@@ -847,6 +849,8 @@ router.post('/public/:slug/book', async (req: Request, res: Response) => {
               .set({ googleCalendarEventId } as any)
               .where(eq(photographySessions.id, sessionId));
           }
+        } else {
+          console.error(`[Scheduler] ❌ Google Calendar sync FAILED for booking ${bookingId} - ${clientName}. Event was NOT created on Google Calendar. Booking is saved in CRM but not synced.`);
         }
       } catch (gcalErr) {
         console.warn('[Scheduler] Google Calendar event creation failed, booking still saved:', gcalErr);
@@ -872,6 +876,77 @@ router.post('/public/:slug/book', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error creating booking:', error);
     res.status(500).json({ error: 'Failed to create booking' });
+  }
+});
+
+// POST /api/schedulers/bookings/:bookingId/sync-gcal - Manual retry Google Calendar sync
+router.post('/bookings/:bookingId/sync-gcal', async (req: Request, res: Response) => {
+  try {
+    const { bookingId } = req.params;
+
+    // Get the booking
+    const [booking] = await db
+      .select()
+      .from(schedulerBookings)
+      .where(eq(schedulerBookings.id, bookingId))
+      .limit(1);
+
+    if (!booking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    if (booking.googleCalendarEventId) {
+      return res.json({ success: true, message: 'Already synced', googleCalendarEventId: booking.googleCalendarEventId });
+    }
+
+    if (booking.status === 'cancelled') {
+      return res.status(400).json({ error: 'Cannot sync cancelled booking' });
+    }
+
+    // Get scheduler for title
+    const [scheduler] = await db
+      .select()
+      .from(schedulers)
+      .where(eq(schedulers.id, booking.schedulerId))
+      .limit(1);
+
+    const schedulerName = scheduler?.name || 'Appointment';
+    const bookingStart = new Date(booking.scheduledDate!);
+    const bookingEnd = new Date(booking.scheduledEndDate!);
+
+    const googleCalendarEventId = await createGoogleCalendarEvent({
+      summary: `${schedulerName} - ${booking.clientName}`,
+      description: `Booked via Scheduler\nClient: ${booking.clientName}\nEmail: ${booking.clientEmail}${booking.clientPhone ? '\nPhone: ' + booking.clientPhone : ''}${booking.clientNotes ? '\nNotes: ' + booking.clientNotes : ''}`,
+      location: scheduler?.location || undefined,
+      startTime: bookingStart,
+      endTime: bookingEnd,
+      clientEmail: booking.clientEmail!,
+      clientName: booking.clientName!,
+    });
+
+    if (!googleCalendarEventId) {
+      return res.status(500).json({ error: 'Google Calendar sync failed. Check server logs for details.' });
+    }
+
+    // Update booking with event ID
+    await db
+      .update(schedulerBookings)
+      .set({ googleCalendarEventId })
+      .where(eq(schedulerBookings.id, bookingId));
+
+    // Update photography session if linked
+    if (booking.sessionId) {
+      await db
+        .update(photographySessions)
+        .set({ googleCalendarEventId } as any)
+        .where(eq(photographySessions.id, booking.sessionId));
+    }
+
+    console.log(`[Scheduler] ✅ Manual GCal sync successful for booking ${bookingId}: ${googleCalendarEventId}`);
+    res.json({ success: true, googleCalendarEventId });
+  } catch (error) {
+    console.error('Error syncing booking to Google Calendar:', error);
+    res.status(500).json({ error: 'Failed to sync to Google Calendar' });
   }
 });
 

@@ -33,6 +33,13 @@ interface BusySlot {
 
 // ---------- OAuth2 Client Factory ----------
 
+// Consistent redirect URI across all Google OAuth interactions
+function getRedirectUri(): string {
+  // Must match exactly what is configured in Google Cloud Console
+  const base = process.env.APP_URL || process.env.BASE_URL || 'http://localhost:3001';
+  return `${base}/api/auth/google/callback`;
+}
+
 /**
  * Get an authenticated Google Calendar API client using stored OAuth tokens.
  * Returns null if no sync config is found or tokens are missing.
@@ -47,25 +54,21 @@ async function getCalendarClient(): Promise<{ calendar: any; calendarId: string 
       .limit(1);
 
     if (configs.length === 0) {
-      console.log('[Scheduler-GCal] No active calendar sync settings found');
+      console.error('[Scheduler-GCal] ❌ CRITICAL: No active calendar sync settings found. Google Calendar sync is disabled.');
       return null;
     }
 
     const config = configs[0];
 
     if (!config.accessToken || !config.refreshToken) {
-      console.log('[Scheduler-GCal] OAuth tokens missing in calendar sync settings');
+      console.error('[Scheduler-GCal] ❌ CRITICAL: OAuth tokens missing in calendar sync settings. Please reconnect Google Calendar.');
       return null;
     }
-
-    const redirectUri = process.env.NODE_ENV === 'production'
-      ? 'https://www.newagefotografie.com/api/auth/google/callback'
-      : `${process.env.BASE_URL || 'http://localhost:3001'}/api/auth/google/callback`;
 
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      redirectUri
+      getRedirectUri()
     );
 
     oauth2Client.setCredentials({
@@ -83,18 +86,35 @@ async function getCalendarClient(): Promise<{ calendar: any; calendarId: string 
           .update(calendarSyncSettings)
           .set(updates)
           .where(eq(calendarSyncSettings.id, config.id));
-        console.log('[Scheduler-GCal] Refreshed OAuth tokens saved');
+        console.log('[Scheduler-GCal] ✅ Refreshed OAuth tokens saved to DB');
       } catch (err) {
-        console.warn('[Scheduler-GCal] Failed to save refreshed tokens:', err);
+        console.error('[Scheduler-GCal] ❌ Failed to save refreshed tokens:', err);
       }
     });
+
+    // Force a token refresh to ensure we have a valid access token
+    try {
+      const { credentials } = await oauth2Client.refreshAccessToken();
+      oauth2Client.setCredentials(credentials);
+      // Persist refreshed tokens
+      const updates: any = { updatedAt: new Date() };
+      if (credentials.access_token) updates.accessToken = credentials.access_token;
+      if (credentials.refresh_token) updates.refreshToken = credentials.refresh_token;
+      await db
+        .update(calendarSyncSettings)
+        .set(updates)
+        .where(eq(calendarSyncSettings.id, config.id));
+    } catch (refreshErr: any) {
+      console.warn('[Scheduler-GCal] Token refresh attempt failed, proceeding with existing token:', refreshErr.message);
+      // Continue with existing token - it may still be valid
+    }
 
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
     const calendarId = config.calendarId || 'primary';
 
     return { calendar, calendarId };
   } catch (error) {
-    console.error('[Scheduler-GCal] Error getting calendar client:', error);
+    console.error('[Scheduler-GCal] ❌ Error getting calendar client:', error);
     return null;
   }
 }
@@ -104,56 +124,72 @@ async function getCalendarClient(): Promise<{ calendar: any; calendarId: string 
 /**
  * Create a Google Calendar event for a confirmed scheduler booking.
  * Returns the Google Calendar event ID, or null if creation failed/unavailable.
+ * Includes retry logic for transient failures.
  */
 export async function createGoogleCalendarEvent(data: BookingEventData): Promise<string | null> {
-  const client = await getCalendarClient();
-  if (!client) return null;
-
-  try {
-    const event: any = {
-      summary: data.summary,
-      description: data.description || '',
-      location: data.location || '',
-      start: {
-        dateTime: data.startTime.toISOString(),
-        timeZone: 'Europe/Vienna',
-      },
-      end: {
-        dateTime: data.endTime.toISOString(),
-        timeZone: 'Europe/Vienna',
-      },
-      // Color: Sage (2) for scheduler bookings
-      colorId: '2',
-      // Add source to identify scheduler-created events
-      source: {
-        title: 'New Age Fotografie Scheduler',
-        url: 'https://www.newagefotografie.com',
-      },
-    };
-
-    // Add client as attendee if email is available
-    if (data.clientEmail) {
-      event.attendees = [{
-        email: data.clientEmail,
-        displayName: data.clientName || '',
-      }];
-      // Send notification to attendee
-      event.sendUpdates = 'all';
+  const MAX_RETRIES = 2;
+  
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const client = await getCalendarClient();
+    if (!client) {
+      console.error('[Scheduler-GCal] ❌ No calendar client available - cannot sync to Google Calendar');
+      return null;
     }
 
-    const response = await client.calendar.events.insert({
-      calendarId: client.calendarId,
-      resource: event,
-      sendUpdates: data.clientEmail ? 'all' : 'none',
-    });
+    try {
+      const event: any = {
+        summary: data.summary,
+        description: data.description || '',
+        location: data.location || '',
+        start: {
+          dateTime: data.startTime.toISOString(),
+          timeZone: 'Europe/Vienna',
+        },
+        end: {
+          dateTime: data.endTime.toISOString(),
+          timeZone: 'Europe/Vienna',
+        },
+        // Color: Sage (2) for scheduler bookings
+        colorId: '2',
+        // Add source to identify scheduler-created events
+        source: {
+          title: 'New Age Fotografie Scheduler',
+          url: process.env.APP_URL || process.env.BASE_URL || 'https://www.newagefotografie.com',
+        },
+      };
 
-    const eventId = response.data.id;
-    console.log(`[Scheduler-GCal] ✅ Created event ${eventId} for "${data.summary}"`);
-    return eventId;
-  } catch (error: any) {
-    console.error('[Scheduler-GCal] ❌ Failed to create event:', error.message);
-    return null;
+      // Add client as attendee if email is available
+      if (data.clientEmail) {
+        event.attendees = [{
+          email: data.clientEmail,
+          displayName: data.clientName || '',
+        }];
+        // Send notification to attendee
+        event.sendUpdates = 'all';
+      }
+
+      const response = await client.calendar.events.insert({
+        calendarId: client.calendarId,
+        resource: event,
+        sendUpdates: data.clientEmail ? 'all' : 'none',
+      });
+
+      const eventId = response.data.id;
+      console.log(`[Scheduler-GCal] ✅ Created event ${eventId} for "${data.summary}" (attempt ${attempt + 1})`);
+      return eventId;
+    } catch (error: any) {
+      const status = error.code || error.status || error.response?.status;
+      console.error(`[Scheduler-GCal] ❌ Failed to create event (attempt ${attempt + 1}/${MAX_RETRIES + 1}):`, error.message, `status=${status}`);
+      
+      // Only retry on auth errors (401/403) or server errors (5xx) - not on client errors (4xx)
+      if (attempt < MAX_RETRIES && (status === 401 || status === 403 || status >= 500)) {
+        console.log('[Scheduler-GCal] Retrying after token refresh...');
+        continue;
+      }
+      return null;
+    }
   }
+  return null;
 }
 
 /**

@@ -13463,10 +13463,7 @@ New Age Fotografie CRM System
   app.post("/api/admin/create-questionnaire-link", authenticateUser, async (req: Request, res: Response) => {
     try {
       const { client_id, template_id } = req.body;
-      
-      if (!client_id) {
-        return res.status(400).json({ error: "client_id is required" });
-      }
+      const effectiveClientId = client_id || 'anonymous';
 
       // Generate short token (16 hex chars)
       const token = require('crypto').randomBytes(8).toString('hex');
@@ -13478,11 +13475,13 @@ New Age Fotografie CRM System
       // Insert questionnaire link
       await runSql(
         'INSERT INTO questionnaire_links (token, client_id, template_id, expires_at) VALUES ($1, $2, $3, $4)',
-        [token, client_id, template_id || 'default-questionnaire', expiresAt]
+        [token, effectiveClientId, template_id || 'default-questionnaire', expiresAt]
       );
       
-      // Generate public URL
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `http://localhost:3001`;
+      // Generate public URL from request origin or env var
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+      const host = req.headers['x-forwarded-host'] || req.headers.host || '';
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.APP_URL || `${protocol}://${host}`;
       const link = `${baseUrl}/q/${token}`;
       
       res.json({ token, link });
@@ -13501,7 +13500,7 @@ New Age Fotografie CRM System
       const linkResult = await runSql(
         `SELECT ql.*, c.first_name, c.last_name, c.email 
          FROM questionnaire_links ql 
-         JOIN crm_clients c ON ql.client_id = c.id 
+         LEFT JOIN crm_clients c ON ql.client_id = c.id::text 
          WHERE ql.token = $1 AND (ql.expires_at IS NULL OR ql.expires_at > NOW())`,
         [token]
       );
@@ -13524,16 +13523,28 @@ New Age Fotografie CRM System
       
       const survey = surveyResult[0];
       
+      // Parse pages and ensure all questions have required flag set
+      let surveyPages = typeof survey.pages === 'string' ? JSON.parse(survey.pages) : (survey.pages || []);
+      if (Array.isArray(surveyPages)) {
+        surveyPages = surveyPages.map((page: any) => ({
+          ...page,
+          questions: (page.questions || []).map((q: any) => ({
+            ...q,
+            required: q.required !== false
+          }))
+        }));
+      }
+      
       res.json({
         token,
         clientName: `${link.first_name || ''} ${link.last_name || ''}`.trim(),
-        clientEmail: link.email,
+        clientEmail: link.email || '',
         isUsed: link.is_used,
         survey: {
           title: survey.title,
-          description: survey.description,
-          pages: survey.pages,
-          settings: survey.settings
+          description: survey.description || 'Bitte fülle den Fragebogen so detailliert wie möglich aus.',
+          pages: surveyPages,
+          settings: typeof survey.settings === 'string' ? JSON.parse(survey.settings) : (survey.settings || {})
         }
       });
     } catch (error) {
@@ -13547,15 +13558,19 @@ New Age Fotografie CRM System
     try {
       const { token, clientName, clientEmail, answers } = req.body;
       
-      if (!token || !clientName || !clientEmail || !answers) {
-        return res.status(400).json({ error: "Missing required fields" });
+      if (!token || !answers) {
+        return res.status(400).json({ error: "Missing required fields (token and answers)" });
+      }
+      
+      if (!clientName || !clientName.trim()) {
+        return res.status(400).json({ error: "Name is required. Please provide your name." });
       }
       
       // Verify token and get client info
       const linkResult = await runSql(
         `SELECT ql.*, c.first_name, c.last_name 
          FROM questionnaire_links ql 
-         JOIN crm_clients c ON ql.client_id = c.id 
+         LEFT JOIN crm_clients c ON ql.client_id = c.id::text 
          WHERE ql.token = $1 AND (ql.expires_at IS NULL OR ql.expires_at > NOW()) AND ql.is_used = FALSE`,
         [token]
       );
@@ -13566,10 +13581,10 @@ New Age Fotografie CRM System
       
       const link = linkResult[0];
       
-      // Store response in database
+      // Store response in database (include client name and email)
       await runSql(
-        'INSERT INTO questionnaire_responses (client_id, token, template_slug, answers) VALUES ($1, $2, $3, $4)',
-        [link.client_id, token, link.template_id, JSON.stringify(answers)]
+        'INSERT INTO questionnaire_responses (client_id, token, template_slug, answers, client_name, client_email) VALUES ($1, $2, $3, $4, $5, $6)',
+        [link.client_id, token, link.template_id, JSON.stringify(answers), clientName, clientEmail]
       );
       
       // Mark link as used
@@ -15170,7 +15185,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
         .replace(/\{\{clientName\}\}/g, 'Max Mustermann')
         .replace(/\{\{bookingDate\}\}/g, '15. März 2026')
         .replace(/\{\{bookingTime\}\}/g, '14:00 Uhr')
-        .replace(/\{\{questionnaireLink\}\}/g, `https://www.newagefotografie.com/questionnaire/${rule.questionnaireSlug || 'pre-shoot'}`);
+        .replace(/\{\{questionnaireLink\}\}/g, `${process.env.FRONTEND_URL || process.env.APP_URL || 'https://www.newagefotografie.com'}/q/${rule.questionnaireSlug || 'pre-shoot'}`);
 
       const testSubject = rule.emailSubject
         .replace(/\{\{clientName\}\}/g, 'Max Mustermann')
@@ -15274,7 +15289,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
             const formattedDate = dateFormatter.format(bookingDate);
             const formattedTime = timeFormatter.format(bookingDate) + ' Uhr';
             const questionnaireLink = rule.questionnaireSlug 
-              ? `https://www.newagefotografie.com/questionnaire/${rule.questionnaireSlug}`
+              ? `${process.env.FRONTEND_URL || process.env.APP_URL || 'https://www.newagefotografie.com'}/q/${rule.questionnaireSlug}`
               : '';
 
             const emailHtml = rule.emailBodyHtml
