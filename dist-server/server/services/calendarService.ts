@@ -44,17 +44,32 @@ export async function importGoogleCalendarEvents(fromDate?: Date, userId?: strin
     }
 
     // Initialize OAuth client with tokens from calendarSyncSettings
+    const base = process.env.APP_URL || process.env.BASE_URL || 'http://localhost:3001';
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.NODE_ENV === 'production'
-        ? 'https://www.newagefotografie.com/api/auth/google/callback'
-        : `${process.env.BASE_URL || 'http://localhost:3001'}/api/auth/google/callback`
+      `${base}/api/auth/google/callback`
     );
 
     oauth2Client.setCredentials({
       access_token: syncConfig.accessToken,
       refresh_token: syncConfig.refreshToken,
+    });
+
+    // Handle token refresh - persist new tokens to DB when googleapis auto-refreshes
+    oauth2Client.on('tokens', async (tokens: any) => {
+      try {
+        const updates: Record<string, any> = { updatedAt: new Date() };
+        if (tokens.access_token) updates.accessToken = tokens.access_token;
+        if (tokens.refresh_token) updates.refreshToken = tokens.refresh_token;
+        await db
+          .update(calendarSyncSettings)
+          .set(updates)
+          .where(eq(calendarSyncSettings.id, syncConfig.id));
+        console.log('[CalendarService] Refreshed OAuth tokens saved to DB');
+      } catch (err) {
+        console.warn('[CalendarService] Failed to save refreshed tokens:', err);
+      }
     });
 
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });

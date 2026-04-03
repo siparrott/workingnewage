@@ -1509,7 +1509,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use OAuth-based Google Calendar API instead of hardcoded ICS feed
       const { google } = await import('googleapis');
       const configs = await runSql(
-        `SELECT access_token, refresh_token, calendar_id FROM calendar_sync_settings WHERE sync_enabled = true LIMIT 1`
+        `SELECT id, access_token, refresh_token, calendar_id FROM calendar_sync_settings WHERE sync_enabled = true LIMIT 1`
       );
       
       if (!configs || configs.length === 0) {
@@ -1520,15 +1520,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!syncConfig.access_token || !syncConfig.refresh_token) {
         return res.status(200).json({ success: true, events: [], message: 'Google Calendar OAuth tokens missing' });
       }
-      
+
+      const redirectUri = `${process.env.APP_URL || process.env.BASE_URL || 'http://localhost:3001'}/api/auth/google/callback`;
       const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET
+        process.env.GOOGLE_CLIENT_SECRET,
+        redirectUri
       );
       oauth2Client.setCredentials({
         access_token: syncConfig.access_token,
         refresh_token: syncConfig.refresh_token,
       });
+
+      // Handle token refresh - persist new tokens to DB
+      oauth2Client.on('tokens', async (tokens: any) => {
+        try {
+          const sets: string[] = [];
+          const vals: any[] = [];
+          let idx = 1;
+          if (tokens.access_token) { sets.push(`access_token = $${idx++}`); vals.push(tokens.access_token); }
+          if (tokens.refresh_token) { sets.push(`refresh_token = $${idx++}`); vals.push(tokens.refresh_token); }
+          if (sets.length > 0) {
+            sets.push('updated_at = NOW()');
+            vals.push(syncConfig.id);
+            await runSql(`UPDATE calendar_sync_settings SET ${sets.join(', ')} WHERE id = $${idx}`, vals);
+            console.log('[routes/google-events] Refreshed OAuth tokens saved');
+          }
+        } catch (err) {
+          console.warn('[routes/google-events] Failed to save refreshed tokens:', err);
+        }
+      });
+
+      // Force a token refresh if the access token might be stale
+      try {
+        const { credentials } = await oauth2Client.refreshAccessToken();
+        oauth2Client.setCredentials(credentials);
+      } catch (refreshErr: any) {
+        console.warn('[routes/google-events] Token refresh failed, trying with existing token:', refreshErr?.message);
+      }
       
       const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
       

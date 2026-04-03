@@ -15,12 +15,8 @@ const router = Router();
 
 // Determine the correct redirect URI based on environment
 const getRedirectUri = () => {
-  // In production, always use the www subdomain
-  if (process.env.NODE_ENV === 'production') {
-    return 'https://www.newagefotografie.com/api/auth/google/callback';
-  }
-  // In development, use BASE_URL or localhost
-  return `${process.env.BASE_URL || 'http://localhost:3001'}/api/auth/google/callback`;
+  const base = process.env.APP_URL || process.env.BASE_URL || 'http://localhost:3001';
+  return `${base}/api/auth/google/callback`;
 };
 
 // OAuth2 client setup
