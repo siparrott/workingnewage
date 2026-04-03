@@ -910,7 +910,26 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
                 <input
                   type="date"
                   value={formData.issue_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, issue_date: e.target.value }))}
+                  onChange={(e) => {
+                    const newIssueDate = e.target.value;
+                    setFormData(prev => {
+                      // Recalculate payment terms based on new issue date and existing due date
+                      const issueMs = new Date(newIssueDate).getTime();
+                      const dueMs = new Date(prev.due_date).getTime();
+                      const diffDays = Math.round((dueMs - issueMs) / (1000 * 60 * 60 * 24));
+                      let payment_terms = prev.payment_terms;
+                      if (diffDays <= 0) {
+                        payment_terms = 'Due on receipt';
+                      } else if (diffDays <= 15) {
+                        payment_terms = 'Net 15';
+                      } else if (diffDays <= 30) {
+                        payment_terms = 'Net 30';
+                      } else {
+                        payment_terms = 'Net 60';
+                      }
+                      return { ...prev, issue_date: newIssueDate, payment_terms };
+                    });
+                  }}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   required
                 />
@@ -922,7 +941,26 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
                 <input
                   type="date"
                   value={formData.due_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
+                  onChange={(e) => {
+                    const newDueDate = e.target.value;
+                    setFormData(prev => {
+                      // Auto-calculate payment terms from issue date and due date
+                      const issueMs = new Date(prev.issue_date).getTime();
+                      const dueMs = new Date(newDueDate).getTime();
+                      const diffDays = Math.round((dueMs - issueMs) / (1000 * 60 * 60 * 24));
+                      let payment_terms = prev.payment_terms;
+                      if (diffDays <= 0) {
+                        payment_terms = 'Due on receipt';
+                      } else if (diffDays <= 15) {
+                        payment_terms = 'Net 15';
+                      } else if (diffDays <= 30) {
+                        payment_terms = 'Net 30';
+                      } else {
+                        payment_terms = 'Net 60';
+                      }
+                      return { ...prev, due_date: newDueDate, payment_terms };
+                    });
+                  }}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   required
                 />
@@ -1088,7 +1126,30 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
                 </div>
                 <select
                   value={formData.payment_terms}
-                  onChange={(e) => setFormData(prev => ({ ...prev, payment_terms: e.target.value }))}
+                  onChange={(e) => {
+                    const newTerms = e.target.value;
+                    setFormData(prev => {
+                      // Auto-calculate due date from payment terms and issue date
+                      const issueDate = new Date(prev.issue_date);
+                      let due_date = prev.due_date;
+                      if (newTerms === 'Due on receipt') {
+                        due_date = prev.issue_date;
+                      } else if (newTerms === 'Net 15') {
+                        const d = new Date(issueDate);
+                        d.setDate(d.getDate() + 15);
+                        due_date = d.toISOString().split('T')[0];
+                      } else if (newTerms === 'Net 30') {
+                        const d = new Date(issueDate);
+                        d.setDate(d.getDate() + 30);
+                        due_date = d.toISOString().split('T')[0];
+                      } else if (newTerms === 'Net 60') {
+                        const d = new Date(issueDate);
+                        d.setDate(d.getDate() + 60);
+                        due_date = d.toISOString().split('T')[0];
+                      }
+                      return { ...prev, payment_terms: newTerms, due_date };
+                    });
+                  }}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   required
                 >
