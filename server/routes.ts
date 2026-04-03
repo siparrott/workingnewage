@@ -5478,6 +5478,10 @@ Bitte versuchen Sie es später noch einmal.`;
       }
 
       // Update main invoice record
+      // For notes and footer_text, use direct assignment (not COALESCE) so empty strings can clear the field
+      const notesProvided = notes !== undefined && notes !== null;
+      const footerProvided = footerText !== undefined && footerText !== null;
+      
       const updateQuery = `
         UPDATE crm_invoices 
         SET 
@@ -5485,8 +5489,8 @@ Bitte versuchen Sie es später noch einmal.`;
           invoice_number = COALESCE($2, invoice_number),
           status = COALESCE($3, status),
           due_date = COALESCE($4::timestamp, due_date),
-          notes = COALESCE($5, notes),
-          footer_text = COALESCE($6, footer_text),
+          notes = ${notesProvided ? '$5' : 'notes'},
+          footer_text = ${footerProvided ? '$6' : 'footer_text'},
           document_type = COALESCE($7, document_type),
           issue_date = COALESCE($8::timestamp, issue_date),
           updated_at = NOW()
@@ -5499,8 +5503,8 @@ Bitte versuchen Sie es später noch einmal.`;
         invoiceNumber || null,
         status || null,
         dueDate || null,
-        notes || null,
-        footerText || null,
+        notesProvided ? notes : null,
+        footerProvided ? footerText : null,
         documentType || null,
         issueDate || null,
         invoiceId
@@ -5664,13 +5668,13 @@ Bitte versuchen Sie es später noch einmal.`;
       // Generate new INV- prefixed number
       const newNumber = `INV-${Date.now()}`;
 
-      // Update document_type and invoice_number
+      // Update document_type, invoice_number, and set status to pending for new invoice
       await runSql(
-        `UPDATE crm_invoices SET document_type = 'invoice', invoice_number = $1 WHERE id = $2`,
+        `UPDATE crm_invoices SET document_type = 'invoice', invoice_number = $1, status = CASE WHEN status = 'draft' THEN 'pending' ELSE status END, updated_at = NOW() WHERE id = $2`,
         [newNumber, id]
       );
 
-      res.json({ success: true, invoice_number: newNumber });
+      res.json({ success: true, invoice_number: newNumber, document_type: 'invoice' });
     } catch (error) {
       console.error("Error converting to invoice:", error);
       res.status(500).json({ error: "Internal server error" });
