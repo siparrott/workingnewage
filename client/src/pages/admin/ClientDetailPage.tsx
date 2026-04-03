@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
-import { ArrowLeft, Mail, Phone, MapPin, Building, Edit, Trash2, Calendar, Euro, MessageSquare, Plus, FileText, Inbox, ClipboardList, Eye, Download, Link, Share } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, Building, Edit, Trash2, Calendar, Euro, MessageSquare, Plus, FileText, Inbox, ClipboardList, Eye, Download, Link, Share, Clock } from 'lucide-react';
 import { googleCalendarService } from '../../services/googleCalendarService';
 import SendQuestionnaireModal from '../../components/admin/SendQuestionnaireModal';
 import ViewEmailsModal from '../../components/admin/ViewEmailsModal';
@@ -34,6 +34,8 @@ const ClientDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const [client, setClient] = useState<Client | null>(null);
   const [clientInvoices, setClientInvoices] = useState<any[]>([]);
+  const [clientSessions, setClientSessions] = useState<any[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
@@ -44,6 +46,7 @@ const ClientDetailPage: React.FC = () => {
     if (id) {
       fetchClient(id);
       fetchClientInvoices(id);
+      fetchClientSessions(id);
     }
   }, [id]);
 
@@ -79,6 +82,26 @@ const ClientDetailPage: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to fetch client invoices:', err);
+    }
+  };
+
+  const fetchClientSessions = async (clientId: string) => {
+    try {
+      setLoadingSessions(true);
+      const response = await fetch(`/api/calendar/sessions?client_id=${clientId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const sessions = await response.json();
+        setClientSessions(Array.isArray(sessions) ? sessions : []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch client sessions:', err);
+    } finally {
+      setLoadingSessions(false);
     }
   };
 
@@ -565,6 +588,95 @@ const ClientDetailPage: React.FC = () => {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Sessions & Appointments */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+              <Calendar size={20} className="mr-2 text-purple-600" />
+              Sessions & Appointments
+            </h3>
+            <button
+              onClick={() => navigate(`/admin/calendar?clientId=${client.id}`)}
+              className="text-sm text-purple-600 hover:text-purple-800 font-medium"
+            >
+              View in Calendar →
+            </button>
+          </div>
+
+          {loadingSessions ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+              <p className="text-gray-500 mt-2 text-sm">Loading sessions...</p>
+            </div>
+          ) : clientSessions.length === 0 ? (
+            <div className="text-center py-8">
+              <Calendar size={48} className="mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-500 font-medium">No sessions yet</p>
+              <p className="text-gray-400 text-sm">Schedule a session or add an appointment below.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Session</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {clientSessions.map((session: any) => {
+                    const startTime = session.startTime ? new Date(session.startTime) : null;
+                    const endTime = session.endTime ? new Date(session.endTime) : null;
+                    const isPast = startTime && startTime < new Date();
+                    const statusLabel = session.status || (isPast ? 'completed' : 'scheduled');
+                    
+                    return (
+                      <tr key={session.id} className={`hover:bg-gray-50 ${isPast ? 'opacity-70' : ''}`}>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                          {session.title || 'Untitled Session'}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <Clock size={14} className="mr-1 text-gray-400" />
+                            {startTime ? (
+                              <span>
+                                {startTime.toLocaleDateString('de-AT', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                                {' '}
+                                {startTime.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })}
+                                {endTime && ` - ${endTime.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })}`}
+                              </span>
+                            ) : 'No date'}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {session.session_type || session.sessionType || '—'}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            statusLabel === 'completed' ? 'bg-green-100 text-green-800' :
+                            statusLabel === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                            statusLabel === 'cancelled' ? 'bg-red-100 text-red-800' :
+                            statusLabel === 'scheduled' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {session.locationName || session.location_name || '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
