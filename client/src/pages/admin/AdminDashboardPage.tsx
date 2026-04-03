@@ -11,7 +11,8 @@ import {
   DollarSign,
   FileText,
   Camera,
-  Clock
+  Clock,
+  ArrowRightCircle
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -46,6 +47,7 @@ interface DashboardData {
   recentLeads: any[];
   recentBookings: any[];
   recentInvoices: any[];
+  recentQuotes: any[];
   
   // Performance Indicators
   monthlyGrowth: number;
@@ -191,8 +193,12 @@ const AdminDashboardPage: React.FC = () => {
         }
       });
       
-      // Filter for paid invoices to create charts
-      const paidInvoices = invoices.filter((inv: any) => inv.status === 'paid');
+      // Filter for quotes (document_type === 'quote')
+      const isQuote = (inv: any) => inv.document_type === 'quote' || inv.documentType === 'quote' || (inv.invoice_number || inv.invoiceNumber || '').startsWith('QUO-');
+      const quotes = invoices.filter(isQuote);
+
+      // Filter for paid invoices (excluding quotes) to create charts
+      const paidInvoices = invoices.filter((inv: any) => inv.status === 'paid' && !isQuote(inv));
 
       // Create simplified chart data
       // Build revenue chart from server trendData (last 7 days)
@@ -243,6 +249,7 @@ const AdminDashboardPage: React.FC = () => {
           .sort((a: any, b: any) => new Date(a.startTime || a.start_time).getTime() - new Date(b.startTime || b.start_time).getTime())
           .slice(0, 5),
         recentInvoices: paidInvoices.slice(0, 5),
+        recentQuotes: quotes.slice(0, 5),
         monthlyGrowth: 0, // Would need historical data
         conversionRate: allLeads.length > 0 ? (allLeads.filter(l => l.status === 'CONVERTED').length / allLeads.length) * 100 : 0,
         averageOrderValue: metrics.avgOrderValue || 0,
@@ -359,8 +366,24 @@ const AdminDashboardPage: React.FC = () => {
     </div>
   );
 
+  const handleConvertToInvoice = async (quoteId: string) => {
+    if (!window.confirm('Convert this quote to an invoice? This will change the document type from Quote to Invoice.')) return;
+    try {
+      const response = await fetch(`/api/crm/invoices/${quoteId}/convert-to-invoice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error('Failed to convert');
+      const data = await response.json();
+      alert(`Quote converted to Invoice #${data.invoice_number}`);
+      fetchDashboardData();
+    } catch (error) {
+      alert('Failed to convert quote to invoice. Please try again.');
+    }
+  };
+
   const renderRecentActivity = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Recent Leads */}
       <div className="bg-white rounded-lg shadow">
         <div className="p-6 border-b border-gray-200">
@@ -488,6 +511,68 @@ const AdminDashboardPage: React.FC = () => {
                 </p>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Quotes */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Recent Quotes</h3>
+            <button
+              onClick={() => navigate('/admin/invoices')}
+              className="text-purple-600 hover:text-purple-700 text-sm font-medium"
+            >
+              View All
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          <div className="space-y-4">
+            {(dashboardData?.recentQuotes || []).length === 0 ? (
+              <p className="text-sm text-gray-500">No quotes yet.</p>
+            ) : (
+              (dashboardData?.recentQuotes || []).slice(0, 5).map((quote, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900">Quote #{quote.invoiceNumber || quote.invoice_number || quote.id?.substring(0, 8)}</p>
+                    {(quote.client?.name || quote.clientName || quote.client_name) && (
+                      <p className="text-xs text-gray-500">{quote.client?.name || quote.clientName || quote.client_name}</p>
+                    )}
+                    <p className="text-sm text-gray-600">€{(parseFloat(quote.total) || 0).toFixed(2)}</p>
+                    <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                      quote.status === 'accepted' || quote.status === 'ACCEPTED' ? 'bg-green-100 text-green-800' :
+                      quote.status === 'sent' || quote.status === 'SENT' || quote.status === 'pending' || quote.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                      quote.status === 'draft' || quote.status === 'DRAFT' ? 'bg-gray-100 text-gray-800' :
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {quote.status || 'draft'}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-end space-y-1">
+                    <p className="text-xs text-gray-500">
+                      {(() => {
+                        try {
+                          const date = new Date(quote.createdAt || quote.created_at);
+                          return isNaN(date.getTime()) ? 'Recent' : format(date, 'MMM dd');
+                        } catch (error) {
+                          return 'Recent';
+                        }
+                      })()}
+                    </p>
+                    <button
+                      onClick={() => handleConvertToInvoice(quote.id)}
+                      className="flex items-center text-xs text-green-600 hover:text-green-800 font-medium"
+                      title="Convert to Invoice"
+                    >
+                      <ArrowRightCircle className="h-3 w-3 mr-1" />
+                      Convert to Invoice
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
