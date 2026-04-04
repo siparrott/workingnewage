@@ -9,6 +9,7 @@ import {
   Search, 
   Filter, 
   Eye, 
+  EyeOff,
   Edit, 
   Trash2, 
   Download, 
@@ -53,6 +54,7 @@ const InvoicesPage: React.FC = () => {
   const [paymentTrackingInvoice, setPaymentTrackingInvoice] = useState<{ id: string; total: number; currency: string } | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
+  const [privacyMode, setPrivacyMode] = useState(() => localStorage.getItem('invoicePrivacyMode') === 'true');
 
   useEffect(() => {
     fetchInvoices();
@@ -332,6 +334,16 @@ const InvoicesPage: React.FC = () => {
 
   const stats = getTotalStats();
 
+  const togglePrivacyMode = () => {
+    setPrivacyMode(prev => {
+      const next = !prev;
+      localStorage.setItem('invoicePrivacyMode', String(next));
+      return next;
+    });
+  };
+
+  const mask = (value: string) => privacyMode ? '•••••' : value;
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -340,13 +352,23 @@ const InvoicesPage: React.FC = () => {
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">{t('invoice.management')}</h1>
             <p className="text-gray-600">{t('invoice.create')}, {t('invoice.edit')}</p>
-          </div>          <button
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={togglePrivacyMode}
+              className={`p-2 rounded-lg border transition-colors ${privacyMode ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-500 border-gray-300 hover:bg-gray-50'}`}
+              title={privacyMode ? 'Show figures' : 'Hide figures'}
+            >
+              {privacyMode ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+            <button
             onClick={() => setShowCreateModal(true)}
             className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center"
           >
             <Plus size={20} className="mr-2" />
             {t('doc.new.invoice')}
           </button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -358,7 +380,7 @@ const InvoicesPage: React.FC = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">{t('invoice.totalInvoiced')}</p>
-                <p className="text-2xl font-semibold text-gray-900">€{(stats.totalAmount || 0).toFixed(2)}</p>
+                <p className="text-2xl font-semibold text-gray-900">{mask(`€${(stats.totalAmount || 0).toFixed(2)}`)}</p>
               </div>
             </div>
           </div>
@@ -370,7 +392,7 @@ const InvoicesPage: React.FC = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">{t('invoice.paidAmount')}</p>
-                <p className="text-2xl font-semibold text-gray-900">€{(stats.paidAmount || 0).toFixed(2)}</p>
+                <p className="text-2xl font-semibold text-gray-900">{mask(`€${(stats.paidAmount || 0).toFixed(2)}`)}</p>
               </div>
             </div>
           </div>
@@ -382,8 +404,8 @@ const InvoicesPage: React.FC = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Awaiting Payment</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.awaitingPaymentCount || 0}</p>
-                <p className="text-xs text-gray-500">€{(stats.awaitingPaymentAmount || 0).toFixed(2)}</p>
+                <p className="text-2xl font-semibold text-gray-900">{mask(String(stats.awaitingPaymentCount || 0))}</p>
+                <p className="text-xs text-gray-500">{mask(`€${(stats.awaitingPaymentAmount || 0).toFixed(2)}`)}</p>
               </div>
             </div>
           </div>
@@ -395,7 +417,7 @@ const InvoicesPage: React.FC = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">{t('invoice.overdueAmount')}</p>
-                <p className="text-2xl font-semibold text-gray-900">€{(stats.overdueAmount || 0).toFixed(2)}</p>
+                <p className="text-2xl font-semibold text-gray-900">{mask(`€${(stats.overdueAmount || 0).toFixed(2)}`)}</p>
               </div>
             </div>
           </div>
@@ -493,9 +515,9 @@ const InvoicesPage: React.FC = () => {
                         {invoice.client_name}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">€{(invoice.total_amount || 0).toFixed(2)}</div>
+                        <div className="text-sm font-medium text-gray-900">{mask(`€${(invoice.total_amount || 0).toFixed(2)}`)}</div>
                         <div className="text-sm text-gray-500">
-                          €{(invoice.amount || 0).toFixed(2)} + €{(invoice.tax_amount || 0).toFixed(2)} tax
+                          {mask(`€${(invoice.amount || 0).toFixed(2)}`)} + {mask(`€${(invoice.tax_amount || 0).toFixed(2)}`)} tax
                         </div>
                       </td>                      <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(invoice.status, invoice.document_type)}
