@@ -5556,13 +5556,18 @@ Bitte versuchen Sie es später noch einmal.`;
         // Update invoice totals (subtract discount from total)
         const parsedDiscount = discountAmount != null ? parseFloat(discountAmount) : 0;
         const total = subtotal + totalTax - parsedDiscount;
+        
+        // Auto-mark zero-amount invoices (e.g. prepaid vouchers) as paid
+        const autoStatus = total <= 0 ? 'paid' : null;
         await runSql(`
           UPDATE crm_invoices 
-          SET subtotal = $1, tax_amount = $2, total = $3, updated_at = NOW()
+          SET subtotal = $1, tax_amount = $2, total = $3,
+              status = COALESCE($5, status),
+              updated_at = NOW()
           WHERE id = $4::uuid
-        `, [subtotal, totalTax, total, invoiceId]);
+        `, [subtotal, totalTax, total, invoiceId, autoStatus]);
         
-        console.log('[INVOICE-EDIT] Updated totals - subtotal:', subtotal, 'tax:', totalTax, 'discount:', parsedDiscount, 'total:', total);
+        console.log('[INVOICE-EDIT] Updated totals - subtotal:', subtotal, 'tax:', totalTax, 'discount:', parsedDiscount, 'total:', total, autoStatus ? '(auto-marked paid)' : '');
       }
 
       res.json({ ok: true, success: true, invoice_id: invoiceId });
