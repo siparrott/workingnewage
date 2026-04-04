@@ -11,7 +11,7 @@ export interface Invoice {
   subtotal_amount: number;
   discount_amount: number;
   currency: string;
-  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled' | 'awaiting_payment';
   due_date: string;
   paid_date?: string;
   sent_date?: string;

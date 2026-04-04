@@ -62,7 +62,7 @@ export interface CLSInvoice {
   gross_total: number;
   
   // Status & classification
-  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled' | 'credited';
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled' | 'credited' | 'awaiting_payment';
   is_credit_note: boolean;
   original_invoice_number: string | null; // For credit notes
   

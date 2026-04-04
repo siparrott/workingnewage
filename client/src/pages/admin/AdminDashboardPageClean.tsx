@@ -36,6 +36,7 @@ interface DashboardData {
   totalClients: number;
   newLeads: number;
   pendingInvoices: number;
+  awaitingPaymentInvoices: number;
   upcomingBookings: number;
   
   // Charts Data
@@ -145,6 +146,7 @@ const AdminDashboardPage: React.FC = () => {
         totalClients: clients.length,
         newLeads: leads.length,
         pendingInvoices: currentPeriodInvoices.filter((inv: any) => inv.status === 'PENDING').length,
+        awaitingPaymentInvoices: invoices.filter((inv: any) => inv.status === 'awaiting_payment').length,
         upcomingBookings: bookings.length,
         revenueChart,
         leadConversionChart,
@@ -231,7 +233,7 @@ const AdminDashboardPage: React.FC = () => {
   );
 
   const renderKeyMetrics = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
       <MetricCard
         title="Total Revenue"
         value={`€${dashboardData?.totalRevenue.toLocaleString()}`}
@@ -250,6 +252,12 @@ const AdminDashboardPage: React.FC = () => {
         value={dashboardData?.upcomingBookings}
         icon={CalendarIcon}
         color="bg-green-500"
+      />
+      <MetricCard
+        title="Awaiting Payment"
+        value={dashboardData?.awaitingPaymentInvoices || 0}
+        icon={Clock}
+        color="bg-orange-500"
       />
       <MetricCard
         title="Conversion Rate"

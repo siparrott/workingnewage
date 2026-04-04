@@ -18,7 +18,8 @@ import {
   FileText,
   Loader2,
   AlertCircle,
-  ArrowRightCircle
+  ArrowRightCircle,
+  Clock
 } from 'lucide-react';
 
 interface Invoice {
@@ -30,7 +31,7 @@ interface Invoice {
   amount: number;
   tax_amount: number;
   total_amount: number;
-  status: 'draft' | 'sent' | 'paid' | 'partially_paid' | 'overdue' | 'cancelled';
+  status: 'draft' | 'sent' | 'paid' | 'partially_paid' | 'overdue' | 'cancelled' | 'awaiting_payment';
   due_date: string;
   paid_date?: string;
   notes?: string;
@@ -219,7 +220,8 @@ const InvoicesPage: React.FC = () => {
       paid: { bg: 'bg-green-100', text: 'text-green-800', label: 'Paid' },
       partially_paid: { bg: 'bg-amber-100', text: 'text-amber-800', label: 'Partially Paid' },
       overdue: { bg: 'bg-red-100', text: 'text-red-800', label: 'Overdue' },
-      cancelled: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Cancelled' }
+      cancelled: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Cancelled' },
+      awaiting_payment: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Awaiting Payment' }
     };
 
     const config = statusConfig[status] || { bg: 'bg-gray-100', text: 'text-gray-800', label: status || 'Unknown' };
@@ -311,7 +313,7 @@ const InvoicesPage: React.FC = () => {
 
   const getTotalStats = () => {
     if (!filteredInvoices || filteredInvoices.length === 0) {
-      return { totalAmount: 0, paidAmount: 0, overdueAmount: 0 };
+      return { totalAmount: 0, paidAmount: 0, overdueAmount: 0, awaitingPaymentCount: 0, awaitingPaymentAmount: 0 };
     }
     
     const totalAmount = filteredInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
@@ -321,8 +323,11 @@ const InvoicesPage: React.FC = () => {
     const overdueAmount = filteredInvoices
       .filter(inv => inv.status === 'overdue')
       .reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
+    const awaitingPaymentInvoices = filteredInvoices.filter(inv => inv.status === 'awaiting_payment');
+    const awaitingPaymentCount = awaitingPaymentInvoices.length;
+    const awaitingPaymentAmount = awaitingPaymentInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
 
-    return { totalAmount, paidAmount, overdueAmount };
+    return { totalAmount, paidAmount, overdueAmount, awaitingPaymentCount, awaitingPaymentAmount };
   };
 
   const stats = getTotalStats();
@@ -345,7 +350,7 @@ const InvoicesPage: React.FC = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="p-2 bg-blue-100 rounded-lg">
@@ -366,6 +371,19 @@ const InvoicesPage: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">{t('invoice.paidAmount')}</p>
                 <p className="text-2xl font-semibold text-gray-900">€{(stats.paidAmount || 0).toFixed(2)}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <Clock className="h-6 w-6 text-orange-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Awaiting Payment</p>
+                <p className="text-2xl font-semibold text-gray-900">{stats.awaitingPaymentCount || 0}</p>
+                <p className="text-xs text-gray-500">€{(stats.awaitingPaymentAmount || 0).toFixed(2)}</p>
               </div>
             </div>
           </div>
@@ -406,6 +424,7 @@ const InvoicesPage: React.FC = () => {
               <option value="draft">Draft</option>
               <option value="sent">Sent</option>
               <option value="paid">Paid</option>
+              <option value="awaiting_payment">Awaiting Payment</option>
               <option value="overdue">Overdue</option>
               <option value="cancelled">Cancelled</option>
             </select>

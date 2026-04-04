@@ -15,7 +15,7 @@ import { eq, desc } from "drizzle-orm";
 // Zod schema
 const params = z.object({
   clientId: z.string().uuid().optional(),
-  status: z.enum(["draft", "sent", "paid", "overdue", "cancelled"]).optional(),
+  status: z.enum(["draft", "sent", "paid", "overdue", "cancelled", "awaiting_payment"]).optional(),
   limit: z.number().int().min(1).max(100).default(20).optional()
 });
 

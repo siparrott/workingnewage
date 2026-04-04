@@ -19,7 +19,7 @@ const pool = new Pool({
 
 // Zod schema for parameter validation
 const params = z.object({
-  status: z.enum(["draft", "sent", "paid", "overdue", "cancelled", "any"]).default("any").optional().describe("Filter by payment status"),
+  status: z.enum(["draft", "sent", "paid", "overdue", "cancelled", "awaiting_payment", "any"]).default("any").optional().describe("Filter by payment status"),
   clientId: z.string().optional().describe("Filter by specific client ID"),
   minAmount: z.number().optional().describe("Minimum invoice amount"),
   maxAmount: z.number().optional().describe("Maximum invoice amount"),

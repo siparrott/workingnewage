@@ -17,7 +17,7 @@ interface Invoice {
   subtotal_amount: number;
   discount_amount: number;
   currency: string;
-  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled' | 'awaiting_payment';
   due_date: string;
   payment_terms: string;
   notes?: string;
@@ -686,6 +686,7 @@ export default function InvoicesPage() {
       case 'sent': return 'text-blue-600 bg-blue-100';
       case 'overdue': return 'text-red-600 bg-red-100';
       case 'cancelled': return 'text-gray-600 bg-gray-100';
+      case 'awaiting_payment': return 'text-orange-600 bg-orange-100';
       default: return 'text-yellow-600 bg-yellow-100';
     }
   };

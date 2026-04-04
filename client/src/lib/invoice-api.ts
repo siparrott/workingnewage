@@ -16,7 +16,7 @@ export interface Invoice {
   clientId: string;
   issueDate: string;
   dueDate: string;
-  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled' | 'awaiting_payment';
   subtotalAmount: string;
   taxAmount: string;
   totalAmount: string;

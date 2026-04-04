@@ -20,7 +20,7 @@ export interface Invoice {
   client_address?: string;
   issue_date: string;
   due_date: string;
-  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled' | 'awaiting_payment';
   items: InvoiceItem[];
   subtotal: number;
   tax_amount: number;

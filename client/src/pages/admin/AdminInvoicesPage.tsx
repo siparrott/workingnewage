@@ -11,7 +11,7 @@ interface Invoice {
   amount: number;
   tax_amount: number;
   total_amount: number;
-  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled' | 'awaiting_payment';
   due_date: string;
   paid_date?: string;
   created_at: string;
@@ -77,7 +77,8 @@ const AdminInvoicesPage: React.FC = () => {
       sent: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Sent' },
       paid: { bg: 'bg-green-100', text: 'text-green-800', label: 'Paid' },
       overdue: { bg: 'bg-red-100', text: 'text-red-800', label: 'Overdue' },
-      cancelled: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Cancelled' }
+      cancelled: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Cancelled' },
+      awaiting_payment: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Awaiting Payment' }
     };
 
     const config = statusConfig[status];
