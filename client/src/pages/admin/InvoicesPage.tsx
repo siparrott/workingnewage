@@ -681,6 +681,7 @@ const InvoicesPage: React.FC = () => {
             return {
               id: editingInvoiceId,
               client_id: inv.client_id || '',
+              status: inv.status,
               due_date: inv.due_date || '',
               payment_terms: 'Net 30',
               currency: 'EUR',
