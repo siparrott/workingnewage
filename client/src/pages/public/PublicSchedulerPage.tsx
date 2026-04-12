@@ -385,7 +385,7 @@ export default function PublicSchedulerPage() {
           {format(selectedDate, 'EEEE, d. MMMM yyyy', { locale: dateLocale })}
         </p>
 
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {slots.map((slot, index) => (
             <button
               key={index}

@@ -152,7 +152,7 @@ const WeddingFotoshootingPage: React.FC = () => {
           {/* Additional Photo Grid */}
           <div className="mb-12">
             <h3 className="text-2xl font-bold text-purple-900 mb-6 text-center">Impressionen unserer Arbeit</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {additionalPhotos.map((photo, index) => (
                 <div key={index} className="relative group overflow-hidden rounded-lg">
                   <img 
@@ -206,7 +206,7 @@ const WeddingFotoshootingPage: React.FC = () => {
             <h3 className="text-2xl font-bold text-purple-900 mb-8 text-center">
               Hochzeitsmomente für die Ewigkeit
             </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {galleryPhotos.map((photo, index) => (
                 <div key={index} className="relative group overflow-hidden rounded-lg">
                   <img 

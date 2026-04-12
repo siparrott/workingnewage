@@ -313,7 +313,7 @@ export default function HochzeitsfotografieWienPage() {
               </div>
 
               {/* Hochzeit Basic (Beliebt) */}
-              <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 transform scale-105 relative">
+              <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 transform sm:scale-105 relative">
                 <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-bl-lg rounded-tr-2xl">{language === 'de' ? 'BELIEBT' : 'POPULAR'}</div>
                 <div className="mb-6 mt-4">
                   <h3 className="text-2xl font-bold mb-2">{language === 'de' ? 'Hochzeit Basic' : 'Wedding Basic'}</h3>

@@ -166,7 +166,7 @@ export default function KinderFotografieWienPage() {
             </div>
 
             {/* Standard Package */}
-            <div className="bg-white rounded-xl shadow-xl p-8 border-2 border-orange-500 relative transform scale-105">
+            <div className="bg-white rounded-xl shadow-xl p-8 border-2 border-orange-500 relative transform sm:scale-105">
               <div className="absolute top-0 right-0 bg-orange-500 text-white px-4 py-1 rounded-bl-lg rounded-tr-lg text-sm font-semibold">
                 BELIEBT
               </div>

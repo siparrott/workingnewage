@@ -461,7 +461,7 @@ const GalleryPage: React.FC = () => {
                 />
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-white/70 uppercase tracking-wider mb-2">
                     First Name

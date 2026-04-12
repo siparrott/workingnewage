@@ -802,7 +802,7 @@ const HomePage: React.FC = () => {
             {voucherProducts.map((voucher, idx) => (
               <div
                 key={voucher.id}
-                className={idx === 1 ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-xl shadow-2xl p-8 transform scale-105' : 'bg-white rounded-xl shadow-lg p-8'}
+                className={idx === 1 ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-xl shadow-2xl p-8 transform sm:scale-105' : 'bg-white rounded-xl shadow-lg p-8'}
               >
                 {idx === 1 && (
                   <div className="bg-yellow-400 text-gray-900 text-sm font-bold px-3 py-1 rounded-full inline-block mb-4 ml-auto">
@@ -872,7 +872,7 @@ const HomePage: React.FC = () => {
               <h3 className="text-xl font-bold text-purple-900 mb-4">
                 {t('home.whyOurVouchers')}
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
                 <div>
                   <div className="text-3xl mb-2">🎨</div>
                   <h4 className="font-semibold text-purple-700">{t('home.voucherCustomizable')}</h4>

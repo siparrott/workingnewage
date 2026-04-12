@@ -260,7 +260,7 @@ const FeaturedGrid: React.FC<{ images: PortfolioImage[] }> = ({ images }) => {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[200px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[200px]">
           {images.slice(0, 6).map((image, index) => (
             <motion.div
               key={image.id || index}

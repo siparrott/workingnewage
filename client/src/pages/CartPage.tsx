@@ -191,7 +191,7 @@ const CartPage: React.FC = () => {
                 const isVoucherItem = item.type === 'voucher' || item.name?.toLowerCase().includes('gutschein') || item.title?.toLowerCase().includes('voucher');
                 
                 return (
-                  <div key={item.id} className="flex items-center py-4 border-b border-gray-200 last:border-0 gap-4">
+                  <div key={item.id} className="flex flex-col sm:flex-row sm:items-center py-4 border-b border-gray-200 last:border-0 gap-4">
                     {/* Thumbnail Image */}
                     {item.imageUrl && (
                       <div className="flex-shrink-0">

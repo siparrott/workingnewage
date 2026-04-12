@@ -240,7 +240,7 @@ export default function BusinessPortraitWienPage() {
             </div>
 
             {/* Express Headshot Package - BELIEBT */}
-            <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 transform scale-105 relative">
+            <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 transform sm:scale-105 relative">
               <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-bl-lg rounded-tr-2xl">
                 {language === 'de' ? 'BELIEBT' : 'POPULAR'}
               </div>
