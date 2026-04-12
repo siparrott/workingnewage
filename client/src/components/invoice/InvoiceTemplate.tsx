@@ -121,6 +121,7 @@ interface InvoiceTemplateProps {
       city?: string;
       country?: string;
       phone?: string;
+      vatNumber?: string;
     };
     items?: Array<{
       description: string;
@@ -390,6 +391,9 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             {invoice.client?.phone && (
               <div style={{ color: '#666' }}>{invoice.client.phone}</div>
             )}
+            {invoice.client?.vatNumber && (
+              <div style={{ color: '#666' }}>UID: {invoice.client.vatNumber}</div>
+            )}
           </div>
         </div>
 
@@ -422,6 +426,9 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             </div>
             {invoice.client?.phone && (
               <div style={{ color: '#666' }}>{invoice.client.phone}</div>
+            )}
+            {invoice.client?.vatNumber && (
+              <div style={{ color: '#666' }}>UID: {invoice.client.vatNumber}</div>
             )}
           </div>
         </div>

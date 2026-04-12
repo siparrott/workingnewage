@@ -545,6 +545,10 @@ async function generateModernInvoicePDF(invoice: any, client: any): Promise<Buff
     doc.text(client.phone, 25, yPosition);
     yPosition += 6;
   }
+  if (client.vatNumber || client.vat_number) {
+    doc.text(`UID: ${client.vatNumber || client.vat_number}`, 25, yPosition);
+    yPosition += 6;
+  }
 
   // Items table header with proper spacing to avoid conflicts
   yPosition += 25;
@@ -2946,7 +2950,7 @@ Bitte versuchen Sie es später noch einmal.`;
     console.log(`/api/crm/clients/${req.params.id} PUT received - body:`, req.body);
     try {
       // Only pass known fields to prevent Drizzle errors from unknown properties
-      const { firstName, lastName, email, phone, address, city, state, zip, country, company, leadSource, notes, status } = req.body;
+      const { firstName, lastName, email, phone, address, city, state, zip, country, company, vatNumber, leadSource, notes, status } = req.body;
       const sanitized: Record<string, any> = {};
       if (firstName !== undefined) sanitized.firstName = firstName;
       if (lastName !== undefined) sanitized.lastName = lastName;
@@ -2958,6 +2962,7 @@ Bitte versuchen Sie es später noch einmal.`;
       if (zip !== undefined) sanitized.zip = zip;
       if (country !== undefined) sanitized.country = country;
       if (company !== undefined) sanitized.company = company;
+      if (vatNumber !== undefined) sanitized.vatNumber = vatNumber;
       if (leadSource !== undefined) sanitized.leadSource = leadSource;
       if (notes !== undefined) sanitized.notes = notes;
       if (status !== undefined) sanitized.status = status;

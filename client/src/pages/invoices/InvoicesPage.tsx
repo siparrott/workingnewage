@@ -325,6 +325,7 @@ export default function InvoicesPage() {
       const clientCity = fullInvoice.client?.city || '';
       const clientCountry = fullInvoice.client?.country || '';
       const clientPhone = fullInvoice.client?.phone || '';
+      const clientVatNumber = fullInvoice.client?.vatNumber || fullInvoice.client?.vat_number || '';
       const fullClientAddress = `${clientAddress}${clientCity ? ', ' + clientCity : ''}${clientCountry ? ', ' + clientCountry : ''}`.trim();
       
       // Map the data to match what InvoiceTemplate expects
@@ -353,7 +354,8 @@ export default function InvoicesPage() {
           address1: clientAddress,
           city: clientCity,
           country: clientCountry,
-          phone: clientPhone
+          phone: clientPhone,
+          vatNumber: clientVatNumber
         },
         items: (fullInvoice.items || []).map((item: any) => {
           const quantity = parseDecimal(item.quantity);

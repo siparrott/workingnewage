@@ -32,6 +32,7 @@ interface Invoice {
     city?: string;
     country?: string;
     phone?: string;
+    vatNumber?: string;
   };
   items?: Array<{
     description: string;
@@ -117,6 +118,7 @@ const PublicInvoicePage: React.FC = () => {
           city: data.client.city,
           country: data.client.country,
           phone: data.client.phone,
+          vatNumber: data.client.vatNumber,
         } : undefined,
         document_type: data.documentType || data.document_type || 'invoice',
         items: data.items?.map((item: any) => ({

@@ -174,6 +174,7 @@ export const crmClients = pgTable("crm_clients", {
   zip: text("zip"),
   country: text("country"),
   company: text("company"),
+  vatNumber: text("vat_number"),
   leadSource: text("lead_source"),
   notes: text("notes"),
   status: text("status").default("active"),

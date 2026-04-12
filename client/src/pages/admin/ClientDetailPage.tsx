@@ -21,6 +21,7 @@ interface Client {
   zip?: string;
   country?: string;
   company?: string;
+  vatNumber?: string;
   notes?: string;
   status: 'active' | 'inactive' | 'archived';
   clientSince?: string;
@@ -436,6 +437,12 @@ const ClientDetailPage: React.FC = () => {
                   <div className="flex items-center">
                     <Building size={16} className="text-gray-400 mr-3" />
                     <p className="text-gray-900">{client.company}</p>
+                  </div>
+                )}
+                {client.vatNumber && (
+                  <div className="flex items-center">
+                    <FileText size={16} className="text-gray-400 mr-3" />
+                    <p className="text-gray-900">UID: {client.vatNumber}</p>
                   </div>
                 )}
               </div>
