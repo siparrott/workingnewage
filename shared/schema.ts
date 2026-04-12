@@ -166,7 +166,7 @@ export const crmClients = pgTable("crm_clients", {
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   clientId: text("client_id").unique(),
-  email: text("email").notNull(),
+  email: text("email"),
   phone: text("phone"),
   address: text("address"),
   city: text("city"),
