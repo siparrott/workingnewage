@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Download, MessageCircle, Printer, CheckCircle, XCircle } from 'lucide-react';
 import InvoiceTemplate from '../components/invoice/InvoiceTemplate';
 import { useLanguage } from '../context/LanguageContext';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 interface Invoice {
   id: string;
@@ -54,6 +56,7 @@ const PublicInvoicePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'success' | 'cancelled' | null>(null);
+  const invoiceRef = useRef<HTMLDivElement>(null);
 
   // Check for payment result from URL params
   useEffect(() => {
@@ -180,33 +183,78 @@ const PublicInvoicePage: React.FC = () => {
   };
 
   const handleDownloadPDF = async () => {
-    if (!invoice) return;
+    if (!invoice || !invoiceRef.current) return;
     
     try {
-      const response = await fetch(`/api/crm/invoices/${invoice.id}/pdf`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/pdf'
+      const element = invoiceRef.current;
+
+      // Temporarily hide the PAY NOW button for the PDF capture
+      const payButtons = element.querySelectorAll('button');
+      const hiddenButtons: HTMLElement[] = [];
+      payButtons.forEach(btn => {
+        if (btn.textContent?.includes('PAY NOW') || btn.textContent?.includes('JETZT BEZAHLEN')) {
+          (btn as HTMLElement).style.display = 'none';
+          hiddenButtons.push(btn as HTMLElement);
         }
       });
-      
-      if (!response.ok) {
-        throw new Error(`PDF generation failed: ${response.status}`);
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+
+      // Restore hidden buttons
+      hiddenButtons.forEach(btn => { btn.style.display = ''; });
+
+      // A4 dimensions in mm
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const margin = 5;
+      const contentWidth = pageWidth - margin * 2;
+
+      const imgWidth = contentWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL('image/png');
+
+      // Handle multi-page if content is taller than one page
+      const usableHeight = pageHeight - margin * 2;
+      if (imgHeight <= usableHeight) {
+        pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
+      } else {
+        // Split across pages
+        let remainingHeight = imgHeight;
+        let sourceY = 0;
+        let page = 0;
+
+        while (remainingHeight > 0) {
+          if (page > 0) pdf.addPage();
+
+          const sliceHeight = Math.min(usableHeight, remainingHeight);
+          // Calculate source slice in canvas pixels
+          const sourceSliceHeight = (sliceHeight / imgHeight) * canvas.height;
+
+          const sliceCanvas = document.createElement('canvas');
+          sliceCanvas.width = canvas.width;
+          sliceCanvas.height = sourceSliceHeight;
+          const ctx = sliceCanvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceSliceHeight, 0, 0, canvas.width, sourceSliceHeight);
+            const sliceData = sliceCanvas.toDataURL('image/png');
+            pdf.addImage(sliceData, 'PNG', margin, margin, imgWidth, sliceHeight);
+          }
+
+          sourceY += sourceSliceHeight;
+          remainingHeight -= sliceHeight;
+          page++;
+        }
       }
-      
-      const blob = await response.blob();
-      
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `${language === 'en' ? 'Invoice' : 'Rechnung'}-${invoice.invoice_number || invoice.id}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+
+      pdf.save(`${language === 'en' ? 'Invoice' : 'Rechnung'}-${invoice.invoice_number || invoice.id}.pdf`);
     } catch (error) {
       console.error('PDF download failed:', error);
       alert('PDF download failed. Please try again.');
@@ -328,7 +376,7 @@ const PublicInvoicePage: React.FC = () => {
 
       {/* Invoice Content */}
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div ref={invoiceRef} className="bg-white rounded-lg shadow-lg overflow-hidden">
           <InvoiceTemplate 
             invoice={invoice}
             showPayButton={!invoice.disable_online_payment}
