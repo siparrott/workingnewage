@@ -22,6 +22,7 @@ interface Invoice {
   paid_amount?: number;
   document_type?: string;
   documentType?: string;
+  disable_online_payment?: boolean;
   created_at: string;
   client?: {
     name: string;
@@ -106,6 +107,7 @@ const PublicInvoicePage: React.FC = () => {
         due_date: data.dueDate || data.due_date,
         payment_terms: data.paymentTerms || data.payment_terms || 'Net 30',
         notes: data.notes,
+        disable_online_payment: data.disableOnlinePayment || data.disable_online_payment || false,
         footer_text: data.footerText || data.footer_text,
         paid_amount: parseFloat(data.paidAmount || data.paid_amount || '0'),
         created_at: data.issueDate || data.issue_date || data.createdAt || data.created_at,
@@ -329,7 +331,7 @@ const PublicInvoicePage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <InvoiceTemplate 
             invoice={invoice}
-            showPayButton={true}
+            showPayButton={!invoice.disable_online_payment}
             onPayNow={handlePayNow}
             isProcessingPayment={isProcessingPayment}
           />

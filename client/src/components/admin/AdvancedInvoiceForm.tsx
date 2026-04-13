@@ -157,6 +157,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
 
   // Payment tracking states
   const [markAsPaid, setMarkAsPaid] = useState(false);
+  const [disableOnlinePayment, setDisableOnlinePayment] = useState(false);
   const [paymentData, setPaymentData] = useState({
     payment_method: 'cash',
     payment_reference: '',
@@ -222,6 +223,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
         setError(null);
         setCreatedInvoice(null);
         setMarkAsPaid(false);
+        setDisableOnlinePayment(false);
         setDocumentType('invoice');
       }
       fetchClients();
@@ -464,6 +466,9 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
         });
         console.log('✅ Form data loaded with', items.length, 'items');
         
+        // Load online payment toggle
+        setDisableOnlinePayment(invoice.disable_online_payment || invoice.disableOnlinePayment || false);
+
         // Load document type
         const docType = invoice.document_type || invoice.documentType || 'invoice';
         if (docType === 'invoice' || docType === 'quote' || docType === 'estimate') {
@@ -687,6 +692,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
         documentType,
         notes: formData.notes,
         footerText: formData.footer_text,
+        disableOnlinePayment,
         items: formData.items.map(item => ({
           description: item.description,
           quantity: item.quantity,
@@ -1267,6 +1273,27 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
                     </p>
                   </div>
                 </div>
+              )}
+            </div>
+
+            {/* Disable Online Payment Toggle */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="disableOnlinePayment"
+                  checked={disableOnlinePayment}
+                  onChange={(e) => setDisableOnlinePayment(e.target.checked)}
+                  className="h-4 w-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
+                />
+                <label htmlFor="disableOnlinePayment" className="ml-2 text-sm font-medium text-amber-800">
+                  🏦 Disable online payment (PAY NOW button) — Client will pay via bank transfer
+                </label>
+              </div>
+              {disableOnlinePayment && (
+                <p className="text-xs text-amber-700 mt-2 ml-6">
+                  The PAY NOW button will be hidden on the public invoice. Add bank details in the footer below.
+                </p>
               )}
             </div>
 

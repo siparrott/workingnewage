@@ -5474,7 +5474,7 @@ Bitte versuchen Sie es später noch einmal.`;
   // Invoice edit endpoint - handles full invoice updates including items
   app.post("/api/invoice-edit", authenticateUser, async (req: Request, res: Response) => {
     try {
-      const { invoiceId, clientId, invoiceNumber, status, issueDate, dueDate, notes, footerText, documentType, items, discountType, discountValue, discountAmount } = req.body;
+      const { invoiceId, clientId, invoiceNumber, status, issueDate, dueDate, notes, footerText, documentType, items, discountType, discountValue, discountAmount, disableOnlinePayment } = req.body;
       console.log('[INVOICE-EDIT] Received update request for invoice:', invoiceId);
       console.log('[INVOICE-EDIT] Request body:', JSON.stringify(req.body, null, 2));
       
@@ -5501,6 +5501,7 @@ Bitte versuchen Sie es später noch einmal.`;
           discount_type = COALESCE($10, discount_type),
           discount_value = COALESCE($11::numeric, discount_value),
           discount_amount = COALESCE($12::numeric, discount_amount),
+          disable_online_payment = COALESCE($13::boolean, disable_online_payment),
           updated_at = NOW()
         WHERE id = $9::uuid
         RETURNING *
@@ -5518,7 +5519,8 @@ Bitte versuchen Sie es später noch einmal.`;
         invoiceId,
         discountType || null,
         discountValue != null ? parseFloat(discountValue) : null,
-        discountAmount != null ? parseFloat(discountAmount) : null
+        discountAmount != null ? parseFloat(discountAmount) : null,
+        disableOnlinePayment != null ? disableOnlinePayment : null
       ]);
       
       if (!updateResult || updateResult.length === 0) {
@@ -5606,6 +5608,7 @@ Bitte versuchen Sie es später noch einmal.`;
         stripePaymentIntentId: req.body.stripePaymentIntentId || req.body.stripe_payment_intent_id,
         stripePaymentUrl: req.body.stripePaymentUrl || req.body.stripe_payment_url,
         paidAmount: req.body.paidAmount?.toString() || req.body.paid_amount?.toString() || '0',
+        disableOnlinePayment: req.body.disableOnlinePayment || req.body.disable_online_payment || false,
         createdBy: req.body.createdBy || req.body.created_by || null
       };
       

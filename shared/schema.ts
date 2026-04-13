@@ -224,6 +224,7 @@ export const crmInvoices = pgTable("crm_invoices", {
   stripePaymentIntentId: text("stripe_payment_intent_id"),
   stripePaymentUrl: text("stripe_payment_url"),
   paidAmount: decimal("paid_amount", { precision: 10, scale: 2 }).default("0"),
+  disableOnlinePayment: boolean("disable_online_payment").default(false),
   createdBy: uuid("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
