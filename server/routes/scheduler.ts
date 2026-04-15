@@ -16,7 +16,7 @@ import {
   crmClients,
   questionnaires
 } from '../../shared/schema';
-import { eq, and, gte, lte, desc, asc, or, isNull, ne } from 'drizzle-orm';
+import { eq, and, gte, lte, gt, lt, desc, asc, or, isNull, ne } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { 
   addMinutes, 
@@ -747,14 +747,16 @@ router.post('/public/:slug/book', async (req: Request, res: Response) => {
     const bookingEnd = addMinutes(bookingStart, scheduler.duration);
 
     // Verify the slot is still available
+    // Use strict comparisons (lt/gt) to match the availability check logic —
+    // adjacent slots (one ending exactly when the next starts) are NOT conflicts
     const conflictingBookings = await db
       .select({ id: schedulerBookings.id })
       .from(schedulerBookings)
       .where(and(
         eq(schedulerBookings.schedulerId, scheduler.id),
         ne(schedulerBookings.status, 'cancelled'),
-        lte(schedulerBookings.scheduledDate, bookingEnd),
-        gte(schedulerBookings.scheduledEndDate, bookingStart)
+        lt(schedulerBookings.scheduledDate, bookingEnd),
+        gt(schedulerBookings.scheduledEndDate, bookingStart)
       ))
       .limit(1);
 
