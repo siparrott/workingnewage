@@ -11,8 +11,8 @@
 
 import { google } from 'googleapis';
 import { db } from '../db';
-import { calendarSyncSettings } from '../../shared/schema';
-import { eq } from 'drizzle-orm';
+import { calendarSyncSettings, schedulerBookings, schedulers, photographySessions } from '../../shared/schema';
+import { eq, and, isNull, ne } from 'drizzle-orm';
 
 // ---------- Types ----------
 
@@ -346,4 +346,87 @@ export async function getGoogleCalendarBusyTimes(
 export async function isGoogleCalendarConnected(): Promise<boolean> {
   const client = await getCalendarClient();
   return client !== null;
+}
+
+/**
+ * Recovery sweep: find confirmed scheduler bookings that are missing a Google Calendar event
+ * and retry syncing them. This catches any bookings where the initial sync failed due to
+ * transient errors (token expiry, network timeout, rate limiting, etc.).
+ * 
+ * Called periodically by the background sync scheduler.
+ */
+export async function retryFailedSchedulerSyncs(): Promise<{ retried: number; succeeded: number; failed: number }> {
+  const results = { retried: 0, succeeded: 0, failed: 0 };
+
+  try {
+    // Find confirmed bookings missing a Google Calendar event ID
+    const unsyncedBookings = await db
+      .select({
+        booking: schedulerBookings,
+        scheduler: schedulers,
+      })
+      .from(schedulerBookings)
+      .innerJoin(schedulers, eq(schedulerBookings.schedulerId, schedulers.id))
+      .where(
+        and(
+          eq(schedulerBookings.status, 'confirmed'),
+          isNull(schedulerBookings.googleCalendarEventId)
+        )
+      );
+
+    if (unsyncedBookings.length === 0) {
+      return results;
+    }
+
+    console.log(`[Scheduler-GCal] 🔄 Recovery sweep: found ${unsyncedBookings.length} confirmed booking(s) missing Google Calendar event`);
+
+    for (const { booking, scheduler } of unsyncedBookings) {
+      results.retried++;
+      try {
+        const bookingStart = new Date(booking.scheduledDate);
+        const bookingEnd = new Date(booking.scheduledEndDate);
+
+        const googleEventId = await createGoogleCalendarEvent({
+          summary: `${scheduler.name} - ${booking.clientName}`,
+          description: `Booked via Scheduler (recovery sync)\nClient: ${booking.clientName}\nEmail: ${booking.clientEmail}${booking.clientPhone ? '\nPhone: ' + booking.clientPhone : ''}${booking.clientNotes ? '\nNotes: ' + booking.clientNotes : ''}`,
+          location: scheduler.location || undefined,
+          startTime: bookingStart,
+          endTime: bookingEnd,
+          clientEmail: booking.clientEmail,
+          clientName: booking.clientName,
+        });
+
+        if (googleEventId) {
+          // Update the booking with the event ID
+          await db
+            .update(schedulerBookings)
+            .set({ googleCalendarEventId: googleEventId })
+            .where(eq(schedulerBookings.id, booking.id));
+
+          // Also update the linked photography session if one exists
+          if (booking.sessionId) {
+            await db
+              .update(photographySessions)
+              .set({ googleCalendarEventId: googleEventId } as any)
+              .where(eq(photographySessions.id, booking.sessionId));
+          }
+
+          console.log(`[Scheduler-GCal] ✅ Recovery: synced booking ${booking.id} → Google event ${googleEventId}`);
+          results.succeeded++;
+        } else {
+          console.warn(`[Scheduler-GCal] ⚠️ Recovery: still failed for booking ${booking.id} (${booking.clientName})`);
+          results.failed++;
+        }
+      } catch (err: any) {
+        console.error(`[Scheduler-GCal] ❌ Recovery error for booking ${booking.id}:`, err.message);
+        results.failed++;
+      }
+    }
+
+    console.log(`[Scheduler-GCal] 🔄 Recovery sweep complete: ${results.succeeded} succeeded, ${results.failed} failed out of ${results.retried} retried`);
+  } catch (err: any) {
+    console.error('[Scheduler-GCal] ❌ Recovery sweep error:', err.message);
+  }
+
+  return results;
 }

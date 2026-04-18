@@ -20,6 +20,7 @@ import authRoutes from './routes/auth';
 import googleAuthRoutes from './routes/googleAuth';
 import { startSyncScheduler, triggerManualSync } from './services/syncScheduler';
 import { importGoogleCalendarEvents } from './services/calendarService';
+import { retryFailedSchedulerSyncs } from './services/schedulerGoogleCalendar';
 // Agent V2: Modern ToolBus architecture
 import agentV2Routes from './routes/agent-v2';
 import agentShadowRoutes from './routes/agent-shadow';
@@ -424,6 +425,17 @@ app.use((req, res, next) => {
         
         // Use full import function to get ALL events (past and future)
         const results = await importGoogleCalendarEvents(undefined, userId);
+
+        // Also run scheduler recovery sweep to sync any failed bookings
+        try {
+          const recovery = await retryFailedSchedulerSyncs();
+          if (recovery.retried > 0) {
+            console.log(`[Manual Sync] Scheduler recovery: ${recovery.succeeded}/${recovery.retried} bookings synced to Google Calendar`);
+          }
+        } catch (recoveryErr: any) {
+          console.warn('[Manual Sync] Scheduler recovery sweep failed:', recoveryErr.message);
+        }
+
         res.json({ success: true, ...results });
       } catch (e: any) {
         const msg = e?.message || 'Manual sync failed';

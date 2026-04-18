@@ -482,10 +482,11 @@ export default function PublicSchedulerPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               <Phone className="w-4 h-4 inline mr-1" />
-              {t('scheduler.phone')}
+              {t('scheduler.phone')} *
             </label>
             <input
               type="tel"
+              required
               value={formData.clientPhone}
               onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"

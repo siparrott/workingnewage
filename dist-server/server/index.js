@@ -18,6 +18,7 @@ const auth_1 = __importDefault(require("./routes/auth"));
 const googleAuth_1 = __importDefault(require("./routes/googleAuth"));
 const syncScheduler_1 = require("./services/syncScheduler");
 const calendarService_1 = require("./services/calendarService");
+const schedulerGoogleCalendar_1 = require("./services/schedulerGoogleCalendar");
 // Agent V2: Modern ToolBus architecture
 const agent_v2_1 = __importDefault(require("./routes/agent-v2"));
 const agent_shadow_1 = __importDefault(require("./routes/agent-shadow"));
@@ -197,6 +198,15 @@ app.use((req, res, next) => {
                     return res.status(401).json({ error: 'Not authenticated' });
                 // Use full import function to get ALL events (past and future)
                 const results = await (0, calendarService_1.importGoogleCalendarEvents)(undefined, userId);
+                // Also run scheduler recovery sweep to sync any failed bookings
+                try {
+                    const recovery = await (0, schedulerGoogleCalendar_1.retryFailedSchedulerSyncs)();
+                    if (recovery.retried > 0) {
+                        console.log(`[Manual Sync] Scheduler recovery: ${recovery.succeeded}/${recovery.retried} bookings synced to Google Calendar`);
+                    }
+                } catch (recoveryErr) {
+                    console.warn('[Manual Sync] Scheduler recovery sweep failed:', recoveryErr?.message);
+                }
                 res.json({ success: true, ...results });
             }
             catch (e) {

@@ -7,6 +7,7 @@ import { db } from '../db';
 import { calendarSyncSettings } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { createSyncServiceForUser } from './googleCalendarSyncService';
+import { retryFailedSchedulerSyncs } from './schedulerGoogleCalendar';
 
 let syncInterval: NodeJS.Timeout | null = null;
 
@@ -97,6 +98,16 @@ async function performScheduledSync() {
       } catch (error: any) {
         console.error(`❌ Error syncing user ${config.userId}:`, error.message);
       }
+    }
+
+    // Recovery sweep: retry any confirmed scheduler bookings that failed initial GCal sync
+    try {
+      const recovery = await retryFailedSchedulerSyncs();
+      if (recovery.retried > 0) {
+        console.log(`📅 Scheduler recovery: ${recovery.succeeded}/${recovery.retried} bookings synced to Google Calendar`);
+      }
+    } catch (recoveryErr: any) {
+      console.error('❌ Scheduler recovery sweep failed:', recoveryErr.message);
     }
 
     console.log('📅 Scheduled sync complete');

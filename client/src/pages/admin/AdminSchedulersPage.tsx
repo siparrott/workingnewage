@@ -19,7 +19,9 @@ import {
   Eye,
   ChevronDown,
   ChevronRight,
-  Mail
+  ChevronUp,
+  Mail,
+  ArrowUpDown
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -87,6 +89,35 @@ export default function AdminSchedulersPage() {
   const [editingScheduler, setEditingScheduler] = useState<Scheduler | null>(null);
   const [expandedScheduler, setExpandedScheduler] = useState<string | null>(null);
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+
+  // Bookings sort state
+  const [bookingSortField, setBookingSortField] = useState<'clientName' | 'scheduledDate' | 'status'>('scheduledDate');
+  const [bookingSortDirection, setBookingSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  const toggleBookingSort = (field: 'clientName' | 'scheduledDate' | 'status') => {
+    if (bookingSortField === field) {
+      setBookingSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setBookingSortField(field);
+      setBookingSortDirection(field === 'clientName' ? 'asc' : 'desc');
+    }
+  };
+
+  const sortedBookings = [...bookings].sort((a, b) => {
+    const dir = bookingSortDirection === 'asc' ? 1 : -1;
+    switch (bookingSortField) {
+      case 'clientName':
+        return dir * a.clientName.localeCompare(b.clientName);
+      case 'scheduledDate':
+        return dir * (new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
+      case 'status': {
+        const order: Record<string, number> = { pending: 0, confirmed: 1, completed: 2, cancelled: 3 };
+        return dir * ((order[a.status] ?? 4) - (order[b.status] ?? 4));
+      }
+      default:
+        return 0;
+    }
+  });
 
   // Form state
   const [formData, setFormData] = useState({
@@ -1306,14 +1337,50 @@ export default function AdminSchedulersPage() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date & Time</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:text-gray-700 select-none"
+                      onClick={() => toggleBookingSort('clientName')}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        Client
+                        {bookingSortField === 'clientName' ? (
+                          bookingSortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 opacity-40" />
+                        )}
+                      </span>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:text-gray-700 select-none"
+                      onClick={() => toggleBookingSort('scheduledDate')}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        Date & Time
+                        {bookingSortField === 'scheduledDate' ? (
+                          bookingSortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 opacity-40" />
+                        )}
+                      </span>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:text-gray-700 select-none"
+                      onClick={() => toggleBookingSort('status')}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        Status
+                        {bookingSortField === 'status' ? (
+                          bookingSortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 opacity-40" />
+                        )}
+                      </span>
+                    </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {bookings.map(booking => {
+                  {sortedBookings.map(booking => {
                     const isNew = (() => {
                       try {
                         const created = new Date(booking.createdAt);

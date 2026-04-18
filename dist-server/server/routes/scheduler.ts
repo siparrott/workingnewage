@@ -703,9 +703,9 @@ router.post('/public/:slug/book', async (req: Request, res: Response) => {
       questionnaireResponses
     } = req.body;
 
-    if (!clientName || !clientEmail || !scheduledDate) {
+    if (!clientName || !clientEmail || !clientPhone || !scheduledDate) {
       return res.status(400).json({ 
-        error: 'Client name, email, and scheduled date are required' 
+        error: 'Client name, email, phone number, and scheduled date are required' 
       });
     }
 
@@ -808,6 +808,7 @@ router.post('/public/:slug/book', async (req: Request, res: Response) => {
         locationName: scheduler.location,
         basePrice: scheduler.price ? parseFloat(scheduler.price) : 0,
         isOnlineBookable: true,
+        externalCalendarSync: true,
         createdAt: new Date(),
         updatedAt: new Date()
       } as any);
