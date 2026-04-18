@@ -720,14 +720,37 @@ const ClientsPage: React.FC = () => {
                         </td>
                         <td className="p-2 align-top text-xs w-72">
                           <div className="space-y-1">
-                            {['phone','address','city','state','zip','country','company','notes'].map(f => {
+                            {['first_name','last_name','phone','address','city','state','zip','country','company','vat_number','lead_source','notes'].map(f => {
                               const pVal = group.primary[f] || '';
-                              const anyDupVal = group.duplicates.find(d => d[f])?.[f];
+                              const bestDup = group.duplicates.find(d => d[f]);
+                              const anyDupVal = bestDup?.[f];
                               if (!anyDupVal) return null;
+                              // For names: show if dup has a longer/better name
+                              if (f === 'first_name' || f === 'last_name') {
+                                if (pVal && String(pVal).length >= String(anyDupVal).length) return null;
+                                return (
+                                  <div key={f} className="flex justify-between gap-2">
+                                    <span className="text-gray-500">{f === 'first_name' ? 'First name' : 'Last name'}:</span>
+                                    <span className="font-medium text-amber-700 truncate max-w-[160px]" title={`${pVal} → ${anyDupVal}`}>
+                                      {pVal ? <><s className="text-gray-400">{String(pVal).slice(0,20)}</s> → </> : null}{String(anyDupVal).slice(0,40)}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              // For notes: show "will merge" if both have notes
+                              if (f === 'notes' && pVal && anyDupVal && pVal !== anyDupVal) {
+                                return (
+                                  <div key={f} className="flex justify-between gap-2">
+                                    <span className="text-gray-500">notes:</span>
+                                    <span className="font-medium text-blue-700 truncate max-w-[160px]" title="Notes from duplicate will be appended">+ merge notes</span>
+                                  </div>
+                                );
+                              }
                               if (pVal) return null; // only show fields that would be enriched
+                              const label = f.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
                               return (
                                 <div key={f} className="flex justify-between gap-2">
-                                  <span className="text-gray-500">{f}:</span>
+                                  <span className="text-gray-500">{label}:</span>
                                   <span className="font-medium text-gray-800 truncate max-w-[160px]" title={anyDupVal}>{String(anyDupVal).slice(0,60)}</span>
                                 </div>
                               );

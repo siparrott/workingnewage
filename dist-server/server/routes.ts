@@ -2336,6 +2336,60 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
+  // ==================== INTELLIGENT CLIENT MERGE HELPER ====================
+  async function mergeOneDuplicate(primaryId: string, dupId: string): Promise<boolean> {
+    if (dupId === primaryId) return false;
+    const dupRows = await runSql(
+      `SELECT id, first_name, last_name, email, phone, address, city, state, zip, country, company, vat_number, lead_source, notes
+       FROM crm_clients WHERE id = $1`, [dupId]
+    );
+    if (!dupRows || dupRows.length === 0) return false;
+    const d = dupRows[0];
+
+    const relinkQueries = [
+      [`UPDATE crm_invoices SET client_id = $1 WHERE client_id = $2`, [primaryId, dupId]],
+      [`UPDATE crm_messages SET client_id = $1 WHERE client_id = $2`, [primaryId, dupId]],
+      [`UPDATE voucher_sales SET redeemed_by = $1 WHERE redeemed_by = $2`, [primaryId, dupId]],
+      [`UPDATE galleries SET client_id = $1 WHERE client_id = $2`, [primaryId, dupId]],
+      [`UPDATE photography_sessions SET client_id = $1::text WHERE client_id = $2::text`, [primaryId, dupId]],
+      [`UPDATE studio_appointments SET client_id = $1 WHERE client_id = $2`, [primaryId, dupId]],
+      [`UPDATE online_bookings SET client_id = $1 WHERE client_id = $2`, [primaryId, dupId]],
+      [`UPDATE scheduler_bookings SET client_id = $1::text WHERE client_id = $2::text`, [primaryId, dupId]],
+    ];
+    for (const [sql, params] of relinkQueries) {
+      await runSql(sql as string, params as any[]).catch(() => {});
+    }
+
+    await runSql(
+      `UPDATE crm_clients AS c SET
+         first_name = CASE WHEN LENGTH(COALESCE(NULLIF(c.first_name,''),'')) < LENGTH(COALESCE(NULLIF($2,''),''))
+                      THEN COALESCE(NULLIF($2,''), c.first_name) ELSE c.first_name END,
+         last_name = CASE WHEN LENGTH(COALESCE(NULLIF(c.last_name,''),'')) < LENGTH(COALESCE(NULLIF($3,''),''))
+                     THEN COALESCE(NULLIF($3,''), c.last_name) ELSE c.last_name END,
+         phone = COALESCE(NULLIF(c.phone,''), NULLIF($4,'')),
+         address = COALESCE(NULLIF(c.address,''), NULLIF($5,'')),
+         city = COALESCE(NULLIF(c.city,''), NULLIF($6,'')),
+         state = COALESCE(NULLIF(c.state,''), NULLIF($7,'')),
+         zip = COALESCE(NULLIF(c.zip,''), NULLIF($8,'')),
+         country = COALESCE(NULLIF(c.country,''), NULLIF($9,'')),
+         company = COALESCE(NULLIF(c.company,''), NULLIF($10,'')),
+         vat_number = COALESCE(NULLIF(c.vat_number,''), NULLIF($11,'')),
+         lead_source = COALESCE(NULLIF(c.lead_source,''), NULLIF($12,'')),
+         notes = CASE
+           WHEN NULLIF(c.notes,'') IS NULL THEN NULLIF($13,'')
+           WHEN NULLIF($13,'') IS NULL THEN c.notes
+           WHEN c.notes = $13 THEN c.notes
+           ELSE c.notes || E'\n---\n' || $13
+         END,
+         updated_at = NOW()
+       WHERE c.id = $1`,
+      [primaryId, d.first_name, d.last_name, d.phone, d.address, d.city, d.state, d.zip, d.country, d.company, d.vat_number, d.lead_source, d.notes]
+    ).catch(() => {});
+
+    await runSql(`DELETE FROM crm_clients WHERE id = $1`, [dupId]);
+    return true;
+  }
+
   // Find duplicate clients (by email or phone)
   app.get("/api/crm/clients/duplicates", authenticateUser, async (req: Request, res: Response) => {
     try {
@@ -2409,33 +2463,7 @@ Bitte versuchen Sie es später noch einmal.`;
 
         // For each duplicate, re-link references then delete dup
         for (const d of duplicates) {
-          const dupId = d.id;
-          // Re-link references to primary client
-          await runSql(`UPDATE crm_invoices SET client_id = $1 WHERE client_id = $2`, [primary.id, dupId]);
-          await runSql(`UPDATE crm_messages SET client_id = $1 WHERE client_id = $2`, [primary.id, dupId]);
-          await runSql(`UPDATE voucher_sales SET redeemed_by = $1 WHERE redeemed_by = $2`, [primary.id, dupId]);
-          await runSql(`UPDATE galleries SET client_id = $1 WHERE client_id = $2`, [primary.id, dupId]).catch(() => {});
-          // photography_sessions stores client_id as text
-          await runSql(`UPDATE photography_sessions SET client_id = $1::text WHERE client_id = $2::text`, [primary.id, dupId]).catch(() => {});
-
-          // Best-effort: fill missing fields on primary with data from duplicate
-          await runSql(
-            `UPDATE crm_clients AS c SET
-               phone = COALESCE(NULLIF(c.phone,''), NULLIF($2,'')),
-               address = COALESCE(NULLIF(c.address,''), NULLIF($3,'')),
-               city = COALESCE(NULLIF(c.city,''), NULLIF($4,'')),
-               state = COALESCE(NULLIF(c.state,''), NULLIF($5,'')),
-               zip = COALESCE(NULLIF(c.zip,''), NULLIF($6,'')),
-               country = COALESCE(NULLIF(c.country,''), NULLIF($7,'')),
-               company = COALESCE(NULLIF(c.company,''), NULLIF($8,'')),
-               notes = COALESCE(NULLIF(c.notes,''), NULLIF($9,'')),
-               updated_at = NOW()
-             WHERE c.id = $1`,
-            [primary.id, d.phone, d.address, d.city, d.state, d.zip, d.country, d.company, d.notes]
-          ).catch(() => {});
-
-          // Delete duplicate row
-          await runSql(`DELETE FROM crm_clients WHERE id = $1`, [dupId]);
+          await mergeOneDuplicate(primary.id, d.id);
         }
       }
 
@@ -2500,40 +2528,15 @@ Bitte versuchen Sie es später noch einmal.`;
         return res.status(400).json({ error: 'primaryId and duplicateIds[] required' });
       }
       // Basic validation to ensure primary exists
-      const primaryRows = await runSql(`SELECT id, phone, address, city, state, zip, country, company, notes FROM crm_clients WHERE id = $1`, [primaryId]);
+      const primaryRows = await runSql(`SELECT id FROM crm_clients WHERE id = $1`, [primaryId]);
       if (!primaryRows || primaryRows.length === 0) {
         return res.status(404).json({ error: 'Primary client not found' });
       }
 
       let merged = 0;
       for (const dupId of duplicateIds) {
-        if (dupId === primaryId) continue;
-        const dupRows = await runSql(`SELECT id, phone, address, city, state, zip, country, company, notes FROM crm_clients WHERE id = $1`, [dupId]);
-        if (!dupRows || dupRows.length === 0) continue;
-        const d = dupRows[0];
-        // Relink references
-        await runSql(`UPDATE crm_invoices SET client_id = $1 WHERE client_id = $2`, [primaryId, dupId]);
-        await runSql(`UPDATE crm_messages SET client_id = $1 WHERE client_id = $2`, [primaryId, dupId]);
-        await runSql(`UPDATE voucher_sales SET redeemed_by = $1 WHERE redeemed_by = $2`, [primaryId, dupId]);
-        await runSql(`UPDATE galleries SET client_id = $1 WHERE client_id = $2`, [primaryId, dupId]).catch(()=>{});
-        await runSql(`UPDATE photography_sessions SET client_id = $1::text WHERE client_id = $2::text`, [primaryId, dupId]).catch(()=>{});
-        // Fill missing primary fields
-        await runSql(
-          `UPDATE crm_clients AS c SET
-             phone = COALESCE(NULLIF(c.phone,''), NULLIF($2,'')),
-             address = COALESCE(NULLIF(c.address,''), NULLIF($3,'')),
-             city = COALESCE(NULLIF(c.city,''), NULLIF($4,'')),
-             state = COALESCE(NULLIF(c.state,''), NULLIF($5,'')),
-             zip = COALESCE(NULLIF(c.zip,''), NULLIF($6,'')),
-             country = COALESCE(NULLIF(c.country,''), NULLIF($7,'')),
-             company = COALESCE(NULLIF(c.company,''), NULLIF($8,'')),
-             notes = COALESCE(NULLIF(c.notes,''), NULLIF($9,'')),
-             updated_at = NOW()
-           WHERE c.id = $1`,
-          [primaryId, d.phone, d.address, d.city, d.state, d.zip, d.country, d.company, d.notes]
-        ).catch(()=>{});
-        await runSql(`DELETE FROM crm_clients WHERE id = $1`, [dupId]);
-        merged++;
+        const ok = await mergeOneDuplicate(primaryId, dupId);
+        if (ok) merged++;
       }
       const updatedPrimary = await runSql(`SELECT * FROM crm_clients WHERE id = $1`, [primaryId]);
       res.json({ success: true, merged, primaryId, primary: updatedPrimary?.[0] });
@@ -2561,31 +2564,8 @@ Bitte versuchen Sie es später noch einmal.`;
         try {
           let merged = 0;
             for (const dupId of duplicateIds) {
-              if (dupId === primaryId) continue;
-              const dupRows = await runSql(`SELECT id, phone, address, city, state, zip, country, company, notes FROM crm_clients WHERE id = $1`, [dupId]);
-              if (!dupRows || dupRows.length === 0) continue;
-              const d = dupRows[0];
-              await runSql(`UPDATE crm_invoices SET client_id = $1 WHERE client_id = $2`, [primaryId, dupId]);
-              await runSql(`UPDATE crm_messages SET client_id = $1 WHERE client_id = $2`, [primaryId, dupId]);
-              await runSql(`UPDATE voucher_sales SET redeemed_by = $1 WHERE redeemed_by = $2`, [primaryId, dupId]);
-              await runSql(`UPDATE galleries SET client_id = $1 WHERE client_id = $2`, [primaryId, dupId]).catch(()=>{});
-              await runSql(`UPDATE photography_sessions SET client_id = $1::text WHERE client_id = $2::text`, [primaryId, dupId]).catch(()=>{});
-              await runSql(
-                `UPDATE crm_clients AS c SET
-                  phone = COALESCE(NULLIF(c.phone,''), NULLIF($2,'')),
-                  address = COALESCE(NULLIF(c.address,''), NULLIF($3,'')),
-                  city = COALESCE(NULLIF(c.city,''), NULLIF($4,'')),
-                  state = COALESCE(NULLIF(c.state,''), NULLIF($5,'')),
-                  zip = COALESCE(NULLIF(c.zip,''), NULLIF($6,'')),
-                  country = COALESCE(NULLIF(c.country,''), NULLIF($7,'')),
-                  company = COALESCE(NULLIF(c.company,''), NULLIF($8,'')),
-                  notes = COALESCE(NULLIF(c.notes,''), NULLIF($9,'')),
-                  updated_at = NOW()
-                 WHERE c.id = $1`,
-                [primaryId, d.phone, d.address, d.city, d.state, d.zip, d.country, d.company, d.notes]
-              ).catch(()=>{});
-              await runSql(`DELETE FROM crm_clients WHERE id = $1`, [dupId]);
-              merged++;
+              const ok = await mergeOneDuplicate(primaryId, dupId);
+              if (ok) merged++;
             }
           results.push({ primaryId, merged });
         } catch (innerErr: any) {
