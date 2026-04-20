@@ -48,6 +48,7 @@ interface DashboardData {
   recentBookings: any[];
   recentInvoices: any[];
   recentQuotes: any[];
+  unpaidInvoices: any[];
   
   // Performance Indicators
   monthlyGrowth: number;
@@ -200,6 +201,9 @@ const AdminDashboardPage: React.FC = () => {
       // Filter for paid invoices (excluding quotes) to create charts
       const paidInvoices = invoices.filter((inv: any) => inv.status === 'paid' && !isQuote(inv));
 
+      // Filter for unpaid invoices (sent / awaiting payment)
+      const unpaidInvoices = invoices.filter((inv: any) => (inv.status === 'sent' || inv.status === 'pending' || inv.status === 'awaiting_payment') && !isQuote(inv));
+
       // Create simplified chart data
       // Build revenue chart from server trendData (last 7 days)
       const revenueChart = Array.isArray(metrics.trendData)
@@ -219,7 +223,7 @@ const AdminDashboardPage: React.FC = () => {
         monthlyRevenue: metrics.totalRevenue || 0,
         totalClients: metrics.totalClients || 0,
         newLeads: newLeads.length,
-        pendingInvoices: invoices.filter((inv: any) => inv.status === 'pending').length,
+        pendingInvoices: unpaidInvoices.length,
         upcomingBookings: metrics.upcomingSessions || 0,
   revenueChart,
   leadConversionChart,
@@ -250,6 +254,7 @@ const AdminDashboardPage: React.FC = () => {
           .slice(0, 5),
         recentInvoices: paidInvoices.slice(0, 5),
         recentQuotes: quotes.slice(0, 5),
+        unpaidInvoices: unpaidInvoices,
         monthlyGrowth: 0, // Would need historical data
         conversionRate: allLeads.length > 0 ? (allLeads.filter(l => l.status === 'CONVERTED').length / allLeads.length) * 100 : 0,
         averageOrderValue: metrics.avgOrderValue || 0,
@@ -384,6 +389,62 @@ const AdminDashboardPage: React.FC = () => {
 
   const renderRecentActivity = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Awaiting Payment */}
+      {(dashboardData?.unpaidInvoices || []).length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-lg shadow lg:col-span-2">
+          <div className="p-6 border-b border-red-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-red-600" />
+                <h3 className="text-lg font-semibold text-red-900">Awaiting Payment</h3>
+                <span className="bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  {dashboardData?.unpaidInvoices.length}
+                </span>
+              </div>
+              <button
+                onClick={() => navigate('/admin/invoices')}
+                className="text-red-600 hover:text-red-700 text-sm font-medium"
+              >
+                View All Invoices
+              </button>
+            </div>
+          </div>
+          <div className="p-6">
+            <div className="space-y-3">
+              {(dashboardData?.unpaidInvoices || []).map((invoice, index) => (
+                <div key={index} className="flex items-center justify-between bg-white rounded-lg p-3 border border-red-100">
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">
+                      {invoice.client?.name || invoice.clientName || invoice.client_name || 'Unknown Client'}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {invoice.invoiceNumber || invoice.invoice_number}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-red-700">€{(parseFloat(invoice.total) || 0).toFixed(2)}</p>
+                    <p className="text-xs text-gray-500">
+                      Due {(() => {
+                        try {
+                          const date = new Date(invoice.dueDate || invoice.due_date);
+                          return isNaN(date.getTime()) ? '—' : format(date, 'MMM dd, yyyy');
+                        } catch { return '—'; }
+                      })()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              <div className="pt-2 border-t border-red-100 flex justify-between items-center">
+                <p className="text-sm font-medium text-red-900">Total Outstanding</p>
+                <p className="text-lg font-bold text-red-700">
+                  €{(dashboardData?.unpaidInvoices || []).reduce((sum, inv) => sum + (parseFloat(inv.total) || 0), 0).toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Recent Leads */}
       <div className="bg-white rounded-lg shadow">
         <div className="p-6 border-b border-gray-200">
