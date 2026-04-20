@@ -92,28 +92,44 @@ router.post("/chat", async (req: Request, res: Response) => {
       dryRun: process.env.AGENT_V2_SHADOW === "true"
     };
     
-    // Get available tools for this user
-    const availableTools = listOpenAITools(scopes);
+    // Get available tools for this user (limit to 20 to avoid token overflow)
+    const allTools = listOpenAITools(scopes);
+    const availableTools = allTools.slice(0, 20);
     
     if (!openai) {
       return res.status(500).json({ error: "OpenAI API key not configured" });
     }
     
+    // Load conversation history for context
+    const history = await db
+      .select()
+      .from(agentMessage)
+      .where(eq(agentMessage.sessionId, currentSessionId))
+      .orderBy(agentMessage.createdAt);
+    
+    // Build messages with history (keep last 10 messages for context)
+    const historyMessages = history.slice(-10).map(msg => ({
+      role: msg.role as "user" | "assistant",
+      content: msg.content
+    }));
+    
     // Call OpenAI with function calling
     const completion = await openai.chat.completions.create({
-      model: process.env.AGENT_MODEL || "gpt-4-turbo-preview",
+      model: process.env.AGENT_MODEL || "gpt-4o-mini",
       messages: [
         {
           role: "system",
           content: getSystemPrompt(executionMode as any)
         },
+        ...historyMessages,
         {
           role: "user",
           content: message
         }
       ],
       tools: availableTools.length > 0 ? availableTools : undefined,
-      tool_choice: availableTools.length > 0 ? "auto" : undefined
+      tool_choice: availableTools.length > 0 ? "auto" : undefined,
+      max_tokens: 1500
     });
     
     const choice = completion.choices[0];
@@ -183,24 +199,28 @@ router.post("/chat", async (req: Request, res: Response) => {
       }
       
       // Generate final response with tool results
+      const toolMessages: any[] = assistantMessage.tool_calls.map((tc, i) => ({
+        role: "tool",
+        content: JSON.stringify(toolResults[i] || { ok: false, error: "No result" }),
+        tool_call_id: tc.id
+      }));
+      
       const finalResponse = await openai.chat.completions.create({
-        model: process.env.AGENT_MODEL || "gpt-4-turbo-preview",
+        model: process.env.AGENT_MODEL || "gpt-4o-mini",
         messages: [
           {
             role: "system",
             content: getSystemPrompt(executionMode as any)
           },
+          ...historyMessages,
           {
             role: "user",
             content: message
           },
           assistantMessage,
-          {
-            role: "tool",
-            content: JSON.stringify(toolResults),
-            tool_call_id: assistantMessage.tool_calls[0].id
-          }
-        ]
+          ...toolMessages
+        ],
+        max_tokens: 1500
       });
       
       const finalMessage = finalResponse.choices[0].message.content || "I executed the requested actions.";
@@ -242,7 +262,15 @@ router.post("/chat", async (req: Request, res: Response) => {
     
   } catch (error: any) {
     console.error("[Agent V2] Chat error:", error);
-    return res.status(500).json({ error: error.message || "Internal server error" });
+    
+    // Return a user-friendly fallback instead of 500
+    const fallbackMessage = "Sorry, I'm having trouble processing that right now. Please try again in a moment, or use a Quick Action from the sidebar.";
+    return res.json({
+      sessionId: req.body?.sessionId || null,
+      message: fallbackMessage,
+      mode: "fallback",
+      error: process.env.NODE_ENV !== "production" ? error.message : undefined
+    });
   }
 });
 
