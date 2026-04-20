@@ -14,9 +14,9 @@ const UeberUnsPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Über uns - Fotografen in Wien | New Age Fotografie"
-        description="Erfahren Sie mehr über New Age Fotografie in Wien. Unser Team, unsere Geschichte und was uns als Fotografen antreibt."
-        keywords="New Age Fotografie Wien, Fotografen Team, Über uns Fotostudio"
+        title="Über uns – Fotostudio & Team in Wien | New Age Fotografie"
+        description="Lernen Sie das Team hinter New Age Fotografie kennen: Über 10 Jahre Erfahrung, 500+ Familien fotografiert. Unser Studio in Wien 1050 bietet professionelle Fotografie mit Herz."
+        keywords="New Age Fotografie Wien, Fotografen Team Wien, Über uns Fotostudio, Familienfotograf Wien Erfahrung"
         canonical="/ueber-uns/"
       />
 
@@ -62,7 +62,7 @@ const UeberUnsPage: React.FC = () => {
           <div className="absolute inset-0 bg-black/20"></div>
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              {t('about.hero.title')}
+              {language === 'de' ? 'Über uns – Ihr Fotostudio-Team in Wien' : 'About Us – Your Photo Studio Team in Vienna'}
             </h1>
             <p className="text-xl md:text-2xl mb-8 max-w-4xl mx-auto leading-relaxed">
               {t('about.hero.description')}

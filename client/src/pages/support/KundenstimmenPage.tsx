@@ -133,9 +133,9 @@ const KundenstimmenPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Kundenstimmen & Bewertungen | New Age Fotografie"
-        description="Lesen Sie echte Bewertungen und Erfahrungen unserer Kunden. Über 200 zufriedene Familien in Wien."
-        keywords="Kundenstimmen Fotograf Wien, Bewertungen New Age Fotografie, Erfahrungen"
+        title="Kundenstimmen & Bewertungen – 4.9★ auf Google | New Age Fotografie Wien"
+        description="Lesen Sie echte Kundenbewertungen von Familien-, Baby- und Business-Fotoshootings in Wien. Über 250 Google-Bewertungen mit 4.9 Sternen. Erfahren Sie, warum Familien uns vertrauen."
+        keywords="Kundenstimmen Fotograf Wien, Bewertungen New Age Fotografie, Erfahrungen Familienfotograf Wien, Google Bewertungen Fotostudio"
         canonical="/kundenstimmen/"
       />
       
@@ -145,7 +145,7 @@ const KundenstimmenPage: React.FC = () => {
           <div className="absolute inset-0 bg-black/20"></div>
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              Kundenstimmen
+              Kundenstimmen – Was unsere Familien in Wien sagen
             </h1>
             <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
               Das sagen unsere zufriedenen Kunden über uns

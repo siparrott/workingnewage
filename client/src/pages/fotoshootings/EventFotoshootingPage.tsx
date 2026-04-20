@@ -110,13 +110,13 @@ const EventFotoshootingPage: React.FC = () => {
 
   return (
     <GutscheinLayout
-      title="Eventfotografie in Wien & Zürich"
+      title="Eventfotografie Wien – Professionelle Veranstaltungsfotos"
       subtitle="New Age Fotografie – Authentisch. Professionell. Unvergesslich."
       image="https://i.postimg.cc/rwtMhFtV/Ball-des-Sports-2025-www-newagefotografie-com-5513.jpg"
-      seoTitle="Event Fotoshooting Wien | New Age Fotografie"
-      seoDescription="Event Fotoshooting in Wien: Professionelle Dokumentation Ihrer Veranstaltungen und besonderen Anlässe."
-      seoKeywords="Event Fotoshooting Wien, Eventfotograf buchen, Veranstaltungsfotos"
-      canonical="/fotoshootings/event"
+      seoTitle="Event Fotoshooting Wien – Professionelle Eventfotografie | New Age Fotografie"
+      seoDescription="Eventfotografie in Wien: Professionelle Dokumentation Ihrer Veranstaltungen, Firmenfeiern, Konferenzen und besonderen Anlässe. Unaufdringlich, authentisch, hochwertig – jetzt anfragen!"
+      seoKeywords="Event Fotoshooting Wien, Eventfotograf Wien buchen, Veranstaltungsfotos Wien, Konferenzfotografie Wien"
+      canonical="/fotoshootings/event/"
     >
       <div className="max-w-4xl mx-auto">
         {/* Main Content */}

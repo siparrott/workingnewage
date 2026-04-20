@@ -322,9 +322,9 @@ const HomePage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Fotograf in Wien für Familie, Baby & Business | New Age Fotografie"
-        description="Professionelle Fotografie in Wien: Familien-, Baby-, Neugeborenen- und Businessfotos. Buchen Sie jetzt Ihr Shooting in unserem Wiener Studio."
-        keywords="Fotograf Wien, Familienfotograf, Babyfotograf, Businessfotografie Wien"
+        title="Familienfotograf Wien – Baby, Neugeborenen & Business Fotografie | New Age Fotografie"
+        description="Ihr professioneller Familienfotograf in Wien: Familien-, Baby-, Neugeborenen-, Schwangerschafts- und Businessfotos im Studio. Über 200 zufriedene Familien. Jetzt Termin buchen!"
+        keywords="Fotograf Wien, Familienfotograf Wien, Babyfotograf Wien, Neugeborenenfotograf Wien, Businessfotografie Wien, Fotostudio Wien"
         canonical="/"
         ogImage={heroImageUrl || undefined}
         hreflang={[
@@ -433,8 +433,11 @@ const HomePage: React.FC = () => {
                 />
               </span>
               <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-gray-900 tracking-tighter animate-fade-in-up">
-                {t('home.heroDescription')}
+                {language === 'de' ? 'Professioneller Familienfotograf in Wien – Studio & Outdoor' : 'Professional Family Photographer in Vienna – Studio & Outdoor'}
               </h1>
+              <p className="text-lg sm:text-xl text-gray-700 mt-2">
+                {t('home.heroDescription')}
+              </p>
             </div>
             <button 
               onClick={() => navigate('/warteliste')}

@@ -83,8 +83,8 @@ export default function FamilienfotosWienPage() {
     <Layout>
     <div className="min-h-screen bg-white">
       <SEOHead
-        title="Familienfotografie in Wien – Studio & Outdoor | New Age Fotografie"
-        description="Ruhiges Studio, freundliche Anleitung, echte Momente. Max. 12 Personen pro Termin – Kinder, Großeltern & Haustiere herzlich willkommen."
+        title="Familienfotos Wien – Natürliche Familienporträts im Studio & Outdoor | New Age Fotografie"
+        description="Professionelle Familienfotos in Wien: Ruhiges Studio, freundliche Anleitung, echte Momente. Bis zu 12 Personen inkl. Kinder, Großeltern & Haustiere. Ab €199 – jetzt Termin buchen!"
         keywords="familienfotograf wien, familienfotos wien, familienfotografie wien, fotoshooting familie wien"
         canonical="/familienfotos-wien/"
         ogImage="https://www.newagefotografie.com/images/family-hero.jpg"

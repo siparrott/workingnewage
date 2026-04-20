@@ -74,10 +74,10 @@ const FotoshootingsPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Fotoshootings in Wien buchen | New Age Fotografie"
-        description="Entdecken Sie unsere Fotoshooting-Angebote in Wien: Familie, Baby, Business, Hochzeit und mehr. Flexible Pakete für jeden Anlass."
-        keywords="Fotoshooting Wien, Fotoshooting buchen, Fotograf Pakete Wien"
-        canonical="/fotoshootings"
+        title="Fotoshootings in Wien buchen – Familie, Baby, Business & Hochzeit | New Age Fotografie"
+        description="Professionelle Fotoshootings in Wien: Familien-, Baby-, Neugeborenen-, Business- und Hochzeitsfotografie. Flexible Pakete ab €95, Studio & Outdoor. Jetzt Wunschtermin sichern!"
+        keywords="Fotoshooting Wien buchen, Fotoshooting Pakete Wien, Familienfotoshooting Wien, Business Fotoshooting Wien"
+        canonical="/fotoshootings/"
       />
       
       {/* Hero Section */}

@@ -8,9 +8,9 @@ const PreisePage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Preise für Fotoshootings in Wien | New Age Fotografie"
-        description="Transparente Preise für alle Fotoshootings in Wien. Familien, Baby, Business - finden Sie das passende Paket."
-        keywords="Fotoshooting Preise Wien, Fotograf Kosten Wien, Preisliste Fotografie"
+        title="Fotoshooting Preise Wien – Transparente Pakete ab €95 | New Age Fotografie"
+        description="Alle Fotoshooting-Preise auf einen Blick: Familien ab €199, Baby & Newborn ab €199, Business Portraits ab €129, Schwangerschaft ab €179. Faire Pakete, keine versteckten Kosten."
+        keywords="Fotoshooting Preise Wien, Fotograf Kosten Wien, Preisliste Fotografie Wien, Familienfotoshooting Preise"
         canonical="/preise/"
       />
       
@@ -20,7 +20,7 @@ const PreisePage: React.FC = () => {
           <div className="absolute inset-0 bg-black/20"></div>
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              Preise & Pakete
+              Fotoshooting Preise in Wien – Faire Pakete für jeden Anlass
             </h1>
             <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
               Transparente Preise, faire Pakete – alle bearbeiteten Bilder inklusive

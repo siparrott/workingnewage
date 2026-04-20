@@ -47,13 +47,13 @@ const BusinessFotoshootingPage: React.FC = () => {
 
   return (
     <GutscheinLayout
-      title="Businessportraits, die Eindruck machen"
+      title="Business Fotoshooting Wien – Portraits für LinkedIn & Website"
       subtitle="Professionell. Authentisch. Unvergesslich."
       image="https://i.postimg.cc/6Q2c2gS1/Whats-App-Image-2025-05-24-at-2-38-45-PM-2.jpg"
-      seoTitle="Business Fotoshooting Wien | New Age Fotografie"
-      seoDescription="Business Fotoshooting in Wien: Professionelle Fotos für Ihr Unternehmen, Team und Personal Branding. Pakete ab €95."
-      seoKeywords="Business Fotoshooting Wien, Corporate Photography, Businessfotos"
-      canonical="/fotoshootings/business"
+      seoTitle="Business Fotoshooting Wien – Professionelle Portraits ab €95 | New Age Fotografie"
+      seoDescription="Business Fotoshooting in Wien: Professionelle Portraits für LinkedIn, Website & Bewerbung. Headshots, Team- und Corporate-Fotos im Studio. Pakete ab €95 – jetzt Termin buchen!"
+      seoKeywords="Business Fotoshooting Wien, Corporate Photography Wien, Businessfotos Wien, LinkedIn Portrait Wien"
+      canonical="/fotoshootings/business/"
     >
       <div className="max-w-4xl mx-auto">
         {/* Main Content */}

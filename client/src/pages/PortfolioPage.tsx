@@ -324,12 +324,12 @@ const PortfolioPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title={language === 'de' ? 'Portfolio | New Age Fotografie Wien' : 'Portfolio | New Age Photography Vienna'}
+        title={language === 'de' ? 'Portfolio – Familien-, Baby- & Business-Fotografie Wien | New Age Fotografie' : 'Portfolio – Family, Baby & Business Photography Vienna | New Age Photography'}
         description={language === 'de' 
-          ? 'Entdecken Sie unser Portfolio: Familienfotos, Neugeborene, Hochzeiten, Business-Portraits und mehr. Professionelle Fotografie in Wien.'
-          : 'Discover our portfolio: Family photos, newborns, weddings, business portraits and more. Professional photography in Vienna.'}
-        keywords="Portfolio, Photography Vienna, Family Photos, Wedding Photography, Business Portraits"
-        canonical="/portfolio"
+          ? 'Entdecken Sie unser Portfolio: Familienporträts, Neugeborenenfotos, Schwangerschaftsbilder, Hochzeitsfotografie und Business-Portraits aus Wien. Lassen Sie sich inspirieren!'
+          : 'Explore our portfolio: Family portraits, newborn photos, maternity sessions, wedding photography and business portraits from Vienna. Get inspired!'}
+        keywords="Portfolio Fotograf Wien, Familienfotos Wien, Hochzeitsfotografie Wien, Business Portraits Wien, Neugeborenenfotos Wien"
+        canonical="/portfolio/"
       />
 
       {/* Hero Section */}
