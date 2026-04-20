@@ -5,6 +5,7 @@ import Footer from './Footer';
 import PartnerLogos from './PartnerLogos';
 import GoogleReviews from './GoogleReviews';
 import WhatsAppButton from '../WhatsAppButton';
+import RelatedPages from '../seo/RelatedPages';
 
 interface LayoutProps {
   children: ReactNode;
@@ -19,6 +20,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <main className="flex-grow" style={{ position: 'static', overflow: 'visible' }}>
         {children}
       </main>
+      <RelatedPages />
       <GoogleReviews />
       <PartnerLogos />
       <Footer />
