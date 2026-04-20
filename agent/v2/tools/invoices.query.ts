@@ -19,7 +19,7 @@ const pool = new Pool({
 
 // Zod schema for parameter validation
 const params = z.object({
-  status: z.enum(["draft", "sent", "paid", "overdue", "cancelled", "awaiting_payment", "any"]).default("any").optional().describe("Filter by payment status"),
+  status: z.enum(["draft", "sent", "paid", "overdue", "cancelled", "awaiting_payment", "unpaid", "any"]).default("any").optional().describe("Filter by payment status. Use 'unpaid' for all invoices not yet paid (sent + awaiting_payment + pending)."),
   clientId: z.string().optional().describe("Filter by specific client ID"),
   minAmount: z.number().optional().describe("Minimum invoice amount"),
   maxAmount: z.number().optional().describe("Maximum invoice amount"),
@@ -56,6 +56,8 @@ Returns: Filtered list of invoices with detailed information`,
       if (args.status && args.status !== "any") {
         if (args.status === "overdue") {
           whereClauses.push(`i.status != 'paid' AND i.due_date < CURRENT_DATE`);
+        } else if (args.status === "unpaid") {
+          whereClauses.push(`i.status IN ('sent', 'awaiting_payment', 'pending')`);
         } else {
           whereClauses.push(`i.status = $${paramIndex}`);
           queryParams.push(args.status);

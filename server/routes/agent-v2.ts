@@ -431,9 +431,10 @@ When users ask about "this week", "this month", "today", "yesterday", etc., you 
      - Use when: "Show unread messages", "What emails did we send to client X?"
 
 💰 INVOICES & PAYMENTS:
-   • invoices_query: Query invoices with filters
-   • invoices_list: List all invoices
+   • invoices_query: Query invoices with filters (use status='unpaid' for sent/awaiting_payment invoices)
+   • invoices_list: List all invoices (use status='unpaid' for unpaid/outstanding invoices)
    • invoices_summary: Get invoice statistics
+   IMPORTANT: "Unpaid invoices" means invoices with status 'sent' or 'awaiting_payment'. Always use status='unpaid' filter when asked about unpaid/outstanding invoices.
    • invoices_create: Create new invoices
    • invoices_send: Send invoices to clients
    • invoices_mark_paid: Mark invoices as paid
