@@ -5,7 +5,7 @@ import Footer from './Footer';
 import PartnerLogos from './PartnerLogos';
 import GoogleReviews from './GoogleReviews';
 import WhatsAppButton from '../WhatsAppButton';
-import RelatedPages from '../seo/RelatedPages';
+import RelatedPages from '../SEO/RelatedPages';
 
 interface LayoutProps {
   children: ReactNode;
