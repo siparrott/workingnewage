@@ -383,6 +383,27 @@ const BlogPage: React.FC = () => {
             }))
           })}
         </script>
+
+        {/* Additive FAQPage schema – mirrors visible FAQ below */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: (language === 'de' ? [
+              { q: 'Was soll ich für ein Familienfotoshooting anziehen?', a: 'Neutrale Töne und abgestimmte Outfits wirken bei zeitlosen Familienportraits in Wien am besten.' },
+              { q: 'Wann ist der beste Zeitpunkt für ein Neugeborenen-Shooting?', a: 'Ideal sind die ersten 10–14 Tage nach der Geburt für natürliche, entspannte Posen.' },
+              { q: 'Bieten Sie Studio- und Outdoor-Fotografie an?', a: 'Ja, je nach Wunsch bieten wir sowohl Studio- als auch Outdoor-Fotoshootings an.' }
+            ] : [
+              { q: 'What should I wear for a family photoshoot?', a: 'Neutral tones and coordinated outfits work best for timeless family portraits in Vienna.' },
+              { q: 'When is the best time for a newborn photoshoot?', a: 'The ideal time is within the first 10–14 days after birth for natural, relaxed poses.' },
+              { q: 'Do you offer studio and outdoor photography?', a: 'Yes, we offer both studio and outdoor photoshoots depending on your preference.' }
+            ]).map(({ q, a }) => ({
+              '@type': 'Question',
+              name: q,
+              acceptedAnswer: { '@type': 'Answer', text: a }
+            }))
+          })}
+        </script>
       </Helmet>
 
       {/* Hero Section */}
@@ -396,6 +417,60 @@ const BlogPage: React.FC = () => {
               {t('blog.subtitle')}
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* Additive SEO intro + topic cluster – between hero and blog grid */}
+      <section className="bg-white border-b border-gray-100" aria-labelledby="blog-intro-heading">
+        <div className="container mx-auto px-4 py-10 max-w-5xl">
+          <h2 id="blog-intro-heading" className="text-2xl md:text-3xl font-bold text-purple-900 mb-3">
+            {language === 'de'
+              ? 'Fotografie-Tipps, Ideen & Guides aus einem Wiener Studio'
+              : 'Photography Tips, Ideas & Guides from a Vienna Studio'}
+          </h2>
+          <p className="text-gray-700 leading-relaxed mb-8">
+            {language === 'de' ? (
+              <>
+                Unser Fotografie-Blog bietet Experten-Tipps rund um{' '}
+                <Link to="/familienfotos-wien/" className="text-purple-700 underline hover:text-purple-900">Familienfotoshootings</Link>,{' '}
+                <Link to="/neugeborenenfotos-wien/" className="text-purple-700 underline hover:text-purple-900">Neugeborenenfotografie</Link>, Schwangerschafts-Sessions und{' '}
+                <Link to="/business-portrait-wien/" className="text-purple-700 underline hover:text-purple-900">professionelle Headshots</Link>{' '}in Wien. Ob Sie sich auf Ihr erstes Shooting vorbereiten oder Inspiration suchen – hier finden Sie praxisnahe Tipps und Beispiele aus unserem Studio.
+              </>
+            ) : (
+              <>
+                Our photography blog covers expert advice on{' '}
+                <Link to="/familienfotos-wien/" className="text-purple-700 underline hover:text-purple-900">family photoshoots</Link>,{' '}
+                <Link to="/neugeborenenfotos-wien/" className="text-purple-700 underline hover:text-purple-900">newborn photography</Link>, maternity sessions, and{' '}
+                <Link to="/business-portrait-wien/" className="text-purple-700 underline hover:text-purple-900">professional headshots</Link>{' '}in Vienna. Whether you're preparing for your first shoot or looking for inspiration, you'll find practical tips and real examples from our studio.
+              </>
+            )}
+          </p>
+
+          <h2 className="text-xl md:text-2xl font-bold text-purple-900 mb-4">
+            {language === 'de' ? 'Fotografie-Themen entdecken' : 'Explore Photography Topics'}
+          </h2>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <li>
+              <Link to="/familienfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
+                {language === 'de' ? 'Tipps für Familienfotografie' : 'Family Photography Tips'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/neugeborenenfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
+                {language === 'de' ? 'Ratgeber Neugeborenenfotografie' : 'Newborn Photography Advice'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/schwangerschaftsfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
+                {language === 'de' ? 'Ideen für Schwangerschaftsfotos' : 'Maternity Photoshoot Ideas'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/business-portrait-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
+                {language === 'de' ? 'Guides für Business Headshots' : 'Business Headshot Guides'}
+              </Link>
+            </li>
+          </ul>
         </div>
       </section>
 
@@ -697,6 +772,88 @@ const BlogPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Additive: Plan your photoshoot internal link block */}
+      <section className="bg-gray-50 border-t border-gray-100" aria-labelledby="blog-plan-heading">
+        <div className="container mx-auto px-4 py-10 max-w-4xl">
+          <h3 id="blog-plan-heading" className="text-xl md:text-2xl font-bold text-purple-900 mb-3">
+            {language === 'de' ? 'Ihr Fotoshooting in Wien planen' : 'Plan Your Photoshoot in Vienna'}
+          </h3>
+          <p className="text-gray-700 leading-relaxed">
+            {language === 'de' ? (
+              <>
+                Nach unseren Fotografie-Tipps geht's weiter: Sehen Sie unsere{' '}
+                <Link to="/preise" className="text-purple-700 underline hover:text-purple-900">Preise</Link>, stöbern Sie im{' '}
+                <Link to="/portfolio" className="text-purple-700 underline hover:text-purple-900">Portfolio</Link>{' '}oder{' '}
+                <Link to="/kontakt" className="text-purple-700 underline hover:text-purple-900">kontaktieren Sie uns</Link>, um Ihre Session zu buchen.
+              </>
+            ) : (
+              <>
+                After exploring our photography tips, take the next step by viewing our{' '}
+                <Link to="/preise" className="text-purple-700 underline hover:text-purple-900">pricing options</Link>, browsing our{' '}
+                <Link to="/portfolio" className="text-purple-700 underline hover:text-purple-900">portfolio</Link>, or{' '}
+                <Link to="/kontakt" className="text-purple-700 underline hover:text-purple-900">contacting us</Link>{' '}to book your session.
+              </>
+            )}
+          </p>
+        </div>
+      </section>
+
+      {/* Additive: FAQ section */}
+      <section className="bg-white border-t border-gray-100" aria-labelledby="blog-faq-heading">
+        <div className="container mx-auto px-4 py-12 max-w-3xl">
+          <h2 id="blog-faq-heading" className="text-2xl md:text-3xl font-bold text-purple-900 mb-6 text-center">
+            {language === 'de' ? 'Häufige Fragen zur Fotografie in Wien' : 'Frequently Asked Questions About Photography in Vienna'}
+          </h2>
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold text-purple-900 mb-2">
+                {language === 'de' ? 'Was soll ich für ein Familienfotoshooting anziehen?' : 'What should I wear for a family photoshoot?'}
+              </h3>
+              <p className="text-gray-700">
+                {language === 'de' ? 'Neutrale Töne und abgestimmte Outfits wirken bei zeitlosen Familienportraits in Wien am besten.' : 'Neutral tones and coordinated outfits work best for timeless family portraits in Vienna.'}
+              </p>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-purple-900 mb-2">
+                {language === 'de' ? 'Wann ist der beste Zeitpunkt für ein Neugeborenen-Shooting?' : 'When is the best time for a newborn photoshoot?'}
+              </h3>
+              <p className="text-gray-700">
+                {language === 'de' ? 'Ideal sind die ersten 10–14 Tage nach der Geburt für natürliche, entspannte Posen.' : 'The ideal time is within the first 10–14 days after birth for natural, relaxed poses.'}
+              </p>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-purple-900 mb-2">
+                {language === 'de' ? 'Bieten Sie Studio- und Outdoor-Fotografie an?' : 'Do you offer studio and outdoor photography?'}
+              </h3>
+              <p className="text-gray-700">
+                {language === 'de' ? 'Ja, je nach Wunsch bieten wir sowohl Studio- als auch Outdoor-Fotoshootings an.' : 'Yes, we offer both studio and outdoor photoshoots depending on your preference.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Additive: pre-footer CTA */}
+      <section className="bg-purple-50/40 border-t border-gray-100">
+        <div className="container mx-auto px-4 py-8 max-w-3xl text-center">
+          <p className="text-gray-700">
+            {language === 'de' ? (
+              <>
+                Bereit für Ihre eigenen professionellen Fotos? Sehen Sie unsere{' '}
+                <Link to="/preise" className="text-purple-700 underline hover:text-purple-900 font-medium">Pakete</Link>{' '}oder{' '}
+                <Link to="/kontakt" className="text-purple-700 underline hover:text-purple-900 font-medium">kontaktieren Sie uns</Link>, um Ihre Session zu planen.
+              </>
+            ) : (
+              <>
+                Ready to create your own professional photos? Explore our{' '}
+                <Link to="/preise" className="text-purple-700 underline hover:text-purple-900 font-medium">packages</Link>{' '}or{' '}
+                <Link to="/kontakt" className="text-purple-700 underline hover:text-purple-900 font-medium">get in touch</Link>{' '}to plan your session.
+              </>
+            )}
+          </p>
+        </div>
+      </section>
     </Layout>
   );
 };
