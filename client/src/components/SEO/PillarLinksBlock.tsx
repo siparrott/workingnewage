@@ -23,6 +23,8 @@ const ALL_PILLARS: PillarLink[] = [
   { title: 'Eventfotografie Wien', path: '/eventfotografie-wien/', description: 'Firmen- & Privatevent-Reportagen' },
   { title: 'Studio-Fotografie Wien', path: '/studio-fotografie-wien/', description: 'Modernes Fotostudio Wien 5' },
   { title: 'Portraitfotografie Wien', path: '/portrait-fotografie-wien/', description: 'Persönliche Portraits' },
+  { title: 'Produktfotografie Wien', path: '/produkt-fotografie-wien/', description: 'E-Commerce & Amazon Produktfotos' },
+  { title: 'Immobilienfotografie Wien', path: '/immobilien-fotografie-wien/', description: 'Architektur- & Immobilienfotos' },
 ];
 
 interface PillarLinksBlockProps {

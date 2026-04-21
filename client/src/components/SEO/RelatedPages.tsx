@@ -201,7 +201,8 @@ const SITE_LINKS: Record<string, RelatedLink[]> = {
     { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
     { href: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaftsfotos Wien' },
     { href: '/studio-fotografie-wien/', label: 'Studio-Fotografie Wien' },
-    { href: '/vouchers/', label: 'Geschenkgutscheine' },
+    { href: '/gutschein/', label: 'Geschenkgutscheine' },
+    { href: '/vouchers/', label: 'Gift Vouchers (EN)' },
     { href: '/warteliste/', label: 'Termin buchen' },
   ],
   '/kundenstimmen/': [
@@ -209,6 +210,7 @@ const SITE_LINKS: Record<string, RelatedLink[]> = {
     { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
     { href: '/business-portrait-wien/', label: 'Business Portrait Wien' },
     { href: '/hochzeitsfotografie-wien/', label: 'Hochzeitsfotografie Wien' },
+    { href: '/gutschein/', label: 'Geschenkgutscheine' },
     { href: '/preise/', label: 'Preise & Pakete' },
     { href: '/warteliste/', label: 'Termin buchen' },
   ],
@@ -269,6 +271,7 @@ const SITE_LINKS: Record<string, RelatedLink[]> = {
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
     { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
   '/gutschein/': [
     { href: '/gutschein/family/', label: 'Familien-Gutschein' },

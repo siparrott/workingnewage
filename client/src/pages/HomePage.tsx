@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import Layout from '../components/layout/Layout';
 import ZoomableImageV2 from '../components/ui/ZoomableImageV2';
@@ -440,12 +440,12 @@ const HomePage: React.FC = () => {
                 {t('home.heroDescription')}
               </p>
             </div>
-            <button 
-              onClick={() => navigate('/warteliste')}
-              className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-medium py-3 px-8 rounded-full text-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+            <Link 
+              to="/warteliste/"
+              className="inline-block bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-medium py-3 px-8 rounded-full text-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
             >
               {t('home.bookShootingButton')}
-            </button>
+            </Link>
           </div>
           <div className="w-full md:w-2/5">
             <div className="aspect-square max-w-md mx-auto overflow-hidden rounded-lg shadow-lg">
@@ -580,9 +580,9 @@ const HomePage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Family Portraits */}
-            <div 
-              onClick={() => navigate('/familien-fotoshooting-wien/')}
-              className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
+            <Link 
+              to="/familien-fotoshooting-wien/"
+              className="bg-white rounded-lg shadow-lg overflow-hidden block cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
             >
               <div className="aspect-[4/3] overflow-hidden relative">
                 <img 
@@ -604,12 +604,12 @@ const HomePage: React.FC = () => {
                   {t('home.learnMore')} →
                 </span>
               </div>
-            </div>
+            </Link>
 
             {/* Pregnancy Photography */}
-            <div 
-              onClick={() => navigate('/schwangerschaftsfotos-wien/')}
-              className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
+            <Link 
+              to="/schwangerschaftsfotos-wien/"
+              className="bg-white rounded-lg shadow-lg overflow-hidden block cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
             >
               <div className="aspect-[4/3] overflow-hidden relative">
                 <img 
@@ -633,12 +633,12 @@ const HomePage: React.FC = () => {
                   {t('home.learnMore')} →
                 </span>
               </div>
-            </div>
+            </Link>
 
             {/* Newborn Photography */}
-            <div 
-              onClick={() => navigate('/baby-fotografie-wien/')}
-              className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
+            <Link 
+              to="/baby-fotografie-wien/"
+              className="bg-white rounded-lg shadow-lg overflow-hidden block cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
             >
               <div className="aspect-[4/3] overflow-hidden relative">
                 <img 
@@ -662,12 +662,12 @@ const HomePage: React.FC = () => {
                   {t('home.learnMore')} →
                 </span>
               </div>
-            </div>
+            </Link>
 
             {/* Business Photography */}
-            <div 
-              onClick={() => navigate('/business-portrait-wien/')}
-              className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
+            <Link 
+              to="/business-portrait-wien/"
+              className="bg-white rounded-lg shadow-lg overflow-hidden block cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
             >
               <div className="aspect-[4/3] overflow-hidden relative">
                 <img 
@@ -689,12 +689,12 @@ const HomePage: React.FC = () => {
                   {t('home.learnMore')} →
                 </span>
               </div>
-            </div>
+            </Link>
 
             {/* Event Photography */}
-            <div 
-              onClick={() => navigate('/eventfotografie-wien/')}
-              className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
+            <Link 
+              to="/eventfotografie-wien/"
+              className="bg-white rounded-lg shadow-lg overflow-hidden block cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
             >
               <div className="aspect-[4/3] overflow-hidden relative">
                 <img 
@@ -716,12 +716,12 @@ const HomePage: React.FC = () => {
                   {t('home.learnMore')} →
                 </span>
               </div>
-            </div>
+            </Link>
 
             {/* Product Photography */}
-            <div 
-              onClick={() => navigate('/produkt-fotografie-wien/')}
-              className="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
+            <Link 
+              to="/produkt-fotografie-wien/"
+              className="bg-white rounded-lg shadow-lg overflow-hidden block cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
             >
               <div className="aspect-[4/3] overflow-hidden relative">
                 <img 
@@ -743,20 +743,20 @@ const HomePage: React.FC = () => {
                   {t('home.learnMore')} →
                 </span>
               </div>
-            </div>
+            </Link>
           </div>
 
           {/* View All Services CTA */}
           <div className="text-center mt-12">
-            <button
-              onClick={() => navigate('/fotoshootings')}
+            <Link
+              to="/fotoshootings/"
               className="inline-flex items-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg shadow-lg"
             >
               {t('home.viewAllServices')}
               <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
-            </button>
+            </Link>
           </div>
         </div>
       </section>
