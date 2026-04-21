@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import Layout from '../components/layout/Layout';
 import CategoryFilter from '../components/vouchers/CategoryFilter';
@@ -239,6 +239,27 @@ const VouchersPage: React.FC = () => {
             }))
           })}
         </script>
+
+        {/* FAQPage schema – mirrors visible FAQs added below */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: (language === 'de' ? [
+              { q: 'Wie funktionieren Fotoshooting Gutscheine in Wien?', a: 'Unsere Gutscheine können online gekauft und für ein professionelles Fotoshooting in unserem Studio in Wien oder an Outdoor-Locations eingelöst werden.' },
+              { q: 'Kann ich ein Familienfotoshooting verschenken?', a: 'Ja, Familienfotografie-Gutscheine gehören zu den beliebtesten Geschenken und lassen sich für jeden Anlass individualisieren.' },
+              { q: 'Verfallen die Gutscheine?', a: 'Die Gültigkeit hängt vom gewählten Paket ab. Alle Details werden beim Checkout angezeigt.' }
+            ] : [
+              { q: 'How do photography vouchers work in Vienna?', a: 'Our vouchers can be purchased online and redeemed for a professional photoshoot at our Vienna studio or outdoor locations.' },
+              { q: 'Can I gift a family photoshoot?', a: 'Yes, family photography vouchers are one of the most popular gifts and can be customised for any occasion.' },
+              { q: 'Do vouchers expire?', a: 'Voucher validity depends on the package selected. Full details are provided at checkout.' }
+            ]).map(({ q, a }) => ({
+              '@type': 'Question',
+              name: q,
+              acceptedAnswer: { '@type': 'Answer', text: a }
+            }))
+          })}
+        </script>
       </Helmet>
 
       <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-16">
@@ -254,7 +275,33 @@ const VouchersPage: React.FC = () => {
           </p>
         </div>
       </div>
-      
+
+      {/* Additive SEO intro block – immediately below H1 hero, no layout change */}
+      <section className="bg-white border-b border-gray-100" aria-labelledby="vouchers-intro-heading">
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
+          <h2 id="vouchers-intro-heading" className="text-2xl md:text-3xl font-bold text-purple-900 mb-3">
+            {language === 'de' ? 'Fotoshooting Gutscheine in Wien für jeden Anlass' : 'Photoshoot Vouchers in Vienna for Every Occasion'}
+          </h2>
+          <p className="text-gray-700 leading-relaxed">
+            {language === 'de' ? (
+              <>
+                Auf der Suche nach der perfekten Geschenkidee in Wien? Unsere professionellen Fotoshooting Gutscheine reichen von{' '}
+                <Link to="/familienfotos-wien/" className="text-purple-700 underline hover:text-purple-900">Familienfotografie</Link>{' '}und{' '}
+                <Link to="/neugeborenenfotos-wien/" className="text-purple-700 underline hover:text-purple-900">Neugeborenen-Sessions</Link>{' '}bis hin zu{' '}
+                <Link to="/business-portrait-wien/" className="text-purple-700 underline hover:text-purple-900">Business Headshots</Link>{' '}und besonderen Events. Jeder Gutschein steht für bleibende Erinnerungen mit hochwertiger Studio- oder Outdoor-Fotografie.
+              </>
+            ) : (
+              <>
+                Looking for the perfect gift idea in Vienna? Our professional photoshoot vouchers cover everything from{' '}
+                <Link to="/familienfotos-wien/" className="text-purple-700 underline hover:text-purple-900">family photography</Link>{' '}and{' '}
+                <Link to="/neugeborenenfotos-wien/" className="text-purple-700 underline hover:text-purple-900">newborn sessions</Link>{' '}to{' '}
+                <Link to="/business-portrait-wien/" className="text-purple-700 underline hover:text-purple-900">business headshots</Link>{' '}and special events. Each voucher is designed to create lasting memories with high-quality studio or outdoor photography.
+              </>
+            )}
+          </p>
+        </div>
+      </section>
+
       <div className="container mx-auto px-4 py-8">
         {/* Category Filter - Prominent at top */}
         <div className="mb-8 text-center">
@@ -368,6 +415,117 @@ const VouchersPage: React.FC = () => {
             )}
         </div>
       </div>
+
+      {/* Additive: Category context section */}
+      <section className="bg-purple-50/40 border-t border-gray-100" aria-labelledby="vouchers-context-heading">
+        <div className="container mx-auto px-4 py-10 max-w-4xl">
+          <h2 id="vouchers-context-heading" className="text-2xl md:text-3xl font-bold text-purple-900 mb-3">
+            {language === 'de' ? 'Das passende Foto-Erlebnis wählen' : 'Choose the Right Photography Experience'}
+          </h2>
+          <p className="text-gray-700 leading-relaxed">
+            {language === 'de' ? (
+              <>
+                Ob Sie ein{' '}
+                <Link to="/familienfotos-wien/" className="text-purple-700 underline hover:text-purple-900">Familienfotoshooting</Link>{' '}verschenken, ein Neugeborenes feiern oder Ihr professionelles Auftreten mit{' '}
+                <Link to="/business-portrait-wien/" className="text-purple-700 underline hover:text-purple-900">Business Portraits</Link>{' '}aufwerten möchten – unsere Wiener Fotografie-Gutscheine bieten Flexibilität und Premium-Qualität.
+              </>
+            ) : (
+              <>
+                Whether you're gifting a{' '}
+                <Link to="/familienfotos-wien/" className="text-purple-700 underline hover:text-purple-900">family photoshoot</Link>, celebrating a newborn, or upgrading your professional image with{' '}
+                <Link to="/business-portrait-wien/" className="text-purple-700 underline hover:text-purple-900">business portraits</Link>, our Vienna photography vouchers offer flexibility and premium quality.
+              </>
+            )}
+          </p>
+        </div>
+      </section>
+
+      {/* Additive: Explore our photography services link block */}
+      <section className="bg-white border-t border-gray-100" aria-labelledby="vouchers-explore-heading">
+        <div className="container mx-auto px-4 py-10 max-w-4xl">
+          <h3 id="vouchers-explore-heading" className="text-xl md:text-2xl font-bold text-purple-900 mb-4 text-center">
+            {language === 'de' ? 'Unsere Fotografie-Leistungen entdecken' : 'Explore Our Photography Services'}
+          </h3>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-center">
+            <li>
+              <Link to="/familienfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
+                {language === 'de' ? 'Familienfotos Wien' : 'Family Photography Vienna'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/neugeborenenfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
+                {language === 'de' ? 'Neugeborenenfotos Wien' : 'Newborn Photography Vienna'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/schwangerschaftsfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
+                {language === 'de' ? 'Schwangerschaftsfotos Wien' : 'Maternity Photography Vienna'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/business-portrait-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
+                {language === 'de' ? 'Business Portraits Wien' : 'Business Headshots Vienna'}
+              </Link>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      {/* Additive: FAQ section */}
+      <section className="bg-gray-50 border-t border-gray-100" aria-labelledby="vouchers-faq-heading">
+        <div className="container mx-auto px-4 py-12 max-w-3xl">
+          <h2 id="vouchers-faq-heading" className="text-2xl md:text-3xl font-bold text-purple-900 mb-6 text-center">
+            {language === 'de' ? 'Häufige Fragen zu Fotoshooting Gutscheinen' : 'Frequently Asked Questions About Photoshoot Vouchers'}
+          </h2>
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold text-purple-900 mb-2">
+                {language === 'de' ? 'Wie funktionieren Fotoshooting Gutscheine in Wien?' : 'How do photography vouchers work in Vienna?'}
+              </h3>
+              <p className="text-gray-700">
+                {language === 'de' ? 'Unsere Gutscheine können online gekauft und für ein professionelles Fotoshooting in unserem Studio in Wien oder an Outdoor-Locations eingelöst werden.' : 'Our vouchers can be purchased online and redeemed for a professional photoshoot at our Vienna studio or outdoor locations.'}
+              </p>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-purple-900 mb-2">
+                {language === 'de' ? 'Kann ich ein Familienfotoshooting verschenken?' : 'Can I gift a family photoshoot?'}
+              </h3>
+              <p className="text-gray-700">
+                {language === 'de' ? 'Ja, Familienfotografie-Gutscheine gehören zu den beliebtesten Geschenken und lassen sich für jeden Anlass individualisieren.' : 'Yes, family photography vouchers are one of the most popular gifts and can be customised for any occasion.'}
+              </p>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-purple-900 mb-2">
+                {language === 'de' ? 'Verfallen die Gutscheine?' : 'Do vouchers expire?'}
+              </h3>
+              <p className="text-gray-700">
+                {language === 'de' ? 'Die Gültigkeit hängt vom gewählten Paket ab. Alle Details werden beim Checkout angezeigt.' : 'Voucher validity depends on the package selected. Full details are provided at checkout.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Additive: pre-footer CTA */}
+      <section className="bg-white border-t border-gray-100">
+        <div className="container mx-auto px-4 py-8 max-w-3xl text-center">
+          <p className="text-gray-700">
+            {language === 'de' ? (
+              <>
+                Nicht sicher, welcher Gutschein passt? Sehen Sie unsere{' '}
+                <Link to="/preise" className="text-purple-700 underline hover:text-purple-900 font-medium">Preise</Link>{' '}oder{' '}
+                <Link to="/kontakt" className="text-purple-700 underline hover:text-purple-900 font-medium">kontaktieren Sie uns</Link>{' '}für eine persönliche Beratung.
+              </>
+            ) : (
+              <>
+                Not sure which voucher to choose? Explore our{' '}
+                <Link to="/preise" className="text-purple-700 underline hover:text-purple-900 font-medium">pricing options</Link>{' '}or{' '}
+                <Link to="/kontakt" className="text-purple-700 underline hover:text-purple-900 font-medium">contact us</Link>{' '}for personalised advice.
+              </>
+            )}
+          </p>
+        </div>
+      </section>
     </Layout>
   );
 };
