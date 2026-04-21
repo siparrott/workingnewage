@@ -58,7 +58,7 @@ router.get('/:pageId', async (req, res) => {
 
     if (!record) {
       // Return empty published content if no record exists (fallback to translation keys)
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
       return res.json({
         pageId,
         language,
@@ -70,7 +70,7 @@ router.get('/:pageId', async (req, res) => {
     // For public requests, only return published content
     const isAuthenticated = req.user || req.session?.userId;
     if (!isAuthenticated) {
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
       return res.json({
         pageId: record.pageId,
         language: record.language,
@@ -80,7 +80,7 @@ router.get('/:pageId', async (req, res) => {
       });
     }
 
-    // For authenticated admin users, return full record including drafts
+    // For authenticated admin users, return full record including drafts (never cached)
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.json(record);
   } catch (error) {
@@ -88,7 +88,7 @@ router.get('/:pageId', async (req, res) => {
     console.warn('Manual page fetch fallback:', (error as any)?.message || error);
     const { pageId } = req.params;
     const { language = 'de' } = req.query;
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Cache-Control', 'public, max-age=60');
     return res.json({
       pageId,
       language,

@@ -23,28 +23,28 @@ export function useManualPageContent(pageId: string) {
   const { data: pageContent } = useQuery<PageContent>({
     queryKey: ['/api/manual-pages', pageId, language],
     queryFn: async () => {
-      const res = await fetch(`/api/manual-pages/${pageId}?language=${language}&_t=${Date.now()}`);
+      const res = await fetch(`/api/manual-pages/${pageId}?language=${language}`);
       if (!res.ok) return { pageId, language, publishedContent: {}, status: 'none' };
       return res.json();
     },
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true
+    staleTime: 5 * 60 * 1000, // 5 minutes – use cache, avoid refetch on every mount
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const { data: germanFallback } = useQuery<PageContent>({
     queryKey: ['/api/manual-pages', pageId, 'de'],
     queryFn: async () => {
-      const res = await fetch(`/api/manual-pages/${pageId}?language=de&_t=${Date.now()}`);
+      const res = await fetch(`/api/manual-pages/${pageId}?language=de`);
       if (!res.ok) return { pageId, language: 'de', publishedContent: {}, status: 'none' };
       return res.json();
     },
     enabled: language !== 'de',
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   /**
@@ -85,13 +85,13 @@ export function useManualPageData(pageId: string) {
   return useQuery<PageContent>({
     queryKey: ['/api/manual-pages', pageId, language],
     queryFn: async () => {
-      const res = await fetch(`/api/manual-pages/${pageId}?language=${language}&_t=${Date.now()}`);
+      const res = await fetch(`/api/manual-pages/${pageId}?language=${language}`);
       if (!res.ok) return { pageId, language, publishedContent: {}, status: 'none' };
       return res.json();
     },
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 }
