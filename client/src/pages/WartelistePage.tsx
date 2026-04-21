@@ -6,6 +6,7 @@ import { Calendar, Mail, Phone, User, Camera, Gift, ChevronRight } from 'lucide-
 import { submitWaitlistForm } from '../lib/forms';
 import { useManualPageContent } from '../hooks/useManualPageContent';
 import { SEOHead } from '../components/SEO/SEOHead';
+import { Helmet } from 'react-helmet-async';
 import { useLanguage } from '../context/LanguageContext';
 
 const WartelistePage: React.FC = () => {
@@ -53,6 +54,29 @@ const WartelistePage: React.FC = () => {
         keywords={language === 'de' ? 'Warteliste Fotoshooting, Termin Fotograf Wien, Benachrichtigung' : 'Photoshoot waitlist, Photographer appointment Vienna, Notification'}
         canonical="/warteliste/"
       />
+
+      {/* Additive FAQPage schema – mirrors visible FAQ below */}
+      <Helmet>
+        <script type="application/ld+json">
+          {JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: (language === 'de' ? [
+              { q: 'Wie weit im Voraus sollte ich ein Fotoshooting in Wien buchen?', a: 'Wir empfehlen eine Vorlaufzeit von 2–3 Wochen, um Ihren Wunschtermin zu sichern.' },
+              { q: 'Bieten Sie Termine am Wochenende an?', a: 'Ja, je nach Verfügbarkeit bieten wir Fotoshootings auch am Wochenende an.' },
+              { q: 'Kann ich zwischen Studio- und Outdoor-Fotografie wählen?', a: 'Absolut. Wir bieten je nach Wunsch Studio- und Outdoor-Sessions an.' }
+            ] : [
+              { q: 'How far in advance should I book a photoshoot in Vienna?', a: 'We recommend booking at least 2–3 weeks in advance to secure your preferred date.' },
+              { q: 'Do you offer weekend appointments?', a: 'Yes, we offer weekend photoshoots depending on availability.' },
+              { q: 'Can I choose between studio and outdoor photography?', a: 'Absolutely. We offer both studio and outdoor sessions based on your preference.' }
+            ]).map(({ q, a }) => ({
+              '@type': 'Question',
+              name: q,
+              acceptedAnswer: { '@type': 'Answer', text: a }
+            }))
+          })}
+        </script>
+      </Helmet>
       
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto text-center mb-12">
@@ -82,6 +106,30 @@ const WartelistePage: React.FC = () => {
             )}
           </p>
         </div>
+
+        {/* Additive SEO intro block – above form */}
+        <section className="max-w-2xl mx-auto mb-10" aria-labelledby="waitlist-intro-heading">
+          <h2 id="waitlist-intro-heading" className="text-2xl md:text-3xl font-bold text-purple-900 mb-3">
+            {language === 'de' ? 'Ihr professionelles Fotoshooting in Wien buchen' : 'Book Your Professional Photoshoot in Vienna'}
+          </h2>
+          <p className="text-gray-700 leading-relaxed">
+            {language === 'de' ? (
+              <>
+                Bereit für zeitlose Erinnerungen? Buchen Sie Ihr{' '}
+                <Link to="/familienfotos-wien/" className="text-purple-700 underline hover:text-purple-900">Familienfotoshooting</Link>, Ihre{' '}
+                <Link to="/neugeborenenfotos-wien/" className="text-purple-700 underline hover:text-purple-900">Neugeborenen-Session</Link>{' '}oder{' '}
+                <Link to="/business-portrait-wien/" className="text-purple-700 underline hover:text-purple-900">Business Portraits</Link>{' '}in unserem Wiener Studio. Flexible Termine inkl. Wochenende – wir begleiten Sie durch jeden Schritt.
+              </>
+            ) : (
+              <>
+                Ready to create timeless memories? Book your{' '}
+                <Link to="/familienfotos-wien/" className="text-purple-700 underline hover:text-purple-900">family photoshoot</Link>,{' '}
+                <Link to="/neugeborenenfotos-wien/" className="text-purple-700 underline hover:text-purple-900">newborn session</Link>, or{' '}
+                <Link to="/business-portrait-wien/" className="text-purple-700 underline hover:text-purple-900">business portraits</Link>{' '}with our Vienna studio. We offer flexible appointments, including weekends, and guide you through every step of the experience.
+              </>
+            )}
+          </p>
+        </section>
 
         <div className="max-w-xl mx-auto bg-white rounded-lg shadow-lg p-8">
           {success && (
@@ -190,6 +238,28 @@ const WartelistePage: React.FC = () => {
           </form>
         </div>
 
+        {/* Additive: What happens next */}
+        <section className="max-w-2xl mx-auto mt-10" aria-labelledby="waitlist-next-heading">
+          <h2 id="waitlist-next-heading" className="text-2xl md:text-3xl font-bold text-purple-900 mb-3">
+            {language === 'de' ? 'Was passiert nach Ihrer Anfrage?' : 'What Happens After Your Request?'}
+          </h2>
+          <p className="text-gray-700 leading-relaxed">
+            {language === 'de' ? (
+              <>
+                Nach Ihrer Anfrage melden wir uns, um die Verfügbarkeit zu bestätigen, Ihre Wunschvorstellungen zu besprechen und Sie auf Ihr Shooting vorzubereiten. In der Zwischenzeit können Sie unsere{' '}
+                <Link to="/preise" className="text-purple-700 underline hover:text-purple-900">Preise</Link>{' '}und unser{' '}
+                <Link to="/portfolio" className="text-purple-700 underline hover:text-purple-900">Portfolio</Link>{' '}ansehen.
+              </>
+            ) : (
+              <>
+                Once you submit your request, we’ll contact you to confirm availability, discuss your photoshoot goals, and help you prepare for your session. You can also explore our{' '}
+                <Link to="/preise" className="text-purple-700 underline hover:text-purple-900">pricing options</Link>{' '}and view our{' '}
+                <Link to="/portfolio" className="text-purple-700 underline hover:text-purple-900">portfolio</Link>{' '}while you wait.
+              </>
+            )}
+          </p>
+        </section>
+
         {/* Services Sidebar/Section */}
         <div className="max-w-4xl mx-auto mt-12">
           <h2 className="text-2xl font-semibold text-gray-900 mb-6 text-center">{language === 'de' ? 'Während Sie warten – Entdecken Sie unsere Services' : 'While You Wait – Discover Our Services'}</h2>
@@ -216,9 +286,95 @@ const WartelistePage: React.FC = () => {
               {language === 'de' ? 'Lesen Sie unseren Blog für Fotografie-Tipps' : 'Read our blog for photography tips'} <ChevronRight className="w-4 h-4 ml-1" />
             </Link>
           </p>
+
+          {/* Additive: Explore our photography services link block */}
+          <section className="mt-10" aria-labelledby="waitlist-explore-heading">
+            <h3 id="waitlist-explore-heading" className="text-xl md:text-2xl font-bold text-purple-900 mb-4 text-center">
+              {language === 'de' ? 'Unsere Fotografie-Leistungen entdecken' : 'Explore Our Photography Services'}
+            </h3>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
+              <li>
+                <Link to="/familienfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors text-center">
+                  {language === 'de' ? 'Familienfotos Wien' : 'Family Photography Vienna'}
+                </Link>
+              </li>
+              <li>
+                <Link to="/neugeborenenfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors text-center">
+                  {language === 'de' ? 'Neugeborenenfotos Wien' : 'Newborn Photography Vienna'}
+                </Link>
+              </li>
+              <li>
+                <Link to="/schwangerschaftsfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors text-center">
+                  {language === 'de' ? 'Schwangerschaftsfotos Wien' : 'Maternity Photoshoots Vienna'}
+                </Link>
+              </li>
+              <li>
+                <Link to="/business-portrait-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors text-center">
+                  {language === 'de' ? 'Business Portraits Wien' : 'Business Headshots Vienna'}
+                </Link>
+              </li>
+            </ul>
+          </section>
         </div>
       </div>
+
+      {/* Additive: FAQ section */}
+      <section className="bg-white border-t border-gray-100" aria-labelledby="waitlist-faq-heading">
+        <div className="container mx-auto px-4 py-12 max-w-3xl">
+          <h2 id="waitlist-faq-heading" className="text-2xl md:text-3xl font-bold text-purple-900 mb-6 text-center">
+            {language === 'de' ? 'Häufig gestellte Fragen' : 'Frequently Asked Questions'}
+          </h2>
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold text-purple-900 mb-2">
+                {language === 'de' ? 'Wie weit im Voraus sollte ich ein Fotoshooting in Wien buchen?' : 'How far in advance should I book a photoshoot in Vienna?'}
+              </h3>
+              <p className="text-gray-700">
+                {language === 'de' ? 'Wir empfehlen eine Vorlaufzeit von 2–3 Wochen, um Ihren Wunschtermin zu sichern.' : 'We recommend booking at least 2–3 weeks in advance to secure your preferred date.'}
+              </p>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-purple-900 mb-2">
+                {language === 'de' ? 'Bieten Sie Termine am Wochenende an?' : 'Do you offer weekend appointments?'}
+              </h3>
+              <p className="text-gray-700">
+                {language === 'de' ? 'Ja, je nach Verfügbarkeit bieten wir Fotoshootings auch am Wochenende an.' : 'Yes, we offer weekend photoshoots depending on availability.'}
+              </p>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-purple-900 mb-2">
+                {language === 'de' ? 'Kann ich zwischen Studio- und Outdoor-Fotografie wählen?' : 'Can I choose between studio and outdoor photography?'}
+              </h3>
+              <p className="text-gray-700">
+                {language === 'de' ? 'Absolut. Wir bieten je nach Wunsch Studio- und Outdoor-Sessions an.' : 'Absolutely. We offer both studio and outdoor sessions based on your preference.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <PillarLinksBlock currentPath="/warteliste/" title="Welches Shooting interessiert Sie?" />
+
+      {/* Additive: soft pre-footer CTA */}
+      <section className="bg-purple-50/40 border-t border-gray-100">
+        <div className="container mx-auto px-4 py-8 max-w-3xl text-center">
+          <p className="text-gray-700">
+            {language === 'de' ? (
+              <>
+                Noch nicht bereit zu buchen? Lassen Sie sich von unseren{' '}
+                <Link to="/blog" className="text-purple-700 underline hover:text-purple-900 font-medium">Fotografie-Tipps</Link>{' '}inspirieren oder stöbern Sie in unseren{' '}
+                <Link to="/vouchers" className="text-purple-700 underline hover:text-purple-900 font-medium">Geschenkgutscheinen</Link>.
+              </>
+            ) : (
+              <>
+                Not quite ready to book? Get inspired by our{' '}
+                <Link to="/blog" className="text-purple-700 underline hover:text-purple-900 font-medium">photography tips</Link>{' '}or browse our{' '}
+                <Link to="/vouchers" className="text-purple-700 underline hover:text-purple-900 font-medium">gift vouchers</Link>.
+              </>
+            )}
+          </p>
+        </div>
+      </section>
     </Layout>
   );
 };
