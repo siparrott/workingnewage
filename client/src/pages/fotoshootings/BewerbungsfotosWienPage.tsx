@@ -6,6 +6,7 @@ import GoogleReviews from '../../components/layout/GoogleReviews';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
 import { newageCopyMap } from '../../content/newageCopyMap';
 import { Link } from 'react-router-dom';
+import { ContextualLinks } from '../../components/SEO/ContextualLinks';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Briefcase, Linkedin, TrendingUp, Palette, Shield, Eye } from 'lucide-react';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import { useLanguage } from '../../context/LanguageContext';
@@ -138,6 +139,8 @@ export default function BewerbungsfotosWienPage() {
 
       {/* Google Reviews Section */}
       <GoogleReviews />
+
+      <ContextualLinks pathname="/bewerbungsfotos-wien/" language={language} />
 
       {/* Introduction Section */}
       <section className="py-12 bg-white">

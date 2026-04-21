@@ -3,6 +3,7 @@ import { RelatedServices } from '../../components/SEO/RelatedServices';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link } from 'react-router-dom';
+import { ContextualLinks } from '../../components/SEO/ContextualLinks';
 import { Helmet } from 'react-helmet-async';
 import { Package, Check, ArrowRight, Sparkles, Camera, Layers, SlidersHorizontal, Users, Star } from 'lucide-react';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
@@ -126,6 +127,8 @@ export default function ProduktfotografieWienPage() {
         </section>
 
         <GoogleReviews />
+
+        <ContextualLinks pathname="/produkt-fotografie-wien/" language={language} />
 
         {/* Was wir perfekt können */}
         <section className="py-16 bg-white">

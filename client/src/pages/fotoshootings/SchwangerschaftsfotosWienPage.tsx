@@ -3,6 +3,7 @@ import { RelatedServices } from '../../components/SEO/RelatedServices';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link } from 'react-router-dom';
+import { ContextualLinks } from '../../components/SEO/ContextualLinks';
 import { Heart, Sparkles, Camera, ArrowRight, Check, Users } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
@@ -134,6 +135,8 @@ export default function SchwangerschaftsfotosWienPage() {
 
       {/* Google Reviews Section */}
       <GoogleReviews />
+
+      <ContextualLinks pathname="/schwangerschaftsfotos-wien/" language={language} />
 
       {/* Introduction Section */}
       <section className="py-12 bg-white">

@@ -3,6 +3,7 @@ import { RelatedServices } from '../../components/SEO/RelatedServices';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link } from 'react-router-dom';
+import { ContextualLinks } from '../../components/SEO/ContextualLinks';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Briefcase, Building, Zap, Shield, TrendingUp, MapPin } from 'lucide-react';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
@@ -133,6 +134,8 @@ export default function TeamfotosWienPage() {
 
       {/* Google Reviews Section */}
       <GoogleReviews />
+
+      <ContextualLinks pathname="/teamfotos-wien/" language={language} />
 
       {/* Introduction Section */}
       <section className="py-12 bg-white">

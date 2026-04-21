@@ -1,6 +1,7 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
 import { RelatedServices } from '../../components/SEO/RelatedServices';
+import { ContextualLinks } from '../../components/SEO/ContextualLinks';
 import { Link } from 'react-router-dom';
 import { Baby, Heart, Smile, Camera, ArrowRight, Check, Gift } from 'lucide-react';
 
@@ -332,6 +333,7 @@ export default function KinderFotografieWienPage() {
       </section>
 
     </div>
+      <ContextualLinks pathname="/kinder-fotografie-wien/" />
       <RelatedServices currentPath="/kinder-fotografie-wien/" />
     </Layout>
   );

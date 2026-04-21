@@ -5,6 +5,7 @@ import GoogleReviews from '../../components/layout/GoogleReviews';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
 import { newageCopyMap } from '../../content/newageCopyMap';
 import { Link, useNavigate } from 'react-router-dom';
+import { ContextualLinks } from '../../components/SEO/ContextualLinks';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Briefcase, Shield, Zap, Eye, MonitorPlay, Award, Building } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import { useCart } from '../../context/CartContext';
@@ -184,6 +185,8 @@ export default function EventfotografieWienPage() {
 
       {/* Google Reviews Section */}
       <GoogleReviews />
+
+      <ContextualLinks pathname="/eventfotografie-wien/" language={language} />
 
       {/* What We Cover Section */}
       <section className="py-16 bg-white">

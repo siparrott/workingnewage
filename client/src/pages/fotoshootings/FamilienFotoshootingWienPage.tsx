@@ -2,6 +2,7 @@ import React from 'react';
 import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
 import { RelatedServices } from '../../components/SEO/RelatedServices';
+import { ContextualLinks } from '../../components/SEO/ContextualLinks';
 import { Link } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check } from 'lucide-react';
 import VoucherPackagesList from '../../components/vouchers/VoucherPackagesList';
@@ -282,6 +283,7 @@ export default function FamilienFotoshootingWienPage() {
       </section>
 
     </div>
+      <ContextualLinks pathname="/familien-fotoshooting-wien/" />
       <RelatedServices currentPath="/familien-fotoshooting-wien/" />
     </Layout>
   );

@@ -13,6 +13,7 @@ import { useManualPageContent } from '../hooks/useManualPageContent';
 import { SEOHead } from '../components/SEO/SEOHead';
 import { Helmet } from 'react-helmet-async';
 import { getCachedData, setCachedData } from '../lib/persistentCache';
+import { ContextualLinks } from '../components/SEO/ContextualLinks';
 import { useImagePreloader } from '../hooks/useImagePreloader';
 import HomepageConfidenceSection from '../components/home/HomepageConfidenceSection';
 
@@ -904,6 +905,9 @@ const HomePage: React.FC = () => {
 
       {/* FAQ / Confidence Section */}
       <HomepageConfidenceSection />
+
+      {/* Contextual internal links for SEO authority flow */}
+      <ContextualLinks pathname="/" language={language} />
     </Layout>
   );
 };

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate } from 'react-router-dom';
+import { ContextualLinks } from '../../components/SEO/ContextualLinks';
 import { Camera, Check, ArrowRight, Building2, Sparkles, Home } from 'lucide-react';
 import Layout from '../../components/layout/Layout';
 import { RelatedServices } from '../../components/SEO/RelatedServices';
@@ -195,6 +196,8 @@ const ImmobilienfotografieWienPage: React.FC = () => {
 
       {/* Google Reviews */}
       <GoogleReviews />
+
+      <ContextualLinks pathname="/immobilien-fotografie-wien/" language={language} />
 
       {/* Leistungen */}
       <section className="py-16 bg-white">

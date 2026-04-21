@@ -3,6 +3,7 @@ import { RelatedServices } from '../../components/SEO/RelatedServices';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link, useNavigate } from 'react-router-dom';
+import { ContextualLinks } from '../../components/SEO/ContextualLinks';
 import { Helmet } from 'react-helmet-async';
 import { Camera, Sparkles, ArrowRight, Check, MapPin } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
@@ -153,6 +154,8 @@ export default function PortraitfotografieWienPage() {
         </section>
 
         <GoogleReviews />
+
+        <ContextualLinks pathname="/portrait-fotografie-wien/" language={language} />
 
         {/* Portrait-Stile */}
         <section className="py-16 bg-white">

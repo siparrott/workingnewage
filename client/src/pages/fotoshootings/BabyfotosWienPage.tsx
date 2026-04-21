@@ -3,6 +3,7 @@ import { RelatedServices } from '../../components/SEO/RelatedServices';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link, useNavigate } from 'react-router-dom';
+import { ContextualLinks } from '../../components/SEO/ContextualLinks';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Baby, Shield, Music, Smile, Package, Sun, Home, Eye, Hand } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import { useCart } from '../../context/CartContext';
@@ -174,6 +175,8 @@ export default function BabyfotosWienPage() {
 
       {/* Google Reviews Section */}
       <GoogleReviews />
+
+      <ContextualLinks pathname="/babyfotos-wien/" language={language} />
 
       {/* 3-12 Months is Different Section */}
       <section className="py-16 bg-white">

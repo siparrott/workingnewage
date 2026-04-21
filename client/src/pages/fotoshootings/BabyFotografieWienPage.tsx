@@ -1,6 +1,7 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
 import { Link } from 'react-router-dom';
+import { ContextualLinks } from '../../components/SEO/ContextualLinks';
 import { Baby, Heart, Shield, Star, ArrowRight, Check, Clock } from 'lucide-react';
 
 export default function BabyFotografieWienPage() {
@@ -344,6 +345,8 @@ export default function BabyFotografieWienPage() {
           </Link>
         </div>
       </section>
+
+      <ContextualLinks pathname="/baby-fotografie-wien/" />
 
     </div>
     </Layout>
