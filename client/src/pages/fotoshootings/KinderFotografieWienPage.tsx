@@ -1,5 +1,6 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
+import { RelatedServices } from '../../components/SEO/RelatedServices';
 import { Link } from 'react-router-dom';
 import { Baby, Heart, Smile, Camera, ArrowRight, Check, Gift } from 'lucide-react';
 
@@ -331,6 +332,7 @@ export default function KinderFotografieWienPage() {
       </section>
 
     </div>
+      <RelatedServices currentPath="/kinder-fotografie-wien/" />
     </Layout>
   );
 }

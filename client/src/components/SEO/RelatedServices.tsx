@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Euro, Calendar } from 'lucide-react';
 
 export interface RelatedServiceLink {
   title: string;
@@ -14,84 +14,145 @@ interface RelatedServicesProps {
 }
 
 // Internal links map for SEO cross-linking between service pages
+// Each page: 3 cluster siblings + /preise/ + /warteliste/ = 5 links minimum
 const serviceLinks: Record<string, RelatedServiceLink[]> = {
-  '/bewerbungsfotos-wien/': [
-    { title: 'Business Portraits', path: '/business-portrait-wien/', description: 'Für LinkedIn & Website' },
-    { title: 'Team- & Mitarbeiterfotos', path: '/teamfotos-wien/', description: 'Einheitlicher Look fürs Team' },
-    { title: 'Alle Fotoshootings', path: '/fotoshootings/', description: 'Übersicht aller Angebote' }
-  ],
-  '/business-portrait-wien/': [
-    { title: 'Bewerbungsfotos', path: '/bewerbungsfotos-wien/', description: 'Für Bewerbungen & HR' },
-    { title: 'Team- & Mitarbeiterfotos', path: '/teamfotos-wien/', description: 'Einheitlicher Look fürs Team' },
-    { title: 'Alle Fotoshootings', path: '/fotoshootings/', description: 'Übersicht aller Angebote' }
-  ],
-  '/neugeborenenfotos-wien/': [
-    { title: 'Babyfotos (3–12 Monate)', path: '/babyfotos-wien/', description: 'Für ältere Babys' },
-    { title: 'Schwangerschaftsfotos', path: '/schwangerschaftsfotos-wien/', description: 'Babybauch-Shooting' },
-    { title: 'Familienfotos', path: '/familien-fotoshooting-wien/', description: 'Mit der ganzen Familie' }
-  ],
-  '/babyfotos-wien/': [
-    { title: 'Neugeborenenfotos', path: '/neugeborenenfotos-wien/', description: 'Für die ersten Lebenstage' },
-    { title: 'Familienfotos', path: '/familien-fotoshooting-wien/', description: 'Mit der ganzen Familie' },
-    { title: 'Alle Fotoshootings', path: '/fotoshootings/', description: 'Übersicht aller Angebote' }
-  ],
-  '/schwangerschaftsfotos-wien/': [
-    { title: 'Neugeborenenfotos', path: '/neugeborenenfotos-wien/', description: 'Nach der Geburt' },
-    { title: 'Familienfotos', path: '/familien-fotoshooting-wien/', description: 'Mit der ganzen Familie' },
-    { title: 'Alle Fotoshootings', path: '/fotoshootings/', description: 'Übersicht aller Angebote' }
+
+  // --- FAMILY CLUSTER (Pillar: /familienfotos-wien/) ---
+  '/familienfotos-wien/': [
+    { title: 'Schwangerschaftsfotos Wien', path: '/schwangerschaftsfotos-wien/', description: 'Babybauch-Shooting im Studio' },
+    { title: 'Neugeborenenfotos Wien', path: '/neugeborenenfotos-wien/', description: 'Ab 5 Tage nach der Geburt' },
+    { title: 'Babyfotos Wien', path: '/babyfotos-wien/', description: 'Für Babys 3–12 Monate' },
+    { title: 'Kinderfotografie Wien', path: '/kinder-fotografie-wien/', description: 'Kinder natürlich fotografiert' },
+    { title: 'Preise & Pakete', path: '/preise/', description: 'Transparente Preise ab €95' },
+    { title: 'Termin buchen', path: '/warteliste/', description: 'Jetzt auf die Warteliste' },
   ],
   '/familien-fotoshooting-wien/': [
-    { title: 'Neugeborenenfotos', path: '/neugeborenenfotos-wien/', description: 'Für Neugeborene' },
-    { title: 'Babyfotos', path: '/babyfotos-wien/', description: 'Für Babys 3–12 Monate' },
-    { title: 'Studio-Fotografie', path: '/studio-fotografie-wien/', description: 'Im professionellen Studio' }
+    { title: 'Familienfotos Wien', path: '/familienfotos-wien/', description: 'Unser Pillar für Familienfotografie' },
+    { title: 'Neugeborenenfotos Wien', path: '/neugeborenenfotos-wien/', description: 'Für die ersten Lebenstage' },
+    { title: 'Babyfotos Wien', path: '/babyfotos-wien/', description: 'Für Babys 3–12 Monate' },
+    { title: 'Kinderfotografie Wien', path: '/kinder-fotografie-wien/', description: 'Kinder natürlich fotografiert' },
+    { title: 'Preise & Pakete', path: '/preise/', description: 'Transparente Preise ab €95' },
+    { title: 'Termin buchen', path: '/warteliste/', description: 'Jetzt auf die Warteliste' },
   ],
-  '/familienfotos-wien/': [
-    { title: 'Neugeborenenfotos', path: '/neugeborenenfotos-wien/', description: 'Für Neugeborene' },
-    { title: 'Babyfotos', path: '/babyfotos-wien/', description: 'Für Babys 3–12 Monate' },
-    { title: 'Studio-Fotografie', path: '/studio-fotografie-wien/', description: 'Im professionellen Studio' }
+  '/neugeborenenfotos-wien/': [
+    { title: 'Familienfotos Wien', path: '/familienfotos-wien/', description: 'Für die ganze Familie' },
+    { title: 'Schwangerschaftsfotos Wien', path: '/schwangerschaftsfotos-wien/', description: 'Babybauch-Shooting' },
+    { title: 'Babyfotos Wien', path: '/babyfotos-wien/', description: 'Für Babys 3–12 Monate' },
+    { title: 'Studio-Fotografie Wien', path: '/studio-fotografie-wien/', description: 'Unser modernes Studio' },
+    { title: 'Preise & Pakete', path: '/preise/', description: 'Transparente Preise ab €95' },
+    { title: 'Termin buchen', path: '/warteliste/', description: 'Jetzt auf die Warteliste' },
+  ],
+  '/babyfotos-wien/': [
+    { title: 'Neugeborenenfotos Wien', path: '/neugeborenenfotos-wien/', description: 'Für die ersten 14 Tage' },
+    { title: 'Familienfotos Wien', path: '/familienfotos-wien/', description: 'Mit der ganzen Familie' },
+    { title: 'Kinderfotografie Wien', path: '/kinder-fotografie-wien/', description: 'Kinder natürlich fotografiert' },
+    { title: 'Studio-Fotografie Wien', path: '/studio-fotografie-wien/', description: 'Im professionellen Studio' },
+    { title: 'Preise & Pakete', path: '/preise/', description: 'Transparente Preise ab €95' },
+    { title: 'Termin buchen', path: '/warteliste/', description: 'Jetzt auf die Warteliste' },
+  ],
+  '/schwangerschaftsfotos-wien/': [
+    { title: 'Neugeborenenfotos Wien', path: '/neugeborenenfotos-wien/', description: 'Nach der Geburt' },
+    { title: 'Familienfotos Wien', path: '/familienfotos-wien/', description: 'Mit der ganzen Familie' },
+    { title: 'Babyfotos Wien', path: '/babyfotos-wien/', description: 'Für Babys 3–12 Monate' },
+    { title: 'Studio-Fotografie Wien', path: '/studio-fotografie-wien/', description: 'Im modernen Studio' },
+    { title: 'Preise & Pakete', path: '/preise/', description: 'Transparente Preise ab €95' },
+    { title: 'Termin buchen', path: '/warteliste/', description: 'Jetzt auf die Warteliste' },
+  ],
+  '/kinder-fotografie-wien/': [
+    { title: 'Familienfotos Wien', path: '/familienfotos-wien/', description: 'Mit der ganzen Familie' },
+    { title: 'Neugeborenenfotos Wien', path: '/neugeborenenfotos-wien/', description: 'Für Neugeborene' },
+    { title: 'Babyfotos Wien', path: '/babyfotos-wien/', description: 'Für Babys 3–12 Monate' },
+    { title: 'Studio-Fotografie Wien', path: '/studio-fotografie-wien/', description: 'Im professionellen Studio' },
+    { title: 'Preise & Pakete', path: '/preise/', description: 'Transparente Preise ab €95' },
+    { title: 'Termin buchen', path: '/warteliste/', description: 'Jetzt auf die Warteliste' },
+  ],
+
+  // --- BUSINESS CLUSTER (Pillar: /business-portrait-wien/) ---
+  '/business-portrait-wien/': [
+    { title: 'Bewerbungsfotos Wien', path: '/bewerbungsfotos-wien/', description: 'Für Karriere & HR' },
+    { title: 'Teamfotos Wien', path: '/teamfotos-wien/', description: 'Einheitliche Mitarbeiterbilder' },
+    { title: 'Portraitfotografie Wien', path: '/portrait-fotografie-wien/', description: 'Persönliche Portraits' },
+    { title: 'Studio-Fotografie Wien', path: '/studio-fotografie-wien/', description: 'Im professionellen Studio' },
+    { title: 'Preise & Pakete', path: '/preise/', description: 'Transparente Preise ab €95' },
+    { title: 'Termin buchen', path: '/warteliste/', description: 'Jetzt auf die Warteliste' },
+  ],
+  '/bewerbungsfotos-wien/': [
+    { title: 'Business Portrait Wien', path: '/business-portrait-wien/', description: 'Für LinkedIn & Website' },
+    { title: 'Teamfotos Wien', path: '/teamfotos-wien/', description: 'Einheitlicher Look fürs Team' },
+    { title: 'Portraitfotografie Wien', path: '/portrait-fotografie-wien/', description: 'Persönliche Portraits' },
+    { title: 'Studio-Fotografie Wien', path: '/studio-fotografie-wien/', description: 'Im professionellen Studio' },
+    { title: 'Preise & Pakete', path: '/preise/', description: 'Transparente Preise ab €95' },
+    { title: 'Termin buchen', path: '/warteliste/', description: 'Jetzt auf die Warteliste' },
   ],
   '/teamfotos-wien/': [
-    { title: 'Business Portraits', path: '/business-portrait-wien/', description: 'Einzelportraits' },
-    { title: 'Bewerbungsfotos', path: '/bewerbungsfotos-wien/', description: 'Für Bewerbungen' },
-    { title: 'Eventfotografie', path: '/eventfotografie-wien/', description: 'Für Firmenevents' }
-  ],
-  '/eventfotografie-wien/': [
-    { title: 'Hochzeitsfotografie', path: '/hochzeitsfotografie-wien/', description: 'Für euren großen Tag' },
-    { title: 'Business Portraits', path: '/business-portrait-wien/', description: 'Für LinkedIn & Website' },
-    { title: 'Alle Fotoshootings', path: '/fotoshootings/', description: 'Übersicht aller Angebote' }
-  ],
-  '/hochzeitsfotografie-wien/': [
-    { title: 'Eventfotografie', path: '/eventfotografie-wien/', description: 'Für andere Events' },
-    { title: 'Familienfotos', path: '/familien-fotoshooting-wien/', description: 'Für Familientreffen' },
-    { title: 'Alle Fotoshootings', path: '/fotoshootings/', description: 'Übersicht aller Angebote' }
+    { title: 'Business Portrait Wien', path: '/business-portrait-wien/', description: 'Einzelportraits für Profis' },
+    { title: 'Bewerbungsfotos Wien', path: '/bewerbungsfotos-wien/', description: 'Für Karriere & HR' },
+    { title: 'Eventfotografie Wien', path: '/eventfotografie-wien/', description: 'Für Firmenevents' },
+    { title: 'Portraitfotografie Wien', path: '/portrait-fotografie-wien/', description: 'Persönliche Portraits' },
+    { title: 'Preise & Pakete', path: '/preise/', description: 'Transparente Preise ab €95' },
+    { title: 'Termin buchen', path: '/warteliste/', description: 'Jetzt auf die Warteliste' },
   ],
   '/portrait-fotografie-wien/': [
-    { title: 'Business Portraits', path: '/business-portrait-wien/', description: 'Für den professionellen Auftritt' },
-    { title: 'Bewerbungsfotos', path: '/bewerbungsfotos-wien/', description: 'Für Bewerbungen' },
-    { title: 'Studio-Fotografie', path: '/studio-fotografie-wien/', description: 'Im professionellen Studio' }
+    { title: 'Business Portrait Wien', path: '/business-portrait-wien/', description: 'Professioneller Auftritt' },
+    { title: 'Bewerbungsfotos Wien', path: '/bewerbungsfotos-wien/', description: 'Für Bewerbungen' },
+    { title: 'Familienfotos Wien', path: '/familienfotos-wien/', description: 'Für die ganze Familie' },
+    { title: 'Studio-Fotografie Wien', path: '/studio-fotografie-wien/', description: 'Im professionellen Studio' },
+    { title: 'Preise & Pakete', path: '/preise/', description: 'Transparente Preise ab €95' },
+    { title: 'Termin buchen', path: '/warteliste/', description: 'Jetzt auf die Warteliste' },
+  ],
+
+  // --- EVENT / WEDDING CLUSTER (Pillar: /hochzeitsfotografie-wien/) ---
+  '/eventfotografie-wien/': [
+    { title: 'Hochzeitsfotografie Wien', path: '/hochzeitsfotografie-wien/', description: 'Für euren großen Tag' },
+    { title: 'Business Portrait Wien', path: '/business-portrait-wien/', description: 'Für Firmenevents' },
+    { title: 'Teamfotos Wien', path: '/teamfotos-wien/', description: 'Mitarbeiterfotos vor Ort' },
+    { title: 'Portraitfotografie Wien', path: '/portrait-fotografie-wien/', description: 'Persönliche Portraits' },
+    { title: 'Preise & Pakete', path: '/preise/', description: 'Transparente Preise ab €95' },
+    { title: 'Termin buchen', path: '/warteliste/', description: 'Jetzt auf die Warteliste' },
+  ],
+  '/hochzeitsfotografie-wien/': [
+    { title: 'Eventfotografie Wien', path: '/eventfotografie-wien/', description: 'Für andere Events' },
+    { title: 'Familienfotos Wien', path: '/familienfotos-wien/', description: 'Für Familientreffen' },
+    { title: 'Portraitfotografie Wien', path: '/portrait-fotografie-wien/', description: 'Persönliche Portraits' },
+    { title: 'Studio-Fotografie Wien', path: '/studio-fotografie-wien/', description: 'Im modernen Studio' },
+    { title: 'Preise & Pakete', path: '/preise/', description: 'Transparente Preise ab €95' },
+    { title: 'Termin buchen', path: '/warteliste/', description: 'Jetzt auf die Warteliste' },
+  ],
+
+  // --- STUDIO / PRODUCT CLUSTER (Pillar: /studio-fotografie-wien/) ---
+  '/studio-fotografie-wien/': [
+    { title: 'Business Portrait Wien', path: '/business-portrait-wien/', description: 'Professionelle Businessfotos' },
+    { title: 'Familienfotos Wien', path: '/familienfotos-wien/', description: 'Familienshooting im Studio' },
+    { title: 'Portraitfotografie Wien', path: '/portrait-fotografie-wien/', description: 'Persönliche Portraits' },
+    { title: 'Produktfotografie Wien', path: '/produkt-fotografie-wien/', description: 'Professionelle Produktbilder' },
+    { title: 'Preise & Pakete', path: '/preise/', description: 'Transparente Preise ab €95' },
+    { title: 'Termin buchen', path: '/warteliste/', description: 'Jetzt auf die Warteliste' },
   ],
   '/produkt-fotografie-wien/': [
-    { title: 'Immobilienfotografie', path: '/immobilien-fotografie-wien/', description: 'Für Immobilien' },
-    { title: 'Business Portraits', path: '/business-portrait-wien/', description: 'Für LinkedIn & Website' },
-    { title: 'Alle Fotoshootings', path: '/fotoshootings/', description: 'Übersicht aller Angebote' }
+    { title: 'Studio-Fotografie Wien', path: '/studio-fotografie-wien/', description: 'Unser modernes Studio' },
+    { title: 'Immobilienfotografie Wien', path: '/immobilien-fotografie-wien/', description: 'Für Immobilien & Räume' },
+    { title: 'Business Portrait Wien', path: '/business-portrait-wien/', description: 'Für LinkedIn & Website' },
+    { title: 'Teamfotos Wien', path: '/teamfotos-wien/', description: 'Mitarbeiterfotos' },
+    { title: 'Preise & Pakete', path: '/preise/', description: 'Transparente Preise ab €95' },
+    { title: 'Termin buchen', path: '/warteliste/', description: 'Jetzt auf die Warteliste' },
   ],
   '/immobilien-fotografie-wien/': [
-    { title: 'Produktfotografie', path: '/produkt-fotografie-wien/', description: 'Für Produkte' },
-    { title: 'Business Portraits', path: '/business-portrait-wien/', description: 'Für Makler-Portraits' },
-    { title: 'Alle Fotoshootings', path: '/fotoshootings/', description: 'Übersicht aller Angebote' }
+    { title: 'Produktfotografie Wien', path: '/produkt-fotografie-wien/', description: 'Für Produkte & Objekte' },
+    { title: 'Studio-Fotografie Wien', path: '/studio-fotografie-wien/', description: 'Im professionellen Studio' },
+    { title: 'Business Portrait Wien', path: '/business-portrait-wien/', description: 'Für Makler-Portraits' },
+    { title: 'Teamfotos Wien', path: '/teamfotos-wien/', description: 'Mitarbeiterfotos' },
+    { title: 'Preise & Pakete', path: '/preise/', description: 'Transparente Preise ab €95' },
+    { title: 'Termin buchen', path: '/warteliste/', description: 'Jetzt auf die Warteliste' },
   ],
-  '/studio-fotografie-wien/': [
-    { title: 'Familienfotos', path: '/familien-fotoshooting-wien/', description: 'Mit der ganzen Familie' },
-    { title: 'Business Portraits', path: '/business-portrait-wien/', description: 'Für LinkedIn & Website' },
-    { title: 'Portraitfotografie', path: '/portrait-fotografie-wien/', description: 'Persönliche Portraits' }
-  ]
 };
 
 // Default links if page not in map
 const defaultLinks: RelatedServiceLink[] = [
-  { title: 'Familienfotos', path: '/familien-fotoshooting-wien/', description: 'Für die ganze Familie' },
-  { title: 'Business Portraits', path: '/business-portrait-wien/', description: 'Professionelle Portraits' },
-  { title: 'Alle Fotoshootings', path: '/fotoshootings/', description: 'Übersicht aller Angebote' }
+  { title: 'Familienfotos Wien', path: '/familienfotos-wien/', description: 'Für die ganze Familie' },
+  { title: 'Business Portrait Wien', path: '/business-portrait-wien/', description: 'Professionelle Portraits' },
+  { title: 'Neugeborenenfotos Wien', path: '/neugeborenenfotos-wien/', description: 'Ab 5 Tage nach der Geburt' },
+  { title: 'Preise & Pakete', path: '/preise/', description: 'Transparente Preise ab €95' },
+  { title: 'Termin buchen', path: '/warteliste/', description: 'Jetzt auf die Warteliste' },
 ];
 
 export function RelatedServices({ currentPath, title = 'Weitere Fotoshootings in Wien' }: RelatedServicesProps) {
@@ -107,31 +168,53 @@ export function RelatedServices({ currentPath, title = 'Weitere Fotoshootings in
 
   if (filteredLinks.length === 0) return null;
 
+  // Separate CTA links from service links
+  const serviceItems = filteredLinks.filter(l => l.path !== '/preise/' && l.path !== '/warteliste/');
+  const ctaItems = filteredLinks.filter(l => l.path === '/preise/' || l.path === '/warteliste/');
+
   return (
-    <section className="py-12 bg-gray-50" data-seo="related-services">
+    <section className="py-14 bg-gray-50" data-seo="related-services">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 className="text-2xl md:text-3xl font-bold text-purple-900 mb-8 text-center">
           {title}
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {filteredLinks.map((link, index) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+          {serviceItems.map((link, index) => (
             <Link
               key={index}
               to={link.path}
-              className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow group"
+              className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-purple-200 transition-all group"
             >
-              <h3 className="text-lg font-semibold text-purple-800 mb-2 group-hover:text-purple-600 transition-colors">
+              <h3 className="text-base font-semibold text-purple-800 mb-1.5 group-hover:text-purple-600 transition-colors leading-snug">
                 {link.title}
               </h3>
               {link.description && (
-                <p className="text-gray-600 text-sm mb-3">{link.description}</p>
+                <p className="text-gray-500 text-sm mb-3 leading-snug">{link.description}</p>
               )}
               <span className="inline-flex items-center text-purple-600 text-sm font-medium group-hover:text-purple-700">
-                Mehr erfahren <ArrowRight className="ml-1 h-4 w-4" />
+                Mehr erfahren <ArrowRight className="ml-1 h-3.5 w-3.5" />
               </span>
             </Link>
           ))}
         </div>
+        {ctaItems.length > 0 && (
+          <div className="flex flex-col sm:flex-row justify-center gap-4 pt-2">
+            {ctaItems.map((link, index) => (
+              <Link
+                key={index}
+                to={link.path}
+                className={`inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-semibold text-sm transition-all ${
+                  link.path === '/warteliste/'
+                    ? 'bg-purple-600 text-white hover:bg-purple-700 shadow-md hover:shadow-lg'
+                    : 'bg-white border-2 border-purple-300 text-purple-700 hover:border-purple-500 hover:bg-purple-50'
+                }`}
+              >
+                {link.path === '/warteliste/' ? <Calendar className="h-4 w-4" /> : <Euro className="h-4 w-4" />}
+                {link.title}
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

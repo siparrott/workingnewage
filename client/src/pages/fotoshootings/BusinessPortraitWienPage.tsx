@@ -170,6 +170,27 @@ export default function BusinessPortraitWienPage() {
                   ? 'Sie kommen mit Outfits – wir liefern starke, markenkonforme Portraits in High-Res, vollständig retuschiert und mit kommerziellen Nutzungsrechten für Web, Social Media, Presse und Print.'
                   : 'You bring the outfits – we deliver strong, brand-aligned portraits in high-res, fully retouched with commercial usage rights for web, social media, press and print.'}
               </p>
+              <p className="text-base text-gray-600 leading-relaxed mt-4">
+                {language === 'de' ? (
+                  <>
+                    Neben <Link to="/business-portrait-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Business Portrait Wien</Link> bieten
+                    wir auch <Link to="/teamfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Teamfotos Wien</Link>,{' '}
+                    <Link to="/bewerbungsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Bewerbungsfotos Wien</Link>,{' '}
+                    <Link to="/eventfotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Eventfotografie Wien</Link> und{' '}
+                    <Link to="/portrait-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Portraitfotografie Wien</Link> an.
+                    Alle <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Preise & Business-Pakete</Link> ab €95.
+                  </>
+                ) : (
+                  <>
+                    We also offer{' '}
+                    <Link to="/teamfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">team photos Vienna</Link>,{' '}
+                    <Link to="/bewerbungsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">application photos Vienna</Link>, and{' '}
+                    <Link to="/eventfotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">event photography Vienna</Link>.
+                    See all <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">packages from €95</Link>.
+                  </>
+                )}
+              </p>
+              </p>
             </div>
             <div>
               <img

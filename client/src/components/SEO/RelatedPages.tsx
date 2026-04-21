@@ -14,146 +14,184 @@ const SITE_LINKS: Record<string, RelatedLink[]> = {
     { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
     { href: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaftsfotos Wien' },
     { href: '/business-portrait-wien/', label: 'Business Portrait Wien' },
+    { href: '/hochzeitsfotografie-wien/', label: 'Hochzeitsfotografie Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
-    { href: '/vouchers', label: 'Geschenkgutscheine' },
+    { href: '/warteliste/', label: 'Termin buchen' },
+    { href: '/vouchers/', label: 'Geschenkgutscheine' },
   ],
 
-  // --- FAMILY CLUSTER ---
+  // --- FAMILY CLUSTER (Pillar: /familienfotos-wien/) ---
   '/familienfotos-wien/': [
     { href: '/familien-fotoshooting-wien/', label: 'Familien-Fotoshooting Wien' },
     { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
-    { href: '/baby-fotografie-wien/', label: 'Baby Fotografie Wien' },
+    { href: '/babyfotos-wien/', label: 'Babyfotos Wien' },
     { href: '/kinder-fotografie-wien/', label: 'Kinderfotografie Wien' },
+    { href: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaftsfotos Wien' },
+    { href: '/studio-fotografie-wien/', label: 'Studio-Fotografie Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
-    { href: '/gutschein/family', label: 'Familien-Gutschein' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
   '/familien-fotoshooting-wien/': [
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
     { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
     { href: '/kinder-fotografie-wien/', label: 'Kinderfotografie Wien' },
+    { href: '/babyfotos-wien/', label: 'Babyfotos Wien' },
+    { href: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaftsfotos Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
-    { href: '/gutschein/family', label: 'Familien-Gutschein' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
   '/neugeborenenfotos-wien/': [
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
-    { href: '/baby-fotografie-wien/', label: 'Baby Fotografie Wien' },
+    { href: '/babyfotos-wien/', label: 'Babyfotos Wien' },
     { href: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaftsfotos Wien' },
+    { href: '/kinder-fotografie-wien/', label: 'Kinderfotografie Wien' },
+    { href: '/studio-fotografie-wien/', label: 'Studio-Fotografie Wien' },
+    { href: '/gutschein/newborn/', label: 'Neugeborenen-Gutschein' },
     { href: '/preise/', label: 'Preise & Pakete' },
-    { href: '/gutschein/newborn', label: 'Neugeborenen-Gutschein' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
   '/babyfotos-wien/': [
-    { href: '/baby-fotografie-wien/', label: 'Baby Fotografie Wien' },
     { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
+    { href: '/kinder-fotografie-wien/', label: 'Kinderfotografie Wien' },
+    { href: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaftsfotos Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
   '/baby-fotografie-wien/': [
     { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
     { href: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaftsfotos Wien' },
+    { href: '/kinder-fotografie-wien/', label: 'Kinderfotografie Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
-    { href: '/gutschein/newborn', label: 'Neugeborenen-Gutschein' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
   '/kinder-fotografie-wien/': [
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
     { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
+    { href: '/babyfotos-wien/', label: 'Babyfotos Wien' },
+    { href: '/familien-fotoshooting-wien/', label: 'Familien-Fotoshooting Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
-    { href: '/gutschein/family', label: 'Familien-Gutschein' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
   '/schwangerschaftsfotos-wien/': [
     { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
-    { href: '/baby-fotografie-wien/', label: 'Baby Fotografie Wien' },
+    { href: '/babyfotos-wien/', label: 'Babyfotos Wien' },
+    { href: '/kinder-fotografie-wien/', label: 'Kinderfotografie Wien' },
+    { href: '/gutschein/maternity/', label: 'Schwangerschafts-Gutschein' },
     { href: '/preise/', label: 'Preise & Pakete' },
-    { href: '/gutschein/maternity', label: 'Schwangerschafts-Gutschein' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
 
-  // --- BUSINESS CLUSTER ---
+  // --- BUSINESS CLUSTER (Pillar: /business-portrait-wien/) ---
   '/business-portrait-wien/': [
     { href: '/teamfotos-wien/', label: 'Teamfotos Wien' },
     { href: '/bewerbungsfotos-wien/', label: 'Bewerbungsfotos Wien' },
     { href: '/portrait-fotografie-wien/', label: 'Portraitfotografie Wien' },
+    { href: '/studio-fotografie-wien/', label: 'Studio-Fotografie Wien' },
+    { href: '/eventfotografie-wien/', label: 'Eventfotografie Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
-    { href: '/kontakt', label: 'Termin anfragen' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
   '/teamfotos-wien/': [
     { href: '/business-portrait-wien/', label: 'Business Portrait Wien' },
     { href: '/bewerbungsfotos-wien/', label: 'Bewerbungsfotos Wien' },
+    { href: '/eventfotografie-wien/', label: 'Eventfotografie Wien' },
+    { href: '/portrait-fotografie-wien/', label: 'Portraitfotografie Wien' },
+    { href: '/studio-fotografie-wien/', label: 'Studio-Fotografie Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
-    { href: '/kontakt', label: 'Termin anfragen' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
   '/bewerbungsfotos-wien/': [
     { href: '/business-portrait-wien/', label: 'Business Portrait Wien' },
     { href: '/portrait-fotografie-wien/', label: 'Portraitfotografie Wien' },
     { href: '/teamfotos-wien/', label: 'Teamfotos Wien' },
+    { href: '/studio-fotografie-wien/', label: 'Studio-Fotografie Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
   '/portrait-fotografie-wien/': [
     { href: '/business-portrait-wien/', label: 'Business Portrait Wien' },
     { href: '/bewerbungsfotos-wien/', label: 'Bewerbungsfotos Wien' },
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
+    { href: '/studio-fotografie-wien/', label: 'Studio-Fotografie Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
 
-  // --- EVENT / WEDDING CLUSTER ---
+  // --- EVENT / WEDDING CLUSTER (Pillar: /hochzeitsfotografie-wien/) ---
   '/eventfotografie-wien/': [
     { href: '/hochzeitsfotografie-wien/', label: 'Hochzeitsfotografie Wien' },
     { href: '/business-portrait-wien/', label: 'Business Portrait Wien' },
+    { href: '/teamfotos-wien/', label: 'Teamfotos Wien' },
+    { href: '/portrait-fotografie-wien/', label: 'Portraitfotografie Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
-    { href: '/kontakt', label: 'Termin anfragen' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
   '/hochzeitsfotografie-wien/': [
     { href: '/eventfotografie-wien/', label: 'Eventfotografie Wien' },
     { href: '/portrait-fotografie-wien/', label: 'Portraitfotografie Wien' },
+    { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
+    { href: '/studio-fotografie-wien/', label: 'Studio-Fotografie Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
-    { href: '/kontakt', label: 'Termin anfragen' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
-  '/fotoshootings/wedding': [
+  '/fotoshootings/wedding/': [
     { href: '/hochzeitsfotografie-wien/', label: 'Hochzeitsfotografie Wien' },
     { href: '/eventfotografie-wien/', label: 'Eventfotografie Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
-  '/fotoshootings/event': [
+  '/fotoshootings/event/': [
     { href: '/eventfotografie-wien/', label: 'Eventfotografie Wien' },
     { href: '/hochzeitsfotografie-wien/', label: 'Hochzeitsfotografie Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
-  '/fotoshootings/business': [
+  '/fotoshootings/business/': [
     { href: '/business-portrait-wien/', label: 'Business Portrait Wien' },
     { href: '/teamfotos-wien/', label: 'Teamfotos Wien' },
     { href: '/bewerbungsfotos-wien/', label: 'Bewerbungsfotos Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
 
-  // --- PRODUCT / STUDIO ---
+  // --- STUDIO / PRODUCT CLUSTER (Pillar: /studio-fotografie-wien/) ---
   '/produkt-fotografie-wien/': [
     { href: '/studio-fotografie-wien/', label: 'Studio-Fotografie Wien' },
     { href: '/immobilien-fotografie-wien/', label: 'Immobilienfotografie Wien' },
     { href: '/business-portrait-wien/', label: 'Business Portrait Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
-    { href: '/kontakt', label: 'Termin anfragen' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
   '/immobilien-fotografie-wien/': [
     { href: '/produkt-fotografie-wien/', label: 'Produktfotografie Wien' },
     { href: '/studio-fotografie-wien/', label: 'Studio-Fotografie Wien' },
+    { href: '/business-portrait-wien/', label: 'Business Portrait Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
-    { href: '/kontakt', label: 'Termin anfragen' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
   '/studio-fotografie-wien/': [
     { href: '/portrait-fotografie-wien/', label: 'Portraitfotografie Wien' },
     { href: '/business-portrait-wien/', label: 'Business Portrait Wien' },
+    { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
+    { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
     { href: '/produkt-fotografie-wien/', label: 'Produktfotografie Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
 
   // --- FOTOSHOOTINGS HUB ---
-  '/fotoshootings': [
+  '/fotoshootings/': [
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
     { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
-    { href: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaftsfotos Wien' },
     { href: '/business-portrait-wien/', label: 'Business Portrait Wien' },
     { href: '/hochzeitsfotografie-wien/', label: 'Hochzeitsfotografie Wien' },
+    { href: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaftsfotos Wien' },
+    { href: '/studio-fotografie-wien/', label: 'Studio-Fotografie Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
 
   // --- SUPPORT / INFO ---
@@ -161,109 +199,134 @@ const SITE_LINKS: Record<string, RelatedLink[]> = {
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
     { href: '/business-portrait-wien/', label: 'Business Portrait Wien' },
     { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
-    { href: '/vouchers', label: 'Geschenkgutscheine' },
-    { href: '/kontakt', label: 'Termin anfragen' },
+    { href: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaftsfotos Wien' },
+    { href: '/studio-fotografie-wien/', label: 'Studio-Fotografie Wien' },
+    { href: '/vouchers/', label: 'Geschenkgutscheine' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
   '/kundenstimmen/': [
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
     { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
+    { href: '/business-portrait-wien/', label: 'Business Portrait Wien' },
+    { href: '/hochzeitsfotografie-wien/', label: 'Hochzeitsfotografie Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
-    { href: '/kontakt', label: 'Termin anfragen' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
   '/ueber-uns/': [
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
-    { href: '/portfolio', label: 'Portfolio' },
+    { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
+    { href: '/portfolio/', label: 'Portfolio' },
     { href: '/kundenstimmen/', label: 'Kundenstimmen' },
-    { href: '/kontakt', label: 'Termin anfragen' },
+    { href: '/preise/', label: 'Preise & Pakete' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
-  '/portfolio': [
+  '/portfolio/': [
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
     { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
     { href: '/hochzeitsfotografie-wien/', label: 'Hochzeitsfotografie Wien' },
     { href: '/business-portrait-wien/', label: 'Business Portrait Wien' },
+    { href: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaftsfotos Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
-  '/kontakt': [
+  '/kontakt/': [
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
     { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
+    { href: '/business-portrait-wien/', label: 'Business Portrait Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
-    { href: '/vouchers', label: 'Geschenkgutscheine' },
-    { href: '/warteliste', label: 'Warteliste' },
+    { href: '/vouchers/', label: 'Geschenkgutscheine' },
+    { href: '/warteliste/', label: 'Warteliste' },
   ],
-  '/warteliste': [
+  '/warteliste/': [
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
     { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
+    { href: '/business-portrait-wien/', label: 'Business Portrait Wien' },
+    { href: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaftsfotos Wien' },
+    { href: '/hochzeitsfotografie-wien/', label: 'Hochzeitsfotografie Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
-    { href: '/kontakt', label: 'Kontakt' },
   ],
   '/faq/': [
     { href: '/preise/', label: 'Preise & Pakete' },
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
-    { href: '/kontakt', label: 'Termin anfragen' },
-    { href: '/kundenstimmen/', label: 'Kundenstimmen' },
+    { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
+    { href: '/business-portrait-wien/', label: 'Business Portrait Wien' },
+    { href: '/kontakt/', label: 'Kontakt & Beratung' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
-  '/galleries': [
-    { href: '/portfolio', label: 'Portfolio' },
+  '/galleries/': [
+    { href: '/portfolio/', label: 'Portfolio' },
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
-    { href: '/kontakt', label: 'Termin anfragen' },
+    { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
+    { href: '/preise/', label: 'Preise & Pakete' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
 
   // --- VOUCHERS / GUTSCHEINE ---
-  '/vouchers': [
-    { href: '/gutschein/family', label: 'Familien-Gutschein' },
-    { href: '/gutschein/newborn', label: 'Neugeborenen-Gutschein' },
-    { href: '/gutschein/maternity', label: 'Schwangerschafts-Gutschein' },
-    { href: '/preise/', label: 'Preise & Pakete' },
+  '/vouchers/': [
+    { href: '/gutschein/family/', label: 'Familien-Gutschein' },
+    { href: '/gutschein/newborn/', label: 'Neugeborenen-Gutschein' },
+    { href: '/gutschein/maternity/', label: 'Schwangerschafts-Gutschein' },
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
-  ],
-  '/gutschein': [
-    { href: '/gutschein/family', label: 'Familien-Gutschein' },
-    { href: '/gutschein/newborn', label: 'Neugeborenen-Gutschein' },
-    { href: '/gutschein/maternity', label: 'Schwangerschafts-Gutschein' },
-    { href: '/preise/', label: 'Preise & Pakete' },
-  ],
-  '/gutschein/family': [
-    { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
-    { href: '/gutschein/newborn', label: 'Neugeborenen-Gutschein' },
-    { href: '/vouchers', label: 'Alle Gutscheine' },
-    { href: '/preise/', label: 'Preise & Pakete' },
-  ],
-  '/gutschein/newborn': [
     { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
-    { href: '/gutschein/family', label: 'Familien-Gutschein' },
-    { href: '/gutschein/maternity', label: 'Schwangerschafts-Gutschein' },
-    { href: '/vouchers', label: 'Alle Gutscheine' },
     { href: '/preise/', label: 'Preise & Pakete' },
   ],
-  '/gutschein/maternity': [
-    { href: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaftsfotos Wien' },
-    { href: '/gutschein/newborn', label: 'Neugeborenen-Gutschein' },
-    { href: '/gutschein/family', label: 'Familien-Gutschein' },
-    { href: '/vouchers', label: 'Alle Gutscheine' },
+  '/gutschein/': [
+    { href: '/gutschein/family/', label: 'Familien-Gutschein' },
+    { href: '/gutschein/newborn/', label: 'Neugeborenen-Gutschein' },
+    { href: '/gutschein/maternity/', label: 'Schwangerschafts-Gutschein' },
+    { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
+    { href: '/warteliste/', label: 'Termin buchen' },
+  ],
+  '/gutschein/family/': [
+    { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
+    { href: '/gutschein/newborn/', label: 'Neugeborenen-Gutschein' },
+    { href: '/gutschein/maternity/', label: 'Schwangerschafts-Gutschein' },
+    { href: '/vouchers/', label: 'Alle Gutscheine' },
+    { href: '/preise/', label: 'Preise & Pakete' },
+    { href: '/warteliste/', label: 'Termin buchen' },
+  ],
+  '/gutschein/newborn/': [
+    { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
+    { href: '/gutschein/family/', label: 'Familien-Gutschein' },
+    { href: '/gutschein/maternity/', label: 'Schwangerschafts-Gutschein' },
+    { href: '/vouchers/', label: 'Alle Gutscheine' },
+    { href: '/preise/', label: 'Preise & Pakete' },
+    { href: '/warteliste/', label: 'Termin buchen' },
+  ],
+  '/gutschein/maternity/': [
+    { href: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaftsfotos Wien' },
+    { href: '/gutschein/newborn/', label: 'Neugeborenen-Gutschein' },
+    { href: '/gutschein/family/', label: 'Familien-Gutschein' },
+    { href: '/vouchers/', label: 'Alle Gutscheine' },
+    { href: '/preise/', label: 'Preise & Pakete' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
 
   // --- CALCULATOR ---
-  '/calculator': [
+  '/calculator/': [
     { href: '/preise/', label: 'Preise & Pakete' },
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
     { href: '/business-portrait-wien/', label: 'Business Portrait Wien' },
-    { href: '/kontakt', label: 'Termin anfragen' },
+    { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
+    { href: '/kontakt/', label: 'Persönliche Beratung' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
 
   // --- BLOG ---
-  '/blog': [
+  '/blog/': [
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
     { href: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
+    { href: '/business-portrait-wien/', label: 'Business Portrait Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
-    { href: '/kontakt', label: 'Termin anfragen' },
+    { href: '/warteliste/', label: 'Termin buchen' },
   ],
 
   // --- LEGAL ---
   '/model-release/': [
     { href: '/familienfotos-wien/', label: 'Familienfotos Wien' },
     { href: '/ueber-uns/', label: 'Über uns' },
-    { href: '/kontakt', label: 'Kontakt' },
+    { href: '/kontakt/', label: 'Kontakt' },
   ],
 };
 

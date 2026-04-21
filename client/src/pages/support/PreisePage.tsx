@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Camera, Baby, Heart, Users, Briefcase, User, Check, Gift, Info } from 'lucide-react';
 import Layout from '../../components/layout/Layout';
+import { PillarLinksBlock } from '../../components/SEO/PillarLinksBlock';
 import { SEOHead } from '../../components/SEO/SEOHead';
 
 const PreisePage: React.FC = () => {
@@ -485,6 +486,7 @@ const PreisePage: React.FC = () => {
           </div>
         </section>
       </div>
+      <PillarLinksBlock currentPath="/preise/" />
     </Layout>
   );
 };

@@ -172,6 +172,15 @@ export default function NeugeborenenfotosWienPage() {
                 schläfrig sind. Aber keine Sorge – auch bis zur 6. Woche machen wir wunderschöne Aufnahmen, dann mit mehr 
                 wachen Momenten und Kuschelbildern mit den Eltern.
               </p>
+              <p className="text-base text-gray-600 leading-relaxed mt-4">
+                Ergänzend zu Neugeborenenfotos bieten wir auch{' '}
+                <Link to="/schwangerschaftsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Schwangerschaftsfotos Wien</Link>,{' '}
+                <Link to="/babyfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Babyfotos Wien</Link> (3–12 Monate) und{' '}
+                <Link to="/familienfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Familienfotos Wien</Link> an –
+                ideal um die ersten Jahre Ihres Kindes vollständig festzuhalten.
+                Alle <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Preise & Pakete</Link> ab €95.
+                Jetzt <Link to="/warteliste/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Termin buchen</Link>.
+              </p>
             </div>
             <div>
               <img

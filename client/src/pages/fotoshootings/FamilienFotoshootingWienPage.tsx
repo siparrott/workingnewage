@@ -1,6 +1,7 @@
 import React from 'react';
 import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
+import { RelatedServices } from '../../components/SEO/RelatedServices';
 import { Link } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check } from 'lucide-react';
 import VoucherPackagesList from '../../components/vouchers/VoucherPackagesList';
@@ -281,6 +282,7 @@ export default function FamilienFotoshootingWienPage() {
       </section>
 
     </div>
+      <RelatedServices currentPath="/familien-fotoshooting-wien/" />
     </Layout>
   );
 }

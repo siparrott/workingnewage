@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Quote, Camera, Heart, Users, Baby, Briefcase, Phone } from 'lucide-react';
 import Layout from '../../components/layout/Layout';
+import { PillarLinksBlock } from '../../components/SEO/PillarLinksBlock';
 import { SEOHead } from '../../components/SEO/SEOHead';
 
 interface Testimonial {
@@ -370,6 +371,7 @@ const KundenstimmenPage: React.FC = () => {
           </div>
         </section>
       </div>
+      <PillarLinksBlock currentPath="/kundenstimmen/" title="Unsere Fotoshootings in Wien" />
     </Layout>
   );
 };

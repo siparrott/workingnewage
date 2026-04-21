@@ -184,6 +184,48 @@ export default function FamilienfotosWienPage() {
                   ? 'Bringt gerne eure Persönlichkeit mit: Lieblingsspielzeug der Kinder, Musikinstrumente, Sportgeräte oder das Familienmaskottchen. Diese persönlichen Details machen eure Fotos einzigartig und erzählen eure Geschichte.'
                   : 'Feel free to bring your personality along: children\'s favorite toys, musical instruments, sports equipment, or the family mascot. These personal details make your photos unique and tell your story.'}
               </p>
+              <p className="text-base text-gray-600 leading-relaxed mt-4">
+                {language === 'de' ? (
+                  <>
+                    Ergänzend zu <Link to="/familien-fotoshooting-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Familien-Fotoshootings Wien</Link> bieten
+                    wir auch <Link to="/neugeborenenfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Neugeborenenfotos Wien</Link>,{' '}
+                    <Link to="/schwangerschaftsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Schwangerschaftsfotos Wien</Link>,{' '}
+                    <Link to="/babyfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Babyfotos Wien</Link> und{' '}
+                    <Link to="/kinder-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Kinderfotografie Wien</Link> an.
+                    Alle <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Preise & Pakete</Link> ab €95.
+                  </>
+                ) : (
+                  <>
+                    In addition to family shootings, we also offer{' '}
+                    <Link to="/neugeborenenfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">newborn photography Vienna</Link>,{' '}
+                    <Link to="/schwangerschaftsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">maternity photos Vienna</Link>, and{' '}
+                    <Link to="/babyfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">baby photography Vienna</Link>.
+                    All <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">packages from €95</Link>.
+                  </>
+                )}
+              </p>
+              </p>
+              <p className="text-base text-gray-600 leading-relaxed mt-4">
+                {language === 'de' ? (
+                  <>
+                    Ergänzend zu <Link to="/familien-fotoshooting-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Familien-Fotoshootings Wien</Link> bieten
+                    wir auch <Link to="/neugeborenenfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Neugeborenenfotos Wien</Link>,{' '}
+                    <Link to="/schwangerschaftsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Schwangerschaftsfotos Wien</Link>,{' '}
+                    <Link to="/babyfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Babyfotos Wien</Link> und{' '}
+                    <Link to="/kinder-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Kinderfotografie Wien</Link> an.
+                    Alle <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Preise & Pakete</Link> ab €95.
+                  </>
+                ) : (
+                  <>
+                    In addition to family shootings, we also offer{' '}
+                    <Link to="/neugeborenenfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">newborn photography Vienna</Link>,{' '}
+                    <Link to="/schwangerschaftsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">maternity photos Vienna</Link>, and{' '}
+                    <Link to="/babyfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">baby photography Vienna</Link>.
+                    All <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">packages from €95</Link>.
+                  </>
+                )}
+              </p>
+              </p>
             </div>
             <div>
               <img

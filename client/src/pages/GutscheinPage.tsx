@@ -1,5 +1,6 @@
 import React from 'react';
 import Layout from '../components/layout/Layout';
+import { PillarLinksBlock } from '../components/SEO/PillarLinksBlock';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Heart, Baby } from 'lucide-react';
 import { useManualPageContent } from '../hooks/useManualPageContent';
@@ -90,6 +91,7 @@ const GutscheinPage: React.FC = () => {
           })}
         </div>
       </div>
+      <PillarLinksBlock currentPath="/gutschein/" title="Gutschein für welches Shooting?" />
     </Layout>
   );
 };

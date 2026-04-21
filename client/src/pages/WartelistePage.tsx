@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
+import { PillarLinksBlock } from '../components/SEO/PillarLinksBlock';
 import { Calendar, Mail, Phone, User, Camera, Gift, ChevronRight } from 'lucide-react';
 import { submitWaitlistForm } from '../lib/forms';
 import { useManualPageContent } from '../hooks/useManualPageContent';
@@ -198,6 +199,7 @@ const WartelistePage: React.FC = () => {
           </p>
         </div>
       </div>
+      <PillarLinksBlock currentPath="/warteliste/" title="Welches Shooting interessiert Sie?" />
     </Layout>
   );
 };

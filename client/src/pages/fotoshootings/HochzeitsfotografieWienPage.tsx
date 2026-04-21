@@ -169,7 +169,32 @@ export default function HochzeitsfotografieWienPage() {
 
         <GoogleReviews />
 
-        {/* Extended Content Section - Safe Copy Slot */}
+        {/* Contextual cross-links for SEO */}
+        <section className="py-8 bg-purple-50">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p className="text-base text-gray-600 leading-relaxed">
+              {language === 'de' ? (
+                <>
+                  Neben <strong>Hochzeitsfotografie Wien</strong> bieten wir auch{' '}
+                  <Link to="/eventfotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Eventfotografie Wien</Link>,{' '}
+                  <Link to="/familienfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Familienfotos Wien</Link> und{' '}
+                  <Link to="/portrait-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Portraitfotografie Wien</Link> an.
+                  Alle{' '}<Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Hochzeitsfotos-Pakete & Preise</Link> – oder direkt{' '}
+                  <Link to="/warteliste/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Termin buchen</Link>.
+                </>
+              ) : (
+                <>
+                  Besides wedding photography, we also offer{' '}
+                  <Link to="/eventfotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">event photography Vienna</Link> and{' '}
+                  <Link to="/portrait-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">portrait photography Vienna</Link>.
+                  View <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">all packages & prices</Link>.
+                </>
+              )}
+            </p>
+          </div>
+        </section>
+
+        {/* Extended Content Section - Safe Copy Slot */}}
         {language === 'de' && <MarkdownCopySlot content={newageCopyMap['hochzeitsfotografie-wien'].markdown} />}
 
         {/* Feature Image 4 */}

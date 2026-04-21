@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown, Camera, Calendar, CreditCard, Image, Phone, Mail } from 'lucide-react';
+import { PillarLinksBlock } from '../../components/SEO/PillarLinksBlock';
 import Layout from '../../components/layout/Layout';
 import { SEOHead } from '../../components/SEO/SEOHead';
 
@@ -319,6 +320,7 @@ const FAQPage: React.FC = () => {
           </div>
         </section>
       </div>
+      <PillarLinksBlock currentPath="/faq/" title="Alle Fotoshootings in Wien" />
     </Layout>
   );
 };

@@ -197,6 +197,33 @@ const StudioFotografieWienPage: React.FC = () => {
       {/* Google Reviews */}
       <GoogleReviews />
 
+      {/* Contextual cross-links for SEO */}
+      <section className="py-8 bg-purple-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <p className="text-base text-gray-600 leading-relaxed">
+            {language === 'de' ? (
+              <>
+                Unser{' '}<Link to="/studio-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Fotostudio Wien</Link>{' '}ist die Heimat für{' '}
+                <Link to="/familienfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Familienfotos Wien</Link>,{' '}
+                <Link to="/neugeborenenfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Neugeborenenfotos Wien</Link>,{' '}
+                <Link to="/business-portrait-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Business Portrait Wien</Link> und{' '}
+                <Link to="/produkt-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Produktfotografie Wien</Link>.
+                Alle <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Studio-Pakete & Preise</Link> oder{' '}
+                <Link to="/warteliste/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Termin buchen</Link>.
+              </>
+            ) : (
+              <>
+                Our photo studio Vienna is home to{' '}
+                <Link to="/familienfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">family photos Vienna</Link>,{' '}
+                <Link to="/business-portrait-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">business portrait Vienna</Link>, and{' '}
+                <Link to="/produkt-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">product photography Vienna</Link>.
+                View <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">all packages & prices</Link>.
+              </>
+            )}
+          </p>
+        </div>
+      </section>
+
       {/* Leistungen */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
