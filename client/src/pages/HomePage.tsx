@@ -411,6 +411,40 @@ const HomePage: React.FC = () => {
             }
           })}
         </script>
+
+        {/* FAQPage schema – mirrors visible FAQ content in HomepageConfidenceSection */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: [
+              'faq.worry1', 'faq.worry2', 'faq.worry3', 'faq.worry4', 'faq.worry5', 'faq.worry6',
+              'faq.clarity1', 'faq.clarity2', 'faq.clarity3'
+            ]
+              .map((base) => {
+                const q = t(`${base}.q`);
+                const a = t(`${base}.full`);
+                if (!q || q === `${base}.q` || !a || a === `${base}.full`) return null;
+                return {
+                  '@type': 'Question',
+                  name: q,
+                  acceptedAnswer: { '@type': 'Answer', text: a }
+                };
+              })
+              .filter(Boolean)
+          })}
+        </script>
+
+        {/* BreadcrumbList schema – root homepage */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.newagefotografie.com/' }
+            ]
+          })}
+        </script>
       </Helmet>
 
       {/* Hero Section */}
@@ -905,6 +939,70 @@ const HomePage: React.FC = () => {
 
       {/* FAQ / Confidence Section */}
       <HomepageConfidenceSection />
+
+      {/* Explore Related Photography Services – additive anchor-rich cluster for SEO */}
+      <section className="py-12 bg-white border-t border-gray-100" aria-labelledby="related-services-heading">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <h2 id="related-services-heading" className="text-2xl md:text-3xl font-bold text-center text-purple-900 mb-8">
+            {language === 'en'
+              ? 'Explore Related Photography Services in Vienna'
+              : 'Weitere Fotografie-Leistungen in Wien entdecken'}
+          </h2>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-center">
+            <li>
+              <Link to="/familienfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Family Photography Vienna' : 'Familienfotos Wien'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/neugeborenenfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Newborn Photography Vienna' : 'Neugeborenenfotos Wien'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/schwangerschaftsfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Maternity Photography Vienna' : 'Schwangerschaftsfotos Wien'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/business-portrait-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Business Headshots Vienna' : 'Business Portraits Wien'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/babyfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Baby Photography Vienna' : 'Babyfotos Wien'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/portfolio" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'View Full Portfolio' : 'Gesamtes Portfolio ansehen'}
+              </Link>
+            </li>
+          </ul>
+
+          {/* Contextual pre-footer CTA */}
+          <p className="text-center text-gray-700 mt-10 max-w-2xl mx-auto">
+            {language === 'en' ? (
+              <>
+                Ready to book your photography session in Vienna? View our{' '}
+                <Link to="/preise" className="text-purple-700 underline hover:text-purple-900 font-medium">pricing options</Link>
+                {' '}or{' '}
+                <Link to="/kontakt" className="text-purple-700 underline hover:text-purple-900 font-medium">get in touch</Link>
+                {' '}today.
+              </>
+            ) : (
+              <>
+                Bereit, Ihr Fotoshooting in Wien zu buchen? Sehen Sie unsere{' '}
+                <Link to="/preise" className="text-purple-700 underline hover:text-purple-900 font-medium">Preise</Link>
+                {' '}oder{' '}
+                <Link to="/kontakt" className="text-purple-700 underline hover:text-purple-900 font-medium">kontaktieren Sie uns</Link>
+                {' '}noch heute.
+              </>
+            )}
+          </p>
+        </div>
+      </section>
 
       {/* Contextual internal links for SEO authority flow */}
       <ContextualLinks pathname="/" language={language} />
