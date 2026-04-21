@@ -670,6 +670,41 @@ export default function BusinessPortraitWienPage() {
       {/* Related Services - Internal Links */}
       <RelatedServices currentPath="/business-portrait-wien/" />
 
+      {/* Weitere Business Fotoshootings – compact internal link block */}
+      <section className="py-12 bg-gray-50 border-t border-gray-100">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+            {language === 'de' ? 'Weitere Business Fotoshootings' : 'More Business Photo Shoots'}
+          </h3>
+          <ul className="grid sm:grid-cols-2 gap-3 mb-6 max-w-2xl mx-auto">
+            <li>
+              <Link to="/bewerbungsfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                {language === 'de' ? 'Bewerbungsfotos Wien' : 'Application Photos Vienna'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/teamfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                {language === 'de' ? 'Teamfotos Wien' : 'Team Photos Vienna'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/portrait-fotografie-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                {language === 'de' ? 'Portraitfotografie Wien' : 'Portrait Photography Vienna'}
+              </Link>
+            </li>
+          </ul>
+          <p className="text-center text-gray-700">
+            <Link to="/preise/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">
+              {language === 'de' ? 'Business Preise' : 'Business prices'}
+            </Link>
+            <span className="mx-2 text-gray-400">·</span>
+            <Link to="/warteliste/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">
+              {language === 'de' ? 'Termin sichern' : 'Book appointment'}
+            </Link>
+          </p>
+        </div>
+      </section>
+
       {/* Final CTA Section */}
       <section className="py-16 bg-gradient-to-r from-gray-900 to-gray-800 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

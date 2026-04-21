@@ -62,6 +62,25 @@ const WartelistePage: React.FC = () => {
           <p className="text-xl text-gray-600">
             {t('waitlist.subtitle')}
           </p>
+          <p className="text-base text-gray-600 mt-4">
+            {language === 'de' ? (
+              <>
+                Unsere Warteliste gilt für alle Shootings, darunter{' '}
+                <Link to="/familienfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Familienfotos</Link>,{' '}
+                <Link to="/babyfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Babyfotografie</Link>{' '}
+                und{' '}
+                <Link to="/business-portrait-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Business Portraits</Link>.
+              </>
+            ) : (
+              <>
+                Our waitlist covers all shoots, including{' '}
+                <Link to="/familienfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">family photos</Link>,{' '}
+                <Link to="/babyfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">baby photography</Link>{' '}
+                and{' '}
+                <Link to="/business-portrait-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">business portraits</Link>.
+              </>
+            )}
+          </p>
         </div>
 
         <div className="max-w-xl mx-auto bg-white rounded-lg shadow-lg p-8">

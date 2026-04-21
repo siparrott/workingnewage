@@ -574,6 +574,46 @@ export default function FamilienfotosWienPage() {
       {/* Related Services - Internal Links */}
       <RelatedServices currentPath="/familienfotos-wien/" />
 
+      {/* Weitere Fotoshootings in Wien – compact internal link block */}
+      <section className="py-12 bg-gray-50 border-t border-gray-100">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+            {language === 'de' ? 'Weitere Fotoshootings in Wien' : 'More Photo Shoots in Vienna'}
+          </h3>
+          <ul className="grid sm:grid-cols-2 gap-3 mb-6 max-w-2xl mx-auto">
+            <li>
+              <Link to="/babyfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                {language === 'de' ? 'Babyfotografie Wien' : 'Baby Photography Vienna'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/kinder-fotografie-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                {language === 'de' ? 'Kinderfotografie Wien' : "Children's Photography Vienna"}
+              </Link>
+            </li>
+            <li>
+              <Link to="/schwangerschaftsfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                {language === 'de' ? 'Schwangerschaftsfotografie Wien' : 'Maternity Photography Vienna'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/neugeborenenfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                {language === 'de' ? 'Neugeborenenfotografie Wien' : 'Newborn Photography Vienna'}
+              </Link>
+            </li>
+          </ul>
+          <p className="text-center text-gray-700">
+            <Link to="/preise/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">
+              {language === 'de' ? 'Preise für Familienfotos' : 'Family photo prices'}
+            </Link>
+            <span className="mx-2 text-gray-400">·</span>
+            <Link to="/warteliste/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">
+              {language === 'de' ? 'Jetzt Termin sichern' : 'Book appointment now'}
+            </Link>
+          </p>
+        </div>
+      </section>
+
       {/* Final CTA Section */}
       <section className="py-16 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

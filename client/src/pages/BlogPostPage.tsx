@@ -434,7 +434,34 @@ const BlogPostPage: React.FC = () => {
               </div>
             )}
           </div>
-          
+
+          {/* Passende Fotoshootings – internal link block at end of post */}
+          <div className="mt-10 bg-purple-50 border border-purple-100 rounded-xl p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Passende Fotoshootings</h3>
+            <ul className="grid sm:grid-cols-3 gap-3 mb-4">
+              <li>
+                <Link to="/familienfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                  Familienfotos Wien
+                </Link>
+              </li>
+              <li>
+                <Link to="/babyfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                  Babyfotografie Wien
+                </Link>
+              </li>
+              <li>
+                <Link to="/schwangerschaftsfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                  Schwangerschaftsfotos Wien
+                </Link>
+              </li>
+            </ul>
+            <p className="text-gray-700">
+              <Link to="/preise/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">Preise ansehen</Link>
+              <span className="mx-2 text-gray-400">·</span>
+              <Link to="/warteliste/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">Termin sichern</Link>
+            </p>
+          </div>
+
           {/* Related Posts */}
           {relatedPosts.length > 0 && (
             <div className="mt-12">

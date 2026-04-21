@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import Layout from '../components/layout/Layout';
 import { PillarLinksBlock } from '../components/SEO/PillarLinksBlock';
 import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { SEOHead } from '../components/SEO/SEOHead';
 import { ChevronLeft, ChevronRight, Camera, Heart, Users, Briefcase, Baby, Sparkles, Loader2 } from 'lucide-react';
@@ -389,6 +390,26 @@ const PortfolioPage: React.FC = () => {
                 : 'Moments that last forever. Explore our work.'}
             </p>
 
+            <p className="text-base md:text-lg text-purple-100/90 max-w-3xl mx-auto mb-8">
+              {language === 'de' ? (
+                <>
+                  Entdecken Sie Beispiele aus unseren{' '}
+                  <Link to="/familienfotos-wien/" className="text-pink-200 hover:text-white underline underline-offset-2">Familienfotos</Link>,{' '}
+                  <Link to="/babyfotos-wien/" className="text-pink-200 hover:text-white underline underline-offset-2">Babyfotografie</Link>{' '}
+                  und{' '}
+                  <Link to="/business-portrait-wien/" className="text-pink-200 hover:text-white underline underline-offset-2">Business Portrait Shootings</Link>.
+                </>
+              ) : (
+                <>
+                  Explore examples from our{' '}
+                  <Link to="/familienfotos-wien/" className="text-pink-200 hover:text-white underline underline-offset-2">family photos</Link>,{' '}
+                  <Link to="/babyfotos-wien/" className="text-pink-200 hover:text-white underline underline-offset-2">baby photography</Link>{' '}
+                  and{' '}
+                  <Link to="/business-portrait-wien/" className="text-pink-200 hover:text-white underline underline-offset-2">business portrait shoots</Link>.
+                </>
+              )}
+            </p>
+
             <motion.button
               onClick={() => document.getElementById('portfolio-content')?.scrollIntoView({ behavior: 'smooth' })}
               className="inline-flex items-center gap-2 px-8 py-4 bg-white text-purple-900 font-semibold rounded-full hover:shadow-2xl hover:shadow-white/25 transition-all duration-300"
@@ -492,6 +513,42 @@ const PortfolioPage: React.FC = () => {
           </div>
         </section>
       </div>
+
+      {/* Weitere Fotoshootings – compact internal link block */}
+      <section className="py-12 bg-gray-50 border-t border-gray-100">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+            {language === 'de' ? 'Weitere Fotoshootings' : 'More Photo Shoots'}
+          </h3>
+          <ul className="grid sm:grid-cols-3 gap-3 mb-6 max-w-2xl mx-auto">
+            <li className="text-center">
+              <Link to="/familienfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                {language === 'de' ? 'Familienfotos Wien' : 'Family Photos Vienna'}
+              </Link>
+            </li>
+            <li className="text-center">
+              <Link to="/babyfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                {language === 'de' ? 'Babyfotografie Wien' : 'Baby Photography Vienna'}
+              </Link>
+            </li>
+            <li className="text-center">
+              <Link to="/business-portrait-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                {language === 'de' ? 'Business Portrait Wien' : 'Business Portrait Vienna'}
+              </Link>
+            </li>
+          </ul>
+          <p className="text-center text-gray-700">
+            <Link to="/preise/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">
+              {language === 'de' ? 'Preise ansehen' : 'View prices'}
+            </Link>
+            <span className="mx-2 text-gray-400">·</span>
+            <Link to="/warteliste/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">
+              {language === 'de' ? 'Termin sichern' : 'Book appointment'}
+            </Link>
+          </p>
+        </div>
+      </section>
+
       <PillarLinksBlock currentPath="/portfolio/" title="Unsere Fotoshootings in Wien" />
     </Layout>
   );

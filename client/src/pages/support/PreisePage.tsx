@@ -520,6 +520,43 @@ const PreisePage: React.FC = () => {
           </div>
         </section>
       </div>
+
+      {/* Beliebte Fotoshootings – compact internal link block */}
+      <section className="py-12 bg-gray-50 border-t border-gray-100">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+            Beliebte Fotoshootings
+          </h3>
+          <ul className="grid sm:grid-cols-2 gap-3 mb-6 max-w-2xl mx-auto">
+            <li>
+              <Link to="/familienfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                Familienfotos Wien
+              </Link>
+            </li>
+            <li>
+              <Link to="/babyfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                Babyfotografie Wien
+              </Link>
+            </li>
+            <li>
+              <Link to="/bewerbungsfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                Bewerbungsfotos Wien
+              </Link>
+            </li>
+            <li>
+              <Link to="/business-portrait-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                Business Portrait Wien
+              </Link>
+            </li>
+          </ul>
+          <p className="text-center text-gray-700">
+            <Link to="/warteliste/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">
+              Termin sichern
+            </Link>
+          </p>
+        </div>
+      </section>
+
       <PillarLinksBlock currentPath="/preise/" />
     </Layout>
   );
