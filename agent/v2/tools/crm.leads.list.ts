@@ -45,13 +45,12 @@ const def: ToolDef<typeof params> = {
       count: results.length,
       leads: results.map(lead => ({
         id: lead.id,
-        firstName: lead.firstName,
-        lastName: lead.lastName,
+        name: lead.name,
         email: lead.email,
         phone: lead.phone,
         status: lead.status,
         source: lead.source,
-        notes: lead.notes,
+        notes: lead.message,
         createdAt: lead.createdAt
       }))
     };

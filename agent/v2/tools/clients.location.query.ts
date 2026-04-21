@@ -83,8 +83,8 @@ Returns: count and detailed client list with contact information`,
       // Get detailed records
       const selectFields = args.includeCompanyDetails
         ? `client_id, first_name, last_name, email, phone, 
-           company_name, address, city, state, zip, country, 
-           total_sales, outstanding_balance, created_at`
+           company, address, city, state, zip, country, 
+           lifetime_value, created_at`
         : `client_id, first_name, last_name, email, phone, 
            city, state, country, created_at`;
 
@@ -118,9 +118,8 @@ Returns: count and detailed client list with contact information`,
             zip: row.zip
           },
           ...(args.includeCompanyDetails && {
-            company: row.company_name,
-            total_sales: parseFloat(row.total_sales || 0),
-            outstanding_balance: parseFloat(row.outstanding_balance || 0)
+            company: row.company,
+            lifetime_value: parseFloat(row.lifetime_value || 0)
           }),
           since: row.created_at
         }))

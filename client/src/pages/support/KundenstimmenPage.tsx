@@ -133,7 +133,7 @@ const KundenstimmenPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Kundenstimmen & Bewertungen – 4.9★ auf Google | New Age Fotografie Wien"
+        title="Kundenstimmen & Bewertungen – 4.9 Sterne auf Google | New Age Fotografie Wien"
         description="Lesen Sie echte Kundenbewertungen von Familien-, Baby- und Business-Fotoshootings in Wien. Über 250 Google-Bewertungen mit 4.9 Sternen. Erfahren Sie, warum Familien uns vertrauen."
         keywords="Kundenstimmen Fotograf Wien, Bewertungen New Age Fotografie, Erfahrungen Familienfotograf Wien, Google Bewertungen Fotostudio"
         canonical="/kundenstimmen/"

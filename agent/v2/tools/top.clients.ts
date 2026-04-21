@@ -80,7 +80,7 @@ Returns: Ranked list of top clients with detailed metrics`,
         WITH client_invoices AS (
           SELECT 
             client_id,
-            SUM(total_amount) FILTER (WHERE status = 'paid') as invoice_revenue,
+            SUM(total) FILTER (WHERE status = 'paid') as invoice_revenue,
             COUNT(*) FILTER (WHERE status = 'paid') as invoice_count,
             MAX(issue_date) as last_invoice_date
           FROM crm_invoices

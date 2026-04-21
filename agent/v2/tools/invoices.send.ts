@@ -66,7 +66,7 @@ const def: ToolDef<typeof params> = {
       return {
         success: true,
         simulated: true,
-        message: `Invoice send simulated. Would send ${invoice.invoiceNumber} to ${client.email}`,
+        message: `Invoice send simulated. Would send ${invoice.invoiceNumber} (€${invoice.total}) to ${client.email}`,
         warning: "This was a simulation - no invoice was actually sent"
       };
     }
@@ -114,7 +114,7 @@ const def: ToolDef<typeof params> = {
           ` : ''}
           <tr>
             <td colspan="3"><strong>Total</strong></td>
-            <td><strong>€${invoice.totalAmount}</strong></td>
+            <td><strong>€${invoice.total}</strong></td>
           </tr>
         </tfoot>
       </table>
@@ -131,7 +131,7 @@ const def: ToolDef<typeof params> = {
       await EnhancedEmailService.sendEmail({
         to: client.email,
         subject: `Invoice ${invoice.invoiceNumber}`,
-        content: `Invoice ${invoice.invoiceNumber} - Total: €${invoice.totalAmount}`,
+        content: `Invoice ${invoice.invoiceNumber} - Total: €${invoice.total}`,
         html: emailBody
       });
       

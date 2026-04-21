@@ -126,9 +126,9 @@ const VouchersPage: React.FC = () => {
         <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 pt-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div className="text-center mb-12">
-              <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                 {vouchersTitle}
-              </h1>
+              </h2>
               <p className="text-lg text-gray-600 animate-pulse">Loading vouchers...</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -206,7 +206,7 @@ const VouchersPage: React.FC = () => {
         title={language === 'de' ? 'Fotoshooting Gutscheine in Wien | New Age Fotografie' : 'Photoshoot Vouchers in Vienna | New Age Photography'}
         description={language === 'de' ? 'Fotoshooting Gutscheine als perfektes Geschenk. Wählen Sie aus Familie, Baby oder Business Paketen. Sofort per E-Mail!' : 'Photoshoot vouchers as the perfect gift. Choose from family, baby or business packages. Instantly via email!'}
         keywords={language === 'de' ? 'Fotoshooting Gutschein Wien, Geschenkgutschein Fotograf, Gutschein Fotoshooting' : 'Photoshoot Voucher Vienna, Gift voucher photographer, Voucher photoshoot'}
-        canonical="/vouchers"
+        canonical="/vouchers/"
         ogImage="https://images.unsplash.com/photo-1511895426328-dc8714191300?w=1200&h=630&fit=crop"
         hreflang={[
           { lang: 'de', url: '/vouchers/' },

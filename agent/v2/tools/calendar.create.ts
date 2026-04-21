@@ -65,13 +65,13 @@ const def: ToolDef<typeof params> = {
       id: sessionId,
       clientId: args.clientId,
       sessionType: args.sessionType,
-      sessionDate: sessionDate,
+      title: `${args.sessionType} session`,
       startTime: sessionDate,
       endTime: endDate,
-      location: args.location || null,
+      locationName: args.location || null,
       status: "scheduled",
       notes: args.notes || null,
-      price: args.price ? args.price.toString() : null,
+      basePrice: args.price ? args.price.toString() : null,
       createdAt: new Date(),
       updatedAt: new Date()
     });

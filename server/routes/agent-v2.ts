@@ -345,17 +345,32 @@ router.get("/stats", async (req: Request, res: Response) => {
  * In production, this should load from database
  */
 function getUserScopes(role: string): string[] {
+  const allReadScopes = [
+    "CRM_READ", "INV_READ", "CALENDAR_READ", "MSG_READ", "GALLERY_READ",
+    "SESSION_READ", "BOOKING_READ", "CONTENT_READ", "EMAIL_READ",
+    "FILES_READ", "COUPON_READ", "LEAD_READ", "PAYMENT_READ",
+    "VOUCHER_READ", "PRICELIST_READ", "QUESTIONNAIRE_READ", "SQL_READ",
+    "PRICE_RESEARCH"
+  ];
   switch (role) {
     case "admin":
     case "owner":
-      return ["CRM_READ", "CRM_WRITE", "INV_READ", "INV_WRITE", "EMAIL_SEND", "CALENDAR_WRITE", "PRICE_RESEARCH", "PRICE_WRITE", "ADMIN"];
+      return [
+        ...allReadScopes,
+        "CRM_WRITE", "INV_WRITE", "EMAIL_SEND", "CALENDAR_WRITE",
+        "SESSION_WRITE", "PRICE_WRITE", "ADMIN"
+      ];
     
     case "photographer":
     case "manager":
-      return ["CRM_READ", "CRM_WRITE", "INV_READ", "INV_WRITE", "EMAIL_SEND", "CALENDAR_WRITE", "PRICE_RESEARCH", "PRICE_WRITE"];
+      return [
+        ...allReadScopes,
+        "CRM_WRITE", "INV_WRITE", "EMAIL_SEND", "CALENDAR_WRITE",
+        "SESSION_WRITE", "PRICE_WRITE"
+      ];
     
     case "staff":
-      return ["CRM_READ", "INV_READ", "CALENDAR_WRITE"];
+      return ["CRM_READ", "INV_READ", "CALENDAR_READ", "CALENDAR_WRITE", "MSG_READ", "SESSION_READ"];
     
     case "viewer":
     default:

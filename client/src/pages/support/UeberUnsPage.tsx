@@ -62,7 +62,7 @@ const UeberUnsPage: React.FC = () => {
           <div className="absolute inset-0 bg-black/20"></div>
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              {language === 'de' ? 'Über uns – Ihr Fotostudio-Team in Wien' : 'About Us – Your Photo Studio Team in Vienna'}
+              {language === 'de' ? 'Über uns – Das Team von New Age Fotografie in Wien' : 'About Us – The Team Behind New Age Fotografie Vienna'}
             </h1>
             <p className="text-xl md:text-2xl mb-8 max-w-4xl mx-auto leading-relaxed">
               {t('about.hero.description')}

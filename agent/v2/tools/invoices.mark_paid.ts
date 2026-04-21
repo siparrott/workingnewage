@@ -57,7 +57,7 @@ const def: ToolDef<typeof params> = {
       return {
         success: true,
         simulated: true,
-        message: `Invoice mark paid simulated. Would mark ${invoice.invoiceNumber} (€${invoice.totalAmount}) as paid`,
+        message: `Invoice mark paid simulated. Would mark ${invoice.invoiceNumber} (€${invoice.total}) as paid`,
         warning: "This was a simulation - invoice status was not actually changed"
       };
     }
@@ -66,11 +66,11 @@ const def: ToolDef<typeof params> = {
     await db.insert(crmInvoicePayments).values({
       id: randomUUID(),
       invoiceId: invoice.id,
-      amount: invoice.totalAmount,
+      amount: invoice.total,
       paymentMethod: args.paymentMethod,
       paymentDate,
       notes: args.notes || null,
-      createdAt: new Date()
+      createdBy: null
     });
     
     // Update invoice status
@@ -78,16 +78,16 @@ const def: ToolDef<typeof params> = {
       .update(crmInvoices)
       .set({
         status: "paid",
-        paidAt: paymentDate,
+        paidDate: paymentDate,
         updatedAt: new Date()
       })
       .where(eq(crmInvoices.id, invoice.id));
     
     return {
       success: true,
-      message: `Invoice ${invoice.invoiceNumber} marked as paid. Amount: €${invoice.totalAmount}`,
+      message: `Invoice ${invoice.invoiceNumber} marked as paid. Amount: €${invoice.total}`,
       invoiceNumber: invoice.invoiceNumber,
-      amount: invoice.totalAmount,
+      amount: invoice.total,
       paymentMethod: args.paymentMethod,
       paidAt: paymentDate.toISOString()
     };

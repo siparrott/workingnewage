@@ -39,13 +39,13 @@ const GutscheinPage: React.FC = () => {
         title="Gutscheine für Fotoshootings | New Age Fotografie"
         description="Fotoshooting-Gutscheine von New Age Fotografie. Das perfekte Geschenk für Familie und Freunde in Wien."
         keywords="Gutschein Fotoshooting, Geschenk Fotograf Wien, Erlebnisgutschein Foto"
-        canonical="/gutschein"
+        canonical="/gutschein/"
       />
       
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto text-center mb-12">
           <h1 className="text-4xl font-bold text-purple-900 mb-4">
-            {t('giftCards.heroTitle')}
+            {t('giftCards.heroTitle') || 'Fotoshooting-Gutscheine Wien – Das perfekte Geschenk'}
           </h1>
           <p className="text-xl text-gray-700 mb-4">
             {t('giftCards.heroSubtitle')}

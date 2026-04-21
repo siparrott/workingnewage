@@ -48,15 +48,12 @@ const def: ToolDef<typeof params> = {
     await db.insert(crmMessages).values({
       id: draftId,
       clientId: args.clientId || null,
-      type: "email",
+      messageType: "email",
       direction: "outbound",
       subject: args.subject,
-      body: args.body,
-      to: args.to,
-      cc: args.cc || null,
-      bcc: args.bcc || null,
+      content: args.body,
+      recipientEmail: args.to,
       status: "draft",
-      sentAt: null,
       createdAt: new Date(),
       updatedAt: new Date()
     });

@@ -80,7 +80,7 @@ const def: ToolDef<typeof params> = {
       status: "draft",
       subtotal: subtotal.toFixed(2),
       taxAmount: taxAmount.toFixed(2),
-      totalAmount: totalAmount.toFixed(2),
+      total: totalAmount.toFixed(2),
       dueDate,
       issueDate: new Date(),
       notes: args.notes || null,
@@ -96,7 +96,6 @@ const def: ToolDef<typeof params> = {
         description: item.description,
         quantity: item.quantity,
         unitPrice: item.unitPrice.toFixed(2),
-        amount: item.amount.toFixed(2),
         createdAt: new Date()
       });
     }

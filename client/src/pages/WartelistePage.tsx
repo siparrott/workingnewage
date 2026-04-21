@@ -50,7 +50,7 @@ const WartelistePage: React.FC = () => {
         title={language === 'de' ? 'Warteliste für Fotoshootings | New Age Fotografie' : 'Photoshoot Waitlist | New Age Photography'}
         description={language === 'de' ? 'Tragen Sie sich auf unsere Warteliste ein und erfahren Sie als Erste/r von freien Terminen und Aktionen.' : 'Sign up for our waitlist and be the first to know about available appointments and promotions.'}
         keywords={language === 'de' ? 'Warteliste Fotoshooting, Termin Fotograf Wien, Benachrichtigung' : 'Photoshoot waitlist, Photographer appointment Vienna, Notification'}
-        canonical="/warteliste"
+        canonical="/warteliste/"
       />
       
       <div className="container mx-auto px-4 py-12">

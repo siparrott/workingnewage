@@ -324,7 +324,7 @@ const PortfolioPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title={language === 'de' ? 'Portfolio – Familien-, Baby- & Business-Fotografie Wien | New Age Fotografie' : 'Portfolio – Family, Baby & Business Photography Vienna | New Age Photography'}
+        title={language === 'de' ? 'Fotografie Portfolio Wien – Familien, Newborn & Business Aufnahmen | New Age Fotografie' : 'Photography Portfolio Vienna – Family, Newborn & Business Sessions | New Age Photography'}
         description={language === 'de' 
           ? 'Entdecken Sie unser Portfolio: Familienporträts, Neugeborenenfotos, Schwangerschaftsbilder, Hochzeitsfotografie und Business-Portraits aus Wien. Lassen Sie sich inspirieren!'
           : 'Explore our portfolio: Family portraits, newborn photos, maternity sessions, wedding photography and business portraits from Vienna. Get inspired!'}

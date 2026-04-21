@@ -48,7 +48,7 @@ const KontaktPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title={language === 'de' ? 'Kontakt – Fotostudio Wien | Termin & Beratung | New Age Fotografie' : 'Contact – Photo Studio Vienna | Booking & Consultation | New Age Photography'}
+        title={language === 'de' ? 'Fotostudio Wien kontaktieren – Termin buchen & Beratung | New Age Fotografie' : 'Contact Photo Studio Vienna – Book Appointment & Consultation | New Age Photography'}
         description={language === 'de' ? 'Kontaktieren Sie unser Fotostudio in Wien 1050. Persönliche Beratung, flexible Termine Fr–So. Telefon, WhatsApp oder E-Mail – wir freuen uns auf Ihre Anfrage!' : 'Contact our photo studio in Vienna. Personal consultation, flexible appointments Fri–Sun. Phone, WhatsApp or email – we look forward to your inquiry!'}
         keywords={language === 'de' ? 'Kontakt Fotograf Wien, Fotostudio Wien Termin, Fotoshooting buchen Wien, New Age Fotografie Kontakt' : 'Contact Photographer Vienna, Photo Studio Vienna Booking, New Age Photography Contact'}
         canonical="/kontakt/"
