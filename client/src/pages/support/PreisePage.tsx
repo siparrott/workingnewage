@@ -82,6 +82,40 @@ const PreisePage: React.FC = () => {
           </div>
         </section>
 
+        {/* Intro with contextual keyword-rich links */}
+        <section className="py-10 bg-white">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <p className="text-lg text-gray-700 leading-relaxed">
+              Hier finden Sie alle Preise für unsere Fotoshootings in Wien – von{' '}
+              <Link to="/familienfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Familienfotos Wien</Link> über{' '}
+              <Link to="/babyfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Babyfotografie Wien</Link>{' '}
+              und{' '}
+              <Link to="/neugeborenenfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Neugeborenenfotografie Wien</Link>{' '}
+              bis hin zu{' '}
+              <Link to="/business-portrait-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Business Portraits</Link>.
+            </p>
+            <p className="text-lg text-gray-700 leading-relaxed mt-4">
+              Jedes Shooting ist individuell. Viele Kunden kombinieren mehrere Shootings wie{' '}
+              <Link to="/schwangerschaftsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Schwangerschaftsfotos Wien</Link>{' '}
+              und{' '}
+              <Link to="/babyfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Babyfotos Wien</Link>, oder
+              buchen ergänzend{' '}
+              <Link to="/kinder-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Kinderfotografie Wien</Link>{' '}
+              und{' '}
+              <Link to="/hochzeitsfotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Hochzeitsfotografie Wien</Link>.
+              Für Teams empfehlen wir{' '}
+              <Link to="/teamfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Teamfotos Wien</Link>{' '}
+              oder{' '}
+              <Link to="/bewerbungsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Bewerbungsfotos Wien</Link>.
+              Jetzt{' '}
+              <Link to="/warteliste/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Termin sichern</Link>{' '}
+              oder ins{' '}
+              <Link to="/portfolio/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Portfolio</Link>{' '}
+              schauen.
+            </p>
+          </div>
+        </section>
+
         {/* Family Packages */}
         <section className="py-16 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

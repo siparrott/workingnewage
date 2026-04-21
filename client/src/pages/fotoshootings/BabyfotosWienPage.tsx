@@ -176,6 +176,53 @@ export default function BabyfotosWienPage() {
       {/* Google Reviews Section */}
       <GoogleReviews />
 
+      {/* Introduction with inline contextual links */}
+      <section className="py-12 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-lg text-gray-700 leading-relaxed">
+            {language === 'de' ? (
+              <>
+                Unsere <Link to="/babyfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Babyfotografie in Wien</Link>{' '}
+                hält die ersten wertvollen Momente Ihres Kindes authentisch und liebevoll fest. Viele Familien kombinieren diese
+                Aufnahmen später mit unseren{' '}
+                <Link to="/familienfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Familienfotos in Wien</Link>,
+                um eine vollständige Geschichte zu erzählen.
+              </>
+            ) : (
+              <>
+                Our <Link to="/babyfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">baby photography in Vienna</Link>{' '}
+                captures the first precious moments of your child. Many families later combine these photos with our{' '}
+                <Link to="/familienfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">family photos in Vienna</Link> to
+                build a complete story.
+              </>
+            )}
+          </p>
+          <p className="text-lg text-gray-700 leading-relaxed mt-4">
+            {language === 'de' ? (
+              <>
+                Gerade in den ersten Monaten verändert sich Ihr Baby schnell. Wenn Sie noch schwanger sind, lohnt sich auch ein
+                Blick auf unsere{' '}
+                <Link to="/schwangerschaftsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Schwangerschaftsfotografie in Wien</Link>,
+                um die Reise von Anfang an festzuhalten. Viele Eltern entscheiden sich später zusätzlich für{' '}
+                <Link to="/kinder-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Kinderfotografie in Wien</Link>,
+                um die Entwicklung ihres Kindes weiter zu dokumentieren. Alle{' '}
+                <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Preise für Fotoshootings</Link> ansehen
+                oder direkt{' '}
+                <Link to="/warteliste/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Termin sichern</Link>.
+              </>
+            ) : (
+              <>
+                Many parents later book{' '}
+                <Link to="/kinder-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">children's photography in Vienna</Link>{' '}
+                to document their child's development. View all{' '}
+                <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">prices</Link> or{' '}
+                <Link to="/warteliste/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">book a slot</Link>.
+              </>
+            )}
+          </p>
+        </div>
+      </section>
+
       <ContextualLinks pathname="/babyfotos-wien/" language={language} />
 
       {/* 3-12 Months is Different Section */}

@@ -148,14 +148,48 @@ export default function BewerbungsfotosWienPage() {
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div className="prose prose-lg max-w-none">
               <p className="text-lg text-gray-700 leading-relaxed">
-                {language === 'de'
-                  ? 'Willkommen bei New Age Fotografie – Ihrem Partner für professionelle Bewerbungsfotos in Wien! Unser Studio bietet die perfekte Umgebung für Bewerbungsfotos, LinkedIn-Portraits und XING-Profile. Mit gezieltem Posing-Coaching, variablen Hintergründen und schneller Lieferung erstellen wir Portraits, die Ihre beruflichen Chancen maximieren.'
-                  : 'Welcome to New Age Fotografie – your partner for professional application photos in Vienna! Our studio offers the perfect environment for application photos, LinkedIn portraits and XING profiles. With expert posing coaching, variable backgrounds and fast delivery, we create portraits that maximise your career opportunities.'}
+                {language === 'de' ? (
+                  <>
+                    Willkommen bei New Age Fotografie – Ihrem Partner für professionelle{' '}
+                    <Link to="/bewerbungsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Bewerbungsfotos in Wien</Link>!
+                    Unser Studio bietet die perfekte Umgebung für Bewerbungsfotos, LinkedIn-Portraits und XING-Profile. Für ein
+                    umfassenderes Branding empfehlen wir zusätzlich unsere{' '}
+                    <Link to="/business-portrait-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Business Portrait Fotografie</Link>.
+                    Mit gezieltem Posing-Coaching, variablen Hintergründen und schneller Lieferung erstellen wir Portraits, die
+                    Ihre beruflichen Chancen maximieren.
+                  </>
+                ) : (
+                  <>
+                    Welcome to New Age Fotografie – your partner for professional{' '}
+                    <Link to="/bewerbungsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">application photos in Vienna</Link>!
+                    Our studio offers the perfect environment for application photos, LinkedIn portraits and XING profiles. For
+                    broader branding, we also offer{' '}
+                    <Link to="/business-portrait-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Business Portrait photography</Link>.
+                    With expert posing coaching, variable backgrounds and fast delivery, we create portraits that maximise your
+                    career opportunities.
+                  </>
+                )}
               </p>
               <p className="text-lg text-gray-700 leading-relaxed mt-4">
-                {language === 'de'
-                  ? 'Von Berufseinsteigern über Professionals bis zu Führungskräften – wir liefern Bewerbungsfotos, die seriös, sympathisch und branchengerecht sind. Natürliche Retusche, High-Res-Export und rechtssichere Nutzung für alle beruflichen Profile inklusive.'
-                  : 'From career starters to professionals and executives – we deliver application photos that are professional, personable and industry-appropriate. Natural retouching, high-res export and legally compliant usage for all professional profiles included.'}
+                {language === 'de' ? (
+                  <>
+                    Von Berufseinsteigern über Professionals bis zu Führungskräften – wir liefern Bewerbungsfotos, die seriös,
+                    sympathisch und branchengerecht sind. Viele Kunden kombinieren ihr Shooting mit{' '}
+                    <Link to="/teamfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Teamfotos Wien</Link> oder{' '}
+                    <Link to="/portrait-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Portraitfotografie Wien</Link>,
+                    um ein einheitliches Erscheinungsbild zu schaffen. Alle{' '}
+                    <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Preise & Pakete</Link> ab €95 –
+                    jetzt{' '}
+                    <Link to="/warteliste/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Termin sichern</Link>.
+                  </>
+                ) : (
+                  <>
+                    From career starters to professionals and executives – we deliver application photos that are professional,
+                    personable and industry-appropriate. Many clients combine their shoot with{' '}
+                    <Link to="/teamfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">team photos Vienna</Link>.
+                    See all <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">packages from €95</Link>.
+                  </>
+                )}
               </p>
             </div>
             <div>
