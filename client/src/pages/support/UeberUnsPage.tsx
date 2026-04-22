@@ -5,6 +5,7 @@ import {
   CheckCircle, ExternalLink, Lightbulb, TrendingUp, Eye, Film
 } from 'lucide-react';
 import Layout from '../../components/layout/Layout';
+import { RelatedTopicsBlock } from '../../components/SEO/RelatedTopicsBlock';
 import { PillarLinksBlock } from '../../components/SEO/PillarLinksBlock';
 import { SEOHead } from '../../components/SEO/SEOHead';
 import { useLanguage } from '../../context/LanguageContext';
@@ -466,6 +467,7 @@ const UeberUnsPage: React.FC = () => {
         </section>
       </div>
       <PillarLinksBlock currentPath="/ueber-uns/" title="Unsere Fotoshootings in Wien entdecken" />
+      <RelatedTopicsBlock pathname="/ueber-uns/" language={(language as 'de' | 'en') || 'de'} />
     </Layout>
   );
 };

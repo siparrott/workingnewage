@@ -940,6 +940,52 @@ const HomePage: React.FC = () => {
       {/* FAQ / Confidence Section */}
       <HomepageConfidenceSection />
 
+      {/* Additive geo signal block – "Ihr Fotostudio in Wien" */}
+      <section className="py-12 bg-purple-50/30 border-t border-gray-100" aria-labelledby="studio-geo-heading">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <h2 id="studio-geo-heading" className="text-2xl md:text-3xl font-bold text-center text-purple-900 mb-4">
+            {language === 'en' ? 'Your Photo Studio in Vienna' : 'Ihr Fotostudio in Wien'}
+          </h2>
+          <p className="text-center text-gray-700 max-w-2xl mx-auto mb-6 leading-relaxed">
+            {language === 'en'
+              ? 'New Age Fotografie is your family photographer in Vienna 1050. Our studio in Margaretenstraße offers daylight rooms, calm posing areas for newborns, and a clean backdrop wall for business headshots – all within walking distance of public transport.'
+              : 'New Age Fotografie ist Ihr Familienfotograf Wien 1050. Unser Fotostudio Wien in der Margaretenstraße bietet Tageslicht-Räume, ruhige Pose-Bereiche für Neugeborene und eine saubere Hintergrundwand für Business-Headshots – fußläufig zu allen öffentlichen Verkehrsmitteln.'}
+          </p>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-sm text-center">
+            <li>
+              <Link to="/familienfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Family Photographer Vienna 1050' : 'Familienfotograf Wien 1050'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/babyfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Baby Photo Studio Vienna' : 'Baby Fotostudio Wien'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/business-portrait-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Business Photo Studio Vienna' : 'Business Fotostudio Wien'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/fotoshooting-preise-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Photoshoot Pricing Vienna' : 'Fotoshooting Preise Wien'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/kontakt" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Contact our Vienna studio' : 'Kontakt zum Studio in Wien'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/warteliste" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Reserve a date in Vienna' : 'Termin in Wien sichern'}
+              </Link>
+            </li>
+          </ul>
+        </div>
+      </section>
+
       {/* Explore Related Photography Services – additive anchor-rich cluster for SEO */}
       <section className="py-12 bg-white border-t border-gray-100" aria-labelledby="related-services-heading">
         <div className="container mx-auto px-4 max-w-5xl">

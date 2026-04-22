@@ -111,6 +111,7 @@ import KinderFotografieWienPage from './pages/fotoshootings/KinderFotografieWien
 import PortraitfotografieWienPage from './pages/fotoshootings/PortraitfotografieWienPage';
 import UeberUnsPage from './pages/support/UeberUnsPage';
 import PreisePage from './pages/support/PreisePage';
+import FotoshootingPreiseWienPage from './pages/support/FotoshootingPreiseWienPage';
 import FAQPage from './pages/support/FAQPage';
 import KundenstimmenPage from './pages/support/KundenstimmenPage';
 import ImpressumPage from './pages/support/ImpressumPage';
@@ -177,6 +178,7 @@ function App() {
                 {/* Support Pages */}
                 <Route path="/ueber-uns/" element={<UeberUnsPage />} />
                 <Route path="/preise/" element={<PreisePage />} />
+                <Route path="/fotoshooting-preise-wien/" element={<FotoshootingPreiseWienPage />} />
                 <Route path="/faq/" element={<FAQPage />} />
                 <Route path="/kundenstimmen/" element={<KundenstimmenPage />} />
                 <Route path="/impressum/" element={<ImpressumPage />} />
@@ -216,7 +218,8 @@ function App() {
                 <Route path="/galerie" element={<PublicGalleriesPage />} />
                 <Route path="/gallery/:slug" element={<GalleryPage />} />
                 <Route path="/gallery" element={<ProtectedRoute><GalleryPage /></ProtectedRoute>} />
-                <Route path="/calculator" element={<CalculatorPage />} />
+                {/* /calculator hidden pending refinement – soft redirect to /preise/ */}
+                <Route path="/calculator" element={<Navigate to="/preise/" replace />} />
                 <Route path="/survey-demo" element={<SurveySystemDemoPage />} />
                 <Route path="/survey/:id" element={<SurveyTakingPage />} />
                 <Route path="/q/:token" element={<QuestionnaireFormPage />} />

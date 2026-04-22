@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import useEmblaCarousel from 'embla-carousel-react';
 import { useQuery } from '@tanstack/react-query';
 import Layout from '../components/layout/Layout';
+import { RelatedTopicsBlock } from '../components/SEO/RelatedTopicsBlock';
 import { PillarLinksBlock } from '../components/SEO/PillarLinksBlock';
 import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
@@ -550,6 +551,7 @@ const PortfolioPage: React.FC = () => {
       </section>
 
       <PillarLinksBlock currentPath="/portfolio/" title="Unsere Fotoshootings in Wien" />
+      <RelatedTopicsBlock pathname="/portfolio" language={(language as 'de' | 'en') || 'de'} />
     </Layout>
   );
 };

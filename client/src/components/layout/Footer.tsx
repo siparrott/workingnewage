@@ -300,11 +300,11 @@ const Footer: React.FC = () => {
               </li>
               <li>
                 <Link 
-                  to="/calculator" 
+                  to="/fotoshooting-preise-wien/" 
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Calculator
+                  Fotoshooting Preise Wien
                 </Link>
               </li>
             </ul>

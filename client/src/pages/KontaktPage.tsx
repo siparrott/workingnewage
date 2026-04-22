@@ -6,6 +6,7 @@ import { submitContactForm } from '../lib/forms';
 import { useManualPageContent } from '../hooks/useManualPageContent';
 import { useLanguage } from '../context/LanguageContext';
 import { SEOHead } from '../components/SEO/SEOHead';
+import { RelatedTopicsBlock } from '../components/SEO/RelatedTopicsBlock';
 import { Helmet } from 'react-helmet-async';
 
 const KontaktPage: React.FC = () => {
@@ -280,6 +281,7 @@ const KontaktPage: React.FC = () => {
           </div>
         </div>
       </div>
+      <RelatedTopicsBlock pathname="/kontakt" language={(language as 'de' | 'en') || 'de'} />
     </Layout>
   );
 };

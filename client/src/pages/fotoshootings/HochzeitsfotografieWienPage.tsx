@@ -194,7 +194,7 @@ export default function HochzeitsfotografieWienPage() {
           </div>
         </section>
 
-        {/* Extended Content Section - Safe Copy Slot */}}
+        {/* Extended Content Section - Safe Copy Slot */}
         {language === 'de' && <MarkdownCopySlot content={newageCopyMap['hochzeitsfotografie-wien'].markdown} />}
 
         {/* Feature Image 4 */}

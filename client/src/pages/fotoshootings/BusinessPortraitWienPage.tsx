@@ -190,7 +190,6 @@ export default function BusinessPortraitWienPage() {
                   </>
                 )}
               </p>
-              </p>
             </div>
             <div>
               <img
