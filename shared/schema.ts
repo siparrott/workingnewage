@@ -141,11 +141,16 @@ export const blogPosts = pgTable("blog_posts", {
   published: boolean("published").default(false),
   publishedAt: timestamp("published_at"),
   scheduledFor: timestamp("scheduled_for"),
-  status: text("status").default("DRAFT"), // DRAFT, PUBLISHED, SCHEDULED
+  status: text("status").default("DRAFT"), // IDEA, DRAFT, SCHEDULED, PUBLISHED, ARCHIVED
   authorId: uuid("author_id").references(() => users.id),
   tags: text("tags").array(),
   metaDescription: text("meta_description"),
   seoTitle: text("seo_title"),
+  // Idea-mode workflow payload: uploaded images + extracted EXIF/IPTC, OpenAI
+  // Vision analysis, user-supplied context (location/timing/people/occasion/
+  // commentary) and GDPR consent. Drives the context-first article writer.
+  // Shape: { images: [{ url, exif, vision, iptcWritten }], context: {...}, consent: {...} }
+  ideaData: jsonb("idea_data"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
