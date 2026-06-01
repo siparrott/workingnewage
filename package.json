@@ -25,7 +25,7 @@
     "validate:deps": "npm list vite tailwindcss autoprefixer postcss",
     "start": "cross-env NODE_ENV=production tsx server/index.ts",
     "start:prod": "cross-env NODE_ENV=production node start.mjs",
-    "heroku-postbuild": "cross-env HEROKU=true npm run build",
+    "heroku-postbuild": "cross-env PRERENDER=1 npm run build",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:init": "tsx scripts/init-database.ts",
