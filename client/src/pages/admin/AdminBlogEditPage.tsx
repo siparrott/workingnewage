@@ -14,7 +14,8 @@ interface BlogPost {
   content_html: string;
   cover_image?: string;
   tags?: string[];
-  status: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED';
+  status: 'IDEA' | 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' | 'ARCHIVED';
+  ideaData?: any;
   seo_title?: string;
   meta_description?: string;
   author_id: string;
@@ -51,17 +52,16 @@ const AdminBlogEditPage: React.FC = () => {
       
       const postData = await response.json();
       
-      // Compute real status from published boolean + date
-      let computedStatus: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' = 'DRAFT';
-      if (postData.published) {
+      // Respect the real DB status for idea-mode / archived / scheduled; only
+      // fall back to computing from the published flag for legacy rows.
+      let computedStatus: BlogPost['status'] = 'DRAFT';
+      if (postData.status === 'IDEA' || postData.status === 'ARCHIVED' || postData.status === 'SCHEDULED') {
+        computedStatus = postData.status;
+      } else if (postData.published) {
         const pubDate = postData.publishedAt ? new Date(postData.publishedAt) : null;
-        if (pubDate && pubDate > new Date()) {
-          computedStatus = 'SCHEDULED';
-        } else {
-          computedStatus = 'PUBLISHED';
-        }
+        computedStatus = (pubDate && pubDate > new Date()) ? 'SCHEDULED' : 'PUBLISHED';
       }
-      
+
       // Format the post data to match our interface
       const formattedPost: BlogPost = {
         id: postData.id,
@@ -72,6 +72,7 @@ const AdminBlogEditPage: React.FC = () => {
         cover_image: postData.imageUrl || postData.cover_image || '',
         tags: postData.tags || [],
         status: computedStatus,
+        ideaData: postData.ideaData || null,
         seo_title: postData.seoTitle || postData.seo_title || '',
         meta_description: postData.metaDescription || postData.meta_description || '',
         author_id: postData.authorId || postData.author_id || '',
