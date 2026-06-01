@@ -88,6 +88,16 @@ const publicRoutes = [
   '/gutschein/family',
   '/gutschein/newborn',
   '/gutschein/maternity',
+
+  // Blog posts — prerendered so crawlers get static HTML, not JS-only pages.
+  // Keep in sync with published posts (content/articles + Neon blog_posts).
+  '/blog/familienfotos-locations-wien',
+  '/blog/familienfotos-im-studio-vs-outdoor-in-wien-was-passt-zu-euch',
+  '/blog/familienfotos-in-wien-preise-ablauf-perfekte-vorbereitung',
+  '/blog/die-besten-outfits-fuer-familienfotos-in-wien',
+  '/blog/tipps-fuer-neugeborenenfotos-wien',
+  '/blog/schwangerschaftsfotos-in-wien-ideen-kleidung-der-beste-zeitpunkt',
+  '/blog/businessportraits-in-wien-preise-kleidung-erfolgstipps-f-r-starke-auftritte',
 ];
 
 // Prerendering is controlled by a single explicit opt-in: the PRERENDER env var.

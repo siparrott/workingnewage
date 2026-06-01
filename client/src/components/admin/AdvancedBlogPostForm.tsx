@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
 import AdvancedRichTextEditor from './AdvancedRichTextEditor';
 import { 
   ArrowLeft, 
@@ -41,6 +40,21 @@ interface BlogPostFormProps {
 }
 
 type Step = 'content' | 'media' | 'meta' | 'preview';
+
+// Curated tag suggestions for a Vienna portrait studio. Always available so the
+// editor never depends on a remote tag table; merged with tags already used on
+// existing posts at runtime.
+const SUGGESTED_TAGS: string[] = [
+  'wien',
+  'studio',
+  'familienfotos', 'familie', 'kinderfotos', 'geschwister',
+  'neugeborenenfotos', 'babyfotos', 'baby',
+  'schwangerschaftsfotos', 'babybauch',
+  'businessfotos', 'bewerbungsfotos', 'teamfotos', 'linkedin', 'headshots', 'portrait',
+  'hochzeitsfotos', 'hochzeit', 'paarfotos', 'event',
+  'gutschein', 'geschenk', 'wandbilder', 'produktfotografie',
+  'outfits', 'kleidung', 'preise', 'ablauf', 'vorbereitung', 'tipps',
+];
 
 const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = false }) => {
   const navigate = useNavigate();
@@ -101,17 +115,27 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
   }, [post, isEditing]);
 
   const fetchTags = async () => {
+    // Start from the curated list so suggestions always show, then merge in any
+    // tags already used across existing posts (best-effort; the old Supabase
+    // tag table was removed when the app moved to Neon).
+    const merged = new Map<string, string>(); // lowercased -> display
+    SUGGESTED_TAGS.forEach(t => merged.set(t.toLowerCase(), t));
+
     try {
-      const { data, error } = await supabase
-        .from('blog_tags')
-        .select('id, name')
-        .order('name');
-      
-      if (error) throw error;
-      setAvailableTags(data || []);
-    } catch (err) {
-      // console.error removed
+      const res = await fetch('/api/blog/posts?limit=200');
+      if (res.ok) {
+        const json = await res.json();
+        const posts: Array<{ tags?: string[] | null }> = json?.posts ?? [];
+        posts.forEach(p => (p.tags ?? []).forEach(t => {
+          const key = String(t).trim().toLowerCase();
+          if (key && !merged.has(key)) merged.set(key, String(t).trim());
+        }));
+      }
+    } catch {
+      // Network/endpoint issue — curated suggestions still work.
     }
+
+    setAvailableTags(Array.from(merged.values()).map((name, i) => ({ id: `tag-${i}`, name })));
   };
 
   const generateSlug = (title: string): string => {
@@ -175,12 +199,15 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
   };
 
   const handleAddTag = () => {
-    if (newTag?.trim() && !selectedTags.includes(newTag.trim())) {
-      const updatedTags = [...selectedTags, newTag.trim()];
+    const value = newTag?.trim();
+    if (!value) return;
+    const exists = selectedTags.some(t => t.toLowerCase() === value.toLowerCase());
+    if (!exists) {
+      const updatedTags = [...selectedTags, value];
       setSelectedTags(updatedTags);
       handleChange('tags', updatedTags);
-      setNewTag('');
     }
+    setNewTag('');
   };
 
   const handleRemoveTag = (tag: string) => {
@@ -190,7 +217,7 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
   };
 
   const handleTagSelect = (tagName: string) => {
-    if (!selectedTags.includes(tagName)) {
+    if (!selectedTags.some(t => t.toLowerCase() === tagName.toLowerCase())) {
       const updatedTags = [...selectedTags, tagName];
       setSelectedTags(updatedTags);
       handleChange('tags', updatedTags);
@@ -469,7 +496,7 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
               type="text"
               value={newTag}
               onChange={(e) => setNewTag(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); } }}
               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               placeholder="Add a tag..."
             />
@@ -505,11 +532,11 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
           
           {availableTags.length > 0 && (
             <div>
-              <p className="text-sm text-gray-600 mb-2">Or select from existing tags:</p>
+              <p className="text-sm text-gray-600 mb-2">Suggested tags (click to add):</p>
               <div className="flex flex-wrap gap-2">
                 {availableTags
-                  .filter(tag => !selectedTags.includes(tag.name))
-                  .slice(0, 10)
+                  .filter(tag => !selectedTags.some(t => t.toLowerCase() === tag.name.toLowerCase()))
+                  .slice(0, 18)
                   .map(tag => (
                   <button
                     key={tag.id}

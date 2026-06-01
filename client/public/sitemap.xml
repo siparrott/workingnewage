@@ -21,10 +21,37 @@
   </url>
   <url>
     <loc>https://www.newagefotografie.com/blog/</loc>
-    <lastmod>2026-04-21</lastmod>
+    <lastmod>2026-06-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
+
+  <!-- Blog Posts — Familienfotos pillar cluster -->
+  <url>
+    <loc>https://www.newagefotografie.com/blog/familienfotos-locations-wien</loc>
+    <lastmod>2026-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.newagefotografie.com/blog/familienfotos-im-studio-vs-outdoor-in-wien-was-passt-zu-euch</loc>
+    <lastmod>2026-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.newagefotografie.com/blog/familienfotos-in-wien-preise-ablauf-perfekte-vorbereitung</loc>
+    <lastmod>2026-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.newagefotografie.com/blog/die-besten-outfits-fuer-familienfotos-in-wien</loc>
+    <lastmod>2026-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
   <url>
     <loc>https://www.newagefotografie.com/warteliste/</loc>
     <lastmod>2026-04-21</lastmod>

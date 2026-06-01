@@ -20,6 +20,24 @@ const meta = JSON.parse(readFileSync(`content/articles/${slug}.json`, 'utf8'));
 async function main() {
   const existing = await db.select({ id: blogPosts.id }).from(blogPosts).where(eq(blogPosts.slug, slug));
 
+  // Publication state is derived from the JSON meta (backward compatible —
+  // defaults to PUBLISHED now). Supports:
+  //   "status": "DRAFT"               -> hidden, not live
+  //   "publishAt": "2026-09-15"       -> SCHEDULED, goes live on that date
+  //   (nothing)                       -> PUBLISHED immediately
+  const metaStatus = String(meta.status ?? '').toUpperCase();
+  const publishAt = meta.publishAt ? new Date(meta.publishAt) : null;
+  const now = new Date();
+
+  let stateFields: Record<string, unknown>;
+  if (metaStatus === 'DRAFT') {
+    stateFields = { published: false, status: 'DRAFT', publishedAt: null, scheduledFor: null };
+  } else if (metaStatus === 'SCHEDULED' || (publishAt && publishAt > now)) {
+    stateFields = { published: false, status: 'SCHEDULED', publishedAt: null, scheduledFor: publishAt };
+  } else {
+    stateFields = { published: true, status: 'PUBLISHED', publishedAt: publishAt ?? now, scheduledFor: null };
+  }
+
   const fields = {
     title: meta.title,
     slug,
@@ -29,10 +47,8 @@ async function main() {
     seoTitle: meta.seoTitle ?? null,
     metaDescription: meta.metaDescription ?? null,
     tags: meta.tags ?? null,
-    published: true,
-    status: 'PUBLISHED',
-    publishedAt: new Date(),
-    updatedAt: new Date(),
+    ...stateFields,
+    updatedAt: now,
   };
 
   if (existing.length) {
