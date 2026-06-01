@@ -2313,6 +2313,33 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
+  // Remove one image from an IDEA post (by index) + best-effort delete from B2.
+  app.delete("/api/blog/idea/:id/images/:index", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const post = await storage.getBlogPost(req.params.id);
+      if (!post) return res.status(404).json({ error: 'Post not found' });
+      const idea: any = post.ideaData || {};
+      const images: any[] = Array.isArray(idea.images) ? idea.images : [];
+      const idx = parseInt(req.params.index, 10);
+      if (Number.isNaN(idx) || idx < 0 || idx >= images.length) {
+        return res.status(400).json({ error: 'Invalid image index' });
+      }
+      const [removed] = images.splice(idx, 1);
+      idea.images = images;
+      if (removed?.key) {
+        try { const { deleteFromB2 } = await import('./services/b2Upload.js'); await deleteFromB2(removed.key); }
+        catch (delErr) { console.warn('[idea/images delete] B2 delete failed:', (delErr as any)?.message); }
+      }
+      const patch: any = { ideaData: idea };
+      if (removed?.url && post.imageUrl === removed.url) patch.imageUrl = images[0]?.url || null;
+      await storage.updateBlogPost(post.id, patch);
+      res.json({ success: true, images });
+    } catch (e: any) {
+      console.error('[idea/images delete] error:', e);
+      res.status(500).json({ error: e?.message || 'Delete failed' });
+    }
+  });
+
   // Save user-supplied context + GDPR consent for an IDEA post.
   app.put("/api/blog/idea/:id/context", authenticateUser, async (req: Request, res: Response) => {
     try {

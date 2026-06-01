@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, Image as ImageIcon, Wand2, Loader2, CheckCircle, AlertCircle, Camera, Eye, Tag } from 'lucide-react';
+import { Upload, Image as ImageIcon, Wand2, Loader2, CheckCircle, AlertCircle, Camera, Eye, Tag, X } from 'lucide-react';
 
 // Idea-mode editor panel: the photo-first workflow for a blog post in IDEA status.
 //   1. Upload up to 5 images   -> POST /api/blog/idea/:id/images   (B2 + EXIF)
@@ -52,6 +52,19 @@ const IdeaModePanel: React.FC<Props> = ({ postId, title, pillar, initialIdea, on
       if (!res.ok) throw new Error(data.error || 'Upload fehlgeschlagen');
       setImages(data.images || []);
     } catch (err: any) { setError(err.message); } finally { setBusy(''); (e.target as HTMLInputElement).value = ''; }
+  };
+
+  const removeImage = async (index: number) => {
+    if (busy) return;
+    setError(null);
+    try {
+      const res = await fetch(`/api/blog/idea/${postId}/images/${index}`, {
+        method: 'DELETE', headers: { 'x-admin-token': getAdminToken() },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Löschen fehlgeschlagen');
+      setImages(data.images || []);
+    } catch (err: any) { setError(err.message); }
   };
 
   const saveContext = async () => {
@@ -133,7 +146,14 @@ const IdeaModePanel: React.FC<Props> = ({ postId, title, pillar, initialIdea, on
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
             {images.map((img, i) => (
               <div key={i} className="border border-gray-200 rounded-lg overflow-hidden">
-                {img.url && <img src={img.url} alt={img.altText || ''} className="w-full h-32 object-cover" />}
+                <div className="relative">
+                  {img.url && <img src={img.url} alt={img.altText || ''} className="w-full h-32 object-cover" />}
+                  <button type="button" onClick={() => removeImage(i)} disabled={!!busy}
+                    title="Bild entfernen"
+                    className="absolute top-1 right-1 bg-white/90 hover:bg-red-600 hover:text-white text-gray-700 rounded-full p-1 shadow disabled:opacity-50">
+                    <X size={14} />
+                  </button>
+                </div>
                 <div className="p-2 space-y-1 text-xs">
                   <div className="flex items-center gap-1 text-gray-600"><Camera size={12} />{img.exif?.model || img.exif?.make || 'keine Kameradaten'}</div>
                   <div className={`flex items-center gap-1 ${img.vision ? 'text-green-600' : 'text-gray-400'}`}><Eye size={12} />{img.vision ? 'analysiert' : 'nicht analysiert'}</div>

@@ -1,7 +1,7 @@
 // Minimal Backblaze B2 (S3-compatible) upload helper, mirroring the config in
 // server/routes/files.ts, exposed so the blog idea endpoints can upload original
 // and IPTC-embedded images server-side.
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
 const s3 = new S3Client({
   endpoint: process.env.AWS_S3_ENDPOINT || 'https://s3.eu-central-003.backblazeb2.com',
@@ -35,6 +35,14 @@ export async function uploadBufferToB2(
     ContentType: contentType,
   }));
   return buildB2Url(key);
+}
+
+/** Delete an object from B2 by key. Best-effort — callers ignore failures. */
+export async function deleteFromB2(key: string): Promise<void> {
+  await s3.send(new DeleteObjectCommand({
+    Bucket: process.env.AWS_S3_BUCKET || '',
+    Key: key,
+  }));
 }
 
 /** Fetch an image (e.g. a B2 URL) back into a Buffer for re-processing. */
