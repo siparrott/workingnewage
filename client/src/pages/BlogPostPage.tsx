@@ -4,6 +4,14 @@ import Layout from '../components/layout/Layout';
 // Supabase removed - blog data now served via Neon database API
 import { Calendar, ArrowLeft, Clock } from 'lucide-react';
 import { Helmet } from 'react-helmet';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
+
+// Older posts store raw Markdown (contentHtml empty); newer ones store real HTML.
+// Detect HTML so we render each correctly instead of dumping raw "##" markdown.
+const looksLikeHtml = (s: string) =>
+  /<(p|h[1-6]|ul|ol|li|div|img|table|strong|em|blockquote|br|span|a)[\s>/]/i.test(s);
 
 interface BlogPost {
   id: string;
@@ -306,7 +314,31 @@ const BlogPostPage: React.FC = () => {
                 {/* Render content with strategically placed images */}
                 {(() => {
                   const htmlContent = post.contentHtml || post.content;
-                  
+
+                  // Markdown posts (no HTML tags): render via react-markdown so
+                  // headings/lists/tables/bold display correctly instead of raw "##".
+                  if (htmlContent && !looksLikeHtml(htmlContent)) {
+                    return (
+                      <>
+                        <div className="blog-post-content prose prose-purple max-w-none">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                            {htmlContent}
+                          </ReactMarkdown>
+                        </div>
+                        {post.imageUrl2 && (
+                          <div className="my-8">
+                            <img src={post.imageUrl2} alt={post.title} className="w-full rounded-xl shadow-2xl" loading="lazy" />
+                          </div>
+                        )}
+                        {post.imageUrl3 && (
+                          <div className="my-8">
+                            <img src={post.imageUrl3} alt={post.title} className="w-full rounded-xl shadow-2xl" loading="lazy" />
+                          </div>
+                        )}
+                      </>
+                    );
+                  }
+
                   // If no additional images, render normally
                   if (!post.imageUrl2 && !post.imageUrl3) {
                     return (

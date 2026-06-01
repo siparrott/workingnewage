@@ -1,6 +1,7 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
 import { ServiceSchema } from '../../components/SEO/ServiceSchema';
 import { RelatedServices } from '../../components/SEO/RelatedServices';
+import { PillarGuides } from '../../components/SEO/PillarGuides';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link, useNavigate } from 'react-router-dom';
@@ -572,6 +573,7 @@ export default function FamilienfotosWienPage() {
       </section>
 
       {/* Related Services - Internal Links */}
+      <PillarGuides pillar="/familienfotos-wien/" />
       <RelatedServices currentPath="/familienfotos-wien/" />
 
       {/* Weitere Fotoshootings in Wien – compact internal link block */}

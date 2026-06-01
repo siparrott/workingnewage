@@ -14,6 +14,7 @@ import { registerRoutes } from "./routes";
 // Jobs loaded conditionally below to avoid startup crashes
 // import "./jobs";
 import { setupVite, serveStatic, log } from "./vite";
+import { seoRedirects } from "./seoRedirects";
 // Mount lightweight auth routes immediately (full routes registered later lazily)
 import authRoutes from './routes/auth';
 // Google Calendar 2-way sync: OAuth routes and scheduler
@@ -462,6 +463,10 @@ app.use((req, res, next) => {
       });
     });
     
+    // SEO 301 redirects for pruned thin blog posts — MUST run before serveStatic's
+    // SPA catch-all so /blog/<slug> redirects instead of serving the app shell.
+    app.use(seoRedirects);
+
     // Setup Vite BEFORE starting the server
     console.log('🔧 Setting up Vite frontend...');
     let viteReady = false;

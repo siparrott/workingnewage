@@ -1,6 +1,7 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
 import { ServiceSchema } from '../../components/SEO/ServiceSchema';
 import { RelatedServices } from '../../components/SEO/RelatedServices';
+import { PillarGuides } from '../../components/SEO/PillarGuides';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
@@ -439,6 +440,7 @@ export default function NeugeborenenfotosWienPage() {
       </section>
 
       {/* Related Services - Internal Links */}
+      <PillarGuides pillar="/neugeborenenfotos-wien/" />
       <RelatedServices currentPath="/neugeborenenfotos-wien/" />
 
       {/* Final CTA Section */}
