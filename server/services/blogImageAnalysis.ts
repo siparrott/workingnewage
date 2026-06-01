@@ -106,7 +106,7 @@ export async function analyzeVision(imageUrl: string, hint?: string): Promise<Vi
     'Antworte als JSON mit: description (1–2 Sätze, Deutsch), altText (kurz, Deutsch),',
     'sceneKeywords (Array, visuelle Begriffe), mood (z.B. "warm, ruhig"), peopleCount (Zahl).',
   ].join(' ');
-  const userText = hint ? `Kontext (nur Wortwahl, keine Fakten): ${hint}` : 'Beschreibe das Bild.';
+  const userText = `Beschreibe dieses Foto für ein Wiener Fotostudio.${hint ? ` Themen-Kontext nur zur Wortwahl (keine Fakten daraus ableiten): ${hint}.` : ''}`;
 
   const res = await openai().chat.completions.create({
     model: 'gpt-4o',

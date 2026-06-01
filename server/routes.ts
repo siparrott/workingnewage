@@ -2251,6 +2251,132 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
+  // ─── Idea-mode pipeline (photo-first article workflow) ─────────────────────
+  const ideaImageUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
+
+  // Upload up to 5 images to an IDEA post: store on B2 + extract EXIF per image.
+  app.post("/api/blog/idea/:id/images", authenticateUser, ideaImageUpload.array('images', 5), async (req: Request, res: Response) => {
+    try {
+      const post = await storage.getBlogPost(req.params.id);
+      if (!post) return res.status(404).json({ error: 'Post not found' });
+      const files = (req.files as Express.Multer.File[]) || [];
+      if (!files.length) return res.status(400).json({ error: 'No images uploaded' });
+
+      const { extractExif } = await import('./services/blogImageAnalysis.js');
+      const { uploadBufferToB2 } = await import('./services/b2Upload.js');
+
+      const idea: any = post.ideaData || { images: [], context: {}, consent: { given: false } };
+      const images: any[] = Array.isArray(idea.images) ? idea.images : [];
+      if (images.length + files.length > 5) return res.status(400).json({ error: 'Max 5 images per idea' });
+
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        const safe = f.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const key = `blog/${post.slug}/${Date.now()}-${i}-${safe}`;
+        const url = await uploadBufferToB2(key, f.buffer, f.mimetype || 'image/jpeg');
+        const exif = await extractExif(f.buffer);
+        images.push({ url, key, exif, vision: null, altText: '', iptcWritten: false });
+      }
+      idea.images = images;
+      await storage.updateBlogPost(post.id, { ideaData: idea });
+      res.json({ success: true, images });
+    } catch (e: any) {
+      console.error('[idea/images] error:', e);
+      res.status(500).json({ error: e?.message || 'Upload failed' });
+    }
+  });
+
+  // Save user-supplied context + GDPR consent for an IDEA post.
+  app.put("/api/blog/idea/:id/context", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const post = await storage.getBlogPost(req.params.id);
+      if (!post) return res.status(404).json({ error: 'Post not found' });
+      const idea: any = post.ideaData || { images: [], context: {}, consent: { given: false } };
+      const { context, consent } = req.body || {};
+      if (context && typeof context === 'object') idea.context = { ...idea.context, ...context };
+      if (consent && typeof consent === 'object') idea.consent = { ...idea.consent, ...consent };
+      await storage.updateBlogPost(post.id, { ideaData: idea });
+      res.json({ success: true, ideaData: idea });
+    } catch (e: any) {
+      console.error('[idea/context] error:', e);
+      res.status(500).json({ error: e?.message || 'Save failed' });
+    }
+  });
+
+  // Analyse each uploaded image (Vision), then re-embed IPTC and re-upload.
+  app.post("/api/blog/idea/:id/analyze", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const post = await storage.getBlogPost(req.params.id);
+      if (!post) return res.status(404).json({ error: 'Post not found' });
+      const idea: any = post.ideaData || {};
+      const images: any[] = Array.isArray(idea.images) ? idea.images : [];
+      if (!images.length) return res.status(400).json({ error: 'No images to analyze' });
+
+      const { analyzeVision, writeIptc, deriveAltText } = await import('./services/blogImageAnalysis.js');
+      const { uploadBufferToB2, fetchImageBuffer } = await import('./services/b2Upload.js');
+      const ctx = idea.context || {};
+      const hint = post.seoTitle || post.title;
+
+      for (const img of images) {
+        if (!img.url) continue;
+        const vision = await analyzeVision(img.url, hint);
+        img.vision = vision;
+        img.altText = deriveAltText(vision, ctx);
+        try {
+          const buf = await fetchImageBuffer(img.url);
+          const keywords = Array.from(new Set([...(post.tags || []), ...vision.sceneKeywords])).slice(0, 12);
+          const out = await writeIptc(buf, {
+            caption: img.altText || vision.description,
+            keywords,
+            location: ctx.location,
+            aiGenerated: true,
+          });
+          if (img.key) img.url = await uploadBufferToB2(img.key, out, 'image/jpeg');
+          img.iptcWritten = true;
+        } catch (iptcErr) {
+          console.warn('[idea/analyze] IPTC step failed:', (iptcErr as any)?.message);
+        }
+      }
+      idea.images = images;
+      const cover = images[0]?.url;
+      await storage.updateBlogPost(post.id, { ideaData: idea, ...(cover ? { imageUrl: cover } : {}) });
+      res.json({ success: true, images });
+    } catch (e: any) {
+      console.error('[idea/analyze] error:', e);
+      res.status(500).json({ error: e?.message || 'Analyze failed' });
+    }
+  });
+
+  // Generate the article body from the context pack (IDEA -> DRAFT).
+  app.post("/api/blog/idea/:id/generate", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const post = await storage.getBlogPost(req.params.id);
+      if (!post) return res.status(404).json({ error: 'Post not found' });
+      const idea: any = post.ideaData || { images: [], context: {} };
+      const { generateArticle } = await import('./services/blogIdeaWriter.js');
+      const out = await generateArticle({
+        title: post.title,
+        primaryKeyword: (post.tags || [])[0],
+        pillar: req.body?.pillar,
+        tags: post.tags || [],
+        images: (idea.images || []).map((im: any) => ({ url: im.url, vision: im.vision, exif: im.exif, altText: im.altText })),
+        context: idea.context || {},
+      });
+      const updated = await storage.updateBlogPost(post.id, {
+        content: out.html,
+        contentHtml: out.html,
+        excerpt: out.excerpt || post.excerpt,
+        seoTitle: out.seoTitle || post.seoTitle,
+        metaDescription: out.metaDescription || post.metaDescription,
+        status: 'DRAFT',
+      });
+      res.json({ success: true, post: { id: updated.id, status: updated.status }, generated: out });
+    } catch (e: any) {
+      console.error('[idea/generate] error:', e);
+      res.status(500).json({ error: e?.message || 'Generate failed' });
+    }
+  });
+
   // Fix existing blog posts with wall-of-text issue by converting to structured HTML
   app.post("/api/blog/posts/fix-formatting", authenticateUser, async (req: Request, res: Response) => {
     try {
