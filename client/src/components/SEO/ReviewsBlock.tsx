@@ -1,0 +1,105 @@
+import React from 'react';
+import { Star } from 'lucide-react';
+
+/**
+ * Social-proof + E-E-A-T block backed by the studio's real Google rating
+ * (4.8 / 300 reviews). Renders visible testimonials (the high-ROI conversion
+ * win) plus AggregateRating/Review JSON-LD attached to the same LocalBusiness
+ * @id used in index.html.
+ *
+ * NOTE: Google no longer shows star rich-results from self-serving
+ * LocalBusiness markup (2019 policy) — those stars come from the Google
+ * Business Profile. The real value here is the on-page trust + content depth
+ * and the review CTA, not rich snippets.
+ */
+const GOOGLE_REVIEW_URL = 'https://g.page/r/CfWCViKtBrjuEAE/review';
+const RATING = '4.8';
+const COUNT = '300';
+
+interface Testimonial {
+  name: string;
+  text: string;
+}
+
+// Real reviews from the Google Business Profile.
+const TESTIMONIALS: Testimonial[] = [
+  {
+    name: 'Bernhard Wistawel',
+    text: 'Vielen Dank für das professionelle und gleichzeitig lustige Fotoshooting. Wir waren schon zum zweiten Mal da. Wir empfehlen euch weiter.',
+  },
+  {
+    name: 'Michaela Pohanka',
+    text: 'Nach fast 13 Jahren und einigen Neuzugängen in unserer Familie haben wir uns entschlossen: neue Familienfotos müssen her – und es war eine wunderbare Entscheidung.',
+  },
+];
+
+export const ReviewsBlock: React.FC<{ heading?: string }> = ({
+  heading = 'Das sagen unsere Kundinnen & Kunden',
+}) => {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'PhotoStudio',
+    '@id': 'https://www.newagefotografie.com',
+    name: 'New Age Fotografie',
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: RATING,
+      reviewCount: COUNT,
+      bestRating: '5',
+    },
+    review: TESTIMONIALS.map((t) => ({
+      '@type': 'Review',
+      author: { '@type': 'Person', name: t.name },
+      reviewRating: { '@type': 'Rating', ratingValue: '5', bestRating: '5' },
+      reviewBody: t.text,
+    })),
+  };
+
+  return (
+    <section className="py-12 bg-purple-50 border-t border-purple-100">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        <div className="text-center mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-purple-900 mb-2">{heading}</h2>
+          <div className="flex items-center justify-center gap-2">
+            <span className="flex" aria-hidden="true">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+              ))}
+            </span>
+            <span className="text-gray-700 font-medium">
+              {RATING.replace('.', ',')} · {COUNT}+ Bewertungen auf Google
+            </span>
+          </div>
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          {TESTIMONIALS.map((t) => (
+            <figure key={t.name} className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+              <div className="flex mb-2" aria-hidden="true">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                ))}
+              </div>
+              <blockquote className="text-gray-700 text-sm leading-relaxed">“{t.text}”</blockquote>
+              <figcaption className="mt-3 text-sm font-semibold text-purple-800">{t.name}</figcaption>
+            </figure>
+          ))}
+        </div>
+
+        <div className="text-center mt-8">
+          <a
+            href={GOOGLE_REVIEW_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-purple-600 text-white font-semibold text-sm hover:bg-purple-700 transition-colors"
+          >
+            Bewertung auf Google schreiben
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default ReviewsBlock;

@@ -1,6 +1,7 @@
 import { SEOHead } from '../../components/SEO/SEOHead';
 import { RelatedServices } from '../../components/SEO/RelatedServices';
 import { PillarGuides } from '../../components/SEO/PillarGuides';
+import { ReviewsBlock } from '../../components/SEO/ReviewsBlock';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link } from 'react-router-dom';
@@ -373,6 +374,7 @@ export default function SchwangerschaftsfotosWienPage() {
         </div>
       </section>
 
+      <ReviewsBlock />
       <PillarGuides pillar="/schwangerschaftsfotos-wien/" />
       <RelatedServices currentPath="/schwangerschaftsfotos-wien/" />
 

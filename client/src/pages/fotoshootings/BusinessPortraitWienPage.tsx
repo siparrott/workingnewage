@@ -2,6 +2,7 @@ import { SEOHead } from '../../components/SEO/SEOHead';
 import { ServiceSchema } from '../../components/SEO/ServiceSchema';
 import { RelatedServices } from '../../components/SEO/RelatedServices';
 import { PillarGuides } from '../../components/SEO/PillarGuides';
+import { ReviewsBlock } from '../../components/SEO/ReviewsBlock';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
@@ -668,6 +669,7 @@ export default function BusinessPortraitWienPage() {
       </section>
 
       {/* Related Services - Internal Links */}
+      <ReviewsBlock />
       <PillarGuides pillar="/business-portrait-wien/" />
       <RelatedServices currentPath="/business-portrait-wien/" />
 
