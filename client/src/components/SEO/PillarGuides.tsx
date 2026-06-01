@@ -17,7 +17,7 @@ interface Guide {
  */
 const GUIDES: Record<string, Guide[]> = {
   '/familienfotos-wien/': [
-    { slug: 'familienfotos-locations-wien', title: 'Die schönsten Locations für Familienfotos in Wien' },
+    { slug: 'familienfotos-locations-wien', title: 'Familienfotos im Studio in Wien – authentische Portraits' },
     { slug: 'familienfotos-in-wien-preise-ablauf-perfekte-vorbereitung', title: 'Familienfotos Wien: Preise, Ablauf & perfekte Vorbereitung' },
     { slug: 'familienfotos-im-studio-vs-outdoor-in-wien-was-passt-zu-euch', title: 'Studio vs. Outdoor – was passt zu euren Familienfotos?' },
     { slug: 'die-besten-outfits-fuer-familienfotos-in-wien', title: 'Die besten Outfits für Familienfotos in Wien' },
