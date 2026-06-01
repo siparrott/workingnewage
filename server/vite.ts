@@ -150,6 +150,10 @@ export function serveStatic(app: Express) {
 
   console.log(`✅ Serving static files from: ${distPath}`);
 
+  // Dynamic sitemap MUST be registered before express.static — otherwise the
+  // static dist/sitemap.xml is served first and the dynamic handler never runs.
+  registerDynamicSitemap(app, path.resolve(distPath, "sitemap.xml"));
+
   // Serve static files from dist
   app.use(express.static(distPath));
 
@@ -162,8 +166,6 @@ export function serveStatic(app: Express) {
       res.status(404).send("robots.txt not found");
     }
   });
-
-  registerDynamicSitemap(app, path.resolve(distPath, "sitemap.xml"));
 
   // fall through to index.html if the file doesn't exist
   // BUT exclude /api/* routes - those should return 404 JSON, not HTML
