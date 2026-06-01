@@ -3,22 +3,34 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import { fileURLToPath } from "url";
 import { execSync } from "child_process";
+import { existsSync } from "fs";
 import prerender from "@prerenderer/rollup-plugin";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Resolve the Chrome binary used by the prerenderer.
-// On Heroku the chrome-for-testing buildpack puts `chrome` on PATH and installs
-// it at /app/.chrome-for-testing/chrome-linux64/chrome. We prefer an explicit
-// env var, then fall back to resolving `chrome` from PATH. On Windows/local this
-// returns undefined so Puppeteer uses its own bundled Chromium.
+// The chrome-for-testing buildpack installs Chrome under
+// `<dir>/.chrome-for-testing/chrome-linux64/chrome`. During the Heroku *build*
+// that dir is the build workdir (process.cwd(), e.g. /tmp/build_xxxx) — NOT
+// /app, which only exists at runtime. So we check the build workdir first, then
+// /app, then an explicit env var, then PATH. Every candidate is existence-checked
+// so a stale path (e.g. an /app config var at build time) is skipped. On
+// Windows/local none match → undefined → Puppeteer uses its bundled Chromium.
 function resolveChromePath(): string | undefined {
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
-  if (process.env.GOOGLE_CHROME_BIN) return process.env.GOOGLE_CHROME_BIN;
+  const rel = ".chrome-for-testing/chrome-linux64/chrome";
+  const candidates = [
+    `${process.cwd()}/${rel}`,
+    `/app/${rel}`,
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    process.env.GOOGLE_CHROME_BIN,
+  ].filter(Boolean) as string[];
+  for (const c of candidates) {
+    if (existsSync(c)) return c;
+  }
   if (process.platform !== "win32") {
     try {
       const found = execSync("command -v chrome", { encoding: "utf8" }).trim();
-      if (found) return found;
+      if (found && existsSync(found)) return found;
     } catch {
       // chrome not on PATH (e.g. local non-Heroku build) — fall through
     }
