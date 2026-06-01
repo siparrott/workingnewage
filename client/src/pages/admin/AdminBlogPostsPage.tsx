@@ -12,7 +12,9 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
-  Loader2
+  Loader2,
+  Wand2,
+  Archive
 } from 'lucide-react';
 
 interface BlogPost {
@@ -22,7 +24,7 @@ interface BlogPost {
   excerpt?: string;
   content_html: string;
   cover_image?: string;
-  status: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED';
+  status: 'IDEA' | 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' | 'ARCHIVED';
   published: boolean; // kept for compatibility
   author_id: string;
   published_at?: string;
@@ -63,14 +65,15 @@ const AdminBlogPostsPage: React.FC = () => {
       
       // Map the API response to admin format and compute real status
       const mappedPosts = (data.posts || []).map((post: any) => {
-        let computedStatus: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' = 'DRAFT';
+        let computedStatus: string = 'DRAFT';
         const pubDate = post.publishedAt ? new Date(post.publishedAt) : null;
-        if (post.published) {
-          if (pubDate && pubDate > new Date()) {
-            computedStatus = 'SCHEDULED';
-          } else {
-            computedStatus = 'PUBLISHED';
-          }
+        const schedDate = post.scheduledFor ? new Date(post.scheduledFor) : null;
+        if (post.status === 'IDEA' || post.status === 'ARCHIVED') {
+          computedStatus = post.status; // idea-mode / archived take precedence over published flag
+        } else if (post.published) {
+          computedStatus = (pubDate && pubDate > new Date()) ? 'SCHEDULED' : 'PUBLISHED';
+        } else if (post.status === 'SCHEDULED' && schedDate) {
+          computedStatus = 'SCHEDULED'; // scheduled-but-not-yet-published (publishedAt null, scheduledFor set)
         }
         
         return {
@@ -107,6 +110,8 @@ const AdminBlogPostsPage: React.FC = () => {
           if (statusFilter === 'published') return post.status === 'PUBLISHED';
           if (statusFilter === 'scheduled') return post.status === 'SCHEDULED';
           if (statusFilter === 'draft') return post.status === 'DRAFT';
+          if (statusFilter === 'idea') return post.status === 'IDEA';
+          if (statusFilter === 'archived') return post.status === 'ARCHIVED';
           return true;
         });
       }
@@ -209,6 +214,20 @@ const AdminBlogPostsPage: React.FC = () => {
             <Clock size={12} className="mr-1" /> Scheduled: {scheduledDate}
           </span>
         );
+      case 'IDEA': {
+        const ideaDate = post.scheduled_for ? new Date(post.scheduled_for).toLocaleDateString('de-AT', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+            <Wand2 size={12} className="mr-1" /> Idee{ideaDate ? `: ${ideaDate}` : ''}
+          </span>
+        );
+      }
+      case 'ARCHIVED':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+            <Archive size={12} className="mr-1" /> Archiviert
+          </span>
+        );
       default:
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
@@ -261,9 +280,11 @@ const AdminBlogPostsPage: React.FC = () => {
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             >
               <option value="all">{t('filter.all_statuses')}</option>
+              <option value="idea">Idee</option>
               <option value="published">{t('status.published')}</option>
               <option value="draft">{t('status.draft')}</option>
               <option value="scheduled">{t('status.scheduled')}</option>
+              <option value="archived">Archiviert</option>
             </select>
 
             <button 

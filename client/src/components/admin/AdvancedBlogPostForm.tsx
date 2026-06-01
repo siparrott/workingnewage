@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdvancedRichTextEditor from './AdvancedRichTextEditor';
+import IdeaModePanel from './IdeaModePanel';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -26,7 +27,9 @@ interface BlogPost {
   content_html: string;
   cover_image?: string;
   tags?: string[];
-  status: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED';
+  status: 'IDEA' | 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' | 'ARCHIVED';
+  ideaData?: any;
+  pillar?: string;
   seo_title?: string;
   meta_description?: string;
   author_id?: string;
@@ -666,6 +669,23 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
         return renderContentStep();
     }
   };
+
+  // Idea mode: the article body doesn't exist yet — show the photo-first panel
+  // instead of the step editor. After "Generate" the post becomes a DRAFT and a
+  // reload loads the normal editor with the generated content.
+  if (formData.status === 'IDEA' && post?.id) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <IdeaModePanel
+          postId={post.id}
+          title={formData.title || post.title}
+          pillar={(post as any).pillar}
+          initialIdea={(post as any).ideaData}
+          onGenerated={() => window.location.reload()}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
