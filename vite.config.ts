@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import { fileURLToPath } from "url";
 import { execSync } from "child_process";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import prerender from "@prerenderer/rollup-plugin";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -107,13 +107,29 @@ const publicRoutes = [
 // omit PRERENDER for speed; production sets it so static HTML is generated.
 const shouldPrerender = !!process.env.PRERENDER;
 
+// Published blog-post routes discovered at build time. scripts/gen-prerender-routes.mjs
+// queries the live DB (published & publishedAt <= now) and writes them here before
+// the build runs, so posts that went live since the last deploy get prerendered too —
+// without hand-editing publicRoutes. Read synchronously to keep this config sync
+// (setupVite spreads the default export, so it must not be a function/Promise).
+function loadDynamicBlogRoutes(): string[] {
+  try {
+    const p = path.resolve(__dirname, "prerender-blog-routes.json");
+    if (existsSync(p)) return JSON.parse(readFileSync(p, "utf8")) as string[];
+  } catch {
+    // ignore malformed/missing file — fall back to the static list
+  }
+  return [];
+}
+const prerenderRoutes = Array.from(new Set([...publicRoutes, ...loadDynamicBlogRoutes()]));
+
 export default defineConfig({
   plugins: [
     react(),
     // Static prerender for SEO — only when PRERENDER is set (Chrome must be available).
     ...(shouldPrerender ? [
       prerender({
-        routes: publicRoutes,
+        routes: prerenderRoutes,
         renderer: '@prerenderer/renderer-puppeteer',
         rendererOptions: {
           maxConcurrentRoutes: 4,

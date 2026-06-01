@@ -80,6 +80,9 @@ jspm_packages/
 # Production build output (built by Vite)
 dist/
 
+# Build-time prerender route list (generated from DB by gen-prerender-routes.mjs)
+prerender-blog-routes.json
+
 # Storybook build outputs
 .out
 .storybook-out

@@ -23,6 +23,57 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
+const SITE_ORIGIN = "https://www.newagefotografie.com";
+
+// Serve /sitemap.xml dynamically: take the curated static sitemap as the base
+// and inject a <url> for every PUBLISHED blog post (publishedAt <= now). This
+// means scheduled posts appear in the sitemap automatically the moment they go
+// live — no rebuild or manual edit needed. Falls back to the static file on any
+// error so the route can never 500 the crawler.
+function registerDynamicSitemap(app: Express, baseFilePath: string) {
+  app.get("/sitemap.xml", async (_req, res) => {
+    try {
+      const base = fs.existsSync(baseFilePath)
+        ? fs.readFileSync(baseFilePath, "utf8")
+        : '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n</urlset>';
+
+      const { storage } = await import("./storage.js");
+      const posts = await storage.getBlogPosts(true); // published & publishedAt <= NOW()
+
+      const existing = new Set(
+        [...base.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]),
+      );
+
+      const blogUrls = posts
+        .filter((p: any) => p.slug)
+        .map((p: any) => {
+          const loc = `${SITE_ORIGIN}/blog/${p.slug}`;
+          if (existing.has(loc)) return "";
+          const ts = p.updatedAt || p.publishedAt;
+          const lastmod = ts ? new Date(ts).toISOString().slice(0, 10) : "";
+          return (
+            `  <url>\n    <loc>${loc}</loc>\n` +
+            (lastmod ? `    <lastmod>${lastmod}</lastmod>\n` : "") +
+            `    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>\n  </url>`
+          );
+        })
+        .filter(Boolean)
+        .join("\n");
+
+      const xml = blogUrls
+        ? base.replace("</urlset>", `${blogUrls}\n</urlset>`)
+        : base;
+      res.type("application/xml").send(xml);
+    } catch (err) {
+      console.error("[sitemap] dynamic generation failed, serving static:", err);
+      if (fs.existsSync(baseFilePath)) {
+        return res.type("application/xml").sendFile(baseFilePath);
+      }
+      res.status(500).send("sitemap.xml not available");
+    }
+  });
+}
+
 export async function setupVite(app: Express, server: Server) {
   // Dynamically import viteConfig only when needed (development mode)
   const viteConfigModule = await import("../vite.config.js");
@@ -47,6 +98,10 @@ export async function setupVite(app: Express, server: Server) {
     server: serverOptions,
     appType: "custom",
   });
+
+  // Dynamic sitemap must be registered before the Vite static/catch-all
+  // middleware so it isn't shadowed by the static public/sitemap.xml.
+  registerDynamicSitemap(app, path.resolve(__dirname, "..", "client", "public", "sitemap.xml"));
 
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
@@ -108,14 +163,7 @@ export function serveStatic(app: Express) {
     }
   });
 
-  app.get("/sitemap.xml", (_req, res) => {
-    const sitemapPath = path.resolve(distPath, "sitemap.xml");
-    if (fs.existsSync(sitemapPath)) {
-      res.type("application/xml").sendFile(sitemapPath);
-    } else {
-      res.status(404).send("sitemap.xml not found");
-    }
-  });
+  registerDynamicSitemap(app, path.resolve(distPath, "sitemap.xml"));
 
   // fall through to index.html if the file doesn't exist
   // BUT exclude /api/* routes - those should return 404 JSON, not HTML
