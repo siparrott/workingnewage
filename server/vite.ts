@@ -44,6 +44,10 @@ function registerDynamicSitemap(app: Express, baseFilePath: string) {
         [...base.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]),
       );
 
+      const xmlEsc = (s: string) =>
+        s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+      let hasImages = false;
       const blogUrls = posts
         .filter((p: any) => p.slug)
         .map((p: any) => {
@@ -51,18 +55,34 @@ function registerDynamicSitemap(app: Express, baseFilePath: string) {
           if (existing.has(loc)) return "";
           const ts = p.updatedAt || p.publishedAt;
           const lastmod = ts ? new Date(ts).toISOString().slice(0, 10) : "";
+          // Collect cover + extra images for the image sitemap extension.
+          const imgs: string[] = [p.imageUrl, p.imageUrl2, p.imageUrl3].filter(Boolean);
+          let imageXml = "";
+          for (const u of imgs) {
+            hasImages = true;
+            imageXml += `    <image:image>\n      <image:loc>${xmlEsc(u)}</image:loc>\n    </image:image>\n`;
+          }
           return (
             `  <url>\n    <loc>${loc}</loc>\n` +
             (lastmod ? `    <lastmod>${lastmod}</lastmod>\n` : "") +
-            `    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>\n  </url>`
+            `    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>\n` +
+            imageXml +
+            `  </url>`
           );
         })
         .filter(Boolean)
         .join("\n");
 
-      const xml = blogUrls
+      let xml = blogUrls
         ? base.replace("</urlset>", `${blogUrls}\n</urlset>`)
         : base;
+      // Declare the image-sitemap namespace on <urlset> when we emit image tags.
+      if (hasImages && !xml.includes("xmlns:image")) {
+        xml = xml.replace(
+          /<urlset /,
+          '<urlset xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" ',
+        );
+      }
       res.type("application/xml").send(xml);
     } catch (err) {
       console.error("[sitemap] dynamic generation failed, serving static:", err);

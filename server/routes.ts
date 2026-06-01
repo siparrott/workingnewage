@@ -2380,18 +2380,21 @@ Bitte versuchen Sie es später noch einmal.`;
       const post = await storage.getBlogPost(req.params.id);
       if (!post) return res.status(404).json({ error: 'Post not found' });
       const idea: any = post.ideaData || { images: [], context: {} };
-      const { generateArticle } = await import('./services/blogIdeaWriter.js');
+      const { generateArticle, injectImages } = await import('./services/blogIdeaWriter.js');
+      const ideaImages = (idea.images || []).map((im: any) => ({ url: im.url, vision: im.vision, exif: im.exif, altText: im.altText }));
       const out = await generateArticle({
         title: post.title,
         primaryKeyword: (post.tags || [])[0],
         pillar: req.body?.pillar,
         tags: post.tags || [],
-        images: (idea.images || []).map((im: any) => ({ url: im.url, vision: im.vision, exif: im.exif, altText: im.altText })),
+        images: ideaImages,
         context: idea.context || {},
       });
+      // Insert the shoot's photos (with descriptive alt) into the article body.
+      const htmlWithImages = injectImages(out.html, ideaImages);
       const updated = await storage.updateBlogPost(post.id, {
-        content: out.html,
-        contentHtml: out.html,
+        content: htmlWithImages,
+        contentHtml: htmlWithImages,
         excerpt: out.excerpt || post.excerpt,
         seoTitle: out.seoTitle || post.seoTitle,
         metaDescription: out.metaDescription || post.metaDescription,

@@ -88,6 +88,31 @@ function buildContextPack(input: WriterInput): string {
   ].filter((l) => l !== '').join('\n');
 }
 
+/**
+ * Insert the shoot's photos into the generated HTML as <figure> blocks with
+ * descriptive alt text (image SEO + the post actually shows its photos). Spreads
+ * images after every other paragraph; appends any leftovers at the end.
+ */
+export function injectImages(html: string, images: IdeaImage[]): string {
+  const imgs = images.filter((i) => i.url);
+  if (!imgs.length) return html;
+  const esc = (s: string) => (s || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  const fig = (im: IdeaImage) => {
+    const alt = esc(im.altText || im.vision?.altText || im.vision?.description || '');
+    const cap = im.altText || im.vision?.description || '';
+    return `<figure><img src="${im.url}" alt="${alt}" loading="lazy" />${cap ? `<figcaption>${esc(cap)}</figcaption>` : ''}</figure>`;
+  };
+  let pCount = 0;
+  let i = 0;
+  let out = html.replace(/<\/p>/g, (m) => {
+    pCount++;
+    if (i < imgs.length && pCount % 2 === 1) return `${m}\n${fig(imgs[i++])}`;
+    return m;
+  });
+  while (i < imgs.length) out += `\n${fig(imgs[i++])}`;
+  return out;
+}
+
 export async function generateArticle(input: WriterInput): Promise<WriterOutput> {
   const system = [
     'Du bist Texter:in für New Age Fotografie, ein Tageslichtstudio in Wien-Margareten.',
