@@ -78,19 +78,18 @@ const publicRoutes = [
   '/gutschein/maternity',
 ];
 
-// FORCE CLEAN BUILD v5 - SEO Prerendering - 20260204
-// Detect if running on Heroku (DYNO env var) or in CI to skip prerendering
-// Also check for NODE_ENV=production and absence of local dev indicators
-const isHeroku = process.env.DYNO !== undefined || 
-                 process.env.CI === 'true' || 
-                 process.env.HEROKU === 'true' ||
-                 (process.env.NODE_ENV === 'production' && !process.env.PRERENDER);
+// Prerendering is controlled by a single explicit opt-in: the PRERENDER env var.
+// (Set as a Heroku config var AND via heroku-postbuild.) This deliberately does
+// NOT key off DYNO/CI/NODE_ENV — those are set in the Heroku *build* env and were
+// previously causing prerendering to be skipped in production. Local/dev builds
+// omit PRERENDER for speed; production sets it so static HTML is generated.
+const shouldPrerender = !!process.env.PRERENDER;
 
 export default defineConfig({
   plugins: [
     react(),
-    // Skip prerendering on Heroku to avoid Puppeteer/Chrome dependency issues
-    ...(!isHeroku ? [
+    // Static prerender for SEO — only when PRERENDER is set (Chrome must be available).
+    ...(shouldPrerender ? [
       prerender({
         routes: publicRoutes,
         renderer: '@prerenderer/renderer-puppeteer',
