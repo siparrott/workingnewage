@@ -138,10 +138,17 @@ cron.schedule("0 * * * *", async () => {
     
     jobLog('BLOG', `Found ${scheduledPosts.length} post(s) ready to publish`);
     
+    const { ideaNeedsConsent } = await import("../services/blogConsent.js");
+
     // Publish each post
     let published = 0;
     for (const post of scheduledPosts) {
       try {
+        // GDPR: never auto-publish a photo-derived post without recorded consent.
+        if (ideaNeedsConsent(post)) {
+          jobLog('BLOG', `Skipped (consent missing): "${post.title}" (${post.slug})`);
+          continue;
+        }
         await db
           .update(blogPosts)
           .set({
@@ -151,7 +158,7 @@ cron.schedule("0 * * * *", async () => {
             updatedAt: now
           })
           .where(eq(blogPosts.id, post.id));
-        
+
         published++;
         jobLog('BLOG', `Published: "${post.title}" (${post.slug})`);
       } catch (err) {

@@ -2061,7 +2061,14 @@ Bitte versuchen Sie es später noch einmal.`;
   // ==================== BLOG ROUTES ====================
   app.get("/api/blog/posts", async (req: Request, res: Response) => {
     try {
-      const published = req.query.published === 'true' ? true : req.query.published === 'false' ? false : undefined;
+      let published = req.query.published === 'true' ? true : req.query.published === 'false' ? false : undefined;
+      // Security: only authenticated admins may see non-published posts (DRAFT,
+      // IDEA, ARCHIVED, future SCHEDULED). Anonymous callers are forced to
+      // published-only regardless of query, so unpublished content never leaks.
+      const adminToken = process.env.ADMIN_TOKEN || '';
+      const isAdmin = !!(req as any).session?.userId
+        || (!!adminToken && req.headers['x-admin-token'] === adminToken);
+      if (!isAdmin) published = true;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const search = req.query.search as string;
@@ -2175,6 +2182,15 @@ Bitte versuchen Sie es später noch einmal.`;
         postData.status = 'DRAFT';
       }
       
+      // GDPR gate: same rule as updates — no publishing/scheduling photo-derived
+      // posts without consent.
+      if (postData.status === 'PUBLISHED' || postData.status === 'SCHEDULED') {
+        const { ideaNeedsConsent, CONSENT_REQUIRED_MESSAGE } = await import('./services/blogConsent.js');
+        if (ideaNeedsConsent(postData)) {
+          return res.status(409).json({ error: 'consent_required', message: CONSENT_REQUIRED_MESSAGE });
+        }
+      }
+
       console.log("[BLOG CREATE] Received blog post data:", postData);
       const validatedData = insertBlogPostSchema.parse(postData);
       console.log("[BLOG CREATE] Validated blog post data:", validatedData);
@@ -2228,7 +2244,18 @@ Bitte versuchen Sie es später noch einmal.`;
           delete updates[key];
         }
       });
-      
+
+      // GDPR gate: an idea-derived post (built from uploaded photos) cannot go
+      // PUBLISHED/SCHEDULED without recorded consent.
+      if (updates.status === 'PUBLISHED' || updates.status === 'SCHEDULED' || updates.published === true) {
+        const existing = await storage.getBlogPost(req.params.id);
+        const merged = { ...existing, ideaData: updates.ideaData ?? (existing as any)?.ideaData };
+        const { ideaNeedsConsent, CONSENT_REQUIRED_MESSAGE } = await import('./services/blogConsent.js');
+        if (ideaNeedsConsent(merged)) {
+          return res.status(409).json({ error: 'consent_required', message: CONSENT_REQUIRED_MESSAGE });
+        }
+      }
+
       console.log('[BLOG UPDATE] Processed updates:', updates);
       const post = await storage.updateBlogPost(req.params.id, updates);
       console.log('[BLOG UPDATE] Success:', post.id);
