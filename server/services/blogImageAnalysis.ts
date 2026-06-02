@@ -48,11 +48,14 @@ export interface BlogContext {
 export interface IptcInput {
   caption: string;
   keywords: string[];
-  location?: string;
+  location?: string;         // City (e.g. Wien)
+  sublocation?: string;      // Sub-location (e.g. Margareten)
+  country?: string;          // Country (e.g. Österreich)
   creator?: string;
   copyright?: string;
   credit?: string;
   aiGenerated?: boolean;     // mark AI-assisted metadata for transparency
+  gps?: { lat: number; lng: number } | null; // EXIF GPS — JPEG only (WebP drops it)
 }
 
 const STUDIO = {
@@ -60,6 +63,11 @@ const STUDIO = {
   copyright: '© New Age Fotografie, Wien',
   credit: 'New Age Fotografie',
 };
+
+// New Age Fotografie studio — Wehrgasse, 1050 Wien-Margareten.
+export const STUDIO_GPS = { lat: 48.1939, lng: 16.3577 };
+export const STUDIO_CITY = 'Wien';
+export const STUDIO_SUBLOCATION = 'Margareten';
 
 let _openai: OpenAI | null = null;
 function openai(): OpenAI {
@@ -133,36 +141,66 @@ export async function analyzeVision(imageUrl: string, hint?: string): Promise<Vi
   };
 }
 
+/** Sniff image format from magic bytes (files are often mis-named .jpg). */
+export function sniffImageExt(b: Buffer): 'jpg' | 'webp' | 'png' {
+  if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'jpg';
+  if (b.length >= 12 && b.toString('ascii', 0, 4) === 'RIFF' && b.toString('ascii', 8, 12) === 'WEBP') return 'webp';
+  if (b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'png';
+  return 'jpg';
+}
+
+export function contentTypeFor(ext: 'jpg' | 'webp' | 'png'): string {
+  return ext === 'webp' ? 'image/webp' : ext === 'png' ? 'image/png' : 'image/jpeg';
+}
+
 /**
- * Embed IPTC/XMP into a JPEG buffer via ExifTool and return the new buffer.
- * Writes caption, keywords, location, creator/copyright/credit, and an
- * AI-provenance note when the description was machine-assisted.
+ * Embed metadata via ExifTool and return the new buffer. Format-aware: IPTC IIM
+ * tags only work in JPEG/TIFF, so WebP/PNG get XMP (+ GPS) equivalents — which
+ * Google Images reads too. Writes caption, keywords, location, creator/
+ * copyright/credit, optional GPS and an AI-provenance hint.
  */
 export async function writeIptc(buffer: Buffer, input: IptcInput): Promise<Buffer> {
+  const ext = sniffImageExt(buffer);
   const dir = await mkdtemp(join(tmpdir(), 'iptc-'));
-  const file = join(dir, 'image.jpg');
+  const file = join(dir, `image.${ext}`);
   await writeFile(file, buffer);
   try {
+    // XMP — universal across JPEG / WebP / PNG.
     const tags: Record<string, unknown> = {
-      'IPTC:Caption-Abstract': input.caption,
       'XMP-dc:Description': input.caption,
-      'IPTC:Keywords': input.keywords,
       'XMP-dc:Subject': input.keywords,
-      'IPTC:By-line': input.creator ?? STUDIO.creator,
       'XMP-dc:Creator': input.creator ?? STUDIO.creator,
-      'IPTC:CopyrightNotice': input.copyright ?? STUDIO.copyright,
       'XMP-dc:Rights': input.copyright ?? STUDIO.copyright,
-      'IPTC:Credit': input.credit ?? STUDIO.credit,
+      'XMP-photoshop:Credit': input.credit ?? STUDIO.credit,
     };
-    if (input.location) {
-      tags['IPTC:City'] = input.location;
-      tags['XMP-photoshop:City'] = input.location;
+    // Geo as TEXT (persists across JPEG/WebP/PNG; the SEO-relevant location signal).
+    if (input.location) tags['XMP-photoshop:City'] = input.location;
+    if (input.sublocation) tags['XMP-iptcCore:Location'] = input.sublocation;
+    if (input.country) tags['XMP-photoshop:Country'] = input.country;
+    if (input.aiGenerated) tags['XMP-iptcExt:DigitalSourceType'] = 'trainedAlgorithmicMedia';
+
+    // IPTC IIM — JPEG/TIFF only.
+    if (ext === 'jpg') {
+      tags['IPTC:Caption-Abstract'] = input.caption;
+      tags['IPTC:Keywords'] = input.keywords;
+      tags['IPTC:By-line'] = input.creator ?? STUDIO.creator;
+      tags['IPTC:CopyrightNotice'] = input.copyright ?? STUDIO.copyright;
+      tags['IPTC:Credit'] = input.credit ?? STUDIO.credit;
+      if (input.location) tags['IPTC:City'] = input.location;
+      if (input.sublocation) tags['IPTC:Sub-location'] = input.sublocation;
+      if (input.country) tags['IPTC:Country-PrimaryLocationName'] = input.country;
     }
-    if (input.aiGenerated) {
-      // C2PA-style transparency hint in XMP.
-      tags['XMP-iptcExt:DigitalSourceType'] = 'trainedAlgorithmicMedia';
+    if (input.gps) {
+      // EXIF GPS — persists in JPEG (dropped by WebP).
+      tags['GPSLatitude'] = Math.abs(input.gps.lat);
+      tags['GPSLatitudeRef'] = input.gps.lat >= 0 ? 'N' : 'S';
+      tags['GPSLongitude'] = Math.abs(input.gps.lng);
+      tags['GPSLongitudeRef'] = input.gps.lng >= 0 ? 'E' : 'W';
+      // XMP GPS — persists in WebP/PNG too (signed decimal with -n).
+      tags['XMP-exif:GPSLatitude'] = input.gps.lat;
+      tags['XMP-exif:GPSLongitude'] = input.gps.lng;
     }
-    await exiftool.write(file, tags as any, { writeArgs: ['-overwrite_original', '-codedcharacterset=utf8'] });
+    await exiftool.write(file, tags as any, { writeArgs: ['-overwrite_original', '-codedcharacterset=utf8', '-n'] });
     return await readFile(file);
   } finally {
     await unlink(file).catch(() => {});
