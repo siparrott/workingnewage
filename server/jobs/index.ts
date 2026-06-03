@@ -161,6 +161,18 @@ cron.schedule("0 * * * *", async () => {
 
         published++;
         jobLog('BLOG', `Published: "${post.title}" (${post.slug})`);
+
+        // Best-effort: distribute the freshly-published post to social via Zernio.
+        // No-op until ZERNIO_API_BASE + ZERNIO_ENDPOINT are configured.
+        try {
+          if (process.env.ZERNIO_API_BASE && process.env.ZERNIO_ENDPOINT && post.imageUrl) {
+            const { buildZernioRow, schedulePosts } = await import("../services/zernio.js");
+            const r = await schedulePosts([await buildZernioRow(post as any)]);
+            jobLog('BLOG', `Zernio social ${r.ok ? 'queued' : 'skipped'}: ${post.slug}${r.ok ? '' : ' — ' + (r.error || r.status)}`);
+          }
+        } catch (zErr) {
+          jobLog('BLOG', `Zernio social error for ${post.slug}`, zErr instanceof Error ? zErr.message : zErr);
+        }
       } catch (err) {
         jobLog('BLOG', `Failed to publish post ${post.id}`, err instanceof Error ? err.message : err);
       }

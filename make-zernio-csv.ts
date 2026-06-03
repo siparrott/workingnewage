@@ -9,10 +9,12 @@ import { db, pool } from './server/db.js';
 import { blogPosts } from './shared/schema.js';
 import { eq, and, sql } from 'drizzle-orm';
 import { generateSocialPack, withUtm } from './server/services/socialSnippets.js';
+import { profilesFor } from './server/services/zernio.js';
 
 const ORIGIN = 'https://www.newagefotografie.com';
 const TZ = 'Europe/Vienna';
-const PROFILES = process.env.ZERNIO_PROFILES || 'REPLACE_WITH_PROFILE_IDS';
+const PLATFORMS = process.env.ZERNIO_CHANNELS || 'facebook,instagram,googlebusiness,pinterest,linkedin';
+const PROFILES = profilesFor(PLATFORMS) || 'REPLACE_WITH_PROFILE_IDS';
 
 // Exact Zernio bulk-import column order.
 const HEADER = ['post_content','platforms','profiles','schedule_time','schedule_time_twitter','schedule_time_instagram','schedule_time_facebook','schedule_time_youtube','schedule_time_linkedin','schedule_time_tiktok','schedule_time_threads','schedule_time_pinterest','schedule_time_reddit','schedule_time_bluesky','schedule_time_googlebusiness','schedule_time_telegram','tz','media_urls','is_draft','publish_now','use_queue','title','tags','hashtags','visibility','mentions','crossposting_enabled','metadata','youtube_title','youtube_description','youtube_first_comment','youtube_thumbnail_url','facebook_first_comment','linkedin_first_comment','instagram_content_type','instagram_collaborators','instagram_thumbnail_url','instagram_first_comment','tiktok_privacy','tiktok_allow_comments','tiktok_allow_duet','tiktok_allow_stitch','tiktok_commercial_content','tiktok_brand_partner','tiktok_organic_brand','tiktok_media_type','tiktok_description','tiktok_auto_add_music','twitter_thread_items','threads_thread_items','custom_content_twitter','custom_content_linkedin','custom_content_facebook','custom_content_instagram','custom_content_youtube','custom_content_tiktok','custom_content_threads','custom_content_googlebusiness','custom_content_telegram','custom_media_twitter','custom_media_linkedin','custom_media_facebook','custom_media_instagram','custom_media_youtube','custom_media_tiktok','custom_media_threads','custom_media_googlebusiness','custom_media_telegram','pinterest_title','pinterest_link','googlebusiness_cta_type','googlebusiness_cta_url','telegram_parse_mode','telegram_disable_web_page_preview','telegram_disable_notification','telegram_protect_content'];
@@ -37,7 +39,7 @@ async function main() {
 
     rows.push(csvRow({
       post_content: pack.base,
-      platforms: 'facebook,instagram,googlebusiness,pinterest,linkedin',
+      platforms: PLATFORMS,
       profiles: PROFILES,
       tz: TZ,
       media_urls: media,

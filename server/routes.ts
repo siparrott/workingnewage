@@ -2434,6 +2434,23 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
+  // Admin trigger: build a post's social pack and send it to Zernio. Returns the
+  // built row even if the Zernio endpoint isn't configured yet (so you can preview).
+  app.post("/api/blog/posts/:id/social", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const post = await storage.getBlogPost(req.params.id);
+      if (!post) return res.status(404).json({ error: 'Post not found' });
+      if (!post.imageUrl) return res.status(400).json({ error: 'Post needs a cover image before social distribution.' });
+      const { buildZernioRow, schedulePosts } = await import('./services/zernio.js');
+      const row = await buildZernioRow(post as any);
+      const result = await schedulePosts([row]);
+      res.json({ success: result.ok, configured: !result.error?.includes('endpoint not configured'), row, result });
+    } catch (e: any) {
+      console.error('[blog/social] error:', e);
+      res.status(500).json({ error: e?.message || 'Social send failed' });
+    }
+  });
+
   // Fix existing blog posts with wall-of-text issue by converting to structured HTML
   app.post("/api/blog/posts/fix-formatting", authenticateUser, async (req: Request, res: Response) => {
     try {

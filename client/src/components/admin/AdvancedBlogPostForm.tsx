@@ -158,6 +158,8 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
   const [error, setError] = useState<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [zernioSending, setZernioSending] = useState(false);
+  const [zernioMsg, setZernioMsg] = useState<string | null>(null);
 
   const steps = [
     { id: 'content', label: 'Content', icon: FileText, description: 'Write your blog post content' },
@@ -542,6 +544,30 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
     </div>
   );
 
+  // Build the post's social pack and send it to Zernio (admin trigger).
+  const sendToZernio = async () => {
+    if (!post?.id) return;
+    setZernioSending(true);
+    setZernioMsg(null);
+    try {
+      const getAdminToken = () => (typeof window !== 'undefined' ? (localStorage.getItem('ADMIN_TOKEN') || '') : '');
+      const res = await fetch(`/api/blog/posts/${post.id}/social`, {
+        method: 'POST', headers: { 'x-admin-token': getAdminToken() },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Senden fehlgeschlagen');
+      setZernioMsg(
+        data.configured
+          ? (data.success ? '✓ An Zernio gesendet.' : `Zernio-Fehler: ${data.result?.error || data.result?.status || ''}`)
+          : 'Social-Pack erstellt (Zernio-API noch nicht konfiguriert) — sobald der Endpoint gesetzt ist, geht es live.',
+      );
+    } catch (err: any) {
+      setZernioMsg(err.message);
+    } finally {
+      setZernioSending(false);
+    }
+  };
+
   // A single uploadable image slot (cover + optional extra images). The post
   // page renders cover + imageUrl2 + imageUrl3, so up to three images show.
   const imageSlot = (field: 'cover_image' | 'image_url_2' | 'image_url_3', label: string) => (
@@ -593,6 +619,23 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
       <p className="text-xs text-gray-500">
         Tipp: Für eine ganze Fotostrecke mit automatischen EXIF/SEO-Metadaten nutzt den Idee-Modus.
       </p>
+
+      {isEditing && post?.id && (
+        <div className="border-t border-gray-200 pt-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Social-Verteilung (Zernio)</label>
+          <button
+            type="button"
+            onClick={sendToZernio}
+            disabled={zernioSending || !formData.cover_image}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 inline-flex items-center"
+            title={!formData.cover_image ? 'Titelbild erforderlich' : 'Social-Posts (FB/IG/GMB/Pinterest/LinkedIn) an Zernio senden'}
+          >
+            {zernioSending ? <Loader2 className="animate-spin mr-2" size={16} /> : <Send size={16} className="mr-2" />}
+            An Zernio senden (Social)
+          </button>
+          {zernioMsg && <p className="text-sm mt-2 text-gray-600">{zernioMsg}</p>}
+        </div>
+      )}
     </div>
   );
 

@@ -12,8 +12,18 @@ import { generateSocialPack, withUtm, type SocialPostInput } from './socialSnipp
 const BASE = process.env.ZERNIO_API_BASE || 'https://api.zernio.com'; // TODO confirm
 const KEY = process.env.ZERNIO_API_KEY || '';
 const CHANNELS = (process.env.ZERNIO_CHANNELS || 'facebook,instagram,googlebusiness,pinterest,linkedin');
-const PROFILES = process.env.ZERNIO_PROFILES || '';
 const ORIGIN = 'https://www.newagefotografie.com';
+
+/** platform -> Zernio profile id, from ZERNIO_PROFILES_JSON in .env. */
+export function profileMap(): Record<string, string> {
+  try { return JSON.parse(process.env.ZERNIO_PROFILES_JSON || '{}'); } catch { return {}; }
+}
+
+/** Comma-separated profile ids for the given platforms list (CSV `profiles` column). */
+export function profilesFor(platformsCsv = CHANNELS): string {
+  const map = profileMap();
+  return platformsCsv.split(',').map(p => map[p.trim()]).filter(Boolean).join(',');
+}
 
 export interface ZernioPostRow {
   post_content: string;
@@ -48,7 +58,7 @@ export async function buildZernioRow(post: {
   return {
     post_content: pack.base,
     platforms: CHANNELS,
-    profiles: PROFILES,
+    profiles: profilesFor(CHANNELS),
     tz: 'Europe/Vienna',
     media_urls: [post.imageUrl, post.imageUrl2, post.imageUrl3].filter(Boolean).join(','),
     is_draft: 'true',
