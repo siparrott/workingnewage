@@ -582,9 +582,9 @@ const GalleryPage: React.FC = () => {
           </Link>
           <div className="flex items-center gap-3">
             {gallery?.coverImage && (
-              <img 
-                src={gallery.coverImage} 
-                alt="" 
+              <img
+                src={gallery.coverImage}
+                alt={gallery?.title ? `${gallery.title} – Galerie` : 'Galerie'}
                 className="w-10 h-10 rounded-lg object-cover"
               />
             )}
