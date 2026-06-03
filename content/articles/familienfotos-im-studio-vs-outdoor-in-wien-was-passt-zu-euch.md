@@ -53,7 +53,11 @@ Ganz klar das Studio. Hier halten wir Gruppen harmonisch, ruhig und zeitlos fest
 
 Auch hier das Studio: eine sichere, warme und reizarme Umgebung, in der sich Kinder schnell wohlfühlen. Wir arbeiten im Tempo eurer Kinder und planen Pausen ein, wann immer sie gebraucht werden.
 
-## Häufige Fragen
+## Ein persönlicher Gedanke
+
+Nach hunderten Familienshootings habe ich gemerkt: Eltern stellen sich Outdoor oft romantischer vor, als es mit Kindern wird. Im Studio fällt der Druck weg – kein Blick zum Himmel, keine Hektik wegen des Lichts. Übrig bleibt das, worauf es ankommt: eure Familie, entspannt.
+
+## Häufige Fragen zu Studio vs. Outdoor in Wien
 
 ### Bietet ihr auch Outdoor-Familienshootings an?
 Familien-, Baby- und Schwangerschaftsfotos machen wir bewusst im Studio – das ist die verlässlichste und entspannteste Wahl. Auf Location fotografieren wir Hochzeiten und Business-Shootings.
@@ -66,7 +70,7 @@ Ja – warm, ruhig und sicher. Für Neugeborene ist das Studio die beste Wahl. M
 
 ## Bereit für eure Familienfotos in Wien?
 
-Erzählt uns von eurer Familie – wir planen ein entspanntes Studio-Shooting, das zu euch passt. [Jetzt Termin sichern](/warteliste) · [Preise ansehen](/preise/) · [Kontakt aufnehmen](/kontakt).
+Kinder werden größer, Familien verändern sich – aber ein gutes Portrait bleibt. Genau dafür lohnt es sich, jetzt einen Moment festzuhalten. Erzählt uns von eurer Familie – wir planen ein entspanntes Studio-Shooting, das zu euch passt. [Jetzt Termin sichern](/warteliste) · [Preise ansehen](/preise/) · [Kontakt aufnehmen](/kontakt).
 
 Weiterlesen: [Familienfotos Wien: Preise, Ablauf & perfekte Vorbereitung](/blog/familienfotos-in-wien-preise-ablauf-perfekte-vorbereitung) · [Die besten Outfits für Familienfotos in Wien](/blog/die-besten-outfits-fuer-familienfotos-in-wien)
 

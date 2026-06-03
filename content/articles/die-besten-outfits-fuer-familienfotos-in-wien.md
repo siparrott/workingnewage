@@ -62,7 +62,11 @@ Wir fotografieren Familien in unserem [Tageslichtstudio in Wien-Margareten](/stu
 - **Kein Reinweiß**, da es mit dem hellen Hintergrund verschmilzt.
 - **Aufeinander abgestimmt**, aber nicht uniform: ein bis zwei Familienfarben, die sich wiederholen.
 
-## Häufige Fragen
+## Ein persönlicher Gedanke
+
+Der häufigste Satz, den ich vor dem Termin höre: „Wir haben nichts anzuziehen." Fast immer stimmt das nicht. Nach hunderten Shootings weiß ich: Es geht nicht um neue Kleidung, sondern um zwei, drei Farben, die zusammenpassen. Schickt mir im Zweifel vorab ein Foto eurer Outfits – ich sage euch ehrlich, was harmoniert.
+
+## Häufige Fragen zu Outfits für Familienfotos in Wien
 
 ### Welche Farben schmeicheln jedem Hautton?
 Beige, Creme, Camel und Salbei funktionieren fast immer.
@@ -77,6 +81,6 @@ Nein. Das meiste habt ihr bereits im Kleiderschrank – es geht um bewusste Ausw
 
 Für einen reibungslosen Ablauf lest gern unseren Guide [Familienfotos Wien: Preise, Ablauf & perfekte Vorbereitung](/blog/familienfotos-in-wien-preise-ablauf-perfekte-vorbereitung). Wenn ihr Studio oder Outdoor abwägt: [Studio vs. Outdoor – was passt zu euren Familienfotos?](/blog/familienfotos-im-studio-vs-outdoor-in-wien-was-passt-zu-euch)
 
-Mit den richtigen Outfits bekommt ihr warme, harmonische und zeitlose Familienfotos – ganz ohne Einkaufsstress. Wenn ihr zu uns kommt, bringen wir die Ruhe in den Prozess. [Jetzt Termin sichern](/warteliste) · [Preise ansehen](/preise/).
+Mit den richtigen Outfits bekommt ihr warme, harmonische und zeitlose Familienfotos – ganz ohne Einkaufsstress. Wenn ihr zu uns kommt, bringen wir die Ruhe in den Prozess. Denn Kinder werden größer und Lieblingsoutfits passen irgendwann nicht mehr – ein gutes Bild hält genau diesen Moment fest. [Jetzt Termin sichern](/warteliste) · [Preise ansehen](/preise/).
 
 > Über **300 Familien** haben uns mit **4,8 ★** auf Google bewertet.

@@ -57,7 +57,11 @@ Damit der Tag für alle entspannt bleibt:
 | Lieblingsspielzeug | ☐ |
 | Parkplatz eingeplant | ☐ |
 
-## Häufige Fragen
+## Ein persönlicher Gedanke
+
+Eine Sache sage ich Eltern vor jedem Termin: Ihr müsst nichts „können". In über 13 Jahren habe ich gesehen, dass die schönsten Bilder entstehen, wenn Eltern aufhören, perfekt sein zu wollen. Mein Job ist es, euch durch den Tag zu führen – euer Job ist nur, da zu sein.
+
+## Häufige Fragen zu Familienfotos in Wien
 
 ### Wie lange dauert ein Familienfotoshooting?
 Etwa 45–60 Minuten. Mit kleinen Kindern planen wir bewusst Pausen ein.
@@ -70,7 +74,7 @@ Nein. Wir führen euch sanft, ohne künstliche Posen.
 
 ## Bereit für eure Familienfotos in Wien?
 
-Familienfotos in Wien müssen nicht stressig sein. Mit der richtigen Vorbereitung und einem Studio, das Ruhe reinbringt, werden sie zum Erlebnis. [Jetzt Termin sichern](/warteliste) · [Preise ansehen](/preise/) · [Kontakt aufnehmen](/kontakt).
+Familienfotos in Wien müssen nicht stressig sein. Mit der richtigen Vorbereitung und einem Studio, das Ruhe reinbringt, werden sie zum Erlebnis. Und in zehn Jahren erinnert ihr euch nicht an den Preis, sondern an genau diesen Moment. [Jetzt Termin sichern](/warteliste) · [Preise ansehen](/preise/) · [Kontakt aufnehmen](/kontakt).
 
 Wenn ihr gerade ein Baby erwartet, schaut unbedingt in unseren Guide [Tipps für Neugeborenenfotos in Wien](/blog/tipps-fuer-neugeborenenfotos-wien).
 
