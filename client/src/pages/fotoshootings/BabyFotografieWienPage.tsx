@@ -2,7 +2,7 @@ import { SEOHead } from '../../components/SEO/SEOHead';
 import Layout from '../../components/layout/Layout';
 import { Link } from 'react-router-dom';
 import { ContextualLinks } from '../../components/SEO/ContextualLinks';
-import { Baby, Heart, Shield, Star, ArrowRight, Check, Clock } from 'lucide-react';
+import { Baby, Heart, Shield, Star, ArrowRight, Check, Clock, Users, Camera } from 'lucide-react';
 
 export default function BabyFotografieWienPage() {
   return (
