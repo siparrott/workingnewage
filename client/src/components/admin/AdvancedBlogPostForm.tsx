@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdvancedRichTextEditor from './AdvancedRichTextEditor';
 import IdeaModePanel from './IdeaModePanel';
@@ -16,7 +16,8 @@ import {
   Upload,
   Loader2,
   X,
-  Plus
+  Plus,
+  Sparkles
 } from 'lucide-react';
 
 interface BlogPost {
@@ -58,6 +59,77 @@ const SUGGESTED_TAGS: string[] = [
   'gutschein', 'geschenk', 'wandbilder', 'produktfotografie',
   'outfits', 'kleidung', 'preise', 'ablauf', 'vorbereitung', 'tipps',
 ];
+
+// --- Auto-tagging -----------------------------------------------------------
+// Rank known tags by how strongly they appear in the post's own text so the
+// best matches can be applied without the user hand-picking them. German-aware:
+// folds umlauts and matches photo-compound stems (e.g. the tag
+// "familienfotos" still scores on body text that only says "Familien…").
+
+const stripHtml = (html: string): string => html.replace(/<[^>]*>/g, ' ');
+
+const normalizeText = (s: string): string =>
+  s
+    .toLowerCase()
+    .replace(/ä/g, 'a')
+    .replace(/ö/g, 'o')
+    .replace(/ü/g, 'u')
+    .replace(/ß/g, 'ss');
+
+// The strings we look for in the text for a given tag: the tag itself, a rough
+// singular (trailing "s" dropped), and the stem with a trailing photo-word
+// removed so compound tags match their root word.
+const tagNeedles = (tag: string): string[] => {
+  const t = normalizeText(tag).trim();
+  const needles = new Set<string>([t]);
+  if (t.endsWith('s')) needles.add(t.slice(0, -1));
+  const base = t.replace(/(fotografie|fotos|foto|shootings|shooting|bilder|bild)$/, '');
+  if (base.length >= 4 && base !== t) needles.add(base);
+  return Array.from(needles).filter((n) => n.length >= 4);
+};
+
+const countOccurrences = (haystack: string, needle: string): number => {
+  let idx = 0;
+  let count = 0;
+  while ((idx = haystack.indexOf(needle, idx)) !== -1) {
+    count++;
+    idx += needle.length;
+  }
+  return count;
+};
+
+// Returns candidate tags ranked best-first, dropping any with no match. Title
+// counts 3x and excerpt 2x so headline/summary keywords rank above body asides.
+const recommendTagsFromContent = (
+  candidates: string[],
+  fields: { title?: string; excerpt?: string; contentHtml?: string },
+  limit = 8,
+): string[] => {
+  const haystack = normalizeText(
+    [
+      fields.title ?? '',
+      fields.title ?? '',
+      fields.title ?? '',
+      fields.excerpt ?? '',
+      fields.excerpt ?? '',
+      stripHtml(fields.contentHtml ?? ''),
+    ].join(' '),
+  );
+  if (!haystack.trim()) return [];
+
+  return candidates
+    .map((tag) => {
+      const score = tagNeedles(tag).reduce(
+        (best, needle) => Math.max(best, countOccurrences(haystack, needle)),
+        0,
+      );
+      return { tag, score };
+    })
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((x) => x.tag);
+};
 
 const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = false }) => {
   const navigate = useNavigate();
@@ -226,6 +298,47 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
       handleChange('tags', updatedTags);
     }
   };
+
+  // Rank the known tags against the post's text and merge the best matches into
+  // the current selection. Only ever adds — never drops tags the user chose.
+  const applyRecommendedTags = useCallback(() => {
+    const candidates = availableTags.map(t => t.name);
+    const recommended = recommendTagsFromContent(candidates, {
+      title: formData.title,
+      excerpt: formData.excerpt,
+      contentHtml: formData.content_html,
+    });
+
+    setSelectedTags(prev => {
+      const merged = [...prev];
+      const seen = new Set(prev.map(t => t.toLowerCase()));
+      recommended.forEach(tag => {
+        if (!seen.has(tag.toLowerCase())) {
+          merged.push(tag);
+          seen.add(tag.toLowerCase());
+        }
+      });
+      if (merged.length !== prev.length) handleChange('tags', merged);
+      return merged;
+    });
+  }, [availableTags, formData.title, formData.excerpt, formData.content_html]);
+
+  // Auto-apply recommended tags once for an existing post that has none yet, so
+  // the best tags are filled in without the user having to click. Waits until
+  // the candidate tag list has loaded. Never overwrites an existing selection.
+  const autoTaggedRef = useRef(false);
+  useEffect(() => {
+    if (autoTaggedRef.current) return;
+    if (!availableTags.length) return;
+    if (!formData.title && !formData.content_html) return;
+    if (selectedTags.length > 0) {
+      // Post already has tags — nothing to auto-fill; don't run again.
+      autoTaggedRef.current = true;
+      return;
+    }
+    autoTaggedRef.current = true;
+    applyRecommendedTags();
+  }, [availableTags, selectedTags, formData.title, formData.content_html, applyRecommendedTags]);
 
   const validateStep = (step: Step): boolean => {
     switch (step) {
@@ -490,9 +603,20 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Tags
-        </label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Tags
+          </label>
+          <button
+            type="button"
+            onClick={applyRecommendedTags}
+            title="Passende Tags aus Titel, Auszug und Text vorschlagen"
+            className="inline-flex items-center text-sm text-purple-600 hover:text-purple-800"
+          >
+            <Sparkles size={14} className="mr-1" />
+            Tags aus Inhalt vorschlagen
+          </button>
+        </div>
         <div className="space-y-3">
           <div className="flex space-x-2">
             <input

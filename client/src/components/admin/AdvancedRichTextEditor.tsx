@@ -47,6 +47,10 @@ const AdvancedRichTextEditor: React.FC<AdvancedRichTextEditorProps> = ({
   placeholder = "Start writing your blog post content..." 
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
+  // The exact HTML we last sent to the parent via onChange. Used to tell an
+  // editor-originated change (don't touch the DOM → caret stays put) apart from
+  // a genuinely external `value` change (load / undo-redo / mode switch → write).
+  const lastEmittedRef = useRef<string | null>(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showBgColorPicker, setShowBgColorPicker] = useState(false);
   const [showFontFamilyPicker, setShowFontFamilyPicker] = useState(false);
@@ -128,12 +132,25 @@ const AdvancedRichTextEditor: React.FC<AdvancedRichTextEditorProps> = ({
     }
   }, [value, isHtmlMode]);
 
-  // Initialize and update editor content
+  // Sync the editor DOM from `value` ONLY for EXTERNAL changes.
+  //
+  // The caret-jump bug: typing fires onInput -> onChange(value); the parent
+  // re-renders with a new `value`, re-running this effect. Reassigning innerHTML
+  // rebuilds every text node, so the browser collapses the caret to offset 0 (it
+  // jumps to the top of the document). We avoid that by remembering the exact
+  // HTML we ourselves emitted (lastEmittedRef): when `value` equals it, the
+  // change came from the user's own typing — leave the DOM untouched and the
+  // caret stays put. The write still runs for genuine external changes: initial
+  // load, undo/redo, and switching back from HTML/preview mode.
   useEffect(() => {
-    if (editorRef.current && !isHtmlMode && !isPreviewMode) {
-      editorRef.current.innerHTML = value || `<p>${placeholder}</p>`;
+    if (!editorRef.current || isHtmlMode || isPreviewMode) return;
+    if (value !== lastEmittedRef.current) {
+      if (editorRef.current.innerHTML !== (value || '')) {
+        editorRef.current.innerHTML = value || '';
+      }
+      lastEmittedRef.current = value;
     }
-  }, [value, isHtmlMode, isPreviewMode, placeholder]);
+  }, [value, isHtmlMode, isPreviewMode]);
 
   const saveToHistory = useCallback((content: string) => {
     const newHistory = history.slice(0, historyIndex + 1);
@@ -142,6 +159,13 @@ const AdvancedRichTextEditor: React.FC<AdvancedRichTextEditorProps> = ({
     setHistoryIndex(newHistory.length - 1);
   }, [history, historyIndex]);
 
+  // Emit content to the parent, recording it so the sync effect can recognise
+  // this as our own change and leave the DOM (and caret) untouched.
+  const emit = useCallback((html: string) => {
+    lastEmittedRef.current = html;
+    onChange(html);
+  }, [onChange]);
+
   const executeCommand = useCallback((command: string, value?: string) => {
     document.execCommand(command, false, value);
     editorRef.current?.focus();
@@ -149,8 +173,24 @@ const AdvancedRichTextEditor: React.FC<AdvancedRichTextEditorProps> = ({
     // Update the parent component with new content
     if (editorRef.current) {
       const newContent = editorRef.current.innerHTML;
-      onChange(newContent);
+      emit(newContent);
       saveToHistory(newContent);
+    }
+  }, [onChange, saveToHistory]);
+
+  // When the user pastes raw HTML markup (e.g. a prepared article), insert it as
+  // real HTML instead of letting contentEditable escape it into visible "<p>" text.
+  // Prefers text/plain so we drop any inline background/style soup from rich copies.
+  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
+    const plain = e.clipboardData.getData('text/plain');
+    if (plain && /<\/?[a-z][a-z0-9]*(\s[^>]*)?>/i.test(plain)) {
+      e.preventDefault();
+      document.execCommand('insertHTML', false, plain);
+      if (editorRef.current) {
+        const newContent = editorRef.current.innerHTML;
+        emit(newContent);
+        saveToHistory(newContent);
+      }
     }
   }, [onChange, saveToHistory]);
 
@@ -159,9 +199,9 @@ const AdvancedRichTextEditor: React.FC<AdvancedRichTextEditorProps> = ({
       const newIndex = historyIndex - 1;
       const content = history[newIndex];
       setHistoryIndex(newIndex);
-      onChange(content);
+      emit(content);
       if (editorRef.current) {
-        editorRef.current.value = content;
+        editorRef.current.innerHTML = content;
       }
     }
   }, [history, historyIndex, onChange]);
@@ -171,9 +211,9 @@ const AdvancedRichTextEditor: React.FC<AdvancedRichTextEditorProps> = ({
       const newIndex = historyIndex + 1;
       const content = history[newIndex];
       setHistoryIndex(newIndex);
-      onChange(content);
+      emit(content);
       if (editorRef.current) {
-        editorRef.current.value = content;
+        editorRef.current.innerHTML = content;
       }
     }
   }, [history, historyIndex, onChange]);
@@ -201,7 +241,7 @@ const AdvancedRichTextEditor: React.FC<AdvancedRichTextEditorProps> = ({
       
       if (editorRef.current) {
         const newContent = editorRef.current.innerHTML;
-        onChange(newContent);
+        emit(newContent);
         saveToHistory(newContent);
       }
       
@@ -221,7 +261,7 @@ const AdvancedRichTextEditor: React.FC<AdvancedRichTextEditorProps> = ({
       
       if (editorRef.current) {
         const newContent = editorRef.current.innerHTML;
-        onChange(newContent);
+        emit(newContent);
         saveToHistory(newContent);
       }
       
@@ -248,7 +288,7 @@ const AdvancedRichTextEditor: React.FC<AdvancedRichTextEditorProps> = ({
     
     if (editorRef.current) {
       const newContent = editorRef.current.innerHTML;
-      onChange(newContent);
+      emit(newContent);
       saveToHistory(newContent);
     }
     
@@ -263,7 +303,7 @@ const AdvancedRichTextEditor: React.FC<AdvancedRichTextEditorProps> = ({
   const toggleHtmlMode = () => {
     if (isHtmlMode) {
       // Switching back from HTML mode
-      onChange(htmlContent);
+      emit(htmlContent);
       if (editorRef.current) {
         editorRef.current.innerHTML = htmlContent;
       }
@@ -322,6 +362,15 @@ const AdvancedRichTextEditor: React.FC<AdvancedRichTextEditorProps> = ({
 
   return (
     <div className="border border-gray-300 rounded-lg overflow-hidden bg-white" style={{ direction: 'ltr' }}>
+      {/* Placeholder for the empty contentEditable. Rendered via CSS so the
+          placeholder text is never part of the saved HTML content. */}
+      <style>{`
+        .advanced-rte:empty::before {
+          content: attr(data-placeholder);
+          color: #9ca3af;
+          pointer-events: none;
+        }
+      `}</style>
       {/* Main Toolbar */}
       <div className="bg-gray-50 border-b border-gray-300 p-2">
         <div className="flex flex-wrap items-center gap-1">
@@ -625,11 +674,13 @@ const AdvancedRichTextEditor: React.FC<AdvancedRichTextEditorProps> = ({
             ref={editorRef}
             contentEditable
             suppressContentEditableWarning={true}
+            data-placeholder={placeholder}
             onInput={(e) => {
               const newContent = e.currentTarget.innerHTML;
-              onChange(newContent);
+              emit(newContent);
               saveToHistory(newContent);
             }}
+            onPaste={handlePaste}
             onKeyDown={(e) => {
               if (e.ctrlKey || e.metaKey) {
                 if (e.key === 'z' && !e.shiftKey) {
@@ -641,8 +692,8 @@ const AdvancedRichTextEditor: React.FC<AdvancedRichTextEditorProps> = ({
                 }
               }
             }}
-            className="min-h-96 p-6 outline-none w-full border-0 focus:ring-0 prose max-w-none"
-            style={{ 
+            className="advanced-rte min-h-96 p-6 outline-none w-full border-0 focus:ring-0 prose max-w-none"
+            style={{
               lineHeight: '1.7',
               fontSize: '16px',
               direction: 'ltr',
@@ -651,7 +702,9 @@ const AdvancedRichTextEditor: React.FC<AdvancedRichTextEditorProps> = ({
               writingMode: 'horizontal-tb',
               fontFamily: 'inherit'
             }}
-            dangerouslySetInnerHTML={{ __html: value || `<p>${placeholder}</p>` }}
+            // NOTE: no dangerouslySetInnerHTML here — content is synced imperatively
+            // by the guarded effect above. Binding it here would re-apply innerHTML
+            // on every render and reintroduce the caret-jump bug.
           />
         )}
       </div>
