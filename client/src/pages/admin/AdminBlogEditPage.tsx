@@ -16,6 +16,8 @@ interface BlogPost {
   tags?: string[];
   status: 'IDEA' | 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' | 'ARCHIVED';
   ideaData?: any;
+  image_url_2?: string;
+  image_url_3?: string;
   seo_title?: string;
   meta_description?: string;
   author_id: string;
@@ -70,6 +72,8 @@ const AdminBlogEditPage: React.FC = () => {
         excerpt: postData.excerpt || '',
         content_html: postData.contentHtml || postData.content_html || postData.content || '',
         cover_image: postData.imageUrl || postData.cover_image || '',
+        image_url_2: postData.imageUrl2 || postData.image_url_2 || '',
+        image_url_3: postData.imageUrl3 || postData.image_url_3 || '',
         tags: postData.tags || [],
         status: computedStatus,
         ideaData: postData.ideaData || null,

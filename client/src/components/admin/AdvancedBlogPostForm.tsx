@@ -27,6 +27,8 @@ interface BlogPost {
   excerpt: string;
   content_html: string;
   cover_image?: string;
+  image_url_2?: string;
+  image_url_3?: string;
   tags?: string[];
   status: 'IDEA' | 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' | 'ARCHIVED';
   ideaData?: any;
@@ -144,7 +146,9 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
     meta_description: '',
     tags: [],
     scheduled_for: '',
-    cover_image: ''
+    cover_image: '',
+    image_url_2: '',
+    image_url_3: ''
   });
   
   const [availableTags, setAvailableTags] = useState<{id: string, name: string}[]>([]);
@@ -177,6 +181,8 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
         tags: post.tags || [],
         scheduled_for: post.scheduled_for || '',
         cover_image: post.cover_image || '',
+        image_url_2: post.image_url_2 || (post as any).imageUrl2 || '',
+        image_url_3: post.image_url_3 || (post as any).imageUrl3 || '',
         id: post.id,
         author_id: post.author_id,
         published_at: post.published_at,
@@ -227,7 +233,10 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: 'cover_image' | 'image_url_2' | 'image_url_3' = 'cover_image',
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
@@ -264,7 +273,7 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
         throw new Error('No URL returned from upload');
       }
       
-      handleChange('cover_image', publicUrl);
+      handleChange(field, publicUrl);
     } catch (err: any) {
       console.error('[BLOG IMAGE UPLOAD] Error:', err);
       setError('Failed to upload image. Please try again. ' + (err.message || ''));
@@ -389,6 +398,8 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
         content: formData.content_html || '',
         contentHtml: formData.content_html || '',
         imageUrl: formData.cover_image || '',
+        imageUrl2: formData.image_url_2 || '',
+        imageUrl3: formData.image_url_3 || '',
         published: publish || formData.status === 'PUBLISHED',
         status: publish || formData.status === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT',
         metaDescription: formData.meta_description || '',
@@ -531,56 +542,57 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
     </div>
   );
 
+  // A single uploadable image slot (cover + optional extra images). The post
+  // page renders cover + imageUrl2 + imageUrl3, so up to three images show.
+  const imageSlot = (field: 'cover_image' | 'image_url_2' | 'image_url_3', label: string) => (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+      {formData[field] ? (
+        <div className="relative">
+          <img src={formData[field]} alt={`${label} Vorschau`} className="w-full h-64 object-cover rounded-lg" />
+          <button
+            type="button"
+            onClick={() => handleChange(field, '')}
+            className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      ) : (
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-8">
+          <div className="text-center">
+            <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <label className="cursor-pointer">
+              <span className="text-purple-600 hover:text-purple-700 font-medium">Bild hochladen</span>
+              <span className="text-gray-600"> oder hierher ziehen</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageUpload(e, field)}
+                className="sr-only"
+                disabled={imageUploading}
+              />
+            </label>
+            <p className="text-sm text-gray-500 mt-2">PNG, JPG, WEBP bis 10MB</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   const renderMediaStep = () => (
     <div className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Cover Image
-        </label>
-        {formData.cover_image ? (
-          <div className="relative">
-            <img
-              src={formData.cover_image}
-              alt="Cover preview"
-              className="w-full h-64 object-cover rounded-lg"
-            />
-            <button
-              onClick={() => handleChange('cover_image', '')}
-              className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        ) : (
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8">
-            <div className="text-center">
-              <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <label className="cursor-pointer">
-                <span className="text-purple-600 hover:text-purple-700 font-medium">
-                  Upload a cover image
-                </span>
-                <span className="text-gray-600"> or drag and drop</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="sr-only"
-                  disabled={imageUploading}
-                />
-              </label>
-              <p className="text-sm text-gray-500 mt-2">
-                PNG, JPG, GIF up to 10MB
-              </p>
-              {imageUploading && (
-                <div className="mt-4 flex items-center justify-center text-purple-600">
-                  <Loader2 className="animate-spin mr-2" size={20} />
-                  Uploading...
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+      {imageSlot('cover_image', 'Titelbild (Cover)')}
+      {imageSlot('image_url_2', 'Weiteres Bild 2 (optional)')}
+      {imageSlot('image_url_3', 'Weiteres Bild 3 (optional)')}
+      {imageUploading && (
+        <div className="flex items-center justify-center text-purple-600">
+          <Loader2 className="animate-spin mr-2" size={20} /> Wird hochgeladen…
+        </div>
+      )}
+      <p className="text-xs text-gray-500">
+        Tipp: Für eine ganze Fotostrecke mit automatischen EXIF/SEO-Metadaten nutzt den Idee-Modus.
+      </p>
     </div>
   );
 

@@ -51,6 +51,16 @@ not a generic AI SEO article. That voice is the one thing competitors can't copy
     siblings), a real FAQ block (AEO/JSON-LD), direct answers, ~700–900 words, clean
     semantic HTML, real photos with descriptive alt.
 
+## Hooks & angles (blog intros *and* social snippets)
+Open with feeling/observation, never "schönes Shooting letztes Wochenende". Pick the angle that fits:
+
+- **Emotional hook** — *"Der Satz, den wir fast jede Woche hören: ‚Mein Kind sitzt nie still.' Gut – soll es auch nicht. 😊 Nach 12 Jahren wissen wir: die besten Bilder entstehen zwischen den Posen…"*
+- **Story behind the image** — *"5 Minuten vor diesem Foto hat sich der Kleine noch hinter Mama versteckt. Völlig normal. 20 Minuten später… das hier ❤️"* (people comment because it feels human).
+- **Controversy / opinion** — *"Unpopuläre Meinung von einem Familienfotografen: Perfekte Familienfotos sind meistens die langweiligsten. Die unperfekten sind die, die Eltern aufheben."*
+- **Nostalgia** (our 35–55 parents) — *"Eines Tages hebt ihr euer Kind hoch und setzt es ab – ohne zu wissen, dass es das letzte Mal war."*
+
+Rule: the hook earns the read; the experience/expertise earns the trust; the emotion earns the booking. These same hooks drive the social snippets (see VIDEO-SOCIAL-DISTRIBUTION-PLAN.md).
+
 ## Why it works (GEO / AI search)
 AI answer engines favour pages with location + years of experience + reviews +
 direct answers + FAQs + comparison tables. We have all of those — leaning harder
