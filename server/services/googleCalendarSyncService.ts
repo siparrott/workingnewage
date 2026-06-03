@@ -145,6 +145,16 @@ export class GoogleCalendarSyncService {
 
       for (const session of sessions) {
         try {
+          // Skip sessions that were just created by another sync path (e.g. the
+          // scheduler /book flow already pushed its own event with attendees +
+          // notifications). Re-pushing here would overwrite attendees and cause
+          // Google to email the client a spurious cancellation notice.
+          // We treat anything created within the last 2 minutes as "just-handled".
+          const createdAt = (session as any).createdAt ? new Date((session as any).createdAt).getTime() : 0;
+          if (createdAt && Date.now() - createdAt < 2 * 60 * 1000) {
+            continue;
+          }
+
           if (session.googleCalendarEventId) {
             // Update existing event
             await this.updateGoogleEvent(session as CRMSession);
@@ -314,6 +324,11 @@ export class GoogleCalendarSyncService {
    */
   private async updateGoogleEvent(session: CRMSession): Promise<void> {
     try {
+      // Use PATCH (partial update) — NOT update (full replace) — so we don't
+      // clobber attendees, source, or other fields that other sync paths
+      // (e.g. the scheduler /book flow) wrote onto the event. A full replace
+      // here would silently remove the client as an attendee and cause Google
+      // to email them a cancellation, even though the booking is still active.
       const event = {
         summary: session.title,
         description: session.description || `${session.sessionType} photography session`,
@@ -329,13 +344,16 @@ export class GoogleCalendarSyncService {
         colorId: this.getColorForSessionType(session.sessionType),
       };
 
-      await this.calendar.events.update({
+      await this.calendar.events.patch({
         calendarId: this.config.calendarId,
         eventId: session.googleCalendarEventId,
         resource: event,
+        // Background sync must NEVER email attendees — the scheduler/booking
+        // flows are the only callers allowed to send invitations or cancels.
+        sendUpdates: 'none',
       });
 
-      console.log(`✅ Updated Google event: ${session.googleCalendarEventId}`);
+      console.log(`✅ Updated Google event (patch): ${session.googleCalendarEventId}`);
     } catch (error: any) {
       console.error('Error updating Google event:', error.message);
       throw error;

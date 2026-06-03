@@ -1,4 +1,4 @@
----
+lease schedule them all in the blog editor, and I will add photos to refine the posts before they are published---
 title: "Hochzeitsfotograf in Wien: Ablauf, Kosten & wie ihr den richtigen findet"
 slug: hochzeitsfotograf-wien-ablauf-kosten
 category: Hochzeit
@@ -51,10 +51,6 @@ Familien-, Baby- und Schwangerschaftsfotos machen wir bewusst in unserem [Tagesl
 Für Hauptsaison (Mai–September) idealerweise 9–12 Monate vorher. Beliebte Termine sind schnell vergeben.
 
 ### Bekommen wir alle Bilder?
-Ihr bekommt eine kuratierte, vollständig bearbeitete Galerie – die besten Aufnahmen des Tages, nicht jede Doppelung.
-
-### Wie lange dauert die Lieferung?
-In der Regel wenige Wochen. Eine kleine Vorschau gibt es oft schon kurz nach der Hochzeit.
 
 ## Lasst uns über euren Tag sprechen
 

@@ -35,12 +35,36 @@ import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import {
   createGoogleCalendarEvent,
   deleteGoogleCalendarEvent,
-  getGoogleCalendarBusyTimes
+  getGoogleCalendarBusyTimes,
+  GCalUnavailableError,
+  getGCalHealthState,
+  isGoogleCalendarConfigured,
+  runGCalHealthCheck
 } from '../services/schedulerGoogleCalendar';
 
 const router = Router();
 
 // ==================== ADMIN ROUTES (require auth) ====================
+
+// GET /api/schedulers/gcal-health - Health status for the admin banner.
+// Returns the in-memory health state populated by the periodic health-check
+// cron and by every availability/booking call. `?probe=1` forces a fresh probe.
+router.get('/gcal-health', async (req: Request, res: Response) => {
+  try {
+    if (req.query.probe === '1') {
+      await runGCalHealthCheck();
+    }
+    const configured = await isGoogleCalendarConfigured();
+    const state = getGCalHealthState();
+    res.json({
+      configured,
+      ...state,
+    });
+  } catch (error: any) {
+    console.error('Error reading GCal health:', error);
+    res.status(500).json({ error: 'Failed to read Google Calendar health' });
+  }
+});
 
 // GET /api/schedulers - List all schedulers
 router.get('/', async (req: Request, res: Response) => {
@@ -667,12 +691,26 @@ router.get('/public/:slug/availability', async (req: Request, res: Response) => 
         gte(schedulerBlockedTimes.endDate, startDate)
       ));
 
-    // Fetch Google Calendar busy times to prevent double-bookings
+    // Fetch Google Calendar busy times to prevent double-bookings.
+    // FAIL CLOSED: if Google Calendar is configured but unreachable we must
+    // NOT show any slots, otherwise we offer times that are actually busy in
+    // GCal and end up with double bookings (see GCalUnavailableError).
     let googleBusyTimes: Array<{ start: Date; end: Date }> = [];
     try {
       googleBusyTimes = await getGoogleCalendarBusyTimes(startDate, endDate);
-    } catch (gcalErr) {
-      console.warn('[Scheduler] Google Calendar busy-time check failed, proceeding without:', gcalErr);
+    } catch (gcalErr: any) {
+      if (gcalErr instanceof GCalUnavailableError) {
+        console.error('[Scheduler] ❌ Google Calendar unreachable — returning NO availability to prevent double bookings:', gcalErr.reason);
+        return res.status(503).json({
+          error: 'Calendar temporarily unavailable',
+          googleCalendarUnavailable: true,
+          reason: gcalErr.reason,
+          message: 'Online booking is temporarily disabled because we cannot verify Google Calendar availability. Please reconnect Google Calendar in Calendar Sync settings.',
+          availability: {},
+          slots: []
+        });
+      }
+      console.warn('[Scheduler] Google Calendar busy-time check failed (non-fatal), proceeding without:', gcalErr);
     }
 
     // Generate available slots
@@ -766,7 +804,9 @@ router.post('/public/:slug/book', async (req: Request, res: Response) => {
       });
     }
 
-    // Also check Google Calendar for conflicts (double-booking prevention)
+    // Also check Google Calendar for conflicts (double-booking prevention).
+    // FAIL CLOSED: if GCal is configured but unreachable, refuse the booking
+    // rather than silently saving a phantom-free slot.
     try {
       const gcalBusy = await getGoogleCalendarBusyTimes(bookingStart, bookingEnd);
       const hasGcalConflict = gcalBusy.some(busy => 
@@ -777,8 +817,15 @@ router.post('/public/:slug/book', async (req: Request, res: Response) => {
           error: 'This time slot is no longer available. Please select another time.'
         });
       }
-    } catch (gcalErr) {
-      console.warn('[Scheduler] Google Calendar conflict check failed, proceeding:', gcalErr);
+    } catch (gcalErr: any) {
+      if (gcalErr instanceof GCalUnavailableError) {
+        console.error('[Scheduler] ❌ Refusing booking — Google Calendar unreachable:', gcalErr.reason);
+        return res.status(503).json({
+          error: 'Online booking is temporarily unavailable. Please try again later or contact us directly.',
+          googleCalendarUnavailable: true
+        });
+      }
+      console.warn('[Scheduler] Google Calendar conflict check failed (non-fatal), proceeding:', gcalErr);
     }
 
     // Check for existing CRM client

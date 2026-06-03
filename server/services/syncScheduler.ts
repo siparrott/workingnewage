@@ -7,9 +7,10 @@ import { db } from '../db';
 import { calendarSyncSettings } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { createSyncServiceForUser } from './googleCalendarSyncService';
-import { retryFailedSchedulerSyncs } from './schedulerGoogleCalendar';
+import { retryFailedSchedulerSyncs, runGCalHealthCheck } from './schedulerGoogleCalendar';
 
 let syncInterval: NodeJS.Timeout | null = null;
+let healthCheckInterval: NodeJS.Timeout | null = null;
 
 /**
  * Start the background sync scheduler
@@ -40,6 +41,23 @@ export function startSyncScheduler() {
   syncInterval = setInterval(() => {
     performScheduledSync();
   }, intervalMs);
+
+  // ---- Independent health-check cron (probes FreeBusy, emails on failure) ----
+  const healthCheckMs = parseInt(process.env.GCAL_HEALTHCHECK_INTERVAL || '900000'); // default 15 min
+  console.log(`🩺 Starting Google Calendar health-check cron (every ${healthCheckMs / 1000}s)`);
+
+  // First check 30s after startup (after initial sync has had a chance to run)
+  setTimeout(() => {
+    runGCalHealthCheck().catch((err) =>
+      console.error('🩺 Initial GCal health check threw:', err?.message || err)
+    );
+  }, 30_000);
+
+  healthCheckInterval = setInterval(() => {
+    runGCalHealthCheck().catch((err) =>
+      console.error('🩺 GCal health check threw:', err?.message || err)
+    );
+  }, healthCheckMs);
 }
 
 /**
@@ -50,6 +68,11 @@ export function stopSyncScheduler() {
     clearInterval(syncInterval);
     syncInterval = null;
     console.log('📅 Google Calendar sync scheduler stopped');
+  }
+  if (healthCheckInterval) {
+    clearInterval(healthCheckInterval);
+    healthCheckInterval = null;
+    console.log('🩺 Google Calendar health-check cron stopped');
   }
 }
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import EmbeddedCRMChat from '../../components/chat/EmbeddedCRMChat';
+import GCalStatusBanner from '../../components/admin/GCalStatusBanner';
 import { supabase } from '../../lib/supabase';
 import { 
   BarChart as BarChartIcon, 
@@ -690,6 +691,8 @@ const AdminDashboardPage: React.FC = () => {
     <AdminLayout>
       {/* DEBUG: AI Chat moved to bottom - June 26, 2025 */}
       <div className="space-y-6">
+        {/* Google Calendar health alert — shown only when sync is configured but failing */}
+        <GCalStatusBanner />
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

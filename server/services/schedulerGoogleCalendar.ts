@@ -31,6 +31,94 @@ interface BusySlot {
   end: Date;
 }
 
+/**
+ * Thrown when Google Calendar IS configured for the studio but the API call
+ * failed (expired tokens, network error, revoked grant, etc.).
+ *
+ * Callers MUST treat this as "fail closed" — i.e. do NOT serve availability
+ * or accept bookings, because we cannot verify against the real calendar and
+ * silently treating GCal as empty causes double bookings.
+ */
+export class GCalUnavailableError extends Error {
+  constructor(public reason: string) {
+    super(`Google Calendar unavailable: ${reason}`);
+    this.name = 'GCalUnavailableError';
+  }
+}
+
+/**
+ * Returns true if a Google Calendar integration row exists (sync enabled).
+ * Used to distinguish "no integration at all" (safe to return empty busy list)
+ * from "integration configured but broken" (must fail closed).
+ */
+export async function isGoogleCalendarConfigured(): Promise<boolean> {
+  try {
+    const rows = await db
+      .select({ id: calendarSyncSettings.id })
+      .from(calendarSyncSettings)
+      .where(eq(calendarSyncSettings.syncEnabled, true))
+      .limit(1);
+    return rows.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+// ---------- Health state (consumed by admin banner + health-check cron) ----------
+
+export type GCalHealthStatus = 'unknown' | 'healthy' | 'unhealthy' | 'not_configured';
+
+interface GCalHealth {
+  status: GCalHealthStatus;
+  lastCheckedAt: string | null;
+  lastSuccessAt: string | null;
+  lastFailureAt: string | null;
+  lastError: string | null;
+  consecutiveFailures: number;
+  /** Last time we sent an alert email so we don't spam */
+  lastAlertSentAt: string | null;
+}
+
+const healthState: GCalHealth = {
+  status: 'unknown',
+  lastCheckedAt: null,
+  lastSuccessAt: null,
+  lastFailureAt: null,
+  lastError: null,
+  consecutiveFailures: 0,
+  lastAlertSentAt: null,
+};
+
+export function getGCalHealthState(): GCalHealth {
+  return { ...healthState };
+}
+
+function recordHealthSuccess(): void {
+  const now = new Date().toISOString();
+  healthState.status = 'healthy';
+  healthState.lastCheckedAt = now;
+  healthState.lastSuccessAt = now;
+  healthState.lastError = null;
+  healthState.consecutiveFailures = 0;
+}
+
+function recordHealthFailure(reason: string): void {
+  const now = new Date().toISOString();
+  healthState.status = 'unhealthy';
+  healthState.lastCheckedAt = now;
+  healthState.lastFailureAt = now;
+  healthState.lastError = reason;
+  healthState.consecutiveFailures += 1;
+}
+
+function recordHealthNotConfigured(): void {
+  const now = new Date().toISOString();
+  healthState.status = 'not_configured';
+  healthState.lastCheckedAt = now;
+  healthState.lastError = null;
+  healthState.consecutiveFailures = 0;
+}
+
 // ---------- OAuth2 Client Factory ----------
 
 // Consistent redirect URI across all Google OAuth interactions
@@ -266,9 +354,20 @@ export async function getGoogleCalendarBusyTimes(
   startDate: Date,
   endDate: Date
 ): Promise<BusySlot[]> {
+  // Distinguish "no integration at all" (return []) from "configured but broken" (throw).
+  const configured = await isGoogleCalendarConfigured();
+
   const client = await getCalendarClient();
   if (!client) {
-    console.warn('[Scheduler-GCal] ⚠️ No calendar client available - Google Calendar events will NOT block scheduler slots');
+    if (configured) {
+      // Integration row exists but we couldn't get a usable client → tokens
+      // missing/invalid. MUST fail closed to prevent double bookings.
+      const reason = 'OAuth tokens missing or refresh failed — reconnect Google Calendar in Calendar Sync settings';
+      recordHealthFailure(reason);
+      throw new GCalUnavailableError(reason);
+    }
+    console.warn('[Scheduler-GCal] ℹ️ No Google Calendar integration configured — busy-time check skipped');
+    recordHealthNotConfigured();
     return [];
   }
 
@@ -296,6 +395,7 @@ export async function getGoogleCalendarBusyTimes(
     }
 
     console.log(`[Scheduler-GCal] Fetched ${busySlots.length} busy slots for ${startDate.toISOString()} – ${endDate.toISOString()}`);
+    recordHealthSuccess();
     return busySlots;
   } catch (error: any) {
     const errMsg = error?.message || '';
@@ -332,10 +432,15 @@ export async function getGoogleCalendarBusyTimes(
       }
 
       console.log(`[Scheduler-GCal] (fallback) Fetched ${busySlots.length} busy slots from events list`);
+      recordHealthSuccess();
       return busySlots;
     } catch (fallbackError: any) {
       console.error('[Scheduler-GCal] ❌ Fallback events list also failed:', fallbackError.message);
-      return [];
+      // Both FreeBusy and events.list failed. Integration is configured but
+      // unreachable → MUST fail closed.
+      const reason = errMsg || fallbackError.message || 'unknown error';
+      recordHealthFailure(reason);
+      throw new GCalUnavailableError(reason);
     }
   }
 }
@@ -429,4 +534,153 @@ export async function retryFailedSchedulerSyncs(): Promise<{ retried: number; su
   }
 
   return results;
+}
+
+// ---------- Health-check runner (called from cron) ----------
+
+/**
+ * Resolve the destination email address for admin alerts.
+ * Prefers `admin_notification_email` / `studio_notify_email` DB config rows,
+ * falls back to env vars, then to the configured "from" address.
+ */
+async function getAdminAlertEmail(): Promise<string | null> {
+  try {
+    // Lazy import to avoid circular deps at module load
+    const { config } = await import('../config-reader');
+    const dbVal =
+      (await config.get('admin_notification_email')) ||
+      (await config.get('studio_notify_email')) ||
+      (await config.get('studio_owner_email'));
+    if (dbVal) return dbVal;
+  } catch (err) {
+    console.warn('[Scheduler-GCal] Could not read alert email from config-reader:', (err as any)?.message);
+  }
+  const envVal =
+    process.env.ADMIN_NOTIFICATION_EMAIL ||
+    process.env.STUDIO_NOTIFY_EMAIL ||
+    process.env.STUDIO_OWNER_EMAIL ||
+    process.env.SMTP_FROM ||
+    null;
+  return envVal;
+}
+
+/**
+ * Run a periodic health check against Google Calendar.
+ *
+ * Calls `getGoogleCalendarBusyTimes(now, now+1h)` which updates the in-memory
+ * health state as a side-effect. On a transition from healthy → unhealthy (or
+ * on every Nth failure to limit volume), sends an alert email to the admin.
+ *
+ * Designed to be called from a cron / setInterval. Safe to call concurrently
+ * (does not mutate shared state beyond healthState).
+ */
+export async function runGCalHealthCheck(): Promise<GCalHealth> {
+  const ALERT_THROTTLE_MS = 60 * 60 * 1000; // at most one alert per hour while still down
+
+  // Was it healthy before this check? Used to detect transitions.
+  const previousStatus = healthState.status;
+
+  const now = new Date();
+  const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+
+  try {
+    await getGoogleCalendarBusyTimes(now, oneHourLater);
+  } catch (err: any) {
+    // healthState already updated by getGoogleCalendarBusyTimes.
+    // Decide whether to send an alert email.
+    const transitionedToUnhealthy = previousStatus === 'healthy' || previousStatus === 'unknown';
+    const lastAlertMs = healthState.lastAlertSentAt ? Date.parse(healthState.lastAlertSentAt) : 0;
+    const throttleExpired = Date.now() - lastAlertMs > ALERT_THROTTLE_MS;
+
+    if (transitionedToUnhealthy || throttleExpired) {
+      await sendGCalHealthAlertEmail(healthState).catch((emailErr) => {
+        console.error('[Scheduler-GCal] ❌ Failed to send health alert email:', emailErr?.message || emailErr);
+      });
+    }
+  }
+
+  return getGCalHealthState();
+}
+
+async function sendGCalHealthAlertEmail(state: GCalHealth): Promise<void> {
+  const to = await getAdminAlertEmail();
+  if (!to) {
+    console.warn('[Scheduler-GCal] ⚠️ No admin alert email configured — set ADMIN_NOTIFICATION_EMAIL or studio_notify_email');
+    return;
+  }
+
+  // Lazy import to avoid a circular dependency at module load.
+  const { EnhancedEmailService } = await import('./enhancedEmailService');
+
+  const appUrl = process.env.APP_URL || process.env.BASE_URL || '';
+  const subject = '⚠️ Google Calendar sync is DOWN — online booking disabled';
+  const reason = state.lastError || 'unknown error';
+  const consecutive = state.consecutiveFailures;
+
+  const text = `Google Calendar health check FAILED.
+
+Your scheduler can no longer verify Google Calendar availability, so online booking on /book/* is currently REJECTING new bookings (HTTP 503) to prevent double bookings.
+
+Reason: ${reason}
+Consecutive failures: ${consecutive}
+Last successful check: ${state.lastSuccessAt || 'never'}
+Last failure at: ${state.lastFailureAt}
+
+Action required:
+1. Open Admin → Calendar Sync settings: ${appUrl}/admin/calendar-sync
+2. Reconnect Google Calendar (re-run the OAuth flow).
+3. Verify the banner on the admin dashboard clears.
+
+This alert is throttled to at most once per hour while the integration is down.`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px;">
+      <h2 style="color: #b91c1c;">⚠️ Google Calendar sync is DOWN</h2>
+      <p>Your scheduler can no longer verify Google Calendar availability,
+         so online booking on <code>/book/*</code> is currently
+         <strong>rejecting new bookings (HTTP 503)</strong> to prevent double bookings.</p>
+      <table style="border-collapse: collapse;">
+        <tr><td><strong>Reason:</strong></td><td>${escapeHtml(reason)}</td></tr>
+        <tr><td><strong>Consecutive failures:</strong></td><td>${consecutive}</td></tr>
+        <tr><td><strong>Last successful check:</strong></td><td>${state.lastSuccessAt || 'never'}</td></tr>
+        <tr><td><strong>Last failure at:</strong></td><td>${state.lastFailureAt || ''}</td></tr>
+      </table>
+      <h3>Action required</h3>
+      <ol>
+        <li>Open <a href="${appUrl}/admin/calendar-sync">Calendar Sync settings</a>.</li>
+        <li>Reconnect Google Calendar (re-run the OAuth flow).</li>
+        <li>Verify the banner on the admin dashboard clears.</li>
+      </ol>
+      <p style="color: #6b7280; font-size: 12px;">
+        This alert is throttled to at most once per hour while the integration is down.
+      </p>
+    </div>
+  `;
+
+  try {
+    const result = await EnhancedEmailService.sendEmail({
+      to,
+      subject,
+      content: text,
+      html,
+      autoLinkClient: false,
+    });
+    if (result?.success) {
+      healthState.lastAlertSentAt = new Date().toISOString();
+      console.log(`[Scheduler-GCal] 📧 Health alert email sent to ${to}`);
+    } else {
+      console.error('[Scheduler-GCal] ❌ Health alert email send returned failure:', result?.error);
+    }
+  } catch (err: any) {
+    console.error('[Scheduler-GCal] ❌ Health alert email threw:', err?.message || err);
+  }
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
