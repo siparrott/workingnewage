@@ -2,11 +2,14 @@ import React, { useCallback, useState } from 'react';
 import Cropper from 'react-easy-crop';
 
 interface ImageCropperProps {
-  file: File | null;
+  file?: File | null;
+  imageSrc?: string | null;
   onCancel: () => void;
   onCropped: (blob: Blob, previewUrl: string) => void;
   aspect?: number;
   circular?: boolean;
+  title?: string;
+  helpText?: string;
 }
 
 // Utility to create cropped image blob
@@ -40,20 +43,48 @@ async function getCroppedBlob(imageSrc: string, crop: { x: number; y: number }, 
   });
 }
 
-const ImageCropper: React.FC<ImageCropperProps> = ({ file, onCancel, onCropped, aspect = 14/9, circular }) => {
+const ImageCropper: React.FC<ImageCropperProps> = ({
+  file,
+  imageSrc,
+  onCancel,
+  onCropped,
+  aspect,
+  circular,
+  title,
+  helpText,
+}) => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
   const [processing, setProcessing] = useState(false);
+  const [naturalAspect, setNaturalAspect] = useState<number | null>(null);
 
   React.useEffect(() => {
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => setImageUrl(e.target?.result as string);
       reader.readAsDataURL(file);
+      return;
     }
-  }, [file]);
+    setImageUrl(imageSrc || null);
+  }, [file, imageSrc]);
+
+  React.useEffect(() => {
+    if (!imageUrl) {
+      setNaturalAspect(null);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      if (img.width > 0 && img.height > 0) {
+        setNaturalAspect(img.width / img.height);
+      }
+    };
+    img.src = imageUrl;
+  }, [imageUrl]);
+
+  const effectiveAspect = aspect || naturalAspect || 14 / 9;
 
   const onCropComplete = useCallback((_area: any, areaPixels: any) => {
     setCroppedAreaPixels(areaPixels);
@@ -63,7 +94,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ file, onCancel, onCropped, 
     if (!imageUrl || !croppedAreaPixels) return;
     setProcessing(true);
     try {
-      const blob = await getCroppedBlob(imageUrl, crop, zoom, croppedAreaPixels, 1400, 1400 / aspect);
+      const blob = await getCroppedBlob(imageUrl, crop, zoom, croppedAreaPixels, 1400, 1400 / effectiveAspect);
       const previewUrl = URL.createObjectURL(blob);
       onCropped(blob, previewUrl);
     } catch (e) {
@@ -74,22 +105,34 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ file, onCancel, onCropped, 
     }
   };
 
-  if (!file || !imageUrl) return null;
+  if (!imageUrl) return null;
 
   return (
     <div className="space-y-4">
-      <div className="relative w-full h-96 bg-black rounded-md overflow-hidden">
+      {(title || helpText) && (
+        <div className="space-y-1">
+          {title && <h3 className="text-lg font-semibold text-gray-900">{title}</h3>}
+          {helpText && <p className="text-sm text-gray-600">{helpText}</p>}
+        </div>
+      )}
+      <div>
+        <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-wide text-gray-500">
+          <span>Blog-Vorschau-Rahmen</span>
+          <span>{effectiveAspect.toFixed(2)}:1</span>
+        </div>
+        <div className="relative w-full overflow-hidden rounded-xl bg-black shadow-inner" style={{ aspectRatio: `${effectiveAspect}` }}>
         <Cropper
           image={imageUrl}
           crop={crop}
           zoom={zoom}
-          aspect={aspect}
+          aspect={effectiveAspect}
           onCropChange={setCrop}
           onZoomChange={setZoom}
           onCropComplete={onCropComplete}
           cropShape={circular ? 'round' : 'rect'}
           showGrid={false}
         />
+        </div>
       </div>
       <div className="flex items-center gap-4">
         <input
@@ -101,7 +144,10 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ file, onCancel, onCropped, 
           onChange={(e) => setZoom(Number(e.target.value))}
           className="flex-1"
         />
-        <span className="text-sm text-gray-600 w-24">Zoom {zoom.toFixed(2)}x</span>
+        <span className="text-sm text-gray-600 w-28">Skalierung {zoom.toFixed(2)}x</span>
+      </div>
+      <div className="rounded-lg border border-purple-100 bg-purple-50 px-3 py-2 text-xs text-purple-900">
+        Ziehe das Bild, um den Ausschnitt zu verschieben. Nutze den Regler, um hinein- oder herauszuzoomen. Der Rahmen entspricht den Proportionen im Blogartikel.
       </div>
       <div className="flex gap-2 justify-end">
         <button

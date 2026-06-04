@@ -2440,11 +2440,28 @@ Bitte versuchen Sie es später noch einmal.`;
     try {
       const post = await storage.getBlogPost(req.params.id);
       if (!post) return res.status(404).json({ error: 'Post not found' });
-      if (!post.imageUrl) return res.status(400).json({ error: 'Post needs a cover image before social distribution.' });
+
+      const effectivePost = {
+        ...post,
+        title: req.body?.title || post.title,
+        slug: req.body?.slug || post.slug,
+        excerpt: req.body?.excerpt ?? post.excerpt,
+        content: req.body?.content ?? post.content,
+        contentHtml: req.body?.contentHtml ?? post.contentHtml,
+        imageUrl: req.body?.imageUrl || req.body?.cover_image || post.imageUrl,
+        imageUrl2: req.body?.imageUrl2 || req.body?.image_url_2 || post.imageUrl2,
+        imageUrl3: req.body?.imageUrl3 || req.body?.image_url_3 || post.imageUrl3,
+      };
+
+      if (!effectivePost.imageUrl) {
+        return res.status(400).json({ error: 'Post needs a cover image before social distribution.' });
+      }
+
       const { buildZernioRow, schedulePosts } = await import('./services/zernio.js');
-      const row = await buildZernioRow(post as any);
+      const row = await buildZernioRow(effectivePost as any);
       const result = await schedulePosts([row]);
-      res.json({ success: result.ok, configured: !result.error?.includes('endpoint not configured'), row, result });
+      const configured = !result.error || !/(not configured|not set)/i.test(result.error);
+      res.json({ success: result.ok, configured, row, result });
     } catch (e: any) {
       console.error('[blog/social] error:', e);
       res.status(500).json({ error: e?.message || 'Social send failed' });

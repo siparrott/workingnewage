@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdvancedRichTextEditor from './AdvancedRichTextEditor';
 import IdeaModePanel from './IdeaModePanel';
+import ImageCropper from '../ImageCropper';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -46,6 +47,13 @@ interface BlogPostFormProps {
 }
 
 type Step = 'content' | 'media' | 'meta' | 'preview';
+type ImageField = 'cover_image' | 'image_url_2' | 'image_url_3';
+
+interface CropTarget {
+  field: ImageField;
+  label: string;
+  file: File;
+}
 
 // Curated tag suggestions for a Vienna portrait studio. Always available so the
 // editor never depends on a remote tag table; merged with tags already used on
@@ -160,6 +168,7 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [zernioSending, setZernioSending] = useState(false);
   const [zernioMsg, setZernioMsg] = useState<string | null>(null);
+  const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
 
   const steps = [
     { id: 'content', label: 'Content', icon: FileText, description: 'Write your blog post content' },
@@ -235,11 +244,10 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleImageUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-    field: 'cover_image' | 'image_url_2' | 'image_url_3' = 'cover_image',
+  const uploadImageFile = async (
+    file: File,
+    field: ImageField = 'cover_image',
   ) => {
-    const file = e.target.files?.[0];
     if (!file) return;
     
     try {
@@ -250,17 +258,17 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
       const getAdminToken = () => (typeof window !== 'undefined' ? (localStorage.getItem('ADMIN_TOKEN') || '') : '');
       
       // Upload to Backblaze B2 via /api/files/upload
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('folderName', 'Blog Covers');
-      formData.append('context', 'blog-cover-image');
+      const uploadData = new FormData();
+      uploadData.append('file', file);
+      uploadData.append('folderName', 'Blog Covers');
+      uploadData.append('context', 'blog-cover-image');
       
       const response = await fetch('/api/files/upload', {
         method: 'POST',
         headers: {
           'x-admin-token': getAdminToken()
         },
-        body: formData
+        body: uploadData
       });
       
       if (!response.ok) {
@@ -282,6 +290,50 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
     } finally {
       setImageUploading(false);
     }
+  };
+
+  const handleImageSelect = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: ImageField,
+    label: string,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCropTarget({ field, label, file });
+    e.target.value = '';
+  };
+
+  const reopenCropper = async (field: ImageField, label: string) => {
+    const imageUrl = formData[field];
+    if (!imageUrl) return;
+
+    try {
+      setError(null);
+      const response = await fetch(imageUrl);
+      if (!response.ok) throw new Error('Bild konnte nicht geladen werden');
+      const blob = await response.blob();
+      const extension = blob.type.split('/')[1] || 'jpg';
+      const file = new File([blob], `${field}-${Date.now()}.${extension}`, {
+        type: blob.type || 'image/jpeg',
+      });
+      setCropTarget({ field, label, file });
+    } catch (err: any) {
+      setError(err.message || 'Bild konnte nicht für die Transformation geöffnet werden');
+    }
+  };
+
+  const handleCroppedUpload = async (blob: Blob) => {
+    if (!cropTarget) return;
+
+    const extension = cropTarget.file.name.includes('.')
+      ? cropTarget.file.name.split('.').pop()
+      : 'jpg';
+    const croppedFile = new File([blob], `${cropTarget.field}-${Date.now()}.${extension}`, {
+      type: cropTarget.file.type || blob.type || 'image/jpeg',
+    });
+
+    await uploadImageFile(croppedFile, cropTarget.field);
+    setCropTarget(null);
   };
 
   const handleAddTag = () => {
@@ -551,15 +603,32 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
     setZernioMsg(null);
     try {
       const getAdminToken = () => (typeof window !== 'undefined' ? (localStorage.getItem('ADMIN_TOKEN') || '') : '');
+      const socialPayload = {
+        title: formData.title || post.title || '',
+        slug: formData.slug || post.slug || '',
+        excerpt: formData.excerpt || '',
+        content: formData.content_html || '',
+        contentHtml: formData.content_html || '',
+        imageUrl: formData.cover_image || '',
+        imageUrl2: formData.image_url_2 || '',
+        imageUrl3: formData.image_url_3 || '',
+      };
       const res = await fetch(`/api/blog/posts/${post.id}/social`, {
-        method: 'POST', headers: { 'x-admin-token': getAdminToken() },
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': getAdminToken(),
+        },
+        body: JSON.stringify(socialPayload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Senden fehlgeschlagen');
+      const zernioError = String(data.result?.error || '');
+      const zernioNeedsSetup = /not configured|not set/i.test(zernioError);
       setZernioMsg(
-        data.configured
+        !zernioNeedsSetup && data.configured
           ? (data.success ? '✓ An Zernio gesendet.' : `Zernio-Fehler: ${data.result?.error || data.result?.status || ''}`)
-          : 'Social-Pack erstellt (Zernio-API noch nicht konfiguriert) — sobald der Endpoint gesetzt ist, geht es live.',
+          : 'Social-Pack erstellt (Zernio-API noch nicht konfiguriert) — API-Key und Endpoint fehlen noch oder sind nicht vollstaendig gesetzt.',
       );
     } catch (err: any) {
       setZernioMsg(err.message);
@@ -570,19 +639,38 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
 
   // A single uploadable image slot (cover + optional extra images). The post
   // page renders cover + imageUrl2 + imageUrl3, so up to three images show.
-  const imageSlot = (field: 'cover_image' | 'image_url_2' | 'image_url_3', label: string) => (
+  const imageSlot = (field: ImageField, label: string) => (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
       {formData[field] ? (
-        <div className="relative">
-          <img src={formData[field]} alt={`${label} Vorschau`} className="w-full h-64 object-cover rounded-lg" />
-          <button
-            type="button"
-            onClick={() => handleChange(field, '')}
-            className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700"
-          >
-            <X size={16} />
-          </button>
+        <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+            <img
+              src={formData[field]}
+              alt={`${label} Vorschau`}
+              className={field === 'cover_image' ? 'w-full rounded-xl shadow-lg' : 'w-full rounded-xl shadow-2xl'}
+            />
+          </div>
+          <p className="text-xs text-gray-500">
+            Diese Vorschau nutzt die gleichen Bildproportionen wie der veröffentlichte Blogartikel. Über "Frei transformieren" kannst du den sichtbaren Ausschnitt verschieben und skalieren.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => reopenCropper(field, label)}
+              className="inline-flex items-center rounded-lg border border-purple-200 bg-white px-3 py-2 text-sm font-medium text-purple-700 hover:bg-purple-50"
+            >
+              Frei transformieren
+            </button>
+            <button
+              type="button"
+              onClick={() => handleChange(field, '')}
+              className="inline-flex items-center rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+            >
+              <X size={16} className="mr-1" />
+              Entfernen
+            </button>
+          </div>
         </div>
       ) : (
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-8">
@@ -594,7 +682,7 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleImageUpload(e, field)}
+                onChange={(e) => handleImageSelect(e, field, label)}
                 className="sr-only"
                 disabled={imageUploading}
               />
@@ -803,7 +891,7 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
           <img
             src={formData.cover_image}
             alt="Cover"
-            className="w-full h-64 object-cover rounded-lg mb-6"
+            className="w-full rounded-xl shadow-lg mb-6"
           />
         )}
         
@@ -951,6 +1039,20 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
           </div>
         </div>
       </div>
+
+      {cropTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-5xl rounded-2xl bg-white p-6 shadow-2xl">
+            <ImageCropper
+              file={cropTarget.file}
+              title={`${cropTarget.label} ausrichten`}
+              helpText="Verschiebe und skaliere das Bild direkt im finalen Blog-Rahmen. Beim Speichern wird genau dieser Ausschnitt hochgeladen."
+              onCancel={() => setCropTarget(null)}
+              onCropped={(blob) => handleCroppedUpload(blob)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
