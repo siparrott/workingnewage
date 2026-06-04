@@ -61,7 +61,7 @@ export async function buildZernioRow(post: {
 
   return {
     title: post.title,
-    content: `${pack.base}\n\nMehr im Blog: ${url}`,
+    content: `${pack.facebook || pack.base}\n\nMehr im Blog: ${withUtm(url, 'facebook')}`,
     isDraft: true,
     timezone: 'Europe/Vienna',
     ...(mediaItems.length ? { mediaItems } : {}),
