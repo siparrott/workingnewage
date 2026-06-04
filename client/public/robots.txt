@@ -3,7 +3,6 @@ Allow: /
 
 # Sitemap location
 Sitemap: https://www.newagefotografie.com/sitemap.xml
-Sitemap: https://www.newagefotografie.com/sitemap-search-console.xml
 
 # Block admin, development, and internal areas
 Disallow: /admin/

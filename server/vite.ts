@@ -25,27 +25,6 @@ export function log(message: string, source = "express") {
 
 const SITE_ORIGIN = "https://www.newagefotografie.com";
 
-function registerStaticXmlAsset(
-  app: Express,
-  routePath: string,
-  preferredFilePath: string,
-  fallbackFilePath?: string,
-) {
-  app.get(routePath, (_req, res) => {
-    const filePath = fs.existsSync(preferredFilePath)
-      ? preferredFilePath
-      : fallbackFilePath && fs.existsSync(fallbackFilePath)
-        ? fallbackFilePath
-        : null;
-
-    if (!filePath) {
-      return res.status(404).type("text/plain").send(`${routePath} not found`);
-    }
-
-    res.type("application/xml").sendFile(filePath);
-  });
-}
-
 // Serve /sitemap.xml dynamically: take the curated static sitemap as the base
 // and inject a <url> for every PUBLISHED blog post (publishedAt <= now). This
 // means scheduled posts appear in the sitemap automatically the moment they go
@@ -143,11 +122,6 @@ export async function setupVite(app: Express, server: Server) {
   // Dynamic sitemap must be registered before the Vite static/catch-all
   // middleware so it isn't shadowed by the static public/sitemap.xml.
   registerDynamicSitemap(app, path.resolve(__dirname, "..", "client", "public", "sitemap.xml"));
-  registerStaticXmlAsset(
-    app,
-    "/sitemap-search-console.xml",
-    path.resolve(__dirname, "..", "client", "public", "sitemap-search-console.xml"),
-  );
 
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
@@ -199,12 +173,6 @@ export function serveStatic(app: Express) {
   // Dynamic sitemap MUST be registered before express.static — otherwise the
   // static dist/sitemap.xml is served first and the dynamic handler never runs.
   registerDynamicSitemap(app, path.resolve(distPath, "sitemap.xml"));
-  registerStaticXmlAsset(
-    app,
-    "/sitemap-search-console.xml",
-    path.resolve(distPath, "sitemap-search-console.xml"),
-    path.resolve(__dirname, "..", "client", "public", "sitemap-search-console.xml"),
-  );
 
   // Serve static files from dist
   app.use(express.static(distPath));

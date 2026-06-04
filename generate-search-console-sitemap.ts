@@ -4,7 +4,7 @@ import { storage } from './server/storage.js';
 
 const SITE_ORIGIN = 'https://www.newagefotografie.com';
 const baseSitemapPath = path.resolve(process.cwd(), 'client', 'public', 'sitemap.xml');
-const outputSitemapPath = path.resolve(process.cwd(), 'client', 'public', 'sitemap-search-console.xml');
+const outputSitemapPath = path.resolve(process.cwd(), 'client', 'public', 'sitemap.xml');
 
 function xmlEscape(value: string): string {
   return value
@@ -56,7 +56,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('Failed to generate sitemap-search-console.xml');
+  console.error('Failed to generate sitemap.xml');
   console.error(error);
   process.exit(1);
 });
