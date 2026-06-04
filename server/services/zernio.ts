@@ -24,40 +24,26 @@ function resolveZernioUrl(): string | null {
   return `${base}/${path}`;
 }
 
-/** platform -> Zernio profile id, from ZERNIO_PROFILES_JSON in .env. */
-export function profileMap(): Record<string, string> {
-  try { return JSON.parse(process.env.ZERNIO_PROFILES_JSON || '{}'); } catch { return {}; }
-}
-
-/** Comma-separated profile ids for the given platforms list (CSV `profiles` column). */
-export function profilesFor(platformsCsv = CHANNELS): string {
-  const map = profileMap();
-  return platformsCsv.split(',').map(p => map[p.trim()]).filter(Boolean).join(',');
-}
-
 export interface ZernioPostRow {
-  post_content: string;
-  platforms: string;
-  profiles: string;
-  tz: string;
-  media_urls: string;
-  is_draft: string;
-  use_queue: string;
   title: string;
-  hashtags: string;
-  visibility: string;
-  custom_content_facebook: string;
-  custom_content_linkedin: string;
-  custom_content_instagram: string;
-  custom_content_googlebusiness: string;
-  instagram_first_comment: string;
-  pinterest_title: string;
-  pinterest_link: string;
-  googlebusiness_cta_type: string;
-  googlebusiness_cta_url: string;
+  content: string;
+  isDraft: boolean;
+  timezone: string;
+  mediaItems?: Array<{
+    type: 'image';
+    url: string;
+    title?: string;
+  }>;
+  tags?: string[];
+  hashtags?: string[];
+  metadata?: {
+    source: string;
+    blogUrl: string;
+    channels: string[];
+  };
 }
 
-/** Build the same field object the CSV uses, for one blog post. */
+/** Build a Zernio draft payload for one blog post. */
 export async function buildZernioRow(post: {
   slug: string; title: string; excerpt?: string | null; contentHtml?: string | null; content?: string | null;
   imageUrl?: string | null; imageUrl2?: string | null; imageUrl3?: string | null;
@@ -65,26 +51,27 @@ export async function buildZernioRow(post: {
   const url = `${ORIGIN}/blog/${post.slug}`;
   const input: SocialPostInput = { title: post.title, excerpt: post.excerpt || undefined, body: post.contentHtml || post.content || undefined, url };
   const pack = await generateSocialPack(input);
+  const mediaItems = [post.imageUrl, post.imageUrl2, post.imageUrl3]
+    .filter((value): value is string => Boolean(value))
+    .map((imageUrl, index) => ({
+      type: 'image' as const,
+      url: imageUrl,
+      title: index === 0 ? post.title : `${post.title} ${index + 1}`,
+    }));
+
   return {
-    post_content: pack.base,
-    platforms: CHANNELS,
-    profiles: profilesFor(CHANNELS),
-    tz: 'Europe/Vienna',
-    media_urls: [post.imageUrl, post.imageUrl2, post.imageUrl3].filter(Boolean).join(','),
-    is_draft: 'true',
-    use_queue: 'false',
     title: post.title,
-    hashtags: pack.hashtags.map(h => `#${h}`).join(','),
-    visibility: 'public',
-    custom_content_facebook: `${pack.facebook}\n\n${withUtm(url, 'facebook')}`,
-    custom_content_linkedin: `${pack.linkedin}\n\n${withUtm(url, 'linkedin')}`,
-    custom_content_instagram: pack.instagram,
-    custom_content_googlebusiness: pack.googlebusiness,
-    instagram_first_comment: `Mehr im Blog: ${withUtm(url, 'instagram')}`,
-    pinterest_title: pack.pinterestTitle,
-    pinterest_link: withUtm(url, 'pinterest'),
-    googlebusiness_cta_type: 'LEARN_MORE',
-    googlebusiness_cta_url: withUtm(url, 'googlebusiness'),
+    content: `${pack.base}\n\nMehr im Blog: ${url}`,
+    isDraft: true,
+    timezone: 'Europe/Vienna',
+    ...(mediaItems.length ? { mediaItems } : {}),
+    hashtags: pack.hashtags,
+    tags: pack.hashtags,
+    metadata: {
+      source: 'newage-blog-admin',
+      blogUrl: url,
+      channels: CHANNELS.split(',').map(channel => channel.trim()).filter(Boolean),
+    },
   };
 }
 
@@ -98,6 +85,8 @@ export async function schedulePosts(rows: ZernioPostRow[]): Promise<{ ok: boolea
   if (!requestUrl) {
     return { ok: false, error: 'Zernio API endpoint not configured yet — confirm base URL + path from the handoff doc (ZERNIO_API_BASE, ZERNIO_ENDPOINT).' };
   }
+  const [draft] = rows;
+  if (!draft) return { ok: false, error: 'No Zernio draft payload provided' };
   try {
     const res = await fetch(requestUrl, {
       method: 'POST',
@@ -106,7 +95,7 @@ export async function schedulePosts(rows: ZernioPostRow[]): Promise<{ ok: boolea
         // TODO confirm auth scheme from handoff (Bearer vs x-api-key):
         'Authorization': `Bearer ${KEY}`,
       },
-      body: JSON.stringify({ posts: rows }),
+      body: JSON.stringify(draft),
     });
     const body = await res.json().catch(() => ({}));
     return { ok: res.ok, status: res.status, body };
