@@ -2419,6 +2419,18 @@ Bitte versuchen Sie es später noch einmal.`;
       });
       // Insert the shoot's photos (with descriptive alt) into the article body.
       const htmlWithImages = injectImages(out.html, ideaImages);
+      const { buildPreparedSocialPack } = await import('./services/socialSnippets.js');
+      const socialPack = await buildPreparedSocialPack({
+        title: post.title,
+        excerpt: out.excerpt || post.excerpt || undefined,
+        body: htmlWithImages,
+        url: `https://www.newagefotografie.com/blog/${post.slug}`,
+        pillar: req.body?.pillar,
+      });
+      const ideaWithSocial = {
+        ...idea,
+        socialPack,
+      };
       const updated = await storage.updateBlogPost(post.id, {
         content: htmlWithImages,
         contentHtml: htmlWithImages,
@@ -2426,6 +2438,7 @@ Bitte versuchen Sie es später noch einmal.`;
         seoTitle: out.seoTitle || post.seoTitle,
         metaDescription: out.metaDescription || post.metaDescription,
         status: 'DRAFT',
+        ideaData: ideaWithSocial,
       });
       res.json({ success: true, post: { id: updated.id, status: updated.status }, generated: out });
     } catch (e: any) {
@@ -2436,6 +2449,38 @@ Bitte versuchen Sie es später noch einmal.`;
 
   // Admin trigger: build a post's social pack and send it to Zernio. Returns the
   // built row even if the Zernio endpoint isn't configured yet (so you can preview).
+  app.get("/api/blog/posts/:id/social-pack", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const post = await storage.getBlogPost(req.params.id);
+      if (!post) return res.status(404).json({ error: 'Post not found' });
+      if (!post.contentHtml && !post.content) return res.status(400).json({ error: 'Post needs generated content before creating a social pack.' });
+
+      const existingIdeaData: any = post.ideaData || {};
+      if (existingIdeaData.socialPack) {
+        return res.json({ success: true, socialPack: existingIdeaData.socialPack, generated: false });
+      }
+
+      const { buildPreparedSocialPack } = await import('./services/socialSnippets.js');
+      const socialPack = await buildPreparedSocialPack({
+        title: post.title,
+        excerpt: post.excerpt || undefined,
+        body: post.contentHtml || post.content || undefined,
+        url: `https://www.newagefotografie.com/blog/${post.slug}`,
+        pillar: (post.tags || [])[0],
+      });
+
+      const ideaData = {
+        ...existingIdeaData,
+        socialPack,
+      };
+      await storage.updateBlogPost(post.id, { ideaData });
+      res.json({ success: true, socialPack, generated: true });
+    } catch (e: any) {
+      console.error('[blog/social-pack] error:', e);
+      res.status(500).json({ error: e?.message || 'Social pack generation failed' });
+    }
+  });
+
   app.post("/api/blog/posts/:id/social", authenticateUser, async (req: Request, res: Response) => {
     try {
       const post = await storage.getBlogPost(req.params.id);

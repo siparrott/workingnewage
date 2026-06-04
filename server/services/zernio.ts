@@ -7,11 +7,11 @@
 //   - exact JSON payload shape (we mirror the CSV field names, which Zernio accepts)
 //
 // Secret: ZERNIO_API_KEY lives in .env (gitignored) — never commit it.
-import { generateSocialPack, withUtm, type SocialPostInput } from './socialSnippets.js';
+import { buildPreparedSocialPack, type SocialPostInput } from './socialSnippets.js';
 
 const BASE = process.env.ZERNIO_API_BASE || 'https://api.zernio.com'; // TODO confirm
 const KEY = process.env.ZERNIO_API_KEY || '';
-const CHANNELS = (process.env.ZERNIO_CHANNELS || 'facebook,instagram,googlebusiness,pinterest,linkedin');
+const CHANNELS = (process.env.ZERNIO_CHANNELS || 'facebook,instagram,threads,googlebusiness,pinterest,linkedin');
 const ORIGIN = 'https://www.newagefotografie.com';
 
 function resolveZernioUrl(): string | null {
@@ -50,7 +50,7 @@ export async function buildZernioRow(post: {
 }): Promise<ZernioPostRow> {
   const url = `${ORIGIN}/blog/${post.slug}`;
   const input: SocialPostInput = { title: post.title, excerpt: post.excerpt || undefined, body: post.contentHtml || post.content || undefined, url };
-  const pack = await generateSocialPack(input);
+  const preparedPack = await buildPreparedSocialPack(input);
   const mediaItems = [post.imageUrl, post.imageUrl2, post.imageUrl3]
     .filter((value): value is string => Boolean(value))
     .map((imageUrl, index) => ({
@@ -61,12 +61,12 @@ export async function buildZernioRow(post: {
 
   return {
     title: post.title,
-    content: `${pack.facebook || pack.base}\n\nMehr im Blog: ${withUtm(url, 'facebook')}`,
+    content: preparedPack.facebook,
     isDraft: true,
     timezone: 'Europe/Vienna',
     ...(mediaItems.length ? { mediaItems } : {}),
-    hashtags: pack.hashtags,
-    tags: pack.hashtags,
+    hashtags: preparedPack.hashtags,
+    tags: preparedPack.hashtags,
     metadata: {
       source: 'newage-blog-admin',
       blogUrl: url,

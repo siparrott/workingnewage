@@ -2079,6 +2079,19 @@ Die Bearbeitung dauert 1-2 Wochen. Alle finalen Bilder erhaltet ihr in einer pra
       console.log('Blog post validation successful!');
       console.log('Validated data keys:', Object.keys(validatedBlogData));
       console.log('Validated contentHtml exists:', !!validatedBlogData.contentHtml, 'length:', validatedBlogData.contentHtml?.length || 0);
+
+      const { buildPreparedSocialPack } = await import('./services/socialSnippets.js');
+      const socialPack = await buildPreparedSocialPack({
+        title: blogPostData.title,
+        excerpt: blogPostData.excerpt || undefined,
+        body: blogPostData.contentHtml || blogPostData.content || undefined,
+        url: `https://www.newagefotografie.com/blog/${blogPostData.slug}`,
+        pillar: blogPostData.tags?.[0],
+      });
+      (validatedBlogData as any).ideaData = {
+        ...((validatedBlogData as any).ideaData || {}),
+        socialPack,
+      };
       
       // Create blog post
       const createdPost = await storage.createBlogPost(validatedBlogData);
@@ -2147,6 +2160,23 @@ Die Bearbeitung dauert 1-2 Wochen. Alle finalen Bilder erhaltet ihr in einer pra
       
       const result = await assistantFirstGenerator.generateBlog(processedImages, input, authorId, enhancedContext);
       console.log('✅ ASSISTANT-FIRST SUCCESS:', result.message);
+
+      const { buildPreparedSocialPack } = await import('./socialSnippets');
+      const generatedPost = result.blogPost as any;
+      const socialPack = await buildPreparedSocialPack({
+        title: generatedPost.title,
+        excerpt: generatedPost.excerpt || undefined,
+        body: generatedPost.contentHtml || generatedPost.content || undefined,
+        url: `https://www.newagefotografie.com/blog/${generatedPost.slug}`,
+        pillar: generatedPost.tags?.[0],
+      });
+      result.blogPost = {
+        ...generatedPost,
+        ideaData: {
+          ...(generatedPost.ideaData || {}),
+          socialPack,
+        },
+      };
       
       // Store in database
       const { storage } = await import('./storage');

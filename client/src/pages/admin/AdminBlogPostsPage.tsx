@@ -14,8 +14,26 @@ import {
   AlertCircle,
   Loader2,
   Wand2,
-  Archive
+  Archive,
+  Share2,
+  Copy,
+  X
 } from 'lucide-react';
+
+interface PreparedSocialPack {
+  generatedAt: string;
+  articleUrl: string;
+  hashtags: string[];
+  facebook: string;
+  instagramCaption: string;
+  instagramFirstComment: string;
+  threads: string;
+  linkedin: string;
+  googlebusiness: string;
+  pinterestTitle: string;
+  pinterestDescription: string;
+  pinterestLink: string;
+}
 
 interface BlogPost {
   id: string;
@@ -35,6 +53,7 @@ interface BlogPost {
   seo_title?: string;
   meta_description?: string;
   tags?: string[];
+  social_pack?: PreparedSocialPack | null;
 }
 
 const AdminBlogPostsPage: React.FC = () => {
@@ -46,6 +65,13 @@ const AdminBlogPostsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
   const [totalPosts, setTotalPosts] = useState(0);
+  const [socialPackModal, setSocialPackModal] = useState<{
+    postId: string;
+    title: string;
+    loading: boolean;
+    error: string | null;
+    socialPack: PreparedSocialPack | null;
+  } | null>(null);
 
   const fetchPosts = useCallback(async () => {
     try {
@@ -92,7 +118,8 @@ const AdminBlogPostsPage: React.FC = () => {
           updated_at: post.updatedAt,
           seo_title: post.seoTitle,
           meta_description: post.metaDescription,
-          tags: post.tags || []
+          tags: post.tags || [],
+          social_pack: post.ideaData?.socialPack || null,
         };
       });
       
@@ -164,6 +191,70 @@ const AdminBlogPostsPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const openSocialPack = async (post: BlogPost) => {
+    setSocialPackModal({
+      postId: post.id,
+      title: post.title,
+      loading: true,
+      error: null,
+      socialPack: post.social_pack || null,
+    });
+
+    try {
+      const response = await fetch(`/api/blog/posts/${post.id}/social-pack`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to load social pack');
+      }
+
+      const data = await response.json();
+      setSocialPackModal({
+        postId: post.id,
+        title: post.title,
+        loading: false,
+        error: null,
+        socialPack: data.socialPack || null,
+      });
+
+      setPosts((current) => current.map((item) => (
+        item.id === post.id ? { ...item, social_pack: data.socialPack || null } : item
+      )));
+    } catch (err) {
+      setSocialPackModal({
+        postId: post.id,
+        title: post.title,
+        loading: false,
+        error: err instanceof Error ? err.message : 'Failed to load social pack',
+        socialPack: null,
+      });
+    }
+  };
+
+  const handleCopyText = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      setError('Failed to copy social pack text.');
+    }
+  };
+
+  const socialSections = socialPackModal?.socialPack ? [
+    { key: 'facebook', label: 'Facebook', value: socialPackModal.socialPack.facebook },
+    { key: 'instagramCaption', label: 'Instagram Caption', value: socialPackModal.socialPack.instagramCaption },
+    { key: 'instagramFirstComment', label: 'Instagram First Comment', value: socialPackModal.socialPack.instagramFirstComment },
+    { key: 'threads', label: 'Threads', value: socialPackModal.socialPack.threads },
+    { key: 'linkedin', label: 'LinkedIn', value: socialPackModal.socialPack.linkedin },
+    { key: 'googlebusiness', label: 'Google Business', value: socialPackModal.socialPack.googlebusiness },
+    {
+      key: 'pinterest',
+      label: 'Pinterest',
+      value: `${socialPackModal.socialPack.pinterestTitle}\n\n${socialPackModal.socialPack.pinterestDescription}\n\n${socialPackModal.socialPack.pinterestLink}`,
+    },
+  ] : [];
   const handlePublishToggle = async (post: BlogPost) => {
     try {
       setLoading(true);
@@ -355,6 +446,17 @@ const AdminBlogPostsPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-3">
+                          <button
+                            onClick={() => openSocialPack(post)}
+                            className="text-purple-600 hover:text-purple-900"
+                            title="Social Pack"
+                          >
+                            <span className="inline-flex items-center rounded-md border border-purple-200 px-2 py-1 text-xs font-medium text-purple-700 hover:bg-purple-50">
+                              <Share2 size={14} className="mr-1" />
+                              Social Pack
+                            </span>
+                          </button>
+
                           <Link
                             to={`/admin/blog/edit/${post.id}`}
                             className="text-indigo-600 hover:text-indigo-900"
@@ -454,6 +556,64 @@ const AdminBlogPostsPage: React.FC = () => {
               >
                 {t('action.delete')}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {socialPackModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-xl bg-white shadow-2xl">
+            <div className="flex items-start justify-between border-b border-gray-200 px-6 py-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Social Pack</h3>
+                <p className="text-sm text-gray-500">{socialPackModal.title}</p>
+              </div>
+              <button
+                onClick={() => setSocialPackModal(null)}
+                className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="max-h-[75vh] overflow-y-auto px-6 py-5">
+              {socialPackModal.loading ? (
+                <div className="flex items-center justify-center py-16 text-purple-600">
+                  <Loader2 className="mr-2 h-6 w-6 animate-spin" /> Social Pack wird geladen...
+                </div>
+              ) : socialPackModal.error ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {socialPackModal.error}
+                </div>
+              ) : socialPackModal.socialPack ? (
+                <div className="space-y-5">
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                    <div><strong>Article URL:</strong> {socialPackModal.socialPack.articleUrl}</div>
+                    <div><strong>Hashtags:</strong> {socialPackModal.socialPack.hashtags.map((tag) => `#${tag}`).join(' ')}</div>
+                  </div>
+
+                  {socialSections.map((section) => (
+                    <div key={section.key} className="rounded-xl border border-gray-200 bg-white">
+                      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+                        <h4 className="text-sm font-semibold text-gray-900">{section.label}</h4>
+                        <button
+                          onClick={() => handleCopyText(section.value)}
+                          className="inline-flex items-center rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                        >
+                          <Copy size={13} className="mr-1" /> Copy
+                        </button>
+                      </div>
+                      <pre className="whitespace-pre-wrap break-words px-4 py-4 text-sm leading-6 text-gray-700">{section.value}</pre>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                  No social pack available for this article yet.
+                </div>
+              )}
             </div>
           </div>
         </div>
