@@ -14,6 +14,16 @@ const KEY = process.env.ZERNIO_API_KEY || '';
 const CHANNELS = (process.env.ZERNIO_CHANNELS || 'facebook,instagram,googlebusiness,pinterest,linkedin');
 const ORIGIN = 'https://www.newagefotografie.com';
 
+function resolveZernioUrl(): string | null {
+  const endpoint = process.env.ZERNIO_ENDPOINT || '';
+  if (!process.env.ZERNIO_API_BASE || !endpoint) return null;
+  if (/^https?:\/\//i.test(endpoint)) return endpoint;
+
+  const base = BASE.replace(/\/+$/, '');
+  const path = endpoint.replace(/^\/+/, '');
+  return `${base}/${path}`;
+}
+
 /** platform -> Zernio profile id, from ZERNIO_PROFILES_JSON in .env. */
 export function profileMap(): Record<string, string> {
   try { return JSON.parse(process.env.ZERNIO_PROFILES_JSON || '{}'); } catch { return {}; }
@@ -84,11 +94,12 @@ export async function buildZernioRow(post: {
  */
 export async function schedulePosts(rows: ZernioPostRow[]): Promise<{ ok: boolean; status?: number; body?: unknown; error?: string }> {
   if (!KEY) return { ok: false, error: 'ZERNIO_API_KEY not set' };
-  if (!process.env.ZERNIO_API_BASE || !process.env.ZERNIO_ENDPOINT) {
+  const requestUrl = resolveZernioUrl();
+  if (!requestUrl) {
     return { ok: false, error: 'Zernio API endpoint not configured yet — confirm base URL + path from the handoff doc (ZERNIO_API_BASE, ZERNIO_ENDPOINT).' };
   }
   try {
-    const res = await fetch(`${BASE}${process.env.ZERNIO_ENDPOINT}`, {
+    const res = await fetch(requestUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
