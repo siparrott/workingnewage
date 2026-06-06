@@ -133,7 +133,7 @@ export default defineConfig({
         renderer: '@prerenderer/renderer-puppeteer',
         rendererOptions: {
           maxConcurrentRoutes: 4,
-          renderAfterTime: 500,
+          renderAfterDocumentEvent: 'prerender-ready',
           headless: true,
           args: ['--no-sandbox', '--disable-setuid-sandbox'],
           // Heroku: chrome-for-testing buildpack binary; local: undefined (bundled Chromium).

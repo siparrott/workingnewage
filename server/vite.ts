@@ -159,6 +159,15 @@ export function serveStatic(app: Express) {
   // In production, dist is at the root level, not relative to server/
   const distPath = path.resolve(process.cwd(), "dist");
 
+  const resolvePrerenderedHtmlPath = (requestPath: string) => {
+    const segments = requestPath.split('/').filter(Boolean);
+    if (segments.length === 0) return null;
+
+    const prerenderedPath = path.resolve(distPath, ...segments, "index.html");
+    if (!prerenderedPath.startsWith(distPath)) return null;
+    return fs.existsSync(prerenderedPath) ? prerenderedPath : null;
+  };
+
   if (!fs.existsSync(distPath)) {
     console.error(`❌ ERROR: Could not find the build directory at: ${distPath}`);
     console.error(`Current working directory: ${process.cwd()}`);
@@ -194,6 +203,12 @@ export function serveStatic(app: Express) {
     if (req.originalUrl.startsWith('/api/')) {
       return res.status(404).json({ error: 'API endpoint not found', path: req.originalUrl });
     }
+
+    const prerenderedHtmlPath = resolvePrerenderedHtmlPath(req.path);
+    if (prerenderedHtmlPath) {
+      return res.sendFile(prerenderedHtmlPath);
+    }
+
     // For all other requests (frontend routes), serve the SPA
     res.sendFile(path.resolve(distPath, "index.html"));
   });
