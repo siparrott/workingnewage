@@ -1,24 +1,147 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Camera, Heart, Award, Users, MapPin, Clock, Star, Phone, 
-  CheckCircle, ExternalLink, Lightbulb, TrendingUp, Eye, Film
-} from 'lucide-react';
+import { CheckCircle, MapPin, Phone } from 'lucide-react';
 import Layout from '../../components/layout/Layout';
 import { RelatedTopicsBlock } from '../../components/SEO/RelatedTopicsBlock';
 import { PillarLinksBlock } from '../../components/SEO/PillarLinksBlock';
 import { SEOHead } from '../../components/SEO/SEOHead';
-import { useLanguage } from '../../context/LanguageContext';
 
 const UeberUnsPage: React.FC = () => {
-  const { t, language } = useLanguage();
-  
+  const trustLogos = ['BBC', 'Canon', 'Stadt Wien', 'ÖBB', 'Internationale Unternehmen'];
+  const storyRows = [
+    {
+      year: 'Vor Wien',
+      station: 'Südafrika & Großbritannien',
+      story: 'Die ersten Schritte in der Portraitfotografie – geprägt durch unterschiedliche Menschen, Kulturen und Geschichten.',
+    },
+    {
+      year: 'London',
+      station: 'Professionelle Fotografie',
+      story: 'Arbeit in einem der kreativsten Märkte Europas.',
+    },
+    {
+      year: '2012',
+      station: 'Wien',
+      story: 'Die Eröffnung von New Age Fotografie.',
+    },
+    {
+      year: 'Heute',
+      station: 'Fotostudio Wien 1050',
+      story: 'Tausende Shootings mit Familien, Babys, Paaren und Unternehmen.',
+    },
+  ];
+
+  const beliefs = [
+    {
+      title: 'Mensch vor Kamera',
+      body: 'Niemand muss ein Model sein. Unsere Aufgabe ist es, eine Atmosphäre zu schaffen, in der echte Emotionen entstehen können.',
+    },
+    {
+      title: 'Natürlichkeit statt steifer Posen',
+      body: 'Die schönsten Bilder entstehen oft zwischen den geplanten Momenten: ein Lachen, eine Umarmung, ein Blick.',
+    },
+    {
+      title: 'Erfahrung macht den Unterschied',
+      body: 'Nach tausenden Portraits erkennen wir kleine Details: die richtige Körperhaltung, natürliches Licht, echte Ausdrücke und den perfekten Moment zum Auslösen.',
+    },
+  ];
+
+  const studioBullets = [
+    'Familienfotos Wien',
+    'Babybauch Fotoshootings',
+    'Neugeborenenfotografie',
+    'Kinderfotos',
+    'Business Portraits',
+    'Personal Branding Fotos',
+    'Bewerbungsbilder',
+    'Paarshootings',
+  ];
+
+  const shootings = [
+    {
+      title: 'Familienfotografie Wien',
+      body: 'Familien verändern sich schnell. Unsere Familienfotos halten genau diese Zeit fest – natürlich, emotional und zeitlos.',
+      cta: 'Familien Fotoshooting entdecken',
+      href: '/familien-fotoshooting-wien/',
+    },
+    {
+      title: 'Babybauch Fotoshooting Wien',
+      body: 'Eine besondere Zeit verdient besondere Erinnerungen. Wir fotografieren Schwangerschaften elegant, modern und mit viel Gefühl.',
+      cta: 'Babybauch Shooting ansehen',
+      href: '/schwangerschaftsfotos-wien/',
+    },
+    {
+      title: 'Neugeborenen Fotoshooting Wien',
+      body: 'Die ersten Tage kommen nie zurück. Mit viel Ruhe und Geduld entstehen liebevolle Erinnerungen an diese besondere Anfangszeit.',
+      cta: 'Newborn Shooting entdecken',
+      href: '/neugeborenenfotos-wien/',
+    },
+    {
+      title: 'Business Portrait Wien',
+      body: 'Der erste Eindruck entsteht oft online. Wir erstellen professionelle Portraits für LinkedIn, Webseiten, Bewerbungen und Personal Branding.',
+      cta: 'Business Portraits ansehen',
+      href: '/business-portrait-wien/',
+    },
+  ];
+
+  const steps = [
+    {
+      title: '1. Kennenlernen',
+      body: 'Wir sprechen darüber, welche Bilder ihr euch wünscht.',
+    },
+    {
+      title: '2. Entspannte Atmosphäre',
+      body: 'Keine Unsicherheit. Kein Stress. Wir führen euch Schritt für Schritt durch das Shooting.',
+    },
+    {
+      title: '3. Auswahl eurer Lieblingsbilder',
+      body: 'Nach dem Shooting sucht ihr eure Favoriten bequem aus.',
+    },
+    {
+      title: '4. Erinnerungen für Zuhause',
+      body: 'Hochwertige Bilder, Wandkunst und Portraits, die bleiben.',
+    },
+  ];
+
+  const reasons = [
+    'Über 12 Jahre Erfahrung als Fotostudio in Wien',
+    'Tausende Menschen fotografiert',
+    'Internationale Erfahrung',
+    'Persönliche Betreuung',
+    'Professionelle Studioqualität',
+    'Familienfreundliche Atmosphäre',
+    'Bewertungen von echten Kunden',
+  ];
+
+  const faqs = [
+    {
+      question: 'Wie lange gibt es New Age Fotografie schon?',
+      answer: 'Unser Fotostudio gibt es seit 2012 in Wien. Seitdem durften wir zahlreiche Familien, Unternehmen und Privatpersonen fotografieren.',
+    },
+    {
+      question: 'Wo befindet sich das Studio?',
+      answer: 'Unser Fotostudio befindet sich im 5. Bezirk in Wien und ist einfach erreichbar.',
+    },
+    {
+      question: 'Muss ich Erfahrung vor der Kamera haben?',
+      answer: 'Nein. Die meisten unserer Kunden stehen selten vor einer professionellen Kamera. Wir helfen mit natürlicher Anleitung während des gesamten Shootings.',
+    },
+    {
+      question: 'Welche Fotoshootings bietet ihr an?',
+      answer: 'Wir fotografieren Familien, Babys, Schwangerschaften, Business Portraits, Paare und besondere Anlässe.',
+    },
+    {
+      question: 'Kann man ein Fotoshooting verschenken?',
+      answer: 'Ja. Ein Fotoshooting Gutschein ist eines unserer beliebtesten Geschenke für Geburtstage, Weihnachten oder besondere Momente.',
+    },
+  ];
+
   return (
     <Layout>
       <SEOHead
-        title="Über uns – Fotostudio & Team in Wien | New Age Fotografie"
-        description="Lernen Sie das Team hinter New Age Fotografie kennen: Über 10 Jahre Erfahrung, 500+ Familien fotografiert. Unser Studio in Wien 1050 bietet professionelle Fotografie mit Herz."
-        keywords="New Age Fotografie Wien, Fotografen Team Wien, Über uns Fotostudio, Familienfotograf Wien Erfahrung"
+        title="Über uns | Fotostudio Wien seit 2012 – New Age Fotografie"
+        description="Lerne New Age Fotografie kennen – dein Fotostudio in Wien seit 2012 für Familienfotografie, Babybauch, Neugeborene und Business Portraits. Persönlich, modern und authentisch."
+        keywords="Fotostudio Wien, New Age Fotografie Wien, Familienfotografie Wien, Babybauch Wien, Neugeborene Wien, Business Portrait Wien"
         canonical="/ueber-uns/"
       />
 
@@ -28,7 +151,7 @@ const UeberUnsPage: React.FC = () => {
           "@context": "https://schema.org",
           "@type": "LocalBusiness",
           "name": "New Age Fotografie",
-          "description": "Vienna portrait studio for family, newborn, maternity, weddings and corporate photography. Founder-led, film-era craft with modern studio precision.",
+          "description": "Fotostudio in Wien seit 2012 für Familienfotografie, Babybauch, Neugeborene und Business Portraits.",
           "address": {
             "@type": "PostalAddress",
             "addressLocality": "Wien",
@@ -42,7 +165,7 @@ const UeberUnsPage: React.FC = () => {
           ],
           "founder": {
             "@type": "Person",
-            "name": "Matt",
+            "name": "Matthew",
             "jobTitle": "Photographer"
           },
           "knowsAbout": [
@@ -58,416 +181,236 @@ const UeberUnsPage: React.FC = () => {
         })}
       </script>
       
-      <div className="min-h-screen">
-        {/* Hero Section */}
-        <section className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white py-24">
-          <div className="absolute inset-0 bg-black/20"></div>
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              {language === 'de' ? 'Über uns – Das Team von New Age Fotografie in Wien' : 'About Us – The Team Behind New Age Fotografie Vienna'}
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 max-w-4xl mx-auto leading-relaxed">
-              {t('about.hero.description')}
-            </p>
-            <div className="flex flex-wrap justify-center gap-4">
+      <div className="min-h-screen bg-white text-slate-900">
+        <section className="bg-slate-950 text-white py-24">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-purple-300 mb-6">Über uns</p>
+            <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">Über uns – New Age Fotografie Wien</h1>
+            <h2 className="text-2xl md:text-3xl font-semibold mb-6 text-white/95">Euer Fotostudio in Wien für echte Erinnerungen seit 2012</h2>
+            <div className="max-w-3xl mx-auto space-y-4 text-lg md:text-xl text-white/85 leading-relaxed">
+              <p>Manche Momente passieren nur einmal.</p>
+              <p>Ein Baby ist nur wenige Tage ein Neugeborenes. Kinder verändern sich jedes Jahr. Familien wachsen. Menschen beginnen neue Kapitel.</p>
+              <p>Genau deshalb fotografieren wir nicht einfach Bilder.</p>
+              <p>Wir erschaffen Erinnerungen, die auch in vielen Jahren noch Bedeutung haben.</p>
+              <p>Willkommen bei <strong>New Age Fotografie – eurem Fotostudio in Wien für Familien, Babybauch, Neugeborene, Business Portraits und besondere Lebensmomente.</strong></p>
+              <p>Seit 2012 durften wir bereits tausende Menschen vor unserer Kamera begleiten – immer mit demselben Ziel:</p>
+              <p className="font-semibold text-white">Natürlich. Persönlich. Zeitlos.</p>
+            </div>
+            <div className="mt-10 flex flex-wrap justify-center gap-4">
               <Link
-                to="/warteliste"
-                className="bg-white text-slate-900 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors inline-flex items-center gap-2 shadow-lg"
+                to="/fotoshootings/"
+                className="inline-flex items-center rounded-lg bg-white px-8 py-4 text-base font-semibold text-slate-950 transition hover:bg-slate-100"
               >
-                <TrendingUp className="w-5 h-5" />
-                {t('about.hero.cta')}
+                Jetzt Fotoshooting entdecken
               </Link>
             </div>
           </div>
         </section>
 
-        {/* Story Timeline */}
         <section className="py-16 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-4xl font-bold mb-6 text-gray-900">{t('about.story.title')}</h2>
-            <p className="text-lg text-gray-600 mb-12 max-w-3xl">
-              {t('about.story.intro')}
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">Vertraut von Familien, Unternehmen und bekannten Marken</h2>
+            <p className="text-lg text-slate-700 leading-relaxed max-w-4xl">
+              Über die Jahre durften wir nicht nur Familien aus Wien fotografieren, sondern auch mit bekannten Unternehmen, Organisationen und internationalen Marken arbeiten.
             </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              {trustLogos.map((item) => (
+                <span key={item} className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700">
+                  {item}
+                </span>
+              ))}
+            </div>
+            <p className="mt-8 text-lg text-slate-700">Aber unser wichtigster Auftrag bleibt immer derselbe: <strong>Den Menschen vor unserer Kamera authentisch zu zeigen.</strong></p>
+          </div>
+        </section>
 
-            {/* Timeline Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse bg-white rounded-lg overflow-hidden shadow-lg">
-                <thead className="bg-slate-900 text-white">
+        <section className="py-16 bg-slate-50">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-3xl md:text-4xl font-bold mb-3">Die Geschichte hinter New Age Fotografie</h2>
+            <h3 className="text-2xl font-semibold text-slate-800 mb-8">Vom internationalen Fotografen zum Fotostudio in Wien</h3>
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+              <table className="w-full min-w-[720px] border-collapse">
+                <thead className="bg-slate-950 text-white">
                   <tr>
-                    <th className="px-6 py-4 text-left font-semibold">{t('about.timeline.year')}</th>
-                    <th className="px-6 py-4 text-left font-semibold">{t('about.timeline.where')}</th>
-                    <th className="px-6 py-4 text-left font-semibold">{t('about.timeline.what')}</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wide">Jahr</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wide">Station</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wide">Unsere Geschichte</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
-                  <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900">{t('about.timeline.predigital')}</td>
-                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.predigital.where')}</td>
-                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.predigital.what')}</td>
-                  </tr>
-                  <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900">{t('about.timeline.earlycareer')}</td>
-                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.earlycareer.where')}</td>
-                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.earlycareer.what')}</td>
-                  </tr>
-                  <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900">2003</td>
-                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.2003.where')}</td>
-                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.2003.what')}</td>
-                  </tr>
-                  <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900">2004</td>
-                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.2004.where')}</td>
-                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.2004.what')}</td>
-                  </tr>
-                  <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900">2012</td>
-                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.2012.where')}</td>
-                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.2012.what')}</td>
-                  </tr>
-                  <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900">{t('about.timeline.since')}</td>
-                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.since.where')}</td>
-                    <td className="px-6 py-4 text-gray-700">{t('about.timeline.since.what')}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {/* External Press Note */}
-            <div className="mt-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-gray-700">
-                <strong>External press note:</strong> {t('about.press.note')}{' '}
-                <a 
-                  href="https://www.capetowncarnival.com/" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline inline-flex items-center gap-1"
-                >
-                  {t('about.press.capetown')} <ExternalLink className="w-4 h-4" />
-                </a>
-                {' '}{t('about.press.and')}{' '}
-                <a 
-                  href="https://eurovision.tv/event/vienna-2015" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline inline-flex items-center gap-1"
-                >
-                  {t('about.press.eurovision')} <ExternalLink className="w-4 h-4" />
-                </a>.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* What We Believe */}
-        <section className="py-16 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-4xl font-bold mb-8 text-gray-900">{t('about.believe.title')}</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-purple-600">
-                <h3 className="text-xl font-semibold mb-3 text-gray-900">{t('about.believe.people.title')}</h3>
-                <p className="text-gray-700">{t('about.believe.people.desc')}</p>
-              </div>
-
-              <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-600">
-                <h3 className="text-xl font-semibold mb-3 text-gray-900">{t('about.believe.light.title')}</h3>
-                <p className="text-gray-700">{t('about.believe.light.desc')}</p>
-              </div>
-
-              <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-pink-600">
-                <h3 className="text-xl font-semibold mb-3 text-gray-900">{t('about.believe.simple.title')}</h3>
-                <p className="text-gray-700">{t('about.believe.simple.desc')}</p>
-              </div>
-
-              <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-orange-600">
-                <h3 className="text-xl font-semibold mb-3 text-gray-900">{t('about.believe.consistency.title')}</h3>
-                <p className="text-gray-700">{t('about.believe.consistency.desc')}</p>
-              </div>
-
-              <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-600">
-                <h3 className="text-xl font-semibold mb-3 text-gray-900">{t('about.believe.speed.title')}</h3>
-                <p className="text-gray-700">{t('about.believe.speed.desc')}</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* What We Photograph */}
-        <section className="py-16 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-4xl font-bold mb-4 text-gray-900">{t('about.photograph.title')}</h2>
-            <p className="text-lg text-gray-600 mb-12">{t('about.photograph.subtitle')}</p>
-            
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="bg-gradient-to-br from-purple-50 to-white p-6 rounded-xl border border-gray-200">
-                <Camera className="w-10 h-10 text-purple-600 mb-3" />
-                <h3 className="text-lg font-semibold mb-2 text-gray-900">{t('about.photograph.family')}</h3>
-                <p className="text-gray-600">{t('about.photograph.family.desc')}</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-pink-50 to-white p-6 rounded-xl border border-gray-200">
-                <Heart className="w-10 h-10 text-pink-600 mb-3" />
-                <h3 className="text-lg font-semibold mb-2 text-gray-900">{t('about.photograph.newborn')}</h3>
-                <p className="text-gray-600">{t('about.photograph.newborn.desc')}</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-blue-50 to-white p-6 rounded-xl border border-gray-200">
-                <Users className="w-10 h-10 text-blue-600 mb-3" />
-                <h3 className="text-lg font-semibold mb-2 text-gray-900">{t('about.photograph.portraits')}</h3>
-                <p className="text-gray-600">{t('about.photograph.portraits.desc')}</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-orange-50 to-white p-6 rounded-xl border border-gray-200">
-                <Film className="w-10 h-10 text-orange-600 mb-3" />
-                <h3 className="text-lg font-semibold mb-2 text-gray-900">{t('about.photograph.weddings')}</h3>
-                <p className="text-gray-600">{t('about.photograph.weddings.desc')}</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-green-50 to-white p-6 rounded-xl border border-gray-200">
-                <Award className="w-10 h-10 text-green-600 mb-3" />
-                <h3 className="text-lg font-semibold mb-2 text-gray-900">{t('about.photograph.corporate')}</h3>
-                <p className="text-gray-600">{t('about.photograph.corporate.desc')}</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-yellow-50 to-white p-6 rounded-xl border border-gray-200">
-                <Eye className="w-10 h-10 text-yellow-600 mb-3" />
-                <h3 className="text-lg font-semibold mb-2 text-gray-900">{t('about.photograph.products')}</h3>
-                <p className="text-gray-600">{t('about.photograph.products.desc')}</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Our Look Table */}
-        <section className="py-16 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-4xl font-bold mb-8 text-gray-900">{language === 'de' ? 'Unser Look – auf einen Blick' : 'Our Look, in one table'}</h2>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse bg-white rounded-lg overflow-hidden shadow-lg">
-                <thead className="bg-gray-900 text-white">
-                  <tr>
-                    <th className="px-6 py-4 text-left font-semibold">{language === 'de' ? 'Stil' : 'Look'}</th>
-                    <th className="px-6 py-4 text-left font-semibold">{language === 'de' ? 'Ideal für' : 'Where it shines'}</th>
-                    <th className="px-6 py-4 text-left font-semibold">{language === 'de' ? 'Licht & Setup' : 'Lighting & set'}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-900">{language === 'de' ? 'Clean Editorial' : 'Clean editorial'}</td>
-                    <td className="px-6 py-4 text-gray-700">{language === 'de' ? 'Headshots, Teams, Marken-PR' : 'Headshots, teams, brand PR'}</td>
-                    <td className="px-6 py-4 text-gray-600">{language === 'de' ? '90–105 cm Softbox, dezente Neg.-Aufhellung' : '90–105 cm soft source, subtle negative fill'}</td>
-                  </tr>
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-900">{language === 'de' ? 'Warm Lifestyle' : 'Warm lifestyle'}</td>
-                    <td className="px-6 py-4 text-gray-700">{language === 'de' ? 'Familien, Paare' : 'Families, couples'}</td>
-                    <td className="px-6 py-4 text-gray-600">{language === 'de' ? 'Großes Führungslicht + Reflektor, gestaffelte Hintergründe' : 'Large key + bounce, layered background'}</td>
-                  </tr>
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-900">{language === 'de' ? 'Studio Klassisch' : 'Studio classic'}</td>
-                    <td className="px-6 py-4 text-gray-700">{language === 'de' ? 'Zeitlose Porträts' : 'Timeless portraits'}</td>
-                    <td className="px-6 py-4 text-gray-600">{language === 'de' ? 'Mittelgrau oder Reinweiß, kontrollierte Verhältnisse' : 'Mid-grey or pure white, controlled ratios'}</td>
-                  </tr>
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-900">{language === 'de' ? 'Dramatisch Low-Key' : 'Dramatic low-key'}</td>
-                    <td className="px-6 py-4 text-gray-700">{language === 'de' ? 'Musiker, Mode, Sportler' : 'Musicians, fashion, athletes'}</td>
-                    <td className="px-6 py-4 text-gray-600">{language === 'de' ? 'Wabe + Streiflicht, minimale Aufhellung' : 'Gridded strip + rim, minimal fill'}</td>
-                  </tr>
+                <tbody className="divide-y divide-slate-200">
+                  {storyRows.map((row) => (
+                    <tr key={row.year} className="align-top">
+                      <td className="px-6 py-4 font-semibold text-slate-900">{row.year}</td>
+                      <td className="px-6 py-4 text-slate-700">{row.station}</td>
+                      <td className="px-6 py-4 text-slate-700">{row.story}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
         </section>
 
-        {/* Credentials */}
         <section className="py-16 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-4xl font-bold mb-8 text-gray-900">{language === 'de' ? 'Referenzen auf einen Blick' : 'Credentials at a glance'}</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {(language === 'de' ? [
-                { icon: Camera, text: "Film-Ära-Grundlagen → schnelle, präzise Belichtung und Farbdisziplin" },
-                { icon: Users, text: "High-Street-Erfahrung → ruhige, effiziente Sessions für jedes Alter" },
-                { icon: Star, text: "Modeagentur → Styling-Instinkt und Posing-Feingefühl" },
-                { icon: MapPin, text: "Internationale Events → drucksichere Lieferung und Logistik" },
-                { icon: Award, text: "Wiener Studio → wiederholbare Qualität, bei jedem Wetter" }
-              ] : [
-                { icon: Camera, text: "Film-era foundations → fast, accurate exposure and color discipline" },
-                { icon: Users, text: "High-street volume → calm, efficient sessions for every age and stage" },
-                { icon: Star, text: "Fashion agency → styling instincts and posing nuance" },
-                { icon: MapPin, text: "Global events → pressure-proof delivery and logistics" },
-                { icon: Award, text: "Vienna studio → repeatable quality, rain or shine" }
-              ]).map((item, idx) => (
-                <div key={idx} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
-                  <item.icon className="w-6 h-6 text-purple-600 flex-shrink-0 mt-1" />
-                  <p className="text-gray-700">{item.text}</p>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            <h2 className="text-3xl md:text-4xl font-bold">Matthew – der Fotograf hinter New Age Fotografie</h2>
+            <p className="text-lg text-slate-700">Hallo, ich bin Matthew.</p>
+            <p className="text-lg text-slate-700">Nach vielen Jahren hinter der Kamera habe ich eines gelernt: Die beste Technik der Welt bedeutet wenig, wenn Menschen sich vor der Kamera nicht wohlfühlen.</p>
+            <p className="text-lg text-slate-700">Ein gutes Portrait beginnt nicht mit dem Auslösen der Kamera. Es beginnt mit Vertrauen.</p>
+            <p className="text-lg text-slate-700">Mein Weg führte mich von Südafrika über London nach Wien. Diese internationale Erfahrung prägt bis heute meinen Stil: <strong>Modern, natürlich und voller Persönlichkeit.</strong></p>
+            <p className="text-lg text-slate-700">Seit der Eröffnung unseres Studios in Wien durfte ich Familien wachsen sehen, Babys fotografieren, die heute schon zur Schule gehen, und Menschen begleiten, die normalerweise sagen:</p>
+            <p className="text-lg italic text-slate-800">&quot;Ich bin nicht fotogen.&quot;</p>
+            <p className="text-lg text-slate-700">Meine Antwort ist immer dieselbe:</p>
+            <p className="text-xl font-semibold text-slate-950">Doch. Du brauchst nur jemanden hinter der Kamera, der dich richtig sieht.</p>
+          </div>
+        </section>
+
+        <section className="py-16 bg-slate-50">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-3xl md:text-4xl font-bold mb-8">Woran wir als Fotografen glauben</h2>
+            <div className="grid gap-6 md:grid-cols-3">
+              {beliefs.map((belief) => (
+                <div key={belief.title} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h3 className="text-xl font-semibold mb-3">{belief.title}</h3>
+                  <p className="text-slate-700 leading-relaxed">{belief.body}</p>
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* How a session feels */}
-        <section className="py-16 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-4xl font-bold mb-8 text-gray-900">{language === 'de' ? 'So fühlt sich ein Shooting an' : 'How a session feels'}</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
-              {(language === 'de' ? [
-                { num: "1", title: "Planen", desc: "Sie teilen Ihre Ziele, Outfits und den Verwendungszweck der Bilder." },
-                { num: "2", title: "Lichttest", desc: "Wir finden Ihre besten Winkel und den richtigen Kontrast." },
-                { num: "3", title: "Shooting", desc: "Klare, freundliche Anleitung. Natürlicher Ausdruck gewinnt." },
-                { num: "4", title: "Auswahl", desc: "Sie markieren Favoriten; wir beraten zu Ausschnitt und Nutzung." },
-                { num: "5", title: "Lieferung", desc: "Retuschierte Dateien, optimiert für Druck und Web, pünktlich." }
-              ] : [
-                { num: "1", title: "Plan", desc: "You share goals, outfits, and where the images will live." },
-                { num: "2", title: "Light test", desc: "We dial your best angles and the right contrast." },
-                { num: "3", title: "Shoot", desc: "Clear, friendly direction. Natural expression wins." },
-                { num: "4", title: "Select", desc: "You mark favorites; we advise on crops and usage." },
-                { num: "5", title: "Deliver", desc: "Retouched files, sized for print and web, on time." }
-              ]).map((step) => (
-                <div key={step.num} className="bg-white p-6 rounded-xl shadow-sm text-center">
-                  <div className="w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">
-                    {step.num}
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2 text-gray-900">{step.title}</h3>
-                  <p className="text-gray-600 text-sm">{step.desc}</p>
-                </div>
-              ))}
-            </div>
-            <p className="mt-8 text-center text-gray-600">
-              <strong>{language === 'de' ? 'Lieferzeiten:' : 'Turnarounds:'}</strong> {language === 'de' ? 'Vorschau in 48–72 Std. Finale Galerie in 1–2 Wochen (Hochzeiten nach Vereinbarung).' : 'Preview in 48–72 h. Final gallery in 1–2 weeks (weddings per agreement).'}
-            </p>
-          </div>
-        </section>
-
-        {/* Trusted for */}
-        <section className="py-16 bg-slate-900 text-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-4xl font-bold mb-8 text-center">{language === 'de' ? 'Vertraut für Momente, die zählen' : 'Trusted for moments that matter'}</h2>
-            <div className="grid md:grid-cols-3 gap-6 text-center">
-              <div className="bg-white/10 backdrop-blur-sm p-6 rounded-xl">
-                <CheckCircle className="w-12 h-12 text-purple-400 mx-auto mb-3" />
-                <p className="text-lg">{language === 'de' ? 'Eurovision Wien • UEFA / Champions League • EM-Finale' : 'Eurovision Vienna • UEFA / Champions League • Euro finals'}</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm p-6 rounded-xl">
-                <CheckCircle className="w-12 h-12 text-blue-400 mx-auto mb-3" />
-                <p className="text-lg">{language === 'de' ? 'Markeneinführungen und Konferenzen in AT & EU' : 'Corporate brand launches and conferences across AT & EU'}</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm p-6 rounded-xl">
-                <CheckCircle className="w-12 h-12 text-pink-400 mx-auto mb-3" />
-                <p className="text-lg">{language === 'de' ? 'Hochzeiten von England bis Malta, Südafrika bis Österreich' : 'Weddings and elopements from England to Malta, South Africa to Austria'}</p>
-              </div>
+            <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="text-lg text-slate-700 mb-4">Diese Erfahrung bringen wir in jedes Shooting ein.</p>
+              <ul className="grid gap-3 sm:grid-cols-2 text-slate-700">
+                <li>• die richtige Körperhaltung</li>
+                <li>• natürliches Licht</li>
+                <li>• echte Ausdrücke</li>
+                <li>• den perfekten Moment zum Auslösen</li>
+              </ul>
             </div>
           </div>
         </section>
 
-        {/* FAQs */}
         <section className="py-16 bg-white">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-4xl font-bold mb-8 text-gray-900">{language === 'de' ? 'FAQs (Kurzantworten)' : 'FAQs (quick answers)'}</h2>
-            <div className="space-y-6">
-              {(language === 'de' ? [
-                {
-                  q: "Wo befindet sich Ihr Studio?",
-                  a: "In Wien. Studio-Sessions nahe dem Zentrum mit guter Erreichbarkeit. Parktipps erhalten Sie in der Bestätigung."
-                },
-                {
-                  q: "Bieten Sie Studio und Outdoor an?",
-                  a: "Ja. Studio für Kontrolle. Outdoor für Stimmung. Wir planen nach Licht und Wetter."
-                },
-                {
-                  q: "Wie buchen wir?",
-                  a: "Nennen Sie uns Termine und Ziel. Wir senden Plan, Preis und einen einfachen Vertrag. Oder tragen Sie sich in unsere Warteliste ein.",
-                  link: "/warteliste"
-                },
-                {
-                  q: "Reisen Sie auch?",
-                  a: "Ja. In ganz Österreich und der EU. Reisekosten sind transparent und vorab vereinbart."
-                }
-              ] : [
-                {
-                  q: "Where are you based?",
-                  a: "Vienna city. Studio sessions near the center with easy access and parking tips in your confirmation."
-                },
-                {
-                  q: "Do you offer both studio and outdoor?",
-                  a: "Yes. Studio for control. Outdoor for mood. We plan around light and weather."
-                },
-                {
-                  q: "How do we book?",
-                  a: "Tell us your dates and goal. We send a plan, price, and a simple contract. Or add your name to our Warteliste if you need the next available slot.",
-                  link: "/warteliste"
-                },
-                {
-                  q: "Do you travel?",
-                  a: "Yes. Across Austria and the EU. Travel fees are transparent and agreed up front."
-                }
-              ]).map((faq, idx) => (
-                <div key={idx} className="bg-gray-50 p-6 rounded-lg">
-                  <h3 className="text-xl font-semibold mb-3 text-gray-900">{faq.q}</h3>
-                  <p className="text-gray-700">
-                    {faq.a}
-                    {faq.link && (
-                      <>
-                        {' '}
-                        <Link to={faq.link} className="text-purple-600 hover:underline font-medium">
-                          Warteliste →
-                        </Link>
-                      </>
-                    )}
-                  </p>
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-start">
+              <div>
+                <h2 className="text-3xl md:text-4xl font-bold mb-6">Unser Fotostudio in Wien</h2>
+                <p className="text-lg text-slate-700 leading-relaxed mb-6">Unser Studio befindet sich im Herzen von Wien im 5. Bezirk.</p>
+                <p className="text-lg text-slate-700 leading-relaxed mb-6">Ein heller, entspannter Ort für:</p>
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {studioBullets.map((item) => (
+                    <li key={item} className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700">{item}</li>
+                  ))}
+                </ul>
+                <p className="mt-8 text-lg text-slate-700 leading-relaxed">Jedes Shooting ist anders. Deshalb arbeiten wir nicht nach einer festen Vorlage. Wir nehmen uns Zeit für euch.</p>
+              </div>
+              <div className="rounded-2xl bg-slate-950 p-8 text-white shadow-xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <MapPin className="h-6 w-6 text-purple-300" />
+                  <h3 className="text-xl font-semibold">Fotostudio Wien 1050</h3>
+                </div>
+                <p className="text-white/80 leading-relaxed">Persönlich. Modern. Entspannt. Ein Studio für Familien, Babys, Business Portraits und echte Erinnerungen mitten in Wien.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-16 bg-slate-50">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Unsere Fotoshootings in Wien</h2>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2">
+              {shootings.map((shooting) => (
+                <div key={shooting.title} className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+                  <h3 className="text-2xl font-semibold mb-3">{shooting.title}</h3>
+                  <p className="text-slate-700 leading-relaxed mb-6">{shooting.body}</p>
+                  <Link to={shooting.href} className="inline-flex items-center text-sm font-semibold text-purple-700 hover:text-purple-900">
+                    {shooting.cta}
+                  </Link>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Tone & Ethics */}
-        <section className="py-16 bg-gray-50">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-4xl font-bold mb-6 text-gray-900">{language === 'de' ? 'Stil, Ethik und Qualität' : 'Tone, ethics, and quality'}</h2>
-            <div className="prose prose-lg max-w-none">
-              <p className="text-gray-700 mb-4">
-                {language === 'de' ? 'Wir retuschieren dezent. Haut sieht wie Haut aus. Farben bleiben natürlich.' : 'We edit lightly. Skin looks like skin. Color stays true.'}
-              </p>
-              <p className="text-gray-700 mb-4">
-                {language === 'de' ? 'Wir versprechen nie zu viel. Wir liefern immer, was wir zeigen.' : 'We never over-promise. We always deliver what we show.'}
-              </p>
-              <p className="text-gray-700">
-                {language === 'de' ? 'Einwilligung und Datenschutz sind uns wichtig – besonders bei Kindern und Firmenkunden.' : 'Consent and privacy matter—especially for kids and corporate clients.'}
-              </p>
+        <section className="py-16 bg-white">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-3xl md:text-4xl font-bold mb-8">So fühlt sich ein Fotoshooting bei uns an</h2>
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+              {steps.map((step) => (
+                <div key={step.title} className="rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
+                  <h3 className="text-xl font-semibold mb-3">{step.title}</h3>
+                  <p className="text-slate-700 leading-relaxed">{step.body}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="py-16 bg-gradient-to-br from-purple-600 via-pink-500 to-orange-500 text-white">
+        <section className="py-16 bg-slate-950 text-white">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-3xl md:text-4xl font-bold mb-8">Warum Kunden New Age Fotografie wählen</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {reasons.map((reason) => (
+                <div key={reason} className="flex items-start gap-3 rounded-xl bg-white/5 px-5 py-4 border border-white/10">
+                  <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                  <span className="text-white/90">{reason}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="py-16 bg-white">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            <h2 className="text-3xl md:text-4xl font-bold">Auszeichnungen & Bewertungen</h2>
+            <p className="text-lg text-slate-700 leading-relaxed">Unsere Kundenbewertungen bedeuten uns besonders viel, weil sie zeigen, was hinter jedem Bild steckt: Vertrauen. Geduld. Und echte Erinnerungen.</p>
+            <p className="text-3xl tracking-[0.35em] text-amber-500">★★★★★</p>
+            <p className="text-lg text-slate-700">Bewertungen auf Google, ProvenExpert und weiteren Plattformen.</p>
+          </div>
+        </section>
+
+        <section className="py-16 bg-slate-50">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-3xl md:text-4xl font-bold mb-8">Häufige Fragen über unser Fotostudio in Wien</h2>
+            <div className="space-y-5">
+              {faqs.map((faq) => (
+                <div key={faq.question} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h3 className="text-xl font-semibold mb-3">{faq.question}</h3>
+                  <p className="text-slate-700 leading-relaxed">{faq.answer}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="py-20 bg-gradient-to-br from-purple-600 via-pink-500 to-orange-500 text-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-4xl font-bold mb-6">{t('about.cta.title')}</h2>
-            <p className="text-xl mb-8">
-              {t('about.cta.description')}
-            </p>
-            <div className="flex flex-wrap justify-center gap-4">
+            <h2 className="text-3xl md:text-5xl font-bold mb-6">Am Ende geht es nicht um Fotos</h2>
+            <div className="space-y-4 text-lg md:text-xl text-white/90 max-w-3xl mx-auto">
+              <p>Es geht um Menschen.</p>
+              <p>Um kleine Momente, die irgendwann große Bedeutung bekommen.</p>
+              <p>Um Erinnerungen, die bleiben.</p>
+              <p>Wir freuen uns darauf, eure Geschichte festzuhalten.</p>
+            </div>
+            <div className="mt-10 flex flex-wrap justify-center gap-4">
               <Link
-                to="/warteliste"
-                className="bg-white text-purple-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors inline-flex items-center gap-2 shadow-lg"
+                to="/fotoshootings/"
+                className="inline-flex items-center rounded-lg bg-white px-8 py-4 text-base font-semibold text-purple-700 transition hover:bg-slate-100"
               >
-                <TrendingUp className="w-5 h-5" />
-                {t('about.cta.waitlist')}
+                Jetzt Fotoshooting planen
               </Link>
               <Link
-                to="/kontakt"
-                className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white/10 transition-colors inline-flex items-center gap-2"
+                to="/kontakt/"
+                className="inline-flex items-center rounded-lg border-2 border-white px-8 py-4 text-base font-semibold text-white transition hover:bg-white/10"
               >
-                <Phone className="w-5 h-5" />
-                {t('about.cta.contact')}
+                <Phone className="mr-2 h-5 w-5" /> Kontakt aufnehmen
               </Link>
             </div>
           </div>
         </section>
       </div>
       <PillarLinksBlock currentPath="/ueber-uns/" title="Unsere Fotoshootings in Wien entdecken" />
-      <RelatedTopicsBlock pathname="/ueber-uns/" language={(language as 'de' | 'en') || 'de'} />
+      <RelatedTopicsBlock pathname="/ueber-uns/" language="de" />
     </Layout>
   );
 };

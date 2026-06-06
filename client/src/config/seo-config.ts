@@ -247,10 +247,10 @@ export const seoConfig: Record<string, PageSEO> = {
 
   // ==================== SUPPORT PAGES ====================
   '/ueber-uns/': {
-    title: 'Über uns - Fotografen in Wien' + BRAND_SUFFIX,
-    h1: 'Lernen Sie uns kennen',
-    description: 'Erfahren Sie mehr über New Age Fotografie in Wien. Unser Team, unsere Geschichte und was uns als Fotografen antreibt.',
-    keywords: 'New Age Fotografie Wien, Fotografen Team, Über uns Fotostudio',
+    title: 'Über uns | Fotostudio Wien seit 2012' + BRAND_SUFFIX,
+    h1: 'Über uns – New Age Fotografie Wien',
+    description: 'Lerne New Age Fotografie kennen – dein Fotostudio in Wien seit 2012 für Familienfotografie, Babybauch, Neugeborene und Business Portraits. Persönlich, modern und authentisch.',
+    keywords: 'Fotostudio Wien, New Age Fotografie Wien, Familienfotografie Wien, Babybauch Wien, Neugeborene Wien, Business Portrait Wien',
     canonical: '/ueber-uns/',
   },
 
