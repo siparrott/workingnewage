@@ -1,6 +1,10 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import path from 'path';
+import { randomUUID } from 'crypto';
+import { PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { pool } from '../db';
+import { getS3Client, getS3Config, buildPublicUrl } from '../services/s3-storage';
 
 const router = Router();
 
@@ -63,11 +67,240 @@ function buildB2Url(key: string): string | null {
   return `${endpoint.replace(/\/$/, '')}/${bucket}/${encodedKey}`;
 }
 
+// ---------------------------------------------------------------------------
+// Write API (Export to Galleries / Export to Cloud)
+// ---------------------------------------------------------------------------
+
+const READ_SCOPES = ['galleries:read', 'gallery-images:read', 'digital-files:read'];
+const WRITE_SCOPES = ['galleries:write', 'gallery-images:write', 'digital-files:write'];
+const ALL_SCOPES = [...READ_SCOPES, ...WRITE_SCOPES];
+
+const MAX_FILES_PER_CALL = 100;
+const MAX_FILE_BYTES = 200 * 1024 * 1024; // 200 MB
+const PRESIGN_TTL_SECONDS = 15 * 60; // 15 minutes
+const DEFAULT_EXPORT_FOLDER = 'ShootCleaner Exports';
+
+const ALLOWED_IMAGE_TYPES = new Set([
+  'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
+  'image/tiff', 'image/heic', 'image/heif', 'image/avif',
+]);
+const ALLOWED_FILE_TYPES = new Set([
+  ...ALLOWED_IMAGE_TYPES,
+  'application/pdf', 'application/zip', 'video/mp4', 'video/quicktime',
+]);
+
+// Write endpoints require the key AND the matching *:write scope. v1 issues a
+// single key that holds every scope; structured so a separate write-scoped key
+// can be added later without changing the routes.
+function requireScope(scope: string) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const expectedApiKey = getConfiguredApiKey();
+    if (!expectedApiKey) {
+      return res.status(503).json({ error: 'ShootCleaner integration is not configured', code: 'shootcleaner_not_configured' });
+    }
+    const presentedApiKey = getPresentedApiKey(req);
+    if (!presentedApiKey || presentedApiKey !== expectedApiKey) {
+      return res.status(401).json({ error: 'Invalid API key', code: 'invalid_api_key' });
+    }
+    if (!ALL_SCOPES.includes(scope)) {
+      return res.status(403).json({ error: `Missing required scope: ${scope}`, code: 'insufficient_scope' });
+    }
+    next();
+  };
+}
+
+// --- Idempotency: map a ShootCleaner externalRef -> the entity it created -----
+let exportSchemaReady: Promise<void> | null = null;
+function ensureExportSchema(): Promise<void> {
+  if (!exportSchemaReady) {
+    exportSchemaReady = pool
+      .query(`
+        CREATE TABLE IF NOT EXISTS shootcleaner_exports (
+          external_ref text PRIMARY KEY,
+          entity_type  text NOT NULL,
+          entity_id    text NOT NULL,
+          created_at   timestamptz DEFAULT now()
+        )
+      `)
+      .then(() => undefined)
+      .catch((err) => { exportSchemaReady = null; throw err; });
+  }
+  return exportSchemaReady;
+}
+
+async function lookupExternalRef(ref: string): Promise<{ entityType: string; entityId: string } | null> {
+  if (!ref) return null;
+  await ensureExportSchema();
+  const result = await pool.query('SELECT entity_type, entity_id FROM shootcleaner_exports WHERE external_ref = $1 LIMIT 1', [ref]);
+  const row = result.rows[0];
+  return row ? { entityType: row.entity_type, entityId: row.entity_id } : null;
+}
+
+async function recordExternalRef(ref: string, entityType: string, entityId: string): Promise<void> {
+  if (!ref) return;
+  await ensureExportSchema();
+  await pool.query(
+    'INSERT INTO shootcleaner_exports (external_ref, entity_type, entity_id) VALUES ($1, $2, $3) ON CONFLICT (external_ref) DO NOTHING',
+    [ref, entityType, entityId],
+  );
+}
+
+// --- Helpers ------------------------------------------------------------------
+function sanitizeFilename(name: string): string {
+  return String(name || '').replace(/[^a-zA-Z0-9.\-]/g, '_');
+}
+
+function slugify(input: string): string {
+  return String(input || '')
+    .normalize('NFKD')
+    .replace(/[^\x00-\x7F]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+}
+
+async function ensureUniqueSlug(base: string): Promise<string> {
+  const seed = base || 'gallery';
+  let candidate = seed;
+  let n = 1;
+  // Bounded in practice; the slug column is unique.
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const r = await pool.query('SELECT 1 FROM galleries WHERE slug = $1 LIMIT 1', [candidate]);
+    if (!r.rows[0]) return candidate;
+    n += 1;
+    candidate = `${seed}-${n}`;
+  }
+}
+
+type FileValidationError = { status: number; error: string; code: string };
+function validateFileList(files: any, allowed: Set<string>): FileValidationError | null {
+  if (!Array.isArray(files) || files.length === 0) {
+    return { status: 400, error: 'files[] is required', code: 'invalid_request' };
+  }
+  if (files.length > MAX_FILES_PER_CALL) {
+    return { status: 400, error: `Maximum ${MAX_FILES_PER_CALL} files per call`, code: 'too_many_files' };
+  }
+  for (const f of files) {
+    const contentType = String(f?.contentType || '').toLowerCase();
+    if (!contentType || !allowed.has(contentType)) {
+      return { status: 400, error: `Unsupported content type: ${f?.contentType ?? 'none'}`, code: 'invalid_content_type' };
+    }
+    const size = Number(f?.sizeBytes ?? f?.fileSize ?? 0);
+    if (size && size > MAX_FILE_BYTES) {
+      return { status: 413, error: `File exceeds the ${MAX_FILE_BYTES}-byte limit`, code: 'file_too_large' };
+    }
+  }
+  return null;
+}
+
+async function presignPut(key: string, contentType: string): Promise<string> {
+  const { bucket } = getS3Config();
+  const command = new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: contentType });
+  return getSignedUrl(getS3Client(), command, { expiresIn: PRESIGN_TTL_SECONDS });
+}
+
+function presignExpiry(): string {
+  return new Date(Date.now() + PRESIGN_TTL_SECONDS * 1000).toISOString();
+}
+
+async function clientExists(clientId: string): Promise<boolean> {
+  const r = await pool.query('SELECT 1 FROM crm_clients WHERE id::text = $1 LIMIT 1', [clientId]);
+  return !!r.rows[0];
+}
+
+async function fetchGalleryById(id: string, req: Request): Promise<any | null> {
+  const r = await pool.query(
+    `
+      SELECT
+        g.id, g.title, g.slug, g.description, g.cover_image,
+        g.is_public, g.is_password_protected, g.client_id,
+        g.created_at, g.updated_at,
+        COALESCE(COUNT(gi.id), 0)::int AS image_count
+      FROM galleries g
+      LEFT JOIN gallery_images gi ON gi.gallery_id = g.id
+      WHERE g.id = $1
+      GROUP BY g.id
+    `,
+    [id],
+  );
+  const row = r.rows[0];
+  if (!row) return null;
+  const baseUrl = getBaseUrl(req);
+  return {
+    id: row.id,
+    title: row.title,
+    slug: row.slug,
+    description: row.description,
+    coverImageUrl: row.cover_image,
+    isPublic: row.is_public,
+    isPasswordProtected: row.is_password_protected,
+    clientId: row.client_id,
+    imageCount: row.image_count,
+    galleryUrl: `${baseUrl}/gallery/${row.slug}`,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+async function fetchGalleryImageById(imageId: string): Promise<any | null> {
+  const r = await pool.query(
+    `
+      SELECT
+        gi.id, gi.gallery_id AS "galleryId",
+        g.slug AS "gallerySlug", g.title AS "galleryTitle",
+        gi.filename, gi.url, gi.title, gi.description,
+        gi.sort_order AS "sortOrder", gi.size_bytes AS "sizeBytes",
+        gi.content_type AS "contentType", gi.created_at AS "createdAt"
+      FROM gallery_images gi
+      INNER JOIN galleries g ON g.id = gi.gallery_id
+      WHERE gi.id = $1
+    `,
+    [imageId],
+  );
+  return r.rows[0] || null;
+}
+
+function mapDigitalFileRow(row: any, req: Request): any {
+  const baseUrl = getBaseUrl(req);
+  const fileExt = path.extname(row.file_name || '');
+  const folder = row.folder_name || DEFAULT_EXPORT_FOLDER;
+  const storageKey = `${folder}/${row.id}${fileExt}`;
+  let parsedTags: any[] = [];
+  if (typeof row.tags === 'string' && row.tags.trim()) {
+    try { parsedTags = JSON.parse(row.tags); } catch { parsedTags = []; }
+  }
+  return {
+    id: row.id,
+    folderName: row.folder_name,
+    fileName: row.file_name,
+    fileType: row.file_type,
+    fileSize: row.file_size,
+    clientId: row.client_id,
+    sessionId: row.session_id,
+    description: row.description,
+    tags: parsedTags,
+    isPublic: row.is_public,
+    uploadedAt: row.uploaded_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    fileUrl: buildB2Url(storageKey),
+    thumbnailUrl: `${baseUrl}/api/files/thumbnail/${row.id}`,
+  };
+}
+
+async function fetchDigitalFileById(id: string, req: Request): Promise<any | null> {
+  const r = await pool.query('SELECT * FROM digital_files WHERE id = $1 LIMIT 1', [id]);
+  const row = r.rows[0];
+  return row ? mapDigitalFileRow(row, req) : null;
+}
+
 router.get('/health', requireShootCleanerApiKey, (_req, res) => {
   res.json({
     ok: true,
     service: 'shootcleaner',
-    scopes: ['galleries:read', 'gallery-images:read', 'digital-files:read'],
+    scopes: ALL_SCOPES,
   });
 });
 
@@ -305,6 +538,291 @@ router.get('/digital-files', requireShootCleanerApiKey, async (req, res) => {
   } catch (error) {
     console.error('[shootcleaner] Failed to list digital files:', error);
     res.status(500).json({ error: 'Failed to fetch digital files' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Export to Galleries
+// ---------------------------------------------------------------------------
+
+// Create (or idempotently reuse) a gallery.
+router.post('/galleries', requireScope('galleries:write'), async (req, res) => {
+  try {
+    const body = req.body || {};
+    const title = String(body.title || '').trim();
+    if (!title) {
+      return res.status(400).json({ error: 'title is required', code: 'invalid_request' });
+    }
+
+    const externalRef = String(body.externalRef || '').trim();
+    if (externalRef) {
+      const existing = await lookupExternalRef(externalRef);
+      if (existing && existing.entityType === 'gallery') {
+        const found = await fetchGalleryById(existing.entityId, req);
+        if (found) return res.json({ data: found }); // idempotent re-export
+      }
+    }
+
+    const clientId = body.clientId != null && String(body.clientId).trim() ? String(body.clientId).trim() : null;
+    if (clientId && !(await clientExists(clientId))) {
+      return res.status(400).json({ error: 'clientId not found', code: 'invalid_client_id' });
+    }
+
+    const isPasswordProtected = body.isPasswordProtected === true;
+    const password = isPasswordProtected && body.password ? String(body.password) : null;
+    const isPublic = body.isPublic === true; // default false for exports
+    const description = body.description != null ? String(body.description) : null;
+    const slug = await ensureUniqueSlug(slugify(String(body.slug || title)));
+
+    const insert = await pool.query(
+      `
+        INSERT INTO galleries (title, slug, description, is_public, is_password_protected, password, client_id, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+        RETURNING id
+      `,
+      [title, slug, description, isPublic, isPasswordProtected, password, clientId],
+    );
+    const galleryId = insert.rows[0].id;
+    if (externalRef) await recordExternalRef(externalRef, 'gallery', galleryId);
+
+    const created = await fetchGalleryById(galleryId, req);
+    return res.status(201).json({ data: created });
+  } catch (error) {
+    console.error('[shootcleaner] Failed to create gallery:', error);
+    return res.status(500).json({ error: 'Failed to create gallery', code: 'gallery_create_failed' });
+  }
+});
+
+// Request presigned PUT URLs for gallery images (bytes go straight to B2).
+router.post('/galleries/:id/images/presign', requireScope('gallery-images:write'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const g = await pool.query('SELECT id FROM galleries WHERE id = $1 LIMIT 1', [id]);
+    if (!g.rows[0]) return res.status(404).json({ error: 'Gallery not found', code: 'gallery_not_found' });
+
+    const files = req.body?.files;
+    const validationError = validateFileList(files, ALLOWED_IMAGE_TYPES);
+    if (validationError) {
+      return res.status(validationError.status).json({ error: validationError.error, code: validationError.code });
+    }
+
+    const { isConfigured } = getS3Config();
+    if (!isConfigured) return res.status(503).json({ error: 'Storage is not configured', code: 'storage_not_configured' });
+
+    const data: any[] = [];
+    for (const f of files) {
+      const rawName = String(f.filename || 'image');
+      const ext = path.extname(rawName) || '.jpg';
+      const base = sanitizeFilename(path.basename(rawName, ext)).slice(0, 80) || 'image';
+      const fileKey = `galleries/${id}/${base}-${randomUUID().slice(0, 8)}${ext}`;
+      const uploadUrl = await presignPut(fileKey, f.contentType);
+      data.push({
+        filename: f.filename,
+        fileKey,
+        uploadUrl,
+        method: 'PUT',
+        headers: { 'Content-Type': f.contentType },
+        expiresAt: presignExpiry(),
+      });
+    }
+    return res.json({ data });
+  } catch (error) {
+    console.error('[shootcleaner] Failed to presign gallery images:', error);
+    return res.status(500).json({ error: 'Failed to create upload URLs', code: 'presign_failed' });
+  }
+});
+
+// Register uploaded gallery images after the client PUTs the bytes to B2.
+router.post('/galleries/:id/images/commit', requireScope('gallery-images:write'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const gq = await pool.query('SELECT id, slug, title FROM galleries WHERE id = $1 LIMIT 1', [id]);
+    const gallery = gq.rows[0];
+    if (!gallery) return res.status(404).json({ error: 'Gallery not found', code: 'gallery_not_found' });
+
+    const images = req.body?.images;
+    if (!Array.isArray(images) || images.length === 0) {
+      return res.status(400).json({ error: 'images[] is required', code: 'invalid_request' });
+    }
+    if (images.length > MAX_FILES_PER_CALL) {
+      return res.status(400).json({ error: `Maximum ${MAX_FILES_PER_CALL} images per call`, code: 'too_many_files' });
+    }
+
+    const { bucket, endpoint } = getS3Config();
+    const s3 = getS3Client();
+    const data: any[] = [];
+
+    for (const img of images) {
+      const fileKey = String(img?.fileKey || '').trim();
+      if (!fileKey) return res.status(400).json({ error: 'fileKey is required for each image', code: 'invalid_request' });
+
+      const externalRef = String(img?.externalRef || '').trim();
+      if (externalRef) {
+        const existing = await lookupExternalRef(externalRef);
+        if (existing && existing.entityType === 'gallery_image') {
+          const found = await fetchGalleryImageById(existing.entityId);
+          if (found) { data.push(found); continue; } // idempotent
+        }
+      }
+
+      // Confirm the client actually uploaded the object before writing the row.
+      try {
+        await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: fileKey }));
+      } catch {
+        return res.status(409).json({ error: `Uploaded object not found in storage: ${fileKey}`, code: 'object_missing' });
+      }
+
+      const url = buildPublicUrl(bucket, endpoint, fileKey);
+      const filename = sanitizeFilename(String(img.filename || path.basename(fileKey)));
+      const sortOrder = Number.isFinite(Number(img.sortOrder)) ? Number(img.sortOrder) : 0;
+      const sizeBytes = Number(img.sizeBytes || 0);
+      const metadata = JSON.stringify({ source: 'shootcleaner', fileKey, externalRef: externalRef || null });
+
+      const ins = await pool.query(
+        `
+          INSERT INTO gallery_images
+            (gallery_id, filename, url, title, description, sort_order, size_bytes, content_type, metadata, created_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, NOW())
+          RETURNING id
+        `,
+        [id, filename, url, img.title ?? null, img.description ?? null, sortOrder, sizeBytes, img.contentType ?? null, metadata],
+      );
+      const newId = ins.rows[0].id;
+      if (externalRef) await recordExternalRef(externalRef, 'gallery_image', newId);
+      const created = await fetchGalleryImageById(newId);
+      if (created) data.push(created);
+    }
+
+    return res.status(201).json({ data });
+  } catch (error) {
+    console.error('[shootcleaner] Failed to commit gallery images:', error);
+    return res.status(500).json({ error: 'Failed to commit images', code: 'commit_failed' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Export to Cloud (digital files)
+// ---------------------------------------------------------------------------
+
+router.post('/digital-files/presign', requireScope('digital-files:write'), async (req, res) => {
+  try {
+    const files = req.body?.files;
+    // Normalize digital-file fields (fileName/fileSize) onto the validator's shape.
+    const normalized = Array.isArray(files)
+      ? files.map((f: any) => ({ contentType: f?.contentType, sizeBytes: f?.fileSize ?? f?.sizeBytes }))
+      : files;
+    const validationError = validateFileList(normalized, ALLOWED_FILE_TYPES);
+    if (validationError) {
+      return res.status(validationError.status).json({ error: validationError.error, code: validationError.code });
+    }
+
+    const { isConfigured } = getS3Config();
+    if (!isConfigured) return res.status(503).json({ error: 'Storage is not configured', code: 'storage_not_configured' });
+
+    const folderName = String(req.body?.folderName || '').trim() || DEFAULT_EXPORT_FOLDER;
+    const data: any[] = [];
+    for (const f of files) {
+      const fileName = String(f.fileName || f.filename || 'file');
+      const ext = path.extname(fileName) || '';
+      const fileId = randomUUID();
+      const fileKey = `${folderName}/${fileId}${ext}`;
+      const uploadUrl = await presignPut(fileKey, f.contentType);
+      data.push({
+        fileName,
+        fileKey,
+        uploadUrl,
+        method: 'PUT',
+        headers: { 'Content-Type': f.contentType },
+        expiresAt: presignExpiry(),
+      });
+    }
+    return res.json({ data });
+  } catch (error) {
+    console.error('[shootcleaner] Failed to presign digital files:', error);
+    return res.status(500).json({ error: 'Failed to create upload URLs', code: 'presign_failed' });
+  }
+});
+
+router.post('/digital-files/commit', requireScope('digital-files:write'), async (req, res) => {
+  try {
+    const files = req.body?.files;
+    if (!Array.isArray(files) || files.length === 0) {
+      return res.status(400).json({ error: 'files[] is required', code: 'invalid_request' });
+    }
+    if (files.length > MAX_FILES_PER_CALL) {
+      return res.status(400).json({ error: `Maximum ${MAX_FILES_PER_CALL} files per call`, code: 'too_many_files' });
+    }
+
+    const { bucket } = getS3Config();
+    const s3 = getS3Client();
+    const data: any[] = [];
+
+    for (const f of files) {
+      const fileKey = String(f?.fileKey || '').trim();
+      if (!fileKey) return res.status(400).json({ error: 'fileKey is required for each file', code: 'invalid_request' });
+
+      const externalRef = String(f?.externalRef || '').trim();
+      if (externalRef) {
+        const existing = await lookupExternalRef(externalRef);
+        if (existing && existing.entityType === 'digital_file') {
+          const found = await fetchDigitalFileById(existing.entityId, req);
+          if (found) { data.push(found); continue; }
+        }
+      }
+
+      try {
+        await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: fileKey }));
+      } catch {
+        return res.status(409).json({ error: `Uploaded object not found in storage: ${fileKey}`, code: 'object_missing' });
+      }
+
+      const ext = path.extname(fileKey);
+      const fileId = path.basename(fileKey, ext); // storage-key basename == digital_files.id
+      const folderName = path.dirname(fileKey) || DEFAULT_EXPORT_FOLDER;
+      const fileName = String(f.fileName || path.basename(fileKey));
+      const contentType = String(f.contentType || '');
+      const fileType = String(
+        f.fileType ||
+        (contentType.startsWith('image/') ? 'image'
+          : contentType.startsWith('video/') ? 'video'
+            : contentType === 'application/pdf' ? 'document' : 'other'),
+      );
+
+      const clientId = f.clientId != null && String(f.clientId).trim() ? String(f.clientId).trim() : null;
+      if (clientId && !(await clientExists(clientId))) {
+        return res.status(400).json({ error: 'clientId not found', code: 'invalid_client_id' });
+      }
+      const sessionId = f.sessionId != null && String(f.sessionId).trim() ? String(f.sessionId).trim() : null;
+      const tags = JSON.stringify(Array.isArray(f.tags) ? f.tags : ['shootcleaner']);
+      const fileSize = Number(f.fileSize || 0);
+      const isPublic = f.isPublic === true;
+      const description = f.description != null ? String(f.description) : '';
+
+      await pool.query(
+        `
+          INSERT INTO digital_files
+            (id, folder_name, file_name, file_type, file_size, client_id, session_id, description, tags, is_public, uploaded_at, created_at, updated_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW(), NOW())
+          ON CONFLICT (id) DO UPDATE SET
+            file_name = EXCLUDED.file_name,
+            file_size = EXCLUDED.file_size,
+            description = EXCLUDED.description,
+            tags = EXCLUDED.tags,
+            is_public = EXCLUDED.is_public,
+            updated_at = NOW()
+        `,
+        [fileId, folderName, fileName, fileType, fileSize, clientId, sessionId, description, tags, isPublic],
+      );
+      if (externalRef) await recordExternalRef(externalRef, 'digital_file', fileId);
+
+      const created = await fetchDigitalFileById(fileId, req);
+      if (created) data.push(created);
+    }
+
+    return res.status(201).json({ data });
+  } catch (error) {
+    console.error('[shootcleaner] Failed to commit digital files:', error);
+    return res.status(500).json({ error: 'Failed to commit files', code: 'commit_failed' });
   }
 });
 
