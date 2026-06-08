@@ -16357,78 +16357,86 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
         console.error('Error adding to email_subscribers:', subError);
       }
 
-      // Send voucher email to customer (template loaded from email_automations)
-      try {
-        const transporter = nodemailer.createTransport({
-          host: 'smtp.easyname.com',
-          port: 465,
-          secure: true,
-          auth: {
-            user: process.env.BUSINESS_MAILBOX_USER || process.env.SMTP_USER || '',
-            pass: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || ''
-          }
-        });
-
-        // Fetch the newsletter signup automation template from DB
-        const automationResult = await db.select().from(emailAutomations).where(
-          and(eq(emailAutomations.triggerType, 'newsletter_signup'), eq(emailAutomations.enabled, true))
-        ).limit(1);
-
-        let emailSubject = '🎉 Ihr 50€ Fotoshooting-Gutschein ist da!';
-        let emailHtml = `<p>Vielen Dank für Ihre Anmeldung! Wir melden uns bald bei Ihnen.</p>`;
-
-        if (automationResult.length > 0) {
-          const rule = automationResult[0];
-          emailSubject = rule.emailSubject
-            .replace(/\{\{clientName\}\}/g, email.split('@')[0] || 'Kunde')
-            .replace(/\{\{clientEmail\}\}/g, email);
-          emailHtml = rule.emailBodyHtml
-            .replace(/\{\{clientName\}\}/g, email.split('@')[0] || 'Kunde')
-            .replace(/\{\{clientEmail\}\}/g, email);
-
-          // Log the send
-          try {
-            await db.insert(emailAutomationLogs).values({
-              automationId: rule.id,
-              bookingId: `newsletter-${Date.now()}`,
-              clientEmail: email,
-              clientName: email.split('@')[0] || 'Subscriber',
-              status: 'sent'
-            });
-          } catch (_) {}
-        }
-
-        await transporter.sendMail({
-          from: `"${getBizName()}" <${getEnvContactEmailSync() || 'no-reply@localhost'}>`,
-          to: email,
-          subject: emailSubject,
-          html: emailHtml
-        });
-
-        // Send notification to business
-        await transporter.sendMail({
-          from: `"${getBizName()} Website" <${getEnvContactEmailSync() || 'no-reply@localhost'}>`,
-          to: getEnvContactEmailSync() || 'no-reply@localhost',
-          subject: `Neue Newsletter-Anmeldung: ${email}`,
-          html: `
-            <h3>Neue Newsletter-Anmeldung</h3>
-            <p><strong>E-Mail:</strong> ${email}</p>
-            <p><strong>Zeitpunkt:</strong> ${new Date().toLocaleString('de-DE')}</p>
-            <p><strong>Angebot:</strong> 50 EUR Gutschein</p>
-            <p>Der Lead wurde automatisch in Ihrem CRM-System gespeichert.</p>
-          `
-        });
-
-      } catch (emailError) {
-        console.error('Error sending voucher email:', emailError);
-        // Don't fail the request if email fails - lead is still saved
-      }
-
-      res.json({ 
-        success: true, 
+      // Respond immediately. The lead is already saved and the voucher emails are
+      // best-effort, so we must not keep the request (and the signup button) hanging
+      // on "Wird gesendet..." while SMTP is slow or unreachable.
+      res.json({
+        success: true,
         message: "Vielen Dank! Prüfen Sie Ihre E-Mails für Ihren 50€ Gutschein.",
-        leadId: newLead[0]?.id 
+        leadId: newLead[0]?.id
       });
+
+      // Send voucher + business notification emails in the background (non-fatal).
+      void (async () => {
+        try {
+          const transporter = nodemailer.createTransport({
+            host: 'smtp.easyname.com',
+            port: 465,
+            secure: true,
+            // Bound the SMTP attempt so a blocked/slow connection cannot hang forever.
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            socketTimeout: 15000,
+            auth: {
+              user: process.env.BUSINESS_MAILBOX_USER || process.env.SMTP_USER || '',
+              pass: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || ''
+            }
+          });
+
+          // Fetch the newsletter signup automation template from DB
+          const automationResult = await db.select().from(emailAutomations).where(
+            and(eq(emailAutomations.triggerType, 'newsletter_signup'), eq(emailAutomations.enabled, true))
+          ).limit(1);
+
+          let emailSubject = '🎉 Ihr 50€ Fotoshooting-Gutschein ist da!';
+          let emailHtml = `<p>Vielen Dank für Ihre Anmeldung! Wir melden uns bald bei Ihnen.</p>`;
+
+          if (automationResult.length > 0) {
+            const rule = automationResult[0];
+            emailSubject = rule.emailSubject
+              .replace(/\{\{clientName\}\}/g, email.split('@')[0] || 'Kunde')
+              .replace(/\{\{clientEmail\}\}/g, email);
+            emailHtml = rule.emailBodyHtml
+              .replace(/\{\{clientName\}\}/g, email.split('@')[0] || 'Kunde')
+              .replace(/\{\{clientEmail\}\}/g, email);
+
+            // Log the send
+            try {
+              await db.insert(emailAutomationLogs).values({
+                automationId: rule.id,
+                bookingId: `newsletter-${Date.now()}`,
+                clientEmail: email,
+                clientName: email.split('@')[0] || 'Subscriber',
+                status: 'sent'
+              });
+            } catch (_) {}
+          }
+
+          await transporter.sendMail({
+            from: `"${getBizName()}" <${getEnvContactEmailSync() || 'no-reply@localhost'}>`,
+            to: email,
+            subject: emailSubject,
+            html: emailHtml
+          });
+
+          // Send notification to business
+          await transporter.sendMail({
+            from: `"${getBizName()} Website" <${getEnvContactEmailSync() || 'no-reply@localhost'}>`,
+            to: getEnvContactEmailSync() || 'no-reply@localhost',
+            subject: `Neue Newsletter-Anmeldung: ${email}`,
+            html: `
+              <h3>Neue Newsletter-Anmeldung</h3>
+              <p><strong>E-Mail:</strong> ${email}</p>
+              <p><strong>Zeitpunkt:</strong> ${new Date().toLocaleString('de-DE')}</p>
+              <p><strong>Angebot:</strong> 50 EUR Gutschein</p>
+              <p>Der Lead wurde automatisch in Ihrem CRM-System gespeichert.</p>
+            `
+          });
+        } catch (emailError) {
+          console.error('Error sending voucher email:', emailError);
+          // Don't fail the request if email fails - lead is still saved
+        }
+      })();
 
     } catch (error) {
       console.error("Error processing newsletter signup:", error);
