@@ -38,18 +38,24 @@ const ZoomableImageV2: React.FC<ZoomableImageV2Props> = ({
   // Preload image for smooth rendering
   useEffect(() => {
     if (!src) return;
-    
+
+    // Reset state for the new source so the fade-in re-evaluates.
+    setIsLoaded(false);
+    setHasError(false);
+
     const img = new Image();
-    img.src = src;
     imgLoadRef.current = img;
-    
-    img.onload = () => {
+
+    // Attach handlers BEFORE setting src, otherwise a cached image can fire
+    // its load event before the handler exists and the image never reveals.
+    img.onload = () => setIsLoaded(true);
+    img.onerror = () => setHasError(true);
+    img.src = src;
+
+    // Images served from cache may already be complete and never emit `load`.
+    if (img.complete && img.naturalWidth > 0) {
       setIsLoaded(true);
-    };
-    
-    img.onerror = () => {
-      setHasError(true);
-    };
+    }
 
     return () => {
       if (imgLoadRef.current) {
@@ -217,6 +223,7 @@ const ZoomableImageV2: React.FC<ZoomableImageV2Props> = ({
             ${isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}
             group-hover:scale-110
           `}
+          onLoad={() => setIsLoaded(true)}
           onError={(e) => {
             setHasError(true);
             if (onError) onError(e);
