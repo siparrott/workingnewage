@@ -323,6 +323,7 @@ import questionnairesRouter from './routes/questionnaires';
 import galleryShopRouter from './routes/gallery-shop';
 import authRoutes from './routes/auth';
 import filesRouter from './routes/files';
+import shootCleanerRoutes from './routes/shootcleaner';
 import prodigiRoutes from './routes/prodigi';
 import storageRoutes from './storage-routes';
 import fileRoutes from './file-routes';
@@ -16447,6 +16448,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
   // Website Wizard routes
   app.use('/api/website-wizard', websiteWizardRoutes);
   app.use('/api/gallery', galleryShopRouter);
+  app.use('/api/integrations/shootcleaner', shootCleanerRoutes);
   
   // Storage subscription routes
   app.use('/api/storage', storageRoutes);
