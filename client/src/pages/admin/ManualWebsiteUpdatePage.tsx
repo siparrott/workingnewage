@@ -1190,7 +1190,11 @@ const ManualWebsiteUpdatePage: React.FC = () => {
         for (const section of selectedPage.sections) {
           for (const field of section.fields) {
             try {
-              defaults[field.translationKey] = t(field.translationKey) || '';
+              // t() returns the key itself when no translation exists. Only seed the
+              // field with real copy; otherwise leave it blank (e.g. image slots) so the
+              // editor never shows a raw translation key as the current value.
+              const resolved = t(field.translationKey);
+              defaults[field.translationKey] = resolved && resolved !== field.translationKey ? resolved : '';
             } catch {
               defaults[field.translationKey] = '';
             }
