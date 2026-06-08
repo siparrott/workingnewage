@@ -675,40 +675,40 @@ const ImmobilienfotografieWienPage: React.FC = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              {language === 'de' ? 'Häufige Fragen' : 'Frequently Asked Questions'}
+              {fromManual('manual.immobilienfotografie.faqHeading', language === 'de' ? 'Häufige Fragen' : 'Frequently Asked Questions')}
             </h2>
           </div>
           <div className="space-y-6">
             <div className="bg-gradient-to-br from-blue-50 to-white p-6 rounded-xl border border-blue-100">
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                {language === 'de' ? 'Ist ein bewohntes Objekt ein Problem?' : 'Is an occupied property a problem?'}
+                {fromManual('manual.immobilienfotografie.faqQ1', language === 'de' ? 'Ist ein bewohntes Objekt ein Problem?' : 'Is an occupied property a problem?')}
               </h3>
               <p className="text-gray-700 leading-relaxed">
-                {language === 'de' ? 'Nein – wir fotografieren auch bewohnte Wohnungen. Wichtig ist nur, dass aufgeräumt & sauber ist. Kleine störende Details können wir per De-Clutter Retusche entfernen (optional, gegen Aufpreis).' : 'No – we also photograph occupied apartments. The important thing is that it\'s tidy & clean. Small distracting details can be removed via de-clutter retouching (optional, extra charge).'}
+                {fromManual('manual.immobilienfotografie.faqA1', language === 'de' ? 'Nein – wir fotografieren auch bewohnte Wohnungen. Wichtig ist nur, dass aufgeräumt & sauber ist. Kleine störende Details können wir per De-Clutter Retusche entfernen (optional, gegen Aufpreis).' : 'No – we also photograph occupied apartments. The important thing is that it\'s tidy & clean. Small distracting details can be removed via de-clutter retouching (optional, extra charge).')}
               </p>
             </div>
             <div className="bg-gradient-to-br from-blue-50 to-white p-6 rounded-xl border border-blue-100">
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                {language === 'de' ? 'Brauche ich einen Grundriss?' : 'Do I need a floor plan?'}
+                {fromManual('manual.immobilienfotografie.faqQ2', language === 'de' ? 'Brauche ich einen Grundriss?' : 'Do I need a floor plan?')}
               </h3>
               <p className="text-gray-700 leading-relaxed">
-                {language === 'de' ? 'Für Online-Portale & Exposés sehr empfohlen. 2D-Grundrisse (€60) sind Standard nach RICS/IPMS, 3D-Grundrisse (€120) visualisieren zusätzlich die Raumaufteilung mit Möblierung – ideal für leerstehende Objekte.' : 'Highly recommended for online portals & listings. 2D floor plans (€60) follow RICS/IPMS standards, 3D floor plans (€120) additionally visualize room layout with furnishing – ideal for vacant properties.'}
+                {fromManual('manual.immobilienfotografie.faqA2', language === 'de' ? 'Für Online-Portale & Exposés sehr empfohlen. 2D-Grundrisse (€60) sind Standard nach RICS/IPMS, 3D-Grundrisse (€120) visualisieren zusätzlich die Raumaufteilung mit Möblierung – ideal für leerstehende Objekte.' : 'Highly recommended for online portals & listings. 2D floor plans (€60) follow RICS/IPMS standards, 3D floor plans (€120) additionally visualize room layout with furnishing – ideal for vacant properties.')}
               </p>
             </div>
             <div className="bg-gradient-to-br from-blue-50 to-white p-6 rounded-xl border border-blue-100">
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                {language === 'de' ? 'Was ist Window-Pull HDR?' : 'What is Window-Pull HDR?'}
+                {fromManual('manual.immobilienfotografie.faqQ3', language === 'de' ? 'Was ist Window-Pull HDR?' : 'What is Window-Pull HDR?')}
               </h3>
               <p className="text-gray-700 leading-relaxed">
-                {language === 'de' ? 'Mehrere Belichtungen (hell, mittel, dunkel) werden zu einem Bild verschmolzen – Fenster zeigen die Aussicht statt weißer Flächen, Raum bleibt trotzdem hell & freundlich. Standard bei allen Immobilien-Shootings.' : 'Multiple exposures (bright, medium, dark) are merged into one image – windows show the view instead of white areas, while the room stays bright & friendly. Standard for all real estate shoots.'}
+                {fromManual('manual.immobilienfotografie.faqA3', language === 'de' ? 'Mehrere Belichtungen (hell, mittel, dunkel) werden zu einem Bild verschmolzen – Fenster zeigen die Aussicht statt weißer Flächen, Raum bleibt trotzdem hell & freundlich. Standard bei allen Immobilien-Shootings.' : 'Multiple exposures (bright, medium, dark) are merged into one image – windows show the view instead of white areas, while the room stays bright & friendly. Standard for all real estate shoots.')}
               </p>
             </div>
             <div className="bg-gradient-to-br from-blue-50 to-white p-6 rounded-xl border border-blue-100">
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                {language === 'de' ? 'Wie schnell kann ich einen Termin bekommen?' : 'How quickly can I get an appointment?'}
+                {fromManual('manual.immobilienfotografie.faqQ4', language === 'de' ? 'Wie schnell kann ich einen Termin bekommen?' : 'How quickly can I get an appointment?')}
               </h3>
               <p className="text-gray-700 leading-relaxed">
-                {language === 'de' ? 'Meist binnen 3-5 Werktagen. Für eilige Vermarktungen (z.B. vor Open House) können wir Express-Shootings organisieren – bitte bei Anfrage angeben. Lieferung bleibt dann bei 4-7 Werktagen (auf Anfrage auch schneller).' : 'Usually within 3-5 business days. For urgent listings (e.g. before an open house) we can arrange express shoots – please specify when requesting. Delivery remains 4-7 business days (faster on request).'}
+                {fromManual('manual.immobilienfotografie.faqA4', language === 'de' ? 'Meist binnen 3-5 Werktagen. Für eilige Vermarktungen (z.B. vor Open House) können wir Express-Shootings organisieren – bitte bei Anfrage angeben. Lieferung bleibt dann bei 4-7 Werktagen (auf Anfrage auch schneller).' : 'Usually within 3-5 business days. For urgent listings (e.g. before an open house) we can arrange express shoots – please specify when requesting. Delivery remains 4-7 business days (faster on request).')}
               </p>
             </div>
           </div>

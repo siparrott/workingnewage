@@ -507,19 +507,19 @@ export default function FamilienfotosWienPage() {
       {/* Mini-FAQ Section */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">Mini-FAQ</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">{fromManual('manual.familienfotos.faqHeading', 'Mini-FAQ')}</h2>
           <div className="space-y-6">
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">Wie viele Outfitwechsel schaffen wir?</h3>
-              <p className="text-gray-600">In 90 Min. meist 2 Looks pro Person; Basic: 1–2 Looks je nach Gruppengröße.</p>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.familienfotos.faqQ1', 'Wie viele Outfitwechsel schaffen wir?')}</h3>
+              <p className="text-gray-600">{fromManual('manual.familienfotos.faqA1', 'In 90 Min. meist 2 Looks pro Person; Basic: 1–2 Looks je nach Gruppengröße.')}</p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">Dürfen Haustiere mit?</h3>
-              <p className="text-gray-600">Ja – kurze Info vorab, damit wir eine „Pet-Pause" einplanen.</p>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.familienfotos.faqQ2', 'Dürfen Haustiere mit?')}</h3>
+              <p className="text-gray-600">{fromManual('manual.familienfotos.faqA2', 'Ja – kurze Info vorab, damit wir eine „Pet-Pause" einplanen.')}</p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">Wie schnell bekommen wir die Bilder?</h3>
-              <p className="text-gray-600">Auswahl in 3–5 Tagen, finale Retusche in 10–14 Tagen (Express möglich).</p>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.familienfotos.faqQ3', 'Wie schnell bekommen wir die Bilder?')}</h3>
+              <p className="text-gray-600">{fromManual('manual.familienfotos.faqA3', 'Auswahl in 3–5 Tagen, finale Retusche in 10–14 Tagen (Express möglich).')}</p>
             </div>
           </div>
         </div>

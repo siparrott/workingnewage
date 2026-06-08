@@ -523,30 +523,30 @@ export default function BusinessPortraitWienPage() {
       {/* FAQ Section */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">FAQ</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">{fromManual('manual.businessportraits.faqHeading', 'FAQ')}</h2>
           <div className="space-y-6">
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Bekomme ich alle Dateien in druckfähiger Qualität?' : 'Will I receive all files in print-ready quality?'}</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.businessportraits.faqQ1', language === 'de' ? 'Bekomme ich alle Dateien in druckfähiger Qualität?' : 'Will I receive all files in print-ready quality?')}</h3>
               <p className="text-gray-600">
-                {language === 'de' ? 'Ja. Sie erhalten High-Res (Print) und Web-Größen – beide vollständig retuschiert.' : 'Yes. You receive high-res (print) and web sizes – both fully retouched.'}
+                {fromManual('manual.businessportraits.faqA1', language === 'de' ? 'Ja. Sie erhalten High-Res (Print) und Web-Größen – beide vollständig retuschiert.' : 'Yes. You receive high-res (print) and web sizes – both fully retouched.')}
               </p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Sind kommerzielle Rechte inkludiert?' : 'Are commercial rights included?'}</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.businessportraits.faqQ2', language === 'de' ? 'Sind kommerzielle Rechte inkludiert?' : 'Are commercial rights included?')}</h3>
               <p className="text-gray-600">
-                {language === 'de' ? 'Ja. Nutzung für Website, Social Media, Presse & Print ist im Paket enthalten.' : 'Yes. Usage for website, social media, press & print is included in the package.'}
+                {fromManual('manual.businessportraits.faqA2', language === 'de' ? 'Ja. Nutzung für Website, Social Media, Presse & Print ist im Paket enthalten.' : 'Yes. Usage for website, social media, press & print is included in the package.')}
               </p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Wie schnell sind die Bilder da?' : 'How quickly will I receive the photos?'}</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.businessportraits.faqQ3', language === 'de' ? 'Wie schnell sind die Bilder da?' : 'How quickly will I receive the photos?')}</h3>
               <p className="text-gray-600">
-                {language === 'de' ? 'Preview i. d. R. 48–72 h, finale Retuschen 3–5 Werktage (Express möglich).' : 'Preview typically 48–72h, final retouching 3–5 business days (express available).'}
+                {fromManual('manual.businessportraits.faqA3', language === 'de' ? 'Preview i. d. R. 48–72 h, finale Retuschen 3–5 Werktage (Express möglich).' : 'Preview typically 48–72h, final retouching 3–5 business days (express available).')}
               </p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Können wir mehrere Looks/CI-Farben testen?' : 'Can we try multiple looks/CI colors?'}</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.businessportraits.faqQ4', language === 'de' ? 'Können wir mehrere Looks/CI-Farben testen?' : 'Can we try multiple looks/CI colors?')}</h3>
               <p className="text-gray-600">
-                {language === 'de' ? 'Gern – wählen Sie im Paket 2–3 Looks. Wir matchen Hintergründe & Licht an Ihre Marke.' : 'Gladly – choose 2–3 looks in your package. We match backgrounds & lighting to your brand.'}
+                {fromManual('manual.businessportraits.faqA4', language === 'de' ? 'Gern – wählen Sie im Paket 2–3 Looks. Wir matchen Hintergründe & Licht an Ihre Marke.' : 'Gladly – choose 2–3 looks in your package. We match backgrounds & lighting to your brand.')}
               </p>
             </div>
           </div>

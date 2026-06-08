@@ -469,30 +469,30 @@ export default function TeamfotosWienPage() {
       {/* FAQ Section */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">{language === 'de' ? 'FAQ – Teamfotos Wien' : 'FAQ – Team Photos Vienna'}</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">{fromManual('manual.teamfotos.faqHeading', language === 'de' ? 'FAQ – Teamfotos Wien' : 'FAQ – Team Photos Vienna')}</h2>
           <div className="space-y-6">
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Wie schnell liefern wir?' : 'How fast do we deliver?'}</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.teamfotos.faqQ1', language === 'de' ? 'Wie schnell liefern wir?' : 'How fast do we deliver?')}</h3>
               <p className="text-gray-600">
-                {language === 'de' ? 'Preview-Galerie 48–72 h, finale Retuschen 3–5 Werktage (Express möglich).' : 'Preview gallery 48–72 h, final retouching 3–5 business days (express available).'}
+                {fromManual('manual.teamfotos.faqA1', language === 'de' ? 'Preview-Galerie 48–72 h, finale Retuschen 3–5 Werktage (Express möglich).' : 'Preview gallery 48–72 h, final retouching 3–5 business days (express available).')}
               </p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Erhalten wir einheitliche Ergebnisse über Standorte?' : 'Do we get consistent results across locations?'}</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.teamfotos.faqQ2', language === 'de' ? 'Erhalten wir einheitliche Ergebnisse über Standorte?' : 'Do we get consistent results across locations?')}</h3>
               <p className="text-gray-600">
-                {language === 'de' ? 'Ja – wir dokumentieren Licht-/Kamera-Settings für wiederkehrende Sessions.' : 'Yes – we document lighting/camera settings for recurring sessions.'}
+                {fromManual('manual.teamfotos.faqA2', language === 'de' ? 'Ja – wir dokumentieren Licht-/Kamera-Settings für wiederkehrende Sessions.' : 'Yes – we document lighting/camera settings for recurring sessions.')}
               </p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Können Hintergründe markenkonform sein?' : 'Can backgrounds match our brand?'}</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.teamfotos.faqQ3', language === 'de' ? 'Können Hintergründe markenkonform sein?' : 'Can backgrounds match our brand?')}</h3>
               <p className="text-gray-600">
-                {language === 'de' ? 'Klar – CI-Farbkarton oder Location-Look (Lobby, Glasfront, Holz).' : 'Absolutely – CI-coloured backdrop or location look (lobby, glass front, wood).'}
+                {fromManual('manual.teamfotos.faqA3', language === 'de' ? 'Klar – CI-Farbkarton oder Location-Look (Lobby, Glasfront, Holz).' : 'Absolutely – CI-coloured backdrop or location look (lobby, glass front, wood).')}
               </p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Gibt es Mitarbeiter-Onboarding später?' : 'Can we onboard employees later?'}</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.teamfotos.faqQ4', language === 'de' ? 'Gibt es Mitarbeiter-Onboarding später?' : 'Can we onboard employees later?')}</h3>
               <p className="text-gray-600">
-                {language === 'de' ? 'Ja – Nachbuchungen im selben Stil jederzeit möglich (Mindestmenge 3 P.).' : 'Yes – follow-up bookings in the same style possible anytime (minimum 3 people).'}
+                {fromManual('manual.teamfotos.faqA4', language === 'de' ? 'Ja – Nachbuchungen im selben Stil jederzeit möglich (Mindestmenge 3 P.).' : 'Yes – follow-up bookings in the same style possible anytime (minimum 3 people).')}
               </p>
             </div>
           </div>

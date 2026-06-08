@@ -621,36 +621,36 @@ export default function BabyfotosWienPage() {
       {/* FAQ Section */}
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">{language === 'de' ? 'Häufige Fragen (FAQ)' : 'Frequently Asked Questions'}</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">{fromManual('manual.babyfotos.faqHeading', language === 'de' ? 'Häufige Fragen (FAQ)' : 'Frequently Asked Questions')}</h2>
           <div className="space-y-6">
             <div className="bg-gray-50 rounded-xl p-6">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Wie plane ich die Zeit?' : 'How do I plan the timing?'}</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.babyfotos.faqQ1', language === 'de' ? 'Wie plane ich die Zeit?' : 'How do I plan the timing?')}</h3>
               <p className="text-gray-600">
-                {language === 'de' ? 'Wähle ein Fenster zwischen Nickerchen. Frisch gefüttert = beste Laune.' : 'Choose a window between naps. Freshly fed = best mood.'}
+                {fromManual('manual.babyfotos.faqA1', language === 'de' ? 'Wähle ein Fenster zwischen Nickerchen. Frisch gefüttert = beste Laune.' : 'Choose a window between naps. Freshly fed = best mood.')}
               </p>
             </div>
             <div className="bg-gray-50 rounded-xl p-6">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Was, wenn mein Baby quengelt?' : 'What if my baby gets fussy?'}</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.babyfotos.faqQ2', language === 'de' ? 'Was, wenn mein Baby quengelt?' : 'What if my baby gets fussy?')}</h3>
               <p className="text-gray-600">
-                {language === 'de' ? 'Wir pausieren. Kein Druck. Sicherheit & Wohlbefinden gehen vor.' : 'We pause. No pressure. Safety & well-being come first.'}
+                {fromManual('manual.babyfotos.faqA2', language === 'de' ? 'Wir pausieren. Kein Druck. Sicherheit & Wohlbefinden gehen vor.' : 'We pause. No pressure. Safety & well-being come first.')}
               </p>
             </div>
             <div className="bg-gray-50 rounded-xl p-6">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Dürfen Eltern/Geschwister mit aufs Bild?' : 'Can parents/siblings be in the photos?'}</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.babyfotos.faqQ3', language === 'de' ? 'Dürfen Eltern/Geschwister mit aufs Bild?' : 'Can parents/siblings be in the photos?')}</h3>
               <p className="text-gray-600">
-                {language === 'de' ? 'Ja – bei jedem Paket möglich (bei Mini kurz & simpel).' : 'Yes – possible with every package (brief & simple with Mini).'}
+                {fromManual('manual.babyfotos.faqA3', language === 'de' ? 'Ja – bei jedem Paket möglich (bei Mini kurz & simpel).' : 'Yes – possible with every package (brief & simple with Mini).')}
               </p>
             </div>
             <div className="bg-gray-50 rounded-xl p-6">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Wann bekomme ich die Bilder?' : 'When will I receive the photos?'}</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.babyfotos.faqQ4', language === 'de' ? 'Wann bekomme ich die Bilder?' : 'When will I receive the photos?')}</h3>
               <p className="text-gray-600">
-                {language === 'de' ? 'Vorauswahl 3–5 Tage, Finale 10–14 Tage (Express möglich).' : 'Preview selection 3–5 days, final delivery 10–14 days (express available).'}
+                {fromManual('manual.babyfotos.faqA4', language === 'de' ? 'Vorauswahl 3–5 Tage, Finale 10–14 Tage (Express möglich).' : 'Preview selection 3–5 days, final delivery 10–14 days (express available).')}
               </p>
             </div>
             <div className="bg-gray-50 rounded-xl p-6">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Darf ich die Bilder drucken?' : 'Can I print the photos?'}</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.babyfotos.faqQ5', language === 'de' ? 'Darf ich die Bilder drucken?' : 'Can I print the photos?')}</h3>
               <p className="text-gray-600">
-                {language === 'de' ? 'Ja, für private Nutzung. Fine-Art-Prints/Alben bieten wir an.' : 'Yes, for personal use. We also offer fine art prints/albums.'}
+                {fromManual('manual.babyfotos.faqA5', language === 'de' ? 'Ja, für private Nutzung. Fine-Art-Prints/Alben bieten wir an.' : 'Yes, for personal use. We also offer fine art prints/albums.')}
               </p>
             </div>
           </div>

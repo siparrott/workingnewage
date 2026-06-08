@@ -440,23 +440,23 @@ export default function PortraitfotografieWienPage() {
         {/* FAQ */}
         <section className="py-16 bg-gray-50">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-center mb-12">{language === 'de' ? 'FAQ – kurz & klar' : 'FAQ – Short & Clear'}</h2>
+            <h2 className="text-3xl font-bold text-center mb-12">{fromManual('manual.portraitfotografie.faqHeading', language === 'de' ? 'FAQ – kurz & klar' : 'FAQ – Short & Clear')}</h2>
             <div className="space-y-6">
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Wie viele finale Bilder?' : 'How many final images?'}</h3>
-                <p className="text-gray-600">{language === 'de' ? 'Je nach Paket 6–18 retuschierte Motive, plus Grundauswahl.' : 'Depending on the package, 6–18 retouched images, plus basic selection.'}</p>
+                <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.portraitfotografie.faqQ1', language === 'de' ? 'Wie viele finale Bilder?' : 'How many final images?')}</h3>
+                <p className="text-gray-600">{fromManual('manual.portraitfotografie.faqA1', language === 'de' ? 'Je nach Paket 6–18 retuschierte Motive, plus Grundauswahl.' : 'Depending on the package, 6–18 retouched images, plus basic selection.')}</p>
               </div>
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Darf ich die RAWs bekommen?' : 'Can I get the RAW files?'}</h3>
-                <p className="text-gray-600">{language === 'de' ? 'Nein – wir liefern finale, farbverbindliche Bilder (JPG/PNG, auf Wunsch TIFF).' : 'No – we deliver final, colour-accurate images (JPG/PNG, TIFF on request).'}</p>
+                <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.portraitfotografie.faqQ2', language === 'de' ? 'Darf ich die RAWs bekommen?' : 'Can I get the RAW files?')}</h3>
+                <p className="text-gray-600">{fromManual('manual.portraitfotografie.faqA2', language === 'de' ? 'Nein – wir liefern finale, farbverbindliche Bilder (JPG/PNG, auf Wunsch TIFF).' : 'No – we deliver final, colour-accurate images (JPG/PNG, TIFF on request).')}</p>
               </div>
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Make-up nötig?' : 'Is make-up necessary?'}</h3>
-                <p className="text-gray-600">{language === 'de' ? 'Empfehlung: Mattierung/Teint-Ausgleich. Gerne buchen wir Make-up Artist.' : 'Recommendation: mattifying/complexion evening. We\'re happy to book a make-up artist.'}</p>
+                <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.portraitfotografie.faqQ3', language === 'de' ? 'Make-up nötig?' : 'Is make-up necessary?')}</h3>
+                <p className="text-gray-600">{fromManual('manual.portraitfotografie.faqA3', language === 'de' ? 'Empfehlung: Mattierung/Teint-Ausgleich. Gerne buchen wir Make-up Artist.' : 'Recommendation: mattifying/complexion evening. We\'re happy to book a make-up artist.')}</p>
               </div>
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Retusche-Level?' : 'Retouching level?'}</h3>
-                <p className="text-gray-600">{language === 'de' ? 'Natürlich – Hautstruktur bleibt, temporäre Unreinheiten gehen.' : 'Natural – skin texture stays, temporary blemishes go.'}</p>
+                <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.portraitfotografie.faqQ4', language === 'de' ? 'Retusche-Level?' : 'Retouching level?')}</h3>
+                <p className="text-gray-600">{fromManual('manual.portraitfotografie.faqA4', language === 'de' ? 'Natürlich – Hautstruktur bleibt, temporäre Unreinheiten gehen.' : 'Natural – skin texture stays, temporary blemishes go.')}</p>
               </div>
             </div>
           </div>

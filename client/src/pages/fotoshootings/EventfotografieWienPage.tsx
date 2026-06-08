@@ -569,30 +569,30 @@ export default function EventfotografieWienPage() {
       {/* FAQ Section */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">FAQ</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">{fromManual('manual.eventfotografie.faqHeading', 'FAQ')}</h2>
           <div className="space-y-6">
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">Könnt ihr Same-Day Social liefern?</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.eventfotografie.faqQ1', 'Könnt ihr Same-Day Social liefern?')}</h3>
               <p className="text-gray-600">
-                Ja. Mit On-Site Auswahlstation oder Runner liefern wir kuratierte JPEGs während des Events.
+                {fromManual('manual.eventfotografie.faqA1', 'Ja. Mit On-Site Auswahlstation oder Runner liefern wir kuratierte JPEGs während des Events.')}
               </p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">Brauchen wir eine Bühnenprobe?</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.eventfotografie.faqQ2', 'Brauchen wir eine Bühnenprobe?')}</h3>
               <p className="text-gray-600">
-                Kurz vor Start 3 Minuten für Lichtcheck – dann sitzt jeder Winkel.
+                {fromManual('manual.eventfotografie.faqA2', 'Kurz vor Start 3 Minuten für Lichtcheck – dann sitzt jeder Winkel.')}
               </p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">Wie viele Bilder bekommen wir?</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.eventfotografie.faqQ3', 'Wie viele Bilder bekommen wir?')}</h3>
               <p className="text-gray-600">
-                Richtwert: 70–100 pro Stunde je Fotograf:in, abhängig von Agenda und Flächen.
+                {fromManual('manual.eventfotografie.faqA3', 'Richtwert: 70–100 pro Stunde je Fotograf:in, abhängig von Agenda und Flächen.')}
               </p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">Reicht ein/e Fotograf:in?</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.eventfotografie.faqQ4', 'Reicht ein/e Fotograf:in?')}</h3>
               <p className="text-gray-600">
-                Single-Track oft ja. Bei Parallel-Sessions, großer Venue oder VIP-Fokus empfehlen wir 2. Kamera.
+                {fromManual('manual.eventfotografie.faqA4', 'Single-Track oft ja. Bei Parallel-Sessions, großer Venue oder VIP-Fokus empfehlen wir 2. Kamera.')}
               </p>
             </div>
           </div>

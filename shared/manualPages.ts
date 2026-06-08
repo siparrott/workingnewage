@@ -33,6 +33,23 @@ const makeField = (
   helperText?: string
 ): ManualPageField => ({ id, label, translationKey, type, helperText });
 
+// FAQ field layout per fotoshooting page – only the entries actually wired into each
+// page component are listed. 'heading' -> faqHeading, 'qN' -> faqQN, 'aN' -> faqAN.
+// Answers that remain inline JSX (with links) in the page are intentionally omitted.
+const FAQ_KEYS: Record<string, string[]> = {
+  babyfotos: ['heading', 'q1', 'a1', 'q2', 'a2', 'q3', 'a3', 'q4', 'a4', 'q5', 'a5'],
+  bewerbungsfotos: ['heading', 'q1', 'a1', 'q2', 'a2', 'q3', 'q4'],
+  businessportraits: ['heading', 'q1', 'a1', 'q2', 'a2', 'q3', 'a3', 'q4', 'a4'],
+  eventfotografie: ['heading', 'q1', 'a1', 'q2', 'a2', 'q3', 'a3', 'q4', 'a4'],
+  familienfotos: ['heading', 'q1', 'a1', 'q2', 'a2', 'q3', 'a3'],
+  hochzeitsfotografie: ['heading', 'q1', 'a1', 'q2', 'a2', 'q3', 'a3', 'q4', 'a4'],
+  immobilienfotografie: ['heading', 'q1', 'a1', 'q2', 'a2', 'q3', 'a3', 'q4', 'a4'],
+  portraitfotografie: ['heading', 'q1', 'a1', 'q2', 'a2', 'q3', 'a3', 'q4', 'a4'],
+  produktfotografie: ['heading', 'q1', 'a1', 'q2', 'a2', 'q3', 'a3', 'q4', 'a4'],
+  studiofotografie: ['heading', 'q1', 'q2', 'a2', 'q3', 'a3', 'q4', 'a4'],
+  teamfotos: ['heading', 'q1', 'a1', 'q2', 'a2', 'q3', 'a3', 'q4', 'a4'],
+};
+
 export const manualPageManifest: ManualPageDefinition[] = [
   {
     id: 'site-settings',
@@ -624,7 +641,25 @@ export const manualPageManifest: ManualPageDefinition[] = [
           makeField(`${page.id}-hero-image-4`, 'Hero Image 4', `manual.${page.id}.heroImage4`, 'image'),
           makeField(`${page.id}-hero-image-5`, 'Hero Image 5', `manual.${page.id}.heroImage5`, 'image')
         ]
-      }
+      },
+      ...(FAQ_KEYS[page.id]
+        ? [
+            {
+              id: `${page.id}-faq`,
+              label: 'FAQ',
+              description: 'Frequently asked questions shown near the bottom of the page.',
+              fields: FAQ_KEYS[page.id].map((k) => {
+                if (k === 'heading') {
+                  return makeField(`${page.id}-faq-heading`, 'FAQ Heading', `manual.${page.id}.faqHeading`);
+                }
+                const n = k.slice(1);
+                return k.startsWith('q')
+                  ? makeField(`${page.id}-faq-q${n}`, `Question ${n}`, `manual.${page.id}.faqQ${n}`)
+                  : makeField(`${page.id}-faq-a${n}`, `Answer ${n}`, `manual.${page.id}.faqA${n}`, 'longForm');
+              })
+            }
+          ]
+        : [])
     ]
   }))
 ];

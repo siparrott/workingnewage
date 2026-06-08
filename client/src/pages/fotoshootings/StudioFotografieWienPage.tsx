@@ -719,13 +719,13 @@ const StudioFotografieWienPage: React.FC = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              {language === 'de' ? 'Häufige Fragen' : 'Frequently Asked Questions'}
+              {fromManual('manual.studiofotografie.faqHeading', language === 'de' ? 'Häufige Fragen' : 'Frequently Asked Questions')}
             </h2>
           </div>
           <div className="space-y-6">
             <div className="bg-gradient-to-br from-purple-50 to-white p-6 rounded-xl border border-purple-100">
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                {language === 'de' ? 'Wie wähle ich das richtige Set?' : 'How do I choose the right set?'}
+                {fromManual('manual.studiofotografie.faqQ1', language === 'de' ? 'Wie wähle ich das richtige Set?' : 'How do I choose the right set?')}
               </h3>
               <p className="text-gray-700 leading-relaxed">
                 {language === 'de' ? <>Wir matchen das Set zu deinem Ziel: <strong>studio fotografie wien</strong> neutral (Business/LinkedIn) oder warm & organisch (Lifestyle/Familie). Du siehst Testshots vor dem eigentlichen Shooting-Start.</> : <>We match the set to your goal: <strong>studio photography Vienna</strong> neutral (business/LinkedIn) or warm & organic (lifestyle/family). You see test shots before the actual shoot begins.</>}
@@ -733,26 +733,26 @@ const StudioFotografieWienPage: React.FC = () => {
             </div>
             <div className="bg-gradient-to-br from-purple-50 to-white p-6 rounded-xl border border-purple-100">
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                {language === 'de' ? 'Was sollen Gruppen/Teams bei der Kleidung beachten?' : 'What should groups/teams consider for clothing?'}
+                {fromManual('manual.studiofotografie.faqQ2', language === 'de' ? 'Was sollen Gruppen/Teams bei der Kleidung beachten?' : 'What should groups/teams consider for clothing?')}
               </h3>
               <p className="text-gray-700 leading-relaxed">
-                {language === 'de' ? 'Palette statt Uniform: 2-3 Farbtöne auswählen, keine lauten Muster oder Logos. Wir senden gern einen Mini-Guide vor dem Termin mit Beispielen.' : 'Palette over uniform: choose 2-3 color tones, no loud patterns or logos. We\'re happy to send a mini guide with examples before the appointment.'}
+                {fromManual('manual.studiofotografie.faqA2', language === 'de' ? 'Palette statt Uniform: 2-3 Farbtöne auswählen, keine lauten Muster oder Logos. Wir senden gern einen Mini-Guide vor dem Termin mit Beispielen.' : 'Palette over uniform: choose 2-3 color tones, no loud patterns or logos. We\'re happy to send a mini guide with examples before the appointment.')}
               </p>
             </div>
             <div className="bg-gradient-to-br from-purple-50 to-white p-6 rounded-xl border border-purple-100">
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                {language === 'de' ? 'Kann ich Content-Reels im gleichen Setup mitdrehen?' : 'Can I shoot content reels in the same setup?'}
+                {fromManual('manual.studiofotografie.faqQ3', language === 'de' ? 'Kann ich Content-Reels im gleichen Setup mitdrehen?' : 'Can I shoot content reels in the same setup?')}
               </h3>
               <p className="text-gray-700 leading-relaxed">
-                {language === 'de' ? 'Ja – kurze B-Rolls (10-20 Sekunden) im selben Licht-Setup sind als Add-on buchbar (€90). Perfekt für Social Media & Website-Header.' : 'Yes – short B-rolls (10-20 seconds) in the same light setup are bookable as an add-on (€90). Perfect for social media & website headers.'}
+                {fromManual('manual.studiofotografie.faqA3', language === 'de' ? 'Ja – kurze B-Rolls (10-20 Sekunden) im selben Licht-Setup sind als Add-on buchbar (€90). Perfekt für Social Media & Website-Header.' : 'Yes – short B-rolls (10-20 seconds) in the same light setup are bookable as an add-on (€90). Perfect for social media & website headers.')}
               </p>
             </div>
             <div className="bg-gradient-to-br from-purple-50 to-white p-6 rounded-xl border border-purple-100">
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                {language === 'de' ? 'Wie schnell bekomme ich die finalen Bilder?' : 'How quickly will I receive the final images?'}
+                {fromManual('manual.studiofotografie.faqQ4', language === 'de' ? 'Wie schnell bekomme ich die finalen Bilder?' : 'How quickly will I receive the final images?')}
               </h3>
               <p className="text-gray-700 leading-relaxed">
-                {language === 'de' ? 'Standard-Lieferung 48-72h nach dem Shooting. Express-Lieferung in 24h ist gegen Aufpreis (+€80) möglich – ideal für dringende Kampagnen oder Deadlines.' : 'Standard delivery 48-72h after the shoot. Express delivery in 24h is available for a surcharge (+€80) – ideal for urgent campaigns or deadlines.'}
+                {fromManual('manual.studiofotografie.faqA4', language === 'de' ? 'Standard-Lieferung 48-72h nach dem Shooting. Express-Lieferung in 24h ist gegen Aufpreis (+€80) möglich – ideal für dringende Kampagnen oder Deadlines.' : 'Standard delivery 48-72h after the shoot. Express delivery in 24h is available for a surcharge (+€80) – ideal for urgent campaigns or deadlines.')}
               </p>
             </div>
           </div>

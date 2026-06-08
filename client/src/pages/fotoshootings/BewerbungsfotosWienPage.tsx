@@ -473,22 +473,22 @@ export default function BewerbungsfotosWienPage() {
       {/* FAQ Section */}
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">{language === 'de' ? 'FAQ – Bewerbungsfotos Wien' : 'FAQ – Application Photos Vienna'}</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">{fromManual('manual.bewerbungsfotos.faqHeading', language === 'de' ? 'FAQ – Bewerbungsfotos Wien' : 'FAQ – Application Photos Vienna')}</h2>
           <div className="space-y-6">
             <div className="bg-gray-50 rounded-xl p-6">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Wie schnell bekomme ich die Bilder?' : 'How quickly will I receive the images?'}</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.bewerbungsfotos.faqQ1', language === 'de' ? 'Wie schnell bekomme ich die Bilder?' : 'How quickly will I receive the images?')}</h3>
               <p className="text-gray-600">
-                {language === 'de' ? 'Preview am selben Tag, finale Retuschen 48–72 h, Express 24 h/6 h möglich.' : 'Preview same day, final retouching 48–72 h, express 24 h/6 h available.'}
+                {fromManual('manual.bewerbungsfotos.faqA1', language === 'de' ? 'Preview am selben Tag, finale Retuschen 48–72 h, Express 24 h/6 h möglich.' : 'Preview same day, final retouching 48–72 h, express 24 h/6 h available.')}
               </p>
             </div>
             <div className="bg-gray-50 rounded-xl p-6">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Bekomme ich alle Aufnahmen?' : 'Will I receive all shots?'}</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.bewerbungsfotos.faqQ2', language === 'de' ? 'Bekomme ich alle Aufnahmen?' : 'Will I receive all shots?')}</h3>
               <p className="text-gray-600">
-                {language === 'de' ? 'Sie erhalten die retuschierten Favoriten in High-Res & Web-Größe. Zusatzbilder sind jederzeit nachbestellbar.' : 'You receive your retouched favourites in high-res & web size. Additional images can be ordered anytime.'}
+                {fromManual('manual.bewerbungsfotos.faqA2', language === 'de' ? 'Sie erhalten die retuschierten Favoriten in High-Res & Web-Größe. Zusatzbilder sind jederzeit nachbestellbar.' : 'You receive your retouched favourites in high-res & web size. Additional images can be ordered anytime.')}
               </p>
             </div>
             <div className="bg-gray-50 rounded-xl p-6">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Darf ich die Fotos beruflich nutzen?' : 'Can I use the photos professionally?'}</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.bewerbungsfotos.faqQ3', language === 'de' ? 'Darf ich die Fotos beruflich nutzen?' : 'Can I use the photos professionally?')}</h3>
               <p className="text-gray-600">
                 {language === 'de'
                   ? <>Ja, für Eigenwerbung: Bewerbungen, LinkedIn/Xing, Website-Profil, Signatur, Speaker-Profile. (Für Paid-Ads/Printkampagnen bitte kurz anfragen.)</>
@@ -496,7 +496,7 @@ export default function BewerbungsfotosWienPage() {
               </p>
             </div>
             <div className="bg-gray-50 rounded-xl p-6">
-              <h3 className="font-bold text-lg text-gray-900 mb-2">{language === 'de' ? 'Gibt es Rabatte für Teams?' : 'Are there discounts for teams?'}</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.bewerbungsfotos.faqQ4', language === 'de' ? 'Gibt es Rabatte für Teams?' : 'Are there discounts for teams?')}</h3>
               <p className="text-gray-600">
                 {language === 'de'
                   ? <>Ja – siehe unsere <Link to="/teamfotos-wien/" className="text-purple-600 hover:text-purple-700 underline">Team- & Mitarbeiterfotos</Link> mit On-Site-Ablauf.</>

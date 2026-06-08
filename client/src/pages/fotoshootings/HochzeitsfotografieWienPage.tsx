@@ -442,23 +442,23 @@ export default function HochzeitsfotografieWienPage() {
         {/* FAQ */}
         <section className="py-16 bg-gray-50">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-center mb-12">FAQ</h2>
+            <h2 className="text-3xl font-bold text-center mb-12">{fromManual('manual.hochzeitsfotografie.faqHeading', 'FAQ')}</h2>
             <div className="space-y-6">
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-bold text-lg text-gray-900 mb-2">Wie schnell bekommen wir Fotos?</h3>
-                <p className="text-gray-600">Sneak Peeks gibt’s in 24–48 Stunden, die vollständige Galerie in 2–4 Wochen – schneller als Express möglich.</p>
+                <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.hochzeitsfotografie.faqQ1', 'Wie schnell bekommen wir Fotos?')}</h3>
+                <p className="text-gray-600">{fromManual('manual.hochzeitsfotografie.faqA1', 'Sneak Peeks gibt’s in 24–48 Stunden, die vollständige Galerie in 2–4 Wochen – schneller als Express möglich.')}</p>
               </div>
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-bold text-lg text-gray-900 mb-2">Arbeitet ihr unauffällig?</h3>
-                <p className="text-gray-600">Ja – leise Kameras, klare Abläufe, koordinierte Gruppenfotos. Emotionen vor Inszenierung.</p>
+                <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.hochzeitsfotografie.faqQ2', 'Arbeitet ihr unauffällig?')}</h3>
+                <p className="text-gray-600">{fromManual('manual.hochzeitsfotografie.faqA2', 'Ja – leise Kameras, klare Abläufe, koordinierte Gruppenfotos. Emotionen vor Inszenierung.')}</p>
               </div>
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-bold text-lg text-gray-900 mb-2">Wie viele Bilder bekommen wir?</h3>
-                <p className="text-gray-600">Richtwert: 70–100 Bilder pro Stunde je nach Programmdichte und Gästezahl.</p>
+                <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.hochzeitsfotografie.faqQ3', 'Wie viele Bilder bekommen wir?')}</h3>
+                <p className="text-gray-600">{fromManual('manual.hochzeitsfotografie.faqA3', 'Richtwert: 70–100 Bilder pro Stunde je nach Programmdichte und Gästezahl.')}</p>
               </div>
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="font-bold text-lg text-gray-900 mb-2">Was ist mit Datensicherheit?</h3>
-                <p className="text-gray-600">Dual-Card Aufnahme, redundante Backups am selben Tag und sichere Online-Galerie mit Passwort.</p>
+                <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.hochzeitsfotografie.faqQ4', 'Was ist mit Datensicherheit?')}</h3>
+                <p className="text-gray-600">{fromManual('manual.hochzeitsfotografie.faqA4', 'Dual-Card Aufnahme, redundante Backups am selben Tag und sichere Online-Galerie mit Passwort.')}</p>
               </div>
             </div>
           </div>
