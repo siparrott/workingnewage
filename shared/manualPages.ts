@@ -86,6 +86,73 @@ export const manualPageManifest: ManualPageDefinition[] = [
     ]
   },
   {
+    id: 'reviews',
+    label: 'Customer Reviews',
+    route: '/',
+    description: 'Testimonials shown in the "What Our Clients Say" carousel across the site.',
+    tags: ['Reviews', 'Testimonials', 'Social Proof'],
+    sections: [
+      {
+        id: 'reviews-header',
+        label: 'Section Header',
+        description: 'Heading, Google rating summary and the Google reviews link.',
+        fields: [
+          makeField('reviews-title', 'Section Title', 'reviews.sectionTitle'),
+          makeField('reviews-rating', 'Google Rating Summary', 'reviews.ratingSummary'),
+          makeField('reviews-google-url', 'Google Reviews URL', 'reviews.googleUrl')
+        ]
+      },
+      {
+        id: 'reviews-r1',
+        label: 'Review 1',
+        fields: [
+          makeField('reviews-r1-author', 'Author Name', 'reviews.r1.author'),
+          makeField('reviews-r1-text', 'Review Text', 'reviews.r1.text', 'longForm')
+        ]
+      },
+      {
+        id: 'reviews-r2',
+        label: 'Review 2',
+        fields: [
+          makeField('reviews-r2-author', 'Author Name', 'reviews.r2.author'),
+          makeField('reviews-r2-text', 'Review Text', 'reviews.r2.text', 'longForm')
+        ]
+      },
+      {
+        id: 'reviews-r3',
+        label: 'Review 3',
+        fields: [
+          makeField('reviews-r3-author', 'Author Name', 'reviews.r3.author'),
+          makeField('reviews-r3-text', 'Review Text', 'reviews.r3.text', 'longForm')
+        ]
+      },
+      {
+        id: 'reviews-r4',
+        label: 'Review 4',
+        fields: [
+          makeField('reviews-r4-author', 'Author Name', 'reviews.r4.author'),
+          makeField('reviews-r4-text', 'Review Text', 'reviews.r4.text', 'longForm')
+        ]
+      },
+      {
+        id: 'reviews-r5',
+        label: 'Review 5',
+        fields: [
+          makeField('reviews-r5-author', 'Author Name', 'reviews.r5.author'),
+          makeField('reviews-r5-text', 'Review Text', 'reviews.r5.text', 'longForm')
+        ]
+      },
+      {
+        id: 'reviews-r6',
+        label: 'Review 6',
+        fields: [
+          makeField('reviews-r6-author', 'Author Name', 'reviews.r6.author'),
+          makeField('reviews-r6-text', 'Review Text', 'reviews.r6.text', 'longForm')
+        ]
+      }
+    ]
+  },
+  {
     id: 'home',
     label: 'Homepage',
     route: '/',

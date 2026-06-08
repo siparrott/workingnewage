@@ -749,6 +749,23 @@ const translations = {
   'manual.produktfotografie.heroImage4': '',
   'manual.produktfotografie.heroImage5': '',
 
+  // Customer Reviews (editable in Manual Website Update → Customer Reviews)
+  'reviews.sectionTitle': 'What Our Clients Say',
+  'reviews.ratingSummary': '4.9 on Google (253 Reviews)',
+  'reviews.googleUrl': 'https://maps.app.goo.gl/L5EFKkMSK7FaiRVa8',
+  'reviews.r1.author': 'Sabine Schuster',
+  'reviews.r1.text': 'Matt is a wonderful photographer who knows how to capture people\'s personalities. We felt very comfortable and the photos turned out absolutely great. Highly recommended!',
+  'reviews.r2.author': 'Katharina Müller',
+  'reviews.r2.text': 'We had a family photoshoot with Matt and are thrilled! The atmosphere was super relaxed and the photos turned out simply beautiful. We especially loved how patient he was with our children. Absolute recommendation!',
+  'reviews.r3.author': 'Thomas Wagner',
+  'reviews.r3.text': 'Professional business photoshoot with outstanding results. Matt made me feel comfortable in front of the camera, even though I usually don\'t like being photographed. I now use the photos for my website and LinkedIn – top quality!',
+  'reviews.r4.author': 'Lisa Huber',
+  'reviews.r4.text': 'Our newborn photoshoot with Matt was a wonderful experience. He took so much time and was incredibly gentle with our little son. The photos turned out beautifully and will always remind us of this special time.',
+  'reviews.r5.author': 'Michael Bauer',
+  'reviews.r5.text': 'Matt photographed our wedding and we are more than satisfied! He captured all the important moments without being intrusive. The photos tell the story of our day perfectly. Thank you for these wonderful memories!',
+  'reviews.r6.author': 'Anna Steiner',
+  'reviews.r6.text': 'My maternity photoshoot with Matt was a great experience. He has a very pleasant manner and makes you feel comfortable right away. The photos turned out beautifully and capture exactly the emotions I was hoping for. Highly recommended!',
+
   // Manual Page - Fotoshooting hero copy (shown & editable in Manual Website Update)
   'manual.familienfotos.heroTitle': 'Family Photography in Vienna',
   'manual.familienfotos.heroTagline': 'Family Photos – Studio Packages (up to 12 people)',
@@ -1744,6 +1761,23 @@ const translations = {
   'manual.produktfotografie.heroImage3': '',
   'manual.produktfotografie.heroImage4': '',
   'manual.produktfotografie.heroImage5': '',
+
+  // Customer Reviews (editable in Manual Website Update → Customer Reviews)
+  'reviews.sectionTitle': 'Was unsere Kunden sagen',
+  'reviews.ratingSummary': '4.9 auf Google (253 Bewertungen)',
+  'reviews.googleUrl': 'https://maps.app.goo.gl/L5EFKkMSK7FaiRVa8',
+  'reviews.r1.author': 'Sabine Schuster',
+  'reviews.r1.text': 'Matt ist ein wunderbarer Fotograf, der es versteht, die Persönlichkeit der Menschen einzufangen. Wir haben uns sehr wohl gefühlt und die Bilder sind einfach toll geworden. Sehr zu empfehlen!',
+  'reviews.r2.author': 'Katharina Müller',
+  'reviews.r2.text': 'Wir hatten ein Familienshooting mit Matt und sind begeistert! Die Atmosphäre war super entspannt und die Bilder sind einfach wunderschön geworden. Besonders toll fanden wir, wie geduldig er mit unseren Kindern war. Absolute Empfehlung!',
+  'reviews.r3.author': 'Thomas Wagner',
+  'reviews.r3.text': 'Professionelles Business-Shooting mit hervorragenden Ergebnissen. Matt hat es geschafft, dass ich mich vor der Kamera wohl gefühlt habe, obwohl ich normalerweise nicht gerne fotografiert werde. Die Bilder nutze ich jetzt für meine Website und LinkedIn - top Qualität!',
+  'reviews.r4.author': 'Lisa Huber',
+  'reviews.r4.text': 'Unser Neugeborenen-Shooting mit Matt war ein wunderschönes Erlebnis. Er hat sich so viel Zeit genommen und war unglaublich einfühlsam mit unserem kleinen Sohn. Die Fotos sind traumhaft schön geworden und werden uns immer an diese besondere Zeit erinnern.',
+  'reviews.r5.author': 'Michael Bauer',
+  'reviews.r5.text': 'Matt hat unsere Hochzeit fotografiert und wir sind mehr als zufrieden! Er hat alle wichtigen Momente eingefangen, ohne dabei aufdringlich zu sein. Die Bilder erzählen die Geschichte unseres Tages perfekt. Danke für diese wunderbaren Erinnerungen!',
+  'reviews.r6.author': 'Anna Steiner',
+  'reviews.r6.text': 'Mein Schwangerschaftsshooting mit Matt war ein tolles Erlebnis. Er hat eine sehr angenehme Art und schafft es, dass man sich sofort wohlfühlt. Die Bilder sind wunderschön geworden und zeigen genau die Emotionen, die ich mir gewünscht habe. Sehr empfehlenswert!',
 
   // Manual Page - Fotoshooting hero copy (shown & editable in Manual Website Update)
   'manual.familienfotos.heroTitle': 'Familienfotografie in Wien',

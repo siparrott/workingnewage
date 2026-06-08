@@ -1,151 +1,184 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useManualPageData } from '../../hooks/useManualPageContent';
+
+interface FallbackReview {
+  author: string;
+  textDe: string;
+  textEn: string;
+  profile_photo_url: string;
+  time: number;
+  rating: number;
+}
 
 interface Review {
   author_name: string;
   rating: number;
   text: string;
-  textEn: string;
   profile_photo_url: string;
   time: number;
 }
 
+// Default reviews. These act as fallbacks – the live values are editable from the
+// backend via Manual Website Update → "Customer Reviews" (page id: reviews).
+const FALLBACK_REVIEWS: FallbackReview[] = [
+  {
+    author: 'Sabine Schuster',
+    textDe: 'Matt ist ein wunderbarer Fotograf, der es versteht, die Persönlichkeit der Menschen einzufangen. Wir haben uns sehr wohl gefühlt und die Bilder sind einfach toll geworden. Sehr zu empfehlen!',
+    textEn: "Matt is a wonderful photographer who knows how to capture people's personalities. We felt very comfortable and the photos turned out absolutely great. Highly recommended!",
+    profile_photo_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sabine&backgroundColor=ffd5dc',
+    time: 1686729600000,
+    rating: 5,
+  },
+  {
+    author: 'Katharina Müller',
+    textDe: 'Wir hatten ein Familienshooting mit Matt und sind begeistert! Die Atmosphäre war super entspannt und die Bilder sind einfach wunderschön geworden. Besonders toll fanden wir, wie geduldig er mit unseren Kindern war. Absolute Empfehlung!',
+    textEn: 'We had a family photoshoot with Matt and are thrilled! The atmosphere was super relaxed and the photos turned out simply beautiful. We especially loved how patient he was with our children. Absolute recommendation!',
+    profile_photo_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Katharina&backgroundColor=b6e3f4',
+    time: 1692144000000,
+    rating: 5,
+  },
+  {
+    author: 'Thomas Wagner',
+    textDe: 'Professionelles Business-Shooting mit hervorragenden Ergebnissen. Matt hat es geschafft, dass ich mich vor der Kamera wohl gefühlt habe, obwohl ich normalerweise nicht gerne fotografiert werde. Die Bilder nutze ich jetzt für meine Website und LinkedIn - top Qualität!',
+    textEn: "Professional business photoshoot with outstanding results. Matt made me feel comfortable in front of the camera, even though I usually don't like being photographed. I now use the photos for my website and LinkedIn – top quality!",
+    profile_photo_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Thomas&backgroundColor=c0aede',
+    time: 1689465600000,
+    rating: 5,
+  },
+  {
+    author: 'Lisa Huber',
+    textDe: 'Unser Neugeborenen-Shooting mit Matt war ein wunderschönes Erlebnis. Er hat sich so viel Zeit genommen und war unglaublich einfühlsam mit unserem kleinen Sohn. Die Fotos sind traumhaft schön geworden und werden uns immer an diese besondere Zeit erinnern.',
+    textEn: 'Our newborn photoshoot with Matt was a wonderful experience. He took so much time and was incredibly gentle with our little son. The photos turned out beautifully and will always remind us of this special time.',
+    profile_photo_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa&backgroundColor=d1d4f9',
+    time: 1693526400000,
+    rating: 5,
+  },
+  {
+    author: 'Michael Bauer',
+    textDe: 'Matt hat unsere Hochzeit fotografiert und wir sind mehr als zufrieden! Er hat alle wichtigen Momente eingefangen, ohne dabei aufdringlich zu sein. Die Bilder erzählen die Geschichte unseres Tages perfekt. Danke für diese wunderbaren Erinnerungen!',
+    textEn: 'Matt photographed our wedding and we are more than satisfied! He captured all the important moments without being intrusive. The photos tell the story of our day perfectly. Thank you for these wonderful memories!',
+    profile_photo_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=MichaelB&backgroundColor=ffdfbf',
+    time: 1688256000000,
+    rating: 5,
+  },
+  {
+    author: 'Anna Steiner',
+    textDe: 'Mein Schwangerschaftsshooting mit Matt war ein tolles Erlebnis. Er hat eine sehr angenehme Art und schafft es, dass man sich sofort wohlfühlt. Die Bilder sind wunderschön geworden und zeigen genau die Emotionen, die ich mir gewünscht habe. Sehr empfehlenswert!',
+    textEn: 'My maternity photoshoot with Matt was a great experience. He has a very pleasant manner and makes you feel comfortable right away. The photos turned out beautifully and capture exactly the emotions I was hoping for. Highly recommended!',
+    profile_photo_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=AnnaSteiner&backgroundColor=c1f0c1',
+    time: 1691539200000,
+    rating: 5,
+  },
+];
+
+const DEFAULT_GOOGLE_URL = 'https://maps.app.goo.gl/L5EFKkMSK7FaiRVa8';
+
 const GoogleReviews: React.FC = () => {
   const { t, language } = useLanguage();
-  const [reviews, setReviews] = useState<Review[]>([
-    {
-      author_name: "Sabine Schuster",
-      rating: 5,
-      text: "Matt ist ein wunderbarer Fotograf, der es versteht, die Persönlichkeit der Menschen einzufangen. Wir haben uns sehr wohl gefühlt und die Bilder sind einfach toll geworden. Sehr zu empfehlen!",
-      textEn: "Matt is a wonderful photographer who knows how to capture people's personalities. We felt very comfortable and the photos turned out absolutely great. Highly recommended!",
-      profile_photo_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sabine&backgroundColor=ffd5dc",
-      time: 1686729600000
-    },
-    {
-      author_name: "Katharina Müller",
-      rating: 5,
-      text: "Wir hatten ein Familienshooting mit Matt und sind begeistert! Die Atmosphäre war super entspannt und die Bilder sind einfach wunderschön geworden. Besonders toll fanden wir, wie geduldig er mit unseren Kindern war. Absolute Empfehlung!",
-      textEn: "We had a family photoshoot with Matt and are thrilled! The atmosphere was super relaxed and the photos turned out simply beautiful. We especially loved how patient he was with our children. Absolute recommendation!",
-      profile_photo_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Katharina&backgroundColor=b6e3f4",
-      time: 1692144000000
-    },
-    {
-      author_name: "Thomas Wagner",
-      rating: 5,
-      text: "Professionelles Business-Shooting mit hervorragenden Ergebnissen. Matt hat es geschafft, dass ich mich vor der Kamera wohl gefühlt habe, obwohl ich normalerweise nicht gerne fotografiert werde. Die Bilder nutze ich jetzt für meine Website und LinkedIn - top Qualität!",
-      textEn: "Professional business photoshoot with outstanding results. Matt made me feel comfortable in front of the camera, even though I usually don't like being photographed. I now use the photos for my website and LinkedIn – top quality!",
-      profile_photo_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Thomas&backgroundColor=c0aede",
-      time: 1689465600000
-    },
-    {
-      author_name: "Lisa Huber",
-      rating: 5,
-      text: "Unser Neugeborenen-Shooting mit Matt war ein wunderschönes Erlebnis. Er hat sich so viel Zeit genommen und war unglaublich einfühlsam mit unserem kleinen Sohn. Die Fotos sind traumhaft schön geworden und werden uns immer an diese besondere Zeit erinnern.",
-      textEn: "Our newborn photoshoot with Matt was a wonderful experience. He took so much time and was incredibly gentle with our little son. The photos turned out beautifully and will always remind us of this special time.",
-      profile_photo_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa&backgroundColor=d1d4f9",
-      time: 1693526400000
-    },
-    {
-      author_name: "Michael Bauer",
-      rating: 5,
-      text: "Matt hat unsere Hochzeit fotografiert und wir sind mehr als zufrieden! Er hat alle wichtigen Momente eingefangen, ohne dabei aufdringlich zu sein. Die Bilder erzählen die Geschichte unseres Tages perfekt. Danke für diese wunderbaren Erinnerungen!",
-      textEn: "Matt photographed our wedding and we are more than satisfied! He captured all the important moments without being intrusive. The photos tell the story of our day perfectly. Thank you for these wonderful memories!",
-      profile_photo_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=MichaelB&backgroundColor=ffdfbf",
-      time: 1688256000000
-    },
-    {
-      author_name: "Anna Steiner",
-      rating: 5,
-      text: "Mein Schwangerschaftsshooting mit Matt war ein tolles Erlebnis. Er hat eine sehr angenehme Art und schafft es, dass man sich sofort wohlfühlt. Die Bilder sind wunderschön geworden und zeigen genau die Emotionen, die ich mir gewünscht habe. Sehr empfehlenswert!",
-      textEn: "My maternity photoshoot with Matt was a great experience. He has a very pleasant manner and makes you feel comfortable right away. The photos turned out beautifully and capture exactly the emotions I was hoping for. Highly recommended!",
-      profile_photo_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=AnnaSteiner&backgroundColor=c1f0c1",
-      time: 1691539200000
-    }
-  ]);
-  
+  // Backend overrides published via Manual Website Update ("Customer Reviews").
+  const pageData = useManualPageData('reviews');
+  const overrides = pageData.data?.publishedContent || {};
+  const ov = (key: string, fallback: string) => {
+    const value = overrides[key];
+    return value && value.trim() ? value : fallback;
+  };
+
+  const reviews: Review[] = useMemo(
+    () =>
+      FALLBACK_REVIEWS.map((r, i) => ({
+        author_name: ov(`reviews.r${i + 1}.author`, r.author),
+        text: ov(`reviews.r${i + 1}.text`, language === 'de' ? r.textDe : r.textEn),
+        rating: r.rating,
+        profile_photo_url: r.profile_photo_url,
+        time: r.time,
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [language, pageData.data]
+  );
+
+  const sectionTitle = ov('reviews.sectionTitle', language === 'de' ? 'Was unsere Kunden sagen' : 'What Our Clients Say');
+  const ratingSummary = ov('reviews.ratingSummary', language === 'de' ? '4.9 auf Google (253 Bewertungen)' : '4.9 on Google (253 Reviews)');
+  const googleUrl = ov('reviews.googleUrl', DEFAULT_GOOGLE_URL);
+
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [visibleReviews, setVisibleReviews] = useState<Review[]>([]);
+  const [perView, setPerView] = useState(3);
   const [isPaused, setIsPaused] = useState(false);
-  
+
   // Auto-scroll carousel every 4 seconds
   useEffect(() => {
     if (isPaused) return;
-    
     const autoScroll = setInterval(() => {
       setCurrentIndex((prevIndex) => (prevIndex + 1) % reviews.length);
     }, 4000);
-    
     return () => clearInterval(autoScroll);
   }, [isPaused, reviews.length]);
-  
+
+  // Track how many cards to show based on screen width
   useEffect(() => {
-    // Determine how many reviews to show based on screen width
     const handleResize = () => {
-      let count = 1;
-      if (window.innerWidth >= 1024) {
-        count = 3;
-      } else if (window.innerWidth >= 768) {
-        count = 2;
-      }
-      
-      const visible = [];
-      for (let i = 0; i < count; i++) {
-        const index = (currentIndex + i) % reviews.length;
-        visible.push(reviews[index]);
-      }
-      setVisibleReviews(visible);
+      if (window.innerWidth >= 1024) setPerView(3);
+      else if (window.innerWidth >= 768) setPerView(2);
+      else setPerView(1);
     };
-    
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [currentIndex, reviews]);
-  
+  }, []);
+
+  const visibleReviews = useMemo(() => {
+    const visible: Review[] = [];
+    for (let i = 0; i < perView; i++) {
+      visible.push(reviews[(currentIndex + i) % reviews.length]);
+    }
+    return visible;
+  }, [currentIndex, perView, reviews]);
+
   const nextReview = () => {
     setCurrentIndex((prevIndex) => (prevIndex + 1) % reviews.length);
   };
-  
+
   const prevReview = () => {
     setCurrentIndex((prevIndex) => (prevIndex - 1 + reviews.length) % reviews.length);
   };
-  
+
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleDateString(language === 'de' ? 'de-DE' : 'en-US', { year: 'numeric', month: 'long' });
   };
-  
+
   const renderStars = (rating: number) => {
     return Array(5).fill(0).map((_, i) => (
-      <Star 
-        key={i} 
-        size={16} 
-        className={i < rating ? "text-yellow-500 fill-yellow-500" : "text-gray-300"} 
+      <Star
+        key={i}
+        size={16}
+        className={i < rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}
       />
     ));
   };
-  
+
   return (
     <section className="bg-gray-50 py-16">
       <div className="container mx-auto px-4">
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-gray-800 mb-4">{language === 'de' ? 'Was unsere Kunden sagen' : 'What Our Clients Say'}</h2>
+          <h2 className="text-3xl font-bold text-gray-800 mb-4">{sectionTitle}</h2>
           <div className="flex items-center justify-center mb-2">
             <div className="flex">
               {renderStars(5)}
             </div>
-            <a 
-              href="https://maps.app.goo.gl/L5EFKkMSK7FaiRVa8" 
-              target="_blank" 
+            <a
+              href={googleUrl}
+              target="_blank"
               rel="noopener noreferrer"
               className="ml-2 text-blue-600 hover:text-blue-800 text-sm"
             >
-              {language === 'de' ? '4.9 auf Google (253 Bewertungen)' : '4.9 on Google (253 Reviews)'}
+              {ratingSummary}
             </a>
           </div>
         </div>
-        
-        <div 
+
+        <div
           className="relative"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
@@ -154,8 +187,8 @@ const GoogleReviews: React.FC = () => {
             {visibleReviews.map((review, index) => (
               <div key={`${review.author_name}-${currentIndex}-${index}`} className="bg-white rounded-lg shadow-lg p-6 transition-all duration-500 ease-in-out animate-fadeIn">
                 <div className="flex items-center mb-4">
-                  <img 
-                    src={review.profile_photo_url} 
+                  <img
+                    src={review.profile_photo_url}
                     alt={review.author_name}
                     className="w-12 h-12 rounded-full mr-4"
                   />
@@ -169,11 +202,11 @@ const GoogleReviews: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <p className="text-gray-600 line-clamp-4">{language === 'de' ? review.text : review.textEn}</p>
+                <p className="text-gray-600 line-clamp-4">{review.text}</p>
                 <div className="mt-4">
-                  <a 
-                    href="https://maps.app.goo.gl/L5EFKkMSK7FaiRVa8" 
-                    target="_blank" 
+                  <a
+                    href={googleUrl}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:text-blue-800 text-sm inline-flex items-center"
                   >
@@ -186,7 +219,7 @@ const GoogleReviews: React.FC = () => {
               </div>
             ))}
           </div>
-          
+
           {/* Progress dots */}
           <div className="flex justify-center mt-6 gap-2">
             {reviews.map((_, index) => (
@@ -200,16 +233,16 @@ const GoogleReviews: React.FC = () => {
               />
             ))}
           </div>
-          
-          <button 
+
+          <button
             onClick={prevReview}
             className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 focus:outline-none hidden md:block"
             aria-label="Previous review"
           >
             <ChevronLeft size={24} />
           </button>
-          
-          <button 
+
+          <button
             onClick={nextReview}
             className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 focus:outline-none hidden md:block"
             aria-label="Next review"
@@ -217,11 +250,11 @@ const GoogleReviews: React.FC = () => {
             <ChevronRight size={24} />
           </button>
         </div>
-        
+
         <div className="flex justify-center mt-8">
-          <a 
-            href="https://maps.app.goo.gl/L5EFKkMSK7FaiRVa8" 
-            target="_blank" 
+          <a
+            href={googleUrl}
+            target="_blank"
             rel="noopener noreferrer"
             className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded-lg transition-colors inline-flex items-center"
           >
