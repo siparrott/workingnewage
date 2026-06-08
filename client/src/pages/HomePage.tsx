@@ -91,6 +91,12 @@ const productDescriptionTranslations: Record<string, string> = {
     'approx. 60 minutes in studio; 5 retouched favorite photos digital; Canvas 40×30 cm; 2-3 sets (wraps + detail macros)',
 };
 
+const DEFAULT_PRICING_EMBED_URL = 'https://pricingembed.com/embed/embed_ai_1780913691468_2effx16uy';
+const PRICING_EMBED_URLS = {
+  de: (import.meta as any).env?.VITE_PRICING_EMBED_URL_DE || DEFAULT_PRICING_EMBED_URL,
+  en: (import.meta as any).env?.VITE_PRICING_EMBED_URL_EN || DEFAULT_PRICING_EMBED_URL,
+} as const;
+
 // Helper function to translate product text
 const translateProductText = (text: string, translations: Record<string, string>, language: string): string => {
   if (language === 'de') return text; // Keep German as-is
@@ -109,9 +115,21 @@ const HomePage: React.FC = () => {
   const { data: homepageImages, isLoading: isLoadingImages } = useQuery({
     queryKey: ['/api/homepage/images'],
     queryFn: async () => {
-      const res = await fetch('/api/homepage/images');
-      if (!res.ok) throw new Error('Failed to fetch homepage images');
-      const data = await res.json();
+      const endpoints = ['/api/homepage/images', 'https://www.newagefotografie.com/api/homepage/images'];
+      let data: any[] | null = null;
+
+      for (const endpoint of endpoints) {
+        try {
+          const res = await fetch(endpoint);
+          if (!res.ok) continue;
+          data = await res.json();
+          break;
+        } catch {
+          // Try the next source.
+        }
+      }
+
+      if (!data) throw new Error('Failed to fetch homepage images');
       // Cache the response for 24 hours
       setCachedData('homepage-images', data);
       return data;
@@ -138,6 +156,40 @@ const HomePage: React.FC = () => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const scrollToPreisrechner = () => {
+    const section = document.getElementById('preisrechner');
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const pricingEmbedUrl = PRICING_EMBED_URLS[language];
+  const pricingCalculatorCopy = language === 'en'
+    ? {
+        heading: 'Find your perfect photoshoot package',
+        subheading: 'In just 30 seconds, discover which package fits your family best.',
+        body: 'No hidden prices. No surprises. Plan your personal photoshoot online with ease.',
+        label: 'New Age Fotografie Price Calculator',
+        labelSub: 'Your personal package in just a few clicks',
+        badge: 'Fast & obligation-free',
+        trustOne: 'Over 5,000 portraits created',
+        trustTwo: 'Family-run since 2012',
+        trustThree: 'Studio in 1050 Vienna',
+        iframeTitle: 'PricingEmbed price calculator for New Age Fotografie',
+      }
+    : {
+        heading: 'Finden Sie Ihr perfektes Fotoshooting Paket',
+        subheading: 'In nur 30 Sekunden erfahren Sie, welches Paket am besten zu Ihrer Familie passt.',
+        body: 'Keine versteckten Preise. Keine Überraschungen. Planen Sie Ihr persönliches Fotoshooting ganz einfach online.',
+        label: 'New Age Fotografie Preisrechner',
+        labelSub: 'Ihr persönliches Paket in wenigen Klicks',
+        badge: 'Schnell & unverbindlich',
+        trustOne: 'Ueber 5.000 Portraits erstellt',
+        trustTwo: 'Familiengefuehrt seit 2012',
+        trustThree: 'Studio in 1050 Wien',
+        iframeTitle: 'PricingEmbed Preisrechner fuer New Age Fotografie',
+      };
 
   // Fetch voucher products from API with persistent cache
   const { data: apiProducts } = useQuery({
@@ -474,12 +526,21 @@ const HomePage: React.FC = () => {
                 {t('home.heroDescription')}
               </p>
             </div>
-            <Link 
-              to="/warteliste/"
-              className="inline-block bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-medium py-3 px-8 rounded-full text-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-            >
-              {t('home.bookShootingButton')}
-            </Link>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <button
+                type="button"
+                onClick={scrollToPreisrechner}
+                className="inline-flex items-center justify-center bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-medium py-3 px-8 rounded-full text-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+              >
+                💜 Paket &amp; Preis berechnen
+              </button>
+              <Link
+                to="/warteliste/"
+                className="inline-flex items-center justify-center rounded-full border border-purple-200 px-6 py-3 text-lg font-medium text-purple-700 transition-colors duration-300 hover:border-purple-300 hover:bg-purple-50"
+              >
+                {t('home.bookShootingButton')}
+              </Link>
+            </div>
           </div>
           <div className="w-full md:w-2/5">
             <div className="aspect-square max-w-md mx-auto overflow-hidden rounded-lg shadow-lg">
@@ -533,6 +594,82 @@ const HomePage: React.FC = () => {
               </div>
               <div className="text-base md:text-lg text-white/90">{t('home.yearsExperience')}</div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="preisrechner" className="bg-white py-16 md:py-24 scroll-mt-24">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-4xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900 md:text-5xl">
+              {pricingCalculatorCopy.heading}
+            </h2>
+            <p className="mt-4 text-lg font-medium bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent md:text-xl">
+              {pricingCalculatorCopy.subheading}
+            </p>
+            <p className="mx-auto mt-4 max-w-3xl text-base leading-relaxed text-gray-600 md:text-lg">
+              {pricingCalculatorCopy.body}
+            </p>
+          </div>
+
+          <div className="mx-auto mt-10 max-w-5xl rounded-[32px] border border-purple-100 bg-white p-4 shadow-[0_30px_80px_rgba(168,85,247,0.12)] md:p-8">
+            <div className="rounded-[24px] bg-gradient-to-br from-white via-pink-50/40 to-purple-50/60 p-3 md:p-5">
+              <div className="mx-auto max-w-[850px] overflow-hidden rounded-[20px] border border-white/70 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+                <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 text-left">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-[0.24em] text-purple-500">
+                      {pricingCalculatorCopy.label}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {pricingCalculatorCopy.labelSub}
+                    </p>
+                  </div>
+                  <div className="hidden rounded-full bg-gradient-to-r from-pink-500 to-purple-600 px-3 py-1 text-xs font-semibold text-white sm:block">
+                    {pricingCalculatorCopy.badge}
+                  </div>
+                </div>
+
+                <div className="bg-white p-2 sm:p-4">
+                  <div className="qk-widget mx-auto max-w-[720px]">
+                    <iframe
+                      title={pricingCalculatorCopy.iframeTitle}
+                      src={pricingEmbedUrl}
+                      width="100%"
+                      height="600"
+                      frameBorder="0"
+                      loading="lazy"
+                      className="block w-full rounded-xl border-none"
+                      style={{ border: 'none', borderRadius: '12px' }}
+                    />
+                    <div className="qk-credit px-2 py-3 text-center text-[13px] font-sans opacity-70">
+                      <a
+                        href="https://pricingembed.com"
+                        target="_blank"
+                        rel="noopener"
+                        className="text-green-500 no-underline"
+                      >
+                        ⚡ Powered by PricingEmbed
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-center text-sm font-medium text-gray-600 md:text-base">
+            <span className="inline-flex items-center gap-2">
+              <Check className="h-4 w-4 text-green-500" />
+              {pricingCalculatorCopy.trustOne}
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <Check className="h-4 w-4 text-green-500" />
+              {pricingCalculatorCopy.trustTwo}
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <Check className="h-4 w-4 text-green-500" />
+              {pricingCalculatorCopy.trustThree}
+            </span>
           </div>
         </div>
       </section>
