@@ -11678,7 +11678,10 @@ ${getBizName()} CRM System
       query += ` ORDER BY sort_order ASC, created_at DESC`;
       
       const images = await runSql(query, params);
-      res.set('Cache-Control', 'no-store');
+      // Short cache so the slow DB round-trip isn't repeated on every page load
+      // (image URLs rarely change; admin edits appear within ~5 min). Stale copies
+      // are served instantly while revalidating in the background.
+      res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600');
       res.json(images);
     } catch (error) {
       console.error("Error fetching homepage images:", error);

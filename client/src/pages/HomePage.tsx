@@ -134,8 +134,11 @@ const HomePage: React.FC = () => {
       setCachedData('homepage-images', data);
       return data;
     },
-    // Use cached data as initial data to prevent flashing
-    initialData: () => getCachedData('/api/homepage/images', 1000 * 60 * 60 * 24), // 24 hour cache
+    // Use cached data as initial data to prevent flashing.
+    // NOTE: key must match the setCachedData('homepage-images', ...) write above —
+    // a previous mismatch meant the cache was never reused, so every load waited
+    // on the network before image URLs were known.
+    initialData: () => getCachedData('homepage-images', 1000 * 60 * 60 * 24), // 24 hour cache
     // Keep data fresh but allow brief caching to prevent flash
     staleTime: 1000 * 60 * 5, // 5 minutes - images don't change that often
     cacheTime: 1000 * 60 * 10, // 10 minutes
@@ -685,7 +688,7 @@ const HomePage: React.FC = () => {
                   src={imageForSection('content-1', photoGridImage)}
                   alt="Familienfotografie Wien - Professionelle Familienporträts im Studio"
                   className="w-full h-full object-cover"
-                  priority={false}
+                  priority={true}
                   width={400}
                   height={400}
                 />
@@ -715,7 +718,7 @@ const HomePage: React.FC = () => {
                   src={imageForSection('content-2', photoGridImage)}
                   alt="Business Headshots Wien - Professionelle Businessfotografie im Studio"
                   className="w-full h-full object-cover object-top"
-                  priority={false}
+                  priority={true}
                   width={400}
                   height={400}
                 />
