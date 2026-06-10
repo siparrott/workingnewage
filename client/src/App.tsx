@@ -131,6 +131,7 @@ import ImageTestPage from './pages/ImageTestPage';
 import PublicSchedulerPage from './pages/public/PublicSchedulerPage';
 import AdminSchedulersPage from './pages/admin/AdminSchedulersPage';
 import AdminAutomationsPage from './pages/admin/AdminAutomationsPage';
+import CalendarSyncPage from './pages/admin/CalendarSyncPage';
 import CalculatorPage from './pages/CalculatorPage';
 import SetupWizard from './pages/setup/SetupWizard';
 import TechnicalSetupWizard from './pages/setup/TechnicalSetupWizard';
@@ -391,6 +392,14 @@ function App() {
                   element={
                     <NeonProtectedRoute>
                       <PhotographyCalendarPage />
+                    </NeonProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/calendar-sync"
+                  element={
+                    <NeonProtectedRoute>
+                      <CalendarSyncPage />
                     </NeonProtectedRoute>
                   }
                 />
