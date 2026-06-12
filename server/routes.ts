@@ -13773,6 +13773,20 @@ ${getBizName()} CRM System
           const discountAmount = originalAmount - finalAmount;
           const currency = (session.currency || 'EUR').toUpperCase();
 
+          // Stripe truncates metadata values at 500 chars, which can leave voucher_data
+          // as a broken JSON fragment. Validate before casting to jsonb, otherwise the
+          // whole insert throws "invalid input syntax for type json" and nothing syncs.
+          let personalizationData = '{}';
+          const rawVoucherData = metadata.voucher_data;
+          if (rawVoucherData && typeof rawVoucherData === 'string' && rawVoucherData.trim()) {
+            try {
+              JSON.parse(rawVoucherData);
+              personalizationData = rawVoucherData;
+            } catch {
+              personalizationData = '{}';
+            }
+          }
+
           // Insert the voucher sale with billing data + images
           const insertResult = await runSql(`
             INSERT INTO voucher_sales (
@@ -13806,7 +13820,7 @@ ${getBizName()} CRM System
             billingCountry,
             metadata.custom_image || null,
             metadata.design_image || null,
-            metadata.voucher_data || '{}',
+            personalizationData,
             new Date(session.created * 1000).toISOString()
           ]);
           
