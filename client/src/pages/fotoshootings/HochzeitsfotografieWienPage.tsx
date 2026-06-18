@@ -179,7 +179,7 @@ export default function HochzeitsfotografieWienPage() {
                   <Link to="/eventfotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Eventfotografie Wien</Link>,{' '}
                   <Link to="/familienfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Familienfotos Wien</Link> und{' '}
                   <Link to="/portrait-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Portraitfotografie Wien</Link> an.
-                  Alle{' '}<Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Hochzeitsfotos-Pakete & Preise</Link> – oder direkt{' '}
+                  Alle{' '}<Link to="/calculator" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Hochzeitsfotos-Pakete & Preise</Link> – oder direkt{' '}
                   <Link to="/warteliste/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Termin buchen</Link>.
                 </>
               ) : (
@@ -187,7 +187,7 @@ export default function HochzeitsfotografieWienPage() {
                   Besides wedding photography, we also offer{' '}
                   <Link to="/eventfotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">event photography Vienna</Link> and{' '}
                   <Link to="/portrait-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">portrait photography Vienna</Link>.
-                  View <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">all packages & prices</Link>.
+                  View <Link to="/calculator" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">all packages & prices</Link>.
                 </>
               )}
             </p>
@@ -274,7 +274,7 @@ export default function HochzeitsfotografieWienPage() {
                   <tr className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{language === 'de' ? 'Finale Galerie' : 'Final Gallery'}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{language === 'de' ? '300–900+ Bilder' : '300–900+ images'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{language === 'de' ? '2–4 Wochen' : '2–4 weeks'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{language === 'de' ? 'innerhalb von 7 Tagen' : 'within seven days'}</td>
                     <td className="px-6 py-4 text-sm text-purple-600 font-semibold">{language === 'de' ? '5–7 Tage' : '5–7 days'}</td>
                   </tr>
                   <tr className="hover:bg-gray-50">
