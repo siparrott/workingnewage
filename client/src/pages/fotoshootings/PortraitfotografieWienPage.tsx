@@ -357,24 +357,6 @@ export default function PortraitfotografieWienPage() {
           </div>
         </section>
 
-        {/* On Location Wien */}
-        <section className="py-16 bg-white">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-center mb-6">{language === 'de' ? 'On Location in Wien' : 'On Location in Vienna'}</h2>
-            <p className="text-gray-700 text-center max-w-3xl mx-auto mb-4">
-              {language === 'de'
-                ? 'Lieber urban statt Studio? Wir haben Spots mit Platz & Lichtfenstern. Tipp: Unter der Woche am Vormittag ist es ruhiger – per ÖPNV kommt man entspannt hin.'
-                : 'Prefer urban over studio? We have spots with space & natural light. Tip: Weekday mornings are quieter – easy to reach by public transport.'}
-            </p>
-            <p className="text-center text-sm text-gray-600">
-              {language === 'de' ? 'Externer Hinweis: ' : 'External link: '}
-              <a href="https://www.wienerlinien.at/" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-700 underline">
-                {language === 'de' ? 'Wiener Linien Routenplaner – Anfahrt & Umstieg' : 'Wiener Linien Route Planner – Directions & Transfers'}
-              </a>
-            </p>
-          </div>
-        </section>
-
         {/* Ablauf & SLAs */}
         <section className="py-16 bg-gray-50">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">

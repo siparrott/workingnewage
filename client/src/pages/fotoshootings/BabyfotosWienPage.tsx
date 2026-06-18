@@ -206,7 +206,7 @@ export default function BabyfotosWienPage() {
                 um die Reise von Anfang an festzuhalten. Viele Eltern entscheiden sich später zusätzlich für{' '}
                 <Link to="/kinder-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Kinderfotografie in Wien</Link>,
                 um die Entwicklung ihres Kindes weiter zu dokumentieren. Alle{' '}
-                <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Preise für Fotoshootings</Link> ansehen
+                <Link to="/calculator" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Preise für Fotoshootings</Link> ansehen
                 oder direkt{' '}
                 <Link to="/warteliste/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Termin sichern</Link>.
               </>
@@ -215,7 +215,7 @@ export default function BabyfotosWienPage() {
                 Many parents later book{' '}
                 <Link to="/kinder-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">children's photography in Vienna</Link>{' '}
                 to document their child's development. View all{' '}
-                <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">prices</Link> or{' '}
+                <Link to="/calculator" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">prices</Link> or{' '}
                 <Link to="/warteliste/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">book a slot</Link>.
               </>
             )}
@@ -446,7 +446,7 @@ export default function BabyfotosWienPage() {
           {/* Extras */}
           <div className="bg-purple-50 rounded-xl p-6 text-center">
             <p className="text-gray-700">
-              <strong>{language === 'de' ? 'Extras:' : 'Extras:'}</strong> {language === 'de' ? 'Zusatzbild €15, Express 72 h €60, Fine-Art-Album ab €175.' : 'Additional image €15, Express 72 h €60, Fine art album from €175.'}
+              <strong>{language === 'de' ? 'Extras:' : 'Extras:'}</strong> {language === 'de' ? 'Zusätzliche Bilder je €20 und Pakete verfügbar.' : 'Additional images are €20 each and packages are available.'}
             </p>
             <p className="text-sm text-gray-600 mt-2">
               {language === 'de' ? 'Freie Slots sind knapp. Trag dich hier ein: ' : 'Open slots are limited. Sign up here: '}<Link to="/warteliste" className="text-purple-600 hover:text-purple-700 underline font-semibold">{language === 'de' ? 'Termin-Warteliste' : 'Appointment Waitlist'}</Link>
@@ -794,7 +794,7 @@ export default function BabyfotosWienPage() {
             </li>
           </ul>
           <p className="text-center text-gray-700">
-            <Link to="/preise/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">
+            <Link to="/calculator" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">
               {language === 'de' ? 'Preise ansehen' : 'View prices'}
             </Link>
             <span className="mx-2 text-gray-400">·</span>

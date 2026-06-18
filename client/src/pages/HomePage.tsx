@@ -172,7 +172,7 @@ const HomePage: React.FC = () => {
     ? {
         heading: 'Find your perfect photoshoot package',
         subheading: 'In just 30 seconds, discover which package fits your family best.',
-        body: 'No hidden prices. No surprises. Plan your personal photoshoot online with ease.',
+        body: 'No hidden prices. No surprises. Plan your personal photoshoot online with ease. Extra digital portraits are €20 each. Packages available.',
         label: 'New Age Fotografie Price Calculator',
         labelSub: 'Your personal package in just a few clicks',
         badge: 'Fast & obligation-free',
@@ -184,7 +184,7 @@ const HomePage: React.FC = () => {
     : {
         heading: 'Finden Sie Ihr perfektes Fotoshooting Paket',
         subheading: 'In nur 30 Sekunden erfahren Sie, welches Paket am besten zu Ihrer Familie passt.',
-        body: 'Keine versteckten Preise. Keine Überraschungen. Planen Sie Ihr persönliches Fotoshooting ganz einfach online.',
+        body: 'Keine versteckten Preise. Keine Überraschungen. Planen Sie Ihr persönliches Fotoshooting ganz einfach online. Zusätzliche digitale Portraits je €20. Pakete verfügbar.',
         label: 'New Age Fotografie Preisrechner',
         labelSub: 'Ihr persönliches Paket in wenigen Klicks',
         badge: 'Schnell & unverbindlich',

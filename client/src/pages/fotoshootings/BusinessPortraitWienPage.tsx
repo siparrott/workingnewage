@@ -180,7 +180,7 @@ export default function BusinessPortraitWienPage() {
                     <Link to="/bewerbungsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Bewerbungsfotos Wien</Link>,{' '}
                     <Link to="/eventfotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Eventfotografie Wien</Link> und{' '}
                     <Link to="/portrait-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Portraitfotografie Wien</Link> an.
-                    Alle <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Preise & Business-Pakete</Link> ab €95.
+                    Alle <Link to="/calculator" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Preise & Business-Pakete</Link> ab €95.
                   </>
                 ) : (
                   <>
@@ -188,7 +188,7 @@ export default function BusinessPortraitWienPage() {
                     <Link to="/teamfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">team photos Vienna</Link>,{' '}
                     <Link to="/bewerbungsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">application photos Vienna</Link>, and{' '}
                     <Link to="/eventfotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">event photography Vienna</Link>.
-                    See all <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">packages from €95</Link>.
+                    See all <Link to="/calculator" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">packages from €95</Link>.
                   </>
                 )}
               </p>
@@ -697,7 +697,7 @@ export default function BusinessPortraitWienPage() {
             </li>
           </ul>
           <p className="text-center text-gray-700">
-            <Link to="/preise/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">
+            <Link to="/calculator" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">
               {language === 'de' ? 'Business Preise' : 'Business prices'}
             </Link>
             <span className="mx-2 text-gray-400">·</span>

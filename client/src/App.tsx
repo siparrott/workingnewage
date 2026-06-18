@@ -243,8 +243,8 @@ function App() {
                 <Route path="/galerie" element={<PublicGalleriesPage />} />
                 <Route path="/gallery/:slug" element={<GalleryPage />} />
                 <Route path="/gallery" element={<ProtectedRoute><GalleryPage /></ProtectedRoute>} />
-                {/* /calculator hidden pending refinement – soft redirect to /preise/ */}
-                <Route path="/calculator" element={<Navigate to="/preise/" replace />} />
+                {/* Dedicated calculator page */}
+                <Route path="/calculator" element={<CalculatorPage />} />
                 <Route path="/survey-demo" element={<SurveySystemDemoPage />} />
                 <Route path="/survey/:id" element={<SurveyTakingPage />} />
                 <Route path="/q/:token" element={<QuestionnaireFormPage />} />

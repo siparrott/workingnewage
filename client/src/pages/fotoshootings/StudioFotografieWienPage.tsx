@@ -208,7 +208,7 @@ const StudioFotografieWienPage: React.FC = () => {
                 <Link to="/neugeborenenfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Neugeborenenfotos Wien</Link>,{' '}
                 <Link to="/business-portrait-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Business Portrait Wien</Link> und{' '}
                 <Link to="/produkt-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Produktfotografie Wien</Link>.
-                Alle <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Studio-Pakete & Preise</Link> oder{' '}
+                Alle <Link to="/calculator" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Studio-Pakete & Preise</Link> oder{' '}
                 <Link to="/warteliste/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Termin buchen</Link>.
               </>
             ) : (
@@ -217,7 +217,7 @@ const StudioFotografieWienPage: React.FC = () => {
                 <Link to="/familienfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">family photos Vienna</Link>,{' '}
                 <Link to="/business-portrait-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">business portrait Vienna</Link>, and{' '}
                 <Link to="/produkt-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">product photography Vienna</Link>.
-                View <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">all packages & prices</Link>.
+                View <Link to="/calculator" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">all packages & prices</Link>.
               </>
             )}
           </p>

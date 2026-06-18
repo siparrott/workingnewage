@@ -180,7 +180,7 @@ export default function NeugeborenenfotosWienPage() {
                 <Link to="/babyfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Babyfotos Wien</Link> (3–12 Monate) und{' '}
                 <Link to="/familienfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Familienfotos Wien</Link> an –
                 ideal um die ersten Jahre Ihres Kindes vollständig festzuhalten.
-                Alle <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Preise & Pakete</Link> ab €95.
+                Alle <Link to="/calculator" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Preise & Pakete</Link> ab €95.
                 Jetzt <Link to="/warteliste/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Termin buchen</Link>.
               </p>
             </div>
@@ -206,8 +206,8 @@ export default function NeugeborenenfotosWienPage() {
             <ul>
               <li><strong>Friendly guidance</strong> instead of uncertainty in front of the camera</li>
               <li><strong>Soft, professional light</strong> (Octa softboxes) for natural skin tones</li>
-              <li><strong>Personality in the picture:</strong> Feel free to bring personal items: toys, hobbies, instruments, favorite book \u2013 that makes your photos unique.</li>
-              <li><strong>Flexible with people & animals:</strong> Pets are welcome \u2013 just let us know in advance and we'll plan a little \u201cpet break.\u201d</li>
+              <li><strong>Personality in the picture:</strong> Feel free to bring personal items: toys, hobbies, instruments, favorite book – that makes your photos unique.</li>
+              <li><strong>Flexible with people & animals:</strong> Pets are welcome – just let us know in advance and we'll plan a little “pet break.”</li>
             </ul>
             <h2>Packages & Options</h2>
             <table>
@@ -224,15 +224,15 @@ export default function NeugeborenenfotosWienPage() {
               <li>1\u20132 neutral bodysuits/blankets, if you like</li>
               <li>A small personal item (e.g. stuffed animal)</li>
             </ul>
-            <p>Water, coffee & tea are available \u2013 beer or Prosecco on request. We don't offer make-up services \u2013 please arrive with hair & make-up done if possible. Our lighting is very flattering regardless.</p>
+            <p>Water, coffee & tea are available – beer or Prosecco on request. We don't offer make-up services – please arrive with hair & make-up done if possible. Our lighting is very flattering regardless.</p>
             <h2>Safety & Handling of Newborns</h2>
             <p>With newborns, the most important thing is: <strong>safety above all</strong>. We work calmly, warmly and without rush. Poses are created not with pressure, but with patience, gentle adjustments and breaks.</p>
             <ul>
               <li>We schedule time for feeding, changing and soothing.</li>
-              <li>We photograph gently and naturally \u2013 no force, no risky positions.</li>
-              <li>If your baby sleeps: wonderful. If not: also perfect \u2013 awake shots are often the most honest.</li>
+              <li>We photograph gently and naturally – no force, no risky positions.</li>
+              <li>If your baby sleeps: wonderful. If not: also perfect – awake shots are often the most honest.</li>
             </ul>
-            <h2>Process \u2013 How Your Shoot Works</h2>
+            <h2>Process – How Your Shoot Works</h2>
             <ol>
               <li><strong>Quick briefing:</strong> who is coming, which combinations are important, what mood do you want?</li>
               <li><strong>Arrival & outfit check:</strong> we coordinate colors and give mini tips.</li>

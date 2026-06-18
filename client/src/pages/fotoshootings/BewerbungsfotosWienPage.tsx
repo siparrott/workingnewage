@@ -178,7 +178,7 @@ export default function BewerbungsfotosWienPage() {
                     <Link to="/teamfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Teamfotos Wien</Link> oder{' '}
                     <Link to="/portrait-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Portraitfotografie Wien</Link>,
                     um ein einheitliches Erscheinungsbild zu schaffen. Alle{' '}
-                    <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Preise & Pakete</Link> ab €95 –
+                    <Link to="/calculator" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Preise & Pakete</Link> ab €95 –
                     jetzt{' '}
                     <Link to="/warteliste/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Termin sichern</Link>.
                   </>
@@ -187,7 +187,7 @@ export default function BewerbungsfotosWienPage() {
                     From career starters to professionals and executives – we deliver application photos that are professional,
                     personable and industry-appropriate. Many clients combine their shoot with{' '}
                     <Link to="/teamfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">team photos Vienna</Link>.
-                    See all <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">packages from €95</Link>.
+                    See all <Link to="/calculator" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">packages from €95</Link>.
                   </>
                 )}
               </p>
@@ -582,7 +582,7 @@ export default function BewerbungsfotosWienPage() {
             </li>
           </ul>
           <p className="text-center text-gray-700">
-            <Link to="/preise/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">
+            <Link to="/calculator" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">
               {language === 'de' ? 'Preise ansehen' : 'View prices'}
             </Link>
             <span className="mx-2 text-gray-400">·</span>

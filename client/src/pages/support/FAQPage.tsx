@@ -83,7 +83,7 @@ const FAQPage: React.FC = () => {
     {
       category: 'Nach dem Shooting',
       question: 'Kann ich zusätzliche Bilder bekommen?',
-      answer: 'Ja, Sie können weitere bearbeitete Bilder für €15 pro Stück nachbestellen. Kontaktieren Sie uns einfach.'
+      answer: 'Ja, Sie können weitere bearbeitete Bilder für €20 pro Stück nachbestellen. Kontaktieren Sie uns einfach.'
     },
 
     // Payment & Cancellation

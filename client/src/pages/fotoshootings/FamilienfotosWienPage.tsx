@@ -194,7 +194,7 @@ export default function FamilienfotosWienPage() {
                     <Link to="/schwangerschaftsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Schwangerschaftsfotos Wien</Link>,{' '}
                     <Link to="/babyfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Babyfotos Wien</Link> und{' '}
                     <Link to="/kinder-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Kinderfotografie Wien</Link> an.
-                    Alle <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Preise & Pakete</Link> ab €95.
+                    Alle <Link to="/calculator" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Preise & Pakete</Link> ab €95.
                   </>
                 ) : (
                   <>
@@ -202,7 +202,7 @@ export default function FamilienfotosWienPage() {
                     <Link to="/neugeborenenfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">newborn photography Vienna</Link>,{' '}
                     <Link to="/schwangerschaftsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">maternity photos Vienna</Link>, and{' '}
                     <Link to="/babyfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">baby photography Vienna</Link>.
-                    All <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">packages from €95</Link>.
+                    All <Link to="/calculator" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">packages from €95</Link>.
                   </>
                 )}
               </p>
@@ -409,7 +409,7 @@ export default function FamilienfotosWienPage() {
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
               <div className="flex items-center">
                 <Check className="h-4 w-4 text-purple-600 mr-2" />
-                <span>{language === 'de' ? 'Zusatzdatei retuschiert' : 'Additional retouched file'} <strong>€15</strong></span>
+                <span>{language === 'de' ? 'Zusätzliches digitales Portrait' : 'Extra digital portrait'} <strong>€20</strong></span>
               </div>
               <div className="flex items-center">
                 <Check className="h-4 w-4 text-purple-600 mr-2" />
@@ -607,7 +607,7 @@ export default function FamilienfotosWienPage() {
             </li>
           </ul>
           <p className="text-center text-gray-700">
-            <Link to="/preise/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">
+            <Link to="/calculator" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">
               {language === 'de' ? 'Preise für Familienfotos' : 'Family photo prices'}
             </Link>
             <span className="mx-2 text-gray-400">·</span>
