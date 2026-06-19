@@ -12294,7 +12294,6 @@ ${getBizName()} CRM System
                   console.log('[WEBHOOK] Could not fetch card details:', cardErr.message);
                 }
               }
-              }
 
               // After creating the sale and saving card details, attempt to generate and persist
               // the personalized voucher PDF so admins can download the exact voucher later.
@@ -12329,7 +12328,7 @@ ${getBizName()} CRM System
                 console.warn('[WEBHOOK] Error generating/saving voucher PDF:', pdfErr);
               }
 
-              } catch (saleError: any) {
+            } catch (saleError: any) {
               console.error('[WEBHOOK] ⚠️ Failed to create voucher sale:', saleError.message);
             }
           }
