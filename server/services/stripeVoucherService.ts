@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import { findCoupon, allowsSku, isCouponActive } from './coupons';
 import { v4 as uuidv4 } from 'uuid';
 import { VoucherGenerationService, GeneratedVoucher } from './voucherGenerationService';
+import { EnhancedEmailService } from './enhancedEmailService';
 
 // Check if Stripe key is properly configured
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -416,6 +417,13 @@ export class StripeVoucherService {
         deliveryMethod: 'email'
       });
 
+      // Send email in demo mode (no real Stripe session PDF will be attached)
+      try {
+        await this.sendVoucherEmail(generatedVoucher, sessionId);
+      } catch (e) {
+        console.warn('Demo: failed to send voucher email:', e);
+      }
+
       return {
         session: mockSession,
         generatedVoucher
@@ -468,7 +476,7 @@ export class StripeVoucherService {
         
         // Send voucher email or schedule delivery
         if (generatedVoucher.deliveryMethod === 'email') {
-          await this.sendVoucherEmail(generatedVoucher);
+          await this.sendVoucherEmail(generatedVoucher, session.id);
         }
         
       } catch (error) {
@@ -489,24 +497,38 @@ export class StripeVoucherService {
   /**
    * Send voucher email to recipient
    */
-  private static async sendVoucherEmail(voucher: GeneratedVoucher): Promise<void> {
+  private static async sendVoucherEmail(voucher: GeneratedVoucher, sessionId?: string): Promise<void> {
     try {
       const voucherDocument = VoucherGenerationService.generateVoucherDocument(voucher);
-      
-      // Here you would integrate with your email service (SendGrid, etc.)
-      console.log('Voucher email would be sent to:', voucher.recipientEmail);
-      console.log('Security code:', voucher.securityCode);
-      
-      // Example email service integration:
-      // await emailService.send({
-      //   to: voucher.recipientEmail,
-      //   subject: 'Ihr Geschenkgutschein von New Age Fotografie',
-      //   html: voucherDocument.htmlContent,
-      //   attachments: voucherDocument.pdfBuffer ? [{
-      //     filename: `Gutschein_${voucher.securityCode}.pdf`,
-      //     content: voucherDocument.pdfBuffer
-      //   }] : []
-      // });
+
+      // Try to fetch the generated PDF from the internal PDF endpoint (if sessionId provided)
+      const attachments: Array<{ filename: string; content: Buffer; contentType?: string }> = [];
+      if (sessionId) {
+        try {
+          const internalBase = process.env.SITE_URL || process.env.FRONTEND_URL || `http://localhost:${process.env.PORT || 3001}`;
+          const resp = await fetch(`${internalBase}/voucher/pdf?session_id=${encodeURIComponent(sessionId)}`);
+          if (resp && resp.ok) {
+            const buf = Buffer.from(await resp.arrayBuffer());
+            attachments.push({ filename: `Gutschein_${voucher.securityCode}.pdf`, content: buf, contentType: 'application/pdf' });
+          } else {
+            console.warn('[EMAIL] Could not fetch voucher PDF for attachment, status=', resp?.status);
+          }
+        } catch (e) {
+          console.warn('[EMAIL] Error fetching voucher PDF for attachment:', e);
+        }
+      }
+
+      // Fallback: if no PDF attached, still send HTML content
+      const subject = `Ihr Geschenkgutschein von ${process.env.BUSINESS_NAME || 'New Age Fotografie'}`;
+
+      await EnhancedEmailService.sendEmail({
+        to: voucher.recipientEmail,
+        subject,
+        content: voucherDocument.htmlContent.replace(/<[^>]+>/g, '\n'),
+        html: voucherDocument.htmlContent,
+        attachments: attachments.map(a => ({ filename: a.filename, content: a.content, contentType: a.contentType })),
+        autoLinkClient: true
+      });
       
     } catch (error) {
       console.error('Error sending voucher email:', error);

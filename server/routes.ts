@@ -12294,7 +12294,42 @@ ${getBizName()} CRM System
                   console.log('[WEBHOOK] Could not fetch card details:', cardErr.message);
                 }
               }
-            } catch (saleError: any) {
+              }
+
+              // After creating the sale and saving card details, attempt to generate and persist
+              // the personalized voucher PDF so admins can download the exact voucher later.
+              try {
+                const internalBase = process.env.SITE_URL || process.env.FRONTEND_URL || `http://localhost:${process.env.PORT || 3001}`;
+                const pdfUrlPath = `/voucher/pdf?session_id=${encodeURIComponent(session.id)}`;
+                const pdfResp = await fetch(`${internalBase}${pdfUrlPath}`);
+                if (pdfResp && pdfResp.ok) {
+                  const pdfBuf = Buffer.from(await pdfResp.arrayBuffer());
+                  const filename = `${createdSale.id}.pdf`;
+                  try {
+                    const publicUrl = await storage.savePublicAsset('vouchers', filename, pdfBuf);
+                    // Update the voucher sale record with the public URL
+                    try {
+                      // storage.updateVoucherSale may not exist in all environments; fall back to runSql
+                      if (typeof storage.updateVoucherSale === 'function') {
+                        await storage.updateVoucherSale(createdSale.id, { pdfUrl: publicUrl });
+                      } else {
+                        await runSql(`UPDATE voucher_sales SET pdf_url = $1 WHERE id = $2`, [publicUrl, createdSale.id]);
+                      }
+                      console.log('[WEBHOOK] ✅ Saved voucher PDF and updated sale.pdf_url:', publicUrl);
+                    } catch (upErr) {
+                      console.warn('[WEBHOOK] Could not update voucher sale with pdf_url:', upErr);
+                    }
+                  } catch (saveErr) {
+                    console.warn('[WEBHOOK] Could not save voucher PDF to public assets:', saveErr);
+                  }
+                } else {
+                  console.warn('[WEBHOOK] Failed to fetch generated PDF for saving; status=', pdfResp?.status);
+                }
+              } catch (pdfErr) {
+                console.warn('[WEBHOOK] Error generating/saving voucher PDF:', pdfErr);
+              }
+
+              } catch (saleError: any) {
               console.error('[WEBHOOK] ⚠️ Failed to create voucher sale:', saleError.message);
             }
           }
