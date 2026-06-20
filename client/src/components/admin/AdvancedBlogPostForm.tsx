@@ -250,9 +250,9 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
   const uploadImageFile = async (
     file: File,
     field: ImageField = 'cover_image',
-  ) => {
-    if (!file) return;
-    
+  ): Promise<boolean> => {
+    if (!file) return false;
+
     try {
       setImageUploading(true);
       setError(null);
@@ -287,9 +287,11 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
       }
       
       handleChange(field, publicUrl);
+      return true;
     } catch (err: any) {
       console.error('[BLOG IMAGE UPLOAD] Error:', err);
-      setError('Failed to upload image. Please try again. ' + (err.message || ''));
+      setError((de ? 'Bild-Upload fehlgeschlagen. Bitte erneut versuchen. ' : 'Failed to upload image. Please try again. ') + (err.message || ''));
+      return false;
     } finally {
       setImageUploading(false);
     }
@@ -335,8 +337,10 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
       type: cropTarget.file.type || blob.type || 'image/jpeg',
     });
 
-    await uploadImageFile(croppedFile, cropTarget.field);
-    setCropTarget(null);
+    // Only close the cropper once the upload actually succeeds. On failure keep it
+    // open (with the error banner) instead of dumping the user back to the editor.
+    const ok = await uploadImageFile(croppedFile, cropTarget.field);
+    if (ok) setCropTarget(null);
   };
 
   const handleAddTag = () => {
