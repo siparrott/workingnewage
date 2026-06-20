@@ -1864,6 +1864,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // CRM Agent routes with Phase B write capabilities
   app.get('/api/crm/agent/status', async (req, res) => {
     try {
+      // Probe whether the agent subsystem can actually load. Several of its tool
+      // modules are not present in this repo, so the dynamic import can fail at
+      // runtime — report the real state instead of always claiming "operational".
+      let available = false;
+      try {
+        await import('../agent/run-agent');
+        available = true;
+      } catch (loadErr: any) {
+        console.warn('CRM Agent unavailable:', loadErr?.message || loadErr);
+      }
+
+      if (!available) {
+        return res.json({
+          status: 'unavailable',
+          message: 'The AI assistant is temporarily unavailable. Chat requests will return a fallback response until it is restored.',
+          capabilities: { read: [], write: [], mode: 'unavailable' },
+          phase: 'B - Write Enabled',
+          timestamp: new Date().toISOString()
+        });
+      }
+
       res.json({
         status: 'operational',
         capabilities: {
