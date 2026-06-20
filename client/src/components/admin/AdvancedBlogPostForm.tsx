@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import AdvancedRichTextEditor from './AdvancedRichTextEditor';
 import IdeaModePanel from './IdeaModePanel';
 import ImageCropper from '../ImageCropper';
-import { 
+import { useLanguage } from '../../context/LanguageContext';
+import {
   ArrowLeft, 
   ArrowRight, 
   Save, 
@@ -143,6 +144,8 @@ const recommendTagsFromContent = (
 
 const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = false }) => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const de = language === 'de'; // honour the global EN/DE toggle for this admin form
   const [currentStep, setCurrentStep] = useState<Step>('content');
   const [formData, setFormData] = useState<BlogPost>({
     title: '',
@@ -318,7 +321,7 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
       });
       setCropTarget({ field, label, file });
     } catch (err: any) {
-      setError(err.message || 'Bild konnte nicht für die Transformation geöffnet werden');
+      setError(err.message || (de ? 'Bild konnte nicht für die Transformation geöffnet werden' : 'Image could not be opened for transformation'));
     }
   };
 
@@ -647,12 +650,14 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
             <img
               src={formData[field]}
-              alt={`${label} Vorschau`}
+              alt={`${label} ${de ? 'Vorschau' : 'preview'}`}
               className={field === 'cover_image' ? 'w-full rounded-xl shadow-lg' : 'w-full rounded-xl shadow-2xl'}
             />
           </div>
           <p className="text-xs text-gray-500">
-            Diese Vorschau nutzt die gleichen Bildproportionen wie der veröffentlichte Blogartikel. Über "Frei transformieren" kannst du den sichtbaren Ausschnitt verschieben und skalieren.
+            {de
+              ? 'Diese Vorschau nutzt die gleichen Bildproportionen wie der veröffentlichte Blogartikel. Über "Frei transformieren" kannst du den sichtbaren Ausschnitt verschieben und skalieren.'
+              : 'This preview uses the same image proportions as the published blog article. Use "Free transform" to move and scale the visible crop.'}
           </p>
           <div className="flex flex-wrap gap-2">
             <button
@@ -705,7 +710,9 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
         </div>
       )}
       <p className="text-xs text-gray-500">
-        Tipp: Für eine ganze Fotostrecke mit automatischen EXIF/SEO-Metadaten nutzt den Idee-Modus.
+        {de
+          ? 'Tipp: Für eine ganze Fotostrecke mit automatischen EXIF/SEO-Metadaten nutzt den Idee-Modus.'
+          : 'Tip: For a whole photo series with automatic EXIF/SEO metadata, use Idea Mode.'}
       </p>
 
       {isEditing && post?.id && (
@@ -1045,8 +1052,10 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
           <div className="w-full max-w-5xl rounded-2xl bg-white p-6 shadow-2xl">
             <ImageCropper
               file={cropTarget.file}
-              title={`${cropTarget.label} ausrichten`}
-              helpText="Verschiebe und skaliere das Bild direkt im finalen Blog-Rahmen. Beim Speichern wird genau dieser Ausschnitt hochgeladen."
+              title={`${cropTarget.label} ${de ? 'ausrichten' : 'align'}`}
+              helpText={de
+                ? 'Verschiebe und skaliere das Bild direkt im finalen Blog-Rahmen. Beim Speichern wird genau dieser Ausschnitt hochgeladen.'
+                : 'Move and scale the image directly within the final blog frame. On save, exactly this crop is uploaded.'}
               onCancel={() => setCropTarget(null)}
               onCropped={(blob) => handleCroppedUpload(blob)}
             />

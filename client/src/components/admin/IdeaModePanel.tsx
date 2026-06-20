@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Upload, Image as ImageIcon, Wand2, Loader2, CheckCircle, AlertCircle, Camera, Eye, Tag, X } from 'lucide-react';
+import { Upload, Image as ImageIcon, Wand2, Loader2, AlertCircle, Camera, Eye, Tag, X } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 // Idea-mode editor panel: the photo-first workflow for a blog post in IDEA status.
 //   1. Upload up to 5 images   -> POST /api/blog/idea/:id/images   (B2 + EXIF)
@@ -27,7 +28,92 @@ interface Props {
 
 const getAdminToken = () => (typeof window !== 'undefined' ? (localStorage.getItem('ADMIN_TOKEN') || '') : '');
 
+// Bilingual UI strings — driven by the global EN/DE language toggle.
+const STRINGS = {
+  de: {
+    modeTitle: 'Idee-Modus',
+    intro: 'Lade bis zu 5 Fotos hoch, ergänze Kontext und lass den Artikel daraus schreiben. Reihenfolge: Fotos → Kontext → Analysieren → Entwurf erzeugen. Thema:',
+    photos: 'Fotos',
+    uploadPhotos: 'Fotos hochladen',
+    removeImage: 'Bild entfernen',
+    noCameraData: 'keine Kameradaten',
+    analyzed: 'analysiert',
+    notAnalyzed: 'nicht analysiert',
+    iptcSet: 'IPTC gesetzt',
+    noIptc: 'kein IPTC',
+    contextHeading: '2. Kontext (Fakten – das Wichtigste für gute Texte)',
+    location: 'Ort',
+    locationPh: 'z.B. Tageslichtstudio Wien-Margareten',
+    timing: 'Zeit / Jahreszeit',
+    timingPh: 'z.B. Frühlingsnachmittag',
+    people: 'Personen / Namen',
+    peoplePh: 'z.B. Familie M. mit zwei Kindern',
+    occasion: 'Anlass',
+    occasionPh: 'z.B. erstes Familienshooting',
+    comment: 'Kommentar / besondere Momente',
+    commentPh: 'Was war besonders? Stimmung, Details …',
+    consentLabel: 'Einwilligung (DSGVO):',
+    consentText: 'Mir liegt die Zustimmung der abgebildeten Personen zur Veröffentlichung dieser Fotos (und genannter Namen) vor.',
+    saveContext: 'Kontext speichern',
+    analyzeImages: '3. Bilder analysieren',
+    generateDraft: '4. Entwurf erzeugen',
+    hintAnalyzeFirst: 'Erst Bilder analysieren.',
+    hintConsentRequired: 'Einwilligung erforderlich.',
+    hintReady: 'Erzeugt den Artikel und wechselt zu „Entwurf".',
+    errMax: 'Maximal 5 Bilder pro Beitrag.',
+    errUpload: 'Upload fehlgeschlagen',
+    errDelete: 'Löschen fehlgeschlagen',
+    errSave: 'Speichern fehlgeschlagen',
+    errAnalyze: 'Analyse fehlgeschlagen',
+    errGenerate: 'Generierung fehlgeschlagen',
+    errConsentFirst: 'Bitte bestätige die Einwilligung, bevor du den Entwurf erzeugst.',
+    savedContext: 'Kontext gespeichert.',
+  },
+  en: {
+    modeTitle: 'Idea Mode',
+    intro: 'Upload up to 5 photos, add context, and have the article written from them. Order: Photos → Context → Analyze → Generate draft. Topic:',
+    photos: 'Photos',
+    uploadPhotos: 'Upload photos',
+    removeImage: 'Remove image',
+    noCameraData: 'no camera data',
+    analyzed: 'analyzed',
+    notAnalyzed: 'not analyzed',
+    iptcSet: 'IPTC set',
+    noIptc: 'no IPTC',
+    contextHeading: '2. Context (facts — the key to good copy)',
+    location: 'Location',
+    locationPh: 'e.g. daylight studio Vienna-Margareten',
+    timing: 'Time / Season',
+    timingPh: 'e.g. spring afternoon',
+    people: 'People / Names',
+    peoplePh: 'e.g. the M. family with two children',
+    occasion: 'Occasion',
+    occasionPh: 'e.g. first family shoot',
+    comment: 'Comment / special moments',
+    commentPh: 'What was special? Mood, details …',
+    consentLabel: 'Consent (GDPR):',
+    consentText: 'I have the consent of the people shown to publish these photos (and any named individuals).',
+    saveContext: 'Save context',
+    analyzeImages: '3. Analyze images',
+    generateDraft: '4. Generate draft',
+    hintAnalyzeFirst: 'Analyze images first.',
+    hintConsentRequired: 'Consent required.',
+    hintReady: 'Generates the article and switches to "Draft".',
+    errMax: 'Maximum 5 images per post.',
+    errUpload: 'Upload failed',
+    errDelete: 'Delete failed',
+    errSave: 'Save failed',
+    errAnalyze: 'Analysis failed',
+    errGenerate: 'Generation failed',
+    errConsentFirst: 'Please confirm consent before generating the draft.',
+    savedContext: 'Context saved.',
+  },
+} as const;
+
 const IdeaModePanel: React.FC<Props> = ({ postId, title, pillar, initialIdea, onGenerated }) => {
+  const { language } = useLanguage();
+  const L = STRINGS[language === 'de' ? 'de' : 'en'];
+
   const [images, setImages] = useState<IdeaImage[]>(initialIdea?.images || []);
   const [ctx, setCtx] = useState<IdeaContext>(initialIdea?.context || {});
   const [consent, setConsent] = useState<boolean>(!!initialIdea?.consent?.given);
@@ -40,7 +126,7 @@ const IdeaModePanel: React.FC<Props> = ({ postId, title, pillar, initialIdea, on
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || !files.length) return;
-    if (images.length + files.length > 5) { setError('Maximal 5 Bilder pro Beitrag.'); return; }
+    if (images.length + files.length > 5) { setError(L.errMax); return; }
     setBusy('upload'); setError(null);
     try {
       const fd = new FormData();
@@ -49,7 +135,7 @@ const IdeaModePanel: React.FC<Props> = ({ postId, title, pillar, initialIdea, on
         method: 'POST', headers: { 'x-admin-token': getAdminToken() }, body: fd,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Upload fehlgeschlagen');
+      if (!res.ok) throw new Error(data.error || L.errUpload);
       setImages(data.images || []);
     } catch (err: any) { setError(err.message); } finally { setBusy(''); (e.target as HTMLInputElement).value = ''; }
   };
@@ -62,7 +148,7 @@ const IdeaModePanel: React.FC<Props> = ({ postId, title, pillar, initialIdea, on
         method: 'DELETE', headers: { 'x-admin-token': getAdminToken() },
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Löschen fehlgeschlagen');
+      if (!res.ok) throw new Error(data.error || L.errDelete);
       setImages(data.images || []);
     } catch (err: any) { setError(err.message); }
   };
@@ -75,8 +161,8 @@ const IdeaModePanel: React.FC<Props> = ({ postId, title, pillar, initialIdea, on
         body: JSON.stringify({ context: ctx, consent: { given: consent } }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Speichern fehlgeschlagen');
-      setSavedMsg('Kontext gespeichert.');
+      if (!res.ok) throw new Error(data.error || L.errSave);
+      setSavedMsg(L.savedContext);
     } catch (err: any) { setError(err.message); } finally { setBusy(''); }
   };
 
@@ -87,13 +173,13 @@ const IdeaModePanel: React.FC<Props> = ({ postId, title, pillar, initialIdea, on
         method: 'POST', headers: { 'x-admin-token': getAdminToken() },
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Analyse fehlgeschlagen');
+      if (!res.ok) throw new Error(data.error || L.errAnalyze);
       setImages(data.images || []);
     } catch (err: any) { setError(err.message); } finally { setBusy(''); }
   };
 
   const generate = async () => {
-    if (!consent) { setError('Bitte bestätige die Einwilligung, bevor du den Entwurf erzeugst.'); return; }
+    if (!consent) { setError(L.errConsentFirst); return; }
     setBusy('generate'); setError(null);
     try {
       // persist latest context/consent first
@@ -106,7 +192,7 @@ const IdeaModePanel: React.FC<Props> = ({ postId, title, pillar, initialIdea, on
         body: JSON.stringify({ pillar }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Generierung fehlgeschlagen');
+      if (!res.ok) throw new Error(data.error || L.errGenerate);
       onGenerated ? onGenerated() : window.location.reload();
     } catch (err: any) { setError(err.message); setBusy(''); }
   };
@@ -129,10 +215,9 @@ const IdeaModePanel: React.FC<Props> = ({ postId, title, pillar, initialIdea, on
   return (
     <div className="space-y-6">
       <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-        <div className="flex items-center text-purple-800 font-medium"><Wand2 size={18} className="mr-2" /> Idee-Modus</div>
+        <div className="flex items-center text-purple-800 font-medium"><Wand2 size={18} className="mr-2" /> {L.modeTitle}</div>
         <p className="text-sm text-purple-700 mt-1">
-          Lade bis zu 5 Fotos hoch, ergänze Kontext und lass den Artikel daraus schreiben.
-          Reihenfolge: Fotos → Kontext → Analysieren → Entwurf erzeugen. Thema: <strong>{title}</strong>
+          {L.intro} <strong>{title}</strong>
         </p>
       </div>
 
@@ -141,7 +226,7 @@ const IdeaModePanel: React.FC<Props> = ({ postId, title, pillar, initialIdea, on
 
       {/* 1. Images */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="font-semibold flex items-center mb-3"><ImageIcon size={18} className="mr-2" /> 1. Fotos ({images.length}/5)</h3>
+        <h3 className="font-semibold flex items-center mb-3"><ImageIcon size={18} className="mr-2" /> 1. {L.photos} ({images.length}/5)</h3>
         {images.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
             {images.map((img, i) => (
@@ -149,15 +234,15 @@ const IdeaModePanel: React.FC<Props> = ({ postId, title, pillar, initialIdea, on
                 <div className="relative">
                   {img.url && <img src={img.url} alt={img.altText || ''} className="w-full h-32 object-cover" />}
                   <button type="button" onClick={() => removeImage(i)} disabled={!!busy}
-                    title="Bild entfernen"
+                    title={L.removeImage}
                     className="absolute top-1 right-1 bg-white/90 hover:bg-red-600 hover:text-white text-gray-700 rounded-full p-1 shadow disabled:opacity-50">
                     <X size={14} />
                   </button>
                 </div>
                 <div className="p-2 space-y-1 text-xs">
-                  <div className="flex items-center gap-1 text-gray-600"><Camera size={12} />{img.exif?.model || img.exif?.make || 'keine Kameradaten'}</div>
-                  <div className={`flex items-center gap-1 ${img.vision ? 'text-green-600' : 'text-gray-400'}`}><Eye size={12} />{img.vision ? 'analysiert' : 'nicht analysiert'}</div>
-                  <div className={`flex items-center gap-1 ${img.iptcWritten ? 'text-green-600' : 'text-gray-400'}`}><Tag size={12} />{img.iptcWritten ? 'IPTC gesetzt' : 'kein IPTC'}</div>
+                  <div className="flex items-center gap-1 text-gray-600"><Camera size={12} />{img.exif?.model || img.exif?.make || L.noCameraData}</div>
+                  <div className={`flex items-center gap-1 ${img.vision ? 'text-green-600' : 'text-gray-400'}`}><Eye size={12} />{img.vision ? L.analyzed : L.notAnalyzed}</div>
+                  <div className={`flex items-center gap-1 ${img.iptcWritten ? 'text-green-600' : 'text-gray-400'}`}><Tag size={12} />{img.iptcWritten ? L.iptcSet : L.noIptc}</div>
                   {img.altText && <div className="text-gray-500 truncate" title={img.altText}>„{img.altText}"</div>}
                 </div>
               </div>
@@ -167,7 +252,7 @@ const IdeaModePanel: React.FC<Props> = ({ postId, title, pillar, initialIdea, on
         {images.length < 5 && (
           <label className="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-pointer text-sm">
             {busy === 'upload' ? <Loader2 size={16} className="animate-spin mr-2" /> : <Upload size={16} className="mr-2" />}
-            Fotos hochladen
+            {L.uploadPhotos}
             <input type="file" accept="image/*" multiple className="hidden" onChange={handleUpload} disabled={busy === 'upload'} />
           </label>
         )}
@@ -175,21 +260,21 @@ const IdeaModePanel: React.FC<Props> = ({ postId, title, pillar, initialIdea, on
 
       {/* 2. Context + consent */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4">
-        <h3 className="font-semibold">2. Kontext (Fakten – das Wichtigste für gute Texte)</h3>
+        <h3 className="font-semibold">{L.contextHeading}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {field('Ort', 'location', 'z.B. Tageslichtstudio Wien-Margareten')}
-          {field('Zeit / Jahreszeit', 'timing', 'z.B. Frühlingsnachmittag')}
-          {field('Personen / Namen', 'people', 'z.B. Familie M. mit zwei Kindern')}
-          {field('Anlass', 'celebration', 'z.B. erstes Familienshooting')}
+          {field(L.location, 'location', L.locationPh)}
+          {field(L.timing, 'timing', L.timingPh)}
+          {field(L.people, 'people', L.peoplePh)}
+          {field(L.occasion, 'celebration', L.occasionPh)}
         </div>
-        {field('Kommentar / besondere Momente', 'commentary', 'Was war besonders? Stimmung, Details …', true)}
+        {field(L.comment, 'commentary', L.commentPh, true)}
         <label className="flex items-start gap-2 text-sm text-gray-700">
           <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} className="mt-1" />
-          <span><strong>Einwilligung (DSGVO):</strong> Mir liegt die Zustimmung der abgebildeten Personen zur Veröffentlichung dieser Fotos (und genannter Namen) vor.</span>
+          <span><strong>{L.consentLabel}</strong> {L.consentText}</span>
         </label>
         <button type="button" onClick={saveContext} disabled={busy === 'context'}
           className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm disabled:opacity-50">
-          {busy === 'context' ? <Loader2 size={16} className="animate-spin inline mr-2" /> : null} Kontext speichern
+          {busy === 'context' ? <Loader2 size={16} className="animate-spin inline mr-2" /> : null} {L.saveContext}
         </button>
       </div>
 
@@ -198,15 +283,15 @@ const IdeaModePanel: React.FC<Props> = ({ postId, title, pillar, initialIdea, on
         <button type="button" onClick={analyze} disabled={busy === 'analyze' || images.length === 0}
           className="px-5 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 disabled:opacity-50 flex items-center">
           {busy === 'analyze' ? <Loader2 size={16} className="animate-spin mr-2" /> : <Eye size={16} className="mr-2" />}
-          3. Bilder analysieren {analyzedCount > 0 && `(${analyzedCount}/${images.length})`}
+          {L.analyzeImages} {analyzedCount > 0 && `(${analyzedCount}/${images.length})`}
         </button>
         <button type="button" onClick={generate} disabled={busy === 'generate' || analyzedCount === 0 || !consent}
           className="px-5 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center">
           {busy === 'generate' ? <Loader2 size={16} className="animate-spin mr-2" /> : <Wand2 size={16} className="mr-2" />}
-          4. Entwurf erzeugen
+          {L.generateDraft}
         </button>
         <span className="text-xs text-gray-500">
-          {analyzedCount === 0 ? 'Erst Bilder analysieren.' : !consent ? 'Einwilligung erforderlich.' : 'Erzeugt den Artikel und wechselt zu „Entwurf".'}
+          {analyzedCount === 0 ? L.hintAnalyzeFirst : !consent ? L.hintConsentRequired : L.hintReady}
         </span>
       </div>
     </div>
