@@ -58,11 +58,11 @@ export class CompetitorDiscoveryService {
       await this.delay(2000);
     }
 
-    // Always add fallback competitors to ensure we have data
-    // This guarantees results even when Google blocks scraping
-    const fallbackCompetitors = this.getFallbackCompetitors(location);
-    console.log(`  📦 Adding ${fallbackCompetitors.length} fallback competitors for ${location}`);
-    allResults.push(...fallbackCompetitors);
+    // NOTE: We intentionally do NOT inject curated/placeholder competitors here.
+    // The old fictional fallback companies had dead URLs, always failed to scrape,
+    // and misled users into thinking they were real Vienna businesses. Real competitor
+    // discovery is handled by Tavily (see PriceResearchService); this direct Google-scrape
+    // path is best-effort only and returns nothing rather than fabricating data.
 
     // Deduplicate and filter
     const uniqueResults = this.deduplicateResults(allResults);
@@ -148,17 +148,10 @@ export class CompetitorDiscoveryService {
       console.log(`  📊 Google search for "${query}": ${results.length} results`);
 
     } catch (error: any) {
-      // Google might block scraping, this is expected
+      // Google commonly blocks scraping — this is expected. Return whatever (if anything)
+      // parsed successfully. No fictional fallback data is injected; real competitor
+      // discovery is handled by Tavily in PriceResearchService.
       console.warn(`  ⚠️  Google search blocked or failed: ${error.message}`);
-      
-      // Fallback: Return manually curated competitors for Austrian market
-      if (query.includes('wien') || query.includes('vienna')) {
-        results.push(...this.getFallbackCompetitors('Wien'));
-      } else if (query.includes('salzburg')) {
-        results.push(...this.getFallbackCompetitors('Salzburg'));
-      } else if (query.includes('graz')) {
-        results.push(...this.getFallbackCompetitors('Graz'));
-      }
     }
 
     return results;
@@ -257,124 +250,6 @@ export class CompetitorDiscoveryService {
 
       return true;
     });
-  }
-
-  /**
-   * Fallback competitors for Austrian cities (when search fails)
-   * These are real photography studios with public pricing pages
-   */
-  private getFallbackCompetitors(city: string): DiscoveryResult[] {
-    const fallbacks: Record<string, DiscoveryResult[]> = {
-      'Wien': [
-        {
-          name: 'Martin Phox',
-          website: 'https://www.martinphox.com',
-          location: 'Wien',
-          source: 'manual',
-          confidence: 0.8,
-          description: 'Wedding photographer Vienna',
-        },
-        {
-          name: 'Deine Fotografin Wien',
-          website: 'https://www.deinefotografin.at',
-          location: 'Wien',
-          source: 'manual',
-          confidence: 0.8,
-          description: 'Family and newborn photography Vienna',
-        },
-        {
-          name: 'Sabine Gruber Fotografie',
-          website: 'https://www.sabinegruber.at',
-          location: 'Wien',
-          source: 'manual',
-          confidence: 0.8,
-          description: 'Portrait and family photographer Vienna',
-        },
-        {
-          name: 'Hochzeitsfotograf Wien',
-          website: 'https://www.hochzeitsfotograf-wien.co.at',
-          location: 'Wien',
-          source: 'manual',
-          confidence: 0.8,
-          description: 'Wedding photography specialist Vienna',
-        },
-        {
-          name: 'Yvonne Hofer Photography',
-          website: 'https://www.yvonnehofer.com',
-          location: 'Wien',
-          source: 'manual',
-          confidence: 0.8,
-          description: 'Newborn and baby photography',
-        },
-        {
-          name: 'Fotostudio Schiesser',
-          website: 'https://www.fotostudio.at',
-          location: 'Wien',
-          source: 'manual',
-          confidence: 0.8,
-          description: 'Professional photography studio Vienna',
-        },
-      ],
-      'Salzburg': [
-        {
-          name: 'Salzburg Photography',
-          website: 'https://www.salzburg-photography.at',
-          location: 'Salzburg',
-          source: 'manual',
-          confidence: 0.8,
-          description: 'Photography studio Salzburg',
-        },
-        {
-          name: 'Michael Sieber Photography',
-          website: 'https://www.michaelsieber.at',
-          location: 'Salzburg',
-          source: 'manual',
-          confidence: 0.8,
-          description: 'Wedding photography Salzburg',
-        },
-      ],
-      'Graz': [
-        {
-          name: 'Graz Fotostudio',
-          website: 'https://www.fotostudio-graz.at',
-          location: 'Graz',
-          source: 'manual',
-          confidence: 0.8,
-          description: 'Professional photography Graz',
-        },
-        {
-          name: 'Thomas Jäger Fotografie',
-          website: 'https://www.thomasjaeger.at',
-          location: 'Graz',
-          source: 'manual',
-          confidence: 0.8,
-          description: 'Portrait and event photography',
-        },
-      ],
-      'Linz': [
-        {
-          name: 'Linz Fotostudio',
-          website: 'https://www.fotostudio-linz.at',
-          location: 'Linz',
-          source: 'manual',
-          confidence: 0.8,
-          description: 'Professional photography Linz',
-        },
-      ],
-      'Innsbruck': [
-        {
-          name: 'Innsbruck Photography',
-          website: 'https://www.innsbruck-photography.at',
-          location: 'Innsbruck',
-          source: 'manual',
-          confidence: 0.8,
-          description: 'Photography studio Innsbruck',
-        },
-      ],
-    };
-
-    // Return city-specific fallbacks, or Wien as default
-    return fallbacks[city] || fallbacks['Wien'] || [];
   }
 
   /**

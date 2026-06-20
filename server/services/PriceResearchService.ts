@@ -92,7 +92,10 @@ export class PriceResearchService {
       }
 
       if (competitors.length === 0) {
-        throw new Error('No competitors found. Try different search terms or location.');
+        if (!process.env.TAVILY_API_KEY) {
+          throw new Error('Competitor search is not configured. Set TAVILY_API_KEY (free key at tavily.com) in your environment to enable AI competitor discovery, then run AI Research again.');
+        }
+        throw new Error('No competitors found for this location/services. Try a broader location or different service selection.');
       }
 
       // Save competitors to database
