@@ -9,6 +9,7 @@ interface TavilySearchResult {
   title: string;
   url: string;
   content: string;
+  raw_content?: string; // full page text when include_raw_content is enabled
   score: number;
   published_date?: string;
 }
@@ -69,9 +70,10 @@ export class TavilySearchService {
           
           seenDomains.add(domain);
           allResults.push({
-            name: this.extractBusinessName(result.title),
+            name: this.deriveBusinessName(result.title, result.url),
             website: result.url,
-            content: result.content,
+            // Prefer full page text so the AI extractor has actual prices to work with
+            content: result.raw_content || result.content,
             relevanceScore: result.score,
           });
         }
@@ -111,8 +113,8 @@ export class TavilySearchService {
       const results = await this.search(query, 3);
       
       if (results.length > 0) {
-        // Combine content from all pricing-related pages
-        return results.map(r => r.content).join('\n\n---\n\n');
+        // Combine full page content from all pricing-related pages
+        return results.map(r => r.raw_content || r.content).join('\n\n---\n\n');
       }
       
       return '';
@@ -126,27 +128,39 @@ export class TavilySearchService {
    * Execute a Tavily search
    */
   private async search(query: string, maxResults: number): Promise<TavilySearchResult[]> {
-    const response = await fetch(`${this.baseUrl}/search`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify({
-        query,
-        search_depth: 'advanced', // Gets more content from pages
-        include_answer: false,
-        include_raw_content: false,
-        max_results: maxResults,
-        include_domains: [],
-        exclude_domains: [
-          'facebook.com', 'instagram.com', 'pinterest.com', 
-          'youtube.com', 'linkedin.com', 'twitter.com', 'tiktok.com',
-          'yelp.com', 'tripadvisor.com', 'wikipedia.org',
-          'amazon.com', 'ebay.com'
-        ],
-      }),
-    });
+    // Hard timeout so a slow/hung Tavily request can never stall the whole pipeline
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
+
+    let response: Response;
+    try {
+      response = await fetch(`${this.baseUrl}/search`, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          query,
+          search_depth: 'advanced', // Gets more content from pages
+          include_answer: false,
+          include_raw_content: true, // full page text so the AI extractor can find actual prices
+          max_results: maxResults,
+          include_domains: [],
+          exclude_domains: [
+            'facebook.com', 'instagram.com', 'pinterest.com',
+            'youtube.com', 'linkedin.com', 'twitter.com', 'tiktok.com',
+            'yelp.com', 'tripadvisor.com', 'wikipedia.org',
+            'amazon.com', 'ebay.com',
+            // Exclude our own site so we don't list ourselves as a competitor
+            'newagefotografie.com', 'newagefotografie.at',
+          ],
+        }),
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -214,6 +228,29 @@ export class TavilySearchService {
       .replace(/\s*\(.*?\)\s*/g, '')    // Remove parentheses
       .replace(/Fotograf(ie|in)?|Photography|Studio/gi, '')
       .trim() || title.split(/[-–—|]/)[0].trim();
+  }
+
+  /**
+   * Derive a usable business name. Search-result titles are often the title of a
+   * pricing PAGE ("Preise", "Angebot", "Familienfotos Preise") rather than the
+   * business name, so when the extracted title is generic or too short we fall
+   * back to a human-readable form of the domain (e.g. gabrielepaar.net → "Gabrielepaar").
+   */
+  private deriveBusinessName(title: string, url: string): string {
+    const cleaned = this.extractBusinessName(title);
+    const generic = /^(preise?|angebot|leistungen|informationen|pakete|kosten|home|startseite|fotoshooting|familienfotos?|portrait|kontakt|über uns|about)\b/i;
+
+    if (cleaned && cleaned.length >= 3 && !generic.test(cleaned)) {
+      return cleaned;
+    }
+
+    try {
+      const base = new URL(url).hostname.replace(/^www\./, '').split('.')[0];
+      const fromDomain = base.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim();
+      return fromDomain || cleaned || title;
+    } catch {
+      return cleaned || title;
+    }
   }
 
   /**
