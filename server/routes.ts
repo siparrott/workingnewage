@@ -13605,6 +13605,28 @@ ${getBizName()} CRM System
   app.get("/api/vouchers/sales", authenticateUser, async (req: Request, res: Response) => {
     try {
       const sales = await storage.getVoucherSales();
+      // Enrich each sale with its product's name, sku/slug and description (the
+      // "what's included" text shown on the public voucher pages) so the admin
+      // list shows the real product and the downloadable voucher PDF can list
+      // what the package includes. Additive fields only — does not change the
+      // base query shape.
+      try {
+        const products = (typeof neonDb?.getVoucherProducts === 'function')
+          ? await neonDb.getVoucherProducts()
+          : [];
+        const byId = new Map<string, any>((products || []).map((p: any) => [String(p.id), p]));
+        for (const s of (sales as any[])) {
+          const p = s.productId ? byId.get(String(s.productId)) : null;
+          if (p) {
+            s.product_name = p.name;
+            s.product_sku = p.sku || p.slug || null;
+            s.product_slug = p.slug || null;
+            s.product_description = p.description || p.detailedDescription || p.detailed_description || null;
+          }
+        }
+      } catch (enrichErr) {
+        console.warn('Could not enrich voucher sales with product info:', enrichErr);
+      }
       res.json(sales);
     } catch (error) {
       console.error("Error fetching voucher sales:", error);
@@ -14112,12 +14134,15 @@ ${getBizName()} CRM System
       // 4. VOUCHER DETAILS
       doc.fillColor('#222222');
       
-      // Dynamic product description (reuse pdfProduct fetched above)
+      // Dynamic product description = what the package includes (reuse pdfProduct
+      // fetched above, or the description carried in the Stripe metadata).
       try {
         const dynamicSub = (pdfProduct?.description || pdfProduct?.detailedDescription || pdfProduct?.detailed_description || m.product_description || '').toString();
-        
+
         if (dynamicSub && dynamicSub.trim()) {
-          doc.fontSize(10).text(dynamicSub, pageMargin, currentY, { width: contentWidth, align: 'left' });
+          doc.fontSize(9).fillColor(tplBannerColor).text('Inkludierte Leistungen:', pageMargin, currentY, { width: contentWidth });
+          currentY = doc.y + 2;
+          doc.fontSize(10).fillColor('#222222').text(dynamicSub, pageMargin, currentY, { width: contentWidth, align: 'left' });
           currentY = doc.y + 10;
         }
       } catch (e) {
@@ -14256,7 +14281,7 @@ ${getBizName()} CRM System
         'Family-Deluxe': 'Family Fotoshooting - Deluxe',
         'Newborn-Deluxe': 'Newborn Fotoshooting - Deluxe',
       };
-      const title = previewProduct?.name || titleMap[sku] || 'Gutschein';
+      const title = String(qp.title || '').trim() || previewProduct?.name || titleMap[sku] || 'Gutschein';
 
       // Compute expiry from product's validityPeriod
       let exp = String(qp.expiry_date || '').trim();
@@ -14342,12 +14367,15 @@ ${getBizName()} CRM System
       // 4. VOUCHER DETAILS
       doc.fillColor('#222222');
 
-      // Dynamic product description (reuse previewProduct fetched above)
+      // Dynamic product description = what the package includes (reuse previewProduct;
+      // fall back to the description passed by the admin download).
       try {
-        const dynamicSub = (previewProduct?.description || previewProduct?.detailedDescription || previewProduct?.detailed_description || '').toString();
-        
+        const dynamicSub = (previewProduct?.description || previewProduct?.detailedDescription || previewProduct?.detailed_description || qp.product_description || '').toString();
+
         if (dynamicSub && dynamicSub.trim()) {
-          doc.fontSize(10).text(dynamicSub, pageMargin, currentY, { width: contentWidth, align: 'left' });
+          doc.fontSize(9).fillColor(pvBannerColor).text('Inkludierte Leistungen:', pageMargin, currentY, { width: contentWidth });
+          currentY = doc.y + 2;
+          doc.fontSize(10).fillColor('#222222').text(dynamicSub, pageMargin, currentY, { width: contentWidth, align: 'left' });
           currentY = doc.y + 10;
         }
       } catch (e) {

@@ -2263,16 +2263,23 @@ const SalesView: React.FC<{
                     const storedPdfUrl = saleWithProduct.pdfUrl || saleWithProduct.pdf_url;
                     const customImg = saleWithProduct.customImage || saleWithProduct.custom_image || '';
                     const designImg = saleWithProduct.designImage || saleWithProduct.design_image || '';
+                    // Pass the product's slug (so the PDF resolves the package), its name
+                    // (banner title) and its description (the "what's included" text) so the
+                    // voucher lists what the package includes.
+                    const productSlug = saleWithProduct.product_slug || saleWithProduct.product_sku || productSku;
+                    const productDesc = saleWithProduct.product_description || '';
                     const pdfUrl = storedPdfUrl || (
                       `/voucher/pdf/preview?` +
-                      `sku=${encodeURIComponent(productSku)}&` +
+                      `sku=${encodeURIComponent(productSlug)}&` +
                       `name=${encodeURIComponent(sale.recipientName || sale.purchaserName)}&` +
                       `from=${encodeURIComponent(sale.purchaserName)}&` +
                       `message=${encodeURIComponent(sale.giftMessage || 'Thank you for your purchase!')}&` +
                       `amount=${sale.finalAmount}&` +
                       `voucher_id=${encodeURIComponent(sale.voucherCode)}&` +
                       `custom_image=${encodeURIComponent(customImg)}&` +
-                      `design_image=${encodeURIComponent(designImg)}`
+                      `design_image=${encodeURIComponent(designImg)}` +
+                      (productName && productName !== 'Unknown Product' ? `&title=${encodeURIComponent(productName)}` : '') +
+                      (productDesc ? `&product_description=${encodeURIComponent(productDesc)}` : '')
                     );
 
                     return (
