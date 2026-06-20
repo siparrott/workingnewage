@@ -29,6 +29,7 @@ interface CompetitorAnalysis {
   specialties: string[];
   prices: ExtractedPrice[];
   rawContent?: string;
+  extractionError?: string; // diagnostic: why 0 prices (empty content, OpenAI error, etc.)
 }
 
 interface MarketAnalysis {
@@ -81,6 +82,7 @@ export class OpenAIPriceExtractor {
         positioning: 'mid-range',
         specialties: [],
         prices: [],
+        extractionError: `empty/short content (${(websiteContent || '').length} chars)`,
       };
     }
 
@@ -146,15 +148,17 @@ Return a JSON object with this structure:
       }
 
       const parsed = JSON.parse(content);
+      const prices = parsed.prices || [];
 
       return {
         businessName,
         website: websiteUrl,
         location: parsed.location,
-        priceRange: this.calculatePriceRange(parsed.prices || []),
+        priceRange: this.calculatePriceRange(prices),
         positioning: parsed.positioning || 'mid-range',
         specialties: parsed.specialties || [],
-        prices: parsed.prices || [],
+        prices,
+        extractionError: prices.length === 0 ? `AI returned 0 prices from ${websiteContent.length} chars` : undefined,
       };
 
     } catch (error: any) {
@@ -166,6 +170,7 @@ Return a JSON object with this structure:
         positioning: 'mid-range',
         specialties: [],
         prices: [],
+        extractionError: `OpenAI error: ${error.message}`,
       };
     }
   }

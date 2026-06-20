@@ -238,6 +238,7 @@ router.get('/competitors/:sessionId', async (req, res) => {
         cr.location,
         cr.status,
         cr.scraped_at,
+        cr.scrape_error,
         COUNT(cp.id) as price_count
       FROM competitor_research cr
       LEFT JOIN competitor_prices cp ON cp.competitor_id = cr.id

@@ -192,7 +192,9 @@ export class PriceResearchService {
 
             // Update competitor status
             const status = analysis.prices.length > 0 ? 'scraped' : 'failed';
-            const error = analysis.prices.length === 0 ? 'No prices found on website' : null;
+            const error = analysis.prices.length === 0
+              ? (analysis.extractionError || `No prices found (content chars: ${(fullContent || '').length})`)
+              : null;
             
             await pool.query(`
               UPDATE competitor_research 
