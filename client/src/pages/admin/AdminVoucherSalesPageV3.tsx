@@ -2255,14 +2255,25 @@ const SalesView: React.FC<{
                     const productName = saleWithProduct.product_name || 'Unknown Product';
                     const productSku = saleWithProduct.product_sku || 'demo';
                     
-                    // Build PDF download URL
-                    const pdfUrl = `/voucher/pdf/preview?` +
+                    // Build PDF download URL.
+                    // Prefer the exact PDF persisted at purchase time (contains the customer's
+                    // photo, durably stored in S3) so admins get the precise voucher for hard-copy
+                    // shipping. Fall back to a live preview render — and in that case still pass the
+                    // customer's stored image so the photo is included rather than dropped.
+                    const storedPdfUrl = saleWithProduct.pdfUrl || saleWithProduct.pdf_url;
+                    const customImg = saleWithProduct.customImage || saleWithProduct.custom_image || '';
+                    const designImg = saleWithProduct.designImage || saleWithProduct.design_image || '';
+                    const pdfUrl = storedPdfUrl || (
+                      `/voucher/pdf/preview?` +
                       `sku=${encodeURIComponent(productSku)}&` +
                       `name=${encodeURIComponent(sale.recipientName || sale.purchaserName)}&` +
                       `from=${encodeURIComponent(sale.purchaserName)}&` +
                       `message=${encodeURIComponent(sale.giftMessage || 'Thank you for your purchase!')}&` +
                       `amount=${sale.finalAmount}&` +
-                      `voucher_id=${encodeURIComponent(sale.voucherCode)}`;
+                      `voucher_id=${encodeURIComponent(sale.voucherCode)}&` +
+                      `custom_image=${encodeURIComponent(customImg)}&` +
+                      `design_image=${encodeURIComponent(designImg)}`
+                    );
 
                     return (
                       <tr key={sale.id} className="hover:bg-gray-50">

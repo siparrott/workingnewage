@@ -12324,23 +12324,32 @@ ${getBizName()} CRM System
                 const pdfResp = await fetch(`${internalBase}${pdfUrlPath}`);
                 if (pdfResp && pdfResp.ok) {
                   const pdfBuf = Buffer.from(await pdfResp.arrayBuffer());
-                  const filename = `${createdSale.id}.pdf`;
                   try {
-                    const publicUrl = await storage.savePublicAsset('vouchers', filename, pdfBuf);
-                    // Update the voucher sale record with the public URL
-                    try {
-                      // storage.updateVoucherSale may not exist in all environments; fall back to runSql
-                      if (typeof storage.updateVoucherSale === 'function') {
-                        await storage.updateVoucherSale(createdSale.id, { pdfUrl: publicUrl });
-                      } else {
-                        await runSql(`UPDATE voucher_sales SET pdf_url = $1 WHERE id = $2`, [publicUrl, createdSale.id]);
+                    // Persist to durable S3/B2 storage (NOT ephemeral dyno disk). The previous
+                    // savePublicAsset() path wrote to local disk and returned localhost URLs, so
+                    // on Heroku the file vanished on every restart and the URL was unreachable.
+                    const { bucket, endpoint, isConfigured } = getS3Config();
+                    if (!isConfigured) {
+                      console.warn('[WEBHOOK] S3 not configured; skipping voucher PDF persistence');
+                    } else {
+                      const pdfKey = `vouchers/pdf/${createdSale.id}.pdf`;
+                      await getS3Client().send(new PutObjectCommand({
+                        Bucket: bucket,
+                        Key: pdfKey,
+                        Body: pdfBuf,
+                        ContentType: 'application/pdf',
+                        CacheControl: 'public, max-age=31536000',
+                      }));
+                      const publicUrl = buildPublicUrl(bucket, endpoint, pdfKey);
+                      try {
+                        await storage.updateVoucherSale(createdSale.id, { pdfUrl: publicUrl } as any);
+                        console.log('[WEBHOOK] ✅ Saved voucher PDF to S3 and updated sale.pdf_url:', publicUrl);
+                      } catch (upErr) {
+                        console.warn('[WEBHOOK] Could not update voucher sale with pdf_url:', upErr);
                       }
-                      console.log('[WEBHOOK] ✅ Saved voucher PDF and updated sale.pdf_url:', publicUrl);
-                    } catch (upErr) {
-                      console.warn('[WEBHOOK] Could not update voucher sale with pdf_url:', upErr);
                     }
                   } catch (saveErr) {
-                    console.warn('[WEBHOOK] Could not save voucher PDF to public assets:', saveErr);
+                    console.warn('[WEBHOOK] Could not save voucher PDF to S3:', saveErr);
                   }
                 } else {
                   console.warn('[WEBHOOK] Failed to fetch generated PDF for saving; status=', pdfResp?.status);

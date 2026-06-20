@@ -430,6 +430,7 @@ export const voucherSales = pgTable("voucher_sales", {
   customImage: text("custom_image"), // Customer uploaded image URL
   designImage: text("design_image"), // Selected from library template image URL
   personalizationData: jsonb("personalization_data"), // Additional customization options
+  pdfUrl: text("pdf_url"), // Persisted PDF of the exact personalized voucher (S3) for admin download / hard-copy shipping
   
   // Voucher details
   voucherCode: text("voucher_code").unique().notNull(),
