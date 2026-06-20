@@ -651,11 +651,13 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
       <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
       {formData[field] ? (
         <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+          {/* Constrain the preview so tall (portrait) images don't fill the screen and
+              push the Free-transform / Remove / Save controls below the fold. */}
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white flex justify-center">
             <img
               src={formData[field]}
               alt={`${label} ${de ? 'Vorschau' : 'preview'}`}
-              className={field === 'cover_image' ? 'w-full rounded-xl shadow-lg' : 'w-full rounded-xl shadow-2xl'}
+              className={`max-h-96 w-auto max-w-full object-contain rounded-xl ${field === 'cover_image' ? 'shadow-lg' : 'shadow-2xl'}`}
             />
           </div>
           <p className="text-xs text-gray-500">
@@ -1039,15 +1041,28 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
                 </button>
               </>
             ) : (
-              <button
-                type="button"
-                onClick={nextStep}
-                disabled={!canProceedToNext()}
-                className="flex items-center px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-                <ArrowRight size={16} className="ml-2" />
-              </button>
+              <>
+                {/* Save is available on every step (not just Preview) so changes —
+                    e.g. a newly uploaded/cropped image — can be saved here directly. */}
+                <button
+                  type="button"
+                  onClick={() => handleSubmit(false)}
+                  disabled={loading}
+                  className="flex items-center px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                >
+                  {loading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
+                  {de ? 'Speichern' : 'Save'}
+                </button>
+                <button
+                  type="button"
+                  onClick={nextStep}
+                  disabled={!canProceedToNext()}
+                  className="flex items-center px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                  <ArrowRight size={16} className="ml-2" />
+                </button>
+              </>
             )}
           </div>
         </div>
