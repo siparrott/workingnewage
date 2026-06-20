@@ -313,7 +313,7 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
     try {
       setError(null);
       const response = await fetch(imageUrl);
-      if (!response.ok) throw new Error('Bild konnte nicht geladen werden');
+      if (!response.ok) throw new Error(de ? 'Bild konnte nicht geladen werden' : 'Image could not be loaded');
       const blob = await response.blob();
       const extension = blob.type.split('/')[1] || 'jpg';
       const file = new File([blob], `${field}-${Date.now()}.${extension}`, {
@@ -625,13 +625,17 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
         body: JSON.stringify(socialPayload),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Senden fehlgeschlagen');
+      if (!res.ok) throw new Error(data.error || (de ? 'Senden fehlgeschlagen' : 'Send failed'));
       const zernioError = String(data.result?.error || '');
       const zernioNeedsSetup = /not configured|not set/i.test(zernioError);
       setZernioMsg(
         !zernioNeedsSetup && data.configured
-          ? (data.success ? '✓ An Zernio gesendet.' : `Zernio-Fehler: ${data.result?.error || data.result?.status || ''}`)
-          : 'Social-Pack erstellt (Zernio-API noch nicht konfiguriert) — API-Key und Endpoint fehlen noch oder sind nicht vollstaendig gesetzt.',
+          ? (data.success
+              ? (de ? '✓ An Zernio gesendet.' : '✓ Sent to Zernio.')
+              : `${de ? 'Zernio-Fehler' : 'Zernio error'}: ${data.result?.error || data.result?.status || ''}`)
+          : (de
+              ? 'Social-Pack erstellt (Zernio-API noch nicht konfiguriert) — API-Key und Endpoint fehlen noch oder sind nicht vollstaendig gesetzt.'
+              : 'Social pack created (Zernio API not configured yet) — API key and endpoint are still missing or incomplete.'),
       );
     } catch (err: any) {
       setZernioMsg(err.message);
@@ -665,7 +669,7 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
               onClick={() => reopenCropper(field, label)}
               className="inline-flex items-center rounded-lg border border-purple-200 bg-white px-3 py-2 text-sm font-medium text-purple-700 hover:bg-purple-50"
             >
-              Frei transformieren
+              {de ? 'Frei transformieren' : 'Free transform'}
             </button>
             <button
               type="button"
@@ -673,7 +677,7 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
               className="inline-flex items-center rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
             >
               <X size={16} className="mr-1" />
-              Entfernen
+              {de ? 'Entfernen' : 'Remove'}
             </button>
           </div>
         </div>
@@ -682,8 +686,8 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
           <div className="text-center">
             <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
             <label className="cursor-pointer">
-              <span className="text-purple-600 hover:text-purple-700 font-medium">Bild hochladen</span>
-              <span className="text-gray-600"> oder hierher ziehen</span>
+              <span className="text-purple-600 hover:text-purple-700 font-medium">{de ? 'Bild hochladen' : 'Upload image'}</span>
+              <span className="text-gray-600">{de ? ' oder hierher ziehen' : ' or drag it here'}</span>
               <input
                 type="file"
                 accept="image/*"
@@ -692,7 +696,7 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
                 disabled={imageUploading}
               />
             </label>
-            <p className="text-sm text-gray-500 mt-2">PNG, JPG, WEBP bis 10MB</p>
+            <p className="text-sm text-gray-500 mt-2">PNG, JPG, WEBP {de ? 'bis' : 'up to'} 10MB</p>
           </div>
         </div>
       )}
@@ -701,12 +705,12 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
 
   const renderMediaStep = () => (
     <div className="space-y-6">
-      {imageSlot('cover_image', 'Titelbild (Cover)')}
-      {imageSlot('image_url_2', 'Weiteres Bild 2 (optional)')}
-      {imageSlot('image_url_3', 'Weiteres Bild 3 (optional)')}
+      {imageSlot('cover_image', de ? 'Titelbild (Cover)' : 'Cover image')}
+      {imageSlot('image_url_2', de ? 'Weiteres Bild 2 (optional)' : 'Additional image 2 (optional)')}
+      {imageSlot('image_url_3', de ? 'Weiteres Bild 3 (optional)' : 'Additional image 3 (optional)')}
       {imageUploading && (
         <div className="flex items-center justify-center text-purple-600">
-          <Loader2 className="animate-spin mr-2" size={20} /> Wird hochgeladen…
+          <Loader2 className="animate-spin mr-2" size={20} /> {de ? 'Wird hochgeladen…' : 'Uploading…'}
         </div>
       )}
       <p className="text-xs text-gray-500">
@@ -717,16 +721,18 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
 
       {isEditing && post?.id && (
         <div className="border-t border-gray-200 pt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Social-Verteilung (Zernio)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{de ? 'Social-Verteilung (Zernio)' : 'Social distribution (Zernio)'}</label>
           <button
             type="button"
             onClick={sendToZernio}
             disabled={zernioSending || !formData.cover_image}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 inline-flex items-center"
-            title={!formData.cover_image ? 'Titelbild erforderlich' : 'Social-Posts (FB/IG/GMB/Pinterest/LinkedIn) an Zernio senden'}
+            title={!formData.cover_image
+              ? (de ? 'Titelbild erforderlich' : 'Cover image required')
+              : (de ? 'Social-Posts (FB/IG/GMB/Pinterest/LinkedIn) an Zernio senden' : 'Send social posts (FB/IG/GMB/Pinterest/LinkedIn) to Zernio')}
           >
             {zernioSending ? <Loader2 className="animate-spin mr-2" size={16} /> : <Send size={16} className="mr-2" />}
-            An Zernio senden (Social)
+            {de ? 'An Zernio senden (Social)' : 'Send to Zernio (Social)'}
           </button>
           {zernioMsg && <p className="text-sm mt-2 text-gray-600">{zernioMsg}</p>}
         </div>
@@ -760,11 +766,11 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
           <button
             type="button"
             onClick={applyRecommendedTags}
-            title="Passende Tags aus Titel, Auszug und Text vorschlagen"
+            title={de ? 'Passende Tags aus Titel, Auszug und Text vorschlagen' : 'Suggest matching tags from title, excerpt and content'}
             className="inline-flex items-center text-sm text-purple-600 hover:text-purple-800"
           >
             <Sparkles size={14} className="mr-1" />
-            Tags aus Inhalt vorschlagen
+            {de ? 'Tags aus Inhalt vorschlagen' : 'Suggest tags from content'}
           </button>
         </div>
         <div className="space-y-3">
