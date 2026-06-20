@@ -12224,24 +12224,27 @@ ${getBizName()} CRM System
 
             // Fetch product validity period from DB for accurate valid_until
             let webhookValidityDays = 1460; // Default to ~4 years (schema default)
-            const webhookProductId = metadata.product_id || metadata.sku || null;
-            if (webhookProductId && neonDb) {
+            const webhookProductRef = metadata.product_id || metadata.sku || null;
+            // Resolve the product reference (which is usually a slug like "family-classic",
+            // NOT a uuid) to the actual product UUID so it can be stored in product_id.
+            // Previously the raw slug was cast to ::uuid, which threw and left product_id NULL.
+            let resolvedProductId: string | null = null;
+            if (webhookProductRef && neonDb) {
               try {
                 let webhookProduct: any = null;
-                if (typeof neonDb.getVoucherProduct === 'function') {
-                  webhookProduct = await neonDb.getVoucherProduct(webhookProductId);
-                }
-                if (!webhookProduct && typeof neonDb.getVoucherProducts === 'function') {
+                if (typeof neonDb.getVoucherProducts === 'function') {
                   const all = await neonDb.getVoucherProducts();
-                  const slug = webhookProductId.toLowerCase();
-                  webhookProduct = all.find((p: any) => (p.slug || '').toLowerCase() === slug)
-                                || all.find((p: any) => (p.name || '').toLowerCase().replace(/\s+/g, '-') === slug);
+                  const ref = String(webhookProductRef).toLowerCase();
+                  webhookProduct = all.find((p: any) => String(p.id).toLowerCase() === ref)
+                                || all.find((p: any) => (p.slug || '').toLowerCase() === ref)
+                                || all.find((p: any) => (p.name || '').toLowerCase().replace(/\s+/g, '-') === ref);
                 }
                 if (webhookProduct) {
+                  resolvedProductId = webhookProduct.id || null;
                   webhookValidityDays = webhookProduct.validityPeriod ?? webhookProduct.validity_period ?? webhookValidityDays;
                 }
               } catch (e) {
-                console.warn('[WEBHOOK] Could not fetch product for validity:', e);
+                console.warn('[WEBHOOK] Could not resolve product:', e);
               }
             }
 
@@ -12284,7 +12287,7 @@ ${getBizName()} CRM System
                   `UPDATE voucher_sales SET stripe_session_id = $1, stripe_payment_intent_id = $2, product_id = $3::uuid,
                    billing_address = $4, billing_city = $5, billing_zip = $6, billing_country = $7
                    WHERE id = $8`,
-                  [session.id, session.payment_intent, webhookProductId || null,
+                  [session.id, session.payment_intent, resolvedProductId,
                    billingAddress, billingCity, billingZip, billingCountry, createdSale.id]
                 );
               } catch (extraErr) {
@@ -13605,11 +13608,8 @@ ${getBizName()} CRM System
   app.get("/api/vouchers/sales", authenticateUser, async (req: Request, res: Response) => {
     try {
       const sales = await storage.getVoucherSales();
-      // Enrich each sale with its product's name, sku/slug and description (the
-      // "what's included" text shown on the public voucher pages) so the admin
-      // list shows the real product and the downloadable voucher PDF can list
-      // what the package includes. Additive fields only — does not change the
-      // base query shape.
+      // (a) Enrich each sale with its product's name/slug/description (the
+      //     "what's included" text from the public voucher pages). ORM-safe.
       try {
         const products = (typeof neonDb?.getVoucherProducts === 'function')
           ? await neonDb.getVoucherProducts()
@@ -13619,13 +13619,33 @@ ${getBizName()} CRM System
           const p = s.productId ? byId.get(String(s.productId)) : null;
           if (p) {
             s.product_name = p.name;
-            s.product_sku = p.sku || p.slug || null;
             s.product_slug = p.slug || null;
+            s.product_sku = p.slug || null;
             s.product_description = p.description || p.detailedDescription || p.detailed_description || null;
           }
         }
       } catch (enrichErr) {
         console.warn('Could not enrich voucher sales with product info:', enrichErr);
+      }
+      // (b) Expose stripe_session_id (raw column, not in Drizzle schema) so the admin
+      //     can download the EXACT customer voucher via /voucher/pdf?session_id — which
+      //     resolves the product (and its inclusions) from the live Stripe metadata.
+      //     Best-effort: if the column is absent this is skipped without affecting (a).
+      try {
+        const ids = (sales as any[]).map(s => s.id).filter(Boolean);
+        if (ids.length) {
+          const extra = await runSql(
+            `SELECT id, stripe_session_id FROM voucher_sales WHERE id = ANY($1)`,
+            [ids]
+          );
+          const byId = new Map<string, any>((extra || []).map((r: any) => [String(r.id), r]));
+          for (const s of (sales as any[])) {
+            const r = byId.get(String(s.id));
+            if (r) s.stripe_session_id = r.stripe_session_id || null;
+          }
+        }
+      } catch (sessErr: any) {
+        console.warn('Could not enrich voucher sales with stripe_session_id:', sessErr?.message || sessErr);
       }
       res.json(sales);
     } catch (error) {
@@ -14224,15 +14244,18 @@ ${getBizName()} CRM System
       let previewProduct: any = null;
       if (sku && neonDb) {
         try {
-          if (typeof neonDb.getVoucherProduct === 'function') {
-            previewProduct = await neonDb.getVoucherProduct(sku);
-          }
-          if (!previewProduct && typeof neonDb.getVoucherProducts === 'function') {
+          // Resolve by slug/name FIRST — `sku` is usually a slug like "family-classic"
+          // (not a uuid), and calling getVoucherProduct(uuid) on a slug throws, which
+          // previously aborted the whole lookup and skipped this slug match.
+          if (typeof neonDb.getVoucherProducts === 'function') {
             const all = await neonDb.getVoucherProducts();
             const slug = sku.toLowerCase();
             previewProduct = all.find((p: any) => (p.slug || '').toLowerCase() === slug)
                           || all.find((p: any) => (p.name || '').toLowerCase().replace(/\s+/g, '-') === slug)
                           || all.find((p: any) => (p.name || '').toLowerCase().includes(slug.replace(/-/g, ' ')));
+          }
+          if (!previewProduct && typeof neonDb.getVoucherProduct === 'function') {
+            try { previewProduct = await neonDb.getVoucherProduct(sku); } catch { /* sku is not a uuid */ }
           }
         } catch (e) {
           console.warn('Could not fetch product for preview:', e);

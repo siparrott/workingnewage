@@ -2261,14 +2261,15 @@ const SalesView: React.FC<{
                     // shipping. Fall back to a live preview render — and in that case still pass the
                     // customer's stored image so the photo is included rather than dropped.
                     const storedPdfUrl = saleWithProduct.pdfUrl || saleWithProduct.pdf_url;
+                    const sessionId = saleWithProduct.stripe_session_id;
                     const customImg = saleWithProduct.customImage || saleWithProduct.custom_image || '';
                     const designImg = saleWithProduct.designImage || saleWithProduct.design_image || '';
-                    // Pass the product's slug (so the PDF resolves the package), its name
-                    // (banner title) and its description (the "what's included" text) so the
-                    // voucher lists what the package includes.
                     const productSlug = saleWithProduct.product_slug || saleWithProduct.product_sku || productSku;
                     const productDesc = saleWithProduct.product_description || '';
-                    const pdfUrl = storedPdfUrl || (
+                    // Last-resort preview render (used only when there's no stored PDF and no
+                    // Stripe session). Carries the product slug/name/description so it still
+                    // lists the package inclusions.
+                    const previewUrl =
                       `/voucher/pdf/preview?` +
                       `sku=${encodeURIComponent(productSlug)}&` +
                       `name=${encodeURIComponent(sale.recipientName || sale.purchaserName)}&` +
@@ -2279,8 +2280,15 @@ const SalesView: React.FC<{
                       `custom_image=${encodeURIComponent(customImg)}&` +
                       `design_image=${encodeURIComponent(designImg)}` +
                       (productName && productName !== 'Unknown Product' ? `&title=${encodeURIComponent(productName)}` : '') +
-                      (productDesc ? `&product_description=${encodeURIComponent(productDesc)}` : '')
-                    );
+                      (productDesc ? `&product_description=${encodeURIComponent(productDesc)}` : '');
+                    // Prefer the exact persisted PDF; else regenerate the EXACT customer voucher
+                    // from the Stripe session (resolves the package + inclusions reliably);
+                    // else fall back to the preview render.
+                    const pdfUrl = storedPdfUrl
+                      ? storedPdfUrl
+                      : (sessionId
+                          ? `/voucher/pdf?session_id=${encodeURIComponent(sessionId)}`
+                          : previewUrl);
 
                     return (
                       <tr key={sale.id} className="hover:bg-gray-50">
