@@ -430,7 +430,9 @@ export const voucherSales = pgTable("voucher_sales", {
   customImage: text("custom_image"), // Customer uploaded image URL
   designImage: text("design_image"), // Selected from library template image URL
   personalizationData: jsonb("personalization_data"), // Additional customization options
-  pdfUrl: text("pdf_url"), // Persisted PDF of the exact personalized voucher (S3) for admin download / hard-copy shipping
+  // NOTE: pdf_url is persisted via guarded raw SQL in the webhook (see routes.ts), intentionally
+  // NOT declared here. Declaring a column that may not exist in the DB makes Drizzle's SELECT
+  // (which names every column) fail for the whole table. Re-add only after the column is migrated.
   
   // Voucher details
   voucherCode: text("voucher_code").unique().notNull(),

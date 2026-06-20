@@ -12341,11 +12341,13 @@ ${getBizName()} CRM System
                         CacheControl: 'public, max-age=31536000',
                       }));
                       const publicUrl = buildPublicUrl(bucket, endpoint, pdfKey);
+                      // Persist via guarded raw SQL (not Drizzle) so this never depends on a
+                      // schema column that may not be migrated yet — keeps voucher reads working.
                       try {
-                        await storage.updateVoucherSale(createdSale.id, { pdfUrl: publicUrl } as any);
+                        await runSql(`UPDATE voucher_sales SET pdf_url = $1 WHERE id = $2`, [publicUrl, createdSale.id]);
                         console.log('[WEBHOOK] ✅ Saved voucher PDF to S3 and updated sale.pdf_url:', publicUrl);
                       } catch (upErr) {
-                        console.warn('[WEBHOOK] Could not update voucher sale with pdf_url:', upErr);
+                        console.warn('[WEBHOOK] Saved PDF to S3 but could not set pdf_url (column may not exist yet):', upErr);
                       }
                     }
                   } catch (saveErr) {
