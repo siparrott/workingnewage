@@ -314,7 +314,12 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
 
     try {
       setError(null);
-      const response = await fetch(imageUrl);
+      // Route absolute (B2/S3) URLs through the same-origin proxy — a direct browser
+      // fetch of a storage URL is blocked by CORS, which broke re-cropping saved images.
+      const fetchUrl = /^https?:\/\//i.test(imageUrl)
+        ? `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`
+        : imageUrl;
+      const response = await fetch(fetchUrl);
       if (!response.ok) throw new Error(de ? 'Bild konnte nicht geladen werden' : 'Image could not be loaded');
       const blob = await response.blob();
       const extension = blob.type.split('/')[1] || 'jpg';
@@ -910,7 +915,7 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
           <img
             src={formData.cover_image}
             alt="Cover"
-            className="w-full rounded-xl shadow-lg mb-6"
+            className="w-full max-h-[28rem] object-contain rounded-xl shadow-lg mb-6"
           />
         )}
         

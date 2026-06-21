@@ -2179,6 +2179,35 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
+  // CORS-safe image proxy. B2/S3 public URLs don't send CORS headers, so the admin
+  // image cropper can't re-fetch an already-uploaded image to re-crop it ("Free
+  // transform"). This streams the image back same-origin. Locked to the storage
+  // host(s) to avoid SSRF.
+  app.get("/api/proxy-image", async (req: Request, res: Response) => {
+    try {
+      const url = String(req.query.url || '').trim();
+      if (!url) return res.status(400).send('Missing url');
+      let host = '';
+      try { host = new URL(url).hostname.toLowerCase(); } catch { return res.status(400).send('Invalid url'); }
+      let endpointHost = '';
+      try { const { endpoint } = getS3Config(); if (endpoint) endpointHost = new URL(endpoint).hostname.toLowerCase(); } catch {}
+      const allowed = host.endsWith('.backblazeb2.com')
+        || host.endsWith('.amazonaws.com')
+        || (!!endpointHost && (host === endpointHost || host.endsWith('.' + endpointHost)));
+      if (!allowed) return res.status(403).send('Host not allowed');
+      const upstream = await fetch(url);
+      if (!upstream.ok) return res.status(upstream.status).send('Upstream error');
+      const ct = upstream.headers.get('content-type') || 'image/jpeg';
+      const buf = Buffer.from(await upstream.arrayBuffer());
+      res.setHeader('Content-Type', ct);
+      res.setHeader('Cache-Control', 'private, max-age=300');
+      res.send(buf);
+    } catch (e: any) {
+      console.error('[proxy-image] error:', e?.message || e);
+      res.status(500).send('Proxy failed');
+    }
+  });
+
   app.post("/api/blog/posts", authenticateUser, async (req: Request, res: Response) => {
     try {
       console.log('[BLOG CREATE] Creating new post');
