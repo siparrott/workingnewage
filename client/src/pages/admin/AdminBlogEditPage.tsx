@@ -146,7 +146,7 @@ const AdminBlogEditPage: React.FC = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 blog-editor-scope">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

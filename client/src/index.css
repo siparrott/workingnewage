@@ -229,6 +229,17 @@ textarea,
   margin: 1em 0;
 }
 
+/* Blog editor: hard-cap ANY preview/cover image so a tall portrait can never fill
+   the screen and bury the Save / Free-transform controls. Catch-all by design — it
+   applies to whichever element actually renders the image. The cropper's own image
+   (react-easy-crop) is excluded so cropping/zooming still works. */
+.blog-editor-scope img:not(.reactEasyCrop_Image) {
+  max-height: 22rem !important;
+  width: auto !important;
+  max-width: 100% !important;
+  object-fit: contain;
+}
+
 /* Gallery specific styles */
 .line-clamp-1 {
   display: -webkit-box;
