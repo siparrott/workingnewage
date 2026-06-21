@@ -661,12 +661,15 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
       {formData[field] ? (
         <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
           {/* Constrain the preview so tall (portrait) images don't fill the screen and
-              push the Free-transform / Remove / Save controls below the fold. */}
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white flex justify-center">
+              push the Free-transform / Remove / Save controls below the fold.
+              Inline maxHeight is used deliberately: global `img { height:auto }` rules
+              were defeating the Tailwind max-h utility, so an inline style guarantees it. */}
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white text-center">
             <img
               src={formData[field]}
               alt={`${label} ${de ? 'Vorschau' : 'preview'}`}
-              className={`max-h-96 w-auto max-w-full object-contain rounded-xl ${field === 'cover_image' ? 'shadow-lg' : 'shadow-2xl'}`}
+              style={{ maxHeight: '22rem', width: 'auto', maxWidth: '100%', display: 'inline-block' }}
+              className={`rounded-xl ${field === 'cover_image' ? 'shadow-lg' : 'shadow-2xl'}`}
             />
           </div>
           <p className="text-xs text-gray-500">
@@ -915,7 +918,8 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
           <img
             src={formData.cover_image}
             alt="Cover"
-            className="w-full max-h-[28rem] object-contain rounded-xl shadow-lg mb-6"
+            style={{ maxHeight: '28rem', width: 'auto', maxWidth: '100%', display: 'block', margin: '0 auto' }}
+            className="rounded-xl shadow-lg mb-6"
           />
         )}
         
