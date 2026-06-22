@@ -125,7 +125,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
           <span>{de ? 'Blog-Vorschau-Rahmen' : 'Blog preview frame'}</span>
           <span>{effectiveAspect.toFixed(2)}:1</span>
         </div>
-        <div className="relative w-full overflow-hidden rounded-xl bg-black shadow-inner" style={{ aspectRatio: `${effectiveAspect}` }}>
+        <div className="relative w-full overflow-hidden rounded-xl bg-black shadow-inner" style={{ aspectRatio: `${effectiveAspect}`, maxHeight: '60vh' }}>
         <Cropper
           image={imageUrl}
           crop={crop}

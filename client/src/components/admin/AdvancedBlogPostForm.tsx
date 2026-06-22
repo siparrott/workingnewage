@@ -1083,9 +1083,10 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
 
       {cropTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-5xl rounded-2xl bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
             <ImageCropper
               file={cropTarget.file}
+              aspect={14 / 9}
               title={`${cropTarget.label} ${de ? 'ausrichten' : 'align'}`}
               helpText={de
                 ? 'Verschiebe und skaliere das Bild direkt im finalen Blog-Rahmen. Beim Speichern wird genau dieser Ausschnitt hochgeladen.'
