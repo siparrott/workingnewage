@@ -136,6 +136,9 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
           onCropComplete={onCropComplete}
           cropShape={circular ? 'round' : 'rect'}
           showGrid={false}
+          // Allow the image to be dragged freely in both axes (up/down and
+          // left/right) instead of being locked to always cover the crop frame.
+          restrictPosition={false}
         />
         </div>
       </div>
