@@ -169,8 +169,8 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
   const [error, setError] = useState<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [zernioSending, setZernioSending] = useState(false);
-  const [zernioMsg, setZernioMsg] = useState<string | null>(null);
+  const [pulseSending, setPulseSending] = useState(false);
+  const [pulseMsg, setPulseMsg] = useState<string | null>(null);
   const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
 
   const steps = [
@@ -608,48 +608,34 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
     </div>
   );
 
-  // Build the post's social pack and send it to Zernio (admin trigger).
-  const sendToZernio = async () => {
+  // Generate the post's Social Pack and distribute it to Pulse (AxixOS Social).
+  const sendToPulse = async () => {
     if (!post?.id) return;
-    setZernioSending(true);
-    setZernioMsg(null);
+    setPulseSending(true);
+    setPulseMsg(null);
     try {
-      const getAdminToken = () => (typeof window !== 'undefined' ? (localStorage.getItem('ADMIN_TOKEN') || '') : '');
-      const socialPayload = {
-        title: formData.title || post.title || '',
-        slug: formData.slug || post.slug || '',
-        excerpt: formData.excerpt || '',
-        content: formData.content_html || '',
-        contentHtml: formData.content_html || '',
-        imageUrl: formData.cover_image || '',
-        imageUrl2: formData.image_url_2 || '',
-        imageUrl3: formData.image_url_3 || '',
-      };
-      const res = await fetch(`/api/blog/posts/${post.id}/social`, {
+      const res = await fetch(`/api/blog/posts/${post.id}/distribute-pulse`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': getAdminToken(),
-        },
-        body: JSON.stringify(socialPayload),
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}), // uses server default PULSE_MODE (draft unless changed)
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || (de ? 'Senden fehlgeschlagen' : 'Send failed'));
-      const zernioError = String(data.result?.error || '');
-      const zernioNeedsSetup = /not configured|not set/i.test(zernioError);
-      setZernioMsg(
-        !zernioNeedsSetup && data.configured
-          ? (data.success
-              ? (de ? '✓ An Zernio gesendet.' : '✓ Sent to Zernio.')
-              : `${de ? 'Zernio-Fehler' : 'Zernio error'}: ${data.result?.error || data.result?.status || ''}`)
+      const s = data.result?.summary;
+      setPulseMsg(
+        data.success && s
+          ? (de
+              ? `✓ An Pulse gesendet: ${s.accepted} übernommen, ${s.rejected} abgelehnt (von ${s.received}).`
+              : `✓ Sent to Pulse: ${s.accepted} accepted, ${s.rejected} rejected (of ${s.received}).`)
           : (de
-              ? 'Social-Pack erstellt (Zernio-API noch nicht konfiguriert) — API-Key und Endpoint fehlen noch oder sind nicht vollstaendig gesetzt.'
-              : 'Social pack created (Zernio API not configured yet) — API key and endpoint are still missing or incomplete.'),
+              ? `Pulse-Antwort: ${data.result?.error || data.result?.status || 'ok'}`
+              : `Pulse response: ${data.result?.error || data.result?.status || 'ok'}`),
       );
     } catch (err: any) {
-      setZernioMsg(err.message);
+      setPulseMsg(err.message);
     } finally {
-      setZernioSending(false);
+      setPulseSending(false);
     }
   };
 
@@ -735,20 +721,20 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
 
       {isEditing && post?.id && (
         <div className="border-t border-gray-200 pt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">{de ? 'Social-Verteilung (Zernio)' : 'Social distribution (Zernio)'}</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{de ? 'Social-Verteilung (Pulse)' : 'Social distribution (Pulse)'}</label>
           <button
             type="button"
-            onClick={sendToZernio}
-            disabled={zernioSending || !formData.cover_image}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 inline-flex items-center"
+            onClick={sendToPulse}
+            disabled={pulseSending || !formData.cover_image}
+            className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 disabled:opacity-50 inline-flex items-center"
             title={!formData.cover_image
               ? (de ? 'Titelbild erforderlich' : 'Cover image required')
-              : (de ? 'Social-Posts (FB/IG/GMB/Pinterest/LinkedIn) an Zernio senden' : 'Send social posts (FB/IG/GMB/Pinterest/LinkedIn) to Zernio')}
+              : (de ? 'Social-Posts (FB/IG/Threads/LinkedIn/GMB/Pinterest) an Pulse senden' : 'Send social posts (FB/IG/Threads/LinkedIn/GMB/Pinterest) to Pulse')}
           >
-            {zernioSending ? <Loader2 className="animate-spin mr-2" size={16} /> : <Send size={16} className="mr-2" />}
-            {de ? 'An Zernio senden (Social)' : 'Send to Zernio (Social)'}
+            {pulseSending ? <Loader2 className="animate-spin mr-2" size={16} /> : <Send size={16} className="mr-2" />}
+            {de ? 'An Pulse senden (Social)' : 'Send to Pulse (Social)'}
           </button>
-          {zernioMsg && <p className="text-sm mt-2 text-gray-600">{zernioMsg}</p>}
+          {pulseMsg && <p className="text-sm mt-2 text-gray-600">{pulseMsg}</p>}
         </div>
       )}
     </div>

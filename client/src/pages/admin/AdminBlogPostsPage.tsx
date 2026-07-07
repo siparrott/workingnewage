@@ -17,6 +17,7 @@ import {
   Archive,
   Share2,
   Copy,
+  Send,
   X
 } from 'lucide-react';
 
@@ -71,6 +72,18 @@ const AdminBlogPostsPage: React.FC = () => {
     loading: boolean;
     error: string | null;
     socialPack: PreparedSocialPack | null;
+  } | null>(null);
+  // "Send to Pulse" (AxixOS Social) preview + confirm modal state.
+  const [pulseModal, setPulseModal] = useState<{
+    postId: string;
+    postTitle: string;
+    loading: boolean;
+    sending: boolean;
+    error: string | null;
+    configured: boolean;
+    mode: 'draft' | 'schedule' | 'now';
+    rows: Array<{ platform: string; post_content: string; title?: string; media_urls?: string[] }> | null;
+    result: { summary?: { received: number; accepted: number; duplicates: number; rejected: number }; results?: any[]; error?: string } | null;
   } | null>(null);
   // "Reschedule to 2/week cadence" preview + confirm modal state.
   const [reschedule, setReschedule] = useState<{
@@ -340,6 +353,46 @@ const AdminBlogPostsPage: React.FC = () => {
     }
   };
 
+  // Send to Pulse: preview the exact per-platform rows (dry run), then confirm to distribute.
+  const openPulsePreview = async (post: BlogPost) => {
+    setPulseModal({
+      postId: post.id, postTitle: post.title, loading: true, sending: false,
+      error: null, configured: false, mode: 'draft', rows: null, result: null,
+    });
+    try {
+      const res = await fetch(`/api/blog/posts/${post.id}/distribute-pulse`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dryRun: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Could not build the Pulse preview.');
+      setPulseModal((m) => (m ? { ...m, loading: false, configured: !!data.configured, rows: data.rows || [] } : m));
+    } catch (e: any) {
+      setPulseModal((m) => (m ? { ...m, loading: false, error: e?.message || 'Preview failed' } : m));
+    }
+  };
+
+  const sendToPulse = async () => {
+    setPulseModal((m) => (m ? { ...m, sending: true, error: null } : m));
+    try {
+      const current = pulseModal;
+      if (!current) return;
+      const res = await fetch(`/api/blog/posts/${current.postId}/distribute-pulse`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: current.mode }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Send failed.');
+      setPulseModal((m) => (m ? { ...m, sending: false, result: data.result || data } : m));
+    } catch (e: any) {
+      setPulseModal((m) => (m ? { ...m, sending: false, error: e?.message || 'Send failed' } : m));
+    }
+  };
+
   // Cadence rescheduling: Tuesday & Friday at 10:00 (UTC), keeping current order.
   const CADENCE_BODY = { days: [2, 5], hour: 10 };
 
@@ -589,6 +642,17 @@ const AdminBlogPostsPage: React.FC = () => {
                             </span>
                           </button>
 
+                          <button
+                            onClick={() => openPulsePreview(post)}
+                            className="text-pink-600 hover:text-pink-900"
+                            title="Send this post's Social Pack to Pulse (AxixOS Social)"
+                          >
+                            <span className="inline-flex items-center rounded-md border border-pink-200 px-2 py-1 text-xs font-medium text-pink-700 hover:bg-pink-50">
+                              <Send size={14} className="mr-1" />
+                              Send to Pulse
+                            </span>
+                          </button>
+
                           <Link
                             to={`/admin/blog/edit/${post.id}`}
                             className="text-indigo-600 hover:text-indigo-900"
@@ -667,6 +731,115 @@ const AdminBlogPostsPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Send to Pulse: preview per-platform rows, pick mode, confirm */}
+      {pulseModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Send to Pulse</h3>
+                <p className="text-xs text-gray-500 truncate max-w-sm" title={pulseModal.postTitle}>{pulseModal.postTitle}</p>
+              </div>
+              <button onClick={() => setPulseModal(null)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="px-5 py-4 overflow-y-auto">
+              {pulseModal.loading && (
+                <div className="flex items-center text-gray-600"><Loader2 className="animate-spin mr-2" size={18} /> Building preview…</div>
+              )}
+              {pulseModal.error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg mb-3">{pulseModal.error}</div>
+              )}
+
+              {pulseModal.result ? (
+                <div className="text-gray-700">
+                  {pulseModal.result.summary ? (
+                    <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg px-4 py-3">
+                      <p className="font-medium mb-1">Sent to Pulse ✓</p>
+                      <p className="text-sm">
+                        {pulseModal.result.summary.accepted} accepted · {pulseModal.result.summary.duplicates} duplicate ·
+                        {' '}{pulseModal.result.summary.rejected} rejected (of {pulseModal.result.summary.received})
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg px-4 py-3 text-sm">
+                      {pulseModal.result.error || 'Sent, but Pulse returned no summary.'}
+                    </div>
+                  )}
+                  {Array.isArray(pulseModal.result.results) && pulseModal.result.results.some((r: any) => r.status === 'rejected') && (
+                    <ul className="mt-3 text-sm text-red-700 list-disc pl-5">
+                      {pulseModal.result.results.filter((r: any) => r.status === 'rejected').map((r: any, i: number) => (
+                        <li key={i}>{r.platform}: {r.reason}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ) : pulseModal.rows && (
+                pulseModal.rows.length === 0 ? (
+                  <p className="text-gray-600">Nothing to send — no matching platforms have copy (and Instagram/Pinterest need an image).</p>
+                ) : (
+                  <>
+                    {!pulseModal.configured && (
+                      <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-3 py-2 rounded-lg mb-3 text-sm">
+                        <strong>PULSE_API_KEY not set.</strong> This is a preview only — set the key to enable sending.
+                      </div>
+                    )}
+                    <p className="text-gray-700 text-sm mb-3">
+                      <strong>{pulseModal.rows.length}</strong> post{pulseModal.rows.length === 1 ? '' : 's'} will be sent to Pulse — one per platform:
+                    </p>
+                    <div className="border rounded-lg divide-y max-h-64 overflow-y-auto">
+                      {pulseModal.rows.map((r, i) => (
+                        <div key={i} className="px-3 py-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="inline-block text-xs font-semibold uppercase tracking-wide text-pink-700 bg-pink-50 border border-pink-200 rounded px-2 py-0.5">{r.platform}</span>
+                            {r.media_urls && r.media_urls.length > 0 && (
+                              <span className="text-xs text-gray-400">{r.media_urls.length} image{r.media_urls.length === 1 ? '' : 's'}</span>
+                            )}
+                          </div>
+                          {r.title && <div className="text-sm font-medium text-gray-800">{r.title}</div>}
+                          <div className="text-sm text-gray-600 line-clamp-3 whitespace-pre-line">{r.post_content}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 flex items-center gap-2">
+                      <label className="text-sm text-gray-600">Mode</label>
+                      <select
+                        value={pulseModal.mode}
+                        onChange={(e) => setPulseModal((m) => (m ? { ...m, mode: e.target.value as any } : m))}
+                        className="border border-gray-300 rounded-md text-sm px-2 py-1"
+                      >
+                        <option value="draft">Draft (review in Pulse)</option>
+                        <option value="schedule">Schedule (at publish time)</option>
+                        <option value="now">Publish now</option>
+                      </select>
+                    </div>
+                  </>
+                )
+              )}
+            </div>
+
+            <div className="px-5 py-4 border-t flex justify-end gap-3">
+              <button onClick={() => setPulseModal(null)} className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
+                {pulseModal.result ? 'Close' : 'Cancel'}
+              </button>
+              {!pulseModal.result && (
+                <button
+                  onClick={sendToPulse}
+                  disabled={pulseModal.loading || pulseModal.sending || !pulseModal.configured || !pulseModal.rows || pulseModal.rows.length === 0}
+                  className="px-4 py-2 rounded-lg bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-50 flex items-center"
+                >
+                  {pulseModal.sending && <Loader2 className="animate-spin mr-2" size={16} />}
+                  <Send size={16} className="mr-2" />
+                  Send to Pulse
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}      {deleteConfirmation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
