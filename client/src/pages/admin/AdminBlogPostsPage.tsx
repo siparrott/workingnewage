@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { useLanguage } from '../../context/LanguageContext';
@@ -18,6 +18,9 @@ import {
   Share2,
   Copy,
   Send,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
   X
 } from 'lucide-react';
 
@@ -57,11 +60,25 @@ interface BlogPost {
   social_pack?: PreparedSocialPack | null;
 }
 
+// Workflow order for status sorting (ascending shows live content first).
+const STATUS_RANK: Record<string, number> = { PUBLISHED: 0, SCHEDULED: 1, DRAFT: 2, IDEA: 3, ARCHIVED: 4 };
+
+// The date shown in the DATE column: publish date, else the scheduled date, else created.
+const effectiveDate = (p: any): number => {
+  const d = p.status === 'SCHEDULED' && p.scheduled_for
+    ? p.scheduled_for
+    : (p.published_at || p.scheduled_for || p.created_at);
+  return d ? new Date(d).getTime() : 0;
+};
+
+type SortKey = 'date' | 'status';
+
 const AdminBlogPostsPage: React.FC = () => {
   const { t } = useLanguage();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' }>({ key: 'date', direction: 'desc' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
@@ -430,6 +447,37 @@ const AdminBlogPostsPage: React.FC = () => {
     }
   };
 
+  // Clicking a sortable column toggles direction; switching column uses a sensible default
+  // (dates newest-first, statuses live-content-first).
+  const toggleSort = (key: SortKey) => {
+    setSortConfig((prev) =>
+      prev.key === key
+        ? { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
+        : { key, direction: key === 'date' ? 'desc' : 'asc' },
+    );
+  };
+
+  const sortIcon = (key: SortKey) => {
+    if (sortConfig.key !== key) return <ArrowUpDown size={12} className="opacity-30" />;
+    return sortConfig.direction === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />;
+  };
+
+  // Sorted view of the loaded posts (does not change filters or counts).
+  const displayedPosts = useMemo(() => {
+    const arr = [...posts];
+    arr.sort((a: any, b: any) => {
+      let cmp: number;
+      if (sortConfig.key === 'date') {
+        cmp = effectiveDate(a) - effectiveDate(b);
+      } else {
+        cmp = (STATUS_RANK[a.status] ?? 99) - (STATUS_RANK[b.status] ?? 99);
+        if (cmp === 0) cmp = effectiveDate(a) - effectiveDate(b); // tie-break by date
+      }
+      return sortConfig.direction === 'asc' ? cmp : -cmp;
+    });
+    return arr;
+  }, [posts, sortConfig]);
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -588,10 +636,26 @@ const AdminBlogPostsPage: React.FC = () => {
                       {t('blog.post')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('form.status')}
+                      <button
+                        type="button"
+                        onClick={() => toggleSort('status')}
+                        className="inline-flex items-center gap-1 uppercase tracking-wider hover:text-gray-700"
+                        title="Sort by status"
+                      >
+                        {t('form.status')}
+                        {sortIcon('status')}
+                      </button>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('form.date')}
+                      <button
+                        type="button"
+                        onClick={() => toggleSort('date')}
+                        className="inline-flex items-center gap-1 uppercase tracking-wider hover:text-gray-700"
+                        title="Sort by date"
+                      >
+                        {t('form.date')}
+                        {sortIcon('date')}
+                      </button>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       {t('table.actions')}
@@ -599,7 +663,7 @@ const AdminBlogPostsPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {posts.map((post) => (
+                  {displayedPosts.map((post) => (
                     <tr key={post.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">                        <div className="flex items-center">
                           {post.cover_image ? (
