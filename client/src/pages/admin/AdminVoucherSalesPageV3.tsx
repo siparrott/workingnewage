@@ -2013,6 +2013,38 @@ const SalesView: React.FC<{
   onCreateClient?: (sale: VoucherSale) => void;
 }> = ({ sales, isLoading, onCreateClient }) => {
   const [showExportMenu, setShowExportMenu] = useState(false);
+  // Sale selected for the "view purchase" detail modal (null = closed).
+  const [viewSale, setViewSale] = useState<any | null>(null);
+
+  // Build the download URL for a sale's voucher PDF, in priority order:
+  //   1. The EXACT PDF persisted to S3 at purchase time (pdf_url) — byte-for-byte the file the
+  //      customer downloaded from the frontend, including their chosen photo.
+  //   2. Regenerate the exact voucher from the Stripe session (resolves product + inclusions).
+  //   3. A live preview render carrying the sale's stored image/message as a last resort.
+  const buildPdfUrl = (sale: any): string => {
+    const productName = sale.product_name || 'Unknown Product';
+    const storedPdfUrl = sale.pdfUrl || sale.pdf_url;
+    const sessionId = sale.stripe_session_id;
+    const customImg = sale.customImage || sale.custom_image || '';
+    const designImg = sale.designImage || sale.design_image || '';
+    const productSlug = sale.product_slug || sale.product_sku || 'demo';
+    const productDesc = sale.product_description || '';
+    const previewUrl =
+      `/voucher/pdf/preview?` +
+      `sku=${encodeURIComponent(productSlug)}&` +
+      `name=${encodeURIComponent(sale.recipientName || sale.purchaserName)}&` +
+      `from=${encodeURIComponent(sale.purchaserName)}&` +
+      `message=${encodeURIComponent(sale.giftMessage || 'Thank you for your purchase!')}&` +
+      `amount=${sale.finalAmount}&` +
+      `voucher_id=${encodeURIComponent(sale.voucherCode)}&` +
+      `custom_image=${encodeURIComponent(customImg)}&` +
+      `design_image=${encodeURIComponent(designImg)}` +
+      (productName && productName !== 'Unknown Product' ? `&title=${encodeURIComponent(productName)}` : '') +
+      (productDesc ? `&product_description=${encodeURIComponent(productDesc)}` : '');
+    return storedPdfUrl
+      ? storedPdfUrl
+      : (sessionId ? `/voucher/pdf?session_id=${encodeURIComponent(sessionId)}` : previewUrl);
+  };
 
   const exportToCSV = () => {
     if (sales.length === 0) return;
@@ -2253,42 +2285,7 @@ const SalesView: React.FC<{
                     // Type assertion to access extended properties from the JOIN
                     const saleWithProduct = sale as any;
                     const productName = saleWithProduct.product_name || 'Unknown Product';
-                    const productSku = saleWithProduct.product_sku || 'demo';
-                    
-                    // Build PDF download URL.
-                    // Prefer the exact PDF persisted at purchase time (contains the customer's
-                    // photo, durably stored in S3) so admins get the precise voucher for hard-copy
-                    // shipping. Fall back to a live preview render — and in that case still pass the
-                    // customer's stored image so the photo is included rather than dropped.
-                    const storedPdfUrl = saleWithProduct.pdfUrl || saleWithProduct.pdf_url;
-                    const sessionId = saleWithProduct.stripe_session_id;
-                    const customImg = saleWithProduct.customImage || saleWithProduct.custom_image || '';
-                    const designImg = saleWithProduct.designImage || saleWithProduct.design_image || '';
-                    const productSlug = saleWithProduct.product_slug || saleWithProduct.product_sku || productSku;
-                    const productDesc = saleWithProduct.product_description || '';
-                    // Last-resort preview render (used only when there's no stored PDF and no
-                    // Stripe session). Carries the product slug/name/description so it still
-                    // lists the package inclusions.
-                    const previewUrl =
-                      `/voucher/pdf/preview?` +
-                      `sku=${encodeURIComponent(productSlug)}&` +
-                      `name=${encodeURIComponent(sale.recipientName || sale.purchaserName)}&` +
-                      `from=${encodeURIComponent(sale.purchaserName)}&` +
-                      `message=${encodeURIComponent(sale.giftMessage || 'Thank you for your purchase!')}&` +
-                      `amount=${sale.finalAmount}&` +
-                      `voucher_id=${encodeURIComponent(sale.voucherCode)}&` +
-                      `custom_image=${encodeURIComponent(customImg)}&` +
-                      `design_image=${encodeURIComponent(designImg)}` +
-                      (productName && productName !== 'Unknown Product' ? `&title=${encodeURIComponent(productName)}` : '') +
-                      (productDesc ? `&product_description=${encodeURIComponent(productDesc)}` : '');
-                    // Prefer the exact persisted PDF; else regenerate the EXACT customer voucher
-                    // from the Stripe session (resolves the package + inclusions reliably);
-                    // else fall back to the preview render.
-                    const pdfUrl = storedPdfUrl
-                      ? storedPdfUrl
-                      : (sessionId
-                          ? `/voucher/pdf?session_id=${encodeURIComponent(sessionId)}`
-                          : previewUrl);
+                    const pdfUrl = buildPdfUrl(saleWithProduct);
 
                     return (
                       <tr key={sale.id} className="hover:bg-gray-50">
@@ -2360,6 +2357,14 @@ const SalesView: React.FC<{
                             <Button
                               variant="outline"
                               size="sm"
+                              onClick={() => setViewSale(saleWithProduct)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
                               onClick={() => window.open(pdfUrl, '_blank')}
                             >
                               <Download className="h-4 w-4 mr-1" />
@@ -2400,6 +2405,93 @@ const SalesView: React.FC<{
           </CardContent>
         </Card>
       )}
+
+      {/* Purchase detail modal — full view of a single sale + download the exact customer PDF */}
+      <Dialog open={!!viewSale} onOpenChange={(open) => !open && setViewSale(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {viewSale && (() => {
+            const s = viewSale;
+            const productName = s.product_name || 'Unknown Product';
+            const heroImg = s.customImage || s.custom_image || s.designImage || s.design_image || '';
+            const pdfUrl = buildPdfUrl(s);
+            const hasExactPdf = !!(s.pdfUrl || s.pdf_url);
+            const row = (label: string, value: React.ReactNode) => (
+              <div className="flex justify-between gap-4 py-2 border-b border-gray-100 last:border-0">
+                <span className="text-sm text-gray-500">{label}</span>
+                <span className="text-sm font-medium text-gray-900 text-right break-words">{value}</span>
+              </div>
+            );
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <ShoppingCart className="h-5 w-5" />
+                    Voucher Purchase
+                  </DialogTitle>
+                  <DialogDescription>
+                    <code className="bg-gray-100 px-2 py-0.5 rounded font-mono text-xs">{s.voucherCode}</code>
+                  </DialogDescription>
+                </DialogHeader>
+
+                {heroImg && (
+                  <img
+                    src={heroImg}
+                    alt="Voucher image chosen by customer"
+                    className="w-full max-h-56 object-contain rounded-md bg-gray-50 border"
+                  />
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+                  <div>
+                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-3 mb-1">Product</h4>
+                    {row('Product', productName)}
+                    {row('Original', `€${Number(s.originalAmount || 0).toFixed(2)}`)}
+                    {Number(s.discountAmount || 0) > 0 && row('Discount', `-€${Number(s.discountAmount).toFixed(2)}`)}
+                    {row('Final price', `€${Number(s.finalAmount || 0).toFixed(2)}`)}
+                    {(s.coupon_code || s.couponCode) && row('Coupon', s.coupon_code || s.couponCode)}
+                    {row('Status', s.paymentStatus || 'pending')}
+                    {row('Date', new Date(s.createdAt).toLocaleString())}
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-3 mb-1">Purchaser</h4>
+                    {row('Name', s.purchaserName || '—')}
+                    {row('Email', s.purchaserEmail || '—')}
+                    {s.purchaserPhone && row('Phone', s.purchaserPhone)}
+                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-3 mb-1">Recipient</h4>
+                    {s.recipientName || s.recipientEmail ? (
+                      <>
+                        {row('Name', s.recipientName || '—')}
+                        {s.recipientEmail && row('Email', s.recipientEmail)}
+                      </>
+                    ) : (
+                      <div className="text-sm text-gray-400 italic py-2">Self-purchase</div>
+                    )}
+                  </div>
+                </div>
+
+                {s.giftMessage && (
+                  <div className="mt-2">
+                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Gift message</h4>
+                    <p className="text-sm text-gray-900 italic bg-gray-50 rounded-md p-3 border">"{s.giftMessage}"</p>
+                  </div>
+                )}
+
+                <DialogFooter className="mt-4 flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <span className="text-xs text-gray-500">
+                    {hasExactPdf
+                      ? 'Exact PDF the customer downloaded (stored at purchase).'
+                      : 'Regenerated from the original order details.'}
+                  </span>
+                  <Button onClick={() => window.open(pdfUrl, '_blank')}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download voucher PDF
+                  </Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

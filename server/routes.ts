@@ -13676,6 +13676,26 @@ ${getBizName()} CRM System
       } catch (sessErr: any) {
         console.warn('Could not enrich voucher sales with stripe_session_id:', sessErr?.message || sessErr);
       }
+      // (c) Expose pdf_url (raw column, not in Drizzle schema) so the admin can download the
+      //     EXACT PDF that was generated at purchase time and durably stored in S3 — the same
+      //     voucher the customer downloaded from the frontend. Kept as its own guarded block so a
+      //     missing column never affects (a) or (b).
+      try {
+        const ids = (sales as any[]).map(s => s.id).filter(Boolean);
+        if (ids.length) {
+          const extra = await runSql(
+            `SELECT id, pdf_url FROM voucher_sales WHERE id = ANY($1)`,
+            [ids]
+          );
+          const byId = new Map<string, any>((extra || []).map((r: any) => [String(r.id), r]));
+          for (const s of (sales as any[])) {
+            const r = byId.get(String(s.id));
+            if (r) s.pdf_url = r.pdf_url || null;
+          }
+        }
+      } catch (pdfErr: any) {
+        console.warn('Could not enrich voucher sales with pdf_url (column may not exist yet):', pdfErr?.message || pdfErr);
+      }
       res.json(sales);
     } catch (error) {
       console.error("Error fetching voucher sales:", error);
