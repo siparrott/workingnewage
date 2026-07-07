@@ -2648,6 +2648,38 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
+  // Distribute a post's Social Pack to Pulse (AxixOS Social). Auto-generates the pack if
+  // missing. Pass { dryRun: true } to preview the exact per-platform rows without sending,
+  // or { mode: 'draft'|'schedule'|'now' } to override the default PULSE_MODE for this send.
+  app.post("/api/blog/posts/:id/distribute-pulse", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const post = await storage.getBlogPost(req.params.id);
+      if (!post) return res.status(404).json({ error: 'Post not found' });
+
+      const { isPulseConfigured, buildPulseRows, distributeToPulse } = await import('./services/pulse.js');
+      const { ensureSocialPack } = await import('./services/socialDistribution.js');
+
+      const sp = await ensureSocialPack(post as any);
+      if (!sp) return res.status(400).json({ error: 'Post needs generated content before creating a social pack.' });
+
+      const mode = typeof req.body?.mode === 'string' ? req.body.mode : undefined;
+      const rows = buildPulseRows(post as any, sp, mode ? { mode } : undefined);
+
+      if (req.body?.dryRun === true) {
+        return res.json({ success: true, dryRun: true, configured: isPulseConfigured(), rows });
+      }
+      if (!isPulseConfigured()) {
+        return res.status(400).json({ error: 'PULSE_API_KEY not set — cannot distribute. Set it to enable Pulse.', rows });
+      }
+
+      const result = await distributeToPulse(rows);
+      res.json({ success: result.ok, result, rows });
+    } catch (e: any) {
+      console.error('[blog/distribute-pulse] error:', e);
+      res.status(500).json({ error: e?.message || 'Pulse distribution failed' });
+    }
+  });
+
   // Fix existing blog posts with wall-of-text issue by converting to structured HTML
   app.post("/api/blog/posts/fix-formatting", authenticateUser, async (req: Request, res: Response) => {
     try {

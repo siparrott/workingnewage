@@ -173,6 +173,27 @@ cron.schedule("0 * * * *", async () => {
         } catch (zErr) {
           jobLog('BLOG', `Zernio social error for ${post.slug}`, zErr instanceof Error ? zErr.message : zErr);
         }
+
+        // Best-effort: push the post's Social Pack into Pulse (AxixOS) for social
+        // distribution. Auto-generates the pack if missing. Gated by PULSE_AUTODISTRIBUTE
+        // so it stays dormant until explicitly enabled; never blocks the publish.
+        try {
+          const { isPulseAutoEnabled, buildPulseRows, distributeToPulse } = await import("../services/pulse.js");
+          if (isPulseAutoEnabled()) {
+            const { ensureSocialPack } = await import("../services/socialDistribution.js");
+            const sp = await ensureSocialPack(post as any);
+            if (!sp) {
+              jobLog('BLOG', `Pulse skipped (no content for social pack): ${post.slug}`);
+            } else {
+              const rows = buildPulseRows(post as any, sp, { when: now });
+              const r = await distributeToPulse(rows);
+              const detail = r.summary ? `${r.summary.accepted}/${r.summary.received} accepted` : (r.error || `status ${r.status}`);
+              jobLog('BLOG', `Pulse ${r.ok ? 'distributed' : 'failed'} (${rows.length} row(s)) for ${post.slug}: ${detail}`);
+            }
+          }
+        } catch (pErr) {
+          jobLog('BLOG', `Pulse distribute error for ${post.slug}`, pErr instanceof Error ? pErr.message : pErr);
+        }
       } catch (err) {
         jobLog('BLOG', `Failed to publish post ${post.id}`, err instanceof Error ? err.message : err);
       }
