@@ -793,6 +793,45 @@ const authenticateUser = async (req: any, res: any, next: any) => {
   }
 };
 
+// Accept EITHER normal admin auth (session / JWT / X-Admin-Token) OR a scoped
+// integration API key (ia_live_...). Non-breaking: existing admin credentials work
+// exactly as before; a valid scoped key is simply an additional accepted credential,
+// gated to the required scope(s). Used for endpoints external apps (e.g. Infinite
+// Authority) may call without the shared ADMIN_TOKEN.
+const authOrApiKey = (...requiredScopes: string[]) => async (req: any, res: any, next: any) => {
+  // Only treat a credential as an integration key when it carries our prefix, so JWT
+  // Bearer tokens and the admin-token header fall through to authenticateUser untouched.
+  const extractKey = (): string | null => {
+    const xk = ((req.headers['x-api-key'] as string) || '').trim();
+    if (xk.startsWith('ia_')) return xk;
+    const auth = ((req.headers['authorization'] as string) || '').trim();
+    if (auth.startsWith('Bearer ')) {
+      const t = auth.slice(7).trim();
+      if (t.startsWith('ia_')) return t;
+    }
+    return null;
+  };
+  const presented = extractKey();
+  if (presented) {
+    try {
+      const { verifyIntegrationKey, keyHasScope } = await import('./lib/apiKeys.js');
+      const key = await verifyIntegrationKey(presented);
+      if (!key) return res.status(401).json({ success: false, error: 'Invalid API key', code: 'invalid_api_key' });
+      const missing = requiredScopes.filter((s) => !keyHasScope(key.scopes, s));
+      if (missing.length) {
+        return res.status(403).json({ success: false, error: `Missing required scope(s): ${missing.join(', ')}`, code: 'insufficient_scope' });
+      }
+      req.apiKey = key;
+      if (!req.user) req.user = { id: key.id, role: 'integration' };
+      return next();
+    } catch (e) {
+      console.error('[auth] integration key check failed:', e);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+  }
+  return authenticateUser(req, res, next);
+};
+
 // Generate HTML template for invoice PDF
 function generateInvoiceHTML(invoice: any, client: any): string {
   const today = new Date().toLocaleDateString('de-DE');
@@ -2208,7 +2247,7 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
-  app.post("/api/blog/posts", authenticateUser, async (req: Request, res: Response) => {
+  app.post("/api/blog/posts", authOrApiKey('blog:write'), async (req: Request, res: Response) => {
     try {
       console.log('[BLOG CREATE] Creating new post');
       const postData = { 
@@ -2260,7 +2299,7 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
-  app.put("/api/blog/posts/:id", authenticateUser, async (req: Request, res: Response) => {
+  app.put("/api/blog/posts/:id", authOrApiKey('blog:write'), async (req: Request, res: Response) => {
     try {
       console.log('[BLOG UPDATE] Updating post:', req.params.id);
       console.log('[BLOG UPDATE] Update data:', JSON.stringify(req.body, null, 2));
@@ -2328,7 +2367,7 @@ Bitte versuchen Sie es später noch einmal.`;
       const now = new Date();
       // Weekday numbers: 0=Sun .. 6=Sat. Default Tuesday (2) & Friday (5).
       const daysRaw = Array.isArray(req.body?.days) && req.body.days.length ? req.body.days : [2, 5];
-      const days = Array.from(new Set(daysRaw.map((d: any) => Number(d))))
+      const days = (Array.from(new Set(daysRaw.map((d: any) => Number(d)))) as number[])
         .filter((d) => Number.isInteger(d) && d >= 0 && d <= 6)
         .sort((a, b) => a - b);
       const hour = Number.isFinite(Number(req.body?.hour)) ? Math.min(23, Math.max(0, Number(req.body.hour))) : 10;
@@ -16875,7 +16914,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
   });
 
   // POST create landing page
-  app.post("/api/admin/landing-pages", authenticateUser, async (req: Request, res: Response) => {
+  app.post("/api/admin/landing-pages", authOrApiKey('landing-pages:write'), async (req: Request, res: Response) => {
     try {
       const data = req.body;
       if (!data.title || !data.slug) {
@@ -16895,7 +16934,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
   });
 
   // PUT update landing page
-  app.put("/api/admin/landing-pages/:id", authenticateUser, async (req: Request, res: Response) => {
+  app.put("/api/admin/landing-pages/:id", authOrApiKey('landing-pages:write'), async (req: Request, res: Response) => {
     try {
       const data = req.body;
       // If slug changed, check uniqueness
@@ -16915,7 +16954,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
   });
 
   // POST publish landing page (with server-side readiness validation)
-  app.post("/api/admin/landing-pages/:id/publish", authenticateUser, async (req: Request, res: Response) => {
+  app.post("/api/admin/landing-pages/:id/publish", authOrApiKey('landing-pages:write'), async (req: Request, res: Response) => {
     try {
       const page = await neonDb.getLandingPage(req.params.id);
       if (!page) return res.status(404).json({ error: 'Landing page not found' });
