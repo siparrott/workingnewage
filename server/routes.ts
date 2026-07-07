@@ -2319,6 +2319,90 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
+  // Reschedule all FUTURE, SCHEDULED posts into a fixed weekly cadence (default: 2/week on
+  // Tue & Fri at 10:00 UTC), preserving their current chronological order. Compresses posts
+  // that were scheduled months apart into an even, near-term drip. Published posts and drafts
+  // are left untouched. Pass { dryRun: true } to preview the plan without writing anything.
+  app.post("/api/blog/posts/reschedule-cadence", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const now = new Date();
+      // Weekday numbers: 0=Sun .. 6=Sat. Default Tuesday (2) & Friday (5).
+      const daysRaw = Array.isArray(req.body?.days) && req.body.days.length ? req.body.days : [2, 5];
+      const days = Array.from(new Set(daysRaw.map((d: any) => Number(d))))
+        .filter((d) => Number.isInteger(d) && d >= 0 && d <= 6)
+        .sort((a, b) => a - b);
+      const hour = Number.isFinite(Number(req.body?.hour)) ? Math.min(23, Math.max(0, Number(req.body.hour))) : 10;
+      const minute = Number.isFinite(Number(req.body?.minute)) ? Math.min(59, Math.max(0, Number(req.body.minute))) : 0;
+      const dryRun = req.body?.dryRun === true;
+      // Publish time is a wall-clock time in this zone; default the studio's local time (Vienna).
+      const timeZone = (typeof req.body?.timeZone === 'string' && req.body.timeZone) ? req.body.timeZone : 'Europe/Vienna';
+      if (!days.length) return res.status(400).json({ error: 'No valid weekday(s) provided' });
+
+      // Convert a wall-clock time in `timeZone` to the correct absolute UTC instant, honouring
+      // DST (Vienna is UTC+1 in winter, UTC+2 in summer) so 10:00 always means 10:00 in Vienna.
+      const zonedToUtc = (y: number, mo: number, d: number, hh: number, mm: number): Date => {
+        const naiveUtc = Date.UTC(y, mo, d, hh, mm, 0);
+        const asZone = new Date(new Date(naiveUtc).toLocaleString('en-US', { timeZone }));
+        const asUtc = new Date(new Date(naiveUtc).toLocaleString('en-US', { timeZone: 'UTC' }));
+        const offset = asZone.getTime() - asUtc.getTime();
+        return new Date(naiveUtc - offset);
+      };
+
+      // Only future SCHEDULED posts, kept in their existing scheduled order (compress the spacing).
+      const all = await storage.getBlogPosts();
+      const scheduled = (all as any[])
+        .filter((p) => p.status === 'SCHEDULED' && p.scheduledFor && new Date(p.scheduledFor).getTime() > now.getTime())
+        .sort((a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime());
+
+      // Generate the next N cadence slots (UTC), including today if today's slot is still ahead.
+      const slots: Date[] = [];
+      const cursor = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+      let guard = 0;
+      while (slots.length < scheduled.length && guard++ < 4000) {
+        if (days.includes(cursor.getUTCDay())) {
+          const slot = zonedToUtc(cursor.getUTCFullYear(), cursor.getUTCMonth(), cursor.getUTCDate(), hour, minute);
+          if (slot.getTime() > now.getTime()) slots.push(slot);
+        }
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
+      }
+
+      const plan = scheduled.map((p, i) => ({
+        id: p.id,
+        title: p.title,
+        slug: p.slug,
+        from: p.scheduledFor,
+        to: slots[i] ? slots[i].toISOString() : null,
+      }));
+
+      if (!dryRun) {
+        for (let i = 0; i < scheduled.length; i++) {
+          await storage.updateBlogPost(scheduled[i].id, {
+            scheduledFor: slots[i],
+            status: 'SCHEDULED',
+            published: false,
+            publishedAt: null,
+            updatedAt: now,
+          } as any);
+        }
+        console.log(`[BLOG RESCHEDULE] Re-spaced ${scheduled.length} scheduled post(s) to ${days.length}/week`);
+      }
+
+      res.json({
+        success: true,
+        dryRun,
+        count: scheduled.length,
+        cadence: { days, hour, minute, timeZone, perWeek: days.length },
+        firstSlot: slots[0]?.toISOString() || null,
+        lastSlot: slots[scheduled.length - 1]?.toISOString() || null,
+        plan,
+      });
+    } catch (error) {
+      console.error('[BLOG RESCHEDULE] Error:', error);
+      const msg = error instanceof Error ? error.message : 'Internal server error';
+      res.status(500).json({ error: 'Internal server error', details: msg });
+    }
+  });
+
   app.delete("/api/blog/posts/:id", authenticateUser, async (req: Request, res: Response) => {
     try {
       await storage.deleteBlogPost(req.params.id);

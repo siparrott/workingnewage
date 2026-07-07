@@ -72,6 +72,18 @@ const AdminBlogPostsPage: React.FC = () => {
     error: string | null;
     socialPack: PreparedSocialPack | null;
   } | null>(null);
+  // "Reschedule to 2/week cadence" preview + confirm modal state.
+  const [reschedule, setReschedule] = useState<{
+    loading: boolean;
+    applying: boolean;
+    error: string | null;
+    result: {
+      count: number;
+      firstSlot: string | null;
+      lastSlot: string | null;
+      plan: Array<{ id: string; title: string; from: string | null; to: string | null }>;
+    } | null;
+  } | null>(null);
 
   const fetchPosts = useCallback(async () => {
     try {
@@ -328,6 +340,43 @@ const AdminBlogPostsPage: React.FC = () => {
     }
   };
 
+  // Cadence rescheduling: Tuesday & Friday at 10:00 (UTC), keeping current order.
+  const CADENCE_BODY = { days: [2, 5], hour: 10 };
+
+  const openReschedulePreview = async () => {
+    setReschedule({ loading: true, applying: false, error: null, result: null });
+    try {
+      const res = await fetch('/api/blog/posts/reschedule-cadence', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...CADENCE_BODY, dryRun: true }),
+      });
+      if (!res.ok) throw new Error('Could not build the reschedule preview.');
+      const data = await res.json();
+      setReschedule({ loading: false, applying: false, error: null, result: data });
+    } catch (e: any) {
+      setReschedule({ loading: false, applying: false, error: e?.message || 'Preview failed', result: null });
+    }
+  };
+
+  const applyReschedule = async () => {
+    setReschedule((prev) => (prev ? { ...prev, applying: true, error: null } : prev));
+    try {
+      const res = await fetch('/api/blog/posts/reschedule-cadence', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(CADENCE_BODY),
+      });
+      if (!res.ok) throw new Error('Reschedule failed.');
+      setReschedule(null);
+      await fetchPosts();
+    } catch (e: any) {
+      setReschedule((prev) => (prev ? { ...prev, applying: false, error: e?.message || 'Reschedule failed' } : prev));
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -336,14 +385,97 @@ const AdminBlogPostsPage: React.FC = () => {
             <h1 className="text-2xl font-semibold text-gray-900">{t('admin.blog')}</h1>
             <p className="text-gray-600">{t('blog.manage_content')}</p>
           </div>
-          <Link
-            to="/admin/blog/new"
-            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center"
-          >
-            <Plus size={20} className="mr-2" />
-            {t('blog.create')}
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={openReschedulePreview}
+              title="Re-space all future scheduled posts to 2 per week (Tue & Fri)"
+              className="border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg flex items-center"
+            >
+              <Clock size={18} className="mr-2" />
+              Reschedule cadence
+            </button>
+            <Link
+              to="/admin/blog/new"
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center"
+            >
+              <Plus size={20} className="mr-2" />
+              {t('blog.create')}
+            </Link>
+          </div>
         </div>
+
+        {/* Reschedule-cadence preview / confirm modal */}
+        {reschedule && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col">
+              <div className="flex items-center justify-between px-5 py-4 border-b">
+                <h3 className="text-lg font-semibold text-gray-900">Reschedule to 2 posts / week</h3>
+                <button onClick={() => setReschedule(null)} className="text-gray-400 hover:text-gray-600">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="px-5 py-4 overflow-y-auto">
+                {reschedule.loading && (
+                  <div className="flex items-center text-gray-600">
+                    <Loader2 className="animate-spin mr-2" size={18} /> Building preview…
+                  </div>
+                )}
+                {reschedule.error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg mb-3">
+                    {reschedule.error}
+                  </div>
+                )}
+                {reschedule.result && (
+                  reschedule.result.count === 0 ? (
+                    <p className="text-gray-600">No future scheduled posts to reschedule.</p>
+                  ) : (
+                    <>
+                      <p className="text-gray-700 mb-3">
+                        <strong>{reschedule.result.count}</strong> scheduled post{reschedule.result.count === 1 ? '' : 's'} will be
+                        re-spaced to <strong>Tuesdays &amp; Fridays at 10:00 (Vienna time)</strong>, keeping their current order.
+                        {reschedule.result.firstSlot && reschedule.result.lastSlot && (
+                          <> First goes out <strong>{new Date(reschedule.result.firstSlot).toLocaleDateString()}</strong>,
+                          last <strong>{new Date(reschedule.result.lastSlot).toLocaleDateString()}</strong>.</>
+                        )}
+                      </p>
+                      <div className="border rounded-lg divide-y max-h-64 overflow-y-auto text-sm">
+                        {reschedule.result.plan.map((p) => (
+                          <div key={p.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                            <span className="truncate text-gray-800" title={p.title}>{p.title}</span>
+                            <span className="whitespace-nowrap text-gray-500">
+                              {p.from ? new Date(p.from).toLocaleDateString() : '—'}
+                              {' → '}
+                              <span className="text-gray-900 font-medium">
+                                {p.to ? new Date(p.to).toLocaleDateString() : '—'}
+                              </span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )
+                )}
+              </div>
+              <div className="px-5 py-4 border-t flex justify-end gap-3">
+                <button
+                  onClick={() => setReschedule(null)}
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={applyReschedule}
+                  disabled={reschedule.loading || reschedule.applying || !reschedule.result || reschedule.result.count === 0}
+                  className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 flex items-center"
+                >
+                  {reschedule.applying && <Loader2 className="animate-spin mr-2" size={16} />}
+                  Apply reschedule
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start">
