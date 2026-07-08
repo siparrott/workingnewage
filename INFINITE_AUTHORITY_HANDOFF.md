@@ -305,3 +305,115 @@ The complete authenticated surface, grouped by feature. These are for write-back
 ---
 
 *Generated for the Infinite Authority scaffolding pipeline. Contract reflects the backend as of this handoff; treat the PUBLIC shapes in §4 as stable and build against them. The scoped-key system in §3 is implemented and ready to mint against.*
+
+---
+---
+
+# Part 2 — Contract Confirmation (answers to IA dev handoff)
+
+*Dated 2026-07-08. Every answer below is grounded in the current backend code. **Status labels are literal:** `FACT` = verified in code · `IMPLEMENTED` = live now · `PROPOSED` = not built yet, design only · `OPEN` = a decision IA/we must make. Nothing marked `PROPOSED`/`OPEN` exists yet — do not build against it.*
+
+## 2.1 Landing-page section schema — `FACT` (renderer-verified)
+
+Sections are stored in a single **`content_json` jsonb** column on `landing_pages` — no separate sections table.
+
+> ⚠️ **Do NOT trust `client/src/features/landing-pages/types/landingPageGeneration.types.ts`.** That file uses prop names (`primaryCtaText`, `paragraphs`, `points`, `bullets`, `seoTitle`, `suggestedSlug`, and object-wrapped `benefits`/`testimonials`) that **the public renderer does not read**. It is drift. The shape below was verified against the actual renderers (`client/src/features/landing-pages/components/public/PublicLandingPage*.tsx`) and the publish validator — build against **this**:
+
+```json
+{
+  "hero":          { "headline": "REQUIRED", "subheadline": "", "ctaText": "", "eyebrow": "", "badgeText": "" },
+  "trustBar":      { "items": ["...", "...", "..."] },
+  "problemSection":{ "headline": "", "description": "", "painPoints": ["...", "..."] },
+  "offerSection":  { "headline": "", "description": "", "price": "", "inclusions": ["..."], "urgency": "" },
+  "benefits":      [ { "title": "", "description": "" } ],
+  "whyChooseUs":   { "headline": "", "reasons": [ { "title": "", "description": "" } ] },
+  "inclusions":    { "headline": "", "items": ["..."] },
+  "testimonials":  [ { "quote": "", "author": "", "role": "" } ],
+  "faq":           [ { "question": "", "answer": "" } ],
+  "finalCta":      { "headline": "", "description": "", "ctaText": "" },
+  "seo":           { "title": "", "description": "", "slug": "" }
+}
+```
+
+Rules that will bite if missed:
+- **`benefits`, `testimonials`, `faq` are top-level arrays** (not `{title, items}` objects). Everything else is an object.
+- **Only `hero.headline` is truly required.** Any omitted section key simply doesn't render.
+- **Render order is fixed** (hero → trustBar → problemSection → offerSection → benefits → whyChooseUs → inclusions → testimonials → faq → finalCta), not your array order. `seo` is metadata, not a visible section.
+- **CTAs are not free URLs.** Button *text* comes from `hero.ctaText` / `finalCta.ctaText`; the *href* is derived server-side from the page record's `cta_action` (`book_now`→/booking, `buy_voucher`→/vouchers, `enquire`→/contact). CTAs stay inside the TogNinja funnel.
+- **SEO:** set **both** the top-level `seo_title` / `meta_description` columns **and** `content.seo.title` / `content.seo.description`. Publish 422s if neither is present (`content.seo.title || page.seo_title`).
+
+**Verdict:** rich programmatic-SEO surfaces are supported — not just flat blog articles.
+
+## 2.2 Tenancy — `FACT` + `OPEN`
+
+**`FACT`:** effectively **single-tenant per deployment**. Core content tables (`blog_posts`, `landing_pages`, `crm_clients`, `voucher_products`, `galleries`, `photography_sessions`) have **no `tenant_id`/`studio_id` column** — queries return rows globally. Infra tables (`studios`, `studio_configs`, `studio_integrations`) exist, and `/api/studio-config` filters by a studioId, but that ID is currently a single hardcoded studio and the content tables aren't scoped.
+
+So the working model is **one TogNinja deployment per CRM customer** (own DB, own base URL, own scoped key). One-backend-many-tenants would require adding tenant columns + query scoping to every content table — a project, not a flag.
+
+**`OPEN` (IA to confirm):** is per-deployment (IA stores one `{ baseUrl, scopedKey }` per customer) acceptable? If not, we scope multi-tenant schema work separately.
+
+## 2.3 Provisioning trigger — `PROPOSED` (not built)
+
+**`FACT`:** no outbound webhook infrastructure exists today (the only outbound call is the Pulse social push). Only manual key issuance works now.
+
+**`PROPOSED`:** on provisioning, TogNinja `POST`s to an IA hook (e.g. `https://ia.example.com/hooks/crm-provisioned`) with `{ baseUrl, scopedKey, studio metadata }`. **Blocked on:** IA supplying the payload shape + the §2.2 tenancy confirmation. Not implemented.
+
+## 2.4 Deprovisioning / churn — `PROPOSED` (not built)
+
+**`FACT`:** no "customer offboarded" event exists. On churn (per-deployment): revoke the key (`UPDATE integration_api_keys SET status='revoked'`) and/or tear the instance down. No automatic export; IA content is identifiable only by its slug namespace.
+
+**`PROPOSED`:** an offboarding webhook + a `GET/DELETE …?namespace=<prefix>-*` export/purge endpoint.
+
+## 2.5 Rollback — `FACT` (partial) + `PROPOSED`
+
+- **Unpublish:** `FACT` atomic — single UPDATE (`status→draft`, `published_url→null`).
+- **Revisions:** `FACT` — captured automatically **on publish**, queryable via `GET …/revisions`, **but no restore endpoint**, and editing a published page **mutates live content** (no draft/published split).
+- **Blog posts:** `FACT` — **no revision system at all.**
+- **`PROPOSED`:** (a) `POST …/revisions/:revId/restore`, (b) snapshot-on-every-update, (c) blog-post revisions. Recommended before autonomous publishing.
+
+## 2.6 Sitemap — `FACT` + `PROPOSED`
+
+- `FACT`: `sitemap.xml` is generated dynamically and **auto-includes published blog posts** (with image tags) as soon as `publishedAt <= now`. **Landing pages are NOT included yet.**
+- Plan: your option **(b)** — backend owns the sitemap; don't ship your own. `PROPOSED`: add published `landing_pages` to the dynamic generator (small change).
+
+## 2.7 CORS + hosting — `FACT`
+
+- **CORS is currently allow-all** — the server echoes the request origin back with `credentials: true` and **no allow-list**. So `app.infinite-authority.com` already works cross-origin; nothing to add today. *(This supersedes the "add your origin to the allow-list" note in §7/§9 — there is no list at present. We may tighten this later, at which point IA's origin would be added.)*
+- **No staging environment** exists — production only (single deployment, hardcoded host). A staging target = a separate throwaway TogNinja instance with its own key.
+
+## 2.8 Write-plan coordination — `FACT`
+
+- **Slugs:** no `/` — routes are single-segment (`/blog/:slug`, `/lp/:slug`). Use a hyphen prefix (`insights-*`, `guides-*`). Blog slugs are globally unique; LP slugs unique.
+- **Tags:** freeform arrays, no validation — namespacing (`ia-cluster:*`) is fine.
+- **contentHtml:** the server does **not** sanitize; the blog renderer injects it directly. IA's sanitisation is load-bearing.
+- **Rate limits:** none exist. A 20–50 write burst won't be rejected, but there's no protection and the DB is shared — self-throttle to a few writes/sec.
+- **Media upload:** `POST /api/upload/image`, multipart field **`file`**, ≤20 MB, auto-WebP → returns `{ url, thumbnailUrl }`.
+- **Analytics:** page views are written via public `POST /api/landing-pages/events`; aggregated reads exist but are admin-only.
+
+## 2.9 Dry-run enablers — `OPEN` (blocks IA step 3)
+
+The scoped key currently reaches: `POST/PUT /api/blog/posts`, `POST/PUT /api/admin/landing-pages`, `POST …/publish`. It does **not** yet reach `check-slug`, `unpublish`, or `POST /api/upload/image` — all of which IA's flow needs. Wiring `authOrApiKey(scope)` onto those (adding `media:write`, optionally `analytics:read`) is small and additive. **Required before the 3-posts + 1-LP prototype.**
+
+## 2.10 Status board
+
+| Item | Status | Next step |
+|---|---|---|
+| Landing-page section schema (§2.1) | `FACT` documented | Build against it; ignore the client types file |
+| Scoped API keys (§3) | `IMPLEMENTED` | Mint per deployment |
+| Tenancy = per-deployment (§2.2) | `FACT` + `OPEN` | **IA confirms** per-deployment model |
+| check-slug / unpublish / media on key (§2.9) | `OPEN` → ready to build | We wire `authOrApiKey` (small) |
+| Landing pages in sitemap (§2.6) | `PROPOSED` | We add to dynamic generator |
+| Provisioning webhook (§2.3) | `PROPOSED` | **IA sends payload shape** → we build |
+| Deprovisioning webhook + export (§2.4) | `PROPOSED` | Await tenancy decision |
+| Revision restore + blog revisions (§2.5) | `PROPOSED` | Recommended pre-autonomy |
+| Analytics read scope (§2.8) | `PROPOSED` | Add `analytics:read` when needed |
+
+## 2.11 Sequencing
+
+1. **Tenancy is the fork (§2.2).** IA confirms per-deployment is acceptable, or we scope multi-tenant work.
+2. IA sends the `crm-provisioned` webhook payload shape (§2.3); we build the emitter.
+3. We close the dry-run enablers (§2.9) + add LPs to the sitemap, then mint a key against a throwaway instance for the end-to-end test (3 blog posts + 1 landing page).
+
+---
+
+*End of Part 2. Facts reflect the backend as of 2026-07-08. Items marked PROPOSED/OPEN are not yet built — confirm the tenancy model (§2.2) and send the provisioning payload shape (§2.3) to unblock the next steps.*
