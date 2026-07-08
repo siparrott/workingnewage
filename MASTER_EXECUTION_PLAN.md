@@ -24,7 +24,7 @@
 - [ ] 🧑 Confirm **service delivery** = private container image (not source pull). *(Recommended.)*
 - [ ] 🧑 Create a **private registry** namespace (GHCR / Docker Hub private / ECR) + a pull token.
 - [ ] 🧑 Create a **Render account** for tenant-zero + a **Render API key**.
-- [~] 🧑 Use **Supabase** for tenant-zero — create a project + grab the **Session pooler / direct** connection string (port 5432; separate from prod). *(Portable driver added — see 0C.1.)*
+- [x] 🧑🤖 **Supabase** project live (`alhofnvlxmrjutxtosum`, eu-north-1) — 🤖 pushed schema (72 tables) + seeded baseline (admin / config / prices / vouchers) via the **portable driver over the Session pooler**. **Runtime-validated against Supabase** (`node-postgres — SSL on`, inserts OK). Use the pooler URL (port 5432) as `DATABASE_URL`.
 - [ ] 🧑 Decide **Render deploy-auth flow**: customer pastes a Render API token vs OAuth handshake.
 
 ### 0B. Template repo
@@ -43,7 +43,7 @@
 - Deferred (non-runtime; no effect on tenant-zero): `dist-server/`, `hub/`, root dev scripts, stale `agent/integrations/pricing.js`.
 
 ### 0D. Tenant-zero reference instance
-- [ ] 🤖 Provide a `render.yaml` / deploy steps for the **image** (not source), `DEMO_MODE=true`, health check.
+- [x] 🤖 Deploy steps for the **image** documented → [TENANT_ZERO_RUNBOOK.md](TENANT_ZERO_RUNBOOK.md) (`DEMO_MODE=true`, health check `/api/health`).
 - [ ] 🧑 Deploy tenant-zero to Render from the image; set boot env (`DATABASE_URL`, `SESSION_SECRET`, encryption key).
 - [x] 🤖 Wrap `db:push → db:init → demo seed` into one `bootstrap` script (`npm run bootstrap [-- --demo]`); you run it against tenant-zero.
 - [ ] 🧑 Confirm tenant-zero loads (still branded "New Age" — expected).
@@ -52,6 +52,11 @@
 - [ ] 🤖 Extend `authOrApiKey`/`integration_api_keys` with scopes: `ai-agent`, `ia`, `shootcleaner`, `pixelseal`.
 - [ ] 🤖 Add an **entitlement check** (periodic; revoked/expired key disables *that* premium feature, not the app).
 - [ ] 🧑 Mint an **IA scoped key** for tenant-zero; IA does a dry-run publish (3 posts + 1 landing page).
+
+### 0F. Known issues found during tenant-zero bootstrap (fix for clean provisioning — Phase 1/2)
+- [ ] 🤖 **Schema FK type mismatch:** `scheduler_bookings.client_id` is `text` but references `crm_clients.id` (`uuid`) → a clean `push` builds all 72 tables but skips FK constraints from that point on. Non-fatal (app doesn't rely on DB FKs); fix the schema so fresh-tenant pushes complete 100% (likely more text-vs-uuid FK mismatches behind it — audit needed).
+- [ ] 🤖 **`bootstrap` script broken for auto-provisioning:** `db:push` uses `drizzle-kit push` but this repo has drizzle-kit 0.20.18 → needs `push:pg --schema=./shared/schema.ts --driver=pg --connectionString=<url>`; `demo:setup` imports `clients` (schema exports `crmClients`) and uses text ids against `uuid` columns. Ran tenant-zero manually (push:pg + db:init) instead. Fix both before Phase-2 `provision-tenant`.
+- **Impact: none on tenant-zero** — its DB is schema-complete + baseline-seeded and ready to deploy against. Demo *content* (fake clients/galleries/blog) not seeded; IA-generated content is the real demo anyway.
 
 **GATE 0:** tenant-zero live from a private image + IA read/write proven + entitlement stub working. ✅ → Phase 1.
 
