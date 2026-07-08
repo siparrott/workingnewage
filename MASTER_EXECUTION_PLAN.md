@@ -28,13 +28,14 @@
 - [ ] 🧑 Decide **Render deploy-auth flow**: customer pastes a Render API token vs OAuth handshake.
 
 ### 0B. Template repo
-- [ ] 🧑 Create the **private template repo** (mirror current code). Confirm prod repo stays separate + frozen.
-- [ ] 🤖 Add `PRODUCT_README` + tag `v0-baseline`.
+- [x] 🧑 Private template repo **`siparrott/studioOS-platform`** created (Private).
+- [x] 🤖 Mirror-pushed `main` → `template` (full history, incl. Dockerfile / CI / bootstrap).
+- [x] 🤖 Tagged & pushed **`v0.1.0`** → triggers the first CI image build.
 
 ### 0C. Containerize (the keystone)
 - [x] 🤖 Write a **Dockerfile** for the single Express service (build React → serve from Express).
 - [x] 🤖 Add CI to **build + push the private image** on tag (`.github/workflows/build-image.yml` → GHCR).
-- [ ] 🧑 Verify the image builds in CI + pulls with issued creds.
+- [~] 🧑 Verify the image builds in CI (running now via `v0.1.0`) + pulls with issued creds.
 
 ### 0D. Tenant-zero reference instance
 - [ ] 🤖 Provide a `render.yaml` / deploy steps for the **image** (not source), `DEMO_MODE=true`, health check.
