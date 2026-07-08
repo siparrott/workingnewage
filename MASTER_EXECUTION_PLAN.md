@@ -24,7 +24,7 @@
 - [ ] 🧑 Confirm **service delivery** = private container image (not source pull). *(Recommended.)*
 - [ ] 🧑 Create a **private registry** namespace (GHCR / Docker Hub private / ECR) + a pull token.
 - [ ] 🧑 Create a **Render account** for tenant-zero + a **Render API key**.
-- [ ] 🧑 Create a **Neon** project/DB for tenant-zero (separate from prod).
+- [~] 🧑 Use **Supabase** for tenant-zero — create a project + grab the **Session pooler / direct** connection string (port 5432; separate from prod). *(Portable driver added — see 0C.1.)*
 - [ ] 🧑 Decide **Render deploy-auth flow**: customer pastes a Render API token vs OAuth handshake.
 
 ### 0B. Template repo
@@ -35,7 +35,12 @@
 ### 0C. Containerize (the keystone)
 - [x] 🤖 Write a **Dockerfile** for the single Express service (build React → serve from Express).
 - [x] 🤖 Add CI to **build + push the private image** on tag (`.github/workflows/build-image.yml` → GHCR).
-- [~] 🧑 Verify the image builds in CI (running now via `v0.1.0`) + pulls with issued creds.
+- [~] 🧑 Verify image builds in CI + pulls with creds. (`v0.1.0` = Neon; **`v0.2.0` = portable/Supabase-ready**, building now.)
+
+### 0C.1 Portable DB (Supabase-ready) — DONE
+- [x] 🤖 Runtime swapped Neon serverless → **node-postgres** (`server/db.ts` + `server/db-compat.ts` shim; all server + agent `neon()`/`neon-http` users repointed). Works with Supabase / Neon / any Postgres.
+- [x] 🤖 On branch **`portable-pg`**, tag **`v0.2.0`** → building the Supabase-ready image. **Not on `origin/main` — prod stays on Neon.**
+- Deferred (non-runtime; no effect on tenant-zero): `dist-server/`, `hub/`, root dev scripts, stale `agent/integrations/pricing.js`.
 
 ### 0D. Tenant-zero reference instance
 - [ ] 🤖 Provide a `render.yaml` / deploy steps for the **image** (not source), `DEMO_MODE=true`, health check.
@@ -72,7 +77,7 @@
 **Goal:** one command stands up a new customer instance; a clean first-run wizard personalises it.
 
 ### 2A. `provision-tenant` (Render API)
-- [ ] 🤖 Script: create Render web service from the private image in the customer's account → attach Neon DB → set Bucket-A boot secrets → deploy → `bootstrap` → create admin → mint + register gated-service keys → return `{ url, admin creds }`.
+- [ ] 🤖 Script: create Render web service from the private image in the customer's account → attach the tenant DB (Supabase / Neon / any Postgres) → set Bucket-A boot secrets → deploy → `bootstrap` → create admin → mint + register gated-service keys → return `{ url, admin creds }`.
 - [ ] 🧑 Provide a test customer Render token; we provision a second throwaway instance end-to-end.
 
 ### 2B. Onboarding wizard (build on the existing setup routes — don't greenfield)
@@ -119,4 +124,4 @@
 ---
 
 ## Immediate next action
-**Phase 0A + 0B.** You: create the private template repo, the private registry token, a Render API key, and a Neon DB for tenant-zero. Me: I'll write the Dockerfile + `bootstrap` script the moment the repo exists (or I can draft them here now against this codebase so they're ready to drop in). Tell me which and we start.
+**Deploy tenant-zero (Gate 0D)** — see [TENANT_ZERO_RUNBOOK.md](TENANT_ZERO_RUNBOOK.md). 🧑 finish the **Supabase** project + the **read:packages** PAT → deploy a Render service from **`ghcr.io/siparrott/studioos-platform:v0.2.0`** (portable image) against the Supabase URL → `npm run bootstrap -- --demo` → connect IA. 🤖 standing by to adjust the image if the CI build surfaces anything.
