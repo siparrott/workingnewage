@@ -16,3 +16,8 @@ coverage
 .idea
 dist
 build
+
+# Belt-and-braces: exclude every .env variant (secrets) except the template, and CI config.
+.env.*
+!.env.example
+.github

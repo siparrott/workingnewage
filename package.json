@@ -32,6 +32,7 @@
     "db:init": "tsx scripts/init-database.ts",
     "db:init:galleries": "tsx scripts/init-galleries.ts",
     "db:setup": "npm run db:push && npm run db:init",
+    "bootstrap": "node scripts/bootstrap-tenant.mjs",
     "create:admin": "tsx scripts/create-admin-user.ts",
     "demo:setup": "node scripts/setup-demo-data.js",
     "demo:reset": "node scripts/reset-demo-data.js",
