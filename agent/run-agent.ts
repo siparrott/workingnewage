@@ -155,7 +155,7 @@ export async function runAgent(studioId: string, userId: string, message: string
               const leadEmail = lead.email;
               console.log(`🔍 Found lead ${lead.name}, checking for client with email: ${leadEmail}`);
               
-              const { neon } = await import('@neondatabase/serverless');
+              const { neon } = await import('../server/db-compat.js');
               const sqlConnection = neon(process.env.DATABASE_URL!);
               const clientSearch = await sqlConnection`
                 SELECT id, first_name, last_name, email, phone, 

@@ -1,5 +1,5 @@
 // agent/core/knowledge-base.ts - Comprehensive pgvector knowledge base system
-import { neon } from '@neondatabase/serverless';
+import { neon } from '../../server/db-compat.js';
 import OpenAI from 'openai';
 
 // Initialize OpenAI for embeddings

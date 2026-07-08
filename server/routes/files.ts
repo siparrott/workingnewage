@@ -508,7 +508,7 @@ router.get('/usage', async (req, res) => {
       });
     }
     
-    const { neon } = await import('@neondatabase/serverless');
+    const { neon } = await import('../db-compat.js');
     const sql = neon(process.env.DATABASE_URL!);
     
     // Check if user has a storage subscription
@@ -577,7 +577,7 @@ router.get('/usage', async (req, res) => {
 // GET /api/files/folders - Get folders from photo_folders table
 router.get('/folders', async (req, res) => {
   try {
-    const { neon } = await import('@neondatabase/serverless');
+    const { neon } = await import('../db-compat.js');
     const sql = neon(process.env.DATABASE_URL!);
     
     // Get all folders from photo_folders table
@@ -610,7 +610,7 @@ router.post('/folders', async (req, res) => {
       return res.status(400).json({ error: 'Folder name is required' });
     }
 
-    const { neon } = await import('@neondatabase/serverless');
+    const { neon } = await import('../db-compat.js');
     const sql = neon(process.env.DATABASE_URL!);
     
     // Create folder ID from name

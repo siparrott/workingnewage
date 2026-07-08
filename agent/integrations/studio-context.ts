@@ -1,4 +1,4 @@
-import { neon } from "@neondatabase/serverless";
+import { neon } from "../../server/db-compat.js";
 import { getWebsiteProfile } from "./website-profile";
 
 const sql = neon(process.env.DATABASE_URL!);

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { neon } from '@neondatabase/serverless';
+import { neon } from '../db-compat.js';
 
 const router = Router();
 const sql = neon(process.env.DATABASE_URL!);

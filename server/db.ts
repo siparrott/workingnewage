@@ -1,40 +1,45 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "../shared/schema.js";
 
-neonConfig.webSocketConstructor = ws;
+// Portable Postgres connection via standard node-postgres — works with Supabase, Neon,
+// AWS RDS, or any self-hosted Postgres. (Previously locked to @neondatabase/serverless,
+// which only speaks Neon's WebSocket endpoint.) The app runs as a long-lived server, so
+// the standard TCP driver is the right fit and keeps every provider on the table.
+const url = process.env.DATABASE_URL;
 
-// Neon-only database connection (Supabase removed)
-const neonUrl = process.env.DATABASE_URL;
-
-if (!neonUrl) {
+if (!url) {
   console.error("❌ ERROR: DATABASE_URL environment variable is not set!");
-  console.error("Please configure DATABASE_URL in your Heroku dashboard:");
-  console.error("heroku config:set DATABASE_URL='your-neon-connection-string'");
-  // In production, we need the database - but don't crash immediately
-  // This allows the app to start and show a clear error message
+  console.error("Set DATABASE_URL to your Postgres connection string (Supabase/Neon/…).");
+  // In production, keep the process up so it can surface a clear error rather than crash-loop.
   if (process.env.NODE_ENV === 'production') {
     console.error("⚠️ App will start but database operations will fail");
   } else {
-    throw new Error("DATABASE_URL must be set - provide your Neon connection string");
+    throw new Error("DATABASE_URL must be set - provide your Postgres connection string");
   }
 }
 
-export const pool = neonUrl ? new Pool({ 
-  connectionString: neonUrl,
+// Enable TLS for hosted Postgres (Supabase/Neon require it). Skip only for a local/plain
+// connection or when the URL explicitly disables SSL. rejectUnauthorized:false accepts the
+// provider's cert without bundling a CA — standard for Supabase/Neon Node clients.
+const isLocal = !!url && /(^|@)(localhost|127\.0\.0\.1|::1)(:|\/)/.test(url);
+const useSsl = !!url && !isLocal && !/sslmode=disable/i.test(url);
+
+export const pool = url ? new Pool({
+  connectionString: url,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 10000,
+  ...(useSsl ? { ssl: { rejectUnauthorized: false } } : {}),
 }) : null as any;
 
-export const db = neonUrl ? drizzle(pool, { 
+export const db = url ? drizzle(pool, {
   schema,
-  logger: true  // Enable SQL query logging for debugging
+  logger: true, // SQL query logging (matches prior behaviour)
 }) : null as any;
 
-if (neonUrl) {
-  console.log(`📊 Database: Neon connection (Supabase-free architecture)`);
+if (url) {
+  console.log(`📊 Database: node-postgres (portable) — SSL ${useSsl ? 'on' : 'off'}`);
 } else {
   console.warn(`⚠️ Database: No connection - DATABASE_URL not configured`);
 }
