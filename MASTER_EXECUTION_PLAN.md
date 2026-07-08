@@ -32,14 +32,14 @@
 - [ ] 🤖 Add `PRODUCT_README` + tag `v0-baseline`.
 
 ### 0C. Containerize (the keystone)
-- [ ] 🤖 Write a **Dockerfile** for the single Express service (build React → serve from Express).
-- [ ] 🤖 Add CI to **build + push the private image** on tag.
-- [ ] 🧑 Verify the image pulls with issued creds.
+- [x] 🤖 Write a **Dockerfile** for the single Express service (build React → serve from Express).
+- [x] 🤖 Add CI to **build + push the private image** on tag (`.github/workflows/build-image.yml` → GHCR).
+- [ ] 🧑 Verify the image builds in CI + pulls with issued creds.
 
 ### 0D. Tenant-zero reference instance
 - [ ] 🤖 Provide a `render.yaml` / deploy steps for the **image** (not source), `DEMO_MODE=true`, health check.
 - [ ] 🧑 Deploy tenant-zero to Render from the image; set boot env (`DATABASE_URL`, `SESSION_SECRET`, encryption key).
-- [ ] 🤖 Wrap `db:push → db:init → demo seed` into one `bootstrap` script; you run it against tenant-zero.
+- [x] 🤖 Wrap `db:push → db:init → demo seed` into one `bootstrap` script (`npm run bootstrap [-- --demo]`); you run it against tenant-zero.
 - [ ] 🧑 Confirm tenant-zero loads (still branded "New Age" — expected).
 
 ### 0E. Gated-services spine
