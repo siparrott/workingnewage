@@ -390,23 +390,23 @@ So the working model is **one TogNinja deployment per CRM customer** (own DB, ow
 - **Media upload:** `POST /api/upload/image`, multipart field **`file`**, ≤20 MB, auto-WebP → returns `{ url, thumbnailUrl }`.
 - **Analytics:** page views are written via public `POST /api/landing-pages/events`; aggregated reads exist but are admin-only.
 
-## 2.9 Dry-run enablers — `OPEN` (blocks IA step 3)
+## 2.9 Dry-run enablers — `IMPLEMENTED` (v0.4.0)
 
-The scoped key currently reaches: `POST/PUT /api/blog/posts`, `POST/PUT /api/admin/landing-pages`, `POST …/publish`. It does **not** yet reach `check-slug`, `unpublish`, or `POST /api/upload/image` — all of which IA's flow needs. Wiring `authOrApiKey(scope)` onto those (adding `media:write`, optionally `analytics:read`) is small and additive. **Required before the 3-posts + 1-LP prototype.**
+The scoped key now reaches everything IA's flow needs: `POST/PUT /api/blog/posts`, `POST/PUT /api/admin/landing-pages`, `POST …/publish`, **plus** `check-slug` + `unpublish` + `GET …/revisions` (`landing-pages:write`), `POST /api/upload/image` (`media:write`), and `GET …/analytics` (`analytics:read`). Mint a key with the scopes you need, e.g. `blog:write landing-pages:write media:write analytics:read`.
 
 ## 2.10 Status board
 
-| Item | Status | Next step |
+| Item | Status | Notes |
 |---|---|---|
 | Landing-page section schema (§2.1) | `FACT` documented | Build against it; ignore the client types file |
 | Scoped API keys (§3) | `IMPLEMENTED` | Mint per deployment |
-| Tenancy = per-deployment (§2.2) | `FACT` + `OPEN` | **IA confirms** per-deployment model |
-| check-slug / unpublish / media on key (§2.9) | `OPEN` → ready to build | We wire `authOrApiKey` (small) |
-| Landing pages in sitemap (§2.6) | `PROPOSED` | We add to dynamic generator |
-| Provisioning webhook (§2.3) | `PROPOSED` | **IA sends payload shape** → we build |
-| Deprovisioning webhook + export (§2.4) | `PROPOSED` | Await tenancy decision |
-| Revision restore + blog revisions (§2.5) | `PROPOSED` | Recommended pre-autonomy |
-| Analytics read scope (§2.8) | `PROPOSED` | Add `analytics:read` when needed |
+| Tenancy = per-deployment (§2.2) | `CONFIRMED` | Per-deployment adopted |
+| check-slug / unpublish / media / analytics on key (§2.9) | `IMPLEMENTED` (v0.4.0) | `authOrApiKey` wired on all |
+| Landing pages in sitemap (§2.6) | `IMPLEMENTED` (v0.4.0) | `/lp/:slug` added to the dynamic sitemap |
+| LP revision **restore** (§2.5) | `IMPLEMENTED` (v0.4.0) | `POST …/revisions/:revisionId/restore` (snapshots first) |
+| Provisioning webhook (§2.3) | `PROPOSED` | Phase-2 (fires from the provisioner) + **IA still to send payload shape** |
+| Deprovisioning purge (§2.4) | `MOOT` | Per-deployment churn = delete the whole instance + DB; no shared DB to namespace-purge |
+| Blog-post revisions (§2.5) | `PROPOSED` | Optional safety net; not a hard contract requirement |
 
 ## 2.11 Sequencing
 
