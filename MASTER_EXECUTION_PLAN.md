@@ -48,10 +48,10 @@
 - [x] 🤖 `bootstrap` script (`npm run bootstrap [-- --demo]`) — ran against Supabase; schema + baseline + demo content seeded.
 - [x] 🤖 **Confirmed live** at **https://tenant-zero.onrender.com** — `/api/health` 200, root 200, `/api/blog/posts` returns the 2 demo posts from Supabase (full stack: container → Express → portable driver → Supabase). Still branded "New Age" (expected until Phase 1).
 
-### 0E. Gated-services spine
-- [ ] 🤖 Extend `authOrApiKey`/`integration_api_keys` with scopes: `ai-agent`, `ia`, `shootcleaner`, `pixelseal`.
-- [ ] 🤖 Add an **entitlement check** (periodic; revoked/expired key disables *that* premium feature, not the app).
-- [ ] 🧑 Mint an **IA scoped key** for tenant-zero; IA does a dry-run publish (3 posts + 1 landing page).
+### 0E. Gated-services spine — DONE
+- [x] 🤖 **Entitlement spine built** (`server/lib/entitlement.ts`): gated services `ia`/`ai-agent`/`shootcleaner`/`pixelseal`; periodic licence check vs `ENTITLEMENT_URL`+`LICENSE_KEY` with TTL cache + fail-safe grace; `requireEntitlement(service)` middleware to gate premium routes. Permissive when unconfigured (stub). Policy lives in the entitlement-server response (so open decisions don't block the mechanism). *(On `portable-pg`; ships in the next image.)*
+- [x] 🤖 **IA key minted + write loop PROVEN on live tenant-zero:** `ia_live_cc18…` (scopes `blog:write`,`landing-pages:write`) → `POST /api/blog/posts` created a post (uuid, DRAFT); no-key POST → **401**. Revoke via `integration_api_keys.status='revoked'`.
+- Open (product decisions, non-blocking): PixelSeal scope + which services are mandatory vs upsell — these are entitlement-server config, not code.
 
 ### 0F. Provisioning blockers found during tenant-zero bootstrap — FIXED (v0.3.0)
 - [x] 🤖 **Schema FK type mismatch — fixed:** `scheduler_bookings.client_id` `text` → `uuid` (matches `crm_clients.id`). A fresh push now applies **100% cleanly** (72 tables + all FKs, validated on Supabase); no other mismatches surfaced.
@@ -59,7 +59,21 @@
 - **Tenant-zero re-bootstrapped clean** — fresh schema (all FKs) + baseline + demo content. Deploy image **`v0.3.0`** (portable + these fixes). Sessions/invoices demo intentionally omitted (low value; complex required FKs).
 - [ ] 🤖 **Boot-robustness bug (found at deploy):** `server/routes/price-wizard.ts` (and `agent/core/knowledge-base.ts`) instantiate the OpenAI client at **import time**, so the app **crashes on boot if `OPENAI_API_KEY` is unset** — breaks the "boots degraded without optional keys" promise. Placeholder keys set on tenant-zero to unblock; **lazy-init the AI clients in Phase 1** so tenants boot cleanly regardless.
 
-**GATE 0:** tenant-zero live from a private image + IA read/write proven + entitlement stub working. ✅ → Phase 1.
+**GATE 0 ✅ ACHIEVED** — tenant-zero live from the private image (Render→Supabase), IA read/write proven (401 without key), entitlement stub built. → Phase 1.
+
+---
+
+## Workstream M — Migrate PRODUCTION (newagefotografie) Heroku → Render
+*Parallel track (user request). **High-stakes: this is the LIVE business.** Zero-downtime approach — stand up + verify on Render, flip DNS LAST, then decommission Heroku.*
+
+Facts: prod on Heroku (Node buildpack, `main`, **Neon** DB); domain `www.newagefotografie.com`; Redis addon is **unused** (no code refs). The portable `pg` driver works with Neon too, so the same image can run prod.
+
+- [ ] 🧑 Export Heroku config → the full prod secret set: `heroku config -s -a <app>` (Stripe **live**, S3/B2, OpenAI, SMTP/Brevo, Google, SMS, `SESSION_SECRET`, `DATABASE_URL`, …).
+- [ ] 🧑 **Keep Neon for prod** (recommended — zero data migration) vs move to Supabase (bigger job). 
+- [ ] 🧑 **Prerender decision:** prod builds static SEO HTML (`PRERENDER=1` + Chrome). The image skips it → SEO impact. Options: (a) accept client-render, (b) add Chrome to a prod image, (c) run prerender in CI. 
+- [ ] 🤖 Create the Render web service (image from `main`, or source build) with the prod env; **disable in-process cron on the parallel instance** so it doesn't double-run blog-publish/IMAP against the shared live Neon DB.
+- [ ] 🤖/🧑 Verify on the Render URL — site, admin, Stripe webhooks (repoint), mail, storage, calendar.
+- [ ] 🧑 **DNS cutover:** add custom domain in Render → update `www.newagefotografie.com` DNS → Render provisions SSL → decommission Heroku.
 
 ---
 
