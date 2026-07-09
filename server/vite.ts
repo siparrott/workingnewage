@@ -23,7 +23,7 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-const SITE_ORIGIN = "https://www.newagefotografie.com";
+const SITE_ORIGIN = process.env.PUBLIC_SITE_URL || "https://www.newagefotografie.com";
 
 // Serve /sitemap.xml dynamically: take the curated static sitemap as the base
 // and inject a <url> for every PUBLISHED blog post (publishedAt <= now). This

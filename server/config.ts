@@ -13,7 +13,7 @@ console.log('🐛 DEBUG_OPENAI:', DEBUG_OPENAI);
 // Utility to get assistant instructions for fallback system prompts (Patch B from expert advice)
 export async function getAssistantInstructions(assistantId: string): Promise<string> {
   try {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
     const assistant = await openai.beta.assistants.retrieve(assistantId);
     return assistant.instructions || '';
   } catch (error) {

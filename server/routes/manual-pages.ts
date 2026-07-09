@@ -8,7 +8,7 @@ const router = express.Router();
 
 // Helper to get current studio ID (for now use demo studio, later from user session)
 const getStudioId = (req: any): string => {
-  return req.user?.studioId || '550e8400-e29b-41d4-a716-446655440000';
+  return req.user?.studioId || (process.env.STUDIO_ID || '550e8400-e29b-41d4-a716-446655440000');
 };
 
 // GET /api/manual-pages - List all manual page content records for this studio

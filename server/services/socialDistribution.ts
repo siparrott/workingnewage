@@ -30,7 +30,7 @@ export async function ensureSocialPack(post: PostLike): Promise<PreparedSocialPa
     title: post.title,
     excerpt: post.excerpt || undefined,
     body: post.contentHtml || post.content || undefined,
-    url: `https://www.newagefotografie.com/blog/${post.slug}`,
+    url: `${process.env.PUBLIC_SITE_URL || 'https://www.newagefotografie.com'}/blog/${post.slug}`,
     pillar: (post.tags || [])[0],
   });
 

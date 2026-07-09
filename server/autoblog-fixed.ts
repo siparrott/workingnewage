@@ -2,7 +2,7 @@
 import OpenAI from 'openai';
 import { BLOG_ASSISTANT } from './config';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
 
 export class FixedAutoBlogGenerator {
   

@@ -12,7 +12,7 @@ import { buildPreparedSocialPack, type SocialPostInput } from './socialSnippets.
 const BASE = process.env.ZERNIO_API_BASE || 'https://api.zernio.com'; // TODO confirm
 const KEY = process.env.ZERNIO_API_KEY || '';
 const CHANNELS = (process.env.ZERNIO_CHANNELS || 'facebook,instagram,threads,googlebusiness,pinterest,linkedin');
-const ORIGIN = 'https://www.newagefotografie.com';
+const ORIGIN = process.env.PUBLIC_SITE_URL || 'https://www.newagefotografie.com';
 
 function resolveZernioUrl(): string | null {
   const endpoint = process.env.ZERNIO_ENDPOINT || '';

@@ -411,7 +411,7 @@ async function generateModernInvoicePDF(invoice: any, client: any): Promise<Buff
   
   // Try to fetch dynamic studio configuration
   try {
-    const studioId = '550e8400-e29b-41d4-a716-446655440000'; // Default demo studio ID
+    const studioId = (process.env.STUDIO_ID || '550e8400-e29b-41d4-a716-446655440000'); // Default demo studio ID
     const language = 'de';
     
     // Fetch site settings (logo) - with error handling
@@ -1851,7 +1851,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Transcribing audio file:', audioFile.originalname, 'Size:', audioFile.size, 'bytes');
 
       const OpenAI = (await import('openai')).default;
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
 
       // Create a temporary file for OpenAI Whisper API
       const fs = await import('fs');
@@ -1949,7 +1949,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Use the actual Phase B agent system
-      const studioId = '550e8400-e29b-41d4-a716-446655440000'; // Valid UUID
+      const studioId = (process.env.STUDIO_ID || '550e8400-e29b-41d4-a716-446655440000'); // Valid UUID
       const userId = '550e8400-e29b-41d4-a716-446655440001';
       
       // Import runAgent dynamically to avoid module loading issues
@@ -2598,7 +2598,7 @@ Bitte versuchen Sie es später noch einmal.`;
         title: post.title,
         excerpt: out.excerpt || post.excerpt || undefined,
         body: htmlWithImages,
-        url: `https://www.newagefotografie.com/blog/${post.slug}`,
+        url: `${process.env.PUBLIC_SITE_URL || 'https://www.newagefotografie.com'}/blog/${post.slug}`,
         pillar: req.body?.pillar,
       });
       const ideaWithSocial = {
@@ -2639,7 +2639,7 @@ Bitte versuchen Sie es später noch einmal.`;
         title: post.title,
         excerpt: post.excerpt || undefined,
         body: post.contentHtml || post.content || undefined,
-        url: `https://www.newagefotografie.com/blog/${post.slug}`,
+        url: `${process.env.PUBLIC_SITE_URL || 'https://www.newagefotografie.com'}/blog/${post.slug}`,
         pillar: (post.tags || [])[0],
       });
 
@@ -5712,7 +5712,7 @@ Bitte versuchen Sie es später noch einmal.`;
     };
     
     try {
-      const studioId = req.query.studioId as string || '550e8400-e29b-41d4-a716-446655440000';
+      const studioId = req.query.studioId as string || (process.env.STUDIO_ID || '550e8400-e29b-41d4-a716-446655440000');
       const language = (req.query.language as string) || 'de';
       
       // Try to fetch site settings (logo) if table exists
@@ -16037,7 +16037,7 @@ Was interessiert Sie am meisten?`;
       const { BLOG_ASSISTANT, DEBUG_OPENAI } = await import('./config');
       
       // Initialize OpenAI Assistant API with debug logging
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
       
       if (DEBUG_OPENAI) {
         // Some OpenAI client implementations may not expose these properties in types
@@ -17122,7 +17122,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
       const context = req.body;
       
       const OpenAI = (await import('openai')).default;
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
 
       const systemPrompt = `You are an expert landing page copywriter specializing in photography studios and creative businesses. You write high-converting, emotionally compelling landing page copy that balances warmth with persuasion.
 
@@ -17254,7 +17254,7 @@ ${context.extras || ''}`;
       const { section, context, currentContent } = req.body;
       
       const OpenAI = (await import('openai')).default;
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
 
       const completion = await openai.chat.completions.create({
         model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
@@ -17298,7 +17298,7 @@ ${context.extras || ''}`;
       const customPart = customInstruction ? `\nAdditional instruction: ${customInstruction}` : '';
 
       const OpenAI = (await import('openai')).default;
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
 
       const completion = await openai.chat.completions.create({
         model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
@@ -17445,7 +17445,7 @@ ${context.extras || ''}`;
       const content = typeof page.content_json === 'string' ? JSON.parse(page.content_json) : page.content_json;
 
       const OpenAI = (await import('openai')).default;
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
 
       const pageContext = `
 Page: "${page.name}"
