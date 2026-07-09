@@ -1030,7 +1030,8 @@ export const schedulerBookings = pgTable("scheduler_bookings", {
   schedulerId: text("scheduler_id").notNull().references(() => schedulers.id),
   
   // Client info (may or may not link to existing CRM client)
-  clientId: text("client_id").references(() => crmClients.id),
+  // uuid to match crm_clients.id (was text → broke FK creation on a clean push)
+  clientId: uuid("client_id").references(() => crmClients.id),
   clientName: text("client_name").notNull(),
   clientEmail: text("client_email").notNull(),
   clientPhone: text("client_phone"),

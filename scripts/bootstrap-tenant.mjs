@@ -21,10 +21,18 @@ const step = (label, cmd) => {
 };
 
 try {
+  // Schema + baseline are required — a failure here aborts.
   step('1/‎' + (demo ? '3' : '2') + '  Create schema (drizzle push)', 'npm run db:push');
   step('2/‎' + (demo ? '3' : '2') + '  Seed baseline (admin, studio config, prices, vouchers, coupons)', 'npm run db:init');
-  if (demo) step('3/3  Load demo content (clients, sessions, galleries, blog posts)', 'npm run demo:setup');
-  console.log(`\n✅ Bootstrap complete${demo ? ' (with demo content)' : ''}.`);
+  // Demo content is best-effort — never block provisioning on it.
+  if (demo) {
+    try {
+      step('3/3  Load demo content (clients, leads, galleries, blog posts)', 'npm run demo:setup');
+    } catch (demoErr) {
+      console.warn('\n⚠️  Demo content step failed (non-fatal):', demoErr?.message || demoErr);
+    }
+  }
+  console.log(`\n✅ Bootstrap complete${demo ? ' (demo content best-effort)' : ''}.`);
   console.log('   Next: open the instance and finish the setup wizard (domain, mail, Stripe, storage, admin password).');
 } catch (e) {
   console.error('\n✖ Bootstrap failed:', e?.message || e);
