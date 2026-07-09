@@ -53,10 +53,10 @@
 - [ ] 🤖 Add an **entitlement check** (periodic; revoked/expired key disables *that* premium feature, not the app).
 - [ ] 🧑 Mint an **IA scoped key** for tenant-zero; IA does a dry-run publish (3 posts + 1 landing page).
 
-### 0F. Known issues found during tenant-zero bootstrap (fix for clean provisioning — Phase 1/2)
-- [ ] 🤖 **Schema FK type mismatch:** `scheduler_bookings.client_id` is `text` but references `crm_clients.id` (`uuid`) → a clean `push` builds all 72 tables but skips FK constraints from that point on. Non-fatal (app doesn't rely on DB FKs); fix the schema so fresh-tenant pushes complete 100% (likely more text-vs-uuid FK mismatches behind it — audit needed).
-- [ ] 🤖 **`bootstrap` script broken for auto-provisioning:** `db:push` uses `drizzle-kit push` but this repo has drizzle-kit 0.20.18 → needs `push:pg --schema=./shared/schema.ts --driver=pg --connectionString=<url>`; `demo:setup` imports `clients` (schema exports `crmClients`) and uses text ids against `uuid` columns. Ran tenant-zero manually (push:pg + db:init) instead. Fix both before Phase-2 `provision-tenant`.
-- **Impact: none on tenant-zero** — its DB is schema-complete + baseline-seeded and ready to deploy against. Demo *content* (fake clients/galleries/blog) not seeded; IA-generated content is the real demo anyway.
+### 0F. Provisioning blockers found during tenant-zero bootstrap — FIXED (v0.3.0)
+- [x] 🤖 **Schema FK type mismatch — fixed:** `scheduler_bookings.client_id` `text` → `uuid` (matches `crm_clients.id`). A fresh push now applies **100% cleanly** (72 tables + all FKs, validated on Supabase); no other mismatches surfaced.
+- [x] 🤖 **`bootstrap` script — fixed:** `db:push` → `scripts/db-push.mjs` wrapper (drizzle-kit `push:pg` + required flags + TLS, args-array/no-shell); `demo:setup` rewritten to the current schema (crmClients / crmLeads / galleries / blogPosts, uuid ids, idempotent, resilient) and runs via tsx; bootstrap's demo step is best-effort (non-fatal). **Validated end-to-end on Supabase:** `bootstrap --demo` → schema + baseline + clients:3/leads:2/galleries:2/blog:2, exit 0.
+- **Tenant-zero re-bootstrapped clean** — fresh schema (all FKs) + baseline + demo content. Deploy image **`v0.3.0`** (portable + these fixes). Sessions/invoices demo intentionally omitted (low value; complex required FKs).
 
 **GATE 0:** tenant-zero live from a private image + IA read/write proven + entitlement stub working. ✅ → Phase 1.
 

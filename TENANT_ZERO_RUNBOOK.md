@@ -3,7 +3,7 @@
 *Stand up the isolated reference instance from the container image. Gate 0D of [MASTER_EXECUTION_PLAN.md](MASTER_EXECUTION_PLAN.md). Prod (`workingnewage`) is untouched — this is a separate image, DB, and Render service.*
 
 ## Prerequisites (from Tasks 1–4)
-- ✅ Green CI build → **portable** image at **`ghcr.io/siparrott/studioos-platform:v0.2.0`** (node-postgres — Supabase-ready) — confirm it appears under the repo's **Packages**.
+- ✅ Green CI build → **portable** image at **`ghcr.io/siparrott/studioos-platform:v0.3.0`** (node-postgres — Supabase-ready) — confirm it appears under the repo's **Packages**.
 - **read:packages PAT** (Task 2) — Render uses it to pull the private image.
 - **Render account + API key** (Task 3).
 - **Supabase project** for tenant-zero (Task 4) — the **Session pooler / direct** connection string (port **5432**, not the 6543 transaction pooler). SSL is auto-enabled by the app.
@@ -22,7 +22,7 @@ This runs `db:push` (schema) → `db:init` (admin + studio config + prices + vou
 
 ## Step 2 — Create the Render web service (deploy an existing image)
 1. Render dashboard → **New → Web Service → Deploy an existing image**.
-2. **Image URL:** `ghcr.io/siparrott/studioos-platform:v0.2.0`  *(the portable node-postgres image)*
+2. **Image URL:** `ghcr.io/siparrott/studioos-platform:v0.3.0`  *(the portable node-postgres image)*
 3. **Credentials:** add registry credentials → username **`siparrott`**, password **`<read:packages PAT>`**.
 4. Name **`tenant-zero`**, region near you, instance type Starter (Free tier sleeps — fine for a demo).
 5. **Health check path:** `/api/health`.
@@ -58,5 +58,5 @@ tenant-zero is live from the private image, the demo site renders, admin login w
 ### Notes
 - **Ordering matters:** bootstrap the DB (Step 1) before/at deploy so the first health check passes.
 - **Isolation:** separate image tag, separate Supabase project, `DEMO_MODE=true`, separate Render service — prod is never touched.
-- **Image:** use **`:v0.2.0`** (portable node-postgres, Supabase-ready). `:v0.1.0`/`:latest` from `main` are the Neon-only build — don't use them against Supabase.
+- **Image:** use **`:v0.3.0`** (portable node-postgres + provisioning fixes — validated on Supabase). `:v0.1.0`/`:latest` from `main` are the Neon-only build — don't use them against Supabase.
 - **pgvector:** the agent knowledge-base auto-creates the `vector` extension on boot; on Supabase enable the **`vector`** extension (Database → Extensions) if that feature errors. Non-blocking for the demo.
