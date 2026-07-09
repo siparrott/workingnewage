@@ -14,6 +14,7 @@
 - [x] 🤖 Scoped integration API keys implemented (`integration_api_keys`, `authOrApiKey`, mint script).
 - [x] 🤖 IA handoff + contract confirmation, onboarding spec, viability study, build kickoff (docs).
 - [x] 🤖 Blog: Pulse distribution, cadence scheduler, sortable list (existing feature work).
+- [x] 🤖 **IA handoff contract honored (v0.4.0):** dry-run enablers (check-slug/unpublish/revisions/media/analytics on scoped keys), LP revision restore, LP-in-sitemap — implemented + **verified live** on tenant-zero (scope enforcement proven: 403 for missing scope). Not built (with reason): provisioning webhook (Phase-2 + IA payload), deprovisioning purge (moot per-deployment), blog-post revisions (optional).
 
 ---
 
