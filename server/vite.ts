@@ -73,8 +73,34 @@ function registerDynamicSitemap(app: Express, baseFilePath: string) {
         .filter(Boolean)
         .join("\n");
 
-      let xml = blogUrls
-        ? base.replace("</urlset>", `${blogUrls}\n</urlset>`)
+      // Published landing pages (/lp/:slug) — appear automatically once published.
+      let lpUrls = "";
+      try {
+        const neonMod: any = await import("../database.js");
+        const neonDb = neonMod.default || neonMod;
+        const lps = (typeof neonDb.getLandingPages === "function" ? await neonDb.getLandingPages("published") : []) || [];
+        lpUrls = lps
+          .filter((p: any) => p.slug)
+          .map((p: any) => {
+            const loc = `${SITE_ORIGIN}/lp/${p.slug}`;
+            if (existing.has(loc)) return "";
+            const ts = p.updated_at || p.published_at;
+            const lastmod = ts ? new Date(ts).toISOString().slice(0, 10) : "";
+            return (
+              `  <url>\n    <loc>${loc}</loc>\n` +
+              (lastmod ? `    <lastmod>${lastmod}</lastmod>\n` : "") +
+              `    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>`
+            );
+          })
+          .filter(Boolean)
+          .join("\n");
+      } catch (lpErr) {
+        console.warn("[sitemap] landing-page lookup failed (blog still included):", lpErr);
+      }
+
+      const injected = [blogUrls, lpUrls].filter(Boolean).join("\n");
+      let xml = injected
+        ? base.replace("</urlset>", `${injected}\n</urlset>`)
         : base;
       // Declare the image-sitemap namespace on <urlset> when we emit image tags.
       if (hasImages && !xml.includes("xmlns:image")) {

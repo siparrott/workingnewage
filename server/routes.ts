@@ -11544,7 +11544,7 @@ ${getBizName()} CRM System
   
   // Voucher Products Routes
   // ==================== IMAGE UPLOAD ROUTES ====================
-  app.post("/api/upload/image", authenticateUser, upload.single('file'), async (req: Request, res: Response) => {
+  app.post("/api/upload/image", authOrApiKey('media:write'), upload.single('file'), async (req: Request, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
@@ -17006,7 +17006,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
   });
 
   // POST unpublish landing page
-  app.post("/api/admin/landing-pages/:id/unpublish", authenticateUser, async (req: Request, res: Response) => {
+  app.post("/api/admin/landing-pages/:id/unpublish", authOrApiKey('landing-pages:write'), async (req: Request, res: Response) => {
     try {
       const updated = await neonDb.updateLandingPage(req.params.id, {
         status: 'draft',
@@ -17059,13 +17059,35 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
   });
 
   // GET landing page revisions
-  app.get("/api/admin/landing-pages/:id/revisions", authenticateUser, async (req: Request, res: Response) => {
+  app.get("/api/admin/landing-pages/:id/revisions", authOrApiKey('landing-pages:write'), async (req: Request, res: Response) => {
     try {
       const revisions = await neonDb.getLandingPageRevisions(req.params.id);
       res.json(revisions);
     } catch (error) {
       console.error('Error fetching revisions:', error);
       res.status(500).json({ error: 'Failed to fetch revisions' });
+    }
+  });
+
+  // POST restore a landing-page revision (rollback safety net for autonomous publishers)
+  app.post("/api/admin/landing-pages/:id/revisions/:revisionId/restore", authOrApiKey('landing-pages:write'), async (req: Request, res: Response) => {
+    try {
+      const revisions = await neonDb.getLandingPageRevisions(req.params.id);
+      const rev = (revisions || []).find((r: any) => String(r.id) === String(req.params.revisionId));
+      if (!rev) return res.status(404).json({ error: 'Revision not found' });
+      // Snapshot current content first, so the restore itself is reversible.
+      const current = await neonDb.getLandingPage(req.params.id);
+      if (current) {
+        await neonDb.createLandingPageRevision(current.id, current.content_json, current.generation_context_json, (req as any).user?.id || 'restore');
+      }
+      const updated = await neonDb.updateLandingPage(req.params.id, {
+        content_json: rev.content_json,
+        generation_context_json: rev.generation_context_json,
+      });
+      res.json({ success: true, restoredFromVersion: rev.version_number, page: updated });
+    } catch (error) {
+      console.error('Error restoring revision:', error);
+      res.status(500).json({ error: 'Failed to restore revision' });
     }
   });
 
@@ -17082,7 +17104,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
   });
 
   // POST check slug availability
-  app.post("/api/admin/landing-pages/check-slug", authenticateUser, async (req: Request, res: Response) => {
+  app.post("/api/admin/landing-pages/check-slug", authOrApiKey('landing-pages:write'), async (req: Request, res: Response) => {
     try {
       const { slug, excludeId } = req.body;
       if (!slug) return res.status(400).json({ error: 'Slug is required' });
@@ -17328,7 +17350,7 @@ ${context.extras || ''}`;
   });
 
   // GET analytics for a single landing page
-  app.get("/api/admin/landing-pages/:id/analytics", authenticateUser, async (req: Request, res: Response) => {
+  app.get("/api/admin/landing-pages/:id/analytics", authOrApiKey('analytics:read'), async (req: Request, res: Response) => {
     try {
       const days = parseInt(req.query.days as string) || 30;
       const analytics = await neonDb.getLandingPageAnalytics(req.params.id, days);
