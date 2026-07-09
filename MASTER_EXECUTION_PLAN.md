@@ -42,11 +42,11 @@
 - [x] 🤖 On branch **`portable-pg`**, tag **`v0.2.0`** → building the Supabase-ready image. **Not on `origin/main` — prod stays on Neon.**
 - Deferred (non-runtime; no effect on tenant-zero): `dist-server/`, `hub/`, root dev scripts, stale `agent/integrations/pricing.js`.
 
-### 0D. Tenant-zero reference instance
+### 0D. Tenant-zero reference instance — LIVE ✅
 - [x] 🤖 Deploy steps for the **image** documented → [TENANT_ZERO_RUNBOOK.md](TENANT_ZERO_RUNBOOK.md) (`DEMO_MODE=true`, health check `/api/health`).
-- [ ] 🧑 Deploy tenant-zero to Render from the image; set boot env (`DATABASE_URL`, `SESSION_SECRET`, encryption key).
-- [x] 🤖 Wrap `db:push → db:init → demo seed` into one `bootstrap` script (`npm run bootstrap [-- --demo]`); you run it against tenant-zero.
-- [ ] 🧑 Confirm tenant-zero loads (still branded "New Age" — expected).
+- [x] 🤖 **Deployed via the Render API** — service `tenant-zero` (`srv-d97mkqt7vvec73chebp0`, Frankfurt), image `:v0.3.0`, GHCR pull credential, boot env set (`SESSION_SECRET`/`ENCRYPTION_KEY` auto-generated).
+- [x] 🤖 `bootstrap` script (`npm run bootstrap [-- --demo]`) — ran against Supabase; schema + baseline + demo content seeded.
+- [x] 🤖 **Confirmed live** at **https://tenant-zero.onrender.com** — `/api/health` 200, root 200, `/api/blog/posts` returns the 2 demo posts from Supabase (full stack: container → Express → portable driver → Supabase). Still branded "New Age" (expected until Phase 1).
 
 ### 0E. Gated-services spine
 - [ ] 🤖 Extend `authOrApiKey`/`integration_api_keys` with scopes: `ai-agent`, `ia`, `shootcleaner`, `pixelseal`.
@@ -57,6 +57,7 @@
 - [x] 🤖 **Schema FK type mismatch — fixed:** `scheduler_bookings.client_id` `text` → `uuid` (matches `crm_clients.id`). A fresh push now applies **100% cleanly** (72 tables + all FKs, validated on Supabase); no other mismatches surfaced.
 - [x] 🤖 **`bootstrap` script — fixed:** `db:push` → `scripts/db-push.mjs` wrapper (drizzle-kit `push:pg` + required flags + TLS, args-array/no-shell); `demo:setup` rewritten to the current schema (crmClients / crmLeads / galleries / blogPosts, uuid ids, idempotent, resilient) and runs via tsx; bootstrap's demo step is best-effort (non-fatal). **Validated end-to-end on Supabase:** `bootstrap --demo` → schema + baseline + clients:3/leads:2/galleries:2/blog:2, exit 0.
 - **Tenant-zero re-bootstrapped clean** — fresh schema (all FKs) + baseline + demo content. Deploy image **`v0.3.0`** (portable + these fixes). Sessions/invoices demo intentionally omitted (low value; complex required FKs).
+- [ ] 🤖 **Boot-robustness bug (found at deploy):** `server/routes/price-wizard.ts` (and `agent/core/knowledge-base.ts`) instantiate the OpenAI client at **import time**, so the app **crashes on boot if `OPENAI_API_KEY` is unset** — breaks the "boots degraded without optional keys" promise. Placeholder keys set on tenant-zero to unblock; **lazy-init the AI clients in Phase 1** so tenants boot cleanly regardless.
 
 **GATE 0:** tenant-zero live from a private image + IA read/write proven + entitlement stub working. ✅ → Phase 1.
 
