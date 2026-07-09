@@ -6,14 +6,15 @@ import {
 } from 'lucide-react';
 import Layout from '../../components/layout/Layout';
 import { SEOHead } from '../../components/SEO/SEOHead';
+import { SITE } from '../../config/site';
 
 const ImpressumPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Impressum & Datenschutz | New Age Fotografie"
-        description="Impressum und Datenschutzerklärung von New Age Fotografie in Wien. Rechtliche Informationen, Kontaktdaten und Datenschutzhinweise."
-        keywords="Impressum New Age Fotografie, Datenschutz Fotograf Wien, Rechtliche Informationen"
+        title={`Impressum & Datenschutz | ${SITE.name}`}
+        description={`Impressum und Datenschutzerklärung von ${SITE.name} in Wien. Rechtliche Informationen, Kontaktdaten und Datenschutzhinweise.`}
+        keywords={`Impressum ${SITE.name}, Datenschutz Fotograf Wien, Rechtliche Informationen`}
         canonical="/impressum/"
       />
 
@@ -23,7 +24,7 @@ const ImpressumPage: React.FC = () => {
           <div className="container mx-auto px-4">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Impressum & Datenschutz</h1>
             <p className="text-xl text-purple-100 max-w-2xl">
-              Rechtliche Informationen und Datenschutzerklärung von New Age Fotografie
+              Rechtliche Informationen und Datenschutzerklärung von {SITE.name}
             </p>
           </div>
         </div>
@@ -46,7 +47,7 @@ const ImpressumPage: React.FC = () => {
                       <Building2 className="w-5 h-5 mr-2 text-purple-500" />
                       Unternehmensname
                     </h3>
-                    <p className="text-gray-700">New Age Fotografie</p>
+                    <p className="text-gray-700">{SITE.name}</p>
                   </div>
                   
                   <div>
@@ -62,11 +63,11 @@ const ImpressumPage: React.FC = () => {
                       <Phone className="w-5 h-5 mr-2 text-purple-500" />
                       Telefon
                     </h3>
-                    <a 
-                      href="tel:+4367763399210" 
+                    <a
+                      href={`tel:+${SITE.phone.replace(/[^0-9]/g,'')}`}
                       className="text-purple-600 hover:text-purple-700 transition-colors"
                     >
-                      +43 677 633 99210
+                      {SITE.phone}
                     </a>
                   </div>
                   
@@ -75,11 +76,11 @@ const ImpressumPage: React.FC = () => {
                       <Mail className="w-5 h-5 mr-2 text-purple-500" />
                       E-Mail
                     </h3>
-                    <a 
-                      href="mailto:hallo@newagefotografie.com" 
+                    <a
+                      href={`mailto:${SITE.email}`}
                       className="text-purple-600 hover:text-purple-700 transition-colors"
                     >
-                      hallo@newagefotografie.com
+                      {SITE.email}
                     </a>
                   </div>
                 </div>
@@ -187,7 +188,7 @@ const ImpressumPage: React.FC = () => {
               </div>
               <p className="text-gray-700">
                 Die auf dieser Website veröffentlichten Inhalte und Bilder unterliegen dem österreichischen Urheberrecht. 
-                Eine Verwendung außerhalb der Grenzen des Urheberrechts bedarf der vorherigen schriftlichen Zustimmung von New Age Fotografie.
+                Eine Verwendung außerhalb der Grenzen des Urheberrechts bedarf der vorherigen schriftlichen Zustimmung von {SITE.name}.
               </p>
             </section>
 
@@ -250,11 +251,11 @@ const ImpressumPage: React.FC = () => {
                   <h3 className="font-semibold text-gray-900 mb-2">Widerruf von Einwilligungen</h3>
                   <p className="text-gray-700">
                     Eine erteilte Einwilligung zur Verwendung von Fotos kann jederzeit mit Wirkung für die Zukunft per E-Mail an{' '}
-                    <a 
-                      href="mailto:hallo@newagefotografie.com" 
+                    <a
+                      href={`mailto:${SITE.email}`}
                       className="text-purple-600 hover:text-purple-700"
                     >
-                      hallo@newagefotografie.com
+                      {SITE.email}
                     </a>{' '}
                     widerrufen werden.
                   </p>

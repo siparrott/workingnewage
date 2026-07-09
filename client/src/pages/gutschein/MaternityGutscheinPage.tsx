@@ -3,6 +3,7 @@ import GutscheinLayout from '../../components/gutschein/GutscheinLayout';
 import { Check, Clock, Heart, Camera } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useNavigate } from 'react-router-dom';
+import { SITE } from '../../config/site';
 
 const MaternityGutscheinPage: React.FC = () => {
   const { addItem } = useCart();
@@ -149,7 +150,7 @@ const MaternityGutscheinPage: React.FC = () => {
       title="Schwangerschafts-Fotoshooting Gutschein Wien"
       subtitle="Magische Babybauch-Momente zum Verschenken"
       image="https://i.postimg.cc/xjZzq5Mc/4S8A5701.jpg"
-      seoTitle="Schwangerschafts-Fotoshooting Gutschein Wien – Babybauch-Shooting verschenken | New Age Fotografie"
+      seoTitle={`Schwangerschafts-Fotoshooting Gutschein Wien – Babybauch-Shooting verschenken | ${SITE.name}`}
       seoDescription="Verschenken Sie unvergessliche Erinnerungen: Gutschein für ein einfühlsames Schwangerschafts-Fotoshooting in Wien. Babybauch-Bilder im Studio. Sofort per E-Mail, 3 Jahre gültig."
       seoKeywords="Schwangerschaft Fotoshooting Gutschein Wien, Babybauch Geschenk, Maternity Gutschein Fotograf Wien"
       canonical="/gutschein/maternity/"

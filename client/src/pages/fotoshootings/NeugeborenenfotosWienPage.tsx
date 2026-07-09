@@ -12,6 +12,7 @@ import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Baby, Music, Smil
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import { useCart } from '../../context/CartContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 
 export default function NeugeborenenfotosWienPage() {
   const navigate = useNavigate();
@@ -80,7 +81,7 @@ export default function NeugeborenenfotosWienPage() {
         description={newageCopyMap['neugeborenenfotos-wien'].metaDescription}
         keywords="neugeborenenfotograf wien, neugeborenenfotos wien, babyfotografie wien, newborn fotografie wien"
         canonical="/neugeborenenfotos-wien/"
-        ogImage="https://www.newagefotografie.com/images/newborn-hero.jpg"
+        ogImage={`${SITE.url}/images/newborn-hero.jpg`}
         hreflang={[
           { lang: 'de', url: '/neugeborenenfotos-wien/' },
           { lang: 'en', url: '/en/newborn-photos-vienna/' }
@@ -165,7 +166,7 @@ export default function NeugeborenenfotosWienPage() {
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div className="prose prose-lg max-w-none">
               <p className="text-lg text-gray-700 leading-relaxed">
-                Willkommen bei New Age Fotografie – Ihrem Neugeborenen- und Babyfotografen in Wien! Unser warmes Studio (26–28 °C) 
+                Willkommen bei {SITE.name} – Ihrem Neugeborenen- und Babyfotografen in Wien! Unser warmes Studio (26–28 °C)
                 bietet die perfekte Umgebung für entspannte und sichere Newborn-Fotografie. Wir nehmen uns Zeit für Pausen, 
                 sanfte Übergänge und authentische Momente mit Ihrem kleinen Wunder.
               </p>

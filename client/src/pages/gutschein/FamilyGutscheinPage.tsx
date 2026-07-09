@@ -3,6 +3,7 @@ import GutscheinLayout from '../../components/gutschein/GutscheinLayout';
 import { Check, Clock, Users, Camera, Heart } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useNavigate } from 'react-router-dom';
+import { SITE } from '../../config/site';
 
 const FamilyGutscheinPage: React.FC = () => {
   const { addItem } = useCart();
@@ -150,7 +151,7 @@ const FamilyGutscheinPage: React.FC = () => {
       title="Familien-Fotoshooting Gutschein Wien"
       subtitle="Unvergessliche Momente für die ganze Familie verschenken"
       image="https://i.imgur.com/o9HCqp0.jpg"
-      seoTitle="Familien-Fotoshooting Gutschein Wien – Als Geschenk für Familie kaufen | New Age Fotografie"
+      seoTitle={`Familien-Fotoshooting Gutschein Wien – Als Geschenk für Familie kaufen | ${SITE.name}`}
       seoDescription="Verschenken Sie Familienglück: Gutschein für ein professionelles Familien-Fotoshooting in Wien. Sofort per E-Mail, 3 Jahre gültig. Ab €95 – das perfekte Geschenk für jeden Anlass."
       seoKeywords="Familien Fotoshooting Gutschein Wien, Familienfotos Geschenk, Gutschein Familie Fotograf Wien"
       canonical="/gutschein/family/"
@@ -164,7 +165,7 @@ const FamilyGutscheinPage: React.FC = () => {
                 Ihr Moment, Ihr Zauber! ✨
               </h2>
               <p className="text-gray-700 mb-6">
-                Bei New Age Fotografie entstehen keine gestellten Posen – sondern Bilder, die eure Geschichte erzählen. 
+                Bei {SITE.name} entstehen keine gestellten Posen – sondern Bilder, die eure Geschichte erzählen.
                 Ob im hellen Studio in Wien oder draußen an eurem Lieblingsort – wir halten fest, was euch als Familie ausmacht: 
                 Lachen, Nähe, kleine Gesten.
               </p>
@@ -339,7 +340,7 @@ const FamilyGutscheinPage: React.FC = () => {
           <div className="md:grid md:grid-cols-2 items-center">
             <div className="p-8 md:p-12">
               <h2 className="text-3xl font-bold text-purple-900 mb-6">
-                Warum ein Familienportrait mit New Age Fotografie? 📸
+                Warum ein Familienportrait mit {SITE.name}? 📸
               </h2>
               <p className="text-gray-700 mb-6">
                

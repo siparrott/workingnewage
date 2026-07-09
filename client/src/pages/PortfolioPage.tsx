@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { SEOHead } from '../components/SEO/SEOHead';
+import { SITE } from '../config/site';
 import { ChevronLeft, ChevronRight, Camera, Heart, Users, Briefcase, Baby, Sparkles, Loader2 } from 'lucide-react';
 
 // Portfolio image from API
@@ -327,7 +328,7 @@ const PortfolioPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title={language === 'de' ? 'Fotografie Portfolio Wien – Familien, Newborn & Business Aufnahmen | New Age Fotografie' : 'Photography Portfolio Vienna – Family, Newborn & Business Sessions | New Age Photography'}
+        title={language === 'de' ? `Fotografie Portfolio Wien – Familien, Newborn & Business Aufnahmen | ${SITE.name}` : 'Photography Portfolio Vienna – Family, Newborn & Business Sessions | New Age Photography'}
         description={language === 'de' 
           ? 'Entdecken Sie unser Portfolio: Familienporträts, Neugeborenenfotos, Schwangerschaftsbilder, Hochzeitsfotografie und Business-Portraits aus Wien. Lassen Sie sich inspirieren!'
           : 'Explore our portfolio: Family portraits, newborn photos, maternity sessions, wedding photography and business portraits from Vienna. Get inspired!'}

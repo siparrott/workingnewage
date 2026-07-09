@@ -8,6 +8,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { SEOHead } from '../components/SEO/SEOHead';
 import { RelatedTopicsBlock } from '../components/SEO/RelatedTopicsBlock';
 import { Helmet } from 'react-helmet-async';
+import { SITE } from '../config/site';
 
 const KontaktPage: React.FC = () => {
   // Use manual page content hook - allows admin to override any content
@@ -49,9 +50,9 @@ const KontaktPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title={language === 'de' ? 'Fotostudio Wien kontaktieren – Termin buchen & Beratung | New Age Fotografie' : 'Contact Photo Studio Vienna – Book Appointment & Consultation | New Age Photography'}
+        title={language === 'de' ? `Fotostudio Wien kontaktieren – Termin buchen & Beratung | ${SITE.name}` : 'Contact Photo Studio Vienna – Book Appointment & Consultation | New Age Photography'}
         description={language === 'de' ? 'Kontaktieren Sie unser Fotostudio in Wien 1050. Persönliche Beratung, flexible Termine Fr–So. Telefon, WhatsApp oder E-Mail – wir freuen uns auf Ihre Anfrage!' : 'Contact our photo studio in Vienna. Personal consultation, flexible appointments Fri–Sun. Phone, WhatsApp or email – we look forward to your inquiry!'}
-        keywords={language === 'de' ? 'Kontakt Fotograf Wien, Fotostudio Wien Termin, Fotoshooting buchen Wien, New Age Fotografie Kontakt' : 'Contact Photographer Vienna, Photo Studio Vienna Booking, New Age Photography Contact'}
+        keywords={language === 'de' ? `Kontakt Fotograf Wien, Fotostudio Wien Termin, Fotoshooting buchen Wien, ${SITE.name} Kontakt` : 'Contact Photographer Vienna, Photo Studio Vienna Booking, New Age Photography Contact'}
         canonical="/kontakt/"
       />
       
@@ -61,10 +62,10 @@ const KontaktPage: React.FC = () => {
           {JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'PhotoStudio',
-            name: 'New Age Fotografie',
-            url: 'https://www.newagefotografie.com/',
-            telephone: '+43 677 633 99210',
-            email: 'hallo@newagefotografie.com',
+            name: SITE.name,
+            url: `${SITE.url}/`,
+            telephone: SITE.phone,
+            email: SITE.email,
             address: {
               '@type': 'PostalAddress',
               streetAddress: 'Wehrgasse 11A/2+5',
@@ -95,22 +96,22 @@ const KontaktPage: React.FC = () => {
             <div className="space-y-6">
               <div className="flex items-center space-x-4">
                 <Mail className="w-6 h-6 text-gray-600" />
-                <span className="text-gray-700">hallo@newagefotografie.com</span>
+                <span className="text-gray-700">{SITE.email}</span>
               </div>
               <div className="flex items-center space-x-4">
                 <Phone className="w-6 h-6 text-gray-600" />
                 <div className="flex flex-col space-y-2">
-                  <span className="text-gray-700">+43 677 633 99210</span>
+                  <span className="text-gray-700">{SITE.phone}</span>
                   <div className="flex space-x-3">
-                    <a 
-                      href="tel:+4367763399210"
+                    <a
+                      href={`tel:+${SITE.phone.replace(/[^0-9]/g,'')}`}
                       className="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
                     >
                       <Phone className="w-4 h-4 mr-2" />
                       {t('contact.call')}
                     </a>
-                    <a 
-                      href="https://wa.me/4367763399210"
+                    <a
+                      href={`https://wa.me/${SITE.phone.replace(/[^0-9]/g,'')}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
@@ -160,7 +161,7 @@ const KontaktPage: React.FC = () => {
                   allowFullScreen
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
-                  title="New Age Fotografie Studio Location - Wehrgasse 11A/2+5, 1050 Wien"
+                  title={`${SITE.name} Studio Location - Wehrgasse 11A/2+5, 1050 Wien`}
                 />
               </div>
             </div>

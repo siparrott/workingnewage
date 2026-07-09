@@ -5,6 +5,7 @@ import { Plus, Search, Filter, Eye, Edit, Trash2, Clock, MoreVertical, Mail, Fla
 import { getGalleries, deleteGallery } from '../../lib/gallery-api';
 import AdvancedGalleryForm from '../../components/admin/AdvancedGalleryForm';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 
 const galleryI18n: Record<string, Record<string, string>> = {
   en: {
@@ -127,7 +128,7 @@ const AdminGalleriesPage: React.FC = () => {
         createdAt: g.created_at || g.createdAt,
         expiresAt: g.expires_at || g.expiresAt,
         attachedShoot: g.attached_shoot || g.attachedShoot || '',
-        brand: 'New Age Fotografie',
+        brand: SITE.name,
         type: 'Gallery'
       }));
       

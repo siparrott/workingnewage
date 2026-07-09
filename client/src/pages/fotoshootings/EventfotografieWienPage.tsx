@@ -11,6 +11,7 @@ import { Helmet } from 'react-helmet-async';
 import { useCart } from '../../context/CartContext';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 
 export default function EventfotografieWienPage() {
   const navigate = useNavigate();
@@ -78,7 +79,7 @@ export default function EventfotografieWienPage() {
         description={newageCopyMap['eventfotografie-wien'].metaDescription}
         keywords="eventfotograf wien, eventfotografie wien, konferenzfotografie wien, messefotografie wien"
         canonical="/eventfotografie-wien/"
-        ogImage="https://www.newagefotografie.com/images/event-hero.jpg"
+        ogImage={`${SITE.url}/images/event-hero.jpg`}
         hreflang={[
           { lang: 'de', url: '/eventfotografie-wien/' },
           { lang: 'en', url: '/en/event-photography-vienna/' }
@@ -99,7 +100,7 @@ export default function EventfotografieWienPage() {
             },
             "provider": {
               "@type": "LocalBusiness",
-              "name": "New Age Fotografie"
+              "name": SITE.name
             },
             "offers": {
               "@type": "AggregateOffer",
@@ -602,7 +603,7 @@ export default function EventfotografieWienPage() {
       {/* Why New Age Section */}
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-8">Warum New Age Fotografie?</h2>
+          <h2 className="text-3xl font-bold text-center mb-8">Warum {SITE.name}?</h2>
           
           <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-gray-50 rounded-xl p-6 text-center">

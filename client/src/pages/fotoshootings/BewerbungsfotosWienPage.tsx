@@ -10,6 +10,7 @@ import { ContextualLinks } from '../../components/SEO/ContextualLinks';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Briefcase, Linkedin, TrendingUp, Palette, Shield, Eye } from 'lucide-react';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 
 export default function BewerbungsfotosWienPage() {
   const t = useManualPageContent('bewerbungsfotos');
@@ -62,7 +63,7 @@ export default function BewerbungsfotosWienPage() {
         description={newageCopyMap['bewerbungsfotos-wien'].metaDescription}
         keywords="bewerbungsfotos wien, linkedin foto wien, bewerbungsfoto professionell wien, xing foto wien"
         canonical="/bewerbungsfotos-wien/"
-        ogImage="https://www.newagefotografie.com/images/bewerbung-hero.jpg"
+        ogImage={`${SITE.url}/images/bewerbung-hero.jpg`}
         hreflang={[
           { lang: 'de', url: '/bewerbungsfotos-wien/' },
           { lang: 'en', url: '/en/application-photos-vienna/' }
@@ -150,7 +151,7 @@ export default function BewerbungsfotosWienPage() {
               <p className="text-lg text-gray-700 leading-relaxed">
                 {language === 'de' ? (
                   <>
-                    Willkommen bei New Age Fotografie – Ihrem Partner für professionelle{' '}
+                    Willkommen bei {SITE.name} – Ihrem Partner für professionelle{' '}
                     <Link to="/bewerbungsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Bewerbungsfotos in Wien</Link>!
                     Unser Studio bietet die perfekte Umgebung für Bewerbungsfotos, LinkedIn-Portraits und XING-Profile. Für ein
                     umfassenderes Branding empfehlen wir zusätzlich unsere{' '}
@@ -160,7 +161,7 @@ export default function BewerbungsfotosWienPage() {
                   </>
                 ) : (
                   <>
-                    Welcome to New Age Fotografie – your partner for professional{' '}
+                    Welcome to {SITE.name} – your partner for professional{' '}
                     <Link to="/bewerbungsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">application photos in Vienna</Link>!
                     Our studio offers the perfect environment for application photos, LinkedIn portraits and XING profiles. For
                     broader branding, we also offer{' '}

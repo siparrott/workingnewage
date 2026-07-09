@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Sparkles, ArrowRight, Users, CheckCircle } from 'lucide-react';
+import { SITE } from '../../config/site';
 
 interface DemoConversionBannerProps {
   onClose?: () => void;
@@ -20,7 +21,7 @@ export const DemoConversionBanner: React.FC<DemoConversionBannerProps> = ({
   };
 
   const handleGetStarted = () => {
-    window.open('https://newagefotografie.com/get-started', '_blank');
+    window.open(`${SITE.url}/get-started`, '_blank');
     onGetStarted?.();
   };
 

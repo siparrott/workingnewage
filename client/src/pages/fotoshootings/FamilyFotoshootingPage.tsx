@@ -1,6 +1,7 @@
 import React from 'react';
 import GutscheinLayout from '../../components/gutschein/GutscheinLayout';
 import { Clock, Users, Camera, Heart } from 'lucide-react';
+import { SITE } from '../../config/site';
 
 const FamilyFotoshootingPage: React.FC = () => {
   const familyPhotos = [
@@ -48,7 +49,7 @@ const FamilyFotoshootingPage: React.FC = () => {
   return (
     <GutscheinLayout
       title="Familienporträts in Wien & Zürich"
-      subtitle="New Age Fotografie – Authentisch. Professionell. Unvergesslich."
+      subtitle={`${SITE.name} – Authentisch. Professionell. Unvergesslich.`}
       image="https://i.imgur.com/o9HCqp0.jpg"
     >
       <div className="max-w-4xl mx-auto">
@@ -153,7 +154,7 @@ const FamilyFotoshootingPage: React.FC = () => {
           <div className="bg-white rounded-lg shadow-lg p-8 text-center">
             <h3 className="text-2xl font-bold text-purple-900 mb-6">📍 Verfügbar in Wien & Zürich</h3>
             <p className="text-lg mb-4">📅 Jetzt Termin sichern: <a href="/warteliste" className="text-purple-600 hover:text-purple-700">Termin planen</a></p>
-            <p className="text-lg">📸 New Age Fotografie – Für bleibende Erinnerungen.</p>
+            <p className="text-lg">📸 {SITE.name} – Für bleibende Erinnerungen.</p>
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@ import { useManualPageContent } from '../../hooks/useManualPageContent';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
 import { newageCopyMap } from '../../content/newageCopyMap';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 
 export default function PortraitfotografieWienPage() {
   const navigate = useNavigate();
@@ -91,7 +92,7 @@ export default function PortraitfotografieWienPage() {
               name: 'Portraitfotografie Wien',
               serviceType: 'Portrait Photography',
               areaServed: { '@type': 'City', name: 'Wien' },
-              provider: { '@type': 'LocalBusiness', name: 'New Age Fotografie' },
+              provider: { '@type': 'LocalBusiness', name: SITE.name },
               offers: { '@type': 'AggregateOffer', lowPrice: '190', highPrice: '480', priceCurrency: 'EUR' }
             })}
           </script>

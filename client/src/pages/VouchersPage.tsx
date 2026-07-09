@@ -10,6 +10,7 @@ import HeroDealsAuto from '@/components/HeroDealsAuto';
 import { useCart } from '../context/CartContext';
 import { SEOHead } from '../components/SEO/SEOHead';
 import { Helmet } from 'react-helmet-async';
+import { SITE } from '../config/site';
 import { getCachedData, setCachedData } from '../lib/persistentCache';
 import { useImagePreloader } from '../hooks/useImagePreloader';
 
@@ -203,7 +204,7 @@ const VouchersPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title={language === 'de' ? 'Fotoshooting Gutscheine in Wien | New Age Fotografie' : 'Photoshoot Vouchers in Vienna | New Age Photography'}
+        title={language === 'de' ? `Fotoshooting Gutscheine in Wien | ${SITE.name}` : 'Photoshoot Vouchers in Vienna | New Age Photography'}
         description={language === 'de' ? 'Fotoshooting Gutscheine als perfektes Geschenk. Wählen Sie aus Familie, Baby oder Business Paketen. Sofort per E-Mail!' : 'Photoshoot vouchers as the perfect gift. Choose from family, baby or business packages. Instantly via email!'}
         keywords={language === 'de' ? 'Fotoshooting Gutschein Wien, Geschenkgutschein Fotograf, Gutschein Fotoshooting' : 'Photoshoot Voucher Vienna, Gift voucher photographer, Voucher photoshoot'}
         canonical="/vouchers/"
@@ -233,7 +234,7 @@ const VouchersPage: React.FC = () => {
                   price: voucher.price,
                   priceCurrency: 'EUR',
                   availability: 'https://schema.org/InStock',
-                  url: `https://www.newagefotografie.com${voucher.route}`
+                  url: `${SITE.url}${voucher.route}`
                 }
               }
             }))

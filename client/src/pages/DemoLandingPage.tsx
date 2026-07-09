@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import DemoModeIndicator from '../components/demo/DemoModeIndicator';
 import DemoConversionBanner from '../components/demo/DemoConversionBanner';
+import { SITE } from '../config/site';
 
 const DemoLandingPage: React.FC = () => {
   const features = [
@@ -113,7 +114,7 @@ const DemoLandingPage: React.FC = () => {
               </Link>
               
               <button
-                onClick={() => window.open('https://newagefotografie.com/pricing', '_blank')}
+                onClick={() => window.open(`${SITE.url}/pricing`, '_blank')}
                 className="border border-white text-white px-8 py-4 rounded-full font-semibold hover:bg-white hover:text-gray-900 transition-all duration-200"
               >
                 View Pricing
@@ -228,7 +229,7 @@ const DemoLandingPage: React.FC = () => {
           
           <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
             <button
-              onClick={() => window.open('https://newagefotografie.com/get-started', '_blank')}
+              onClick={() => window.open(`${SITE.url}/get-started`, '_blank')}
               className="bg-white text-purple-600 px-8 py-4 rounded-full font-bold text-lg hover:shadow-xl transition-all duration-200 flex items-center space-x-2"
             >
               <span>Start Free Trial</span>

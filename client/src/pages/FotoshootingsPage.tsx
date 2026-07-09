@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Clock, Users, Camera, ArrowRight } from 'lucide-react';
 import { useManualPageContent } from '../hooks/useManualPageContent';
 import { SEOHead } from '../components/SEO/SEOHead';
+import { SITE } from '../config/site';
 
 const FotoshootingsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -74,7 +75,7 @@ const FotoshootingsPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Fotoshootings in Wien buchen – Familie, Baby, Business & Hochzeit | New Age Fotografie"
+        title={`Fotoshootings in Wien buchen – Familie, Baby, Business & Hochzeit | ${SITE.name}`}
         description="Professionelle Fotoshootings in Wien: Familien-, Baby-, Neugeborenen-, Business- und Hochzeitsfotografie. Flexible Pakete ab €95, Studio & Outdoor. Jetzt Wunschtermin sichern!"
         keywords="Fotoshooting Wien buchen, Fotoshooting Pakete Wien, Familienfotoshooting Wien, Business Fotoshooting Wien"
         canonical="/fotoshootings/"
@@ -191,7 +192,7 @@ const FotoshootingsPage: React.FC = () => {
             className="text-center mb-12"
           >
             <h2 className="text-3xl md:text-4xl font-bold text-purple-900 mb-4">
-              Warum New Age Fotografie?
+              Warum {SITE.name}?
             </h2>
             <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto rounded-full" />
           </motion.div>

@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import VoucherPersonalization from '@/components/VoucherPersonalization';
+import { SITE } from '../config/site';
 
 // Make sure to call `loadStripe` outside of a component's render to avoid
 // recreating the `Stripe` object on every render.
@@ -355,7 +356,7 @@ const VoucherCheckoutPage: React.FC = () => {
             <div className="flex items-center">
               <img 
                 src="/company-logo.svg" 
-                alt="New Age Fotografie Logo" 
+                alt={`${SITE.name} Logo`}
                 className="h-8 w-auto mr-3"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
@@ -426,14 +427,14 @@ const VoucherCheckoutPage: React.FC = () => {
                   <div className="flex items-center mb-2">
                     <img 
                       src="/company-logo.svg" 
-                      alt="New Age Fotografie Logo" 
+                      alt={`${SITE.name} Logo`}
                       className="h-8 w-auto mr-3"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         target.src = "/logo.png"; // Fallback to PNG version
                       }}
                     />
-                    <h3 className="font-semibold text-purple-900">Anbieter: New Age Fotografie</h3>
+                    <h3 className="font-semibold text-purple-900">Anbieter: {SITE.name}</h3>
                   </div>
                   <p className="text-sm text-purple-800 mb-2">
                     <strong>Verfügbar:</strong> Noch 25 Gutscheine
@@ -482,7 +483,7 @@ const VoucherCheckoutPage: React.FC = () => {
                   allowFullScreen
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
-                  title="New Age Fotografie Studio Location"
+                  title={`${SITE.name} Studio Location`}
                 />
               </div>
             </div>

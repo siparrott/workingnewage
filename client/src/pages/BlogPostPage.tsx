@@ -7,6 +7,7 @@ import { Helmet } from 'react-helmet';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import { SITE } from '../config/site';
 
 // Older posts store raw Markdown (contentHtml empty); newer ones store real HTML.
 // Detect HTML so we render each correctly instead of dumping raw "##" markdown.
@@ -136,13 +137,13 @@ const BlogPostPage: React.FC = () => {
   return (
     <Layout>
       <Helmet>
-        <title>{post.title} | New Age Fotografie Blog</title>
+        <title>{`${post.title} | ${SITE.name} Blog`}</title>
         <meta name="description" content={post.excerpt || `Read about ${post.title}`} />
         <meta property="og:title" content={post.title} />
         <meta property="og:description" content={post.excerpt || `Read about ${post.title}`} />
         {post.imageUrl && <meta property="og:image" content={post.imageUrl} />}
         <meta property="og:type" content="article" />
-        <link rel="canonical" href={`https://newagefotografie.com/blog/${post.slug}`} />
+        <link rel="canonical" href={`${SITE.url}/blog/${post.slug}`} />
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
@@ -153,14 +154,14 @@ const BlogPostPage: React.FC = () => {
             "dateModified": post.publishedAt,
             "author": {
               "@type": "Person",
-              "name": "New Age Fotografie"
+              "name": SITE.name
             },
             "publisher": {
               "@type": "Organization",
-              "name": "New Age Fotografie",
+              "name": SITE.name,
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://www.newagefotografie.com/logo.png"
+                "url": SITE.logo || `${SITE.url}/logo.png`
               }
             },
             "description": post.excerpt || `Read about ${post.title}`

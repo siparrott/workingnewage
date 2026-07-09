@@ -5,6 +5,7 @@ import Layout from '../../components/layout/Layout';
 import { SEOHead } from '../../components/SEO/SEOHead';
 import { RelatedTopicsBlock } from '../../components/SEO/RelatedTopicsBlock';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 import { Camera, Check, Calendar, Gift, MapPin } from 'lucide-react';
 
 /**
@@ -68,8 +69,8 @@ const FotoshootingPreiseWienPage: React.FC = () => {
       <SEOHead
         title={
           isDe
-            ? 'Fotoshooting Preise Wien – transparente Pakete ab €95 | New Age Fotografie'
-            : 'Photoshoot Pricing Vienna – transparent packages from €95 | New Age Fotografie'
+            ? `Fotoshooting Preise Wien – transparente Pakete ab €95 | ${SITE.name}`
+            : `Photoshoot Pricing Vienna – transparent packages from €95 | ${SITE.name}`
         }
         description={
           isDe
@@ -106,8 +107,8 @@ const FotoshootingPreiseWienPage: React.FC = () => {
             '@context': 'https://schema.org',
             '@type': 'BreadcrumbList',
             itemListElement: [
-              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.newagefotografie.com/' },
-              { '@type': 'ListItem', position: 2, name: 'Fotoshooting Preise Wien', item: 'https://www.newagefotografie.com/fotoshooting-preise-wien/' },
+              { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE.url}/` },
+              { '@type': 'ListItem', position: 2, name: 'Fotoshooting Preise Wien', item: `${SITE.url}/fotoshooting-preise-wien/` },
             ],
           })}
         </script>

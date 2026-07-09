@@ -2,12 +2,13 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { SEOHead } from '../components/SEO/SEOHead';
+import { SITE } from '../config/site';
 
 const CalculatorPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Fotoshooting Preisrechner Wien – Kosten & Pakete berechnen | New Age Fotografie"
+        title={`Fotoshooting Preisrechner Wien – Kosten & Pakete berechnen | ${SITE.name}`}
         description="Berechnen Sie die Kosten Ihres Fotoshootings in Wien sofort online. Familien-, Baby-, Business- und Schwangerschaftspakete ab €95 – transparent und ohne versteckte Gebühren."
         keywords="Fotoshooting Preisrechner Wien, Fotoshooting Kosten berechnen, Fotografie Pakete Wien, Preiskalkulator Fotograf Wien"
         canonical="/calculator/"

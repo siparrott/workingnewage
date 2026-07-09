@@ -6,17 +6,18 @@ import { ContextualLinks } from '../../components/SEO/ContextualLinks';
 import { Link } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check } from 'lucide-react';
 import VoucherPackagesList from '../../components/vouchers/VoucherPackagesList';
+import { SITE } from '../../config/site';
 
 export default function FamilienFotoshootingWienPage() {
   return (
     <Layout>
     <div className="min-h-screen bg-white">
       <SEOHead
-        title="Familien-Fotoshooting in Wien – New Age Fotografie"
+        title={`Familien-Fotoshooting in Wien – ${SITE.name}`}
         description="Echte Emotionen und natürliche Familienportraits im Studio oder Outdoor. Termin jetzt planen."
         keywords="familien fotoshooting wien, familienfotograf wien, familienfotos wien, outdoor fotoshooting familie"
         canonical="/familien-fotoshooting-wien/"
-        ogImage="https://www.newagefotografie.com/images/family-hero.jpg"
+        ogImage={`${SITE.url}/images/family-hero.jpg`}
         hreflang={[
           { lang: 'de', url: '/familien-fotoshooting-wien/' },
           { lang: 'en', url: '/en/family-photoshoot-vienna/' }
@@ -66,7 +67,7 @@ export default function FamilienFotoshootingWienPage() {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-center mb-12">
-            Warum ein Familien-Fotoshooting bei New Age Fotografie?
+            Warum ein Familien-Fotoshooting bei {SITE.name}?
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center">

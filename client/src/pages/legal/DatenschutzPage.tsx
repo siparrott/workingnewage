@@ -2,6 +2,7 @@ import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import Layout from '../../components/layout/Layout';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 
 const DatenschutzPage: React.FC = () => {
   const { language } = useLanguage();
@@ -10,12 +11,12 @@ const DatenschutzPage: React.FC = () => {
   return (
     <Layout>
       <Helmet>
-        <title>{de ? 'Datenschutz & Impressum | New Age Fotografie Wien' : 'Privacy Policy & Legal Notice | New Age Fotografie Vienna'}</title>
+        <title>{de ? `Datenschutz & Impressum | ${SITE.name} Wien` : `Privacy Policy & Legal Notice | ${SITE.name} Vienna`}</title>
         <meta name="description" content={de
-          ? 'Datenschutzerklärung und Impressum von New Age Fotografie Wien. DSGVO-konform, transparent, Österreich.'
-          : 'Privacy policy and legal notice of New Age Fotografie Vienna. GDPR compliant, transparent, Austria.'
+          ? `Datenschutzerklärung und Impressum von ${SITE.name} Wien. DSGVO-konform, transparent, Österreich.`
+          : `Privacy policy and legal notice of ${SITE.name} Vienna. GDPR compliant, transparent, Austria.`
         } />
-        <link rel="canonical" href="https://www.newagefotografie.com/datenschutz/" />
+        <link rel="canonical" href={`${SITE.url}/datenschutz/`} />
       </Helmet>
 
       <div className="min-h-screen bg-gray-50 py-16">
@@ -30,7 +31,7 @@ const DatenschutzPage: React.FC = () => {
               {/* Impressum Section */}
               <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">{de ? 'Anbieter' : 'Provider'}</h2>
               <div className="bg-gray-50 rounded-xl p-6 mb-8">
-                <p className="font-semibold text-gray-900 text-lg mb-2">New Age Fotografie</p>
+                <p className="font-semibold text-gray-900 text-lg mb-2">{SITE.name}</p>
                 <p>Simon Parrott</p>
                 
                 <p className="font-semibold text-gray-900 mt-4 mb-1">📍 {de ? 'Studio:' : 'Studio:'}</p>
@@ -43,9 +44,9 @@ const DatenschutzPage: React.FC = () => {
                 1090 {de ? 'Wien' : 'Vienna'}</p>
                 
                 <p className="mt-4">
-                  📞 <strong>{de ? 'Telefon:' : 'Phone:'}</strong> <a href="tel:+4367763399210" className="text-purple-600 hover:text-purple-700">+43 677 633 99210</a><br />
-                  📧 <strong>{de ? 'E-Mail:' : 'Email:'}</strong> <a href="mailto:hallo@newagefotografie.com" className="text-purple-600 hover:text-purple-700">hallo@newagefotografie.com</a><br />
-                  🌐 <strong>Website:</strong> <a href="https://www.newagefotografie.com" className="text-purple-600 hover:text-purple-700">www.newagefotografie.com</a>
+                  📞 <strong>{de ? 'Telefon:' : 'Phone:'}</strong> <a href={`tel:+${SITE.phone.replace(/[^0-9]/g,'')}`} className="text-purple-600 hover:text-purple-700">{SITE.phone}</a><br />
+                  📧 <strong>{de ? 'E-Mail:' : 'Email:'}</strong> <a href={`mailto:${SITE.email}`} className="text-purple-600 hover:text-purple-700">{SITE.email}</a><br />
+                  🌐 <strong>Website:</strong> <a href={SITE.url} className="text-purple-600 hover:text-purple-700">{SITE.url.replace(/^https?:\/\//, '')}</a>
                 </p>
                 
                 <p className="mt-4 text-sm text-gray-500">{de ? 'Keine UID-Nummer (nicht umsatzsteuerpflichtig).' : 'No VAT number (not subject to VAT).'}</p>
@@ -106,7 +107,7 @@ const DatenschutzPage: React.FC = () => {
                 <p className="font-semibold text-gray-900">{de ? 'Beschwerdestelle:' : 'Supervisory authority:'}</p>
                 <p>{de ? 'Österreichische Datenschutzbehörde (DSB)' : 'Austrian Data Protection Authority (DSB)'}</p>
                 <p className="mt-4">
-                  📧 {de ? 'Kontakt:' : 'Contact:'} <a href="mailto:hallo@newagefotografie.com" className="text-purple-600 hover:text-purple-700">hallo@newagefotografie.com</a>
+                  📧 {de ? 'Kontakt:' : 'Contact:'} <a href={`mailto:${SITE.email}`} className="text-purple-600 hover:text-purple-700">{SITE.email}</a>
                 </p>
               </div>
 

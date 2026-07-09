@@ -3,6 +3,7 @@ import { X, Plus, CreditCard, Calendar, DollarSign, Trash2, ChevronDown, Mail, F
 import { supabase } from '../../lib/supabase';
 import { addInvoicePayment } from '../../api/invoices';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 
 interface Payment {
   id: string;
@@ -387,7 +388,7 @@ const PaymentTracker: React.FC<PaymentTrackerProps> = ({
             setEmailReceiptData({
               to: clientEmail,
               subject: `${t.paymentReceivedSubject} ${invoiceNum}`,
-              body: `${t.dearClient} ${clientName},\n\n${t.paymentReceivedBody}\n\n${t.paymentDetailsLabel}:\n- ${t.amount}: ${pAmount}\n- ${t.paymentMethod}: ${pMethod}\n- ${t.paymentDate}: ${pDate}\n- ${t.invoiceTotal}: ${formatCurrency(invoiceTotal)}\n\n${t.thankYou}\n\nNew Age Fotografie`
+              body: `${t.dearClient} ${clientName},\n\n${t.paymentReceivedBody}\n\n${t.paymentDetailsLabel}:\n- ${t.amount}: ${pAmount}\n- ${t.paymentMethod}: ${pMethod}\n- ${t.paymentDate}: ${pDate}\n- ${t.invoiceTotal}: ${formatCurrency(invoiceTotal)}\n\n${t.thankYou}\n\n${SITE.name}`
             });
             setShowEmailPreview(true);
           }

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { BlogPost } from '../../types/blog';
+import { SITE } from '../../config/site';
 
 interface BlogSEOProps {
   post: BlogPost;
@@ -74,11 +75,11 @@ const BlogSEO: React.FC<BlogSEOProps> = ({ post }) => {
       'dateModified': post.updated_at,
       'author': {
         '@type': 'Person',
-        'name': post.author?.email?.split('@')[0] || 'New Age Fotografie'
+        'name': post.author?.email?.split('@')[0] || SITE.name
       },
       'publisher': {
         '@type': 'Organization',
-        'name': 'New Age Fotografie',
+        'name': SITE.name,
         'logo': {
           '@type': 'ImageObject',
           'url': `${window.location.origin}/logo.png`
@@ -94,7 +95,7 @@ const BlogSEO: React.FC<BlogSEOProps> = ({ post }) => {
     
     // Clean up on unmount
     return () => {
-      document.title = 'New Age Fotografie';
+      document.title = SITE.name;
       if (jsonLdScript) {
         jsonLdScript.remove();
       }

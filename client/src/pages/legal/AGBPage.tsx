@@ -2,6 +2,7 @@ import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import Layout from '../../components/layout/Layout';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 
 const AGBPage: React.FC = () => {
   const { language } = useLanguage();
@@ -10,19 +11,19 @@ const AGBPage: React.FC = () => {
   return (
     <Layout>
       <Helmet>
-        <title>{de ? 'AGB – Allgemeine Geschäftsbedingungen | New Age Fotografie' : 'Terms & Conditions | New Age Fotografie'}</title>
+        <title>{de ? `AGB – Allgemeine Geschäftsbedingungen | ${SITE.name}` : `Terms & Conditions | ${SITE.name}`}</title>
         <meta name="description" content={de
-          ? 'AGB von New Age Fotografie Wien. Buchung, Storno, Urheberrecht, Nutzung – alle wichtigen Bedingungen auf einen Blick.'
-          : 'Terms and conditions of New Age Fotografie Vienna. Booking, cancellation, copyright, usage – all key terms at a glance.'
+          ? `AGB von ${SITE.name} Wien. Buchung, Storno, Urheberrecht, Nutzung – alle wichtigen Bedingungen auf einen Blick.`
+          : `Terms and conditions of ${SITE.name} Vienna. Booking, cancellation, copyright, usage – all key terms at a glance.`
         } />
-        <link rel="canonical" href="https://www.newagefotografie.com/agb/" />
+        <link rel="canonical" href={`${SITE.url}/agb/`} />
       </Helmet>
 
       <div className="min-h-screen bg-gray-50 py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white rounded-2xl shadow-lg p-8 md:p-12">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-              {de ? 'AGB – New Age Fotografie' : 'Terms & Conditions – New Age Fotografie'}
+              {de ? `AGB – ${SITE.name}` : `Terms & Conditions – ${SITE.name}`}
             </h1>
             <p className="text-gray-500 mb-8">{de ? 'Stand: Dezember 2025' : 'Last updated: December 2025'}</p>
 
@@ -31,8 +32,8 @@ const AGBPage: React.FC = () => {
               <h2 className="text-xl font-bold text-gray-900 mt-8 mb-4">{de ? '1. Geltungsbereich' : '1. Scope'}</h2>
               <p>
                 {de
-                  ? 'Diese AGB gelten für alle Fotoshootings, Buchungen, Gutscheine, Bildbestellungen und Leistungen von New Age Fotografie, sofern nichts anderes schriftlich vereinbart wurde.'
-                  : 'These terms and conditions apply to all photoshoots, bookings, vouchers, image orders, and services provided by New Age Fotografie, unless otherwise agreed in writing.'}
+                  ? `Diese AGB gelten für alle Fotoshootings, Buchungen, Gutscheine, Bildbestellungen und Leistungen von ${SITE.name}, sofern nichts anderes schriftlich vereinbart wurde.`
+                  : `These terms and conditions apply to all photoshoots, bookings, vouchers, image orders, and services provided by ${SITE.name}, unless otherwise agreed in writing.`}
               </p>
               <p>
                 {de
@@ -64,7 +65,7 @@ const AGBPage: React.FC = () => {
 
               <h2 className="text-xl font-bold text-gray-900 mt-8 mb-4">{de ? '5. Bildauswahl & Lieferung' : '5. Image Selection & Delivery'}</h2>
               <ul className="list-disc pl-6 space-y-2">
-                <li>{de ? 'Die Bildauswahl erfolgt durch New Age Fotografie, außer anders vereinbart.' : 'Image selection is made by New Age Fotografie, unless otherwise agreed.'}</li>
+                <li>{de ? `Die Bildauswahl erfolgt durch ${SITE.name}, außer anders vereinbart.` : `Image selection is made by ${SITE.name}, unless otherwise agreed.`}</li>
                 <li>{de ? 'RAW-Dateien werden nicht herausgegeben.' : 'RAW files are not provided.'}</li>
                 <li>{de ? 'Retusche umfasst Farbe, Licht und leichte Hautkorrekturen.' : 'Retouching includes colour, light, and minor skin corrections.'}</li>
                 <li>{de ? 'Lieferzeiten sind Richtwerte.' : 'Delivery times are approximate.'}</li>
@@ -72,7 +73,7 @@ const AGBPage: React.FC = () => {
 
               <h2 className="text-xl font-bold text-gray-900 mt-8 mb-4">{de ? '6. Urheberrecht & Nutzung' : '6. Copyright & Usage'}</h2>
               <ul className="list-disc pl-6 space-y-2">
-                <li>{de ? 'Das Urheberrecht bleibt immer bei New Age Fotografie.' : 'Copyright always remains with New Age Fotografie.'}</li>
+                <li>{de ? `Das Urheberrecht bleibt immer bei ${SITE.name}.` : `Copyright always remains with ${SITE.name}.`}</li>
                 <li>{de ? 'Du erhältst private Nutzungsrechte.' : 'You receive private usage rights.'}</li>
                 <li>{de ? 'Kommerzielle Nutzung (Werbung, Website, Social Media von Firmen etc.) nur mit schriftlicher Zustimmung.' : 'Commercial use (advertising, websites, corporate social media, etc.) only with written consent.'}</li>
                 <li>{de ? 'Bilder dürfen nicht verfremdet oder mit Filtern verändert werden.' : 'Images may not be altered or modified with filters.'}</li>

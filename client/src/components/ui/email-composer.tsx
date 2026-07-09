@@ -3,6 +3,7 @@ import { Button } from "./button";
 import { Textarea } from "./textarea";
 import { Input } from "./input";
 import { Label } from "./label";
+import { SITE } from "../../config/site";
 
 interface EmailComposerProps {
   recipient: string;
@@ -65,7 +66,7 @@ export function EmailComposer({ recipient, subject = "", onSend, onCancel }: Ema
     try {
       await onSend({
         to: recipient,
-        subject: emailSubject || "Message from New Age Fotografie",
+        subject: emailSubject || `Message from ${SITE.name}`,
         body: emailBody
       });
       

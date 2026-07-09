@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SITE } from '../../config/site';
 
 interface Message {
   text: string;
@@ -11,7 +12,7 @@ interface Message {
 const ChatBot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { text: "Hallo! Ich bin Alex von New Age Fotografie Wien. 📸\n\nBevor wir starten, darf ich nach Ihrer WhatsApp Nummer oder E-Mail fragen? So kann ich Sie besser beraten und bei Interesse direkt kontaktieren.", isUser: false }
+    { text: `Hallo! Ich bin Alex von ${SITE.name} Wien. 📸\n\nBevor wir starten, darf ich nach Ihrer WhatsApp Nummer oder E-Mail fragen? So kann ich Sie besser beraten und bei Interesse direkt kontaktieren.`, isUser: false }
   ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -110,7 +111,7 @@ const ChatBot: React.FC = () => {
       // console.error removed
       setMessages(prev => {
         const filtered = prev.filter(msg => !msg.loading);
-        return [...filtered, { text: "Entschuldigung, es gab ein technisches Problem. Bitte kontaktieren Sie uns direkt unter +43 677 633 99210.", isUser: false }];
+        return [...filtered, { text: `Entschuldigung, es gab ein technisches Problem. Bitte kontaktieren Sie uns direkt unter ${SITE.phone}.`, isUser: false }];
       });
     } finally {
       setIsLoading(false);
@@ -199,7 +200,7 @@ const ChatBot: React.FC = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="text-white font-semibold">Alex - Photo Consultant</h3>
-                  <p className="text-purple-100 text-sm">New Age Fotografie Wien</p>
+                  <p className="text-purple-100 text-sm">{SITE.name} Wien</p>
                 </div>
                 <button
                   onClick={() => setIsOpen(false)}

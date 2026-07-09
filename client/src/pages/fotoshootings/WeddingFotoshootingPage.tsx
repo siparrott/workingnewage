@@ -1,6 +1,7 @@
 import React from 'react';
 import GutscheinLayout from '../../components/gutschein/GutscheinLayout';
 import { Clock, Heart, Camera, Calendar } from 'lucide-react';
+import { SITE } from '../../config/site';
 
 const WeddingFotoshootingPage: React.FC = () => {
   const weddingPhotos = [
@@ -81,9 +82,9 @@ const WeddingFotoshootingPage: React.FC = () => {
   return (
     <GutscheinLayout
       title="Hochzeitsfotografie Wien – Romantische Hochzeitsbilder"
-      subtitle="New Age Fotografie – Eure Geschichte. Echt. Berührend. Für immer."
+      subtitle={`${SITE.name} – Eure Geschichte. Echt. Berührend. Für immer.`}
       image="https://i.postimg.cc/vBxS7p6K/DSC-0318-01299.jpg"
-      seoTitle="Hochzeits-Fotoshooting Wien – Authentische Hochzeitsfotografie | New Age Fotografie"
+      seoTitle={`Hochzeits-Fotoshooting Wien – Authentische Hochzeitsfotografie | ${SITE.name}`}
       seoDescription="Hochzeitsfotografie in Wien: Romantische, authentische Hochzeitsbilder von Ihrem schönsten Tag. Standesamt, Kirche & Feier. Individuell, emotional, unvergesslich – jetzt anfragen!"
       seoKeywords="Hochzeits Fotoshooting Wien, Hochzeitsfotograf Wien, Brautpaar Fotos Wien, Hochzeitsreportage Wien"
       canonical="/fotoshootings/wedding/"
@@ -232,7 +233,7 @@ const WeddingFotoshootingPage: React.FC = () => {
               Ob Standesamt, Gartenhochzeit oder großes Fest – wir begleiten euch mit Erfahrung, Gefühl und einem Blick für das, was wirklich zählt.
             </p>
             <p className="text-lg mb-4">📅 Jetzt Termin sichern: <a href="/warteliste" className="text-purple-600 hover:text-purple-700">Hochzeitsfotografie in Wien & Zürich</a></p>
-            <p className="text-lg">📸 New Age Fotografie – Für bleibende Erinnerungen.</p>
+            <p className="text-lg">📸 {SITE.name} – Für bleibende Erinnerungen.</p>
           </div>
         </div>
       </div>

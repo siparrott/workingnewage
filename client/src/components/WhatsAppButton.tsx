@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { MessageCircle, X } from 'lucide-react';
+import { SITE } from '../config/site';
 
 const WhatsAppButton: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const phoneNumber = '4367763399210';
+  const phoneNumber = SITE.phone.replace(/[^0-9]/g, '');
   const whatsappUrl = `https://wa.me/${phoneNumber}`;
   
   // Pre-filled message for better UX
@@ -25,7 +26,7 @@ const WhatsAppButton: React.FC = () => {
                     <MessageCircle className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-sm">New Age Fotografie</h3>
+                    <h3 className="font-semibold text-sm">{SITE.name}</h3>
                     <p className="text-xs text-green-100">Normalerweise antwortet innerhalb 1 Stunde</p>
                   </div>
                 </div>

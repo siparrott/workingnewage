@@ -1,6 +1,7 @@
 import React from 'react';
 import GutscheinLayout from '../../components/gutschein/GutscheinLayout';
 import { Clock, Heart, Camera, Calendar } from 'lucide-react';
+import { SITE } from '../../config/site';
 
 const EventFotoshootingPage: React.FC = () => {
   const eventPhotos = [
@@ -111,9 +112,9 @@ const EventFotoshootingPage: React.FC = () => {
   return (
     <GutscheinLayout
       title="Eventfotografie Wien – Professionelle Veranstaltungsfotos"
-      subtitle="New Age Fotografie – Authentisch. Professionell. Unvergesslich."
+      subtitle={`${SITE.name} – Authentisch. Professionell. Unvergesslich.`}
       image="https://i.postimg.cc/rwtMhFtV/Ball-des-Sports-2025-www-newagefotografie-com-5513.jpg"
-      seoTitle="Event Fotoshooting Wien – Professionelle Eventfotografie | New Age Fotografie"
+      seoTitle={`Event Fotoshooting Wien – Professionelle Eventfotografie | ${SITE.name}`}
       seoDescription="Eventfotografie in Wien: Professionelle Dokumentation Ihrer Veranstaltungen, Firmenfeiern, Konferenzen und besonderen Anlässe. Unaufdringlich, authentisch, hochwertig – jetzt anfragen!"
       seoKeywords="Event Fotoshooting Wien, Eventfotograf Wien buchen, Veranstaltungsfotos Wien, Konferenzfotografie Wien"
       canonical="/fotoshootings/event/"
@@ -248,7 +249,7 @@ const EventFotoshootingPage: React.FC = () => {
           <div className="bg-white rounded-lg shadow-lg p-8 text-center">
             <h3 className="text-2xl font-bold text-purple-900 mb-6">📍 Verfügbar in Wien & Zürich</h3>
             <p className="text-lg mb-4">📅 Jetzt Termin sichern: <a href="/warteliste" className="text-purple-600 hover:text-purple-700">Termin planen</a></p>
-            <p className="text-lg">📸 New Age Fotografie – Für bleibende Erinnerungen.</p>
+            <p className="text-lg">📸 {SITE.name} – Für bleibende Erinnerungen.</p>
           </div>
         </div>
       </div>

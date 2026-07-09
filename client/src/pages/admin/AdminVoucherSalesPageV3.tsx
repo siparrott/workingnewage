@@ -21,6 +21,7 @@ import {
   insertVoucherProductSchema,
   insertDiscountCouponSchema
 } from "@shared/schema";
+import { SITE } from "../../config/site";
 import { 
   Plus, 
   Edit, 
@@ -2142,8 +2143,8 @@ const SalesView: React.FC<{
         </table>
         
         <div class="footer">
-          New Age Fotografie - Voucher Sales Report<br/>
-          www.newagefotografie.com
+          ${SITE.name} - Voucher Sales Report<br/>
+          ${SITE.url.replace(/^https?:\/\//, '')}
         </div>
       </body>
       </html>

@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import Layout from '../../components/layout/Layout';
 import { Users, Baby, Briefcase } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 
 const ModelReleasePage: React.FC = () => {
   const { language } = useLanguage();
@@ -11,12 +12,12 @@ const ModelReleasePage: React.FC = () => {
   return (
     <Layout>
       <Helmet>
-        <title>{de ? 'Model-Release Klauseln | New Age Fotografie Wien' : 'Model Release Clauses | New Age Fotografie Vienna'}</title>
+        <title>{de ? `Model-Release Klauseln | ${SITE.name} Wien` : `Model Release Clauses | ${SITE.name} Vienna`}</title>
         <meta name="description" content={de
-          ? 'Model-Release Klauseln für Familien-, Baby- und Business-Shootings bei New Age Fotografie Wien. DSGVO-konform.'
-          : 'Model release clauses for family, baby and business photoshoots at New Age Fotografie Vienna. GDPR compliant.'
+          ? `Model-Release Klauseln für Familien-, Baby- und Business-Shootings bei ${SITE.name} Wien. DSGVO-konform.`
+          : `Model release clauses for family, baby and business photoshoots at ${SITE.name} Vienna. GDPR compliant.`
         } />
-        <link rel="canonical" href="https://www.newagefotografie.com/model-release/" />
+        <link rel="canonical" href={`${SITE.url}/model-release/`} />
       </Helmet>
 
       <div className="min-h-screen bg-gray-50 py-16">
@@ -46,8 +47,8 @@ const ModelReleasePage: React.FC = () => {
                 <div className="bg-white rounded-lg p-4 border border-gray-200">
                   <p className="text-gray-700 leading-relaxed">
                     {de
-                      ? 'Ich erteile New Age Fotografie die Erlaubnis, ausgewählte Bilder aus dem Shooting für Portfolio-, Website-, Social-Media- und Marketingzwecke zu verwenden.'
-                      : 'I grant New Age Fotografie permission to use selected images from the photoshoot for portfolio, website, social media, and marketing purposes.'}
+                      ? `Ich erteile ${SITE.name} die Erlaubnis, ausgewählte Bilder aus dem Shooting für Portfolio-, Website-, Social-Media- und Marketingzwecke zu verwenden.`
+                      : `I grant ${SITE.name} permission to use selected images from the photoshoot for portfolio, website, social media, and marketing purposes.`}
                   </p>
                   <p className="text-gray-700 leading-relaxed mt-3">
                     {de
@@ -75,8 +76,8 @@ const ModelReleasePage: React.FC = () => {
                   </p>
                   <p className="text-gray-700 leading-relaxed mt-3">
                     {de
-                      ? 'Ich erteile New Age Fotografie ausdrücklich die Erlaubnis, ausgewählte Bilder meines Kindes für Portfolio- und Marketingzwecke zu verwenden.'
-                      : 'I expressly grant New Age Fotografie permission to use selected images of my child for portfolio and marketing purposes.'}
+                      ? `Ich erteile ${SITE.name} ausdrücklich die Erlaubnis, ausgewählte Bilder meines Kindes für Portfolio- und Marketingzwecke zu verwenden.`
+                      : `I expressly grant ${SITE.name} permission to use selected images of my child for portfolio and marketing purposes.`}
                   </p>
                   <p className="text-gray-700 leading-relaxed mt-3">
                     {de
@@ -99,8 +100,8 @@ const ModelReleasePage: React.FC = () => {
                 <div className="bg-white rounded-lg p-4 border border-gray-200">
                   <p className="text-gray-700 leading-relaxed">
                     {de
-                      ? 'Ich / unser Unternehmen erteilen New Age Fotografie das Recht, die entstandenen Bilder für eigene Marketing-, Portfolio- und Referenzzwecke zu nutzen.'
-                      : 'I / our company grant New Age Fotografie the right to use the resulting images for their own marketing, portfolio, and reference purposes.'}
+                      ? `Ich / unser Unternehmen erteilen ${SITE.name} das Recht, die entstandenen Bilder für eigene Marketing-, Portfolio- und Referenzzwecke zu nutzen.`
+                      : `I / our company grant ${SITE.name} the right to use the resulting images for their own marketing, portfolio, and reference purposes.`}
                   </p>
                   <p className="text-gray-700 leading-relaxed mt-3">
                     {de
@@ -117,8 +118,8 @@ const ModelReleasePage: React.FC = () => {
               <p className="text-gray-600">
                 <strong>{de ? 'Fragen?' : 'Questions?'}</strong>{' '}
                 {de ? 'Schreib uns an' : 'Contact us at'}{' '}
-                <a href="mailto:hallo@newagefotografie.com" className="text-purple-600 hover:text-purple-700">
-                  hallo@newagefotografie.com
+                <a href={`mailto:${SITE.email}`} className="text-purple-600 hover:text-purple-700">
+                  {SITE.email}
                 </a>
               </p>
             </div>

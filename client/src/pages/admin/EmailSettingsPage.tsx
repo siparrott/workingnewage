@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Mail, Save, AlertCircle, CheckCircle, Settings, Bell } from 'lucide-react';
+import { SITE } from '../../config/site';
 
 interface EmailSettings {
   notificationEmail: string;
@@ -78,7 +79,7 @@ const EmailSettingsPage: React.FC = () => {
         },
         body: JSON.stringify({ 
           email: settings.notificationEmail,
-          subject: 'Test Email - New Age Fotografie CRM',
+          subject: `Test Email - ${SITE.name} CRM`,
           message: 'This is a test email to verify your email settings are working correctly.'
         }),
       });

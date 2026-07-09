@@ -1,5 +1,6 @@
 import React from 'react';
 import { Star } from 'lucide-react';
+import { SITE } from '../../config/site';
 
 /**
  * Social-proof + E-E-A-T block backed by the studio's real Google rating
@@ -39,8 +40,8 @@ export const ReviewsBlock: React.FC<{ heading?: string }> = ({
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'PhotoStudio',
-    '@id': 'https://www.newagefotografie.com',
-    name: 'New Age Fotografie',
+    '@id': SITE.url,
+    name: SITE.name,
     aggregateRating: {
       '@type': 'AggregateRating',
       ratingValue: RATING,

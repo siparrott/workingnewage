@@ -8,6 +8,7 @@ import { useManualPageContent } from '../hooks/useManualPageContent';
 import { SEOHead } from '../components/SEO/SEOHead';
 import { Helmet } from 'react-helmet-async';
 import { useLanguage } from '../context/LanguageContext';
+import { SITE } from '../config/site';
 
 const WartelistePage: React.FC = () => {
   const { language } = useLanguage();
@@ -49,7 +50,7 @@ const WartelistePage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title={language === 'de' ? 'Warteliste für Fotoshootings | New Age Fotografie' : 'Photoshoot Waitlist | New Age Photography'}
+        title={language === 'de' ? `Warteliste für Fotoshootings | ${SITE.name}` : 'Photoshoot Waitlist | New Age Photography'}
         description={language === 'de' ? 'Tragen Sie sich auf unsere Warteliste ein und erfahren Sie als Erste/r von freien Terminen und Aktionen.' : 'Sign up for our waitlist and be the first to know about available appointments and promotions.'}
         keywords={language === 'de' ? 'Warteliste Fotoshooting, Termin Fotograf Wien, Benachrichtigung' : 'Photoshoot waitlist, Photographer appointment Vienna, Notification'}
         canonical="/warteliste/"

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { getGalleryById, deleteGallery, getGalleryImages } from '../../lib/gallery-api';
 import { COVER_TEMPLATES, CoverTemplate } from '../../components/galleries/GalleryCoverDesigner';
+import { SITE } from '../../config/site';
 
 interface GalleryImage {
   id: string;
@@ -787,7 +788,7 @@ const GalleryDetailPage: React.FC = () => {
                         <div className="w-2.5 h-2.5 rounded-full bg-yellow-400"></div>
                         <div className="w-2.5 h-2.5 rounded-full bg-green-400"></div>
                         <div className="ml-3 bg-gray-600 rounded px-2 py-0.5 text-[8px] text-gray-300 flex-1 text-center truncate">
-                          newagefotografie.com/galleries/{gallery.id}
+                          {SITE.url.replace(/^https?:\/\//, '')}/galleries/{gallery.id}
                         </div>
                       </div>
                       {/* Screen content */}

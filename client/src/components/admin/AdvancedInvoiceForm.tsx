@@ -25,6 +25,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '../../lib/queryClient';
 import { priceListService, PriceListItem, pdfService } from '../../lib/invoicing';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 
 interface Client {
   id: string;
@@ -1562,8 +1563,8 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
                       onClick={() => {
                         const client = clients.find(c => c.id === formData.client_id);
                         setEmailData({
-                          subject: `Rechnung ${createdInvoice.invoice_no || createdInvoice.invoiceNumber || createdInvoice.public_id} - New Age Fotografie`,
-                          message: `Liebe/r ${client?.name},\n\nanbei senden wir Ihnen Ihre Rechnung zu.\n\nMit freundlichen Grüßen,\nNew Age Fotografie Team`,
+                          subject: `Rechnung ${createdInvoice.invoice_no || createdInvoice.invoiceNumber || createdInvoice.public_id} - ${SITE.name}`,
+                          message: `Liebe/r ${client?.name},\n\nanbei senden wir Ihnen Ihre Rechnung zu.\n\nMit freundlichen Grüßen,\n${SITE.name} Team`,
                           includeAttachment: true
                         });
                         setShowEmailModal(true);
