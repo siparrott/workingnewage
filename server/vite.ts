@@ -6,6 +6,7 @@ import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 // viteConfig imported dynamically in setupVite to avoid production issues
 import { nanoid } from "nanoid";
+import { renderIndexHtml } from "./lib/siteIdentity.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -172,6 +173,8 @@ export async function setupVite(app: Express, server: Server) {
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
+      // Fill per-tenant %SITE_*% identity placeholders before Vite's transform.
+      template = renderIndexHtml(template);
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
@@ -209,8 +212,22 @@ export function serveStatic(app: Express) {
   // static dist/sitemap.xml is served first and the dynamic handler never runs.
   registerDynamicSitemap(app, path.resolve(distPath, "sitemap.xml"));
 
-  // Serve static files from dist
-  app.use(express.static(distPath));
+  // Per-tenant index.html: fill %SITE_*% identity placeholders once (env is
+  // stable per process) and serve the rendered HTML for the root + SPA routes.
+  let cachedIndex: string | null = null;
+  const renderedIndex = (): string => {
+    if (cachedIndex === null) {
+      const raw = fs.readFileSync(path.resolve(distPath, "index.html"), "utf-8");
+      cachedIndex = renderIndexHtml(raw);
+    }
+    return cachedIndex;
+  };
+  app.get(["/", "/index.html"], (_req, res) => {
+    res.status(200).type("html").send(renderedIndex());
+  });
+
+  // Serve static files from dist (index served above so identity is injected)
+  app.use(express.static(distPath, { index: false }));
 
   // Explicitly serve robots.txt and sitemap.xml for SEO
   app.get("/robots.txt", (_req, res) => {
@@ -235,7 +252,7 @@ export function serveStatic(app: Express) {
       return res.sendFile(prerenderedHtmlPath);
     }
 
-    // For all other requests (frontend routes), serve the SPA
-    res.sendFile(path.resolve(distPath, "index.html"));
+    // For all other requests (frontend routes), serve the SPA with identity injected
+    res.status(200).type("html").send(renderedIndex());
   });
 }
