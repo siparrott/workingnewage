@@ -89,6 +89,9 @@ export const studioConfigs = pgTable("studio_configs", {
   // Onboarding / Setup
   technicalSetupComplete: boolean("technical_setup_complete").default(false),
   creativeSetupComplete: boolean("creative_setup_complete").default(false),
+  // Durable progress for the creative setup wizard (phase flags, applied/skipped
+  // fix ids, published/skipped draft ids). Everything else is derived from the DB.
+  onboardingState: jsonb("onboarding_state"),
   
   // Status
   isActive: boolean("is_active").default(true),
