@@ -26,7 +26,7 @@ const RelatedPosts: React.FC<RelatedPostsProps> = ({ currentPostId, posts }) => 
         {relatedPosts.map(post => (
           <div key={post.id} className="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:shadow-lg hover:-translate-y-1">
             {post.cover_image && (
-              <Link to={`/blog/${post.slug}`} className="block aspect-[16/9] overflow-hidden">
+              <Link to={`/blog/${post.slug}`} className="block aspect-[14/9] overflow-hidden">
                 <img 
                   src={post.cover_image} 
                   alt={post.title}
