@@ -507,7 +507,7 @@ const BlogPage: React.FC = () => {
                     key={post.id}
                     className="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:shadow-lg hover:-translate-y-1"
                   >
-                    <Link to={`/blog/${post.slug}`} className="block aspect-[16/9] overflow-hidden bg-gray-100">
+                    <Link to={`/blog/${post.slug}`} className="block aspect-[14/9] overflow-hidden bg-gray-100">
                       {post.imageUrl ? (
                         <img 
                           src={post.imageUrl} 

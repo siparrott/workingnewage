@@ -20,7 +20,7 @@ const BlogPostCard: React.FC<BlogPostCardProps> = ({ post, isAdmin = false }) =>
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:shadow-lg hover:-translate-y-1">
       {post.image_url && (
-        <div className="aspect-[16/9] overflow-hidden">
+        <div className="aspect-[14/9] overflow-hidden">
           <img 
             src={post.image_url} 
             alt={post.title}
