@@ -394,6 +394,31 @@ function getBaseUrl(): string {
   return process.env.FRONTEND_URL || process.env.APP_URL || '';
 }
 
+// Decide a blog post's status/published/publishedAt from its scheduling fields.
+// scheduledFor (or a future publishedAt) is the SOURCE OF TRUTH: any future date
+// means SCHEDULED + hidden (published=false, publishedAt cleared) until the hourly
+// cron publishes it — so a scheduled post can never go live early, regardless of
+// the `published` flag the client sends. Mutates the given object in place.
+function syncBlogPublishState(data: any): void {
+  const now = new Date();
+  const sched = data.scheduledFor ? new Date(data.scheduledFor) : null;
+  const pub = data.publishedAt ? new Date(data.publishedAt) : null;
+  const futureAt = sched && sched > now ? sched : pub && pub > now ? pub : null;
+  if (futureAt) {
+    data.status = 'SCHEDULED';
+    data.published = false;
+    data.scheduledFor = futureAt;
+    data.publishedAt = null;
+  } else if (data.published === true || data.status === 'PUBLISHED') {
+    data.status = 'PUBLISHED';
+    data.published = true;
+    if (!data.publishedAt) data.publishedAt = now;
+  } else if (data.published === false) {
+    data.status = 'DRAFT';
+  }
+  // published === undefined on a partial update → leave status untouched.
+}
+
 // Modern PDF invoice generator with actual logo and all required sections
 async function generateModernInvoicePDF(invoice: any, client: any): Promise<Buffer> {
   // Load invoice items from database
@@ -2260,17 +2285,9 @@ Bitte versuchen Sie es später noch einmal.`;
       // Remove authorId from validation data
       delete postData.authorId;
       
-      // Auto-sync the status column with the published boolean
-      if (postData.published === true) {
-        const pubDate = postData.publishedAt;
-        if (pubDate && pubDate > new Date()) {
-          postData.status = 'SCHEDULED';
-        } else {
-          postData.status = 'PUBLISHED';
-        }
-      } else {
-        postData.status = 'DRAFT';
-      }
+      // Derive status/published/publishedAt from the scheduling fields so a
+      // future scheduledFor stays SCHEDULED (hidden) instead of going live now.
+      syncBlogPublishState(postData);
       
       // GDPR gate: same rule as updates — no publishing/scheduling photo-derived
       // posts without consent.
@@ -2315,18 +2332,9 @@ Bitte versuchen Sie es später noch einmal.`;
         updatedAt: new Date()
       };
       
-      // Auto-sync the status column with the published boolean
-      if (updates.published === true) {
-        // Check if this is a scheduled post (publishedAt is in the future)
-        const pubDate = updates.publishedAt || null;
-        if (pubDate && pubDate > new Date()) {
-          updates.status = 'SCHEDULED';
-        } else {
-          updates.status = 'PUBLISHED';
-        }
-      } else if (updates.published === false) {
-        updates.status = 'DRAFT';
-      }
+      // Same rule as create: a future scheduledFor (or publishedAt) keeps the
+      // post SCHEDULED + hidden until the cron publishes it.
+      syncBlogPublishState(updates);
       
       // Remove undefined values
       Object.keys(updates).forEach(key => {
