@@ -511,7 +511,7 @@ const BlogPage: React.FC = () => {
                         <img 
                           src={post.imageUrl} 
                           alt={post.title}
-                          className="w-full h-full object-cover transition-transform hover:scale-105"
+                          className="w-full h-full object-contain transition-transform hover:scale-105"
                           loading="lazy"
                           onError={(e) => {
                             // console.error removed
