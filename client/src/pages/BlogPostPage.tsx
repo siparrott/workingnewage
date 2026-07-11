@@ -8,6 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { SITE } from '../config/site';
+import { useLanguage } from '../context/LanguageContext';
 
 // Older posts store raw Markdown (contentHtml empty); newer ones store real HTML.
 // Detect HTML so we render each correctly instead of dumping raw "##" markdown.
@@ -39,6 +40,7 @@ interface RelatedPost {
 
 const BlogPostPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
+  const { language } = useLanguage();
   const [post, setPost] = useState<BlogPost | null>(null);
   const [relatedPosts, setRelatedPosts] = useState<RelatedPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,13 +50,14 @@ const BlogPostPage: React.FC = () => {
     if (slug) {
       fetchPost(slug);
     }
-  }, [slug]);
+    // Refetch when the language changes so the post is (re)translated server-side.
+  }, [slug, language]);
 
   const fetchPost = async (postSlug: string) => {
     try {
       setLoading(true);
-      
-      const response = await fetch(`/api/blog/posts/${postSlug}`);
+
+      const response = await fetch(`/api/blog/posts/${postSlug}?language=${language}`);
       
       if (!response.ok) {
         if (response.status === 404) {
@@ -80,7 +83,7 @@ const BlogPostPage: React.FC = () => {
 
   const fetchRelatedPosts = async (currentPostId: string) => {
     try {
-      const response = await fetch(`/api/blog/posts?published=true&limit=3&exclude=${currentPostId}`);
+      const response = await fetch(`/api/blog/posts?published=true&limit=3&exclude=${currentPostId}&language=${language}`);
       
       if (response.ok) {
         const data = await response.json();

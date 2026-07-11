@@ -64,7 +64,6 @@ const tagTranslations: Record<string, string> = {
   'portrait': 'portrait',
 };
 
-const translateToEnglish = (s: string) => s;
 const translateTagToEnglish = (tag: string): string => {
   return tagTranslations[tag] || tag;
 };
@@ -2164,15 +2163,18 @@ Bitte versuchen Sie es später noch einmal.`;
       
       let posts = await storage.getBlogPosts(published);
       
-      // Translate content if language is English
-      if (language === 'en') {
-        posts = posts.map(post => ({
+      // Translate list content on the fly for a non-German language. The cards
+      // render title + excerpt, so those are what we translate here (the full
+      // body is translated on the single-post endpoint). Cached per string;
+      // falls back to the original German if AI translation is unavailable.
+      if (language && language !== 'de') {
+        const { translateText } = await import('./lib/translate.js');
+        posts = await Promise.all(posts.map(async (post) => ({
           ...post,
-          title: translateToEnglish(post.title),
-          excerpt: post.excerpt ? translateToEnglish(post.excerpt) : null,
-          content: post.content ? translateToEnglish(post.content) : null,
-          tags: post.tags ? post.tags.map(tag => translateTagToEnglish(tag)) : null
-        }));
+          title: await translateText(post.title, language),
+          excerpt: post.excerpt ? await translateText(post.excerpt, language) : post.excerpt,
+          tags: post.tags ? post.tags.map((tag) => translateTagToEnglish(tag)) : post.tags,
+        })));
       }
       
       // Filter by search
@@ -2236,6 +2238,20 @@ Bitte versuchen Sie es später noch einmal.`;
       if (!post) {
         return res.status(404).json({ error: "Post not found" });
       }
+
+      // Translate the full post on the fly for a non-German language. Includes
+      // the rendered body (contentHtml) and SEO fields; cached per string so a
+      // given post is only translated once per process.
+      const language = (req.query.language as string) || 'de';
+      if (language && language !== 'de') {
+        const { translateFields } = await import('./lib/translate.js');
+        post = await translateFields(
+          post as any,
+          ['title', 'excerpt', 'content', 'contentHtml', 'seoTitle', 'metaDescription'],
+          language
+        );
+      }
+
       res.json(post);
     } catch (error) {
       console.error("Error fetching blog post:", error);
