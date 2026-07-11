@@ -133,8 +133,7 @@ import AdminSchedulersPage from './pages/admin/AdminSchedulersPage';
 import AdminAutomationsPage from './pages/admin/AdminAutomationsPage';
 import CalendarSyncPage from './pages/admin/CalendarSyncPage';
 import CalculatorPage from './pages/CalculatorPage';
-import SetupWizard from './pages/setup/SetupWizard';
-import TechnicalSetupWizard from './pages/setup/TechnicalSetupWizard';
+import UnifiedSetupWizard from './pages/setup/UnifiedSetupWizard';
 import ScrollToTop from './components/ScrollToTop';
 
 function PrerenderReadySignal() {
@@ -626,13 +625,11 @@ function App() {
                 {/* Public onboarding wizard entry */}
                 <Route path="/onboarding" element={<WebsiteWizard />} />
                 
-                {/* Technical Setup Wizard — Stage 1 */}
-                <Route path="/setup/technical" element={<TechnicalSetupWizard />} />
-                <Route path="/setup/technical/*" element={<TechnicalSetupWizard />} />
-                
-                {/* SmartTog Hub Setup Wizard — Stage 2 (Creative) */}
-                <Route path="/setup" element={<SetupWizard />} />
-                <Route path="/setup/*" element={<SetupWizard />} />
+                {/* Onboarding — ONE unified wizard at /setup (old /setup/technical redirects in) */}
+                <Route path="/setup/technical" element={<Navigate to="/setup" replace />} />
+                <Route path="/setup/technical/*" element={<Navigate to="/setup" replace />} />
+                <Route path="/setup" element={<UnifiedSetupWizard />} />
+                <Route path="/setup/*" element={<UnifiedSetupWizard />} />
                 <Route
                   path="/"
                   element={<HomePage />}

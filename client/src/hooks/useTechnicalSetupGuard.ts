@@ -72,7 +72,7 @@ export function useTechnicalSetupGuard() {
           JSON.stringify({ complete, ts: Date.now() })
         );
         if (!complete) {
-          navigate('/setup/technical', { replace: true });
+          navigate('/setup', { replace: true });
         } else {
           setIsReady(true);
         }
