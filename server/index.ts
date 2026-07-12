@@ -86,7 +86,11 @@ const globalLimiter = rateLimit({
     req.path === '/healthz' ||
     req.path === '/api/stripe/webhook' ||
     req.path === '/api/invoices/webhook' ||
-    req.path === '/api/vouchers/stripe-webhook',
+    req.path === '/api/vouchers/stripe-webhook' ||
+    // Image proxy is on the gallery render hot path (many thumbnails per page)
+    // and is a cacheable read, not an abuse vector — exempt so browsing a large
+    // gallery can't trip the global cap.
+    req.path === '/api/proxy-image',
 });
 app.use(globalLimiter);
 
