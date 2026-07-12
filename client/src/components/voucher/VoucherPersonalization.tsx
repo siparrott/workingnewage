@@ -173,34 +173,64 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
     setCustomPhoto(null);
   };
 
+  // Downscale large images in the browser before upload so big phone/Facebook
+  // photos don't exceed the server's request timeout; on any failure (e.g. an
+  // undecodable format) fall back to the original file untouched.
+  const downscaleImage = async (file: File, maxDim = 2400, quality = 0.85): Promise<Blob> => {
+    try {
+      if (!file.type.startsWith('image/')) return file;
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+      if (scale >= 1 && file.size < 4 * 1024 * 1024) { bitmap.close?.(); return file; }
+      const w = Math.round(bitmap.width * scale), h = Math.round(bitmap.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { bitmap.close?.(); return file; }
+      ctx.drawImage(bitmap, 0, 0, w, h);
+      bitmap.close?.();
+      const blob: Blob | null = await new Promise((res) => canvas.toBlob((b) => res(b), 'image/jpeg', quality));
+      return blob || file;
+    } catch {
+      return file;
+    }
+  };
+
   const handleCustomPhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      setCustomPhoto(file);
-      setSelectedDesign(null);
-      // Upload immediately so we have a URL for backend PDF rendering
-      (async () => {
-        setUploading(true);
-        setUploadError(null);
-        try {
-          const form = new FormData();
-          form.append('image', file);
-          const resp = await fetch('/api/vouchers/upload-photo', {
-            method: 'POST',
-            body: form,
-          });
-          const data = await resp.json();
-          if (!resp.ok || !data?.success || !data?.url) {
-            throw new Error(data?.error || 'Upload failed');
+    if (!file) return;
+    setCustomPhoto(file);
+    setSelectedDesign(null);
+    // Upload immediately so we have a URL for backend PDF rendering.
+    (async () => {
+      setUploading(true);
+      setUploadError(null);
+      try {
+        const blob = await downscaleImage(file);
+        const form = new FormData();
+        form.append('image', blob, (file.name.replace(/\.[^.]+$/, '') || 'photo') + '.jpg');
+        const resp = await fetch('/api/vouchers/upload-photo', { method: 'POST', body: form });
+        // The API always replies with JSON. Anything else (a timeout/proxy HTML
+        // page or a 5xx error page) means the upload didn't complete — surface a
+        // clear message instead of a raw "Unexpected token '<'" JSON-parse error.
+        const contentType = resp.headers.get('content-type') || '';
+        if (!resp.ok || !contentType.includes('application/json')) {
+          if (resp.status === 413) {
+            throw new Error(language === 'en' ? 'Image too large — please use a photo under 20 MB.' : 'Bild zu groß – bitte ein Foto unter 20 MB verwenden.');
           }
-          setCustomImageUrl(data.url);
-        } catch (e: any) {
-          setUploadError(e?.message || 'Upload failed');
-        } finally {
-          setUploading(false);
+          throw new Error(language === 'en' ? `Upload failed (server ${resp.status}). Please try again or use a smaller image.` : `Upload fehlgeschlagen (Server ${resp.status}). Bitte erneut versuchen oder ein kleineres Bild verwenden.`);
         }
-      })();
-    }
+        const data = await resp.json();
+        if (!data?.success || !data?.url) {
+          throw new Error(data?.error || (language === 'en' ? 'Upload failed' : 'Upload fehlgeschlagen'));
+        }
+        setCustomImageUrl(data.url);
+      } catch (e: any) {
+        setUploadError(e?.message || (language === 'en' ? 'Upload failed. Please try again.' : 'Upload fehlgeschlagen. Bitte erneut versuchen.'));
+      } finally {
+        setUploading(false);
+      }
+    })();
   };
 
   const handleComplete = () => {
