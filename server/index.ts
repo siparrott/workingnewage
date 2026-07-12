@@ -8,6 +8,8 @@ import { validateEnv } from "./lib/validateEnv";
 validateEnv();
 
 import express, { type Request, Response, NextFunction } from "express";
+import compression from "compression";
+import rateLimit from "express-rate-limit";
 import http from "node:http";
 // Import routes and jobs directly to fix client database access
 import { registerRoutes } from "./routes";
@@ -67,6 +69,39 @@ let serverInstance: any = null;
 
 // Behind reverse proxies (Heroku/Render/etc.) trust the first proxy so secure cookies work when appropriate
 app.set('trust proxy', 1);
+
+// Gzip/deflate compression on all responses — big win for the large JS bundle
+// and JSON payloads (bandwidth + Core Web Vitals). Cheap; safe for everything.
+app.use(compression());
+
+// Rate limiting: a generous global cap (blunts scraping / DoS on the new public
+// URL) plus a strict cap on auth POSTs (login/register/reset brute-force). GETs
+// (incl. session checks) and Stripe webhooks are exempt so nothing legitimate breaks.
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) =>
+    req.path === '/healthz' ||
+    req.path === '/api/stripe/webhook' ||
+    req.path === '/api/invoices/webhook' ||
+    req.path === '/api/vouchers/stripe-webhook' ||
+    // Image proxy is on the gallery render hot path (many thumbnails per page)
+    // and is a cacheable read, not an abuse vector — exempt so browsing a large
+    // gallery can't trip the global cap.
+    req.path === '/api/proxy-image',
+});
+app.use(globalLimiter);
+
+const authWriteLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.method !== 'POST',
+});
+app.use('/api/auth', authWriteLimiter);
 
 // Increase body size limits to accommodate large image payloads (base64 encoded images can be 10MB+)
 // Skip JSON body parsing for Stripe webhook endpoints — they need the raw body Buffer

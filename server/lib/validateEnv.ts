@@ -115,6 +115,22 @@ export function validateEnv(): void {
     }
   }
 
+  // ── 7. Migration footguns — keys read directly from process.env ──
+  // These silently DEGRADE (rather than error) if not carried over to a new
+  // host, so they are the most common regressions on a Heroku→Render cutover:
+  //   Stripe → demo/no-op checkout · OpenAI → AI + blog/site translation no-op.
+  if (isProduction && !demoMode) {
+    if (!stripeKey) {
+      warnings.push({ variable: 'STRIPE_SECRET_KEY', message: 'not set in production — checkout will fall back to demo/no-op. Set the live sk_live_ key on the host.', severity: 'warn' });
+    }
+    if (!process.env.OPENAI_API_KEY) {
+      warnings.push({ variable: 'OPENAI_API_KEY', message: 'not set — AI features and blog/site translation will silently no-op.', severity: 'warn' });
+    }
+    if (stripeKey && !(process.env.STRIPE_WEBHOOK_SECRET || '').startsWith('whsec_')) {
+      warnings.push({ variable: 'STRIPE_WEBHOOK_SECRET', message: 'missing/invalid — Stripe webhooks (payment fulfillment) will not verify. Set the whsec_ secret from the Stripe dashboard.', severity: 'warn' });
+    }
+  }
+
   // ── Report ───────────────────────────────────────────────────────
   if (warnings.length > 0) {
     console.warn('⚠️  Environment warnings:');

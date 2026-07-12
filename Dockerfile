@@ -3,16 +3,22 @@
 # (server/vite.ts serveStatic reads /app/dist; it activates only when NODE_ENV=production
 # and PORT are set — both guaranteed below / by the host).
 #
-# v1 keeps it simple and reliable:
-#   - full node:20-bookworm base (build tools + perl present) to avoid native-module surprises
-#   - Puppeteer Chromium download skipped (prerender/lighthouse are off in v1)
-#   - single stage; optimize to multi-stage + slim later (see MASTER_EXECUTION_PLAN.md)
+# single stage; optimize to multi-stage + slim later (see MASTER_EXECUTION_PLAN.md)
 FROM node:20-bookworm
 
-# Prerender/Chromium off in v1 → don't download ~150MB Chromium during install.
+# Use the system Chromium for the prerender step (per-route static HTML for
+# crawlers/social scrapers) and tell puppeteer to skip its own ~150MB download.
 ENV PUPPETEER_SKIP_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
     NPM_CONFIG_UPDATE_NOTIFIER=false \
     NPM_CONFIG_FUND=false
+
+# Chromium + the runtime libraries headless Chrome needs on Debian bookworm.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      chromium fonts-liberation libnss3 libatk-bridge2.0-0 libatk1.0-0 libcups2 \
+      libdrm2 libgbm1 libgtk-3-0 libasound2 libxkbcommon0 libxcomposite1 \
+      libxdamage1 libxfixes3 libxrandr2 libpango-1.0-0 libcairo2 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -23,8 +29,10 @@ RUN npm ci --include=dev --no-audit --no-fund
 # App source (respects .dockerignore — node_modules, .git, dist, .env* are excluded).
 COPY . .
 
-# Build the client bundle to /app/dist. PRERENDER is unset → no Chrome needed.
-RUN npm run build
+# Build the client bundle to /app/dist. Attempt prerendering (per-route static HTML
+# for SEO / social previews); if prerender fails for any reason, fall back to a
+# plain build so the deploy can never break on it.
+RUN npm run heroku-postbuild || (echo "⚠️  prerender build failed — falling back to standard build" && npm run build)
 
 # Runtime: production mode. Host (Render/Heroku) injects PORT; default 3001 for local runs.
 ENV NODE_ENV=production
