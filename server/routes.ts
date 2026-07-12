@@ -506,9 +506,11 @@ async function renderVoucherPdf(doc: any, data: any): Promise<void> {
   const footerTop = pageHeight - 155;
   doc.moveTo(pageMargin, footerTop).lineTo(pageWidth - pageMargin, footerTop).lineWidth(0.5).strokeColor('#e2e2e2').stroke();
 
-  // QR (encodes the voucher id for redemption lookup; external render, best-effort)
+  // QR points to the waitlist landing page (override per tenant via VOUCHER_QR_URL).
+  // External render, best-effort.
   const qrSize = 70;
-  const qrBuf = await fetchImg(`https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=0&data=${encodeURIComponent(String(data.voucherId || ''))}`);
+  const qrTarget = process.env.VOUCHER_QR_URL || 'https://www.newagefotografie.com/warteliste';
+  const qrBuf = await fetchImg(`https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=0&data=${encodeURIComponent(qrTarget)}`);
   if (qrBuf) { try { doc.image(qrBuf, pageMargin, footerTop + 12, { fit: [qrSize, qrSize] }); } catch {} }
 
   // Logo (bottom-right)
