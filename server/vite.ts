@@ -34,9 +34,13 @@ const SITE_ORIGIN = process.env.PUBLIC_SITE_URL || "https://www.newagefotografie
 function registerDynamicSitemap(app: Express, baseFilePath: string) {
   app.get("/sitemap.xml", async (_req, res) => {
     try {
-      const base = fs.existsSync(baseFilePath)
+      const rawBase = fs.existsSync(baseFilePath)
         ? fs.readFileSync(baseFilePath, "utf8")
         : '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n</urlset>';
+      // Re-brandable/re-hostable: rewrite the curated sitemap's hardcoded origin to
+      // the configured PUBLIC_SITE_URL so a moved or re-branded instance never emits
+      // the wrong host (a mixed-host sitemap gets dropped by Google).
+      const base = rawBase.replace(/https?:\/\/(www\.)?newagefotografie\.com/g, SITE_ORIGIN);
 
       const { storage } = await import("./storage.js");
       const posts = await storage.getBlogPosts(true); // published & publishedAt <= NOW()

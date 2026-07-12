@@ -2395,9 +2395,28 @@ Bitte versuchen Sie es später noch einmal.`;
       const upstream = await fetch(url);
       if (!upstream.ok) return res.status(upstream.status).send('Upstream error');
       const ct = upstream.headers.get('content-type') || 'image/jpeg';
-      const buf = Buffer.from(await upstream.arrayBuffer());
-      res.setHeader('Content-Type', ct);
-      res.setHeader('Cache-Control', 'private, max-age=300');
+      let buf = Buffer.from(await upstream.arrayBuffer());
+      let outCt = ct;
+      // Optional on-the-fly downscale (?w=NNN): serves lightweight gallery grid
+      // thumbnails from the full-res original without a schema migration/backfill.
+      // Cuts egress by ~10-30x for the many small grid images. Full-res views keep
+      // hitting the CDN directly. Best-effort: fall back to the original on error.
+      const w = Math.min(Math.max(parseInt(String(req.query.w || ''), 10) || 0, 0), 2000);
+      if (w > 0 && ct.startsWith('image/') && !ct.includes('svg')) {
+        try {
+          buf = await sharp(buf)
+            .rotate()
+            .resize({ width: w, withoutEnlargement: true })
+            .jpeg({ quality: 78 })
+            .toBuffer();
+          outCt = 'image/jpeg';
+        } catch (rz: any) {
+          console.warn('[proxy-image] resize failed, serving original:', rz?.message || rz);
+        }
+      }
+      res.setHeader('Content-Type', outCt);
+      // Resized variants are immutable per (url,w) → allow long shared caching.
+      res.setHeader('Cache-Control', w > 0 ? 'public, max-age=86400' : 'private, max-age=300');
       res.send(buf);
     } catch (e: any) {
       console.error('[proxy-image] error:', e?.message || e);
@@ -4683,13 +4702,17 @@ Bitte versuchen Sie es später noch einmal.`;
 
       // Transform database images to match frontend expectations
       if (galleryImages && galleryImages.length > 0) {
+        const thumbFor = (u?: string) =>
+          u && /^https?:\/\//i.test(u) ? `/api/proxy-image?w=600&url=${encodeURIComponent(u)}` : u;
         const transformedImages = galleryImages.map(img => ({
           id: img.id,
           galleryId: img.galleryId || img.gallery_id,
           filename: img.filename,
           originalUrl: img.url || img.originalUrl,
           displayUrl: img.url || img.displayUrl,
-          thumbUrl: img.url || img.thumbUrl,
+          // Grid thumbnails go through the resizing proxy (≈600px). Full-res
+          // original/display URLs stay direct-CDN for lightbox + downloads.
+          thumbUrl: thumbFor(img.url || img.thumbUrl),
           title: img.title,
           description: img.description,
           orderIndex: img.sortOrder || img.sort_order || 0,
@@ -12518,16 +12541,31 @@ ${getBizName()} CRM System
     }
   });
 
-  // Stripe webhook endpoint for payment confirmations (simplified, signature not verified here)
+  // Stripe webhook for voucher payment confirmations. Signature-VERIFIED so a
+  // forged POST cannot create paid voucher records. (Primary fulfillment also
+  // runs through the verified /api/stripe/webhook; this endpoint is retained for
+  // compatibility.) Uses STRIPE_VOUCHER_WEBHOOK_SECRET if this is a separate
+  // Stripe endpoint, else the main STRIPE_WEBHOOK_SECRET.
   app.post("/api/vouchers/stripe-webhook", express.raw({ type: 'application/json' }), async (req: Request, res: Response) => {
-    // RESPOND IMMEDIATELY to prevent Stripe timeouts
+    const sig = req.headers['stripe-signature'] as string | undefined;
+    const webhookSecret = process.env.STRIPE_VOUCHER_WEBHOOK_SECRET || process.env.STRIPE_WEBHOOK_SECRET;
+    let event: any;
+    if (!webhookSecret || !webhookSecret.startsWith('whsec_') || !sig) {
+      console.error('[VOUCHER WEBHOOK] rejected: missing signature or STRIPE_WEBHOOK_SECRET (whsec_)');
+      return res.status(400).json({ error: 'Signature verification unavailable' });
+    }
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    } catch (err: any) {
+      console.error('[VOUCHER WEBHOOK] signature verification failed:', err?.message);
+      return res.status(400).json({ error: 'Invalid signature' });
+    }
+
+    // Acknowledge immediately, then process the VERIFIED event asynchronously.
     res.status(200).json({ received: true });
 
-    // Process the event ASYNCHRONOUSLY after response
     setImmediate(async () => {
       try {
-        // Parse raw body (express.raw provides a Buffer)
-        const event = Buffer.isBuffer(req.body) ? JSON.parse(req.body.toString('utf8')) : req.body;
         if (event?.type === 'checkout.session.completed') {
           const session = event.data?.object;
           console.log('[WEBHOOK] checkout.session.completed', session?.id);
