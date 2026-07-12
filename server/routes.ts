@@ -418,6 +418,121 @@ function syncBlogPublishState(data: any): void {
   // published === undefined on a partial update → leave status untouched.
 }
 
+// Professional single-page voucher PDF renderer. Draws into an existing PDFKit
+// document from a normalized data object; both /voucher/pdf and its preview use
+// it so the customer download and the customization preview stay identical. This
+// is presentation only — it does NOT change how voucher data is resolved.
+async function renderVoucherPdf(doc: any, data: any): Promise<void> {
+  const pageWidth = 595.28, pageHeight = 841.89, pageMargin = 50;
+  const contentWidth = pageWidth - pageMargin * 2;
+  const reg = data.fontFamily || 'Helvetica';
+  const bold = 'Helvetica-Bold';
+  const bannerColor = data.bannerColor || '#b3202e';
+  const bannerTextColor = data.bannerTextColor || '#ffffff';
+
+  // Fetch an image URL into a PDFKit-safe buffer (JPEG/PNG; WebP→PNG via sharp).
+  const fetchImg = async (url?: string): Promise<Buffer | null> => {
+    if (!url) return null;
+    try {
+      const r = await fetch(url);
+      if (!r || !r.ok) return null;
+      let buf = Buffer.from(await r.arrayBuffer());
+      const isWebp = url.toLowerCase().endsWith('.webp') || (r.headers.get('content-type') || '').includes('webp');
+      if (isWebp) { try { buf = await sharp(buf).png().toBuffer(); } catch {} }
+      return buf;
+    } catch { return null; }
+  };
+
+  let y = pageMargin;
+
+  // 1. HERO IMAGE — full width, fixed height, cover-cropped for a clean banner.
+  const heroH = 290;
+  const heroBuf = await fetchImg(data.heroImageUrl);
+  if (heroBuf) {
+    try {
+      doc.save();
+      doc.rect(pageMargin, y, contentWidth, heroH).clip();
+      doc.image(heroBuf, pageMargin, y, { cover: [contentWidth, heroH], align: 'center', valign: 'center' });
+      doc.restore();
+      y += heroH;
+    } catch { try { doc.restore(); } catch {} ; y += 8; }
+  } else {
+    y += 8;
+  }
+
+  // "Gutschein" ribbon overlapping the hero's bottom-left.
+  const ribbonH = 34, ribbonW = 168;
+  doc.save();
+  doc.rect(pageMargin, y - ribbonH, ribbonW, ribbonH).fill(bannerColor);
+  doc.fillColor(bannerTextColor).font(bold).fontSize(17).text('Gutschein', pageMargin + 16, y - ribbonH + 9, { lineBreak: false });
+  doc.restore();
+  y += 24;
+
+  // 2. PRODUCT TITLE
+  doc.fillColor('#1a1a1a').font(bold).fontSize(21).text(data.title || 'Gutschein', pageMargin, y, { width: contentWidth });
+  y = doc.y + 5;
+
+  // 3. RECIPIENT + PERSONAL MESSAGE
+  const bits: string[] = [];
+  if (data.recipientName && data.recipientName !== 'Beschenkte/r') bits.push(`Für: ${data.recipientName}`);
+  if (data.fromName && data.fromName !== '—') bits.push(`Von: ${data.fromName}`);
+  if (bits.length) {
+    doc.font(reg).fontSize(10.5).fillColor('#888888').text(bits.join('      '), pageMargin, y, { width: contentWidth });
+    y = doc.y + 4;
+  }
+  if (data.message && String(data.message).trim()) {
+    doc.font('Helvetica-Oblique').fontSize(12.5).fillColor('#444444').text(`„${String(data.message).trim()}“`, pageMargin, y, { width: contentWidth });
+    y = doc.y + 12;
+  } else {
+    y += 6;
+  }
+
+  // 4. INCLUSIONS as a clean bulleted list (split the description on ; • or newline)
+  const inc = (data.inclusions || '').toString().trim();
+  if (inc) {
+    doc.font(bold).fontSize(11).fillColor(bannerColor).text('Inkludierte Leistungen', pageMargin, y, { width: contentWidth });
+    y = doc.y + 6;
+    const items = inc.split(/\s*[;•\n]\s*/).map((s: string) => s.trim()).filter(Boolean);
+    doc.font(reg).fontSize(10.5).fillColor('#333333');
+    for (const it of items) {
+      doc.text('•   ' + it, pageMargin + 4, doc.y, { width: contentWidth - 8 });
+      doc.moveDown(0.2);
+    }
+  }
+
+  // 5. FOOTER pinned to the bottom of the page → guarantees a single page.
+  //    Everything must stay above PDFKit's 50pt bottom margin (y ≈ 791) or it
+  //    spills onto a second page.
+  const footerTop = pageHeight - 155;
+  doc.moveTo(pageMargin, footerTop).lineTo(pageWidth - pageMargin, footerTop).lineWidth(0.5).strokeColor('#e2e2e2').stroke();
+
+  // QR (encodes the voucher id for redemption lookup; external render, best-effort)
+  const qrSize = 70;
+  const qrBuf = await fetchImg(`https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=0&data=${encodeURIComponent(String(data.voucherId || ''))}`);
+  if (qrBuf) { try { doc.image(qrBuf, pageMargin, footerTop + 12, { fit: [qrSize, qrSize] }); } catch {} }
+
+  // Logo (bottom-right)
+  const logoBuf = await fetchImg(data.logoUrl || process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg');
+  if (logoBuf) { try { doc.image(logoBuf, pageWidth - pageMargin - 118, footerTop + 12, { fit: [118, 42] }); } catch {} }
+
+  // Fine print between the QR and the logo.
+  const fpX = pageMargin + (qrBuf ? qrSize + 16 : 0);
+  const fpW = (pageWidth - pageMargin - 128) - fpX;
+  doc.font(bold).fontSize(8).fillColor('#333333').text(`Gutschein-ID: ${data.voucherId || ''}`, fpX, footerTop + 12, { width: fpW });
+  const metaLine = [
+    data.paidAmount ? `Wert: ${data.paidAmount}` : '',
+    data.purchaseDate ? `Datum: ${data.purchaseDate}` : '',
+    data.expiry ? `Gültig bis: ${data.expiry}` : '',
+  ].filter(Boolean).join('   ·   ');
+  if (metaLine) doc.font(reg).fontSize(7.5).fillColor('#666666').text(metaLine, fpX, doc.y + 2, { width: fpW });
+  const terms = data.termsText || 'Einlösbar für die oben genannte Leistung in unserem Studio. Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.';
+  doc.font(reg).fontSize(7).fillColor('#888888').text(terms, fpX, doc.y + 3, { width: fpW, align: 'justify' });
+
+  // Contact line at the very bottom, centered on one line.
+  const contact = [data.footerText, data.footerEmail, data.footerPhone].filter(Boolean).join('    ·    ');
+  if (contact) doc.font(reg).fontSize(8.5).fillColor('#444444').text(contact, pageMargin, pageHeight - 66, { width: contentWidth, align: 'center', lineBreak: false });
+}
+
 // Modern PDF invoice generator with actual logo and all required sections
 async function generateModernInvoicePDF(invoice: any, client: any): Promise<Buffer> {
   // Load invoice items from database
@@ -14311,144 +14426,34 @@ ${getBizName()} CRM System
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
       doc.pipe(res);
 
-      // NEW LAYOUT: Image at top, then user message as heading, logo in footer
-      const pageWidth = 595.28;
-      const pageHeight = 841.89;
-      const pageMargin = 50;
-      const contentWidth = pageWidth - (pageMargin * 2);
-      let currentY = 40;
+      // Render the professional single-page voucher via the shared renderer.
+      // (Design only — all data above is resolved exactly as before.)
+      const heroReal = String(m.custom_image || m.design_image || (pdfTemplate?.image_url || pdfTemplate?.imageUrl || '') || m.product_hero_image || (pdfProduct?.image_url || pdfProduct?.imageUrl || '') || '').trim();
+      const paidReal = ((session.amount_total || 0) / 100).toFixed(2) + ' ' + String(session.currency || 'EUR').toUpperCase();
+      const dReal = new Date((session.created || Date.now() / 1000) * 1000);
+      const dateReal = `${String(dReal.getDate()).padStart(2, '0')}.${String(dReal.getMonth() + 1).padStart(2, '0')}.${dReal.getFullYear()}`;
+      await renderVoucherPdf(doc, {
+        title,
+        recipientName: name,
+        fromName: from,
+        message: note,
+        voucherId: String(vId),
+        sku: String(sku),
+        expiry: exp,
+        inclusions: (pdfProduct?.description || pdfProduct?.detailedDescription || pdfProduct?.detailed_description || m.product_description || '').toString(),
+        heroImageUrl: heroReal,
+        logoUrl: tplLogoUrl,
+        bannerColor: tplBannerColor,
+        bannerTextColor: tplBannerTextColor,
+        fontFamily: tplFontFamily,
+        termsText: tplTermsText,
+        footerText: tplFooterText || getBizWebsite(),
+        footerEmail: tplFooterEmail || getEnvContactEmailSync() || '',
+        footerPhone: tplFooterPhone,
+        paidAmount: paidReal,
+        purchaseDate: dateReal,
+      });
 
-      // 1. HERO IMAGE AT THE TOP (customer-selected or template photo)
-      let heroRendered = false;
-      try {
-        // Priority: custom upload > metadata design_image > DB template image > product hero image
-        const templateImageUrl = pdfTemplate?.image_url || pdfTemplate?.imageUrl || '';
-        const productImageUrl = pdfProduct?.image_url || pdfProduct?.imageUrl || '';
-        const artUrl = String(m.custom_image || m.design_image || templateImageUrl || m.product_hero_image || productImageUrl || '').trim();
-        if (artUrl) {
-          const respImg = await fetch(artUrl);
-          if (respImg && respImg.ok) {
-            const artArr = await respImg.arrayBuffer();
-            let artBuf = Buffer.from(artArr);
-            // PDFKit only supports JPEG and PNG — convert WebP/other formats to PNG via sharp
-            const isWebp = artUrl.toLowerCase().endsWith('.webp') || (respImg.headers.get('content-type') || '').includes('webp');
-            if (isWebp) {
-              try { artBuf = await sharp(artBuf).png().toBuffer(); } catch (convErr) { console.warn('[VOUCHER PDF] WebP→PNG conversion failed:', convErr); }
-            }
-            const imgWidth = contentWidth;
-            doc.image(artBuf, pageMargin, currentY, { fit: [imgWidth, 280], align: 'center' });
-            currentY += 290;
-            heroRendered = true;
-          } else {
-            console.warn('[VOUCHER PDF] Hero image fetch failed:', artUrl, 'status:', respImg?.status);
-          }
-        }
-      } catch (e) {
-        console.warn('Voucher art fetch error:', e);
-      }
-      if (!heroRendered) {
-        currentY += 20; // Small gap if no image
-      }
-
-      // 2. USER'S PERSONAL MESSAGE AS MAIN HEADING (instead of generic "PERSONALISIERTER GUTSCHEIN")
-      if (note && note.trim()) {
-        doc.font(tplFontFamily).fontSize(tplMsgFontSize).fillColor('#222222').text(note, pageMargin, currentY, { 
-          align: 'center', 
-          width: contentWidth 
-        });
-        currentY = doc.y + 15;
-      } else {
-        // Fallback if no message provided
-        doc.font(tplFontFamily).fontSize(tplMsgFontSize).fillColor('#222222').text('Gutschein', pageMargin, currentY, { 
-          align: 'center', 
-          width: contentWidth 
-        });
-        currentY = doc.y + 15;
-      }
-
-      // 3. RED BANNER with product title
-      try {
-        const bannerY = currentY;
-        const bannerX = pageMargin;
-        const bannerW = contentWidth;
-        const bannerH = 32;
-        doc.save();
-        doc.rect(bannerX, bannerY, bannerW, bannerH).fill(tplBannerColor);
-        doc.fillColor(tplBannerTextColor).fontSize(16).text(title, bannerX + 14, bannerY + 8, { width: bannerW - 28, align: 'left' });
-        doc.restore();
-        currentY = bannerY + bannerH + 20;
-      } catch {}
-
-      // 4. VOUCHER DETAILS
-      doc.fillColor('#222222');
-      
-      // Dynamic product description = what the package includes (reuse pdfProduct
-      // fetched above, or the description carried in the Stripe metadata).
-      try {
-        const dynamicSub = (pdfProduct?.description || pdfProduct?.detailedDescription || pdfProduct?.detailed_description || m.product_description || '').toString();
-
-        if (dynamicSub && dynamicSub.trim()) {
-          doc.fontSize(9).fillColor(tplBannerColor).text('Inkludierte Leistungen:', pageMargin, currentY, { width: contentWidth });
-          currentY = doc.y + 2;
-          doc.fontSize(10).fillColor('#222222').text(dynamicSub, pageMargin, currentY, { width: contentWidth, align: 'left' });
-          currentY = doc.y + 10;
-        }
-      } catch (e) {
-        console.warn('Voucher description block render error:', e);
-      }
-
-      // Voucher meta
-      doc.fontSize(9);
-      doc.text(`Gutschein-ID: ${vId}  |  SKU: ${sku}`, pageMargin, currentY);
-      doc.text(`Empfänger/in: ${name}`);
-      doc.text(`Von: ${from}`);
-      doc.text(`Gültig bis: ${exp}`);
-      currentY = doc.y + 10;
-
-      // Terms (template-customizable)
-      const termsContent = tplTermsText || 'Einlösbar für die oben genannte Leistung in unserem Studio. Nicht bar auszahlbar. Termin nach Verfügbarkeit. Bitte zur Einlösung Gutschein-ID angeben.';
-      doc.fontSize(8).fillColor('#444444').text(
-        termsContent,
-        pageMargin, currentY,
-        { align: 'justify', width: contentWidth }
-      );
-      currentY = doc.y + 10;
-
-      // Payment info
-      const paid = ((session.amount_total || 0) / 100).toFixed(2) + ' ' + String(session.currency || 'EUR').toUpperCase();
-      const paymentDate = new Date((session.created || Date.now()/1000)*1000);
-      const formattedDate = `${String(paymentDate.getDate()).padStart(2, '0')}/${String(paymentDate.getMonth() + 1).padStart(2, '0')}/${String(paymentDate.getFullYear()).slice(-2)}`;
-      doc.fontSize(8).fillColor('#222222').text(`Belegt durch Zahlung: ${paid} | Datum: ${formattedDate}`, pageMargin, currentY);
-      
-      // 5. FOOTER WITH LOGO AND CONTACT DETAILS (positioned at bottom of page)
-      const footerY = pageHeight - 120;
-      
-      // Logo centered in footer (template-customizable)
-      try {
-        const logoUrl = tplLogoUrl || process.env.VOUCHER_LOGO_URL || 'https://i.postimg.cc/j55DNmbh/frontend-logo.jpg';
-        const resp = await fetch(logoUrl);
-        if (resp && resp.ok) {
-          const arr = await resp.arrayBuffer();
-          let imgBuf = Buffer.from(arr);
-          // PDFKit only supports JPEG and PNG — convert WebP if needed
-          const isWebp = logoUrl.toLowerCase().endsWith('.webp') || (resp.headers.get('content-type') || '').includes('webp');
-          if (isWebp) {
-            try { imgBuf = await sharp(imgBuf).png().toBuffer(); } catch (convErr) { console.warn('[VOUCHER PDF] Logo WebP→PNG conversion failed:', convErr); }
-          }
-          const logoWidth = 120;
-          const centerX = (pageWidth - logoWidth) / 2;
-          doc.image(imgBuf, centerX, footerY, { fit: [logoWidth, 40] });
-        }
-      } catch (e) {
-        console.warn('Voucher logo fetch error:', e);
-      }
-
-      // Contact details below logo (template-customizable)
-      doc.fontSize(9).fillColor('#222222');
-      doc.text(tplFooterText || getBizWebsite(), pageMargin, footerY + 50, { align: 'center', width: contentWidth });
-      doc.text(tplFooterEmail || getEnvContactEmailSync() || 'no-reply@localhost', { align: 'center' });
-      doc.text(tplFooterPhone || 'WhatsApp: 0043 677 633 99210', { align: 'center' });
-      
       doc.end();
     } catch (e) {
       console.error('Voucher PDF generation failed', e);
@@ -14553,136 +14558,33 @@ ${getBizName()} CRM System
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
       doc.pipe(res);
 
-      // NEW LAYOUT: Image at top, then user message as heading, logo in footer
-      const pageWidth = 595.28;
-      const pageHeight = 841.89;
-      const pageMargin = 50;
-      const contentWidth = pageWidth - (pageMargin * 2);
-      let currentY = 40;
+      // Render the professional single-page voucher via the shared renderer.
+      // (Design only — preview data resolution above is unchanged.)
+      const paidPv = amount.toFixed(2) + ' ' + currency.toUpperCase();
+      const dPv = new Date();
+      const datePv = `${String(dPv.getDate()).padStart(2, '0')}.${String(dPv.getMonth() + 1).padStart(2, '0')}.${dPv.getFullYear()}`;
+      await renderVoucherPdf(doc, {
+        title,
+        recipientName: name,
+        fromName: from,
+        message: note,
+        voucherId: String(vId),
+        sku: String(sku),
+        expiry: exp,
+        inclusions: (previewProduct?.description || previewProduct?.detailedDescription || previewProduct?.detailed_description || qp.product_description || '').toString(),
+        heroImageUrl: customImageUrl,
+        logoUrl: pvLogoUrl,
+        bannerColor: pvBannerColor,
+        bannerTextColor: pvBannerTextColor,
+        fontFamily: pvFontFamily,
+        termsText: pvTermsText,
+        footerText: pvFooterText || getBizWebsite(),
+        footerEmail: pvFooterEmail || getEnvContactEmailSync() || '',
+        footerPhone: pvFooterPhone,
+        paidAmount: paidPv,
+        purchaseDate: datePv,
+      });
 
-      // 1. HERO IMAGE AT THE TOP (customer-selected or template photo)
-      let heroRendered = false;
-      if (customImageUrl) {
-        try {
-          const respImg = await fetch(customImageUrl);
-          if (respImg && respImg.ok) {
-            const imgArr = await respImg.arrayBuffer();
-            let imgBuf = Buffer.from(imgArr);
-            // PDFKit only supports JPEG and PNG — convert WebP if needed
-            const isWebp = customImageUrl.toLowerCase().endsWith('.webp') || (respImg.headers.get('content-type') || '').includes('webp');
-            if (isWebp) {
-              try { imgBuf = await sharp(imgBuf).png().toBuffer(); } catch (convErr) { console.warn('[VOUCHER PREVIEW] WebP→PNG conversion failed:', convErr); }
-            }
-            const imgWidth = contentWidth;
-            doc.image(imgBuf, pageMargin, currentY, { fit: [imgWidth, 280], align: 'center' });
-            currentY += 290;
-            heroRendered = true;
-          }
-        } catch (err) {
-          console.warn('Preview image error:', err);
-        }
-      }
-      if (!heroRendered) {
-        currentY += 20; // Small gap if no image
-      }
-
-      // 2. USER'S PERSONAL MESSAGE AS MAIN HEADING (template-aware font)
-      if (note && note.trim()) {
-        doc.font(pvFontFamily).fontSize(pvMsgFontSize).fillColor('#222222').text(note, pageMargin, currentY, { 
-          align: 'center', 
-          width: contentWidth 
-        });
-        currentY = doc.y + 15;
-      } else {
-        // Fallback if no message provided
-        doc.font(pvFontFamily).fontSize(pvMsgFontSize).fillColor('#222222').text('Gutschein', pageMargin, currentY, { 
-          align: 'center', 
-          width: contentWidth 
-        });
-        currentY = doc.y + 15;
-      }
-
-      // 3. BANNER with product title (template-aware colors)
-      try {
-        const bannerY = currentY;
-        const bannerX = pageMargin;
-        const bannerW = contentWidth;
-        const bannerH = 32;
-        doc.save();
-        doc.rect(bannerX, bannerY, bannerW, bannerH).fill(pvBannerColor);
-        doc.fillColor(pvBannerTextColor).fontSize(16).text(title, bannerX + 14, bannerY + 8, { width: bannerW - 28, align: 'left' });
-        doc.restore();
-        currentY = bannerY + bannerH + 20;
-      } catch {}
-
-      // 4. VOUCHER DETAILS
-      doc.fillColor('#222222');
-
-      // Dynamic product description = what the package includes (reuse previewProduct;
-      // fall back to the description passed by the admin download).
-      try {
-        const dynamicSub = (previewProduct?.description || previewProduct?.detailedDescription || previewProduct?.detailed_description || qp.product_description || '').toString();
-
-        if (dynamicSub && dynamicSub.trim()) {
-          doc.fontSize(9).fillColor(pvBannerColor).text('Inkludierte Leistungen:', pageMargin, currentY, { width: contentWidth });
-          currentY = doc.y + 2;
-          doc.fontSize(10).fillColor('#222222').text(dynamicSub, pageMargin, currentY, { width: contentWidth, align: 'left' });
-          currentY = doc.y + 10;
-        }
-      } catch (e) {
-        console.warn('Preview description render error:', e);
-      }
-
-      // Voucher meta
-      doc.fontSize(9);
-      doc.text(`Gutschein-ID: ${vId}  |  SKU: ${sku}`, pageMargin, currentY);
-      doc.text(`Empfänger/in: ${name}`);
-      doc.text(`Von: ${from}`);
-      doc.text(`Gültig bis: ${exp}`);
-      currentY = doc.y + 10;
-
-      // Terms (template-aware)
-      doc.fontSize(8).fillColor('#444444').text(
-        pvTermsText,
-        pageMargin, currentY,
-        { align: 'justify', width: contentWidth }
-      );
-      currentY = doc.y + 10;
-
-      // Payment info
-      const paid = amount.toFixed(2) + ' ' + currency.toUpperCase();
-      const previewDate = new Date();
-      const formattedPreviewDate = `${String(previewDate.getDate()).padStart(2, '0')}/${String(previewDate.getMonth() + 1).padStart(2, '0')}/${String(previewDate.getFullYear()).slice(-2)}`;
-      doc.fontSize(8).fillColor('#222222').text(`Vorschau der Zahlung: ${paid} | Datum: ${formattedPreviewDate}`, pageMargin, currentY);
-      
-      // 5. FOOTER WITH LOGO AND CONTACT DETAILS (positioned at bottom of page)
-      const footerY = pageHeight - 120;
-      
-      // Logo centered in footer (template-aware)
-      try {
-        const resp = await fetch(pvLogoUrl);
-        if (resp && resp.ok) {
-          const arr = await resp.arrayBuffer();
-          let imgBuf = Buffer.from(arr);
-          // PDFKit only supports JPEG and PNG — convert WebP if needed
-          const isWebp = pvLogoUrl.toLowerCase().endsWith('.webp') || (resp.headers.get('content-type') || '').includes('webp');
-          if (isWebp) {
-            try { imgBuf = await sharp(imgBuf).png().toBuffer(); } catch (convErr) { console.warn('[VOUCHER PREVIEW] Logo WebP→PNG conversion failed:', convErr); }
-          }
-          const logoWidth = 120;
-          const centerX = (pageWidth - logoWidth) / 2;
-          doc.image(imgBuf, centerX, footerY, { fit: [logoWidth, 40] });
-        }
-      } catch (e) {
-        console.warn('Logo fetch error:', e);
-      }
-
-      // Contact details below logo (template-aware)
-      doc.fontSize(9).fillColor('#222222');
-      doc.text(pvFooterText || getBizWebsite(), pageMargin, footerY + 50, { align: 'center', width: contentWidth });
-      doc.text(pvFooterEmail || getEnvContactEmailSync() || 'no-reply@localhost', { align: 'center' });
-      doc.text(pvFooterPhone, { align: 'center' });
-      
       doc.end();
     } catch (e) {
       console.error('Voucher PDF preview failed', e);
