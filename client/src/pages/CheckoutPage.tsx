@@ -72,17 +72,59 @@ const CheckoutPage: React.FC = () => {
     partner: { id: '1', title: SITE.name, logo: '', description: '' },
   } : null);
   
-  // If this is a voucher personalization request, show VoucherFlow immediately
+  // --- All hooks are declared BEFORE any conditional return (Rules of Hooks).
+  // Previously the VoucherFlow early-returns sat above these hooks, so once the
+  // API product loaded and `voucher` became truthy the hooks below were skipped
+  // → "rendered fewer hooks than expected" crash on every DB-voucher checkout.
+  const [quantity, setQuantity] = useState<number>(initialQuantity);
+  const [purchaserName, setPurchaserName] = useState<string>('');
+  const [purchaserEmail, setPurchaserEmail] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  // Cart-based checkout data
+  const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
+
+  useEffect(() => {
+    const storedCheckoutData = sessionStorage.getItem('checkoutData');
+    if (storedCheckoutData) {
+      try {
+        setCheckoutData(JSON.parse(storedCheckoutData));
+      } catch (error) {
+        console.error('Failed to parse checkout data:', error);
+      }
+    }
+    // If we have cart items, use those instead
+    if (cartItems.length > 0) {
+      setCheckoutData({ items: cartItems, total: cartTotal, appliedVoucher: undefined });
+    }
+  }, [cartItems, cartTotal]);
+
+  useEffect(() => {
+    // Only redirect if this is NOT a personalization request (API fetch may still be pending)
+    if (id && !voucher && !isVoucherPersonalization) {
+      navigate('/vouchers');
+    }
+  }, [voucher, navigate, id, isVoucherPersonalization]);
+
+  // Derived values (non-hook)
+  const voucherItems = checkoutData?.items?.filter(item =>
+    item.type === 'voucher' ||
+    item.name?.toLowerCase().includes('gutschein') ||
+    item.title?.toLowerCase().includes('voucher')
+  ) || [];
+  const hasVoucherItems = voucherItems.length > 0;
+  const hasOnlyVoucherItems = checkoutData?.items?.length === voucherItems.length;
+
+  // --- Conditional renders (safe: every hook above has already run) ---
+
+  // 1. URL personalization request → show VoucherFlow immediately
   if (isVoucherPersonalization && voucher) {
     const handleVoucherFlowComplete = (voucherCheckoutData: any) => {
       console.log('Voucher purchase completed:', voucherCheckoutData);
       navigate('/checkout/success');
     };
-    
-    const handleBackToVoucher = () => {
-      navigate(`/voucher/${voucher.slug}`);
-    };
-    
+    const handleBackToVoucher = () => navigate(`/voucher/${voucher.slug}`);
     return (
       <VoucherFlow
         voucherType={voucher.title}
@@ -93,67 +135,17 @@ const CheckoutPage: React.FC = () => {
       />
     );
   }
-  
-  const [quantity, setQuantity] = useState<number>(initialQuantity);
-  const [purchaserName, setPurchaserName] = useState<string>('');
-  const [purchaserEmail, setPurchaserEmail] = useState<string>('');
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  
-  // Check for cart-based checkout data
-  const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
-  
-  useEffect(() => {
-    // Check session storage for checkout data from cart
-    const storedCheckoutData = sessionStorage.getItem('checkoutData');
-    if (storedCheckoutData) {
-      try {
-        const parsed = JSON.parse(storedCheckoutData);
-        setCheckoutData(parsed);
-      } catch (error) {
-        console.error('Failed to parse checkout data:', error);
-      }
-    }
-    
-    // If we have cart items, use those instead
-    if (cartItems.length > 0) {
-      setCheckoutData({
-        items: cartItems,
-        total: cartTotal,
-        appliedVoucher: undefined
-      });
-    }
-  }, [cartItems, cartTotal]);
-  
-  // Check if this is a voucher-based checkout
-  const voucherItems = checkoutData?.items?.filter(item => 
-    item.type === 'voucher' || 
-    item.name?.toLowerCase().includes('gutschein') || 
-    item.title?.toLowerCase().includes('voucher')
-  ) || [];
-  
-  const hasVoucherItems = voucherItems.length > 0;
-  const hasOnlyVoucherItems = checkoutData?.items?.length === voucherItems.length;
-  
-  // If we have voucher items that need personalization, show voucher flow
+
+  // 2. Cart with a single voucher item → show VoucherFlow
   if (hasVoucherItems && hasOnlyVoucherItems && voucherItems.length === 1) {
     const voucherItem = voucherItems[0];
-    
     const handleVoucherFlowComplete = (voucherCheckoutData: any) => {
       console.log('Voucher purchase completed:', voucherCheckoutData);
-      
-      // Clear the cart and session data
       clearCart();
       sessionStorage.removeItem('checkoutData');
-      
-      // Navigate to success page
       navigate('/checkout/success');
     };
-    
-    const handleBackToCart = () => {
-      navigate('/cart');
-    };
-    
+    const handleBackToCart = () => navigate('/cart');
     return (
       <VoucherFlow
         voucherType={voucherItem.title}
@@ -164,13 +156,6 @@ const CheckoutPage: React.FC = () => {
       />
     );
   }
-  
-  useEffect(() => {
-    // Only redirect if this is NOT a personalization request (API fetch may still be pending)
-    if (id && !voucher && !isVoucherPersonalization) {
-      navigate('/vouchers');
-    }
-  }, [voucher, navigate, id, isVoucherPersonalization]);
   
   // If we have a specific voucher ID but no voucher found
   if (id && !voucher) {
