@@ -5456,50 +5456,57 @@ Bitte versuchen Sie es später noch einmal.`;
     try {
       const { limit = 10, orderBy = 'lifetime_value', minRevenue, yearFilter } = req.query;
       
-      // Compute metrics based on PAID invoices only (status 'paid') and cast numerics for JS consumers
+      // Aggregate invoices and sessions in SEPARATE subqueries (one row per client
+      // each) BEFORE joining. Joining both to the client in one query multiplied
+      // the invoice SUM by the session count (a cartesian fan-out), which is why a
+      // €595 client with 2 sessions showed €1,190. Definitions:
+      //   lifetime_value = collected (paid invoices) — matches the client detail page
+      //   total_revenue  = billed (all invoices, any status) — so the two sort
+      //                    options are genuinely different, not identical.
+      const invYearFilter = yearFilter ? ` WHERE EXTRACT(YEAR FROM created_at) = ${Number(yearFilter)}` : '';
+      // Top-clients list = clients who have actually paid something. With an
+      // explicit minRevenue, use that as the floor; otherwise just > 0.
+      const revClause = minRevenue
+        ? `COALESCE(inv.paid_revenue, 0) >= ${Number(minRevenue)}`
+        : `COALESCE(inv.paid_revenue, 0) > 0`;
       let query = `
-        SELECT 
+        SELECT
           c.id,
           c.first_name,
           c.last_name,
           c.email,
           c.phone,
           c.city,
-          COALESCE(SUM(CASE WHEN i.status = 'paid' THEN i.total ELSE 0 END)::double precision, 0)::double precision AS total_revenue,
-          COALESCE(COUNT(DISTINCT CASE WHEN i.status = 'paid' THEN i.id END), 0)::int AS invoice_count,
-          COALESCE(COUNT(DISTINCT s.id), 0)::int AS session_count,
-          MAX(CASE WHEN i.status = 'paid' THEN i.created_at END) AS last_invoice_date,
-          MAX(s.start_time) AS last_session_date,
-          COALESCE(SUM(CASE WHEN i.status = 'paid' THEN i.total ELSE 0 END)::double precision, 0)::double precision AS lifetime_value,
-          COALESCE(
-            (SUM(CASE WHEN i.status = 'paid' THEN i.total ELSE 0 END)::double precision) /
-            NULLIF(COUNT(DISTINCT CASE WHEN i.status = 'paid' THEN i.id END), 0),
-            0
-          )::double precision AS average_invoice
+          COALESCE(inv.all_revenue, 0)::double precision AS total_revenue,
+          COALESCE(inv.paid_count, 0)::int AS invoice_count,
+          COALESCE(sess.session_count, 0)::int AS session_count,
+          inv.last_invoice_date AS last_invoice_date,
+          sess.last_session_date AS last_session_date,
+          COALESCE(inv.paid_revenue, 0)::double precision AS lifetime_value,
+          COALESCE(inv.paid_revenue / NULLIF(inv.paid_count, 0), 0)::double precision AS average_invoice
         FROM crm_clients c
-        LEFT JOIN crm_invoices i ON c.id = i.client_id
-        LEFT JOIN photography_sessions s ON c.id::text = s.client_id
+        LEFT JOIN (
+          SELECT client_id,
+                 SUM(CASE WHEN status = 'paid' THEN total ELSE 0 END)::double precision AS paid_revenue,
+                 SUM(total)::double precision AS all_revenue,
+                 COUNT(*) FILTER (WHERE status = 'paid') AS paid_count,
+                 MAX(created_at) FILTER (WHERE status = 'paid') AS last_invoice_date
+          FROM crm_invoices${invYearFilter}
+          GROUP BY client_id
+        ) inv ON inv.client_id = c.id
+        LEFT JOIN (
+          SELECT client_id, COUNT(*) AS session_count, MAX(start_time) AS last_session_date
+          FROM photography_sessions
+          GROUP BY client_id
+        ) sess ON sess.client_id = c.id::text
+        WHERE COALESCE(inv.paid_revenue, 0) > ${havingThreshold === 0 ? '0' : String(havingThreshold) + ' OR COALESCE(inv.paid_revenue, 0) >= ' + String(havingThreshold)}
       `;
-      
-      // Add year filter if specified
-      if (yearFilter) {
-        // Apply year filter only to invoice-based aggregations by excluding non-matching years
-        query += ` AND (i.created_at IS NULL OR EXTRACT(YEAR FROM i.created_at) = ${Number(yearFilter)})`;
-      }
-      
-      query += ` GROUP BY c.id, c.first_name, c.last_name, c.email, c.phone, c.city`;
-      
-      // Add minimum revenue filter - only show clients with paid invoices for top clients list
-      if (minRevenue) {
-        query += ` HAVING SUM(CASE WHEN i.status = 'paid' THEN i.total ELSE 0 END) >= ${Number(minRevenue)}`;
-      } else {
-        // Default: only show clients with at least some lifetime value (paid invoices)
-        query += ` HAVING SUM(CASE WHEN i.status = 'paid' THEN i.total ELSE 0 END) > 0`;
-      }
-      
+
       // Add ordering - ensure clients with highest lifetime value appear first
       switch (orderBy) {
         case "total_revenue":
+          query += ` ORDER BY total_revenue DESC, lifetime_value DESC`;
+          break;
         case "lifetime_value":
           query += ` ORDER BY lifetime_value DESC, total_revenue DESC`;
           break;
@@ -5507,14 +5514,14 @@ Bitte versuchen Sie es später noch einmal.`;
           query += ` ORDER BY session_count DESC, lifetime_value DESC`;
           break;
         case "recent_activity":
-          query += ` ORDER BY GREATEST(COALESCE(last_invoice_date, CAST('1900-01-01' AS timestamp)), COALESCE(last_session_date, CAST('1900-01-01' AS timestamp))) DESC, lifetime_value DESC`;
+          query += ` ORDER BY GREATEST(COALESCE(inv.last_invoice_date, CAST('1900-01-01' AS timestamp)), COALESCE(sess.last_session_date, CAST('1900-01-01' AS timestamp))) DESC, lifetime_value DESC`;
           break;
         default:
           query += ` ORDER BY lifetime_value DESC, total_revenue DESC`;
           break;
       }
-      
-      query += ` LIMIT ${limit}`;
+
+      query += ` LIMIT ${Number(limit) || 10}`;
       
       const topClients = await runSql(query);
       res.json(topClients);
