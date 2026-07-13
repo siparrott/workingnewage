@@ -5513,7 +5513,7 @@ Bitte versuchen Sie es später noch einmal.`;
           FROM photography_sessions
           GROUP BY client_id
         ) sess ON sess.client_id = c.id::text
-        WHERE COALESCE(inv.paid_revenue, 0) > ${havingThreshold === 0 ? '0' : String(havingThreshold) + ' OR COALESCE(inv.paid_revenue, 0) >= ' + String(havingThreshold)}
+        WHERE ${revClause}
       `;
 
       // Add ordering - ensure clients with highest lifetime value appear first
