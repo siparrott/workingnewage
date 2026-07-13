@@ -135,43 +135,25 @@ router.post('/scrape', async (req, res) => {
       return res.status(400).json({ error: 'Missing sessionId' });
     }
 
-    console.log(`📋 Processing scrape for session ${sessionId}`);
+    console.log(`📋 Re-reading competitor sites for session ${sessionId}`);
 
-    // Get pending competitors
-    const result = await pool.query(`
-      SELECT id, website_url 
-      FROM competitor_research 
-      WHERE session_id = $1 AND status = 'pending'
-    `, [sessionId]);
-
-    const competitors = result.rows;
-    console.log(`Found ${competitors.length} pending competitors`);
-
-    // Mark all as failed immediately (scraping disabled - fallback URLs are fictional)
-    // Users can add prices manually using the + button
-    for (const competitor of competitors) {
-      await pool.query(`
-        UPDATE competitor_research 
-        SET status = 'failed', scrape_error = 'Manual entry required - click + to add prices' 
-        WHERE id = $1
-      `, [competitor.id]);
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(500).json({ error: 'OpenAI API key not configured. Set OPENAI_API_KEY to extract prices.' });
     }
 
-    // Update session to analyzing
-    await pool.query(`
-      UPDATE price_wizard_sessions
-      SET status = 'analyzing', updated_at = NOW()
-      WHERE id = $1
-    `, [sessionId]);
+    const countRes = await pool.query(
+      `SELECT COUNT(*)::int AS c FROM competitor_research WHERE session_id = $1`, [sessionId]);
+    if ((countRes.rows[0]?.c || 0) === 0) {
+      return res.status(400).json({ error: 'No competitors to re-read. Run AI Research first, or add a competitor manually.' });
+    }
 
-    console.log(`✅ Marked ${competitors.length} competitors for manual entry, session moved to analyzing`);
+    // Move to 'scraping' and re-read in the background — the UI polls for status.
+    await pool.query(`UPDATE price_wizard_sessions SET status = 'scraping', updated_at = NOW() WHERE id = $1`, [sessionId]);
+    res.json({ success: true, sessionId, message: 'Re-reading competitor sites. The page will refresh as it progresses.' });
 
-    res.json({
-      success: true,
-      sessionId,
-      scrapedCount: 0,
-      pricesExtracted: 0,
-      message: 'Competitors marked for manual price entry'
+    priceResearch.rescrapeSession(sessionId).catch(async (error) => {
+      console.error('Background re-scrape failed:', error);
+      await pool.query(`UPDATE price_wizard_sessions SET status = 'completed', updated_at = NOW() WHERE id = $1`, [sessionId]).catch(() => {});
     });
 
   } catch (error: any) {
@@ -321,7 +303,7 @@ router.post('/analyze', async (req, res) => {
         sessionId,
         suggestionsCount: 0,
         suggestions: [],
-        message: 'No prices to analyze. Add competitor prices manually using the + button, then click "Retry Scrape" to re-analyze.'
+        message: 'No prices to analyze yet. Add competitor prices with the + button (or run AI Research / Retry Scrape), then click "Generate Suggestions" again.'
       });
     }
 
@@ -625,6 +607,41 @@ router.post('/add-manual-price', async (req, res) => {
 });
 
 /**
+ * POST /api/price-wizard/add-competitor
+ * Manually add a competitor to a session (for the manual path / when automated
+ * discovery isn't available). Prices are then added via /add-manual-price.
+ */
+router.post('/add-competitor', async (req, res) => {
+  try {
+    const { sessionId, name, website, location } = req.body;
+    if (!sessionId || !name) {
+      return res.status(400).json({ error: 'Missing required fields: sessionId, name' });
+    }
+
+    const sess = await pool.query(`SELECT location FROM price_wizard_sessions WHERE id = $1`, [sessionId]);
+    if (sess.rows.length === 0) return res.status(404).json({ error: 'Session not found' });
+    const loc = location || sess.rows[0].location || null;
+
+    const result = await pool.query(`
+      INSERT INTO competitor_research (session_id, competitor_name, website_url, location, status, discovery_source)
+      VALUES ($1, $2, $3, $4, 'pending', 'manual')
+      RETURNING id
+    `, [sessionId, name, website || null, loc]);
+
+    await pool.query(`
+      UPDATE price_wizard_sessions
+      SET competitors_found = competitors_found + 1, updated_at = NOW()
+      WHERE id = $1
+    `, [sessionId]);
+
+    res.json({ success: true, competitorId: result.rows[0].id, message: 'Competitor added — now add its prices with the + button.' });
+  } catch (error: any) {
+    console.error('Error adding competitor:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * GET /api/price-wizard/competitor/:competitorId/prices
  * Get all prices for a competitor
  */
@@ -710,7 +727,12 @@ router.post('/research', async (req, res) => {
     }
 
     if (!process.env.TAVILY_API_KEY) {
-      console.log('⚠️ TAVILY_API_KEY not set — using fallback competitor discovery (Google scraping + curated list)');
+      // Without a search API there is no reliable way to discover + read
+      // competitor sites. Fail loudly (and BEFORE wiping any manual data) with
+      // an actionable message instead of silently finding nothing.
+      return res.status(400).json({
+        error: 'Automated competitor discovery needs TAVILY_API_KEY (free key at tavily.com). Add it to enable AI Research — or add competitors and prices manually below and click "Generate Suggestions".',
+      });
     }
 
     // Clear any previous data for this session (in case of retry)
@@ -775,20 +797,32 @@ router.post('/quick-start', async (req, res) => {
       });
     }
 
-    if (!process.env.TAVILY_API_KEY) {
-      console.log('⚠️ TAVILY_API_KEY not set — using fallback competitor discovery (Google scraping + curated list)');
-    }
+    const hasTavily = !!process.env.TAVILY_API_KEY;
 
-    // Create session
+    // Create the session either way, so the manual path always has a workspace.
     const result = await pool.query(`
       INSERT INTO price_wizard_sessions (user_id, location, services, status)
-      VALUES ($1, $2, $3, 'discovering')
+      VALUES ($1, $2, $3, $4)
       RETURNING id, created_at
-    `, [userId || null, location, services]);
+    `, [userId || null, location, services, hasTavily ? 'discovering' : 'completed']);
 
     const session = result.rows[0];
 
-    // Return immediately
+    if (!hasTavily) {
+      // No search API → don't kick off a doomed automated run. Give the user a
+      // ready workspace and tell them exactly how to proceed.
+      return res.json({
+        success: true,
+        sessionId: session.id,
+        location,
+        services,
+        status: 'completed',
+        manual: true,
+        createdAt: session.created_at,
+        message: 'Session created. Automated discovery needs TAVILY_API_KEY (free at tavily.com). Add competitors and prices manually, then click "Generate Suggestions" — or add the key and run AI Research.',
+      });
+    }
+
     res.json({
       success: true,
       sessionId: session.id,

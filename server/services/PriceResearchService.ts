@@ -362,4 +362,147 @@ export class PriceResearchService {
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
+
+  private normalizeServices(raw: any): string[] {
+    if (Array.isArray(raw)) return raw.filter(Boolean);
+    if (typeof raw === 'string') {
+      const s = raw.trim();
+      if (!s) return [];
+      try { const p = JSON.parse(s); return Array.isArray(p) ? p.filter(Boolean) : [s]; } catch { return [s]; }
+    }
+    return [];
+  }
+
+  /**
+   * Re-read the sites of a session's EXISTING competitors and extract prices,
+   * then regenerate suggestions. This is what the "Retry Scrape" button runs —
+   * a real network read (Tavily deep-read if configured, else a direct fetch),
+   * not the old no-op that marked everything failed.
+   */
+  async rescrapeSession(sessionId: string): Promise<ResearchProgress> {
+    const sessionRes = await pool.query(
+      `SELECT location, services FROM price_wizard_sessions WHERE id = $1`, [sessionId]);
+    if (sessionRes.rows.length === 0) throw new Error('Session not found');
+    const location: string = sessionRes.rows[0].location;
+    const services = this.normalizeServices(sessionRes.rows[0].services);
+
+    const comps = await pool.query(
+      `SELECT id, competitor_name, website_url FROM competitor_research WHERE session_id = $1`, [sessionId]);
+    if (comps.rows.length === 0) {
+      throw new Error('No competitors to re-read yet. Run AI Research first, or add a competitor manually.');
+    }
+
+    const hasTavily = !!process.env.TAVILY_API_KEY;
+    await this.updateSessionStatus(sessionId, 'scraping');
+    let totalPrices = 0;
+
+    for (const row of comps.rows) {
+      const competitorId = row.id;
+      const name: string = row.competitor_name;
+      const website: string = row.website_url;
+      try {
+        let fullContent = '';
+        if (website && hasTavily) {
+          try { fullContent = await this.tavily.searchCompetitorPricing(website, name); } catch { /* fall through to direct scrape */ }
+        }
+        if ((!fullContent || fullContent.trim().length < 50) && website) {
+          const scrapeResult = await this.scraper.scrapeWebsite(website);
+          if (scrapeResult.success && scrapeResult.metadata) {
+            const meta = scrapeResult.metadata as any;
+            fullContent = [meta.title || '', meta.description || '', meta.textContent || ''].filter(Boolean).join('\n\n');
+            if (scrapeResult.prices && scrapeResult.prices.length > 0) {
+              fullContent += '\n\nDirectly found prices:\n' +
+                scrapeResult.prices.map((p: any) => `${p.serviceType}: €${p.amount}`).join('\n');
+            }
+          }
+        }
+
+        const analysis = await this.openai.extractPrices(name, fullContent, website);
+
+        // Replace this competitor's auto-extracted prices, but preserve any the
+        // user entered by hand (url_source = 'manual_entry').
+        await pool.query(`DELETE FROM competitor_prices WHERE competitor_id = $1 AND COALESCE(url_source,'') <> 'manual_entry'`, [competitorId]);
+        for (const price of analysis.prices) {
+          await pool.query(`
+            INSERT INTO competitor_prices (competitor_id, service_type, package_name, price_amount, currency, confidence_score, url_source, deliverables)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [competitorId, price.serviceType, price.packageName || price.serviceName, price.price,
+             price.currency || 'EUR', price.confidence, website, price.deliverables?.join(', ') || null]);
+          totalPrices++;
+        }
+
+        const manualCount = await pool.query(
+          `SELECT COUNT(*)::int AS c FROM competitor_prices WHERE competitor_id = $1`, [competitorId]);
+        const has = (manualCount.rows[0]?.c || 0) > 0;
+        const status = has ? 'scraped' : 'failed';
+        const error = has ? null
+          : (analysis.extractionError
+              || (hasTavily
+                    ? `Couldn't read prices from the site (${(fullContent || '').length} chars). Add them manually with +.`
+                    : 'Automated reading needs TAVILY_API_KEY — add prices manually with +.'));
+        await pool.query(
+          `UPDATE competitor_research SET status = $2, scraped_at = NOW(), scrape_error = $3 WHERE id = $1`,
+          [competitorId, status, error]);
+        await this.delay(800);
+      } catch (e: any) {
+        await pool.query(
+          `UPDATE competitor_research SET status = 'failed', scraped_at = NOW(), scrape_error = $2 WHERE id = $1`,
+          [competitorId, String(e?.message || 'extraction failed').slice(0, 300)]);
+      }
+    }
+
+    await pool.query(`UPDATE price_wizard_sessions SET prices_extracted = $2, updated_at = NOW() WHERE id = $1`, [sessionId, totalPrices]);
+    const suggestions = await this.generateSuggestions(sessionId, location, services);
+
+    return {
+      stage: 'completed',
+      competitorsFound: comps.rows.length,
+      competitorsProcessed: comps.rows.length,
+      pricesExtracted: totalPrices,
+      message: `Re-read ${comps.rows.length} sites, extracted ${totalPrices} prices, generated ${suggestions} suggestions`,
+    };
+  }
+
+  /**
+   * Analyze the prices collected for a session (from any source — scraped or
+   * manually entered) and (re)generate the 3-tier suggestions. Idempotent:
+   * clears prior pending suggestions first. Returns the number generated.
+   */
+  async generateSuggestions(sessionId: string, location: string, servicesRaw: any): Promise<number> {
+    const services = this.normalizeServices(servicesRaw);
+    await this.updateSessionStatus(sessionId, 'analyzing');
+    const competitorData = await this.getCompetitorData(sessionId);
+
+    // Clear previous unreviewed suggestions so a re-run doesn't duplicate them.
+    await pool.query(`DELETE FROM price_list_suggestions WHERE session_id = $1 AND status = 'pending_review'`, [sessionId]);
+
+    let suggestionsCount = 0;
+    for (const service of services) {
+      try {
+        const analysis = await this.openai.analyzeMarket(location, service, competitorData);
+        for (const rec of analysis.recommendations) {
+          try {
+            await pool.query(`
+              INSERT INTO price_list_suggestions (
+                session_id, service_type, tier, suggested_price,
+                market_min, market_median, market_max, reasoning, status
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending_review')`,
+              [sessionId, service, rec.tier, rec.suggestedPrice,
+               analysis.priceStats.min, analysis.priceStats.median, analysis.priceStats.max,
+               `${rec.reasoning}\n\nCompetitive advantage: ${rec.competitiveAdvantage}\n\nMarket insight: ${analysis.marketInsights}`]);
+            suggestionsCount++;
+          } catch (insertError: any) {
+            console.error(`Failed to insert ${rec.tier} suggestion:`, insertError.message);
+          }
+        }
+      } catch (analysisError: any) {
+        console.error(`Analysis failed for ${service}:`, analysisError.message);
+      }
+    }
+
+    await pool.query(
+      `UPDATE price_wizard_sessions SET status = 'completed', suggestions_generated = $2, updated_at = NOW() WHERE id = $1`,
+      [sessionId, suggestionsCount]);
+    return suggestionsCount;
+  }
 }
