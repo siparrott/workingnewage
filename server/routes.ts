@@ -29,6 +29,32 @@ async function ensureGalleryDeliveryColumns() {
   `);
   _galleryDeliveryColsReady = true;
 }
+
+// Fetch a gallery image's original bytes. Tries authenticated S3 GetObject first
+// (so it keeps working once the bucket is made PRIVATE), and falls back to a plain
+// public fetch (today's public bucket). Either way the client never touches the
+// object URL directly — everything is streamed through our proxy.
+async function fetchGalleryOriginal(url: string): Promise<Buffer> {
+  try {
+    const { bucket } = getS3Config();
+    if (bucket) {
+      const u = new URL(url);
+      let key = decodeURIComponent(u.pathname.replace(/^\/+/, ''));
+      if (key.startsWith(bucket + '/')) key = key.slice(bucket.length + 1);
+      if (key) {
+        const resp: any = await getS3Client().send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+        const chunks: Buffer[] = [];
+        for await (const c of resp.Body as any) chunks.push(Buffer.from(c));
+        return Buffer.concat(chunks);
+      }
+    }
+  } catch {
+    // fall through to public fetch (bucket still public, or key not derivable)
+  }
+  const up = await fetch(url);
+  if (!up.ok) throw new Error(`upstream ${up.status}`);
+  return Buffer.from(await up.arrayBuffer());
+}
 import { sql, or, desc, and } from 'drizzle-orm';
 import { eq } from "drizzle-orm";
 import { priceListItems, emailCampaigns, emailTemplates, emailSegments, emailEvents, emailLinks, emailSubscribers, insertLeadSourceSchema, crmLeads, studioConfigs, crmMessages, manualPageContent, emailAutomations, emailAutomationLogs, schedulerBookings, spamRules } from "../shared/schema";
@@ -36,9 +62,10 @@ import path from 'path';
 import os from 'os';
 // Removed duplicate fs import (already imported earlier)
 import multer from 'multer';
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import sharp from 'sharp';
-import { processGalleryImage, watermarkText } from './lib/galleryWatermark';
+import { processGalleryImage, watermarkText, invisibleKey } from './lib/galleryWatermark';
+import { fingerprint as galleryFingerprint, extractInvisible } from './lib/invisibleWatermark';
 // Using require for 'imap' to satisfy commonjs typings within ESM context
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const Imap = require('imap');
@@ -5112,7 +5139,7 @@ Bitte versuchen Sie es später noch einmal.`;
       const imageId = req.params.imageId;
       const w = Math.min(Math.max(parseInt(String(req.query.w || ''), 10) || 0, 0), 3000);
       const rows = await runSql(
-        `SELECT gi.url, gi.filename, g.visible_watermark, g.status, g.expires_at
+        `SELECT gi.url, gi.filename, g.id AS gallery_id, g.visible_watermark, g.invisible_watermark, g.status, g.expires_at
            FROM gallery_images gi JOIN galleries g ON g.id = gi.gallery_id
           WHERE gi.id = $1`, [imageId]);
       if (!rows.length) return res.status(404).send('Image not found');
@@ -5122,13 +5149,14 @@ Bitte versuchen Sie es später noch einmal.`;
       }
       const url = row.url;
       if (!url || !/^https?:\/\//i.test(url)) return res.status(404).send('No image');
-      const upstream = await fetch(url);
-      if (!upstream.ok) return res.status(upstream.status).send('Upstream error');
-      const buf = Buffer.from(await upstream.arrayBuffer());
+      let buf: Buffer;
+      try { buf = await fetchGalleryOriginal(url); } catch { return res.status(502).send('Upstream error'); }
       const out = await processGalleryImage(buf, {
         text: watermarkText(),
         width: w > 0 ? w : undefined,
         watermark: row.visible_watermark === true,
+        invisiblePayload: row.invisible_watermark === true ? galleryFingerprint(String(row.gallery_id)) : undefined,
+        invisibleKey: invisibleKey(),
       });
       res.setHeader('Content-Type', 'image/jpeg');
       res.setHeader('Cache-Control', 'private, max-age=3600');
@@ -5156,6 +5184,8 @@ Bitte versuchen Sie es später noch einmal.`;
       if (!images || images.length === 0) return res.status(404).json({ error: 'No images to download' });
 
       const wm = (gallery as any).visibleWatermark === true;
+      const invis = (gallery as any).invisibleWatermark === true;
+      const invisPayload = invis ? galleryFingerprint(String(gallery.id)) : undefined;
       const archiver = (await import('archiver')).default;
       const archive = archiver('zip', { zlib: { level: 6 } });
       res.setHeader('Content-Type', 'application/zip');
@@ -5168,10 +5198,8 @@ Bitte versuchen Sie es später noch einmal.`;
         const url = img.url;
         if (!url || !/^https?:\/\//i.test(url)) continue;
         try {
-          const up = await fetch(url);
-          if (!up.ok) continue;
-          let buf = Buffer.from(await up.arrayBuffer());
-          if (wm) buf = await processGalleryImage(buf, { text: watermarkText(), watermark: true });
+          let buf = await fetchGalleryOriginal(url);
+          if (wm || invis) buf = await processGalleryImage(buf, { text: watermarkText(), watermark: wm, invisiblePayload: invisPayload, invisibleKey: invisibleKey() });
           const name = img.filename || `image-${String(i + 1).padStart(3, '0')}.jpg`;
           archive.append(buf, { name });
         } catch (e) {
@@ -5182,6 +5210,32 @@ Bitte versuchen Sie es später noch einmal.`;
     } catch (e: any) {
       console.error('[gallery-download] error:', e?.message || e);
       if (!res.headersSent) res.status(500).json({ error: 'download_failed' });
+    }
+  });
+
+  // Forensic trace: upload a suspect/leaked image and recover the invisible
+  // watermark to identify which gallery it came from.
+  app.post("/api/galleries/trace", authenticateUser, upload.single('image'), async (req: Request, res: Response) => {
+    try {
+      if (!req.file?.buffer) return res.status(400).json({ error: 'Upload an image file (field "image").' });
+      const { data, info } = await sharp(req.file.buffer).rotate().resize({ width: 1600, withoutEnlargement: true }).raw().toBuffer({ resolveWithObject: true });
+      const payload = extractInvisible(Buffer.from(data), info.width, info.height, info.channels, invisibleKey());
+      if (payload == null) {
+        return res.json({ found: false, message: 'No forensic watermark detected in this image.' });
+      }
+      const gals = await runSql(`SELECT id, title, slug, created_at FROM galleries`);
+      const match = gals.find((g: any) => galleryFingerprint(String(g.id)) === payload);
+      res.json({
+        found: true,
+        payload,
+        gallery: match ? { id: match.id, title: match.title, slug: match.slug } : null,
+        message: match
+          ? `Traced to gallery "${match.title}" (/${match.slug}).`
+          : 'Forensic watermark found, but no current gallery matches this id.',
+      });
+    } catch (e: any) {
+      console.error('[gallery-trace] error:', e?.message || e);
+      res.status(500).json({ error: 'trace_failed' });
     }
   });
 
@@ -5206,17 +5260,19 @@ Bitte versuchen Sie es später noch einmal.`;
 
       // Transform database images to match frontend expectations
       if (galleryImages && galleryImages.length > 0) {
-        const wm = (gallery as any).visibleWatermark === true;
+        // Route through the watermarking proxy when a mark is on (so the clean
+        // original is never handed to the client) or when private delivery is
+        // forced (GALLERY_PRIVATE_DELIVERY=true — used once the bucket is private).
+        const useProxy = (gallery as any).visibleWatermark === true
+          || (gallery as any).invisibleWatermark === true
+          || process.env.GALLERY_PRIVATE_DELIVERY === 'true';
         const thumbFor = (u?: string) =>
           u && /^https?:\/\//i.test(u) ? `/api/proxy-image?w=600&url=${encodeURIComponent(u)}` : u;
         const transformedImages = galleryImages.map(img => {
           const raw = img.url || (img as any).originalUrl;
-          // When the visible watermark is on, serve EVERY variant through the
-          // watermarking proxy so the clean original is never handed to the
-          // client. Otherwise keep the direct URL + resizing thumbnail proxy.
-          const display = wm ? `/api/galleries/image/${img.id}?w=1600` : (raw || (img as any).displayUrl);
-          const thumb = wm ? `/api/galleries/image/${img.id}?w=600` : thumbFor(raw || (img as any).thumbUrl);
-          const original = wm ? `/api/galleries/image/${img.id}` : (raw || (img as any).originalUrl);
+          const display = useProxy ? `/api/galleries/image/${img.id}?w=1600` : (raw || (img as any).displayUrl);
+          const thumb = useProxy ? `/api/galleries/image/${img.id}?w=600` : thumbFor(raw || (img as any).thumbUrl);
+          const original = useProxy ? `/api/galleries/image/${img.id}` : (raw || (img as any).originalUrl);
           return {
             id: img.id,
             galleryId: img.galleryId || img.gallery_id,

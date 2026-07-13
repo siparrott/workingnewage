@@ -10,6 +10,7 @@
  * this module currently ships the visible layer, which is the real deterrent.
  */
 import sharp from 'sharp';
+import { embedInvisible } from './invisibleWatermark';
 
 const escapeXml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -35,39 +36,59 @@ function tiledWatermarkSvg(width: number, height: number, text: string): string 
 
 export interface WatermarkOptions {
   text: string;
-  width?: number;    // optional downscale (display/thumb variants)
-  watermark: boolean; // when false, just normalizes/resizes (no mark)
+  width?: number;             // optional downscale (display/thumb variants)
+  watermark: boolean;         // visible tiled mark
+  invisiblePayload?: number;  // 24-bit forensic id to embed (invisibleWatermark)
+  invisibleKey?: number;      // extraction key
   quality?: number;
 }
 
 /**
- * Return a JPEG buffer: EXIF-rotated, optionally downscaled, optionally
- * watermarked. Never throws for watermarking — on any error it falls back to the
- * clean resized image so a gallery never shows broken pictures.
+ * Return a JPEG buffer: EXIF-rotated, optionally downscaled, optionally visibly
+ * watermarked, and optionally carrying an invisible forensic id. Never throws for
+ * the marking steps — on any error it falls back to the clean image so a gallery
+ * never shows broken pictures.
  */
 export async function processGalleryImage(input: Buffer, opts: WatermarkOptions): Promise<Buffer> {
   const quality = opts.quality ?? 82;
   let base = sharp(input).rotate();
   if (opts.width) base = base.resize({ width: opts.width, withoutEnlargement: true });
-  const resized = await base.jpeg({ quality }).toBuffer();
+  let buf = await base.jpeg({ quality }).toBuffer();
 
-  if (!opts.watermark) return resized;
-
-  try {
-    const meta = await sharp(resized).metadata();
-    const W = meta.width || opts.width || 1600;
-    const H = meta.height || Math.round(W * 0.66);
-    const svg = tiledWatermarkSvg(W, H, opts.text || 'PROOF');
-    return await sharp(resized)
-      .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
-      .jpeg({ quality })
-      .toBuffer();
-  } catch (e: any) {
-    console.warn('[gallery-watermark] compositing failed, serving clean resized:', e?.message || e);
-    return resized;
+  // 1. Visible tiled watermark.
+  if (opts.watermark) {
+    try {
+      const meta = await sharp(buf).metadata();
+      const W = meta.width || opts.width || 1600;
+      const H = meta.height || Math.round(W * 0.66);
+      const svg = tiledWatermarkSvg(W, H, opts.text || 'PROOF');
+      buf = await sharp(buf).composite([{ input: Buffer.from(svg), top: 0, left: 0 }]).jpeg({ quality }).toBuffer();
+    } catch (e: any) {
+      console.warn('[gallery-watermark] visible mark failed, serving clean:', e?.message || e);
+    }
   }
+
+  // 2. Invisible forensic id — embed LAST so it survives the visible overlay and
+  //    the final JPEG. Done on raw pixels then re-encoded.
+  if (opts.invisiblePayload != null) {
+    try {
+      const { data, info } = await sharp(buf).raw().toBuffer({ resolveWithObject: true });
+      embedInvisible(data, info.width, info.height, info.channels, opts.invisiblePayload >>> 0, opts.invisibleKey || 1);
+      buf = await sharp(data, { raw: { width: info.width, height: info.height, channels: info.channels } }).jpeg({ quality }).toBuffer();
+    } catch (e: any) {
+      console.warn('[gallery-watermark] invisible mark failed, serving without it:', e?.message || e);
+    }
+  }
+
+  return buf;
 }
 
 export function watermarkText(): string {
   return process.env.GALLERY_WATERMARK_TEXT || process.env.STUDIO_NAME || 'NEW AGE FOTOGRAFIE';
+}
+
+// Secret key that seeds the invisible watermark's block pairing. Keep it stable
+// (and private) so embedded ids remain extractable. Override via env in prod.
+export function invisibleKey(): number {
+  return parseInt(process.env.GALLERY_INVISIBLE_KEY || '', 10) || 1926437;
 }
