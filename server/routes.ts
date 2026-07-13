@@ -38,6 +38,7 @@ import os from 'os';
 import multer from 'multer';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import sharp from 'sharp';
+import { processGalleryImage, watermarkText } from './lib/galleryWatermark';
 // Using require for 'imap' to satisfy commonjs typings within ESM context
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const Imap = require('imap');
@@ -5103,6 +5104,87 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
+  // Watermarking image proxy: streams a gallery image with the visible watermark
+  // baked in (when the gallery has it enabled), so the clean original is never
+  // exposed by URL. Best-effort: falls back to the clean resized image on error.
+  app.get("/api/galleries/image/:imageId", async (req: Request, res: Response) => {
+    try {
+      const imageId = req.params.imageId;
+      const w = Math.min(Math.max(parseInt(String(req.query.w || ''), 10) || 0, 0), 3000);
+      const rows = await runSql(
+        `SELECT gi.url, gi.filename, g.visible_watermark, g.status, g.expires_at
+           FROM gallery_images gi JOIN galleries g ON g.id = gi.gallery_id
+          WHERE gi.id = $1`, [imageId]);
+      if (!rows.length) return res.status(404).send('Image not found');
+      const row = rows[0];
+      if ((row.expires_at && new Date(row.expires_at).getTime() < Date.now()) || row.status === 'ARCHIVED') {
+        return res.status(410).send('Gallery no longer available');
+      }
+      const url = row.url;
+      if (!url || !/^https?:\/\//i.test(url)) return res.status(404).send('No image');
+      const upstream = await fetch(url);
+      if (!upstream.ok) return res.status(upstream.status).send('Upstream error');
+      const buf = Buffer.from(await upstream.arrayBuffer());
+      const out = await processGalleryImage(buf, {
+        text: watermarkText(),
+        width: w > 0 ? w : undefined,
+        watermark: row.visible_watermark === true,
+      });
+      res.setHeader('Content-Type', 'image/jpeg');
+      res.setHeader('Cache-Control', 'private, max-age=3600');
+      res.send(out);
+    } catch (e: any) {
+      console.error('[gallery-image] error:', e?.message || e);
+      res.status(500).send('Image error');
+    }
+  });
+
+  // Download the whole gallery as a ZIP. Respects downloadEnabled + expiry, and
+  // bakes the visible watermark into each image when the gallery uses it.
+  app.get("/api/galleries/:slug/download", async (req: Request, res: Response) => {
+    try {
+      const gallery = await storage.getGalleryBySlug(req.params.slug);
+      if (!gallery) return res.status(404).json({ error: 'Gallery not found' });
+      const expAt = (gallery as any).expiresAt;
+      if ((expAt && new Date(expAt).getTime() < Date.now()) || (gallery as any).status === 'ARCHIVED') {
+        return res.status(410).json({ error: 'gallery_expired', message: 'This gallery is no longer available.' });
+      }
+      if ((gallery as any).downloadEnabled === false) {
+        return res.status(403).json({ error: 'downloads_disabled', message: 'Downloads are disabled for this gallery.' });
+      }
+      const images = await storage.getGalleryImages(gallery.id);
+      if (!images || images.length === 0) return res.status(404).json({ error: 'No images to download' });
+
+      const wm = (gallery as any).visibleWatermark === true;
+      const archiver = (await import('archiver')).default;
+      const archive = archiver('zip', { zlib: { level: 6 } });
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${(gallery.slug || 'gallery')}.zip"`);
+      archive.on('error', (err: any) => { console.error('[gallery-zip] error:', err); try { res.status(500).end(); } catch {} });
+      archive.pipe(res);
+
+      for (let i = 0; i < images.length; i++) {
+        const img: any = images[i];
+        const url = img.url;
+        if (!url || !/^https?:\/\//i.test(url)) continue;
+        try {
+          const up = await fetch(url);
+          if (!up.ok) continue;
+          let buf = Buffer.from(await up.arrayBuffer());
+          if (wm) buf = await processGalleryImage(buf, { text: watermarkText(), watermark: true });
+          const name = img.filename || `image-${String(i + 1).padStart(3, '0')}.jpg`;
+          archive.append(buf, { name });
+        } catch (e) {
+          console.warn('[gallery-zip] skipped an image:', (e as any)?.message || e);
+        }
+      }
+      await archive.finalize();
+    } catch (e: any) {
+      console.error('[gallery-download] error:', e?.message || e);
+      if (!res.headersSent) res.status(500).json({ error: 'download_failed' });
+    }
+  });
+
   // Get gallery images (public, requires authentication token)
   app.get("/api/galleries/:slug/images", async (req: Request, res: Response) => {
     try {
@@ -5124,26 +5206,34 @@ Bitte versuchen Sie es später noch einmal.`;
 
       // Transform database images to match frontend expectations
       if (galleryImages && galleryImages.length > 0) {
+        const wm = (gallery as any).visibleWatermark === true;
         const thumbFor = (u?: string) =>
           u && /^https?:\/\//i.test(u) ? `/api/proxy-image?w=600&url=${encodeURIComponent(u)}` : u;
-        const transformedImages = galleryImages.map(img => ({
-          id: img.id,
-          galleryId: img.galleryId || img.gallery_id,
-          filename: img.filename,
-          originalUrl: img.url || img.originalUrl,
-          displayUrl: img.url || img.displayUrl,
-          // Grid thumbnails go through the resizing proxy (≈600px). Full-res
-          // original/display URLs stay direct-CDN for lightbox + downloads.
-          thumbUrl: thumbFor(img.url || img.thumbUrl),
-          title: img.title,
-          description: img.description,
-          orderIndex: img.sortOrder || img.sort_order || 0,
-          createdAt: img.createdAt || img.created_at,
-          sizeBytes: 0,
-          contentType: 'image/jpeg',
-          capturedAt: null
-        }));
-        
+        const transformedImages = galleryImages.map(img => {
+          const raw = img.url || (img as any).originalUrl;
+          // When the visible watermark is on, serve EVERY variant through the
+          // watermarking proxy so the clean original is never handed to the
+          // client. Otherwise keep the direct URL + resizing thumbnail proxy.
+          const display = wm ? `/api/galleries/image/${img.id}?w=1600` : (raw || (img as any).displayUrl);
+          const thumb = wm ? `/api/galleries/image/${img.id}?w=600` : thumbFor(raw || (img as any).thumbUrl);
+          const original = wm ? `/api/galleries/image/${img.id}` : (raw || (img as any).originalUrl);
+          return {
+            id: img.id,
+            galleryId: img.galleryId || img.gallery_id,
+            filename: img.filename,
+            originalUrl: original,
+            displayUrl: display,
+            thumbUrl: thumb,
+            title: img.title,
+            description: img.description,
+            orderIndex: img.sortOrder || img.sort_order || 0,
+            createdAt: img.createdAt || img.created_at,
+            sizeBytes: 0,
+            contentType: 'image/jpeg',
+            capturedAt: null
+          };
+        });
+
         return res.json(transformedImages);
       }
 
