@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Monitor, Smartphone, ZoomIn, ZoomOut, Move, Check, X, RotateCcw, ChevronLeft, ChevronRight, Grid, Type } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Monitor, Smartphone, ZoomIn, ZoomOut, Move, Check, X, RotateCcw, RotateCw, ChevronLeft, ChevronRight, Grid, Type } from 'lucide-react';
+import GalleryCover from './GalleryCover';
 
 // Cover template definitions
 export interface CoverTemplate {
@@ -425,6 +426,8 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
     initialSettings?.imagePosition || { x: 50, y: 50 }
   );
   const [imageScale, setImageScale] = useState(initialSettings?.imageScale || 100);
+  const [imageRotation, setImageRotation] = useState<number>((initialSettings?.imagePosition as any)?.rotation || 0);
+  const dragRef = useRef<{ px: number; py: number } | null>(null);
   const [title, setTitle] = useState(initialSettings?.title || galleryTitle);
   const [subtitle, setSubtitle] = useState(initialSettings?.subtitle || 'NEW AGE FOTOGRAFIE');
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
@@ -456,31 +459,44 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
+    dragRef.current = { px: e.clientX, py: e.clientY };
   };
 
+  // Delta-based panning: move the focal point relative to the drag distance so
+  // the image follows the cursor smoothly (the old handler snapped the focal
+  // point to the absolute cursor position, which felt jumpy).
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDragging) return;
-    
+    if (!isDragging || !dragRef.current) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
-    
-    setImagePosition({ x, y });
+    const dx = ((e.clientX - dragRef.current.px) / rect.width) * 100;
+    const dy = ((e.clientY - dragRef.current.py) / rect.height) * 100;
+    dragRef.current = { px: e.clientX, py: e.clientY };
+    setImagePosition((p) => ({
+      x: Math.max(0, Math.min(100, p.x - dx)),
+      y: Math.max(0, Math.min(100, p.y - dy)),
+    }));
   };
 
   const handleMouseUp = () => {
     setIsDragging(false);
+    dragRef.current = null;
+  };
+
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setImageScale((s) => Math.max(50, Math.min(300, s + (e.deltaY < 0 ? 5 : -5))));
   };
 
   const handleReset = () => {
     setImagePosition({ x: 50, y: 50 });
     setImageScale(100);
+    setImageRotation(0);
   };
 
   const handleSave = () => {
     onSave({
       template: selectedTemplate,
-      imagePosition,
+      imagePosition: { ...imagePosition, rotation: imageRotation } as any,
       imageScale,
       title,
       subtitle
@@ -578,104 +594,29 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
   };
 
   const renderCoverPreview = (isMobile: boolean) => {
-    const containerStyle = isMobile 
-      ? { width: '180px', height: '320px' }
-      : { width: '100%', aspectRatio: '16/9' };
-
-    const template = selectedTemplate;
-    const imageContainerStyle = getImageContainerStyle(template.imageStyle);
-
+    const containerStyle = isMobile
+      ? { width: "180px", height: "320px" }
+      : { width: "100%", aspectRatio: "16/9" };
     return (
-      <div 
-        className={`relative overflow-hidden rounded-lg bg-gray-100 ${isMobile ? 'mx-auto' : ''}`}
+      <GalleryCover
+        className={`rounded-lg ${isMobile ? "mx-auto" : ""}`}
         style={containerStyle}
-      >
-        {/* Image container */}
-        <div 
-          className="absolute overflow-hidden"
-          style={{ 
-            inset: template.imageStyle === 'inset' ? '16px' : 0,
-            borderRadius: template.imageStyle === 'inset' ? '8px' : 0,
-            ...imageContainerStyle 
-          }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-        >
-          <img
-            src={imageUrl}
-            alt="Cover"
-            className="w-full h-full object-cover cursor-move"
-            style={{
-              objectPosition: `${imagePosition.x}% ${imagePosition.y}%`,
-              transform: `scale(${imageScale / 100})`,
-              transformOrigin: `${imagePosition.x}% ${imagePosition.y}%`
-            }}
-            draggable={false}
-          />
-        </div>
-
-        {/* Overlay */}
-        <div className={`absolute inset-0 ${getOverlayClasses(template.overlay)}`} />
-
-        {/* Text content area - for split layouts */}
-        {(template.imageStyle === 'left-half' || template.imageStyle === 'right-half') && (
-          <div 
-            className={`absolute top-0 bottom-0 ${template.imageStyle === 'left-half' ? 'right-0' : 'left-0'} w-1/2 bg-white flex flex-col items-center justify-center p-4`}
-          >
-            <h2 className={`${getTitleSizeClasses(template.titleSize, isMobile)} ${getFontStyleClasses(template.fontStyle)} text-gray-900 mb-2`}>
-              {title}
-            </h2>
-            {template.showSubtitle && (
-              <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'} tracking-wider mb-4`}>
-                {subtitle}
-              </p>
-            )}
-            {template.showButton && (
-              <button className={`${getButtonClasses(template.buttonStyle)} bg-gray-900 text-white ${isMobile ? 'text-xs px-4 py-1' : ''}`}>
-                OPEN GALLERY
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Text content - overlay layouts */}
-        {template.imageStyle === 'full' && (
-          <div className={`absolute inset-0 flex flex-col ${getTextPositionClasses(template.textPosition)} p-4`}>
-            <div className={template.textAlignment === 'center' ? 'text-center' : template.textAlignment === 'right' ? 'text-right' : 'text-left'}>
-              <h2 className={`${getTitleSizeClasses(template.titleSize, isMobile)} ${getFontStyleClasses(template.fontStyle)} text-white mb-2 drop-shadow-lg`}>
-                {title}
-              </h2>
-              {template.showSubtitle && (
-                <p className={`text-white/80 ${isMobile ? 'text-xs' : 'text-sm'} tracking-wider mb-4`}>
-                  {subtitle}
-                </p>
-              )}
-              {template.showButton && (
-                <button className={`${getButtonClasses(template.buttonStyle)} ${isMobile ? 'text-xs px-4 py-1' : ''}`}>
-                  OPEN GALLERY
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Inset layout text */}
-        {template.imageStyle === 'inset' && (
-          <div className="absolute bottom-0 left-0 right-0 bg-white p-4 text-center">
-            <h2 className={`${getTitleSizeClasses('small', isMobile)} ${getFontStyleClasses(template.fontStyle)} text-gray-900`}>
-              {title}
-            </h2>
-            {template.showSubtitle && (
-              <p className="text-gray-500 text-xs tracking-wider">{subtitle}</p>
-            )}
-          </div>
-        )}
-      </div>
+        imageUrl={imageUrl}
+        title={title}
+        subtitle={subtitle}
+        position={{ ...imagePosition, rotation: imageRotation }}
+        scale={imageScale}
+        template={selectedTemplate}
+        isMobile={isMobile}
+        interactive
+        dragging={isDragging}
+        onImageMouseDown={handleMouseDown}
+        onImageMouseMove={handleMouseMove}
+        onImageMouseUp={handleMouseUp}
+        onImageWheel={handleWheel}
+      />
     );
   };
-
   const renderTemplateThumbnail = (template: CoverTemplate, isSelected: boolean) => {
     // Get mini image style for thumbnail
     const getMiniImageStyle = () => {
@@ -695,11 +636,12 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
         key={template.id}
         onClick={() => setSelectedTemplate(template)}
         className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all group ${
-          isSelected 
-            ? 'border-purple-500 ring-2 ring-purple-200 scale-105' 
+          isSelected
+            ? 'border-purple-500 ring-2 ring-purple-200 scale-105'
             : 'border-gray-200 hover:border-purple-300 hover:scale-102'
         }`}
-        style={{ width: '100px', height: '70px' }}
+        style={{ width: '100%', aspectRatio: '3 / 2' }}
+        title={template.name}
       >
         {/* Mini preview */}
         <div className="absolute inset-0 bg-gray-100">
@@ -782,9 +724,9 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col lg:flex-row flex-1 min-h-0">
         {/* Main Preview Area */}
-        <div className="flex-1 p-6 bg-gray-50 overflow-y-auto">
+        <div className="flex-1 min-w-0 p-6 bg-gray-50 overflow-y-auto">
           {/* Preview Mode Toggle */}
           <div className="flex items-center justify-center gap-2 mb-6">
             <button
@@ -812,10 +754,10 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
           </div>
 
           {/* Preview Container */}
-          <div className="flex items-center justify-center gap-8">
+          <div className="flex flex-col xl:flex-row items-center justify-center gap-8">
             {/* Desktop Preview */}
-            <div className={previewMode === 'mobile' ? 'opacity-50 scale-90' : ''}>
-              <div className="bg-white rounded-lg shadow-lg p-2" style={{ width: '640px' }}>
+            <div className={`w-full max-w-[560px] ${previewMode === 'mobile' ? 'opacity-50 scale-90' : ''}`}>
+              <div className="bg-white rounded-lg shadow-lg p-2 w-full">
                 {renderCoverPreview(false)}
               </div>
               <p className="text-center text-sm text-gray-500 mt-2">Desktop View</p>
@@ -891,20 +833,36 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
               </div>
 
               {/* Image Scale Slider */}
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Image Scale</label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Zoom · {imageScale}%</label>
                 <input
                   type="range"
                   min="50"
-                  max="200"
+                  max="300"
                   value={imageScale}
                   onChange={(e) => setImageScale(parseInt(e.target.value))}
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
                 />
+                <p className="text-xs text-gray-400 mt-1">Tip: scroll on the preview to zoom, drag to reposition.</p>
+              </div>
+
+              {/* Rotation Slider */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <RotateCw size={14} /> Rotation · {imageRotation}°
+                </label>
+                <input
+                  type="range"
+                  min="-180"
+                  max="180"
+                  value={imageRotation}
+                  onChange={(e) => setImageRotation(parseInt(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                />
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>50%</span>
-                  <span>{imageScale}%</span>
-                  <span>200%</span>
+                  <span>-180°</span>
+                  <button type="button" onClick={() => setImageRotation(0)} className="hover:text-purple-600">reset</button>
+                  <span>180°</span>
                 </div>
               </div>
             </div>
@@ -957,16 +915,16 @@ const GalleryCoverDesigner: React.FC<GalleryCoverDesignerProps> = ({
                 <ChevronLeft size={16} />
               </button>
               
-              <div className="flex gap-3 overflow-hidden flex-wrap justify-center">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 flex-1">
                 {/* No Cover option */}
                 <div
                   onClick={() => setSelectedTemplate({ ...COVER_TEMPLATES[0], id: 'no-cover', name: 'No Cover', overlay: 'none', category: 'full-cover' } as CoverTemplate)}
                   className={`flex flex-col items-center justify-center cursor-pointer rounded-lg border-2 transition-colors ${
-                    selectedTemplate.id === 'no-cover' 
-                      ? 'border-purple-500 ring-2 ring-purple-200' 
+                    selectedTemplate.id === 'no-cover'
+                      ? 'border-purple-500 ring-2 ring-purple-200'
                       : 'border-dashed border-gray-300 hover:border-gray-400'
                   }`}
-                  style={{ width: '100px', height: '70px' }}
+                  style={{ width: '100%', aspectRatio: '3 / 2' }}
                 >
                   <div className="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center">
                     <X size={12} className="text-gray-400" />
