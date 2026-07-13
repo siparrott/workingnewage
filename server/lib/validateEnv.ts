@@ -126,8 +126,8 @@ export function validateEnv(): void {
     if (!process.env.OPENAI_API_KEY) {
       warnings.push({ variable: 'OPENAI_API_KEY', message: 'not set — AI features and blog/site translation will silently no-op.', severity: 'warn' });
     }
-    if (!process.env.TAVILY_API_KEY) {
-      warnings.push({ variable: 'TAVILY_API_KEY', message: 'not set — Price Wizard automated competitor discovery is disabled (manual entry still works). Free key at tavily.com.', severity: 'warn' });
+    if (!process.env.AXIXOS_INTERNAL_API_KEY && !process.env.TAVILY_API_KEY) {
+      warnings.push({ variable: 'AXIXOS_INTERNAL_API_KEY', message: 'no Price Wizard search provider set (AXIXOS_INTERNAL_API_KEY or TAVILY_API_KEY) — automated competitor discovery is disabled (manual entry still works).', severity: 'warn' });
     }
     if (stripeKey && !(process.env.STRIPE_WEBHOOK_SECRET || '').startsWith('whsec_')) {
       warnings.push({ variable: 'STRIPE_WEBHOOK_SECRET', message: 'missing/invalid — Stripe webhooks (payment fulfillment) will not verify. Set the whsec_ secret from the Stripe dashboard.', severity: 'warn' });

@@ -8,6 +8,7 @@
  */
 
 import { TavilySearchService } from './TavilySearchService.js';
+import { AxixosSearchService } from './AxixosSearchService.js';
 import { OpenAIPriceExtractor } from './OpenAIPriceExtractor.js';
 import { CompetitorDiscoveryService } from './CompetitorDiscoveryService.js';
 import { PriceScraperService } from './PriceScraperService.js';
@@ -30,12 +31,14 @@ interface ResearchProgress {
 
 export class PriceResearchService {
   private tavily: TavilySearchService;
+  private axixos: AxixosSearchService;
   private openai: OpenAIPriceExtractor;
   private discovery: CompetitorDiscoveryService;
   private scraper: PriceScraperService;
 
   constructor() {
     this.tavily = new TavilySearchService();
+    this.axixos = new AxixosSearchService();
     this.openai = new OpenAIPriceExtractor();
     this.discovery = new CompetitorDiscoveryService();
     this.scraper = new PriceScraperService();
@@ -58,19 +61,30 @@ export class PriceResearchService {
       console.log('📍 STAGE 1: Searching for competitors...');
       
       let competitors: { name: string; website: string; content: string; relevanceScore: number }[] = [];
-      let discoverySource = 'tavily';
+      let discoverySource = 'axixos';
 
-      // Try Tavily first
-      if (process.env.TAVILY_API_KEY) {
+      // Prefer AxixOS Intelligence when configured (searxng search + playwright crawl).
+      if (this.axixos.isConfigured()) {
+        try {
+          competitors = await this.axixos.searchCompetitors(location, services, maxCompetitors);
+          console.log(`   ✅ AxixOS found ${competitors.length} competitors`);
+        } catch (axErr: any) {
+          console.warn(`   ⚠️ AxixOS search failed: ${axErr.message}`);
+        }
+      }
+
+      // Then Tavily, if AxixOS is unset or returned nothing.
+      if (competitors.length === 0 && process.env.TAVILY_API_KEY) {
         try {
           competitors = await this.tavily.searchCompetitors(location, services, maxCompetitors);
+          discoverySource = 'tavily';
           console.log(`   ✅ Tavily found ${competitors.length} competitors`);
         } catch (tavilyError: any) {
           console.warn(`   ⚠️ Tavily search failed: ${tavilyError.message}`);
           console.log('   🔄 Falling back to Google scraping + curated competitors...');
         }
-      } else {
-        console.log('   ⚠️ TAVILY_API_KEY not set, using fallback competitor discovery...');
+      } else if (competitors.length === 0) {
+        console.log('   ⚠️ No search provider configured, using fallback competitor discovery...');
       }
 
       // Fallback: Use CompetitorDiscoveryService (Google scraping + curated list)
@@ -92,8 +106,8 @@ export class PriceResearchService {
       }
 
       if (competitors.length === 0) {
-        if (!process.env.TAVILY_API_KEY) {
-          throw new Error('Competitor search is not configured. Set TAVILY_API_KEY (free key at tavily.com) in your environment to enable AI competitor discovery, then run AI Research again.');
+        if (!this.axixos.isConfigured() && !process.env.TAVILY_API_KEY) {
+          throw new Error('Competitor search is not configured. Set AXIXOS_INTERNAL_API_KEY (or a Tavily key) to enable AI competitor discovery, then run AI Research again.');
         }
         throw new Error('No competitors found for this location/services. Try a broader location or different service selection.');
       }
@@ -126,8 +140,15 @@ export class PriceResearchService {
         try {
           let fullContent = comp.content || '';
 
-          // If we have Tavily content, try to get deeper pricing content
-          if (fullContent && process.env.TAVILY_API_KEY) {
+          // Deep-read the site for pricing: AxixOS crawl → Tavily → direct scrape.
+          if (this.axixos.isConfigured() && comp.website) {
+            try {
+              const crawled = await this.axixos.searchCompetitorPricing(comp.website, comp.name);
+              if (crawled && crawled.trim().length > 50) fullContent = crawled;
+            } catch {
+              // AxixOS crawl failed — fall through to direct scrape below
+            }
+          } else if (fullContent && process.env.TAVILY_API_KEY) {
             try {
               const pricingContent = await this.tavily.searchCompetitorPricing(comp.website, comp.name);
               fullContent = fullContent + '\n\n' + pricingContent;
@@ -392,6 +413,7 @@ export class PriceResearchService {
       throw new Error('No competitors to re-read yet. Run AI Research first, or add a competitor manually.');
     }
 
+    const hasAxixos = this.axixos.isConfigured();
     const hasTavily = !!process.env.TAVILY_API_KEY;
     await this.updateSessionStatus(sessionId, 'scraping');
     let totalPrices = 0;
@@ -402,7 +424,9 @@ export class PriceResearchService {
       const website: string = row.website_url;
       try {
         let fullContent = '';
-        if (website && hasTavily) {
+        if (website && hasAxixos) {
+          try { fullContent = await this.axixos.searchCompetitorPricing(website, name); } catch { /* fall through */ }
+        } else if (website && hasTavily) {
           try { fullContent = await this.tavily.searchCompetitorPricing(website, name); } catch { /* fall through to direct scrape */ }
         }
         if ((!fullContent || fullContent.trim().length < 50) && website) {
@@ -437,9 +461,9 @@ export class PriceResearchService {
         const status = has ? 'scraped' : 'failed';
         const error = has ? null
           : (analysis.extractionError
-              || (hasTavily
+              || ((hasAxixos || hasTavily)
                     ? `Couldn't read prices from the site (${(fullContent || '').length} chars). Add them manually with +.`
-                    : 'Automated reading needs TAVILY_API_KEY — add prices manually with +.'));
+                    : 'Automated reading needs a search provider (AXIXOS_INTERNAL_API_KEY) — add prices manually with +.'));
         await pool.query(
           `UPDATE competitor_research SET status = $2, scraped_at = NOW(), scrape_error = $3 WHERE id = $1`,
           [competitorId, status, error]);
