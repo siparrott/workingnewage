@@ -3007,38 +3007,87 @@ Bitte versuchen Sie es später noch einmal.`;
    * 4. Prefers longer/more-complete names
    * 5. Deletes the duplicate record
    */
-  async function mergeOneDuplicate(primaryId: string, dupId: string): Promise<boolean> {
-    if (dupId === primaryId) return false;
-    const dupRows = await runSql(
-      `SELECT id, first_name, last_name, email, phone, address, city, state, zip, country, company, vat_number, lead_source, notes
-       FROM crm_clients WHERE id = $1`, [dupId]
-    );
-    if (!dupRows || dupRows.length === 0) return false;
-    const d = dupRows[0];
+  // Every place a client id is referenced. A merge MUST re-point all of these
+  // before deleting the duplicate — otherwise rows are orphaned, or (for the
+  // cascade FK on storage_subscriptions) silently destroyed.
+  const RELINK_TARGETS: { table: string; column: string }[] = [
+    { table: 'crm_invoices', column: 'client_id' },
+    { table: 'crm_messages', column: 'client_id' },
+    { table: 'voucher_sales', column: 'redeemed_by' },
+    { table: 'galleries', column: 'client_id' },
+    { table: 'studio_appointments', column: 'client_id' },
+    { table: 'scheduler_bookings', column: 'client_id' },
+    { table: 'online_bookings', column: 'client_id' },
+    { table: 'photography_sessions', column: 'client_id' },
+    { table: 'digital_files', column: 'client_id' },
+    { table: 'storage_subscriptions', column: 'client_id' },
+  ];
 
-    // 1. Re-link ALL foreign-key references to primary
-    const relinkQueries = [
-      [`UPDATE crm_invoices SET client_id = $1 WHERE client_id = $2`, [primaryId, dupId]],
-      [`UPDATE crm_messages SET client_id = $1 WHERE client_id = $2`, [primaryId, dupId]],
-      [`UPDATE voucher_sales SET redeemed_by = $1 WHERE redeemed_by = $2`, [primaryId, dupId]],
-      [`UPDATE galleries SET client_id = $1 WHERE client_id = $2`, [primaryId, dupId]],
-      [`UPDATE photography_sessions SET client_id = $1::text WHERE client_id = $2::text`, [primaryId, dupId]],
-      [`UPDATE studio_appointments SET client_id = $1 WHERE client_id = $2`, [primaryId, dupId]],
-      [`UPDATE online_bookings SET client_id = $1 WHERE client_id = $2`, [primaryId, dupId]],
-      [`UPDATE scheduler_bookings SET client_id = $1::text WHERE client_id = $2::text`, [primaryId, dupId]],
-    ];
-    for (const [sql, params] of relinkQueries) {
-      await runSql(sql as string, params as any[]).catch(() => {});
+  // Which (table.column) pairs actually exist in this deployment — so an absent
+  // optional table is skipped instead of aborting the whole transaction.
+  async function loadClientRefColumns(client: any): Promise<Set<string>> {
+    const r = await client.query(
+      `SELECT table_name || '.' || column_name AS tc
+         FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = ANY($1)`,
+      [[...RELINK_TARGETS.map(t => t.table), 'message_campaigns']]
+    );
+    return new Set(r.rows.map((x: any) => x.tc));
+  }
+
+  // Merge `dupId` into `survivorId` INSIDE an existing transaction `client`.
+  // Re-points every child row (capturing exactly which ids moved), enriches the
+  // survivor, writes an audit row, then deletes the duplicate. Returns false if
+  // either record is missing. Throws on any SQL error so the caller can roll back.
+  async function mergeClientsTx(
+    client: any,
+    survivorId: string,
+    dupId: string,
+    colSet: Set<string>,
+    meta: { confidence?: number | null; matchReason?: string | null; actor?: string | null } = {},
+  ): Promise<boolean> {
+    if (dupId === survivorId) return false;
+    const dupRes = await client.query(`SELECT * FROM crm_clients WHERE id = $1`, [dupId]);
+    if (dupRes.rows.length === 0) return false;
+    const dup = dupRes.rows[0];
+    const survRes = await client.query(`SELECT * FROM crm_clients WHERE id = $1`, [survivorId]);
+    if (survRes.rows.length === 0) return false;
+    const survivorBefore = survRes.rows[0];
+
+    const relinked: { table: string; column: string; ids: any[]; array?: boolean }[] = [];
+
+    // 1. Re-point plain client-id columns, recording the exact rows moved.
+    for (const t of RELINK_TARGETS) {
+      if (!colSet.has(`${t.table}.${t.column}`)) continue;
+      const r = await client.query(
+        `UPDATE ${t.table} SET ${t.column} = $1 WHERE ${t.column}::text = $2::text RETURNING id`,
+        [survivorId, dupId],
+      );
+      if (r.rows.length) relinked.push({ table: t.table, column: t.column, ids: r.rows.map((x: any) => x.id) });
     }
 
-    // 2. Intelligent field enrichment — prefer longer/more-complete values
-    //    For notes: concatenate unique content instead of discarding
-    await runSql(
+    // 2. Re-point the text[] targeting array on campaigns (dedup on replace).
+    if (colSet.has('message_campaigns.target_client_ids')) {
+      const r = await client.query(
+        `UPDATE message_campaigns
+            SET target_client_ids = (
+              SELECT array_agg(DISTINCT CASE WHEN x = $1 THEN $2 ELSE x END)
+                FROM unnest(target_client_ids) x)
+          WHERE $1 = ANY(target_client_ids)
+        RETURNING id`,
+        [dupId, survivorId],
+      );
+      if (r.rows.length) relinked.push({ table: 'message_campaigns', column: 'target_client_ids', ids: r.rows.map((x: any) => x.id), array: true });
+    }
+
+    // 3. Enrich survivor — prefer longer names, fill empties, concatenate notes.
+    await client.query(
       `UPDATE crm_clients AS c SET
          first_name = CASE WHEN LENGTH(COALESCE(NULLIF(c.first_name,''),'')) < LENGTH(COALESCE(NULLIF($2,''),''))
                       THEN COALESCE(NULLIF($2,''), c.first_name) ELSE c.first_name END,
          last_name = CASE WHEN LENGTH(COALESCE(NULLIF(c.last_name,''),'')) < LENGTH(COALESCE(NULLIF($3,''),''))
                      THEN COALESCE(NULLIF($3,''), c.last_name) ELSE c.last_name END,
+         email = COALESCE(NULLIF(c.email,''), NULLIF($14,'')),
          phone = COALESCE(NULLIF(c.phone,''), NULLIF($4,'')),
          address = COALESCE(NULLIF(c.address,''), NULLIF($5,'')),
          city = COALESCE(NULLIF(c.city,''), NULLIF($6,'')),
@@ -3056,12 +3105,68 @@ Bitte versuchen Sie es später noch einmal.`;
          END,
          updated_at = NOW()
        WHERE c.id = $1`,
-      [primaryId, d.first_name, d.last_name, d.phone, d.address, d.city, d.state, d.zip, d.country, d.company, d.vat_number, d.lead_source, d.notes]
-    ).catch(() => {});
+      [survivorId, dup.first_name, dup.last_name, dup.phone, dup.address, dup.city, dup.state, dup.zip, dup.country, dup.company, dup.vat_number, dup.lead_source, dup.notes, dup.email],
+    );
 
-    // 3. Delete the duplicate
-    await runSql(`DELETE FROM crm_clients WHERE id = $1`, [dupId]);
+    // 4. Audit (snapshot the deleted record + survivor's pre-merge state).
+    await client.query(
+      `INSERT INTO client_merge_audit
+         (survivor_id, merged_client_id, merged_snapshot, survivor_before, relinked, confidence, match_reason, actor)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [survivorId, dupId, JSON.stringify(dup), JSON.stringify(survivorBefore), JSON.stringify(relinked),
+       meta.confidence ?? null, meta.matchReason ?? null, meta.actor ?? null],
+    );
+
+    // 5. Delete the duplicate.
+    await client.query(`DELETE FROM crm_clients WHERE id = $1`, [dupId]);
     return true;
+  }
+
+  // The audit table is documented in shared/schema.ts (for fresh installs via
+  // db:push), but we also create-if-missing at first use so the Merge Wizard
+  // works on any existing database without a separate migration step.
+  let _mergeAuditReady = false;
+  async function ensureMergeAuditTable(): Promise<void> {
+    if (_mergeAuditReady) return;
+    await pool.query(`CREATE TABLE IF NOT EXISTS client_merge_audit (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      survivor_id uuid NOT NULL,
+      merged_client_id uuid NOT NULL,
+      merged_snapshot jsonb NOT NULL,
+      survivor_before jsonb,
+      relinked jsonb NOT NULL,
+      confidence integer,
+      match_reason text,
+      actor text,
+      undone boolean DEFAULT false,
+      undone_at timestamp,
+      created_at timestamp DEFAULT now()
+    )`);
+    _mergeAuditReady = true;
+  }
+
+  // Public helper: one atomic, audited merge. Each call is its own transaction,
+  // so a batch that merges A and B keeps A even if B later fails.
+  async function mergeOneDuplicate(
+    survivorId: string,
+    dupId: string,
+    meta: { confidence?: number | null; matchReason?: string | null; actor?: string | null } = {},
+  ): Promise<boolean> {
+    await ensureMergeAuditTable();
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const colSet = await loadClientRefColumns(client);
+      const ok = await mergeClientsTx(client, survivorId, dupId, colSet, meta);
+      await client.query('COMMIT');
+      return ok;
+    } catch (e: any) {
+      await client.query('ROLLBACK').catch(() => {});
+      console.error('[client-merge] failed, rolled back:', e?.message || e);
+      throw e;
+    } finally {
+      client.release();
+    }
   }
 
   // Find duplicate clients (by email or phone)
@@ -3197,7 +3302,7 @@ Bitte versuchen Sie es später noch einmal.`;
   // Execute a specific merge decision from wizard
   app.post("/api/crm/clients/merge-execute", authenticateUser, async (req: Request, res: Response) => {
     try {
-      const { primaryId, duplicateIds } = req.body || {};
+      const { primaryId, duplicateIds, confidence, matchReason } = req.body || {};
       if (!primaryId || !Array.isArray(duplicateIds) || duplicateIds.length === 0) {
         return res.status(400).json({ error: 'primaryId and duplicateIds[] required' });
       }
@@ -3206,10 +3311,11 @@ Bitte versuchen Sie es später noch einmal.`;
       if (!primaryRows || primaryRows.length === 0) {
         return res.status(404).json({ error: 'Primary client not found' });
       }
+      const actor = (req as any).user?.email || (req as any).user?.id || null;
 
       let merged = 0;
       for (const dupId of duplicateIds) {
-        const ok = await mergeOneDuplicate(primaryId, dupId);
+        const ok = await mergeOneDuplicate(primaryId, dupId, { confidence: confidence ?? null, matchReason: matchReason ?? null, actor });
         if (ok) merged++;
       }
       const updatedPrimary = await runSql(`SELECT * FROM crm_clients WHERE id = $1`, [primaryId]);
@@ -3227,6 +3333,7 @@ Bitte versuchen Sie es später noch einmal.`;
       if (!Array.isArray(merges) || merges.length === 0) {
         return res.status(400).json({ error: 'merges[] required: [{primaryId, duplicateIds[]}]' });
       }
+      const actor = (req as any).user?.email || (req as any).user?.id || null;
       const results: any[] = [];
       for (const m of merges) {
         const primaryId = m.primaryId;
@@ -3238,7 +3345,7 @@ Bitte versuchen Sie es später noch einmal.`;
         try {
           let merged = 0;
             for (const dupId of duplicateIds) {
-              const ok = await mergeOneDuplicate(primaryId, dupId);
+              const ok = await mergeOneDuplicate(primaryId, dupId, { confidence: m.confidence ?? null, matchReason: m.matchReason ?? null, actor });
               if (ok) merged++;
             }
           results.push({ primaryId, merged });
@@ -3250,6 +3357,263 @@ Bitte versuchen Sie es später noch einmal.`;
     } catch (error) {
       console.error('Error executing batch merge:', error);
       res.status(500).json({ error: 'Failed batch merge' });
+    }
+  });
+
+  // ── Smart duplicate detection ──────────────────────────────────────
+  // Beyond exact email/phone: normalizes contact fields and applies fuzzy
+  // name+location rules, returning confidence-scored groups for human review.
+  // No mutations.
+  app.get("/api/crm/clients/merge-candidates", authenticateUser, async (_req: Request, res: Response) => {
+    try {
+      const clean = (v: any) => (v == null ? '' : String(v).trim());
+      const normEmail = (e: any) => {
+        let s = clean(e).toLowerCase();
+        if (!s || !s.includes('@')) return '';
+        let [local, domain] = s.split('@');
+        if (domain === 'gmail.com' || domain === 'googlemail.com') {
+          local = local.split('+')[0].replace(/\./g, '');
+          domain = 'gmail.com';
+        } else {
+          local = local.split('+')[0];
+        }
+        return `${local}@${domain}`;
+      };
+      const normPhone = (p: any) => {
+        const digits = clean(p).replace(/\D/g, '');
+        if (digits.length < 7) return '';
+        return digits.slice(-9); // drop country/trunk prefixes so +43/0043/0 all match
+      };
+      const normText = (v: any) => clean(v).toLowerCase().replace(/\s+/g, ' ');
+      const NICK: Record<string, string> = {
+        bob: 'robert', rob: 'robert', robbie: 'robert', bill: 'william', will: 'william',
+        jim: 'james', jimmy: 'james', tom: 'thomas', mike: 'michael', mick: 'michael',
+        dave: 'david', dan: 'daniel', danny: 'daniel', chris: 'christopher', matt: 'matthew',
+        nick: 'nicholas', tony: 'anthony', steve: 'stephen', joe: 'joseph', andy: 'andrew',
+        katie: 'katherine', kate: 'katherine', kathy: 'katherine', liz: 'elizabeth', beth: 'elizabeth',
+        sue: 'susan', peggy: 'margaret', maggie: 'margaret', sandy: 'sandra',
+      };
+      const canonFirst = (f: string) => { const n = normText(f); return NICK[n] || n; };
+      const lev = (a: string, b: string) => {
+        if (a === b) return 0;
+        const m = a.length, n = b.length;
+        if (!m || !n) return Math.max(m, n);
+        const d = Array.from({ length: n + 1 }, (_, i) => i);
+        for (let i = 1; i <= m; i++) {
+          let prev = d[0]; d[0] = i;
+          for (let j = 1; j <= n; j++) {
+            const t = d[j];
+            d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+            prev = t;
+          }
+        }
+        return d[n];
+      };
+
+      let rows: any[];
+      try {
+        rows = await runSql(
+          `SELECT c.id, c.first_name, c.last_name, c.email, c.phone, c.address, c.city, c.zip, c.company, c.notes, c.created_at,
+             COALESCE(i.cnt,0)::int AS invoice_count,
+             COALESCE(s.cnt,0)::int AS session_count,
+             COALESCE(g.cnt,0)::int AS gallery_count
+           FROM crm_clients c
+           LEFT JOIN (SELECT client_id, COUNT(*) cnt FROM crm_invoices GROUP BY client_id) i ON i.client_id = c.id
+           LEFT JOIN (SELECT client_id, COUNT(*) cnt FROM photography_sessions GROUP BY client_id) s ON s.client_id = c.id::text
+           LEFT JOIN (SELECT client_id, COUNT(*) cnt FROM galleries GROUP BY client_id) g ON g.client_id = c.id`);
+      } catch {
+        rows = await runSql(
+          `SELECT id, first_name, last_name, email, phone, address, city, zip, company, notes, created_at,
+             0 AS invoice_count, 0 AS session_count, 0 AS gallery_count FROM crm_clients`);
+      }
+
+      const clients = rows.map((r: any) => ({
+        ...r,
+        _email: normEmail(r.email),
+        _phone: normPhone(r.phone),
+        _first: canonFirst(r.first_name),
+        _last: normText(r.last_name),
+        _city: normText(r.city),
+        _zip: clean(r.zip).toLowerCase(),
+        _addr: normText(r.address),
+        _activity: (r.invoice_count || 0) + (r.session_count || 0) + (r.gallery_count || 0),
+        _complete: ['email', 'phone', 'address', 'city', 'zip', 'company', 'notes']
+          .reduce((n, k) => n + (clean(r[k]) ? 1 : 0), 0),
+      }));
+
+      // Union-find over client ids.
+      const parent = new Map<string, string>();
+      const find = (x: string): string => { let r = x; while (parent.get(r) !== r) r = parent.get(r)!; while (parent.get(x) !== r) { const nx = parent.get(x)!; parent.set(x, r); x = nx; } return r; };
+      for (const c of clients) parent.set(c.id, c.id);
+      const union = (a: string, b: string) => { const ra = find(a), rb = find(b); if (ra !== rb) parent.set(ra, rb); };
+
+      const pairs: { a: string; b: string; score: number; reason: string }[] = [];
+      const bucket = (keyFn: (c: any) => string) => {
+        const m = new Map<string, any[]>();
+        for (const c of clients) { const k = keyFn(c); if (!k) continue; (m.get(k) || m.set(k, []).get(k)!).push(c); }
+        return m;
+      };
+      const addPairsWithin = (list: any[], score: number, reason: string, ok?: (a: any, b: any) => boolean) => {
+        for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+          if (ok && !ok(list[i], list[j])) continue;
+          pairs.push({ a: list[i].id, b: list[j].id, score, reason });
+        }
+      };
+
+      // Rule 1 — identical (normalized) email → strongest signal.
+      for (const list of bucket((c) => c._email).values()) if (list.length > 1) addPairsWithin(list, 96, 'Identical email');
+      // Rule 2 — identical (normalized) phone.
+      for (const list of bucket((c) => c._phone).values()) if (list.length > 1) addPairsWithin(list, 88, 'Identical phone');
+      // Rule 3 — same full name + same city.
+      for (const list of bucket((c) => (c._first && c._last && c._city) ? `${c._first}|${c._last}|${c._city}` : '').values())
+        if (list.length > 1) addPairsWithin(list, 80, 'Same name & city');
+      // Rule 4 — same surname + same non-empty address.
+      for (const list of bucket((c) => (c._last && c._addr) ? `${c._last}|${c._addr}` : '').values())
+        if (list.length > 1) addPairsWithin(list, 74, 'Same surname & address');
+      // Rule 5 — same surname + same city + similar first name (nickname / 1 edit).
+      for (const list of bucket((c) => (c._last && c._city) ? `${c._last}|${c._city}` : '').values())
+        if (list.length > 1) addPairsWithin(list, 64, 'Similar name, same area',
+          (a, b) => a._first !== b._first && lev(a._first, b._first) <= 1);
+
+      // Aggregate pairs onto their final group root.
+      for (const p of pairs) union(p.a, p.b);
+      const agg = new Map<string, { score: number; reasons: Set<string> }>();
+      for (const p of pairs) {
+        const r = find(p.a);
+        const cur = agg.get(r) || { score: 0, reasons: new Set<string>() };
+        cur.score = Math.max(cur.score, p.score); cur.reasons.add(p.reason);
+        agg.set(r, cur);
+      }
+
+      const byId = new Map(clients.map((c: any) => [c.id, c]));
+      const members = new Map<string, any[]>();
+      for (const c of clients) { const r = find(c.id); if (!agg.has(r)) continue; (members.get(r) || members.set(r, []).get(r)!).push(c); }
+
+      const groups = [...members.entries()]
+        .map(([root, mem]) => {
+          const meta = agg.get(root)!;
+          const sorted = [...mem].sort((a, b) =>
+            b._activity - a._activity || b._complete - a._complete ||
+            new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+          return {
+            confidence: meta.score,
+            reasons: [...meta.reasons],
+            suggestedSurvivorId: sorted[0].id,
+            members: sorted.map((c: any) => ({
+              id: c.id, firstName: c.first_name, lastName: c.last_name, email: c.email, phone: c.phone,
+              city: c.city, company: c.company, createdAt: c.created_at,
+              invoiceCount: c.invoice_count, sessionCount: c.session_count, galleryCount: c.gallery_count,
+              completeness: c._complete,
+            })),
+          };
+        })
+        .filter((g) => g.members.length > 1)
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, 300);
+
+      res.json({ totalClients: clients.length, groupCount: groups.length, groups });
+    } catch (error) {
+      console.error('Error computing merge candidates:', error);
+      res.status(500).json({ error: 'Failed to compute merge candidates' });
+    }
+  });
+
+  // Recent merges (for the undo/history panel).
+  app.get("/api/crm/clients/merge-audit", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      await ensureMergeAuditTable();
+      const limit = Math.max(1, Math.min(200, Number(req.query.limit ?? 50)));
+      const rows = await runSql(
+        `SELECT id, survivor_id, merged_client_id, merged_snapshot, confidence, match_reason, actor, undone, undone_at, created_at
+           FROM client_merge_audit ORDER BY created_at DESC LIMIT $1`, [limit]);
+      const items = rows.map((r: any) => {
+        const snap = r.merged_snapshot || {};
+        return {
+          id: r.id, survivorId: r.survivor_id, mergedClientId: r.merged_client_id,
+          mergedName: `${snap.first_name || ''} ${snap.last_name || ''}`.trim(),
+          mergedEmail: snap.email || null,
+          confidence: r.confidence, matchReason: r.match_reason, actor: r.actor,
+          undone: r.undone, undoneAt: r.undone_at, createdAt: r.created_at,
+        };
+      });
+      res.json({ items });
+    } catch (error) {
+      console.error('Error listing merge audit:', error);
+      res.status(500).json({ error: 'Failed to list merge history' });
+    }
+  });
+
+  // Undo a merge: restore the deleted record, move its child rows back, and
+  // revert the survivor's enriched fields. Best-effort for the campaigns array.
+  app.post("/api/crm/clients/merge-undo/:id", authenticateUser, async (req: Request, res: Response) => {
+    const auditId = req.params.id;
+    await ensureMergeAuditTable();
+    const client = await pool.connect();
+    try {
+      const aRes = await client.query(`SELECT * FROM client_merge_audit WHERE id = $1`, [auditId]);
+      if (aRes.rows.length === 0) return res.status(404).json({ error: 'Merge record not found' });
+      const audit = aRes.rows[0];
+      if (audit.undone) return res.status(400).json({ error: 'This merge was already undone' });
+
+      const snap = audit.merged_snapshot || {};
+      const before = audit.survivor_before || {};
+      const relinked: any[] = audit.relinked || [];
+      const survivorId = audit.survivor_id;
+      const mergedId = audit.merged_client_id;
+
+      await client.query('BEGIN');
+
+      // 1. Restore the deleted client (keep its original id). If the human-facing
+      //    client_id number now collides, restore without it rather than fail.
+      const cols = ['id','first_name','last_name','client_id','email','phone','address','city','state','zip','country','company','vat_number','lead_source','notes','status','created_at','updated_at'];
+      const vals = cols.map((k) => snap[k] ?? null);
+      try {
+        await client.query(
+          `INSERT INTO crm_clients (${cols.join(',')}) VALUES (${cols.map((_, i) => `$${i + 1}`).join(',')}) ON CONFLICT (id) DO NOTHING`,
+          vals);
+      } catch (e: any) {
+        const noNum = { ...snap, client_id: null };
+        await client.query(
+          `INSERT INTO crm_clients (${cols.join(',')}) VALUES (${cols.map((_, i) => `$${i + 1}`).join(',')}) ON CONFLICT (id) DO NOTHING`,
+          cols.map((k) => noNum[k] ?? null));
+      }
+
+      // 2. Move child rows back — only those still pointing at the survivor.
+      for (const r of relinked) {
+        if (!r || !Array.isArray(r.ids) || r.ids.length === 0) continue;
+        if (r.array) {
+          await client.query(
+            `UPDATE ${r.table}
+                SET ${r.column} = (SELECT array_agg(DISTINCT CASE WHEN x = $1 THEN $2 ELSE x END) FROM unnest(${r.column}) x)
+              WHERE id = ANY($3)`,
+            [survivorId, mergedId, r.ids]).catch(() => {});
+        } else {
+          await client.query(
+            `UPDATE ${r.table} SET ${r.column} = $1 WHERE id = ANY($2) AND ${r.column}::text = $3::text`,
+            [mergedId, r.ids, survivorId]).catch(() => {});
+        }
+      }
+
+      // 3. Revert the survivor's enriched fields to their pre-merge values.
+      await client.query(
+        `UPDATE crm_clients SET
+           first_name=$2, last_name=$3, email=$4, phone=$5, address=$6, city=$7, state=$8,
+           zip=$9, country=$10, company=$11, vat_number=$12, lead_source=$13, notes=$14, updated_at=NOW()
+         WHERE id=$1`,
+        [survivorId, before.first_name ?? null, before.last_name ?? null, before.email ?? null,
+         before.phone ?? null, before.address ?? null, before.city ?? null, before.state ?? null,
+         before.zip ?? null, before.country ?? null, before.company ?? null, before.vat_number ?? null,
+         before.lead_source ?? null, before.notes ?? null]);
+
+      await client.query(`UPDATE client_merge_audit SET undone = true, undone_at = NOW() WHERE id = $1`, [auditId]);
+      await client.query('COMMIT');
+      res.json({ success: true, restoredClientId: mergedId, survivorId });
+    } catch (error: any) {
+      await client.query('ROLLBACK').catch(() => {});
+      console.error('Error undoing merge:', error?.message || error);
+      res.status(500).json({ error: 'Failed to undo merge' });
+    } finally {
+      client.release();
     }
   });
 

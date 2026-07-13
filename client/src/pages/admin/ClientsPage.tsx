@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
+import MergeWizard from '../../components/admin/MergeWizard';
 import { useLanguage } from '../../context/LanguageContext';
 import { 
   Plus, 
@@ -395,7 +396,7 @@ const ClientsPage: React.FC = () => {
           </div>
           <div className="flex space-x-3">
             <button
-              onClick={openMergeWizard}
+              onClick={() => setShowMerge(true)}
               className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg flex items-center"
             >
               <Merge size={20} className="mr-2" />
@@ -566,214 +567,7 @@ const ClientsPage: React.FC = () => {
           </div>
         )}
 
-        {showMerge && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-50 overflow-auto p-6">
-            <div className="bg-white w-full max-w-6xl rounded-lg shadow-lg p-6 relative">
-              <button
-                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-                onClick={() => setShowMerge(false)}
-              >
-                ✕
-              </button>
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-xl font-semibold flex items-center"><Merge className="mr-2" size={22}/>Merge Wizard</h2>
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">Found {mergeSuggestions.length} duplicate group{mergeSuggestions.length===1?'':'s'}</span>
-                  {(() => { const s = summaryCounts(); return (
-                    <>
-                      {s.byType.email ? <span className="px-2 py-1 rounded-full bg-gray-50 text-gray-700 border border-gray-200">Email: {s.byType.email}</span> : null}
-                      {s.byType.phone ? <span className="px-2 py-1 rounded-full bg-gray-50 text-gray-700 border border-gray-200">Phone: {s.byType.phone}</span> : null}
-                    </>
-                  ); })()}
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-4 mb-4 items-end">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Search Duplicates By</label>
-                  <select
-                    value={mergeMode}
-                    onChange={(e) => { setMergeMode(e.target.value as any); loadMergeSuggestions(); }}
-                    className="border rounded px-2 py-1"
-                  >
-                    <option value="email">Email</option>
-                    <option value="phone">Phone</option>
-                    <option value="both">Both</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Strategy</label>
-                  <select
-                    value={mergeStrategy}
-                    onChange={(e) => { setMergeStrategy(e.target.value as any); loadMergeSuggestions(); }}
-                    className="border rounded px-2 py-1"
-                  >
-                    <option value="keep-oldest">Keep Oldest</option>
-                    <option value="keep-newest">Keep Newest</option>
-                  </select>
-                </div>
-                {!adminToken && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Admin Token</label>
-                    <input
-                      type="password"
-                      value={adminToken}
-                      onChange={(e) => saveAdminToken(e.target.value)}
-                      placeholder="Enter admin token"
-                      className="border rounded px-2 py-1"
-                    />
-                  </div>
-                )}
-                <div className="text-sm text-gray-600">
-                  {mergeLoading ? 'Loading suggestions...' : `${mergeSuggestions.length} group(s) found`}
-                </div>
-                <div className="ml-auto flex gap-2">
-                  <label className="flex items-center gap-2 text-xs text-gray-700 mr-2">
-                    <input type="checkbox" checked={stopOnError} onChange={(e) => setStopOnError(e.target.checked)} />
-                    Stop on error
-                  </label>
-                  <button
-                    className="px-3 py-2 text-xs rounded bg-gray-200 hover:bg-gray-300"
-                    onClick={() => selectAllGroups(true)}
-                  >Select All</button>
-                  <button
-                    className="px-3 py-2 text-xs rounded bg-gray-200 hover:bg-gray-300"
-                    onClick={() => selectAllGroups(false)}
-                  >Deselect All</button>
-                  <button
-                    disabled={executingMerge || mergeLoading}
-                    onClick={executeSelectedMerges}
-                    className="px-4 py-2 rounded bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-60"
-                  >
-                    {executingMerge ? 'Merging...' : 'Execute Merges'}
-                  </button>
-                </div>
-              </div>
-              {mergeMessage && (
-                <div className="mb-4 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded p-2">
-                  {mergeMessage}
-                </div>
-              )}
-              <div className="overflow-auto max-h-[60vh] border rounded">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-gray-100 text-gray-600 text-xs uppercase">
-                    <tr>
-                      <th className="p-2">Select</th>
-                      <th className="p-2">Key</th>
-                      <th className="p-2">Primary</th>
-                      <th className="p-2">Duplicates</th>
-                      <th className="p-2">Preview</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mergeSuggestions.map(group => (
-                      <tr key={group.key} className={group.selected ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="p-2 align-top">
-                          <input
-                            type="checkbox"
-                            checked={group.selected}
-                            onChange={() => toggleGroupSelected(group.key)}
-                          />
-                        </td>
-                        <td className="p-2 align-top font-mono text-xs">
-                          <div className="flex items-center gap-2">
-                            <span>{group.key}</span>
-                            {('type' in group) && (
-                              <span className={`px-1.5 py-0.5 rounded text-[10px] border ${ (group as any).type === 'phone' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-indigo-50 text-indigo-700 border-indigo-200' }`}>
-                                {(group as any).type === 'phone' ? 'Phone' : 'Email'}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="p-2 align-top w-56">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-semibold">{group.primary.last_name || group.primary.lastName || ''} {group.primary.first_name || group.primary.firstName || ''}</div>
-                              <div className="text-xs text-gray-500 break-all">{group.primary.email || group.primary.phone}</div>
-                              <div className="text-[10px] text-gray-400">id: {group.primary.id}</div>
-                            </div>
-                            <div className="ml-2">
-                              <span className="inline-flex items-center px-2 py-1 rounded text-[10px] bg-green-50 text-green-700 border border-green-200" title="This contact will be kept">
-                                <Star size={12} className="mr-1 fill-green-600 text-green-600" /> Keep
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-2 align-top w-72">
-                          {group.duplicates.map(d => (
-                            <div key={d.id} className="mb-2 border-b last:border-b-0 pb-1">
-                              <div className="flex items-start justify-between">
-                                <div>
-                                  <div className="font-medium">{d.last_name || d.lastName || ''} {d.first_name || d.firstName || ''}</div>
-                                  <div className="text-xs text-gray-500 break-all">{d.email || d.phone}</div>
-                                  <div className="text-[10px] text-gray-400">id: {d.id}</div>
-                                </div>
-                                <button
-                                  className="ml-2 px-2 py-1 text-[10px] rounded border bg-white hover:bg-gray-50 text-gray-700"
-                                  title="Keep this contact instead"
-                                  onClick={() => setGroupPrimary(group.key, d.id)}
-                                >
-                                  <span className="inline-flex items-center"><Star size={12} className="mr-1"/> Make Primary</span>
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </td>
-                        <td className="p-2 align-top text-xs w-72">
-                          <div className="space-y-1">
-                            {['first_name','last_name','phone','address','city','state','zip','country','company','vat_number','lead_source','notes'].map(f => {
-                              const pVal = group.primary[f] || '';
-                              const bestDup = group.duplicates.find(d => d[f]);
-                              const anyDupVal = bestDup?.[f];
-                              if (!anyDupVal) return null;
-                              // For names: show if dup has a longer/better name
-                              if (f === 'first_name' || f === 'last_name') {
-                                if (pVal && String(pVal).length >= String(anyDupVal).length) return null;
-                                return (
-                                  <div key={f} className="flex justify-between gap-2">
-                                    <span className="text-gray-500">{f === 'first_name' ? 'First name' : 'Last name'}:</span>
-                                    <span className="font-medium text-amber-700 truncate max-w-[160px]" title={`${pVal} → ${anyDupVal}`}>
-                                      {pVal ? <><s className="text-gray-400">{String(pVal).slice(0,20)}</s> → </> : null}{String(anyDupVal).slice(0,40)}
-                                    </span>
-                                  </div>
-                                );
-                              }
-                              // For notes: show "will merge" if both have notes
-                              if (f === 'notes' && pVal && anyDupVal && pVal !== anyDupVal) {
-                                return (
-                                  <div key={f} className="flex justify-between gap-2">
-                                    <span className="text-gray-500">notes:</span>
-                                    <span className="font-medium text-blue-700 truncate max-w-[160px]" title="Notes from duplicate will be appended">+ merge notes</span>
-                                  </div>
-                                );
-                              }
-                              if (pVal) return null; // only show fields that would be enriched
-                              const label = f.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                              return (
-                                <div key={f} className="flex justify-between gap-2">
-                                  <span className="text-gray-500">{label}:</span>
-                                  <span className="font-medium text-gray-800 truncate max-w-[160px]" title={anyDupVal}>{String(anyDupVal).slice(0,60)}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {(!mergeLoading && mergeSuggestions.length === 0) && (
-                      <tr><td colSpan={5} className="p-4 text-center text-gray-500">No duplicate groups found.</td></tr>
-                    )}
-                    {mergeLoading && (
-                      <tr><td colSpan={5} className="p-4 text-center">Loading...</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              <div className="mt-4 text-xs text-gray-500">
-                {(() => { const s = summaryCounts(); return `Groups: ${s.totalGroups} | Total Clients Impacted: ${s.totalClientsImpacted}`; })()}
-              </div>
-            </div>
-          </div>
-        )}
+        <MergeWizard open={showMerge} onClose={() => setShowMerge(false)} onMerged={fetchClients} />
 
         {showFilterModal && (
           <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
