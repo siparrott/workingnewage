@@ -726,12 +726,12 @@ router.post('/research', async (req, res) => {
       });
     }
 
-    if (!process.env.TAVILY_API_KEY) {
-      // Without a search API there is no reliable way to discover + read
+    if (!process.env.AXIXOS_INTERNAL_API_KEY && !process.env.TAVILY_API_KEY) {
+      // Without a search provider there is no reliable way to discover + read
       // competitor sites. Fail loudly (and BEFORE wiping any manual data) with
       // an actionable message instead of silently finding nothing.
       return res.status(400).json({
-        error: 'Automated competitor discovery needs TAVILY_API_KEY (free key at tavily.com). Add it to enable AI Research — or add competitors and prices manually below and click "Generate Suggestions".',
+        error: 'Automated competitor discovery needs a search provider (AXIXOS_INTERNAL_API_KEY or a Tavily key). Add it to enable AI Research — or add competitors and prices manually below and click "Generate Suggestions".',
       });
     }
 
@@ -797,20 +797,20 @@ router.post('/quick-start', async (req, res) => {
       });
     }
 
-    const hasTavily = !!process.env.TAVILY_API_KEY;
+    const hasProvider = !!process.env.AXIXOS_INTERNAL_API_KEY || !!process.env.TAVILY_API_KEY;
 
     // Create the session either way, so the manual path always has a workspace.
     const result = await pool.query(`
       INSERT INTO price_wizard_sessions (user_id, location, services, status)
       VALUES ($1, $2, $3, $4)
       RETURNING id, created_at
-    `, [userId || null, location, services, hasTavily ? 'discovering' : 'completed']);
+    `, [userId || null, location, services, hasProvider ? 'discovering' : 'completed']);
 
     const session = result.rows[0];
 
-    if (!hasTavily) {
-      // No search API → don't kick off a doomed automated run. Give the user a
-      // ready workspace and tell them exactly how to proceed.
+    if (!hasProvider) {
+      // No search provider → don't kick off a doomed automated run. Give the user
+      // a ready workspace and tell them exactly how to proceed.
       return res.json({
         success: true,
         sessionId: session.id,
@@ -819,7 +819,7 @@ router.post('/quick-start', async (req, res) => {
         status: 'completed',
         manual: true,
         createdAt: session.created_at,
-        message: 'Session created. Automated discovery needs TAVILY_API_KEY (free at tavily.com). Add competitors and prices manually, then click "Generate Suggestions" — or add the key and run AI Research.',
+        message: 'Session created. Automated discovery needs a search provider (AXIXOS_INTERNAL_API_KEY). Add competitors and prices manually, then click "Generate Suggestions" — or configure the provider and run AI Research.',
       });
     }
 
