@@ -11,6 +11,24 @@ async function runSql(query: string, params?: any[]) {
   const result = await pool.query(query, params || []);
   return result.rows;
 }
+
+// Ensure the gallery delivery/protection columns exist. These were added to the
+// schema after launch (the wizard's watermark/download/expiry/status toggles were
+// previously not persisted). Runs once at startup so every gallery read/write —
+// including Drizzle SELECT *- has the columns available without a manual migration.
+let _galleryDeliveryColsReady = false;
+async function ensureGalleryDeliveryColumns() {
+  if (_galleryDeliveryColsReady) return;
+  await pool.query(`
+    ALTER TABLE galleries
+      ADD COLUMN IF NOT EXISTS download_enabled boolean DEFAULT true,
+      ADD COLUMN IF NOT EXISTS visible_watermark boolean DEFAULT false,
+      ADD COLUMN IF NOT EXISTS invisible_watermark boolean DEFAULT false,
+      ADD COLUMN IF NOT EXISTS expires_at timestamp,
+      ADD COLUMN IF NOT EXISTS status text DEFAULT 'ACTIVE'
+  `);
+  _galleryDeliveryColsReady = true;
+}
 import { sql, or, desc, and } from 'drizzle-orm';
 import { eq } from "drizzle-orm";
 import { priceListItems, emailCampaigns, emailTemplates, emailSegments, emailEvents, emailLinks, emailSubscribers, insertLeadSourceSchema, crmLeads, studioConfigs, crmMessages, manualPageContent, emailAutomations, emailAutomationLogs, schedulerBookings, spamRules } from "../shared/schema";
@@ -1591,6 +1609,10 @@ async function importEmailsFromIMAP(config: {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Session middleware and /api/auth routes are applied early in server/index.ts
   // to ensure auth works before lazy loading other routes. Avoid duplicating here.
+
+  // Make sure the gallery delivery/protection columns exist before any gallery
+  // route (Drizzle SELECT *) runs.
+  await ensureGalleryDeliveryColumns().catch((e) => console.error('[galleries] ensure columns failed:', e?.message || e));
 
   // Digital files API - Using filesRouter (routes/files.ts) - file-routes.ts has schema mismatches
   console.log('🔧 Registering /api/files router...');
@@ -4792,6 +4814,15 @@ Bitte versuchen Sie es später noch einmal.`;
         }
       }
 
+      // Reliable expiry / archival: once the expiry date passes (or the gallery
+      // is archived), it is no longer available to clients.
+      const expiresAt = (gallery as any).expiresAt;
+      const isExpired = (expiresAt && new Date(expiresAt).getTime() < Date.now())
+        || (gallery as any).status === 'ARCHIVED';
+      if (isExpired) {
+        return res.status(410).json({ error: 'gallery_expired', message: 'This gallery is no longer available.' });
+      }
+
       // SECURITY: Never expose the actual password to the client
       // Only send the isPasswordProtected boolean flag
       const { password, ...safeGallery } = gallery;
@@ -4821,6 +4852,13 @@ Bitte versuchen Sie es später noch einmal.`;
           .substring(0, 100); // Limit length
       }
       
+      // Persist the delivery/protection toggles the wizard sends (previously
+      // silently dropped). Map the UI field names to the schema columns and
+      // coerce the expiry date so a future date actually takes effect.
+      if (galleryData.watermarkEnabled !== undefined) { galleryData.visibleWatermark = !!galleryData.watermarkEnabled; delete galleryData.watermarkEnabled; }
+      if (galleryData.invisibleWatermarkEnabled !== undefined) { galleryData.invisibleWatermark = !!galleryData.invisibleWatermarkEnabled; delete galleryData.invisibleWatermarkEnabled; }
+      if (galleryData.expiresAt !== undefined) galleryData.expiresAt = galleryData.expiresAt ? new Date(galleryData.expiresAt) : null;
+
       const validatedData = insertGallerySchema.parse(galleryData);
       const gallery = await storage.createGallery(validatedData);
       res.status(201).json(gallery);
@@ -4860,6 +4898,12 @@ Bitte versuchen Sie es später noch einmal.`;
       const gallery = await storage.getGalleryBySlug(slug);
       if (!gallery) {
         return res.status(404).json({ error: "Gallery not found" });
+      }
+
+      // Expired / archived galleries can't be opened.
+      const expAt = (gallery as any).expiresAt;
+      if ((expAt && new Date(expAt).getTime() < Date.now()) || (gallery as any).status === 'ARCHIVED') {
+        return res.status(410).json({ error: 'gallery_expired', message: 'This gallery is no longer available.' });
       }
 
       // Check password if gallery is password protected
@@ -5809,6 +5853,18 @@ Bitte versuchen Sie es später noch einmal.`;
         'cover_template': 'cover_template',
         'clientId': 'client_id',
         'client_id': 'client_id',
+        // Delivery / protection settings
+        'downloadEnabled': 'download_enabled',
+        'download_enabled': 'download_enabled',
+        'watermarkEnabled': 'visible_watermark',
+        'visibleWatermark': 'visible_watermark',
+        'visible_watermark': 'visible_watermark',
+        'invisibleWatermarkEnabled': 'invisible_watermark',
+        'invisibleWatermark': 'invisible_watermark',
+        'invisible_watermark': 'invisible_watermark',
+        'expiresAt': 'expires_at',
+        'expires_at': 'expires_at',
+        'status': 'status',
       };
       
       const processedFields = new Set<string>(); // Avoid duplicate updates
@@ -5836,6 +5892,10 @@ Bitte versuchen Sie es später noch einmal.`;
           if (dbField === 'cover_position' || dbField === 'cover_template') {
             updates.push(`${dbField} = $${paramIndex}::jsonb`);
             values.push(typeof value === 'string' ? value : JSON.stringify(value));
+          } else if (dbField === 'expires_at') {
+            // Empty/cleared date → NULL (no expiry); otherwise a real timestamp.
+            updates.push(`${dbField} = $${paramIndex}`);
+            values.push(value ? new Date(value as any) : null);
           } else {
             updates.push(`${dbField} = $${paramIndex}`);
             values.push(value);

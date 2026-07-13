@@ -645,6 +645,14 @@ export const galleries = pgTable("galleries", {
   isPublic: boolean("is_public").default(true),
   isPasswordProtected: boolean("is_password_protected").default(false),
   password: text("password"),
+  // Delivery / protection settings (previously present in the wizard UI but not
+  // persisted — the toggles were silently dropped). expiresAt drives reliable
+  // expiry; status ARCHIVED hides a gallery immediately.
+  downloadEnabled: boolean("download_enabled").default(true),
+  visibleWatermark: boolean("visible_watermark").default(false),
+  invisibleWatermark: boolean("invisible_watermark").default(false),
+  expiresAt: timestamp("expires_at"),
+  status: text("status").default("ACTIVE"), // ACTIVE | SHARED | ARCHIVED
   clientId: uuid("client_id").references(() => crmClients.id),
   createdBy: uuid("created_by").references(() => users.id),
   sortOrder: integer("sort_order").default(0),

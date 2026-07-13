@@ -412,18 +412,31 @@ const GalleryPage: React.FC = () => {
   if (!isAuthenticated && gallery) {
     const isPasswordProtected = gallery.isPasswordProtected;
     
+    // Honor the focal point / zoom / rotation set in the Cover Designer so the
+    // client sees exactly what was designed (previously hard-coded to centre).
+    const coverPos = ((gallery as any).coverPosition) || { x: 50, y: 50 };
+    const coverScale = Number((gallery as any).coverScale) || 100;
+    const coverRotation = Number(coverPos.rotation) || 0;
+
     return (
       <div className="fixed inset-0 w-full h-full">
-        {/* Full-screen background image */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ 
-            backgroundImage: gallery.coverImage 
-              ? `url(${gallery.coverImage})` 
-              : 'linear-gradient(to right, #4a044e, #701a75)'
-          }}
-        />
-        
+        {/* Full-screen background image (transform matches the Cover Designer) */}
+        {gallery.coverImage ? (
+          <img
+            src={gallery.coverImage}
+            alt={gallery.title}
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{
+              objectPosition: `${coverPos.x}% ${coverPos.y}%`,
+              transform: `scale(${coverScale / 100}) rotate(${coverRotation}deg)`,
+              transformOrigin: `${coverPos.x}% ${coverPos.y}%`,
+            }}
+            draggable={false}
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-900 to-fuchsia-800" />
+        )}
+
         {/* Left side overlay with login form */}
         <div className="absolute left-0 top-0 bottom-0 w-full md:w-[45%] lg:w-[40%] bg-black/50 backdrop-blur-sm flex flex-col justify-between p-8 md:p-12">
           {/* Gallery Title */}
