@@ -457,7 +457,15 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
     setError(null);
     
     try {
-      const postData = {
+      // Respect an explicit future schedule: if the post is set to SCHEDULED with a
+      // future date, keep it scheduled and send scheduledFor — never silently
+      // collapse it to DRAFT (loses the schedule) or PUBLISHED (publishes now).
+      const isScheduled = formData.status === 'SCHEDULED'
+        && !!formData.scheduled_for
+        && new Date(formData.scheduled_for).getTime() > Date.now();
+      const wantPublish = (publish || formData.status === 'PUBLISHED') && !isScheduled;
+
+      const postData: any = {
         title: formData.title || '',
         slug: formData.slug || generateSlug(formData.title || ''),
         excerpt: formData.excerpt || '',
@@ -466,16 +474,16 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
         imageUrl: formData.cover_image || '',
         imageUrl2: formData.image_url_2 || '',
         imageUrl3: formData.image_url_3 || '',
-        published: publish || formData.status === 'PUBLISHED',
-        status: publish || formData.status === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT',
+        published: wantPublish,
+        status: isScheduled ? 'SCHEDULED' : (wantPublish ? 'PUBLISHED' : 'DRAFT'),
+        scheduledFor: isScheduled ? formData.scheduled_for : null,
         metaDescription: formData.meta_description || '',
         seoTitle: formData.seo_title || '',
         tags: formData.tags || []
       };
-      
-      if (publish || formData.status === 'PUBLISHED') {
+
+      if (wantPublish) {
         postData.publishedAt = new Date().toISOString();
-        postData.status = 'PUBLISHED';
       }
       
       // Get admin token from localStorage

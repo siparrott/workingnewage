@@ -2547,15 +2547,29 @@ Bitte versuchen Sie es später noch einmal.`;
         return new Date(naiveUtc - offset);
       };
 
-      // Only future SCHEDULED posts, kept in their existing scheduled order (compress the spacing).
+      // Future SCHEDULED posts, kept in their existing order (compress the spacing).
+      // Optionally ALSO pull back posts that were just (wrongly) published — pass
+      // includePublishedWithinHours (e.g. 24) to un-publish today's batch and
+      // re-space it into the future along with the scheduled ones.
+      const includeHours = Number(req.body?.includePublishedWithinHours) || 0;
+      const cutoff = includeHours > 0 ? new Date(now.getTime() - includeHours * 3600 * 1000) : null;
       const all = await storage.getBlogPosts();
-      const scheduled = (all as any[])
-        .filter((p) => p.status === 'SCHEDULED' && p.scheduledFor && new Date(p.scheduledFor).getTime() > now.getTime())
-        .sort((a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime());
+      const futureScheduled = (all as any[])
+        .filter((p) => p.status === 'SCHEDULED' && p.scheduledFor && new Date(p.scheduledFor).getTime() > now.getTime());
+      const recentlyPublished = cutoff
+        ? (all as any[]).filter((p) => (p.status === 'PUBLISHED' || p.published === true) && p.publishedAt && new Date(p.publishedAt).getTime() >= cutoff.getTime())
+        : [];
+      const keyTime = (p: any) => new Date(p.scheduledFor || p.publishedAt || p.createdAt || 0).getTime();
+      const scheduled = [...recentlyPublished, ...futureScheduled]
+        .filter((p, i, arr) => arr.findIndex((x) => x.id === p.id) === i) // dedupe by id
+        .sort((a, b) => keyTime(a) - keyTime(b));
 
-      // Generate the next N cadence slots (UTC), including today if today's slot is still ahead.
+      // Generate cadence slots (UTC) starting TOMORROW — never today, so a
+      // rescheduled post can't fall on a slot that the hourly cron fires within
+      // hours (the root cause of "scheduled posts published today").
       const slots: Date[] = [];
       const cursor = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
       let guard = 0;
       while (slots.length < scheduled.length && guard++ < 4000) {
         if (days.includes(cursor.getUTCDay())) {
@@ -16585,7 +16599,9 @@ Was interessiert Sie am meisten?`;
               content,
               excerpt,
               slug,
-              status: publishOption.toUpperCase() as 'DRAFT' | 'PUBLISHED' | 'SCHEDULED',
+              // Map to the canonical status the cron expects — 'schedule'.toUpperCase()
+              // is 'SCHEDULE' (missing the D), which the scheduler never matches.
+              status: (({ publish: 'PUBLISHED', schedule: 'SCHEDULED', draft: 'DRAFT' } as Record<string, 'DRAFT' | 'PUBLISHED' | 'SCHEDULED'>)[String(publishOption).toLowerCase()] || 'DRAFT'),
               tags: ['Familienfotografie', 'Wien', 'Fotoshooting'],
               metaDescription: excerpt?.substring(0, 155) || '',
               scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
