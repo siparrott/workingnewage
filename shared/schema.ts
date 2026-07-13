@@ -190,6 +190,25 @@ export const crmClients = pgTable("crm_clients", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Audit trail for the client Merge Wizard. Every merge records the survivor,
+// a full snapshot of the deleted duplicate, the survivor's pre-merge field
+// values, and exactly which child rows were re-pointed — so a mistaken merge
+// can be undone.
+export const clientMergeAudit = pgTable("client_merge_audit", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  survivorId: uuid("survivor_id").notNull(),
+  mergedClientId: uuid("merged_client_id").notNull(),
+  mergedSnapshot: jsonb("merged_snapshot").notNull(),   // full deleted-client row
+  survivorBefore: jsonb("survivor_before"),             // survivor fields before enrichment
+  relinked: jsonb("relinked").notNull(),                // [{ table, column, ids: [...] }]
+  confidence: integer("confidence"),
+  matchReason: text("match_reason"),
+  actor: text("actor"),
+  undone: boolean("undone").default(false),
+  undoneAt: timestamp("undone_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // CRM Leads
 export const crmLeads = pgTable("crm_leads", {
   id: uuid("id").primaryKey().defaultRandom(),
