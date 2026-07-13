@@ -150,7 +150,10 @@ const HighValueClientsPage: React.FC = () => {
             ) : (
               <div className="grid gap-4">
                 {topClients.map((client, index) => {
-                const safeRevenue = Number(client.total_revenue || 0);
+                // "Lifetime Value" = collected (paid) revenue, matching the client
+                // detail page. total_revenue (all invoices billed) drives the
+                // "By Total Revenue" sort but is not shown as the headline number.
+                const safeRevenue = Number((client as any).lifetime_value ?? client.total_revenue ?? 0);
                 const safeInvoiceCount = Number(client.invoice_count || 0);
                 const safeSessionCount = Number(client.session_count || 0);
                 const avgInvoice = Number((client as any).average_invoice || (safeInvoiceCount ? safeRevenue / safeInvoiceCount : 0));
