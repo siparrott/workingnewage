@@ -311,7 +311,8 @@ const AdminPriceWizardPage: React.FC = () => {
   };
 
   /**
-   * Retry scraping for pending/failed competitors (legacy method)
+   * Re-read the existing competitors' websites and extract prices again.
+   * Runs in the background; the page auto-refreshes as it progresses.
    */
   const retryScrape = async (sessionId: string) => {
     try {
@@ -320,19 +321,71 @@ const AdminPriceWizardPage: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId })
       });
-
+      const data = await response.json();
       if (response.ok) {
-        const data = await response.json();
-        alert(`Scraping retry complete!\nPrices extracted: ${data.pricesExtracted}`);
+        alert('🔄 Re-reading competitor sites…\n\nThe page will refresh as prices come in (about 1–2 minutes).');
         fetchSessionDetails(sessionId);
         fetchSessions();
       } else {
-        const data = await response.json();
-        alert(`Scrape failed: ${data.error || 'Unknown error'}`);
+        alert(`Could not start re-read: ${data.error || 'Unknown error'}`);
       }
     } catch (err) {
       console.error('Error retrying scrape:', err);
-      alert('Failed to retry scrape');
+      alert('Failed to re-read competitor sites');
+    }
+  };
+
+  /**
+   * Generate the 3-tier price suggestions from whatever prices have been
+   * collected so far (scraped or entered manually).
+   */
+  const generateSuggestions = async (sessionId: string) => {
+    try {
+      const response = await fetch('/api/price-wizard/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        alert(data.suggestionsCount > 0
+          ? `✅ Generated ${data.suggestionsCount} price suggestion${data.suggestionsCount === 1 ? '' : 's'}.`
+          : (data.message || 'No prices to analyze yet. Add competitor prices with the + button, then try again.'));
+        fetchSessionDetails(sessionId);
+        fetchSessions();
+      } else {
+        alert(`Could not generate suggestions: ${data.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Error generating suggestions:', err);
+      alert('Failed to generate suggestions');
+    }
+  };
+
+  /**
+   * Manually add a competitor (for the manual path / when automated discovery
+   * isn't available). Prices are then added with the + button.
+   */
+  const addCompetitor = async (sessionId: string) => {
+    const name = window.prompt('Competitor name (e.g. their studio name):');
+    if (!name || !name.trim()) return;
+    const website = window.prompt('Competitor website URL (optional — used by AI Research / Retry Scrape):') || '';
+    try {
+      const response = await fetch('/api/price-wizard/add-competitor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, name: name.trim(), website: website.trim() || null })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        fetchSessionDetails(sessionId);
+        fetchSessions();
+      } else {
+        alert(`Could not add competitor: ${data.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Error adding competitor:', err);
+      alert('Failed to add competitor');
     }
   };
 
@@ -1105,6 +1158,28 @@ const AdminPriceWizardPage: React.FC = () => {
                 )}
 
                 {/* Competitors */}
+                {selectedSessionData && competitors.length === 0 && !['discovering', 'scraping', 'analyzing'].includes(selectedSessionData.status) && (
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
+                    <p className="text-sm text-gray-600 mb-3">
+                      No competitors yet. Use <b>AI Research</b> to find them automatically (needs a Tavily key), or add them by hand and enter their prices, then generate suggestions.
+                    </p>
+                    <div className="flex justify-center gap-2">
+                      <button
+                        onClick={() => addCompetitor(selectedSession!)}
+                        className="text-xs px-3 py-1.5 bg-purple-600 text-white rounded hover:bg-purple-700 flex items-center gap-1"
+                      >
+                        <Plus className="w-3 h-3" /> Add Competitor
+                      </button>
+                      <button
+                        onClick={() => generateSuggestions(selectedSession!)}
+                        className="text-xs px-3 py-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 flex items-center gap-1"
+                      >
+                        <DollarSign className="w-3 h-3" /> Generate Suggestions
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {competitors.length > 0 && (
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200">
                     <div className="p-4 border-b border-gray-200 flex justify-between items-center">
@@ -1131,9 +1206,26 @@ const AdminPriceWizardPage: React.FC = () => {
                         <button
                           onClick={() => retryScrape(selectedSession!)}
                           className="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 flex items-center gap-1"
+                          title="Re-read the competitor websites and extract prices again"
                         >
                           <RefreshCw className="w-3 h-3" />
                           Retry Scrape
+                        </button>
+                        <button
+                          onClick={() => addCompetitor(selectedSession!)}
+                          className="text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 flex items-center gap-1"
+                          title="Add a competitor by hand"
+                        >
+                          <Plus className="w-3 h-3" />
+                          Add Competitor
+                        </button>
+                        <button
+                          onClick={() => generateSuggestions(selectedSession!)}
+                          className="text-xs px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 flex items-center gap-1"
+                          title="Build 3-tier price suggestions from the prices collected so far"
+                        >
+                          <DollarSign className="w-3 h-3" />
+                          Generate Suggestions
                         </button>
                       </div>
                     </div>
