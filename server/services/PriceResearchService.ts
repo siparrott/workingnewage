@@ -138,47 +138,40 @@ export class PriceResearchService {
 
       for (const comp of competitors) {
         try {
-          let fullContent = comp.content || '';
+          // Gather content from EVERY available source and combine — the search
+          // snippet often already contains prices, the AxixOS crawl sometimes
+          // returns empty (JS-heavy/bot-protected sites), and a direct scrape can
+          // fill the gap. Feeding the union to OpenAI maximises extraction.
+          const parts: string[] = [];
+          if (comp.content) parts.push(comp.content); // search snippet
 
-          // Deep-read the site for pricing: AxixOS crawl → Tavily → direct scrape.
           if (this.axixos.isConfigured() && comp.website) {
             try {
               const crawled = await this.axixos.searchCompetitorPricing(comp.website, comp.name);
-              if (crawled && crawled.trim().length > 50) fullContent = crawled;
-            } catch {
-              // AxixOS crawl failed — fall through to direct scrape below
-            }
-          } else if (fullContent && process.env.TAVILY_API_KEY) {
+              if (crawled && crawled.trim().length > 40) parts.push(crawled);
+            } catch { /* crawl failed — other sources below */ }
+          } else if (comp.website && process.env.TAVILY_API_KEY) {
             try {
               const pricingContent = await this.tavily.searchCompetitorPricing(comp.website, comp.name);
-              fullContent = fullContent + '\n\n' + pricingContent;
-            } catch {
-              // Tavily pricing search failed, use what we have
-            }
+              if (pricingContent) parts.push(pricingContent);
+            } catch { /* ignore */ }
           }
 
-          // If no content yet (fallback path), scrape the website directly
-          if (!fullContent || fullContent.trim().length < 50) {
-            console.log(`   📄 Scraping ${comp.name} directly...`);
-            const scrapeResult = await this.scraper.scrapeWebsite(comp.website);
-            if (scrapeResult.success && scrapeResult.metadata) {
-              // Build text content from scraped metadata for AI extraction
-              const meta = scrapeResult.metadata as any;
-              fullContent = [
-                meta.title || '',
-                meta.description || '',
-                meta.textContent || '',
-              ].filter(Boolean).join('\n\n');
-
-              // Also add any directly extracted prices as context
-              if (scrapeResult.prices && scrapeResult.prices.length > 0) {
-                fullContent += '\n\nDirectly found prices:\n' +
-                  scrapeResult.prices.map((p: any) =>
-                    `${p.serviceType}: €${p.amount}`
-                  ).join('\n');
+          // Still thin? Direct-scrape the site.
+          if (parts.join('\n\n').trim().length < 150 && comp.website) {
+            try {
+              const scrapeResult = await this.scraper.scrapeWebsite(comp.website);
+              if (scrapeResult.success && scrapeResult.metadata) {
+                const meta = scrapeResult.metadata as any;
+                parts.push([meta.title || '', meta.description || '', meta.textContent || ''].filter(Boolean).join('\n\n'));
+                if (scrapeResult.prices && scrapeResult.prices.length > 0) {
+                  parts.push('Directly found prices:\n' + scrapeResult.prices.map((p: any) => `${p.serviceType}: €${p.amount}`).join('\n'));
+                }
               }
-            }
+            } catch { /* ignore */ }
           }
+
+          const fullContent = parts.filter(Boolean).join('\n\n---\n\n');
 
           // Extract prices with AI
           const analysis = await this.openai.extractPrices(comp.name, fullContent, comp.website);
