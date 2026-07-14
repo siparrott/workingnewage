@@ -129,7 +129,6 @@ const HighValueClientsPage: React.FC = () => {
                 className="p-2 border rounded"
               >
                 <option value="lifetime_value">By Lifetime Value</option>
-                <option value="total_revenue">By Total Revenue</option>
                 <option value="session_count">By Session Count</option>
                 <option value="recent_activity">By Recent Activity</option>
               </select>
