@@ -149,6 +149,8 @@ export class EnhancedEmailService {
 
         return {
           success: true,
+          demo: true,
+          error: 'SMTP is not configured — email was NOT actually sent (demo mode).',
           messageId: 'demo_' + Date.now(),
           clientId: clientId,
         };
@@ -241,10 +243,12 @@ export class EnhancedEmailService {
 
         return {
           success: true,
+          demo: true,
+          error: `SMTP send failed (email NOT delivered): ${error instanceof Error ? error.message : String(error)}`,
           messageId: 'demo_fallback_' + Date.now(),
           clientId: clientId,
         };
-        
+
       } catch (dbError) {
         console.error('Failed to save demo email:', dbError);
       }

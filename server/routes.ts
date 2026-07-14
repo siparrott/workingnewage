@@ -11019,19 +11019,37 @@ Ihr Team von {{studioName}}`,
       }
       
       if (test_send && test_emails) {
-        // Send test emails
+        // Send test emails — report the TRUE outcome (a misconfigured SMTP falls
+        // into demo mode and does NOT actually deliver; don't claim success then).
         const { EnhancedEmailService } = await import('./services/enhancedEmailService');
-        
+
+        const results: any[] = [];
         for (const email of test_emails) {
-          await EnhancedEmailService.sendEmail({
+          const r: any = await EnhancedEmailService.sendEmail({
             to: email,
             subject: `[TEST] ${campaign.subject}`,
             html: campaign.content || '',
             content: campaign.content || '',
           });
+          results.push({ email, delivered: !!r?.success && !r?.demo, demo: !!r?.demo, error: r?.error || null });
         }
-        
-        res.json({ success: true, message: 'Test emails sent successfully' });
+
+        const delivered = results.filter((r) => r.delivered);
+        if (delivered.length === 0) {
+          return res.status(200).json({
+            success: false,
+            sent: 0,
+            message: 'Email was NOT sent. SMTP is not configured (or was rejected), so it ran in demo mode.',
+            error: results.find((r) => r.error)?.error || 'SMTP not configured',
+            results,
+          });
+        }
+        return res.json({
+          success: true,
+          sent: delivered.length,
+          message: `Test email sent to ${delivered.map((r) => r.email).join(', ')}`,
+          results,
+        });
       } else {
         // Queue campaign for sending
         await db.update(emailCampaigns)
