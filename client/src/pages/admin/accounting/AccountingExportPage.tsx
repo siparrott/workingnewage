@@ -158,12 +158,18 @@ export default function AccountingExportPage() {
         throw new Error(error.error || 'Export failed');
       }
 
-      // Download the ZIP file
+      // Download the file — respect the server's filename/extension (Simple CSV
+      // and PDF come back as single files, others as a .zip package).
       const blob = await response.blob();
+      const cd = response.headers.get('Content-Disposition') || '';
+      const match = cd.match(/filename="?([^"]+)"?/);
+      const ext = (response.headers.get('Content-Type') || '').includes('zip') ? 'zip'
+        : (response.headers.get('Content-Type') || '').includes('csv') ? 'csv'
+        : (response.headers.get('Content-Type') || '').includes('pdf') ? 'pdf' : 'zip';
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `accounting_export_${selectedProfile}_${periodStart}_${periodEnd}.zip`;
+      a.download = match ? match[1] : `accounting_export_${selectedProfile}_${periodStart}_${periodEnd}.${ext}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
