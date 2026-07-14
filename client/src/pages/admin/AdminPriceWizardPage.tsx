@@ -929,6 +929,60 @@ const AdminPriceWizardPage: React.FC = () => {
                         You can <strong>accept</strong> a suggestion to add it to your invoice price list, <strong>adjust</strong> it first, or <strong>reject</strong> it.
                       </p>
                     </div>
+
+                    {/* At-a-glance: your price vs the market, per service */}
+                    {(() => {
+                      const byService = new Map<string, { min: number; median: number; max: number }>();
+                      for (const s of suggestions) {
+                        if (!byService.has(s.service_type)) {
+                          byService.set(s.service_type, { min: Number(s.market_min) || 0, median: Number(s.market_median) || 0, max: Number(s.market_max) || 0 });
+                        }
+                      }
+                      if (byService.size === 0) return null;
+                      return (
+                        <div className="px-4 py-4 border-b border-gray-200 bg-gray-50/60 overflow-x-auto">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-3">Your prices vs the market</h4>
+                          <table className="w-full text-sm min-w-[600px]">
+                            <thead>
+                              <tr className="text-[11px] text-gray-500 uppercase tracking-wide text-left">
+                                <th className="py-1 pr-4 font-medium">Service</th>
+                                <th className="py-1 px-2 font-medium text-right">Your price</th>
+                                <th className="py-1 px-2 font-medium text-right">Market low</th>
+                                <th className="py-1 px-2 font-medium text-right">Median</th>
+                                <th className="py-1 px-2 font-medium text-right">Market high</th>
+                                <th className="py-1 pl-4 font-medium">Where you sit</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {[...byService.entries()].map(([svc, st]) => {
+                                const mine = myPriceFor(svc);
+                                const pos = mine && st.max > st.min ? Math.max(0, Math.min(100, ((mine.price - st.min) / (st.max - st.min)) * 100)) : null;
+                                return (
+                                  <tr key={svc}>
+                                    <td className="py-2 pr-4 font-medium text-gray-900 capitalize">{svc.replace(/_/g, ' ')}</td>
+                                    <td className="py-2 px-2 text-right font-semibold text-indigo-700">{mine ? `€${mine.price.toFixed(0)}` : '—'}</td>
+                                    <td className="py-2 px-2 text-right text-gray-600">€{st.min.toFixed(0)}</td>
+                                    <td className="py-2 px-2 text-right text-gray-900 font-medium">€{st.median.toFixed(0)}</td>
+                                    <td className="py-2 px-2 text-right text-gray-600">€{st.max.toFixed(0)}</td>
+                                    <td className="py-2 pl-4">
+                                      {pos === null ? (
+                                        <span className="text-gray-400 text-xs">set your price</span>
+                                      ) : (
+                                        <div className="relative h-2 rounded w-32 bg-gradient-to-r from-green-300 via-yellow-300 to-red-300" title={`Your €${mine!.price.toFixed(0)} vs €${st.min.toFixed(0)}–€${st.max.toFixed(0)}`}>
+                                          <div className="absolute -top-1 w-1.5 h-4 bg-indigo-700 rounded" style={{ left: `calc(${pos}% - 3px)` }} />
+                                        </div>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                          <p className="text-[11px] text-gray-400 mt-2">Market low / median / high are drawn from the {competitors.length || 'local'} competitors analysed for each service.</p>
+                        </div>
+                      );
+                    })()}
+
                     <div className="divide-y divide-gray-200">
                       {suggestions.map((suggestion) => {
                         // Parse reasoning into structured parts
@@ -1091,6 +1145,7 @@ const AdminPriceWizardPage: React.FC = () => {
                                 if (!mine) return null;
                                 const diff = Number(suggestion.suggested_price) - mine.price;
                                 return (
+                                  <>
                                   <div className="flex gap-2 bg-indigo-50 rounded-lg p-2 -mx-1">
                                     <div className="flex-shrink-0 w-5 h-5 bg-indigo-100 rounded-full flex items-center justify-center mt-0.5">
                                       <span className="text-indigo-600 text-xs">🏷️</span>
@@ -1105,6 +1160,18 @@ const AdminPriceWizardPage: React.FC = () => {
                                           : 'in line with this suggestion'}</span>
                                     </div>
                                   </div>
+                                  {diff > 0 && (
+                                    <div className="flex gap-2">
+                                      <div className="flex-shrink-0 w-5 h-5 bg-orange-100 rounded-full flex items-center justify-center mt-0.5">
+                                        <span className="text-orange-600 text-xs">⚖️</span>
+                                      </div>
+                                      <div className="text-gray-600">
+                                        <span className="font-medium text-gray-700">Adjust to match: </span>
+                                        To command €{Number(suggestion.suggested_price).toFixed(0)}, match the inclusions competitors offer at this price{reasoningParts.whatsIncluded ? ` (${reasoningParts.whatsIncluded})` : ''} — or keep €{mine.price.toFixed(0)} positioned as a lighter "mini" package.
+                                      </div>
+                                    </div>
+                                  )}
+                                  </>
                                 );
                               })()}
                             </div>
