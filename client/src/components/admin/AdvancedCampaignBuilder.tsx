@@ -202,11 +202,15 @@ const AdvancedCampaignBuilder: React.FC<AdvancedCampaignBuilderProps> = ({
         saved = await createCampaign({ ...campaignData, status: 'draft', created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
       }
       const testEmail = window.prompt('Send test email to:', SITE.email) || undefined;
-      await sendCampaign(saved.id, { test_send: true, test_emails: testEmail ? [testEmail] : undefined });
-      alert('Test email queued successfully.');
+      const result = await sendCampaign(saved.id, { test_send: true, test_emails: testEmail ? [testEmail] : undefined });
+      if (result?.success) {
+        alert(`✅ ${result.message || `Test email sent to ${testEmail}.`}`);
+      } else {
+        alert(`⚠️ ${result?.message || 'Test email was not sent.'}\n\n${result?.error || ''}\n\nCheck that SMTP is configured (Settings → Email / host env vars).`);
+      }
       onSave(saved);
-    } catch (e) {
-      alert('Failed to send test email.');
+    } catch (e: any) {
+      alert(`Failed to send test email: ${e?.message || 'unknown error'}`);
     } finally {
       setSending(false);
     }

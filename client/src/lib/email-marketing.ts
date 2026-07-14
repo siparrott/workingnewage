@@ -42,16 +42,19 @@ export async function getCampaigns(): Promise<EmailCampaign[]> {
   return res.json();
 }
 
-export async function sendCampaign(id: string, options?: { test_send?: boolean; test_emails?: string[] }): Promise<void> {
+export async function sendCampaign(id: string, options?: { test_send?: boolean; test_emails?: string[] }): Promise<{ success: boolean; sent?: number; message?: string; error?: string }> {
   const response = await fetch('/api/email/campaigns/send', {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ campaign_id: id, ...options })
   });
 
+  const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error('Failed to send campaign');
+    throw new Error(data?.error || 'Failed to send campaign');
   }
+  return data;
 }
 
 export async function duplicateCampaign(id: string, name?: string): Promise<EmailCampaign> {
