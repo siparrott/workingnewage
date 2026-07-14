@@ -1183,9 +1183,9 @@ const AdminPriceWizardPage: React.FC = () => {
 
                 {competitors.length > 0 && (
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                    <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+                    <div className="p-4 border-b border-gray-200 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                       <h3 className="font-semibold text-gray-900">Competitor Photographers</h3>
-                      <div className="flex gap-2 items-center">
+                      <div className="flex gap-2 items-center flex-wrap justify-end">
                         {competitors.filter(c => c.status === 'pending').length > 0 && (
                           <span className="text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
                             {competitors.filter(c => c.status === 'pending').length} pending

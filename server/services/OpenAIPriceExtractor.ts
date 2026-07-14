@@ -61,7 +61,11 @@ export class OpenAIPriceExtractor {
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured',
     });
-    this.model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+    // Use a chat/completions-compatible model. Deliberately NOT process.env.OPENAI_MODEL —
+    // the host sets that to a Responses-API-only model (e.g. a GPT-5/o-series), which
+    // 404s on chat/completions and made every extraction return 0 prices. Override with
+    // OPENAI_PRICE_MODEL only if you know it supports chat/completions.
+    this.model = process.env.OPENAI_PRICE_MODEL || 'gpt-4o-mini';
   }
 
   /**
