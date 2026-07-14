@@ -8,6 +8,51 @@
 
 ---
 
+> **⚠️ This document is mid-hardening (status as of July 14, 2026).**
+> Sections 8–12 and the endpoint table predate the July 2026 hardening work.
+> Rather than rewrite them in place while changes are still landing, all
+> hardening is tracked in the **Hardening Log** below, and §10 carries an updated
+> status banner. **Until hardening is declared complete, trust the Hardening Log
+> and the §10 status banner over the original prose in §8–§12.** A full rewrite
+> of §8–§12 and the endpoint table is deferred until then, so onboarding docs
+> don't drift with every commit.
+
+---
+
+## Hardening Log — Changes since March 3, 2026
+
+_Running log so the eventual §8–§12 rewrite is accurate and cheap. Newest first.
+Each entry maps to commits on `main`._
+
+### July 14, 2026
+- **Questionnaire link fixed** — `/q/pre-shoot` (the default Pre-Shoot automation link) showed "Questionnaire not found or expired" because no active `questionnaires` row with that slug existed and the request fell through to the SPA token lookup. Server now seeds a default active **pre-shoot** questionnaire at startup so the link resolves end-to-end.
+- **SMTP/Stripe test endpoints gated** — `/api/setup/technical/test/{smtp,stripe}` connected to arbitrary user-supplied hosts with no auth (SSRF / open-relay probe oracle). Now require authentication **once an admin account exists**; open only on a fresh install so first-run onboarding can still test SMTP before Step 7 creates the admin.
+- **Email test-send honesty** — "Send Test" previously always reported success even when SMTP was unconfigured and the mail silently fell into demo mode. Demo-mode returns now carry `demo:true` + an honest error; the send endpoint and UI report true delivery.
+- **Accounting Export** — Validate/Preview + Generate/Download fixed (profile enum had drifted out of sync with registered adapters; also fixed an N+1 line-item fetch that exhausted the DB pool).
+- **Lead Sources** — new performance dashboard (bar + pie + table), date-range filter (this year / last year / last 12m), leads-vs-revenue combined view, €/lead column.
+- **Top Clients** — removed redundant "By Total Revenue" sort option.
+- **Price List Wizard** — per-service summary table (our price vs market low/median/high), "what's included" surfacing, own-price-guide comparison, and fixed the OpenAI 404 (a Responses-only model in `OPENAI_MODEL`) that had produced 0 extracted prices.
+- **Heroku build** — `heroku-postbuild` prerender step made best-effort (falls back to a plain build) so a puppeteer navigation timeout can't fail the whole deploy.
+
+### July 13, 2026
+- **Galleries** — Phase 1 (pro cover, larger templates, reliable expiry), Phase 2a (visible watermark + protected delivery + working ZIP download), Phase 2b (invisible forensic QIM watermark, private-ready delivery).
+- **Price Wizard** — wired **AxixOS Intelligence** as the discovery + crawl provider (replacing Tavily); real re-read, manual path, honest per-competitor status.
+- **Top Clients** — fixed inflated lifetime value caused by an invoices×sessions SQL fan-out (separate pre-aggregated subqueries), plus a follow-up WHERE-clause fix.
+- **Blog scheduler** — stopped future-dated posts from publishing today; enabled cleanup reschedule.
+- **Intelligent Merge Wizard** — confidence-scored duplicate-client detection, safe audited merge, undo.
+
+### July 12, 2026
+- **Pre-migration hardening** — response compression, rate limiting, webhook signature verification, thumbnail generation.
+- **Checkout crash** — moved all hooks above conditional returns.
+- **Vouchers** — photo-upload fix (JSON/DOCTYPE + downscale), QR → waitlist page, single-page PDF redesign.
+
+> **Environment / secrets note:** during July 2026 work several live secrets were
+> pasted into chat (Render API key, a GitHub PAT, a Supabase password, the AxixOS
+> internal key). These were **flagged for rotation and must not be committed to
+> git**. Whether they were actually rotated is **unverified** — confirm before sign-off.
+
+---
+
 ## Table of Contents
 
 1. [Project Overview](#1-project-overview)
@@ -482,6 +527,24 @@ git push
 ---
 
 ## 10. Security Findings (CRITICAL)
+
+> **Status update — July 14, 2026.** The original findings below were written
+> March 3, 2026. Current state per the Hardening Log:
+>
+> | Finding | Status (July 14, 2026) |
+> |---------|------------------------|
+> | Remove `.env` from git / purge from history | ⚠️ **Unverified** — confirm on the repo before sign-off |
+> | Rotate ALL credentials | ⚠️ **Partial / unverified** — secrets pasted in chat during July work were flagged for rotation; full rotation not confirmed |
+> | Verify prod `DEMO_MODE` / `ALLOW_DEMO_LOGIN` off | ⚠️ **Unverified** — check Heroku config |
+> | Add `express-rate-limit` to auth + public endpoints | ✅ **Added (July 12)** — verify it covers all public form + auth routes |
+> | Webhook signature verification | ✅ **Added (July 12)** |
+> | Response compression | ✅ **Added (July 12)** |
+> | Request body size limits | ⚠️ **Unverified** |
+> | Add `helmet` security headers | ⚠️ **Not done** (unverified) |
+> | Add CSRF protection | ⚠️ **Not done** (unverified) |
+> | Audit routes for missing `requireAuth` | 🟡 **In progress** — `/api/setup/technical/test/{smtp,stripe}` gated July 14. **Still open:** the setup *save* endpoints (`POST /api/setup/technical/email`, `/stripe`, `/storage`, `/extras`, `/domain`, `/security`) are unauthenticated — same public-onboarding constraint, same "gate once an admin exists" fix applies |
+>
+> The remediation instructions below remain valid reference for the unverified/open items.
 
 ### 🔴 Immediate Actions Required
 
