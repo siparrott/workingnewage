@@ -43,6 +43,7 @@ interface Price {
   currency: string;
   confidence_score: number;
   package_name?: string;
+  deliverables?: string;
   website_url: string;
 }
 
@@ -65,6 +66,7 @@ const AdminPriceWizardPage: React.FC = () => {
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
   const [prices, setPrices] = useState<Price[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [myPrices, setMyPrices] = useState<{ name: string; category: string; price: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -92,7 +94,28 @@ const AdminPriceWizardPage: React.FC = () => {
 
   useEffect(() => {
     fetchSessions();
+    // Load the studio's own price guide so suggestions can be compared to it.
+    fetch('/api/crm/price-list', { credentials: 'include' })
+      .then(r => (r.ok ? r.json() : []))
+      .then((rows: any[]) => setMyPrices((rows || []).map(r => ({
+        name: r.name || '', category: r.category || '', price: Number(r.price) || 0,
+      }))))
+      .catch(() => {});
   }, []);
+
+  // Find the studio's own price closest to a competitor service (fuzzy by name/category).
+  const myPriceFor = (serviceType: string): { name: string; price: number } | null => {
+    const s = (serviceType || '').toLowerCase().replace(/_/g, ' ');
+    const tokens = s.split(/\s+/).filter(Boolean);
+    let best: { name: string; price: number } | null = null;
+    for (const item of myPrices) {
+      const hay = `${item.name} ${item.category}`.toLowerCase();
+      if (tokens.some(t => t.length > 2 && hay.includes(t))) {
+        if (!best || item.price < best.price) best = { name: item.name, price: item.price };
+      }
+    }
+    return best;
+  };
 
   useEffect(() => {
     if (selectedSession) {
@@ -912,24 +935,27 @@ const AdminPriceWizardPage: React.FC = () => {
                         const parseReasoning = (reasoning: string) => {
                           const parts = {
                             positioning: '',
+                            whatsIncluded: '',
                             competitiveAdvantage: '',
                             marketInsight: ''
                           };
-                          
-                          // Extract different sections from the reasoning
-                          const posMatch = reasoning.match(/^(.*?)(?:Competitive advantage:|$)/is);
+
+                          // Extract sections from the reasoning
+                          const posMatch = reasoning.match(/^(.*?)(?:What's included:|Competitive advantage:|Market insight:|$)/is);
+                          const incMatch = reasoning.match(/What's included:\s*(.*?)(?:Competitive advantage:|Market insight:|$)/is);
                           const advMatch = reasoning.match(/Competitive advantage:\s*(.*?)(?:Market insight:|$)/is);
                           const insMatch = reasoning.match(/Market insight:\s*(.*?)$/is);
-                          
+
                           if (posMatch) parts.positioning = posMatch[1].trim();
+                          if (incMatch) parts.whatsIncluded = incMatch[1].trim();
                           if (advMatch) parts.competitiveAdvantage = advMatch[1].trim();
                           if (insMatch) parts.marketInsight = insMatch[1].trim();
-                          
+
                           // If no structured format, just use the whole thing as positioning
-                          if (!parts.positioning && !parts.competitiveAdvantage && !parts.marketInsight) {
+                          if (!parts.positioning && !parts.whatsIncluded && !parts.competitiveAdvantage && !parts.marketInsight) {
                             parts.positioning = reasoning;
                           }
-                          
+
                           return parts;
                         };
                         
@@ -1023,7 +1049,19 @@ const AdminPriceWizardPage: React.FC = () => {
                                   </div>
                                 </div>
                               )}
-                              
+
+                              {reasoningParts.whatsIncluded && (
+                                <div className="flex gap-2">
+                                  <div className="flex-shrink-0 w-5 h-5 bg-amber-100 rounded-full flex items-center justify-center mt-0.5">
+                                    <span className="text-amber-600 text-xs">📦</span>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-gray-700">What competitors include at this price: </span>
+                                    <span className="text-gray-600">{reasoningParts.whatsIncluded}</span>
+                                  </div>
+                                </div>
+                              )}
+
                               {reasoningParts.competitiveAdvantage && (
                                 <div className="flex gap-2">
                                   <div className="flex-shrink-0 w-5 h-5 bg-green-100 rounded-full flex items-center justify-center mt-0.5">
@@ -1047,6 +1085,28 @@ const AdminPriceWizardPage: React.FC = () => {
                                   </div>
                                 </div>
                               )}
+
+                              {(() => {
+                                const mine = myPriceFor(suggestion.service_type);
+                                if (!mine) return null;
+                                const diff = Number(suggestion.suggested_price) - mine.price;
+                                return (
+                                  <div className="flex gap-2 bg-indigo-50 rounded-lg p-2 -mx-1">
+                                    <div className="flex-shrink-0 w-5 h-5 bg-indigo-100 rounded-full flex items-center justify-center mt-0.5">
+                                      <span className="text-indigo-600 text-xs">🏷️</span>
+                                    </div>
+                                    <div>
+                                      <span className="font-medium text-gray-700">Your price ({mine.name}): </span>
+                                      <span className="text-gray-800 font-semibold">€{mine.price.toFixed(0)}</span>
+                                      <span className="text-gray-600"> — {diff > 0
+                                        ? `€${diff.toFixed(0)} below this suggestion (room to raise)`
+                                        : diff < 0
+                                          ? `€${Math.abs(diff).toFixed(0)} above this suggestion`
+                                          : 'in line with this suggestion'}</span>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </div>
 
                             {/* Sources / Provenance */}
@@ -1057,13 +1117,17 @@ const AdminPriceWizardPage: React.FC = () => {
                                 return pService === serviceKey || pService.includes(serviceKey) || serviceKey.includes(pService);
                               });
                               // Deduplicate by competitor
-                              const sourceMap = new Map<string, { name: string; url: string; prices: { amount: number; currency: string; confidence: number }[] }>();
+                              const sourceMap = new Map<string, { name: string; url: string; includes: string; prices: { amount: number; currency: string; confidence: number }[] }>();
                               for (const p of relevantPrices) {
                                 const key = p.competitor_name || p.website_url;
                                 if (!sourceMap.has(key)) {
-                                  sourceMap.set(key, { name: p.competitor_name, url: p.website_url, prices: [] });
+                                  sourceMap.set(key, { name: p.competitor_name, url: p.website_url, includes: '', prices: [] });
                                 }
-                                sourceMap.get(key)!.prices.push({ amount: Number(p.price_amount), currency: p.currency || 'EUR', confidence: Number(p.confidence_score) || 0 });
+                                const entry = sourceMap.get(key)!;
+                                entry.prices.push({ amount: Number(p.price_amount), currency: p.currency || 'EUR', confidence: Number(p.confidence_score) || 0 });
+                                // Keep the richest "what's included" text seen for this competitor.
+                                const inc = [p.package_name, p.deliverables].filter(Boolean).join(' — ');
+                                if (inc.length > entry.includes.length) entry.includes = inc;
                               }
                               const sources = Array.from(sourceMap.values());
                               if (sources.length === 0) return null;
@@ -1074,8 +1138,9 @@ const AdminPriceWizardPage: React.FC = () => {
                                   </div>
                                   <div className="space-y-1.5">
                                     {sources.map((src, idx) => (
-                                      <div key={idx} className="flex items-center justify-between text-xs bg-gray-50 rounded px-3 py-1.5">
-                                        <div className="flex items-center gap-2 min-w-0">
+                                      <div key={idx} className="flex items-start justify-between text-xs bg-gray-50 rounded px-3 py-1.5">
+                                        <div className="min-w-0">
+                                          <div className="flex items-center gap-2 min-w-0">
                                           <span className="text-gray-400 font-mono">{idx + 1}.</span>
                                           {src.url ? (
                                             <a
@@ -1089,6 +1154,10 @@ const AdminPriceWizardPage: React.FC = () => {
                                             </a>
                                           ) : (
                                             <span className="text-gray-700 truncate">{src.name}</span>
+                                          )}
+                                          </div>
+                                          {src.includes && (
+                                            <div className="text-gray-500 mt-0.5 ml-5 truncate max-w-[320px]" title={src.includes}>{src.includes}</div>
                                           )}
                                         </div>
                                         <div className="flex items-center gap-2 flex-shrink-0 ml-2">
