@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Plus, Edit2, Trash2, Save, X, GripVertical } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid, ComposedChart, Line } from 'recharts';
 
 interface LeadSource {
   id: string;
@@ -17,7 +17,20 @@ interface SourceAnalytics {
   clients: number;
   revenue: number;
   conversion: number | null;
+  revenuePerLead: number | null;
 }
+
+type DateRange = 'all' | 'this_year' | 'last_year' | 'last_12m';
+
+const rangeQuery = (r: DateRange): string => {
+  const now = new Date();
+  const y = now.getFullYear();
+  if (r === 'this_year') return `?from=${y}-01-01`;
+  if (r === 'last_year') return `?from=${y - 1}-01-01&to=${y - 1}-12-31T23:59:59`;
+  if (r === 'last_12m') { const d = new Date(now); d.setFullYear(d.getFullYear() - 1); return `?from=${d.toISOString().slice(0, 10)}`; }
+  return '';
+};
+const RANGE_LABELS: Record<DateRange, string> = { all: 'All time', this_year: 'This year', last_year: 'Last year', last_12m: 'Last 12 months' };
 
 const CHART_COLORS = ['#7c3aed', '#2563eb', '#059669', '#d97706', '#db2777', '#0891b2', '#65a30d', '#dc2626', '#4f46e5', '#0d9488'];
 const euro = (n: number) => `€${(n || 0).toLocaleString('de-AT')}`;
@@ -32,14 +45,16 @@ const LeadSourcesPage: React.FC = () => {
   const [analytics, setAnalytics] = useState<SourceAnalytics[]>([]);
   const [totals, setTotals] = useState<{ leads: number; clients: number; revenue: number }>({ leads: 0, clients: 0, revenue: 0 });
   const [metric, setMetric] = useState<'revenue' | 'clients' | 'leads'>('revenue');
+  const [range, setRange] = useState<DateRange>('all');
+
+  useEffect(() => { fetchSources(); }, []);
 
   useEffect(() => {
-    fetchSources();
-    fetch('/api/crm/lead-sources/analytics', { credentials: 'include' })
+    fetch(`/api/crm/lead-sources/analytics${rangeQuery(range)}`, { credentials: 'include' })
       .then(r => (r.ok ? r.json() : { analytics: [], totals: { leads: 0, clients: 0, revenue: 0 } }))
       .then(d => { setAnalytics(d.analytics || []); setTotals(d.totals || { leads: 0, clients: 0, revenue: 0 }); })
       .catch(() => {});
-  }, []);
+  }, [range]);
 
   const fetchSources = async () => {
     try {
@@ -163,22 +178,37 @@ const LeadSourcesPage: React.FC = () => {
         </div>
 
         {/* Performance dashboard */}
-        {analytics.length > 0 && (
+        {(analytics.length > 0 || range !== 'all') && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Lead Source Performance</h2>
-              <div className="flex gap-1 text-sm bg-gray-100 rounded-lg p-0.5">
-                {(['revenue', 'clients', 'leads'] as const).map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setMetric(m)}
-                    className={`px-3 py-1 rounded-md capitalize ${metric === m ? 'bg-white shadow text-purple-700 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
-                  >
-                    {m}
-                  </button>
-                ))}
+              <div className="flex flex-wrap items-center gap-3">
+                <select
+                  value={range}
+                  onChange={(e) => setRange(e.target.value as DateRange)}
+                  className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  {(['all', 'this_year', 'last_year', 'last_12m'] as DateRange[]).map((r) => (
+                    <option key={r} value={r}>{RANGE_LABELS[r]}</option>
+                  ))}
+                </select>
+                <div className="flex gap-1 text-sm bg-gray-100 rounded-lg p-0.5">
+                  {(['revenue', 'clients', 'leads'] as const).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setMetric(m)}
+                      className={`px-3 py-1 rounded-md capitalize ${metric === m ? 'bg-white shadow text-purple-700 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
+
+            {analytics.length === 0 && (
+              <div className="py-6 text-center text-sm text-gray-400">No leads or revenue recorded in this period.</div>
+            )}
 
             <div className="grid grid-cols-3 gap-3 mb-6">
               <div className="bg-blue-50 rounded-lg p-3 text-center"><div className="text-2xl font-bold text-blue-700">{totals.leads}</div><div className="text-xs text-gray-500">Total Leads</div></div>
@@ -215,6 +245,24 @@ const LeadSourcesPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Combined: leads vs revenue (dual axis) to spot over/under-conversion */}
+            <div className="mt-6">
+              <h3 className="text-sm font-medium text-gray-600 mb-2">Leads vs revenue — spot over/under-converting channels</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <ComposedChart data={analytics.slice(0, 10)} margin={{ top: 5, right: 10, left: 0, bottom: 50 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="source" angle={-30} textAnchor="end" interval={0} height={60} tick={{ fontSize: 11 }} />
+                  <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} tickFormatter={(v) => `€${v}`} />
+                  <Tooltip formatter={(v: any, name: any) => (name === 'Revenue' ? euro(Number(v)) : v)} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar yAxisId="left" dataKey="leads" name="Leads" fill="#93c5fd" radius={[4, 4, 0, 0]} />
+                  <Line yAxisId="right" dataKey="revenue" name="Revenue" stroke="#7c3aed" strokeWidth={2} dot={{ r: 3 }} />
+                </ComposedChart>
+              </ResponsiveContainer>
+              <p className="text-[11px] text-gray-400 mt-1">Tall bar with a low line = a channel bringing leads that don't convert to revenue. Short bar with a high line = a high-value channel worth doubling down on.</p>
+            </div>
+
             <div className="mt-4 overflow-x-auto">
               <table className="w-full text-sm min-w-[520px]">
                 <thead>
@@ -223,6 +271,7 @@ const LeadSourcesPage: React.FC = () => {
                     <th className="py-2 px-2 font-medium text-right">Leads</th>
                     <th className="py-2 px-2 font-medium text-right">Clients</th>
                     <th className="py-2 px-2 font-medium text-right">Conv.</th>
+                    <th className="py-2 px-2 font-medium text-right" title="Revenue per lead — how efficiently this channel turns leads into money">€/lead</th>
                     <th className="py-2 px-2 font-medium text-right">Revenue</th>
                   </tr>
                 </thead>
@@ -233,6 +282,7 @@ const LeadSourcesPage: React.FC = () => {
                       <td className="py-2 px-2 text-right text-gray-600">{a.leads}</td>
                       <td className="py-2 px-2 text-right text-gray-600">{a.clients}</td>
                       <td className="py-2 px-2 text-right text-gray-600">{a.conversion == null ? '—' : `${a.conversion}%`}</td>
+                      <td className="py-2 px-2 text-right text-gray-600">{a.revenuePerLead == null ? '—' : euro(a.revenuePerLead)}</td>
                       <td className="py-2 px-2 text-right font-medium text-gray-900">{euro(a.revenue)}</td>
                     </tr>
                   ))}

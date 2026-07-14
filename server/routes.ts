@@ -3003,23 +3003,31 @@ Bitte versuchen Sie es später noch einmal.`;
 
   // Lead-source performance analytics: leads, converted clients and revenue per
   // source, so the studio can see which channels actually produce business.
-  app.get("/api/crm/lead-sources/analytics", authenticateUser, async (_req: Request, res: Response) => {
+  app.get("/api/crm/lead-sources/analytics", authenticateUser, async (req: Request, res: Response) => {
     try {
-      // Clients + paid revenue grouped by the client's lead_source.
+      // Optional date range. When `from` is set, `to` defaults to now; when it's
+      // absent the whole query is all-time ($1 IS NULL short-circuits the filter).
+      const from = req.query.from ? new Date(String(req.query.from)) : null;
+      const to = from ? (req.query.to ? new Date(String(req.query.to)) : new Date()) : null;
+
+      // Clients (created in range) + paid revenue (invoiced in range) per source.
       const clientRows = await runSql(`
         SELECT COALESCE(NULLIF(TRIM(c.lead_source), ''), 'Unspecified') AS source,
-               COUNT(DISTINCT c.id)::int AS clients,
-               COALESCE(SUM(CASE WHEN i.status = 'paid' THEN i.total ELSE 0 END), 0)::double precision AS revenue
+               COUNT(DISTINCT c.id) FILTER (WHERE $1::timestamp IS NULL OR c.created_at BETWEEN $1 AND $2)::int AS clients,
+               COALESCE(SUM(CASE WHEN i.status = 'paid'
+                     AND ($1::timestamp IS NULL OR COALESCE(i.issue_date::timestamp, i.created_at) BETWEEN $1 AND $2)
+                   THEN i.total ELSE 0 END), 0)::double precision AS revenue
           FROM crm_clients c
           LEFT JOIN crm_invoices i ON i.client_id = c.id
          GROUP BY 1
-      `);
-      // Leads grouped by the lead's source.
+      `, [from, to]);
+      // Leads created in range, grouped by the lead's source.
       const leadRows = await runSql(`
         SELECT COALESCE(NULLIF(TRIM(source), ''), 'Unspecified') AS source, COUNT(*)::int AS leads
           FROM crm_leads
+         WHERE $1::timestamp IS NULL OR created_at BETWEEN $1 AND $2
          GROUP BY 1
-      `);
+      `, [from, to]);
 
       // Merge case-insensitively, preferring a non-'Unspecified' display label.
       const map = new Map<string, { source: string; leads: number; clients: number; revenue: number }>();
@@ -3033,7 +3041,12 @@ Bitte versuchen Sie es später noch einmal.`;
       for (const r of leadRows) { const e = upsert(r.source); e.leads += r.leads || 0; }
 
       const analytics = [...map.values()]
-        .map((e) => ({ ...e, revenue: Math.round(e.revenue), conversion: e.leads > 0 ? Math.round((e.clients / e.leads) * 100) : null }))
+        .map((e) => ({
+          ...e,
+          revenue: Math.round(e.revenue),
+          conversion: e.leads > 0 ? Math.round((e.clients / e.leads) * 100) : null,
+          revenuePerLead: e.leads > 0 ? Math.round(e.revenue / e.leads) : null,
+        }))
         .sort((a, b) => b.revenue - a.revenue || b.clients - a.clients);
 
       const totals = analytics.reduce((t, e) => ({ leads: t.leads + e.leads, clients: t.clients + e.clients, revenue: t.revenue + e.revenue }), { leads: 0, clients: 0, revenue: 0 });
