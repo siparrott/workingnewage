@@ -235,7 +235,7 @@ const LeadSourcesPage: React.FC = () => {
                 <h3 className="text-sm font-medium text-gray-600 mb-2 capitalize">{metric} share</h3>
                 <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
-                    <Pie data={analytics.filter((a) => (a as any)[metric] > 0)} dataKey={metric} nameKey="source" cx="50%" cy="50%" outerRadius={90} label={(e: any) => e.source}>
+                    <Pie data={analytics.filter((a) => (a as any)[metric] > 0)} dataKey={metric} nameKey="source" cx="50%" cy="50%" outerRadius={95}>
                       {analytics.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                     </Pie>
                     <Tooltip formatter={(v: any) => (metric === 'revenue' ? euro(Number(v)) : v)} />
