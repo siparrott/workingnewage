@@ -32,6 +32,7 @@ interface Competitor {
   status: 'pending' | 'scraped' | 'failed';
   price_count: number;
   scraped_at?: string;
+  scrape_error?: string;
 }
 
 interface Price {
@@ -1227,6 +1228,27 @@ const AdminPriceWizardPage: React.FC = () => {
                           <DollarSign className="w-3 h-3" />
                           Generate Suggestions
                         </button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const r = await fetch('/api/price-wizard/diagnostics', { credentials: 'include' });
+                              const d = await r.json();
+                              alert(
+                                `Price Wizard diagnostics\n\n` +
+                                `OpenAI (price extraction): ${d.openai?.ok ? 'OK ✅ (' + d.openai.model + ')' : 'FAILED ❌ — ' + (d.openai?.reason || 'unknown')}\n` +
+                                `AxixOS (discovery/crawl): ${d.axixos?.ok ? 'OK ✅ (' + (d.axixos.searchResults ?? 0) + ' search results)' : 'FAILED ❌ — ' + (d.axixos?.reason || 'status ' + d.axixos?.searchStatus)}\n\n` +
+                                `${d.summary || ''}`
+                              );
+                            } catch (e: any) {
+                              alert('Diagnostics failed: ' + (e?.message || 'unknown'));
+                            }
+                          }}
+                          className="text-xs px-3 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200 flex items-center gap-1"
+                          title="Test whether OpenAI and AxixOS are working"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          Diagnostics
+                        </button>
                       </div>
                     </div>
                     <div className="overflow-x-auto">
@@ -1253,6 +1275,11 @@ const AdminPriceWizardPage: React.FC = () => {
                                 }`}>
                                   {comp.status}
                                 </span>
+                                {comp.status === 'failed' && comp.scrape_error && (
+                                  <div className="mt-1 text-[11px] text-red-500 max-w-[240px]" title={comp.scrape_error}>
+                                    {comp.scrape_error}
+                                  </div>
+                                )}
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-600">{comp.price_count}</td>
                               <td className="px-4 py-3 flex items-center gap-2">

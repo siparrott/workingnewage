@@ -238,6 +238,55 @@ router.get('/competitors/:sessionId', async (req, res) => {
 });
 
 /**
+ * GET /api/price-wizard/diagnostics
+ * Actively test the providers the pipeline depends on so failures are obvious:
+ * pings OpenAI (extraction) and AxixOS (discovery + crawl). No secrets returned.
+ */
+router.get('/diagnostics', async (_req, res) => {
+  const out: any = { openai: {}, axixos: {}, tavily: { configured: !!process.env.TAVILY_API_KEY } };
+
+  // OpenAI — the extraction engine. A present-but-invalid key passes the "is it
+  // set" guard yet throws on every real call, which looks exactly like "0 prices".
+  if (!process.env.OPENAI_API_KEY) {
+    out.openai = { ok: false, reason: 'OPENAI_API_KEY not set' };
+  } else {
+    try {
+      const OpenAI = (await import('openai')).default;
+      const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+      await client.chat.completions.create({ model, messages: [{ role: 'user', content: 'ping' }], max_tokens: 1 });
+      out.openai = { ok: true, model };
+    } catch (e: any) {
+      out.openai = { ok: false, reason: e?.message || 'error', status: e?.status || e?.code };
+    }
+  }
+
+  // AxixOS — discovery (/v1/search/web) + page crawl.
+  if (!process.env.AXIXOS_INTERNAL_API_KEY) {
+    out.axixos = { ok: false, reason: 'AXIXOS_INTERNAL_API_KEY not set' };
+  } else {
+    try {
+      const base = (process.env.AXIXOS_API_BASE || 'https://axixos-intelligence.onrender.com').replace(/\/+$/, '');
+      const h = await fetch(`${base}/health`).catch(() => null);
+      const s = await fetch(`${base}/v1/search/web`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-axixos-api-key': process.env.AXIXOS_INTERNAL_API_KEY },
+        body: JSON.stringify({ query: 'Fotograf Wien Preise', limit: 2, country: 'AT', language: 'de' }),
+      });
+      const sj: any = await s.json().catch(() => ({}));
+      out.axixos = { ok: s.ok, health: h?.status || null, searchStatus: s.status, searchResults: (sj.results || []).length };
+    } catch (e: any) {
+      out.axixos = { ok: false, reason: e?.message || 'error' };
+    }
+  }
+
+  const summary = out.openai.ok
+    ? (out.axixos.ok ? 'All providers OK — if research still finds 0 prices, the competitor pages had no readable prices.' : 'OpenAI OK but AxixOS discovery is failing.')
+    : `OpenAI is NOT working (${out.openai.reason}). This is why every competitor extracts 0 prices — fix OPENAI_API_KEY on the host.`;
+  res.json({ ...out, summary });
+});
+
+/**
  * GET /api/price-wizard/prices/:sessionId
  * Get all extracted prices for a session
  */
