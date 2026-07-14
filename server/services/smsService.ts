@@ -43,7 +43,20 @@ export class SMSService {
         return true;
       }
 
-      // If no database config, try environment variables for Vonage
+      // If no database config, try environment variables for Twilio…
+      if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM_NUMBER) {
+        this.config = {
+          provider: 'twilio',
+          accountSid: process.env.TWILIO_ACCOUNT_SID,
+          authToken: process.env.TWILIO_AUTH_TOKEN,
+          fromNumber: process.env.TWILIO_FROM_NUMBER,
+          isActive: true
+        };
+        console.log('✅ SMS service initialized with Twilio from environment variables');
+        return true;
+      }
+
+      // …then Vonage
       if (process.env.VONAGE_API_KEY && process.env.VONAGE_API_SECRET) {
         this.config = {
           provider: 'vonage',
@@ -52,9 +65,8 @@ export class SMSService {
           fromNumber: process.env.VONAGE_PHONE_NUMBER || 'TogNinja CRM',
           isActive: true
         };
-        
+
         console.log('✅ SMS service initialized with Vonage from environment variables');
-        console.log(`📱 Vonage API Key: ${process.env.VONAGE_API_KEY}`);
         return true;
       }
 
