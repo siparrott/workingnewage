@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Plus, Edit2, Trash2, Save, X, GripVertical } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid } from 'recharts';
 
 interface LeadSource {
   id: string;
@@ -10,6 +11,17 @@ interface LeadSource {
   createdAt: string;
 }
 
+interface SourceAnalytics {
+  source: string;
+  leads: number;
+  clients: number;
+  revenue: number;
+  conversion: number | null;
+}
+
+const CHART_COLORS = ['#7c3aed', '#2563eb', '#059669', '#d97706', '#db2777', '#0891b2', '#65a30d', '#dc2626', '#4f46e5', '#0d9488'];
+const euro = (n: number) => `€${(n || 0).toLocaleString('de-AT')}`;
+
 const LeadSourcesPage: React.FC = () => {
   const [sources, setSources] = useState<LeadSource[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,9 +29,16 @@ const LeadSourcesPage: React.FC = () => {
   const [editName, setEditName] = useState('');
   const [newSourceName, setNewSourceName] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [analytics, setAnalytics] = useState<SourceAnalytics[]>([]);
+  const [totals, setTotals] = useState<{ leads: number; clients: number; revenue: number }>({ leads: 0, clients: 0, revenue: 0 });
+  const [metric, setMetric] = useState<'revenue' | 'clients' | 'leads'>('revenue');
 
   useEffect(() => {
     fetchSources();
+    fetch('/api/crm/lead-sources/analytics', { credentials: 'include' })
+      .then(r => (r.ok ? r.json() : { analytics: [], totals: { leads: 0, clients: 0, revenue: 0 } }))
+      .then(d => { setAnalytics(d.analytics || []); setTotals(d.totals || { leads: 0, clients: 0, revenue: 0 }); })
+      .catch(() => {});
   }, []);
 
   const fetchSources = async () => {
@@ -142,6 +161,86 @@ const LeadSourcesPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Lead Sources</h1>
           <p className="text-gray-600">Manage where your leads come from</p>
         </div>
+
+        {/* Performance dashboard */}
+        {analytics.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Lead Source Performance</h2>
+              <div className="flex gap-1 text-sm bg-gray-100 rounded-lg p-0.5">
+                {(['revenue', 'clients', 'leads'] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setMetric(m)}
+                    className={`px-3 py-1 rounded-md capitalize ${metric === m ? 'bg-white shadow text-purple-700 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              <div className="bg-blue-50 rounded-lg p-3 text-center"><div className="text-2xl font-bold text-blue-700">{totals.leads}</div><div className="text-xs text-gray-500">Total Leads</div></div>
+              <div className="bg-green-50 rounded-lg p-3 text-center"><div className="text-2xl font-bold text-green-700">{totals.clients}</div><div className="text-xs text-gray-500">Converted Clients</div></div>
+              <div className="bg-purple-50 rounded-lg p-3 text-center"><div className="text-2xl font-bold text-purple-700">{euro(totals.revenue)}</div><div className="text-xs text-gray-500">Total Revenue</div></div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-sm font-medium text-gray-600 mb-2 capitalize">{metric} by source</h3>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={analytics.slice(0, 10)} margin={{ top: 5, right: 10, left: 0, bottom: 40 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="source" angle={-30} textAnchor="end" interval={0} height={60} tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => (metric === 'revenue' ? `€${v}` : String(v))} />
+                    <Tooltip formatter={(v: any) => (metric === 'revenue' ? euro(Number(v)) : v)} />
+                    <Bar dataKey={metric} radius={[4, 4, 0, 0]}>
+                      {analytics.slice(0, 10).map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-600 mb-2 capitalize">{metric} share</h3>
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie data={analytics.filter((a) => (a as any)[metric] > 0)} dataKey={metric} nameKey="source" cx="50%" cy="50%" outerRadius={90} label={(e: any) => e.source}>
+                      {analytics.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip formatter={(v: any) => (metric === 'revenue' ? euro(Number(v)) : v)} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full text-sm min-w-[520px]">
+                <thead>
+                  <tr className="text-[11px] text-gray-500 uppercase text-left border-b">
+                    <th className="py-2 pr-4 font-medium">Source</th>
+                    <th className="py-2 px-2 font-medium text-right">Leads</th>
+                    <th className="py-2 px-2 font-medium text-right">Clients</th>
+                    <th className="py-2 px-2 font-medium text-right">Conv.</th>
+                    <th className="py-2 px-2 font-medium text-right">Revenue</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {analytics.map((a, i) => (
+                    <tr key={a.source}>
+                      <td className="py-2 pr-4"><span className="inline-flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />{a.source}</span></td>
+                      <td className="py-2 px-2 text-right text-gray-600">{a.leads}</td>
+                      <td className="py-2 px-2 text-right text-gray-600">{a.clients}</td>
+                      <td className="py-2 px-2 text-right text-gray-600">{a.conversion == null ? '—' : `${a.conversion}%`}</td>
+                      <td className="py-2 px-2 text-right font-medium text-gray-900">{euro(a.revenue)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">

@@ -3001,6 +3001,49 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
+  // Lead-source performance analytics: leads, converted clients and revenue per
+  // source, so the studio can see which channels actually produce business.
+  app.get("/api/crm/lead-sources/analytics", authenticateUser, async (_req: Request, res: Response) => {
+    try {
+      // Clients + paid revenue grouped by the client's lead_source.
+      const clientRows = await runSql(`
+        SELECT COALESCE(NULLIF(TRIM(c.lead_source), ''), 'Unspecified') AS source,
+               COUNT(DISTINCT c.id)::int AS clients,
+               COALESCE(SUM(CASE WHEN i.status = 'paid' THEN i.total ELSE 0 END), 0)::double precision AS revenue
+          FROM crm_clients c
+          LEFT JOIN crm_invoices i ON i.client_id = c.id
+         GROUP BY 1
+      `);
+      // Leads grouped by the lead's source.
+      const leadRows = await runSql(`
+        SELECT COALESCE(NULLIF(TRIM(source), ''), 'Unspecified') AS source, COUNT(*)::int AS leads
+          FROM crm_leads
+         GROUP BY 1
+      `);
+
+      // Merge case-insensitively, preferring a non-'Unspecified' display label.
+      const map = new Map<string, { source: string; leads: number; clients: number; revenue: number }>();
+      const keyOf = (s: string) => s.toLowerCase();
+      const upsert = (source: string) => {
+        const k = keyOf(source);
+        if (!map.has(k)) map.set(k, { source, leads: 0, clients: 0, revenue: 0 });
+        return map.get(k)!;
+      };
+      for (const r of clientRows) { const e = upsert(r.source); e.clients += r.clients || 0; e.revenue += Number(r.revenue) || 0; }
+      for (const r of leadRows) { const e = upsert(r.source); e.leads += r.leads || 0; }
+
+      const analytics = [...map.values()]
+        .map((e) => ({ ...e, revenue: Math.round(e.revenue), conversion: e.leads > 0 ? Math.round((e.clients / e.leads) * 100) : null }))
+        .sort((a, b) => b.revenue - a.revenue || b.clients - a.clients);
+
+      const totals = analytics.reduce((t, e) => ({ leads: t.leads + e.leads, clients: t.clients + e.clients, revenue: t.revenue + e.revenue }), { leads: 0, clients: 0, revenue: 0 });
+      res.json({ analytics, totals });
+    } catch (error) {
+      console.error("Error computing lead-source analytics:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Create lead source
   app.post("/api/crm/lead-sources", authenticateUser, async (req: Request, res: Response) => {
     try {
