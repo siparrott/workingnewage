@@ -199,7 +199,7 @@ export class PriceResearchService {
                 price.currency || 'EUR',
                 price.confidence,
                 comp.website,
-                price.deliverables?.join(', ') || null,
+                this.inclusionsText(price) || null,
               ]);
               totalPrices++;
             }
@@ -265,7 +265,7 @@ export class PriceResearchService {
                 analysis.priceStats.min,
                 analysis.priceStats.median,
                 analysis.priceStats.max,
-                `${rec.reasoning}\n\nCompetitive advantage: ${rec.competitiveAdvantage}\n\nMarket insight: ${analysis.marketInsights}`,
+                `${rec.reasoning}\n\nWhat's included: ${rec.whatsIncluded || ''}\n\nCompetitive advantage: ${rec.competitiveAdvantage}\n\nMarket insight: ${analysis.marketInsights}`,
               ]);
               suggestionsCount++;
               console.log(`     ✓ Inserted ${rec.tier} tier: €${rec.suggestedPrice}`);
@@ -334,7 +334,9 @@ export class PriceResearchService {
         JSON_AGG(JSON_BUILD_OBJECT(
           'serviceType', cp.service_type,
           'price', cp.price_amount,
-          'confidence', cp.confidence_score
+          'confidence', cp.confidence_score,
+          'packageName', cp.package_name,
+          'includes', cp.deliverables
         )) as prices
       FROM competitor_research cr
       LEFT JOIN competitor_prices cp ON cp.competitor_id = cr.id
@@ -375,6 +377,17 @@ export class PriceResearchService {
 
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // Build a compact human-readable "what's included" string from an extracted
+  // price so it can be shown per competitor and fed into the suggestion analysis.
+  private inclusionsText(price: any): string {
+    const bits: string[] = [];
+    if (price.priceType && price.priceType !== 'fixed') bits.push(String(price.priceType).replace(/_/g, ' '));
+    if (price.duration) bits.push(String(price.duration));
+    if (price.includedPhotos) bits.push(`${price.includedPhotos} edited photos`);
+    if (Array.isArray(price.deliverables)) bits.push(...price.deliverables.filter(Boolean));
+    return bits.join(' · ');
   }
 
   private normalizeServices(raw: any): string[] {
@@ -444,7 +457,7 @@ export class PriceResearchService {
             INSERT INTO competitor_prices (competitor_id, service_type, package_name, price_amount, currency, confidence_score, url_source, deliverables)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
             [competitorId, price.serviceType, price.packageName || price.serviceName, price.price,
-             price.currency || 'EUR', price.confidence, website, price.deliverables?.join(', ') || null]);
+             price.currency || 'EUR', price.confidence, website, this.inclusionsText(price) || null]);
           totalPrices++;
         }
 
@@ -506,7 +519,7 @@ export class PriceResearchService {
               ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending_review')`,
               [sessionId, service, rec.tier, rec.suggestedPrice,
                analysis.priceStats.min, analysis.priceStats.median, analysis.priceStats.max,
-               `${rec.reasoning}\n\nCompetitive advantage: ${rec.competitiveAdvantage}\n\nMarket insight: ${analysis.marketInsights}`]);
+               `${rec.reasoning}\n\nWhat's included: ${rec.whatsIncluded || ''}\n\nCompetitive advantage: ${rec.competitiveAdvantage}\n\nMarket insight: ${analysis.marketInsights}`]);
             suggestionsCount++;
           } catch (insertError: any) {
             console.error(`Failed to insert ${rec.tier} suggestion:`, insertError.message);

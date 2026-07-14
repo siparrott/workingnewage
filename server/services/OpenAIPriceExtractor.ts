@@ -49,6 +49,7 @@ interface MarketAnalysis {
     suggestedPrice: number;
     reasoning: string;
     competitiveAdvantage: string;
+    whatsIncluded?: string;
   }[];
   marketInsights: string;
 }
@@ -272,8 +273,16 @@ Price Statistics:
 - 25th percentile: €${stats.quartile25}
 - 75th percentile: €${stats.quartile75}
 
-Competitor Data:
-${competitorData.map(c => `- ${c.businessName}: ${c.positioning}, prices €${c.priceRange.min}-€${c.priceRange.max}`).join('\n')}
+Competitor packages (price — package name — what's included, where known):
+${competitorData.map(c => {
+  const pkgs = (c.prices || [])
+    .filter((p: any) => p.price > 0)
+    .map((p: any) => `    €${p.price}${p.packageName ? ` (${p.packageName})` : ''}${p.includes ? ` — ${p.includes}` : ''}`)
+    .join('\n');
+  return `- ${c.businessName} [${c.positioning}]:\n${pkgs || '    (price only, no package detail)'}`;
+}).join('\n')}
+
+For each tier, set "whatsIncluded" to a concise, realistic summary of what competitors at that price point typically include (session length, number of edited images, online gallery, prints, etc.), inferred from the package data above. If detail is sparse, give the typical Vienna-market inclusion for that price.
 
 Return JSON with:
 {
@@ -282,19 +291,22 @@ Return JSON with:
       "tier": "basic",
       "suggestedPrice": 250,
       "reasoning": "Why this price",
-      "competitiveAdvantage": "What to emphasize at this tier"
+      "competitiveAdvantage": "What to emphasize at this tier",
+      "whatsIncluded": "e.g. ~60 min session, 8-10 edited images, online gallery"
     },
     {
-      "tier": "standard", 
+      "tier": "standard",
       "suggestedPrice": 400,
       "reasoning": "...",
-      "competitiveAdvantage": "..."
+      "competitiveAdvantage": "...",
+      "whatsIncluded": "..."
     },
     {
       "tier": "premium",
       "suggestedPrice": 600,
       "reasoning": "...",
-      "competitiveAdvantage": "..."
+      "competitiveAdvantage": "...",
+      "whatsIncluded": "..."
     }
   ],
   "marketInsights": "2-3 sentence market summary with actionable insight"
