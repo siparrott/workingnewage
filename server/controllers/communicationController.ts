@@ -72,19 +72,21 @@ export const sendEmail = async (req: Request, res: Response) => {
  */
 export const sendSMS = async (req: Request, res: Response) => {
   try {
-    const { to, content, clientId, autoLinkClient = true } = req.body;
+    const { to, content, clientId, autoLinkClient = true, messageType } = req.body;
 
     if (!to || !content) {
-      return res.status(400).json({ 
-        error: 'Missing required fields: to, content' 
+      return res.status(400).json({
+        error: 'Missing required fields: to, content'
       });
     }
 
+    // Forward the channel — without this, a WhatsApp request was silently sent as SMS.
     const result = await SMSService.sendSMS({
       to,
       content,
       clientId,
       autoLinkClient,
+      messageType: messageType === 'whatsapp' ? 'whatsapp' : 'sms',
     });
 
     res.json(result);
