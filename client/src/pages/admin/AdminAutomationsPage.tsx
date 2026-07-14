@@ -7,6 +7,62 @@ import {
   Mail, TestTube, Eye, Code
 } from 'lucide-react';
 
+// ── Email body ⇄ plain-text conversion ──────────────────────────────────────
+// The "Write" editor shows a friendly plain-text view of an HTML template and
+// re-wraps it to HTML on save. To keep that round-trip LOSSLESS (the previous
+// version silently destroyed the call-to-action button + {{questionnaireLink}}),
+// the button is represented as a markdown-style [label](url) token in both
+// directions, and blank-line runs are normalised so pagination stays clean.
+const EMAIL_BUTTON_STYLE =
+  'display:inline-block;background:#7C3AED;color:#ffffff;padding:12px 26px;border-radius:8px;text-decoration:none;font-weight:600;';
+
+function bodyIsHtml(s: string): boolean {
+  return !!s && s.includes('<') && s.includes('>');
+}
+
+function htmlToPlain(html: string): string {
+  if (!bodyIsHtml(html)) return html || '';
+  return html
+    // Preserve links/buttons as [label](url) so they survive the round-trip.
+    .replace(/<a\b[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi,
+      (_m, href, label) => `[${String(label).replace(/<[^>]+>/g, '').trim()}](${href})`)
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<\/h[1-6]>/gi, '\n\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    // Normalise pagination: strip trailing spaces per line, collapse blank-line
+    // runs to a single blank line, drop leading/trailing blanks.
+    .split('\n').map((l) => l.replace(/[ \t]+$/g, '')).join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/^\n+|\n+$/g, '')
+    .trim();
+}
+
+function plainToHtml(text: string): string {
+  const body = text.split('\n').map((raw) => {
+    const line = raw.trim();
+    if (!line) return ''; // paragraph <p> margins provide the spacing
+    const btn = line.match(/^\[(.+?)\]\((.+?)\)$/);
+    if (btn) {
+      return `<div style="text-align:center;margin:26px 0;"><a href="${btn[2]}" style="${EMAIL_BUTTON_STYLE}">${btn[1]}</a></div>`;
+    }
+    return `<p style="margin:0 0 12px 0;line-height:1.6;">${line}</p>`;
+  }).filter(Boolean).join('\n');
+  return `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#111827;">\n${body}\n</div>`;
+}
+
+// The HTML that will actually be saved/sent for the current body value:
+// already-HTML bodies pass through untouched; plain-text (Write mode) is wrapped.
+function resolveEmailHtml(body: string): string {
+  return bodyIsHtml(body) ? body : plainToHtml(body);
+}
+
 interface Automation {
   id: number;
   name: string;
@@ -334,16 +390,13 @@ const AdminAutomationsPage: React.FC = () => {
         triggerType: formTriggerType,
         offsetHours: formOffsetHours,
         emailSubject: formSubject,
-        emailBodyHtml: formBody,
+        // Already-HTML bodies (opened from a template, edited in HTML mode, or
+        // left untouched in Write mode) pass through as-is; plain-text from Write
+        // mode is wrapped, reconstructing the [label](url) button token.
+        emailBodyHtml: resolveEmailHtml(formBody),
         questionnaireSlug: formQuestionnaire || null,
         enabled: formEnabled,
       };
-
-      // Auto-wrap plain text in HTML template if no HTML tags detected
-      if (!payload.emailBodyHtml.includes('<') || !payload.emailBodyHtml.includes('>')) {
-        const lines = payload.emailBodyHtml.split('\n').map((line: string) => line.trim() ? `<p style="margin: 0 0 10px 0; line-height: 1.6;">${line}</p>` : '<br/>').join('\n');
-        payload.emailBodyHtml = `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">\n${lines}\n</div>`;
-      }
 
       const url = editingId ? `/api/admin/automations/${editingId}` : '/api/admin/automations';
       const method = editingId ? 'PUT' : 'POST';
@@ -716,39 +769,22 @@ const AdminAutomationsPage: React.FC = () => {
                     <>
                       <div className="bg-blue-50 border border-blue-200 rounded-t-lg px-3 py-2">
                         <p className="text-xs text-blue-700">
-                          ✏️ Write your email message here in plain text. Line breaks will be preserved. 
-                          Use placeholders like <code className="bg-blue-100 px-1 rounded">{'{{clientName}}'}</code> and <code className="bg-blue-100 px-1 rounded">{'{{bookingDate}}'}</code> — they get replaced with real values when sent.
+                          ✏️ Write your email message here in plain text. Blank lines separate paragraphs.
+                          Use placeholders like <code className="bg-blue-100 px-1 rounded">{'{{clientName}}'}</code> and <code className="bg-blue-100 px-1 rounded">{'{{bookingDate}}'}</code>.
+                          For a button, put it on its own line as <code className="bg-blue-100 px-1 rounded">{'[Fragebogen ausfüllen]({{questionnaireLink}})'}</code>.
                         </p>
                       </div>
                       <textarea
-                        value={(() => {
-                          // Strip HTML for visual mode display
-                          const tmp = formBody;
-                          if (!tmp.includes('<')) return tmp;
-                          // Simple extraction of text content from HTML
-                          const stripped = tmp
-                            .replace(/<br\s*\/?>/gi, '\n')
-                            .replace(/<\/p>/gi, '\n')
-                            .replace(/<\/div>/gi, '\n')
-                            .replace(/<\/h[1-6]>/gi, '\n\n')
-                            .replace(/<[^>]+>/g, '')
-                            .replace(/&nbsp;/g, ' ')
-                            .replace(/&amp;/g, '&')
-                            .replace(/&lt;/g, '<')
-                            .replace(/&gt;/g, '>')
-                            .replace(/&quot;/g, '"')
-                            .replace(/\n{3,}/g, '\n\n')
-                            .trim();
-                          return stripped;
-                        })()}
+                        value={htmlToPlain(formBody)}
                         onChange={(e) => {
-                          // Store as plain text — will be auto-wrapped in HTML on save
+                          // Store as plain text — auto-wrapped to HTML on save.
+                          // The button survives as a [label](url) token (see plainToHtml).
                           setFormBody(e.target.value);
                         }}
                         rows={10}
                         placeholder={language === 'de'
-                          ? 'Hallo {{clientName}},\n\nIhr Fotoshooting am {{bookingDate}} um {{bookingTime}} rückt näher!\n\nBitte füllen Sie unseren kurzen Fragebogen aus:\n{{questionnaireLink}}\n\nVielen Dank!\nNew Age Fotografie'
-                          : 'Hello {{clientName}},\n\nYour photoshoot on {{bookingDate}} at {{bookingTime}} is coming up!\n\nPlease fill out our short questionnaire:\n{{questionnaireLink}}\n\nThank you!\nNew Age Fotografie'}
+                          ? 'Hallo {{clientName}},\n\nIhr Fotoshooting am {{bookingDate}} um {{bookingTime}} rückt näher!\n\nBitte füllen Sie unseren kurzen Fragebogen aus:\n\n[Fragebogen ausfüllen]({{questionnaireLink}})\n\nVielen Dank!\nNew Age Fotografie'
+                          : 'Hello {{clientName}},\n\nYour photoshoot on {{bookingDate}} at {{bookingTime}} is coming up!\n\nPlease fill out our short questionnaire:\n\n[Fill out questionnaire]({{questionnaireLink}})\n\nThank you!\nNew Age Fotografie'}
                         className="w-full px-3 py-2 border border-gray-300 border-t-0 rounded-b-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
                       />
                       <p className="text-xs text-gray-400 mt-1">
@@ -775,7 +811,7 @@ const AdminAutomationsPage: React.FC = () => {
                       <div
                         className="p-4 bg-white min-h-[200px] max-h-[400px] overflow-y-auto"
                         dangerouslySetInnerHTML={{
-                          __html: formBody
+                          __html: resolveEmailHtml(formBody)
                             .replace(/\{\{clientName\}\}/g, 'Maria Muster')
                             .replace(/\{\{clientEmail\}\}/g, 'maria@example.com')
                             .replace(/\{\{bookingDate\}\}/g, '15.04.2026')
