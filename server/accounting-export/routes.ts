@@ -7,25 +7,47 @@ import { Router, Request, Response } from 'express';
 import { AccountingExportManager } from './manager';
 import type { ExportRequest } from './types';
 import { z } from 'zod';
+import { pool } from '../db';
 
 const router = Router();
 const exportManager = new AccountingExportManager();
+
+const VALID_PROFILES = exportManager.getAvailableProfiles().map((p) => p.profile);
+
+// Load only the invoices within the period, fetching their line items in ONE
+// batched query. The previous code fetched items per-invoice over EVERY invoice
+// (Promise.all), which exhausts the DB pool on large datasets and 500s the export.
+async function loadInvoicesWithItems(storage: any, periodStart: string, periodEnd: string): Promise<any[]> {
+  const all = await storage.getCrmInvoices();
+  const start = new Date(periodStart);
+  const end = new Date(periodEnd + 'T23:59:59');
+  const inPeriod = (all || []).filter((inv: any) => {
+    const d = new Date(inv.issue_date || inv.issueDate);
+    return !isNaN(d.getTime()) && d >= start && d <= end;
+  });
+  if (inPeriod.length === 0) return [];
+  const ids = inPeriod.map((i: any) => i.id);
+  const itemsByInvoice = new Map<string, any[]>();
+  const { rows } = await pool.query(
+    `SELECT * FROM crm_invoice_items WHERE invoice_id = ANY($1) ORDER BY sort_order`,
+    [ids],
+  );
+  for (const it of rows) {
+    if (!itemsByInvoice.has(it.invoice_id)) itemsByInvoice.set(it.invoice_id, []);
+    itemsByInvoice.get(it.invoice_id)!.push(it);
+  }
+  return inPeriod.map((inv: any) => ({ ...inv, items: itemsByInvoice.get(inv.id) || [] }));
+}
 
 // ============================================================================
 // VALIDATION SCHEMAS
 // ============================================================================
 
 const ExportRequestSchema = z.object({
-  profile: z.enum([
-    'csv_xero',
-    'csv_quickbooks',
-    'csv_sage',
-    'datev_csv',
-    'bmd_csv',
-    'ubl_peppol',
-    'saft_xml',
-    'custom'
-  ]),
+  // Accept any string; the handlers validate it against the ACTUALLY registered
+  // adapters (a hardcoded enum here drifted out of sync — it listed formats with
+  // no adapter and omitted csv_simple/pdf_invoice_report, so valid picks 400'd).
+  profile: z.string().min(1),
   period_start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   period_end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   currency: z.string().default('EUR'),
@@ -66,25 +88,17 @@ router.get('/profiles', async (req: Request, res: Response) => {
 router.post('/preview', async (req: Request, res: Response) => {
   try {
     const requestData = ExportRequestSchema.parse(req.body);
+    if (!VALID_PROFILES.includes(requestData.profile as any)) {
+      return res.status(400).json({ error: `Unknown export format "${requestData.profile}". Available: ${VALID_PROFILES.join(', ')}` });
+    }
 
-    // Get data from storage (assuming you have a storage instance)
     const storage = (req as any).storage;
     if (!storage) {
       return res.status(500).json({ error: 'Storage not available' });
     }
 
-    // Fetch invoices, payments, customers
-    const invoices = await storage.getCrmInvoices();
-    
-    // Fetch invoice items for each invoice
-    const invoicesWithItems = await Promise.all(
-      invoices.map(async (invoice: any) => {
-        const items = await storage.getCrmInvoiceItems(invoice.id);
-        return { ...invoice, items };
-      })
-    );
-    
-    const payments = []; // TODO: Implement payments storage
+    const invoicesWithItems = await loadInvoicesWithItems(storage, requestData.period_start, requestData.period_end);
+    const payments: any[] = []; // payments storage not yet implemented
     const customers = await storage.getCrmClients();
 
     // Run validation only
@@ -111,7 +125,7 @@ router.post('/preview', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid request', details: error.errors });
     }
     console.error('Error previewing export:', error);
-    res.status(500).json({ error: 'Failed to preview export' });
+    res.status(500).json({ error: 'Failed to preview export', details: (error as any)?.message });
   }
 });
 
@@ -122,24 +136,17 @@ router.post('/preview', async (req: Request, res: Response) => {
 router.post('/generate', async (req: Request, res: Response) => {
   try {
     const requestData = ExportRequestSchema.parse(req.body);
+    if (!VALID_PROFILES.includes(requestData.profile as any)) {
+      return res.status(400).json({ error: `Unknown export format "${requestData.profile}". Available: ${VALID_PROFILES.join(', ')}` });
+    }
 
-    // Get data from storage
     const storage = (req as any).storage;
     if (!storage) {
       return res.status(500).json({ error: 'Storage not available' });
     }
 
-    const invoices = await storage.getCrmInvoices();
-    
-    // Fetch invoice items for each invoice
-    const invoicesWithItems = await Promise.all(
-      invoices.map(async (invoice: any) => {
-        const items = await storage.getCrmInvoiceItems(invoice.id);
-        return { ...invoice, items };
-      })
-    );
-    
-    const payments = []; // TODO: Implement payments storage
+    const invoicesWithItems = await loadInvoicesWithItems(storage, requestData.period_start, requestData.period_end);
+    const payments: any[] = []; // payments storage not yet implemented
     const customers = await storage.getCrmClients();
 
     // Generate export
@@ -199,7 +206,7 @@ router.post('/generate', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid request', details: error.errors });
     }
     console.error('Error generating export:', error);
-    res.status(500).json({ error: 'Failed to generate export' });
+    res.status(500).json({ error: 'Failed to generate export', details: (error as any)?.message });
   }
 });
 
