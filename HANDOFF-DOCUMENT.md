@@ -26,7 +26,7 @@ Each entry maps to commits on `main`._
 
 ### July 14, 2026
 - **Questionnaire link fixed** — `/q/pre-shoot` (the default Pre-Shoot automation link) showed "Questionnaire not found or expired" because no active `questionnaires` row with that slug existed and the request fell through to the SPA token lookup. Server now seeds a default active **pre-shoot** questionnaire at startup so the link resolves end-to-end.
-- **SMTP/Stripe test endpoints gated** — `/api/setup/technical/test/{smtp,stripe}` connected to arbitrary user-supplied hosts with no auth (SSRF / open-relay probe oracle). Now require authentication **once an admin account exists**; open only on a fresh install so first-run onboarding can still test SMTP before Step 7 creates the admin.
+- **Setup wizard endpoints gated** — every mutating `/api/setup/technical/*` endpoint (credential saves `/domain` `/email` `/stripe` `/storage` `/extras`, admin creation `/security`, and the SSRF-prone `/test/{smtp,stripe}` probes) was unauthenticated. Now gated with one rule: open on a fresh install (no admin yet, so first-run onboarding works), require auth once an admin account exists. Read-only status endpoints and `POST /complete` (fires right after admin creation, before any session) are exempt.
 - **Email test-send honesty** — "Send Test" previously always reported success even when SMTP was unconfigured and the mail silently fell into demo mode. Demo-mode returns now carry `demo:true` + an honest error; the send endpoint and UI report true delivery.
 - **Accounting Export** — Validate/Preview + Generate/Download fixed (profile enum had drifted out of sync with registered adapters; also fixed an N+1 line-item fetch that exhausted the DB pool).
 - **Lead Sources** — new performance dashboard (bar + pie + table), date-range filter (this year / last year / last 12m), leads-vs-revenue combined view, €/lead column.
@@ -528,23 +528,23 @@ git push
 
 ## 10. Security Findings (CRITICAL)
 
-> **Status update — July 14, 2026.** The original findings below were written
-> March 3, 2026. Current state per the Hardening Log:
+> **Status update — July 14, 2026 (verified against the codebase).** The original
+> findings below were written March 3, 2026. Current, checked state:
 >
 > | Finding | Status (July 14, 2026) |
 > |---------|------------------------|
-> | Remove `.env` from git / purge from history | ⚠️ **Unverified** — confirm on the repo before sign-off |
-> | Rotate ALL credentials | ⚠️ **Partial / unverified** — secrets pasted in chat during July work were flagged for rotation; full rotation not confirmed |
-> | Verify prod `DEMO_MODE` / `ALLOW_DEMO_LOGIN` off | ⚠️ **Unverified** — check Heroku config |
-> | Add `express-rate-limit` to auth + public endpoints | ✅ **Added (July 12)** — verify it covers all public form + auth routes |
-> | Webhook signature verification | ✅ **Added (July 12)** |
-> | Response compression | ✅ **Added (July 12)** |
-> | Request body size limits | ⚠️ **Unverified** |
-> | Add `helmet` security headers | ⚠️ **Not done** (unverified) |
-> | Add CSRF protection | ⚠️ **Not done** (unverified) |
-> | Audit routes for missing `requireAuth` | 🟡 **In progress** — `/api/setup/technical/test/{smtp,stripe}` gated July 14. **Still open:** the setup *save* endpoints (`POST /api/setup/technical/email`, `/stripe`, `/storage`, `/extras`, `/domain`, `/security`) are unauthenticated — same public-onboarding constraint, same "gate once an admin exists" fix applies |
+> | Remove `.env` from git / purge from history | ✅ **Resolved / moot** — `.env` was **never committed** (verified via `git log --all --full-history -- .env`, empty), is listed in `.gitignore`, and is absent from the working tree. `.env.example` contains placeholders only (`change-me-random-string`, `postgres://user:pass@host`). |
+> | Rotate ALL credentials | ⚠️ **Confirm externally** — no live secrets in the repo, but keys pasted into chat during July work (Render, GitHub PAT, Supabase, AxixOS) should be rotated in their provider consoles. Not verifiable from the codebase. |
+> | Verify prod `DEMO_MODE` / `ALLOW_DEMO_LOGIN` off | ⚠️ **Confirm externally** — Heroku CLI not available in this environment. Run `heroku config -a newagefotografie \| grep -iE "DEMO_MODE\|ALLOW_DEMO_LOGIN"` (should be empty/false). |
+> | `express-rate-limit` on auth + public endpoints | 🟡 **Partial** — `server/index.ts` applies a global cap (300/min) to everything plus a strict cap (30 / 15 min) on `/api/auth` POSTs; Stripe webhooks + image proxy exempted. Public form endpoints (contact, questionnaire, voucher) rely on the blunt global cap only — a per-endpoint limiter would be stronger. |
+> | Webhook signature verification | ✅ **Present** — Stripe `webhooks.constructEvent` on webhook routes; raw body preserved and webhooks exempt from rate-limit/JSON parsing. |
+> | Response compression | ✅ **Present** — `compression()` in `server/index.ts`. |
+> | Request body size limits | ✅ **Present** — `express.json({ limit: '50mb' })` (generous; tighten per-route if desired). |
+> | Add `helmet` security headers | 🔴 **Not done** — `helmet` is not installed/applied. |
+> | Add CSRF protection | 🔴 **Not done** — no `csurf`/CSRF token; session-cookie auth means state-changing routes are CSRF-exposed. |
+> | Audit routes for missing `requireAuth` | ✅ **Setup wizard closed (July 14)** — **all** mutating `/api/setup/technical/*` endpoints (credential saves, admin creation, SMTP/Stripe probes) are now gated: open on a fresh install (no admin yet), require auth once an admin exists. Read-only status endpoints and post-admin `POST /complete` are exempt so first-run onboarding can't lock itself out. A broader repo-wide route audit is still advisable. |
 >
-> The remediation instructions below remain valid reference for the unverified/open items.
+> **Net:** the March "🔴 immediate" list is largely addressed. Remaining genuine gaps: **`helmet`** and **CSRF** (both not started), tighter **per-endpoint rate limits** on public forms, and two **externally-verifiable** items (credential rotation, prod DEMO flags). The remediation instructions below remain valid reference for those.
 
 ### 🔴 Immediate Actions Required
 

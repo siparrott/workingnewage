@@ -1711,23 +1711,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Technical Setup Wizard - Stage 1 onboarding (infrastructure & credentials)
   //
-  // Security: the /test/* endpoints (SMTP, Stripe) connect to arbitrary
-  // user-supplied hosts and can be abused as an SSRF probe / open-relay oracle.
-  // On a fresh install (no admin account yet) they stay open so first-run
-  // onboarding can verify SMTP before the admin is created (Step 7). Once the
-  // system is configured (an admin exists) they require authentication.
-  app.use('/api/setup/technical/test', async (req: any, res: any, next: any) => {
+  // Security: every mutating endpoint here writes credentials/config or connects
+  // to arbitrary user-supplied hosts (the /test/* SMTP+Stripe probes are an SSRF
+  // / open-relay oracle; the save steps overwrite integration secrets and the
+  // admin account). All of them are gated with a single rule:
+  //   • Fresh install (no admin account yet) → OPEN, so first-run onboarding can
+  //     run end-to-end (steps 1–6, the SMTP test, and Step 7 which creates the
+  //     admin) without a login that doesn't exist yet.
+  //   • Configured system (an admin exists) → require authentication.
+  // Exempt: the read-only status endpoints (wizard UI reads them), and POST
+  // /complete (fires immediately after Step 7 creates the admin, before any
+  // session is established — gating it would lock first-run onboarding out).
+  app.use('/api/setup/technical', async (req: any, res: any, next: any) => {
+    if (req.method === 'GET' && (req.path === '/status' || req.path === '/current')) return next();
+    if (req.method === 'POST' && req.path === '/complete') return next();
     try {
       const rows = await runSql(`SELECT COUNT(*)::int AS n FROM admin_users`);
       const hasAdmins = (rows?.[0]?.n || 0) > 0;
-      if (!hasAdmins) return next(); // fresh install — allow first-run test
+      if (!hasAdmins) return next(); // fresh install — allow onboarding
     } catch {
       return next(); // table missing / fresh DB — allow onboarding
     }
     return authenticateUser(req, res, next);
-  });
-  app.use('/api/setup/technical', technicalSetupRoutes);
-  console.log('✅ /api/setup/technical routes registered');
+  }, technicalSetupRoutes);
+  console.log('✅ /api/setup/technical routes registered (mutations gated once an admin exists)');
 
   // Health check endpoint for deployment
   app.get("/api/health", (req, res) => {
