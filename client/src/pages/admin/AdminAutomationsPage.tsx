@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
+import AdvancedRichTextEditor from '../../components/admin/AdvancedRichTextEditor';
 import { useLanguage } from '../../context/LanguageContext';
 import {
   Zap, Plus, Edit, Trash2, Play, Pause, Send, Clock, CalendarCheck,
@@ -730,86 +731,42 @@ const AdminAutomationsPage: React.FC = () => {
                   />
                 </div>
 
-                {/* Body */}
+                {/* Body — full WYSIWYG editor (headings, bold, colours, align,
+                    lists, links, images, tables, undo, HTML source), plus a
+                    sample-data preview that substitutes the {{placeholders}}. */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-sm font-medium text-gray-700">{tx('bodyLabel')}</label>
-                    <div className="flex rounded-lg border border-gray-300 overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => { setEditorMode('visual'); setPreviewMode(false); }}
-                        className={`flex items-center gap-1 px-3 py-1 text-xs font-medium transition-colors ${
-                          editorMode === 'visual' && !previewMode ? 'bg-purple-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-                        }`}
-                      >
-                        <Edit size={12} /> Write
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setEditorMode('html'); setPreviewMode(false); }}
-                        className={`flex items-center gap-1 px-3 py-1 text-xs font-medium transition-colors ${
-                          editorMode === 'html' && !previewMode ? 'bg-purple-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-                        }`}
-                      >
-                        <Code size={12} /> {tx('htmlCode')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPreviewMode(true)}
-                        className={`flex items-center gap-1 px-3 py-1 text-xs font-medium transition-colors ${
-                          previewMode ? 'bg-purple-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-                        }`}
-                      >
-                        <Eye size={12} /> {tx('preview')}
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewMode(!previewMode)}
+                      className={`flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-lg border border-gray-300 transition-colors ${
+                        previewMode ? 'bg-purple-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      {previewMode
+                        ? (<><Edit size={12} /> {language === 'de' ? 'Bearbeiten' : 'Edit'}</>)
+                        : (<><Eye size={12} /> {language === 'de' ? 'Vorschau (Beispieldaten)' : 'Preview (sample data)'}</>)}
+                    </button>
                   </div>
 
-                  {editorMode === 'visual' && !previewMode ? (
-                    <>
-                      <div className="bg-blue-50 border border-blue-200 rounded-t-lg px-3 py-2">
-                        <p className="text-xs text-blue-700">
-                          ✏️ Write your email message here in plain text. Blank lines separate paragraphs.
-                          Use placeholders like <code className="bg-blue-100 px-1 rounded">{'{{clientName}}'}</code> and <code className="bg-blue-100 px-1 rounded">{'{{bookingDate}}'}</code>.
-                          For a button, put it on its own line as <code className="bg-blue-100 px-1 rounded">{'[Fragebogen ausfüllen]({{questionnaireLink}})'}</code>.
-                        </p>
-                      </div>
-                      <textarea
-                        value={htmlToPlain(formBody)}
-                        onChange={(e) => {
-                          // Store as plain text — auto-wrapped to HTML on save.
-                          // The button survives as a [label](url) token (see plainToHtml).
-                          setFormBody(e.target.value);
-                        }}
-                        rows={10}
-                        placeholder={language === 'de'
-                          ? 'Hallo {{clientName}},\n\nIhr Fotoshooting am {{bookingDate}} um {{bookingTime}} rückt näher!\n\nBitte füllen Sie unseren kurzen Fragebogen aus:\n\n[Fragebogen ausfüllen]({{questionnaireLink}})\n\nVielen Dank!\nNew Age Fotografie'
-                          : 'Hello {{clientName}},\n\nYour photoshoot on {{bookingDate}} at {{bookingTime}} is coming up!\n\nPlease fill out our short questionnaire:\n\n[Fill out questionnaire]({{questionnaireLink}})\n\nThank you!\nNew Age Fotografie'}
-                        className="w-full px-3 py-2 border border-gray-300 border-t-0 rounded-b-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
-                      />
-                      <p className="text-xs text-gray-400 mt-1">
-                        {tx('placeholders')} {'{{clientName}}'}, {'{{clientEmail}}'}, {'{{bookingDate}}'}, {'{{bookingTime}}'}, {'{{questionnaireLink}}'}
-                      </p>
-                    </>
-                  ) : !previewMode ? (
-                    <>
-                      <textarea
-                        value={formBody} onChange={(e) => setFormBody(e.target.value)}
-                        rows={12}
-                        placeholder={tx('bodyPlaceholder')}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono text-sm"
-                      />
-                      <p className="text-xs text-gray-400 mt-1">
-                        {tx('placeholders')} {'{{clientName}}'}, {'{{clientEmail}}'}, {'{{bookingDate}}'}, {'{{bookingTime}}'}, {'{{questionnaireLink}}'}
-                      </p>
-                    </>
-                  ) : (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mb-2">
+                    <p className="text-xs text-blue-700">
+                      ✏️ {language === 'de'
+                        ? 'Bearbeiten Sie die E-Mail genau so, wie sie aussehen soll — Symbolleiste für Überschriften, Fett, Farben, Ausrichtung, Listen, Links und Buttons.'
+                        : 'Edit the email exactly as it will look — use the toolbar for headings, bold, colours, alignment, lists, links and buttons.'}
+                      {' '}
+                      {language === 'de' ? 'Platzhalter wie' : 'Placeholders like'} <code className="bg-blue-100 px-1 rounded">{'{{clientName}}'}</code>, <code className="bg-blue-100 px-1 rounded">{'{{bookingDate}}'}</code>, <code className="bg-blue-100 px-1 rounded">{'{{bookingTime}}'}</code> {language === 'de' ? 'und' : 'and'} <code className="bg-blue-100 px-1 rounded">{'{{questionnaireLink}}'}</code> {language === 'de' ? 'werden beim Versand ersetzt.' : 'are replaced with real values when sent.'}
+                    </p>
+                  </div>
+
+                  {previewMode ? (
                     <div className="border border-gray-300 rounded-lg overflow-hidden">
                       <div className="bg-gray-50 border-b border-gray-200 px-3 py-2">
                         <p className="text-xs text-gray-500">{tx('previewNote')}</p>
                       </div>
                       <div
-                        className="p-4 bg-white min-h-[200px] max-h-[400px] overflow-y-auto"
+                        className="p-4 bg-white min-h-[200px] max-h-[440px] overflow-y-auto"
                         dangerouslySetInnerHTML={{
                           __html: resolveEmailHtml(formBody)
                             .replace(/\{\{clientName\}\}/g, 'Maria Muster')
@@ -820,7 +777,17 @@ const AdminAutomationsPage: React.FC = () => {
                         }}
                       />
                     </div>
+                  ) : (
+                    <AdvancedRichTextEditor
+                      value={formBody}
+                      onChange={setFormBody}
+                      placeholder={language === 'de' ? 'E-Mail-Text hier schreiben…' : 'Write your email here…'}
+                    />
                   )}
+
+                  <p className="text-xs text-gray-400 mt-1">
+                    {tx('placeholders')} {'{{clientName}}'}, {'{{clientEmail}}'}, {'{{bookingDate}}'}, {'{{bookingTime}}'}, {'{{questionnaireLink}}'}
+                  </p>
                 </div>
 
                 {/* Enabled */}
