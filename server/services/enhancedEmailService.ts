@@ -32,27 +32,32 @@ export class EnhancedEmailService {
    */
   static async initialize() {
     try {
-      // Check if Brevo is configured (preferred) — check DB first, then env
+      // Prefer Brevo when a key is present AND it initialises.
       const brevoKey = await config.get('brevo_api_key') || process.env.BREVO_API_KEY;
       if (brevoKey || process.env.EMAIL_PROVIDER === 'brevo') {
-        const brevoInitialized = BrevoService.initialize();
-        if (brevoInitialized) {
-          this.useBrevo = true;
-          console.log('✅ Email service using Brevo API');
-          return true;
+        try {
+          if (BrevoService.initialize()) {
+            this.useBrevo = true;
+            console.log('✅ Email service using Brevo API');
+          }
+        } catch (brevoErr) {
+          console.warn('⚠️ Brevo init failed, will use SMTP instead:', brevoErr);
         }
       }
 
-      // Fall back to SMTP via shared smtp-helper (reads from DB then env)
+      // ALWAYS also set up SMTP via shared smtp-helper (reads from DB then env),
+      // even when Brevo is active — so a Brevo send failure (e.g. an invalid/
+      // disabled key → "API Key is not enabled") can still be delivered via SMTP
+      // rather than hard-failing.
       try {
         this.transporter = await getSmtpTransporter();
         console.log('✅ Email transporter created via smtp-helper');
-        return true;
       } catch (smtpErr) {
         console.warn('⚠️ SMTP configuration incomplete:', smtpErr);
-        console.warn('📧 Email service will work in demo mode');
-        return false;
+        if (!this.useBrevo) console.warn('📧 Email service will work in demo mode');
       }
+
+      return this.useBrevo || !!this.transporter;
 
     } catch (error) {
       console.error('❌ Email service initialization failed:', error.message);
@@ -96,10 +101,13 @@ export class EnhancedEmailService {
         console.log('📧 Initialize result:', initResult, 'Using Brevo:', this.useBrevo, 'Transporter exists:', !!this.transporter);
       }
 
-      // Use Brevo if available (preferred)
-      if (this.useBrevo || process.env.EMAIL_PROVIDER === 'brevo' || process.env.BREVO_API_KEY) {
+      // Prefer Brevo ONLY when it actually initialised. A mere BREVO_API_KEY env
+      // var (possibly invalid/disabled — "API Key is not enabled") must not hijack
+      // sending and block the working SMTP path. If a Brevo send fails, fall
+      // through to the SMTP path below instead of returning the error.
+      if (this.useBrevo) {
         console.log('📧 Routing email through Brevo API');
-        return await BrevoService.sendEmail({
+        const brevoResult = await BrevoService.sendEmail({
           to: options.to,
           subject: options.subject,
           htmlContent: options.html,
@@ -111,6 +119,8 @@ export class EnhancedEmailService {
             content: att.content ? att.content.toString('base64') : '',
           })),
         });
+        if (brevoResult?.success) return brevoResult;
+        console.warn('📧 Brevo send failed, falling back to SMTP:', brevoResult?.error);
       }
 
       // Auto-link to client if requested
