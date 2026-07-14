@@ -1650,6 +1650,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Questionnaire module (public + admin APIs)
   app.use(questionnairesRouter);
 
+  // Ensure a default "pre-shoot" questionnaire exists so automation links
+  // (/q/pre-shoot — the default slug in the Pre-Shoot Questionnaire automation)
+  // actually resolve. Without a matching active row the /q/:slug handler falls
+  // through to the SPA token lookup and shows "Questionnaire not found or expired".
+  (async () => {
+    try {
+      await runSql(`CREATE TABLE IF NOT EXISTS questionnaires (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        slug text UNIQUE,
+        title text NOT NULL,
+        description text,
+        fields jsonb NOT NULL DEFAULT '[]'::jsonb,
+        is_active boolean DEFAULT true,
+        notify_email text,
+        created_at timestamptz DEFAULT now()
+      )`);
+      const preShootFields = JSON.stringify([
+        { key: 'sessionType', label: 'Art des Shootings', type: 'select', required: true, options: ['Familie', 'Schwangerschaft', 'Neugeborenes', 'Business', 'Sonstiges'] },
+        { key: 'people', label: 'Wie viele Personen nehmen teil?', type: 'text', required: true },
+        { key: 'children', label: 'Alter der Kinder (falls zutreffend)', type: 'text', required: false },
+        { key: 'preferredTime', label: 'Bevorzugte Uhrzeit', type: 'text', required: false },
+        { key: 'styleColors', label: 'Kleidungsstil / Wunschfarben', type: 'text', required: false },
+        { key: 'notes', label: 'Besondere Wünsche oder Anmerkungen', type: 'textarea', required: false },
+      ]);
+      await runSql(
+        `INSERT INTO questionnaires (slug, title, description, fields, is_active, notify_email)
+         VALUES ('pre-shoot', $1, $2, $3::jsonb, true, $4)
+         ON CONFLICT (slug) DO UPDATE SET is_active = true`,
+        [
+          'Vorbereitung auf Ihr Fotoshooting',
+          'Damit wir Ihr Shooting optimal vorbereiten können, füllen Sie bitte diesen kurzen Fragebogen aus.',
+          preShootFields,
+          process.env.NOTIFY_EMAIL || process.env.BUSINESS_MAILBOX_USER || process.env.SMTP_USER || null,
+        ],
+      );
+      console.log('✅ Default pre-shoot questionnaire ensured (/q/pre-shoot)');
+    } catch (e: any) {
+      console.warn('⚠️ ensure pre-shoot questionnaire failed:', e?.message || e);
+    }
+  })();
+
   // Scheduler module - Client self-booking system
   const schedulerRouter = require('./routes/scheduler').default;
   app.use('/api/schedulers', schedulerRouter);
@@ -1669,6 +1710,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   console.log('✅ /api/setup routes registered');
 
   // Technical Setup Wizard - Stage 1 onboarding (infrastructure & credentials)
+  //
+  // Security: the /test/* endpoints (SMTP, Stripe) connect to arbitrary
+  // user-supplied hosts and can be abused as an SSRF probe / open-relay oracle.
+  // On a fresh install (no admin account yet) they stay open so first-run
+  // onboarding can verify SMTP before the admin is created (Step 7). Once the
+  // system is configured (an admin exists) they require authentication.
+  app.use('/api/setup/technical/test', async (req: any, res: any, next: any) => {
+    try {
+      const rows = await runSql(`SELECT COUNT(*)::int AS n FROM admin_users`);
+      const hasAdmins = (rows?.[0]?.n || 0) > 0;
+      if (!hasAdmins) return next(); // fresh install — allow first-run test
+    } catch {
+      return next(); // table missing / fresh DB — allow onboarding
+    }
+    return authenticateUser(req, res, next);
+  });
   app.use('/api/setup/technical', technicalSetupRoutes);
   console.log('✅ /api/setup/technical routes registered');
 
