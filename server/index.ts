@@ -417,7 +417,11 @@ app.use((req, res, next) => {
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS preview_token_expires_at TIMESTAMPTZ`);
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS canonical_url TEXT`);
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS noindex BOOLEAN DEFAULT FALSE`);
-        console.log('✅ landing_page_events + publishing columns ensured');
+        // CTA voucher-product binding + hero media (image/video).
+        await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS cta_voucher_slug TEXT`);
+        await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS hero_image_url TEXT`);
+        await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS hero_video_url TEXT`);
+        console.log('✅ landing_page_events + publishing/media/CTA columns ensured');
       } catch (migrationError: any) {
         console.warn('⚠️ landing pages migration already applied or failed:', migrationError.message);
       }
