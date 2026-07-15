@@ -56,8 +56,8 @@ interface ComprehensiveReportData {
   // Operational Metrics
   averageOrderValue: number;
   customerLifetimeValue: number;
-  averageProjectDuration: number;
-  clientSatisfactionScore: number;
+  totalRevenue: number;
+  totalClients: number;
   
   // Gallery & Portfolio
   galleryViews: { gallery: string; views: number; inquiries: number; }[];
@@ -111,14 +111,18 @@ const ComprehensiveReportsPage: React.FC = () => {
         clientsResponse,
         leadsResponse,
         vouchersResponse,
-        blogResponse
+        blogResponse,
+        campaignsResponse,
+        galleriesResponse
       ] = await Promise.allSettled([
         fetch(`/api/crm/invoices?from=${startDate.toISOString()}`, fetchOptions),
         fetch('/api/crm/clients', fetchOptions),
         // Pull a window of leads server-side for efficiency
         fetch(`/api/leads/list?status=any&limit=500&offset=0`, fetchOptions),
         fetch(`/api/vouchers/sales?from=${startDate.toISOString()}`, fetchOptions),
-        fetch('/api/blog/posts', fetchOptions)
+        fetch('/api/blog/posts', fetchOptions),
+        fetch('/api/admin/email/campaigns', fetchOptions),
+        fetch('/api/reports/gallery-analytics', fetchOptions)
       ]);
 
       // Process API responses
@@ -136,16 +140,24 @@ const ComprehensiveReportsPage: React.FC = () => {
       // Handle both array and { posts: [] } formats
       const blogPosts = Array.isArray(blogPostsRaw) ? blogPostsRaw : (blogPostsRaw?.posts || []);
       
+      const campaignsRaw = campaignsResponse.status === 'fulfilled' && campaignsResponse.value.ok
+        ? await campaignsResponse.value.json() : [];
+      const campaigns = Array.isArray(campaignsRaw) ? campaignsRaw : (campaignsRaw?.campaigns || []);
+      const galleryStatsRaw = galleriesResponse.status === 'fulfilled' && galleriesResponse.value.ok
+        ? await galleriesResponse.value.json() : [];
+      const galleryStats = Array.isArray(galleryStatsRaw) ? galleryStatsRaw : (galleryStatsRaw?.galleries || []);
+
       // Ensure all arrays are valid
       const safeInvoices = Array.isArray(invoices) ? invoices : [];
       const safeClients = Array.isArray(clients) ? clients : [];
       const safeLeads = Array.isArray(leads) ? leads : [];
       const safeVouchers = Array.isArray(vouchers) ? vouchers : [];
       const safeBlogPosts = Array.isArray(blogPosts) ? blogPosts : [];
-      
-      // Note: bookings and email campaigns APIs not yet implemented
+      const safeCampaigns = Array.isArray(campaigns) ? campaigns : [];
+      const safeGalleryStats = Array.isArray(galleryStats) ? galleryStats : [];
+
+      // Note: bookings API not yet implemented
       const bookings = [];
-      const emailCampaigns = [];
 
       // Create comprehensive report data
       const comprehensiveData: ComprehensiveReportData = {
@@ -160,7 +172,15 @@ const ComprehensiveReportsPage: React.FC = () => {
         bookingsByType: processBookingsByType(bookings),
         bookingsByMonth: processBookingsByMonth(bookings),
         seasonalTrends: processSeasonalTrends(bookings),
-        emailCampaigns: [], // TODO: Add campaigns data when available
+        // Real email campaigns (email_campaigns table). No revenue column exists,
+        // so revenue is reported as 0 (the table doesn't track it).
+        emailCampaigns: safeCampaigns.map((c: any) => ({
+          name: c.name || 'Untitled campaign',
+          sent: Number(c.sentCount ?? c.recipientCount ?? 0),
+          opened: Number(c.openedCount ?? 0),
+          clicked: Number(c.clickedCount ?? 0),
+          revenue: 0,
+        })),
         blogMetrics: safeBlogPosts.map(p => ({
           title: p.title || 'Untitled',
           views: p.view_count || 0,
@@ -169,18 +189,15 @@ const ComprehensiveReportsPage: React.FC = () => {
         })),
         averageOrderValue: calculateAverageOrderValue(safeInvoices),
         customerLifetimeValue: calculateCustomerLifetimeValue(safeClients, safeInvoices),
-        averageProjectDuration: calculateAverageProjectDuration(bookings),
-        clientSatisfactionScore: 4.8,
-        galleryViews: [
-          { gallery: 'Wedding Portfolio', views: 1250, inquiries: 45 },
-          { gallery: 'Portrait Gallery', views: 890, inquiries: 32 },
-          { gallery: 'Family Photos', views: 650, inquiries: 28 }
-        ],
-        portfolioMetrics: [
-          { category: 'Weddings', views: 2100, downloads: 85 },
-          { category: 'Portraits', views: 1800, downloads: 65 },
-          { category: 'Events', views: 950, downloads: 35 }
-        ],
+        totalRevenue: safeInvoices.reduce((s: number, inv: any) => s + invoiceTotal(inv), 0),
+        totalClients: safeClients.length,
+        // Real gallery analytics (gallery_analytics table): views + email captures
+        // as an "inquiries" proxy. Only galleries with any views are shown.
+        galleryViews: safeGalleryStats
+          .map((g: any) => ({ gallery: g.title || 'Untitled gallery', views: Number(g.viewCount) || 0, inquiries: Number(g.emailCaptures) || 0 }))
+          .filter((g: any) => g.views > 0 || g.inquiries > 0)
+          .slice(0, 8),
+        portfolioMetrics: [],
         voucherSales: processVoucherSales(safeVouchers),
         voucherTypes: processVoucherTypes(safeVouchers)
       };
@@ -195,13 +212,19 @@ const ComprehensiveReportsPage: React.FC = () => {
   };
 
   // Data processing functions
+  // Invoices come back with dual-case keys; totals are already numeric but guard anyway.
+  const invoiceTotal = (inv: any) => Number(inv.total_amount ?? inv.total ?? inv.totalAmount ?? 0) || 0;
+  const invoiceDate = (inv: any) => new Date(inv.issue_date ?? inv.created_at ?? inv.createdAt ?? inv.issueDate);
+  const monthKeyOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
   const processRevenueByMonth = (invoices: any[]) => {
     const monthlyData = new Map();
     invoices.forEach(invoice => {
-      const date = new Date(invoice.created_at);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const date = invoiceDate(invoice);
+      if (isNaN(date.getTime())) return;
+      const monthKey = monthKeyOf(date);
       const existing = monthlyData.get(monthKey) || { month: monthKey, revenue: 0, invoices: 0 };
-      existing.revenue += invoice.total_amount || 0;
+      existing.revenue += invoiceTotal(invoice);
       existing.invoices += 1;
       monthlyData.set(monthKey, existing);
     });
@@ -247,7 +270,7 @@ const ComprehensiveReportsPage: React.FC = () => {
     let total = clients.length;
     
     clients.forEach(client => {
-      const source = client.lead_source || 'Direct';
+      const source = client.leadSource || client.lead_source || 'Direct';
       sourceData.set(source, (sourceData.get(source) || 0) + 1);
     });
 
@@ -263,14 +286,15 @@ const ComprehensiveReportsPage: React.FC = () => {
     const clientBookings = new Map();
     const clientLastBooking = new Map();
 
+    const clientName = (c: any) => `${c.firstName || ''} ${c.lastName || ''}`.trim() || c.email || 'Unknown';
     invoices.forEach(invoice => {
-      const clientId = invoice.client_id;
+      const clientId = invoice.client_id ?? invoice.clientId;
       const client = clients.find(c => c.id === clientId);
       if (client) {
-        const existing = clientRevenue.get(client.name) || 0;
-        clientRevenue.set(client.name, existing + (invoice.total_amount || 0));
-        clientBookings.set(client.name, (clientBookings.get(client.name) || 0) + 1);
-        clientLastBooking.set(client.name, invoice.created_at);
+        const name = clientName(client);
+        clientRevenue.set(name, (clientRevenue.get(name) || 0) + invoiceTotal(invoice));
+        clientBookings.set(name, (clientBookings.get(name) || 0) + 1);
+        clientLastBooking.set(name, invoice.issue_date ?? invoice.created_at ?? invoice.createdAt);
       }
     });
 
@@ -285,30 +309,55 @@ const ComprehensiveReportsPage: React.FC = () => {
       .slice(0, 10);
   };
 
+  // Real retention: "new" = clients created that month; "returning" = clients
+  // who were invoiced that month but existed before it. (Churn isn't reliably
+  // derivable without a defined activity window, so it's reported as 0.)
   const processClientRetention = (clients: any[], invoices: any[]) => {
+    const clientCreated = new Map<string, Date>();
+    clients.forEach(c => {
+      const d = new Date(c.createdAt ?? c.created_at);
+      if (!isNaN(d.getTime())) clientCreated.set(c.id, d);
+    });
+
     const monthlyData = [];
     for (let i = 11; i >= 0; i--) {
-      const date = new Date();
-      date.setMonth(date.getMonth() - i);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      monthlyData.push({
-        month: monthKey,
-        new: Math.floor(Math.random() * 20) + 5,
-        returning: Math.floor(Math.random() * 15) + 3,
-        churn: Math.floor(Math.random() * 5) + 1
+      const ref = new Date();
+      ref.setMonth(ref.getMonth() - i);
+      const monthKey = monthKeyOf(ref);
+
+      const newCount = clients.filter(c => {
+        const d = clientCreated.get(c.id);
+        return d && monthKeyOf(d) === monthKey;
+      }).length;
+
+      const returningIds = new Set<string>();
+      invoices.forEach(inv => {
+        const d = invoiceDate(inv);
+        if (isNaN(d.getTime()) || monthKeyOf(d) !== monthKey) return;
+        const cid = inv.client_id ?? inv.clientId;
+        const created = clientCreated.get(cid);
+        // returning = invoiced this month but joined in an earlier month
+        if (cid && created && monthKeyOf(created) !== monthKey) returningIds.add(cid);
       });
+
+      monthlyData.push({ month: monthKey, new: newCount, returning: returningIds.size, churn: 0 });
     }
     return monthlyData;
   };
 
+  // Leads: /api/leads/list returns created_at, form_type, and status set to
+  // lowercase 'converted' on conversion (was matched against 'CONVERTED').
+  const leadIsConverted = (lead: any) => String(lead.status || '').toLowerCase() === 'converted';
+
   const processLeadConversion = (leads: any[]) => {
     const monthlyData = new Map();
     leads.forEach(lead => {
-      const date = new Date(lead.created_at);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const date = new Date(lead.created_at ?? lead.createdAt);
+      if (isNaN(date.getTime())) return;
+      const monthKey = monthKeyOf(date);
       const existing = monthlyData.get(monthKey) || { month: monthKey, leads: 0, converted: 0, rate: 0 };
       existing.leads += 1;
-      if (lead.status === 'CONVERTED') existing.converted += 1;
+      if (leadIsConverted(lead)) existing.converted += 1;
       existing.rate = existing.leads > 0 ? (existing.converted / existing.leads) * 100 : 0;
       monthlyData.set(monthKey, existing);
     });
@@ -318,10 +367,10 @@ const ComprehensiveReportsPage: React.FC = () => {
   const processLeadsBySource = (leads: any[]) => {
     const sourceData = new Map();
     leads.forEach(lead => {
-      const source = lead.form_source || 'Unknown';
+      const source = lead.form_type || lead.source || 'Unknown';
       const existing = sourceData.get(source) || { source, leads: 0, converted: 0, rate: 0 };
       existing.leads += 1;
-      if (lead.status === 'CONVERTED') existing.converted += 1;
+      if (leadIsConverted(lead)) existing.converted += 1;
       existing.rate = existing.leads > 0 ? (existing.converted / existing.leads) * 100 : 0;
       sourceData.set(source, existing);
     });
@@ -360,15 +409,24 @@ const ComprehensiveReportsPage: React.FC = () => {
     }));
   };
 
+  // voucher_sales is a Drizzle table → camelCase keys (createdAt, finalAmount,
+  // isRedeemed, paymentStatus). The old code read created_at/amount/redeemed,
+  // which don't exist → NaN dates + €0 revenue. Revenue counts PAID sales only.
+  const voucherAmount = (v: any) => parseFloat(v.finalAmount ?? v.final_amount ?? v.originalAmount ?? 0) || 0;
+  const voucherIsPaid = (v: any) => (v.paymentStatus ?? v.payment_status) === 'paid';
+  const voucherDate = (v: any) => new Date(v.createdAt ?? v.created_at ?? v.purchaseDate);
+  const voucherLabel = (v: any) => v.product_name || v.productName || 'Gutschein';
+
   const processVoucherSales = (vouchers: any[]) => {
     const monthlyData = new Map();
     vouchers.forEach(voucher => {
-      const date = new Date(voucher.created_at);
+      const date = voucherDate(voucher);
+      if (isNaN(date.getTime())) return; // skip rows with no valid date
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       const existing = monthlyData.get(monthKey) || { month: monthKey, sales: 0, revenue: 0, redeemed: 0 };
       existing.sales += 1;
-      existing.revenue += voucher.amount || 0;
-      if (voucher.redeemed) existing.redeemed += 1;
+      if (voucherIsPaid(voucher)) existing.revenue += voucherAmount(voucher);
+      if (voucher.isRedeemed ?? voucher.is_redeemed) existing.redeemed += 1;
       monthlyData.set(monthKey, existing);
     });
     return Array.from(monthlyData.values()).sort((a, b) => a.month.localeCompare(b.month));
@@ -377,15 +435,15 @@ const ComprehensiveReportsPage: React.FC = () => {
   const processVoucherTypes = (vouchers: any[]) => {
     const typeData = new Map();
     vouchers.forEach(voucher => {
-      const type = voucher.voucher_type || 'Standard';
+      const type = voucherLabel(voucher);
       const existing = typeData.get(type) || { type, sold: 0, revenue: 0, redeemed: 0, redemptionRate: 0 };
       existing.sold += 1;
-      existing.revenue += voucher.amount || 0;
-      if (voucher.redeemed) existing.redeemed += 1;
+      if (voucherIsPaid(voucher)) existing.revenue += voucherAmount(voucher);
+      if (voucher.isRedeemed ?? voucher.is_redeemed) existing.redeemed += 1;
       existing.redemptionRate = existing.sold > 0 ? (existing.redeemed / existing.sold) * 100 : 0;
       typeData.set(type, existing);
     });
-    return Array.from(typeData.values());
+    return Array.from(typeData.values()).sort((a, b) => b.revenue - a.revenue);
   };
 
   const calculateAverageOrderValue = (invoices: any[]) => {
@@ -470,23 +528,23 @@ const ComprehensiveReportsPage: React.FC = () => {
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="flex items-center">
           <div className="p-2 bg-green-100 rounded-lg">
-            <Calendar className="h-6 w-6 text-green-600" />
+            <DollarSign className="h-6 w-6 text-green-600" />
           </div>
           <div className="ml-4">
-            <p className="text-sm font-medium text-gray-600">Avg Project Duration</p>
-            <p className="text-2xl font-semibold text-gray-900">{reportData?.averageProjectDuration} days</p>
+            <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+            <p className="text-2xl font-semibold text-gray-900">€{(reportData?.totalRevenue || 0).toLocaleString('de-DE', { maximumFractionDigits: 0 })}</p>
           </div>
         </div>
       </div>
-      
+
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="flex items-center">
           <div className="p-2 bg-yellow-100 rounded-lg">
-            <Star className="h-6 w-6 text-yellow-600" />
+            <Users className="h-6 w-6 text-yellow-600" />
           </div>
           <div className="ml-4">
-            <p className="text-sm font-medium text-gray-600">Client Satisfaction</p>
-            <p className="text-2xl font-semibold text-gray-900">{reportData?.clientSatisfactionScore}/5</p>
+            <p className="text-sm font-medium text-gray-600">Total Clients</p>
+            <p className="text-2xl font-semibold text-gray-900">{reportData?.totalClients ?? 0}</p>
           </div>
         </div>
       </div>
@@ -633,6 +691,9 @@ const ComprehensiveReportsPage: React.FC = () => {
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Gallery Performance</h3>
           <div className="space-y-4">
+            {(reportData?.galleryViews || []).length === 0 && (
+              <p className="text-sm text-gray-500 py-6 text-center">No gallery views tracked yet.</p>
+            )}
             {(reportData?.galleryViews || []).map((gallery, index) => (
               <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded">
                 <div>
@@ -640,8 +701,8 @@ const ComprehensiveReportsPage: React.FC = () => {
                   <p className="text-sm text-gray-600">{gallery.views} views</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium text-purple-600">{gallery.inquiries} inquiries</p>
-                  <p className="text-xs text-gray-500">{((gallery.inquiries / gallery.views) * 100).toFixed(1)}% conversion</p>
+                  <p className="text-sm font-medium text-purple-600">{gallery.inquiries} email captures</p>
+                  <p className="text-xs text-gray-500">{gallery.views > 0 ? ((gallery.inquiries / gallery.views) * 100).toFixed(1) : '0'}% capture rate</p>
                 </div>
               </div>
             ))}
@@ -663,6 +724,9 @@ const ComprehensiveReportsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
+              {(reportData?.emailCampaigns || []).length === 0 && (
+                <tr><td colSpan={5} className="px-6 py-6 text-center text-sm text-gray-500">No email campaigns yet.</td></tr>
+              )}
               {(reportData?.emailCampaigns || []).map((campaign, index) => (
                 <tr key={index}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{campaign.name}</td>
