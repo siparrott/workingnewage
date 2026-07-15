@@ -114,7 +114,8 @@ const ComprehensiveReportsPage: React.FC = () => {
         blogResponse,
         campaignsResponse,
         galleriesResponse,
-        revenueByServiceResponse
+        revenueByServiceResponse,
+        campaignRevenueResponse
       ] = await Promise.allSettled([
         fetch(`/api/crm/invoices?from=${startDate.toISOString()}`, fetchOptions),
         fetch('/api/crm/clients', fetchOptions),
@@ -124,7 +125,8 @@ const ComprehensiveReportsPage: React.FC = () => {
         fetch('/api/blog/posts', fetchOptions),
         fetch('/api/admin/email/campaigns', fetchOptions),
         fetch('/api/reports/gallery-analytics', fetchOptions),
-        fetch(`/api/reports/revenue-by-service?from=${startDate.toISOString()}`, fetchOptions)
+        fetch(`/api/reports/revenue-by-service?from=${startDate.toISOString()}`, fetchOptions),
+        fetch('/api/reports/email-campaign-revenue', fetchOptions)
       ]);
 
       // Process API responses
@@ -160,6 +162,11 @@ const ComprehensiveReportsPage: React.FC = () => {
       const revenueByServiceRaw = revenueByServiceResponse.status === 'fulfilled' && revenueByServiceResponse.value.ok
         ? await revenueByServiceResponse.value.json() : [];
       const safeRevenueByService = Array.isArray(revenueByServiceRaw) ? revenueByServiceRaw : [];
+      const campaignRevenueRaw = campaignRevenueResponse.status === 'fulfilled' && campaignRevenueResponse.value.ok
+        ? await campaignRevenueResponse.value.json() : [];
+      const campaignRevenueById = new Map<string, number>(
+        (Array.isArray(campaignRevenueRaw) ? campaignRevenueRaw : []).map((r: any) => [String(r.campaignId), Number(r.revenue) || 0])
+      );
 
       // Note: bookings API not yet implemented
       const bookings = [];
@@ -189,7 +196,8 @@ const ComprehensiveReportsPage: React.FC = () => {
           sent: Number(c.sentCount ?? c.recipientCount ?? 0),
           opened: Number(c.openedCount ?? 0),
           clicked: Number(c.clickedCount ?? 0),
-          revenue: 0,
+          // Real attributed revenue from voucher purchases tagged to this campaign.
+          revenue: campaignRevenueById.get(String(c.id)) || 0,
         })),
         blogMetrics: safeBlogPosts.map(p => ({
           title: p.title || 'Untitled',

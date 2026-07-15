@@ -3,7 +3,12 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { TemplateProvider } from './contexts/TemplateContext';
 import { SITE } from './config/site';
+import { captureCampaignFromUrl } from './lib/attribution';
 import './index.css';
+
+// Email→order attribution: remember a campaign id arriving via ?utm_campaign / ?nac
+// on the very first load, before any SPA navigation strips the query string.
+captureCampaignFromUrl();
 
 // Enhanced error handling for production deployment
 if (import.meta.env.PROD) {

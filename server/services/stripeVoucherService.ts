@@ -342,6 +342,8 @@ export class StripeVoucherService {
         custom_image: customImage,
         product_hero_image: productHeroImage, // Fallback to product's default hero image
         product_description: productDescription.substring(0, 1200),
+        // Email→order attribution: campaign that drove this purchase (if any).
+        campaign_id: String((data as any).campaignId || (data as any).campaign_id || '').substring(0, 64),
       };
 
       sessionParams.payment_intent_data = {
