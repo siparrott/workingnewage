@@ -11069,30 +11069,145 @@ Ihr Team von {{studioName}}`,
   });
 
   // Send campaign
+  // ============ Email campaign bulk send (in-process queue) ============
+  const campaignEmailBaseUrl = () =>
+    (process.env.PUBLIC_SITE_BASE_URL || process.env.APP_URL || process.env.FRONTEND_URL || 'https://www.newagefotografie.com').replace(/\/+$/, '');
+
+  // Tag campaign links so a click carries the campaign id — the first link in the
+  // email→order attribution chain (click → utm_campaign → checkout metadata →
+  // voucher_sales.campaign_id → /api/reports/email-campaign-revenue).
+  const tagCampaignLinks = (html: string, cid: string) => {
+    if (!html || !cid) return html || '';
+    return html.replace(/href=("|')(https?:\/\/[^"']+)("|')/gi, (_m, q1, url, q2) => {
+      if (/[?&]utm_campaign=/.test(url)) return `href=${q1}${url}${q2}`;
+      const sep = url.includes('?') ? '&' : '?';
+      return `href=${q1}${url}${sep}utm_campaign=${encodeURIComponent(cid)}&utm_source=email${q2}`;
+    });
+  };
+
+  // Stateless unsubscribe token (HMAC of the email) — no per-recipient DB row needed.
+  const unsubscribeToken = (email: string) => {
+    const secret = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'default-secret';
+    return require('crypto').createHmac('sha256', secret).update(String(email).toLowerCase()).digest('hex').slice(0, 32);
+  };
+
+  const personalizeText = (text: string, r: any) => (text || '')
+    .replace(/\{\{\s*firstName\s*\}\}/gi, r.firstName || '')
+    .replace(/\{\{\s*lastName\s*\}\}/gi, r.lastName || '')
+    .replace(/\{\{\s*email\s*\}\}/gi, r.email || '')
+    .replace(/\{\{\s*name\s*\}\}/gi, `${r.firstName || ''} ${r.lastName || ''}`.trim());
+
+  // Audience = opted-in subscribers (email_subscribers.status='active'), honoring
+  // the campaign's include/exclude tags. Deliberately NOT all CRM clients — bulk
+  // marketing requires opt-in.
+  const resolveCampaignRecipients = async (campaign: any): Promise<Array<{ email: string; firstName?: string; lastName?: string }>> => {
+    const rows = await runSql(
+      `SELECT email, first_name, last_name, tags FROM email_subscribers
+       WHERE status = 'active' AND email IS NOT NULL AND email <> ''`
+    );
+    const include: string[] = Array.isArray(campaign.tagsInclude) ? campaign.tagsInclude.filter(Boolean) : [];
+    const exclude: string[] = Array.isArray(campaign.tagsExclude) ? campaign.tagsExclude.filter(Boolean) : [];
+    const seen = new Set<string>();
+    const out: Array<{ email: string; firstName?: string; lastName?: string }> = [];
+    for (const r of (rows || [])) {
+      const email = String(r.email).toLowerCase().trim();
+      if (!email || seen.has(email)) continue;
+      const tags: string[] = Array.isArray(r.tags) ? r.tags : [];
+      if (include.length && !include.some((t) => tags.includes(t))) continue;
+      if (exclude.length && exclude.some((t) => tags.includes(t))) continue;
+      seen.add(email);
+      out.push({ email, firstName: r.first_name || '', lastName: r.last_name || '' });
+    }
+    return out;
+  };
+
+  // Background sender: batched + paced, idempotent/resumable (skips recipients that
+  // already have a send event for this campaign), logs per-recipient email_events,
+  // appends an unsubscribe footer, tags links for attribution.
+  const runCampaignSend = async (campaign: any, recipients: Array<{ email: string; firstName?: string; lastName?: string }>) => {
+    const campaignId = campaign.id;
+    const { EnhancedEmailService } = await import('./services/enhancedEmailService');
+    const base = campaignEmailBaseUrl();
+
+    let attempted = new Set<string>();
+    try {
+      const done = await runSql(
+        `SELECT DISTINCT LOWER(subscriber_email) AS e FROM email_events
+         WHERE campaign_id = $1 AND event_type IN ('delivered','sent','bounced')`,
+        [campaignId]
+      );
+      attempted = new Set((done || []).map((r: any) => r.e));
+    } catch { /* no prior events */ }
+
+    const unsubFooter = (email: string) => {
+      const url = `${base}/api/email/unsubscribe?e=${encodeURIComponent(email)}&c=${encodeURIComponent(campaignId)}&t=${unsubscribeToken(email)}`;
+      return `<div style="margin-top:28px;padding-top:16px;border-top:1px solid #eee;font-size:12px;color:#8a8a8a;text-align:center;line-height:1.5;">`
+        + `Sie erhalten diese E-Mail von ${campaign.senderName || 'New Age Fotografie'}.<br>`
+        + `<a href="${url}" style="color:#8a8a8a;">Abmelden / Unsubscribe</a></div>`;
+    };
+
+    let sent = 0, delivered = 0, failed = 0, demo = 0;
+    const BATCH = 15;
+    for (let i = 0; i < recipients.length; i += BATCH) {
+      const batch = recipients.slice(i, i + BATCH).filter((r) => !attempted.has(r.email));
+      await Promise.all(batch.map(async (r) => {
+        const subject = personalizeText(campaign.subject, r);
+        let html = personalizeText(campaign.content || '', r);
+        html = tagCampaignLinks(html, String(campaignId)) + unsubFooter(r.email);
+        const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        let outcome: 'delivered' | 'sent' | 'bounced' = 'bounced';
+        try {
+          const rr: any = await EnhancedEmailService.sendEmail({ to: r.email, subject, html, content: text, autoLinkClient: true });
+          if (rr?.demo) { demo++; outcome = 'sent'; }
+          else if (rr?.success) { delivered++; outcome = 'delivered'; }
+          else { failed++; outcome = 'bounced'; }
+        } catch { failed++; outcome = 'bounced'; }
+        sent++;
+        await runSql(
+          `INSERT INTO email_events (campaign_id, subscriber_email, event_type, created_at) VALUES ($1, $2, $3, NOW())`,
+          [campaignId, r.email, outcome]
+        ).catch(() => {});
+        await runSql(
+          `UPDATE email_subscribers SET emails_sent_count = COALESCE(emails_sent_count,0) + 1 WHERE LOWER(email) = $1`,
+          [r.email]
+        ).catch(() => {});
+      }));
+      await db.update(emailCampaigns)
+        .set({ sentCount: attempted.size + sent, deliveredCount: delivered, bouncedCount: failed })
+        .where(eq(emailCampaigns.id, campaignId)).catch(() => {});
+      await new Promise((res) => setTimeout(res, 400)); // gentle pacing
+    }
+
+    // Authoritative final counters from the event log (accurate even on resume).
+    try {
+      const stats = await runSql(`SELECT event_type, COUNT(*)::int AS n FROM email_events WHERE campaign_id = $1 GROUP BY event_type`, [campaignId]);
+      const byType: Record<string, number> = {};
+      for (const s of (stats || [])) byType[s.event_type] = Number(s.n) || 0;
+      const deliv = byType['delivered'] || 0, bounced = byType['bounced'] || 0, sentEv = byType['sent'] || 0;
+      await db.update(emailCampaigns).set({
+        status: 'sent', sentAt: new Date(), recipientCount: recipients.length,
+        sentCount: deliv + bounced + sentEv, deliveredCount: deliv, bouncedCount: bounced,
+        openedCount: byType['opened'] || 0, clickedCount: byType['clicked'] || 0, unsubscribedCount: byType['unsubscribed'] || 0,
+      }).where(eq(emailCampaigns.id, campaignId));
+    } catch {
+      await db.update(emailCampaigns).set({ status: 'sent', sentAt: new Date() }).where(eq(emailCampaigns.id, campaignId)).catch(() => {});
+    }
+    console.log(`[campaign-send] "${campaign.name}" complete — delivered=${delivered} demo=${demo} failed=${failed} (of ${recipients.length})`);
+  };
+
   app.post("/api/email/campaigns/send", authenticateUser, async (req: Request, res: Response) => {
     try {
       const { campaign_id, test_send, test_emails } = req.body;
-      
+
       const [campaign] = await db.select()
         .from(emailCampaigns)
         .where(eq(emailCampaigns.id, campaign_id))
         .limit(1);
-      
+
       if (!campaign) {
         return res.status(404).json({ error: 'Campaign not found' });
       }
-      
-      // Tag campaign links so a click carries the campaign id — the first link in
-      // the email→order attribution chain (click → utm_campaign → checkout metadata
-      // → voucher_sales.campaign_id → /api/reports/email-campaign-revenue).
-      const tagCampaignLinks = (html: string, cid: string) => {
-        if (!html || !cid) return html || '';
-        return html.replace(/href=("|')(https?:\/\/[^"']+)("|')/gi, (_m, q1, url, q2) => {
-          if (/[?&]utm_campaign=/.test(url)) return `href=${q1}${url}${q2}`;
-          const sep = url.includes('?') ? '&' : '?';
-          return `href=${q1}${url}${sep}utm_campaign=${encodeURIComponent(cid)}&utm_source=email${q2}`;
-        });
-      };
+
       const campaignTaggedContent = tagCampaignLinks(campaign.content || '', String(campaign_id || (campaign as any).id || ''));
 
       if (test_send && test_emails) {
@@ -11128,17 +11243,64 @@ Ihr Team von {{studioName}}`,
           results,
         });
       } else {
-        // Queue campaign for sending
+        // Real bulk send via the in-process queue (idempotent + resumable).
+        if (campaign.status === 'sending') {
+          return res.json({ success: true, queued: true, message: 'Campaign is already sending.' });
+        }
+        const recipients = await resolveCampaignRecipients(campaign);
+        if (recipients.length === 0) {
+          return res.status(200).json({
+            success: false,
+            recipientCount: 0,
+            message: 'No active subscribers match this campaign. Add newsletter subscribers (or adjust the include/exclude tags), then send again.',
+          });
+        }
         await db.update(emailCampaigns)
-          .set({ status: 'sending', sentAt: new Date() })
+          .set({ status: 'sending', sentAt: new Date(), recipientCount: recipients.length, sentCount: 0, deliveredCount: 0, bouncedCount: 0 })
           .where(eq(emailCampaigns.id, campaign_id));
-        
-        // TODO: Implement actual bulk email sending queue
-        res.json({ success: true, message: 'Campaign queued for sending' });
+
+        // Fire-and-forget; the request returns immediately while sending continues.
+        void runCampaignSend(campaign, recipients).catch((err) => {
+          console.error('[campaign-send] fatal error:', err);
+          db.update(emailCampaigns).set({ status: 'draft' }).where(eq(emailCampaigns.id, campaign_id)).catch(() => {});
+        });
+
+        return res.json({
+          success: true,
+          queued: true,
+          recipientCount: recipients.length,
+          message: `Campaign is sending to ${recipients.length} subscriber${recipients.length === 1 ? '' : 's'}.`,
+        });
       }
     } catch (error) {
       console.error('Error sending campaign:', error);
       res.status(500).json({ error: 'Failed to send campaign' });
+    }
+  });
+
+  // Public one-click unsubscribe (link in every bulk campaign footer). Stateless
+  // HMAC token — no login, no per-recipient row needed.
+  app.get('/api/email/unsubscribe', async (req: Request, res: Response) => {
+    const page = (title: string, body: string) =>
+      `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title></head>`
+      + `<body style="font-family:ui-sans-serif,system-ui,Arial;max-width:520px;margin:12vh auto;padding:0 24px;text-align:center;color:#111">`
+      + `<h2 style="color:#7C2BD9">${title}</h2>${body}</body></html>`;
+    try {
+      const email = String(req.query.e || '').toLowerCase().trim();
+      const campaignId = String(req.query.c || '');
+      const token = String(req.query.t || '');
+      if (!email || !token || token !== unsubscribeToken(email)) {
+        return res.status(400).send(page('Ungültiger Link', '<p>Dieser Abmelde-Link ist ungültig oder abgelaufen.</p>'));
+      }
+      await runSql(`UPDATE email_subscribers SET status='unsubscribed', unsubscribed_at=NOW() WHERE LOWER(email)=$1`, [email]).catch(() => {});
+      if (campaignId) {
+        await runSql(`INSERT INTO email_events (campaign_id, subscriber_email, event_type, created_at) VALUES ($1,$2,'unsubscribed',NOW())`, [campaignId, email]).catch(() => {});
+        await runSql(`UPDATE email_campaigns SET unsubscribed_count = COALESCE(unsubscribed_count,0) + 1 WHERE id = $1`, [campaignId]).catch(() => {});
+      }
+      return res.send(page('Erfolgreich abgemeldet', '<p>Sie wurden abgemeldet und erhalten keine weiteren Kampagnen-E-Mails.</p>'));
+    } catch (error) {
+      console.error('Unsubscribe error:', error);
+      return res.status(500).send(page('Fehler', '<p>Es ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut.</p>'));
     }
   });
 

@@ -170,7 +170,12 @@ const AdvancedCampaignBuilder: React.FC<AdvancedCampaignBuilderProps> = ({
       if (shouldSend && savedCampaign?.id) {
         setSending(true);
         try {
-          await sendCampaign(savedCampaign.id);
+          const result: any = await sendCampaign(savedCampaign.id);
+          if (result?.success === false) {
+            alert(`⚠️ ${result?.message || 'Campaign was not sent.'}`);
+          } else {
+            alert(`✅ ${result?.message || 'Campaign is sending.'}`);
+          }
           onSave(savedCampaign);
         } finally {
           setSending(false);
