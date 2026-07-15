@@ -17940,7 +17940,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
       if (!content.hero?.ctaText?.trim() && !page.cta_text?.trim()) validationErrors.push('Hero CTA text is missing');
       const seoTitle = content.seo?.title || page.seo_title;
       if (!seoTitle?.trim()) validationErrors.push('SEO title is missing');
-      const metaDesc = content.seo?.description || page.meta_description;
+      const metaDesc = content.seo?.description || content.seo?.metaDescription || page.meta_description;
       if (!metaDesc?.trim()) validationErrors.push('Meta description is missing');
       if (!content.hero && !content.offerSection && !content.finalCta) validationErrors.push('Page has no generated content');
       if (!content.finalCta?.ctaText?.trim()) validationWarnings.push('Final CTA section is recommended');
@@ -18166,7 +18166,7 @@ ${context.keywords ? `Target Keywords: ${context.keywords}` : ''}
 ${context.extras || ''}`;
 
       const completion = await openai.chat.completions.create({
-        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        model: process.env.OPENAI_LANDING_MODEL || process.env.OPENAI_PRICE_MODEL || 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -18205,7 +18205,7 @@ ${context.extras || ''}`;
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
       const completion = await openai.chat.completions.create({
-        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        model: process.env.OPENAI_LANDING_MODEL || process.env.OPENAI_PRICE_MODEL || 'gpt-4o-mini',
         messages: [
           { role: 'system', content: `You are an expert landing page copywriter. Regenerate ONLY the "${section}" section of a landing page. Return ONLY a valid JSON object matching the structure of that section. Keep the same tone and context but write fresh, improved copy. If input is German, write German output.` },
           { role: 'user', content: `Regenerate the "${section}" section.\n\nContext: ${JSON.stringify(context)}\n\nCurrent content to improve: ${JSON.stringify(currentContent)}` }
@@ -18249,7 +18249,7 @@ ${context.extras || ''}`;
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
       const completion = await openai.chat.completions.create({
-        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        model: process.env.OPENAI_LANDING_MODEL || process.env.OPENAI_PRICE_MODEL || 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -18425,7 +18425,7 @@ URL: ${page.slug ? `/lp/${page.slug}` : ''}
       }).filter(Boolean).join('\n');
 
       const completion = await openai.chat.completions.create({
-        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        model: process.env.OPENAI_LANDING_MODEL || process.env.OPENAI_PRICE_MODEL || 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
