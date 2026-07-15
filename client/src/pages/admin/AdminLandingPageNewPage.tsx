@@ -32,6 +32,8 @@ export default function AdminLandingPageNewPage() {
     },
   });
 
+  const [generating, setGenerating] = useState(false);
+
   const handleSave = () => {
     const slug = slugifyLandingPageTitle(title || 'untitled-landing-page');
     create({
@@ -45,6 +47,57 @@ export default function AdminLandingPageNewPage() {
       offer_summary: offerSummary || undefined,
       content_json: {},
     });
+  };
+
+  // Generate the full page copy with AI from the details entered here, then open
+  // the editor. (Same flow as the wizard — kept on this page so it isn't a
+  // dead-end that only saves an empty draft.)
+  const handleGenerateWithAI = async () => {
+    setGenerating(true);
+    try {
+      const ctaAction = pageType === 'voucher_sales' ? 'buy_voucher' : pageType === 'booking' ? 'book_now' : 'enquire';
+      const genRes = await fetch('/api/admin/landing-pages/generate', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pageType, primaryService, targetAudience, city, offerSummary, tone: 'warm', ctaAction }),
+      });
+      if (!genRes.ok) throw new Error((await genRes.json().catch(() => ({})))?.error || 'AI generation failed');
+      const genData = await genRes.json();
+      const slug = slugifyLandingPageTitle(title || primaryService || 'landing-page');
+      const createRes = await fetch('/api/admin/landing-pages', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title || genData.content?.seo?.title || `${primaryService || 'New'} Landing Page`,
+          slug,
+          status: 'draft',
+          page_type: pageType,
+          primary_service: primaryService || undefined,
+          target_audience: targetAudience || undefined,
+          offer_summary: offerSummary || undefined,
+          city: city || undefined,
+          tone: 'warm',
+          seo_title: genData.content?.seo?.title || '',
+          meta_description: genData.content?.seo?.metaDescription || '',
+          hero_headline: genData.content?.hero?.headline || '',
+          hero_subheadline: genData.content?.hero?.subheadline || '',
+          cta_text: genData.content?.hero?.ctaText || 'Jetzt buchen',
+          cta_action: ctaAction,
+          content_json: genData.content,
+          generation_context_json: { model: genData.model, usage: genData.usage, generatedAt: new Date().toISOString() },
+        }),
+      });
+      if (!createRes.ok) throw new Error((await createRes.json().catch(() => ({})))?.error || 'Failed to save generated page');
+      const page = await createRes.json();
+      toast({ title: 'Landing page generated', description: 'AI content created — opening the editor.' });
+      navigate(`/admin/landing-pages/${page.id}`);
+    } catch (err: any) {
+      toast({ title: 'Generation failed', description: err?.message || 'Please try again.', variant: 'destructive' });
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (
@@ -162,11 +215,19 @@ export default function AdminLandingPageNewPage() {
                   <Sparkles className="h-5 w-5 text-purple-600" />
                   <h3 className="font-semibold text-purple-900">AI Generation</h3>
                 </div>
-                <p className="text-sm text-purple-800">
-                  In the next phase you'll be able to generate compelling copy, headlines, and
-                  full page sections using AI — based on the details you enter here.
+                <p className="text-sm text-purple-800 mb-3">
+                  Generate compelling copy, headlines, and full page sections with AI — based on the
+                  details you enter here — then fine-tune each section in the editor.
                 </p>
-                {/* TODO: Phase 2 — link to AI generation wizard */}
+                <Button
+                  onClick={handleGenerateWithAI}
+                  disabled={generating || !primaryService}
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white gap-2"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {generating ? 'Generating…' : 'Generate with AI'}
+                </Button>
+                {!primaryService && <p className="text-xs text-purple-500 mt-2">Choose a Primary Service first.</p>}
               </CardContent>
             </Card>
 
@@ -194,14 +255,25 @@ export default function AdminLandingPageNewPage() {
           <Button variant="outline" onClick={() => navigate('/admin/landing-pages')}>
             Cancel
           </Button>
-          <Button
-            onClick={handleSave}
-            disabled={isCreating}
-            className="bg-purple-600 hover:bg-purple-700 text-white gap-2"
-          >
-            <Save className="h-4 w-4" />
-            {isCreating ? 'Saving...' : 'Save as Draft'}
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              onClick={handleSave}
+              disabled={isCreating || generating}
+              variant="outline"
+              className="gap-2"
+            >
+              <Save className="h-4 w-4" />
+              {isCreating ? 'Saving...' : 'Save as Draft'}
+            </Button>
+            <Button
+              onClick={handleGenerateWithAI}
+              disabled={generating || isCreating || !primaryService}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              {generating ? 'Generating…' : 'Generate with AI'}
+            </Button>
+          </div>
         </div>
       </div>
     </AdminLayout>
