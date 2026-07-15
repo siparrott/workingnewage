@@ -41,13 +41,28 @@ interface PublicLandingPageRendererProps {
 }
 
 function getCtaHref(ctaAction: string): string {
+  let base: string;
   switch (ctaAction) {
-    case 'book_now': return '/booking';
-    case 'buy_voucher': return '/vouchers';
-    case 'enquire': return '/contact';
-    case 'callback': return '/contact';
-    case 'waitlist': return '/contact';
-    default: return '/contact';
+    case 'book_now': base = '/booking'; break;
+    case 'buy_voucher': base = '/vouchers'; break;
+    case 'enquire':
+    case 'callback':
+    case 'waitlist':
+    default: base = '/contact'; break;
+  }
+  // Propagate campaign/UTM params from the landing URL onto the CTA target so
+  // attribution survives even without cookies/localStorage.
+  try {
+    const src = new URLSearchParams(window.location.search);
+    const keep = new URLSearchParams();
+    ['utm_campaign', 'utm_source', 'utm_medium', 'nac', 'campaign_id'].forEach((k) => {
+      const v = src.get(k);
+      if (v) keep.set(k, v);
+    });
+    const qs = keep.toString();
+    return qs ? `${base}?${qs}` : base;
+  } catch {
+    return base;
   }
 }
 
@@ -64,7 +79,7 @@ export function PublicLandingPageRenderer({
   // Build SEO metadata
   const metadata = buildLandingPageMetadata({
     seoTitle: page.seo_title || page.content_json?.seo?.title || '',
-    metaDescription: page.meta_description || page.content_json?.seo?.description || '',
+    metaDescription: page.meta_description || page.content_json?.seo?.description || page.content_json?.seo?.metaDescription || '',
     canonicalUrl: page.canonical_url || null,
     noindex: page.noindex || false,
     slug: page.slug,

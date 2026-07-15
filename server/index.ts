@@ -389,6 +389,39 @@ app.use((req, res, next) => {
         console.warn('⚠️ voucher_sales.campaign_id migration already applied or failed:', migrationError.message);
       }
 
+      // Landing pages: analytics events table + publishing/preview columns were
+      // referenced by code but had no repo migration (broke analytics + preview
+      // links on any reproducibly-provisioned DB). Ensure them idempotently.
+      try {
+        await db.execute(sql`
+          CREATE TABLE IF NOT EXISTS landing_page_events (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            landing_page_id uuid,
+            event_type text NOT NULL,
+            event_label text,
+            event_value numeric,
+            variant_key text,
+            session_id text,
+            visitor_id text,
+            source text,
+            medium text,
+            campaign text,
+            referrer text,
+            page_path text,
+            metadata_json jsonb DEFAULT '{}'::jsonb,
+            occurred_at timestamptz DEFAULT now()
+          )`);
+        await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_lpe_page ON landing_page_events(landing_page_id)`);
+        await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_lpe_occurred ON landing_page_events(occurred_at)`);
+        await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS preview_token TEXT`);
+        await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS preview_token_expires_at TIMESTAMPTZ`);
+        await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS canonical_url TEXT`);
+        await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS noindex BOOLEAN DEFAULT FALSE`);
+        console.log('✅ landing_page_events + publishing columns ensured');
+      } catch (migrationError: any) {
+        console.warn('⚠️ landing pages migration already applied or failed:', migrationError.message);
+      }
+
       // Run onboarding columns migration
       try {
         await db.execute(sql`ALTER TABLE studio_configs ADD COLUMN IF NOT EXISTS technical_setup_complete BOOLEAN DEFAULT FALSE`);

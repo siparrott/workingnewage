@@ -52,17 +52,16 @@ export default function AdminLandingPagesPage() {
   });
 
   const handleCreateNew = () => {
-    // Route to dedicated create page for Phase 1 scaffold
-    navigate('/admin/landing-pages/new');
-  };
-
-  // TODO: Phase 2 — wizard-based creation with AI generation
-  const handleCreateViaWizard = () => {
+    // Open the AI generation wizard — the complete create → generate → edit →
+    // publish flow. (The old /admin/landing-pages/new scaffold had no AI step and
+    // left AI generation UI-unreachable.)
     setWizardData(defaultWizardData);
     setWizardStep(1);
     setEditingPage(null);
     setView('wizard');
   };
+
+  const handleCreateViaWizard = handleCreateNew;
 
   const handleEditPage = (page: LandingPageRecord) => {
     navigate(`/admin/landing-pages/${page.id}`);
