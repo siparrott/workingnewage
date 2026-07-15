@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingCart, CreditCard, Mail, MapPin, Gift, Edit2, ChevronDown, ArrowLeft } from 'lucide-react';
 import VoucherCodeInput from '../cart/VoucherCodeInput';
 import type { VoucherPersonalizationData } from './VoucherPersonalization';
+import { getAttributedCampaignId } from '../../lib/attribution';
 
 interface EnhancedCheckoutPageProps {
   voucherData?: VoucherPersonalizationData;
@@ -172,7 +173,9 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
         appliedVoucherCode,
         discount: Math.round(discount * 100),
         mode: 'voucher',
-        paymentMethod: finalPaymentMethod
+        paymentMethod: finalPaymentMethod,
+        // Email→order attribution: campaign that drove this purchase (if any).
+        campaignId: getAttributedCampaignId() || undefined
       };
 
       console.log('➡️ Creating checkout session with payload:', payload);

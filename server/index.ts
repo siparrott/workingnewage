@@ -381,6 +381,14 @@ app.use((req, res, next) => {
         console.warn('⚠️ Gallery migration already applied or failed:', migrationError.message);
       }
 
+      // Email→order attribution: campaign that drove a voucher purchase.
+      try {
+        await db.execute(sql`ALTER TABLE voucher_sales ADD COLUMN IF NOT EXISTS campaign_id TEXT`);
+        console.log('✅ voucher_sales.campaign_id attribution column ensured');
+      } catch (migrationError: any) {
+        console.warn('⚠️ voucher_sales.campaign_id migration already applied or failed:', migrationError.message);
+      }
+
       // Run onboarding columns migration
       try {
         await db.execute(sql`ALTER TABLE studio_configs ADD COLUMN IF NOT EXISTS technical_setup_complete BOOLEAN DEFAULT FALSE`);

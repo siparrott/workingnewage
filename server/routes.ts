@@ -11082,6 +11082,19 @@ Ihr Team von {{studioName}}`,
         return res.status(404).json({ error: 'Campaign not found' });
       }
       
+      // Tag campaign links so a click carries the campaign id — the first link in
+      // the email→order attribution chain (click → utm_campaign → checkout metadata
+      // → voucher_sales.campaign_id → /api/reports/email-campaign-revenue).
+      const tagCampaignLinks = (html: string, cid: string) => {
+        if (!html || !cid) return html || '';
+        return html.replace(/href=("|')(https?:\/\/[^"']+)("|')/gi, (_m, q1, url, q2) => {
+          if (/[?&]utm_campaign=/.test(url)) return `href=${q1}${url}${q2}`;
+          const sep = url.includes('?') ? '&' : '?';
+          return `href=${q1}${url}${sep}utm_campaign=${encodeURIComponent(cid)}&utm_source=email${q2}`;
+        });
+      };
+      const campaignTaggedContent = tagCampaignLinks(campaign.content || '', String(campaign_id || (campaign as any).id || ''));
+
       if (test_send && test_emails) {
         // Send test emails — report the TRUE outcome (a misconfigured SMTP falls
         // into demo mode and does NOT actually deliver; don't claim success then).
@@ -11092,8 +11105,8 @@ Ihr Team von {{studioName}}`,
           const r: any = await EnhancedEmailService.sendEmail({
             to: email,
             subject: `[TEST] ${campaign.subject}`,
-            html: campaign.content || '',
-            content: campaign.content || '',
+            html: campaignTaggedContent,
+            content: campaignTaggedContent,
           });
           results.push({ email, delivered: !!r?.success && !r?.demo, demo: !!r?.demo, error: r?.error || null });
         }
@@ -13377,10 +13390,12 @@ ${getBizName()} CRM System
               try {
                 await runSql(
                   `UPDATE voucher_sales SET stripe_session_id = $1, stripe_payment_intent_id = $2, product_id = $3::uuid,
-                   billing_address = $4, billing_city = $5, billing_zip = $6, billing_country = $7
-                   WHERE id = $8`,
+                   billing_address = $4, billing_city = $5, billing_zip = $6, billing_country = $7,
+                   campaign_id = NULLIF($8, '')
+                   WHERE id = $9`,
                   [session.id, session.payment_intent, resolvedProductId,
-                   billingAddress, billingCity, billingZip, billingCountry, createdSale.id]
+                   billingAddress, billingCity, billingZip, billingCountry,
+                   String(metadata.campaign_id || ''), createdSale.id]
                 );
               } catch (extraErr) {
                 console.warn('[WEBHOOK] Could not update extra columns:', (extraErr as any)?.message);
@@ -14713,6 +14728,35 @@ ${getBizName()} CRM System
     }
   });
 
+  // Email→order attribution rollup: paid voucher revenue grouped by the campaign
+  // that drove it (voucher_sales.campaign_id, set from Stripe metadata at purchase).
+  app.get('/api/reports/email-campaign-revenue', authenticateUser, async (_req: Request, res: Response) => {
+    try {
+      const rows = await runSql(`
+        SELECT vs.campaign_id AS campaign_id,
+               COALESCE(ec.name, 'Unknown campaign') AS campaign_name,
+               COUNT(*) AS orders,
+               COALESCE(SUM(vs.final_amount::numeric), 0) AS revenue
+        FROM voucher_sales vs
+        LEFT JOIN email_campaigns ec ON ec.id::text = vs.campaign_id
+        WHERE vs.payment_status = 'paid'
+          AND vs.campaign_id IS NOT NULL AND vs.campaign_id <> ''
+        GROUP BY vs.campaign_id, ec.name
+        ORDER BY revenue DESC
+      `);
+      res.json((rows || []).map((r: any) => ({
+        campaignId: r.campaign_id,
+        campaignName: r.campaign_name,
+        orders: Number(r.orders) || 0,
+        revenue: Number(r.revenue) || 0,
+      })));
+    } catch (error) {
+      // Column may not exist yet on a fresh DB before the boot migration runs.
+      console.warn('email-campaign-revenue rollup failed (campaign_id column may be pending):', (error as any)?.message);
+      res.json([]);
+    }
+  });
+
   app.get('/api/vouchers/sales.csv', authenticateUser, async (req: Request, res: Response) => {
     try {
       const sales = await storage.getVoucherSales();
@@ -15080,8 +15124,8 @@ ${getBizName()} CRM System
               recipient_name, recipient_email, gift_message, original_amount, discount_amount, final_amount,
               currency, payment_status, stripe_session_id, stripe_payment_intent_id,
               coupon_code, billing_address, billing_city, billing_zip, billing_country,
-              custom_image, design_image, personalization_data, created_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23::jsonb, $24)
+              custom_image, design_image, personalization_data, campaign_id, created_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23::jsonb, NULLIF($24, ''), $25)
             RETURNING id
           `, [
             voucherCode,
@@ -15107,6 +15151,7 @@ ${getBizName()} CRM System
             metadata.custom_image || null,
             metadata.design_image || null,
             personalizationData,
+            String(metadata.campaign_id || ''),
             new Date(session.created * 1000).toISOString()
           ]);
           
