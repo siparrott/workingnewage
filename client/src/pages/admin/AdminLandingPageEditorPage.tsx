@@ -76,11 +76,25 @@ export default function AdminLandingPageEditorPage() {
 
   const handlePreviewLink = useCallback(async () => {
     if (!id) return;
+    // Pre-open a tab synchronously (inside the click gesture) so the popup
+    // blocker doesn't kill it after the await; we set its URL once we have it.
+    const previewWindow = window.open('about:blank', '_blank');
     const url = await requestPreviewLink(id);
     if (url) {
       const fullUrl = `${window.location.origin}${url}`;
-      await navigator.clipboard.writeText(fullUrl);
-      toast({ title: 'Preview link copied', description: 'The preview link has been copied to your clipboard. It expires in 24 hours.' });
+      if (previewWindow) {
+        previewWindow.location.href = fullUrl;
+      }
+      navigator.clipboard?.writeText(fullUrl).catch(() => {});
+      toast({
+        title: 'Preview ready',
+        description: previewWindow
+          ? 'Opened in a new tab (and copied to clipboard). Expires in 24 hours.'
+          : 'Copied to clipboard — paste it in a new tab. Expires in 24 hours.',
+      });
+    } else {
+      if (previewWindow) previewWindow.close();
+      toast({ title: 'Preview failed', description: 'Could not create a preview link. Please save the page and try again.', variant: 'destructive' });
     }
   }, [id, requestPreviewLink, toast]);
 
