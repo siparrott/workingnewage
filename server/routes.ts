@@ -14647,6 +14647,36 @@ ${getBizName()} CRM System
       res.status(500).json({ error: 'Internal server error' });
     }
   });
+  // Real per-gallery analytics for the Reports dashboard (views + email captures
+  // as an "inquiries" proxy). Distinct path so it doesn't collide with
+  // /api/galleries/:id. Best-effort: missing analytics rows count as 0.
+  app.get('/api/reports/gallery-analytics', authenticateUser, async (_req: Request, res: Response) => {
+    try {
+      const rows = await runSql(`
+        SELECT g.id, g.title,
+               COALESCE(ga.view_count, 0)          AS view_count,
+               COALESCE(ga.email_capture_count, 0) AS email_capture_count,
+               COALESCE(ga.download_count, 0)      AS download_count,
+               (SELECT COUNT(*) FROM gallery_images gi WHERE gi.gallery_id = g.id) AS image_count
+        FROM galleries g
+        LEFT JOIN gallery_analytics ga ON ga.gallery_id = g.id
+        ORDER BY COALESCE(ga.view_count, 0) DESC
+        LIMIT 20
+      `);
+      res.json((rows || []).map((r: any) => ({
+        id: r.id,
+        title: r.title || 'Untitled gallery',
+        viewCount: Number(r.view_count) || 0,
+        emailCaptures: Number(r.email_capture_count) || 0,
+        downloadCount: Number(r.download_count) || 0,
+        imageCount: Number(r.image_count) || 0,
+      })));
+    } catch (error) {
+      console.error('Error building gallery analytics summary:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   app.get('/api/vouchers/sales.csv', authenticateUser, async (req: Request, res: Response) => {
     try {
       const sales = await storage.getVoucherSales();
