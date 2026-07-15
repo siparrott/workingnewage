@@ -14677,6 +14677,42 @@ ${getBizName()} CRM System
     }
   });
 
+  // Revenue grouped by service, from actual invoice LINE ITEMS (crm_invoice_items.
+  // description) on PAID invoices — the real breakdown for the Reports dashboard
+  // (invoices themselves have no service field).
+  app.get('/api/reports/revenue-by-service', authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const params: any[] = [];
+      let dateClause = '';
+      const from = req.query.from ? new Date(String(req.query.from)) : null;
+      if (from && !isNaN(from.getTime())) {
+        params.push(from.toISOString().slice(0, 10));
+        dateClause = `AND i.issue_date >= $${params.length}`;
+      }
+      const rows = await runSql(`
+        SELECT COALESCE(NULLIF(TRIM(ii.description), ''), 'Other') AS service,
+               SUM(COALESCE(ii.quantity, '1')::numeric * COALESCE(ii.unit_price, '0')::numeric) AS revenue,
+               COUNT(DISTINCT i.id) AS invoices
+        FROM crm_invoice_items ii
+        JOIN crm_invoices i ON i.id = ii.invoice_id
+        WHERE i.status = 'paid' ${dateClause}
+        GROUP BY service
+        ORDER BY revenue DESC
+        LIMIT 20
+      `, params);
+      const total = (rows || []).reduce((s: number, r: any) => s + (Number(r.revenue) || 0), 0);
+      res.json((rows || []).map((r: any) => ({
+        service: r.service,
+        revenue: Number(r.revenue) || 0,
+        invoices: Number(r.invoices) || 0,
+        percentage: total > 0 ? (Number(r.revenue) / total) * 100 : 0,
+      })));
+    } catch (error) {
+      console.error('Error building revenue-by-service:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   app.get('/api/vouchers/sales.csv', authenticateUser, async (req: Request, res: Response) => {
     try {
       const sales = await storage.getVoucherSales();
