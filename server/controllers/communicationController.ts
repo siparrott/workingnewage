@@ -4,6 +4,7 @@ import SMSService from '../services/smsService';
 import { db } from '../db';
 import { crmClients, crmMessages, smsConfig } from '@shared/schema';
 import { eq, desc } from 'drizzle-orm';
+import { config as configReader } from '../config-reader';
 
 /**
  * Send individual email with auto client linking
@@ -224,6 +225,18 @@ export const getSMSConfig = async (req: Request, res: Response) => {
       .limit(1);
 
     if (config.length === 0) {
+      // Onboarding-configured provider (studio_integrations via config-reader)
+      const siProvider = await configReader.get('sms_provider');
+      if (siProvider) {
+        return res.json({
+          configured: true,
+          provider: siProvider,
+          fromNumber: (await configReader.get('sms_from_number')) || 'TogNinja CRM',
+          isActive: true,
+          note: 'Configured via onboarding (studio integrations)'
+        });
+      }
+
       // No DB config found — check environment variables (Vonage / Twilio)
       if (process.env.VONAGE_API_KEY && process.env.VONAGE_API_SECRET) {
         return res.json({

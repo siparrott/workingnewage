@@ -2,6 +2,7 @@ import { db } from '../db';
 import { crmMessages, crmClients, messageCampaigns, smsConfig } from '@shared/schema';
 import { eq, or, ilike, and, gte, lt, inArray } from 'drizzle-orm';
 import fetch from 'node-fetch';
+import { config } from '../config-reader';
 
 export interface SendSMSOptions {
   to: string;
@@ -41,6 +42,33 @@ export class SMSService {
         this.config = configs[0];
         console.log(`✅ SMS service initialized with ${this.config.provider} from database`);
         return true;
+      }
+
+      // Onboarding-configured provider (studio_integrations, via config-reader).
+      // This is where the setup wizard's "Extras" step saves SMS credentials —
+      // reading it here is what makes SMS actually work after onboarding.
+      const siProvider = (await config.get('sms_provider'))?.toLowerCase();
+      if (siProvider === 'twilio' || siProvider === 'vonage') {
+        const accountSid = await config.get('sms_account_sid');
+        const authToken = await config.get('sms_auth_token');
+        const fromNumber = await config.get('sms_from_number');
+        const hasCreds = siProvider === 'twilio'
+          ? !!(accountSid && authToken && fromNumber)
+          : !!(accountSid && authToken);
+        if (hasCreds) {
+          this.config = {
+            provider: siProvider,
+            accountSid,
+            authToken,
+            apiKey: accountSid,   // Vonage path reads apiKey/apiSecret
+            apiSecret: authToken,
+            fromNumber: fromNumber || 'TogNinja CRM',
+            isActive: true,
+          };
+          console.log(`✅ SMS service initialized with ${siProvider} from studio integrations`);
+          return true;
+        }
+        console.warn(`⚠️ SMS provider "${siProvider}" set in onboarding but credentials are incomplete`);
       }
 
       // If no database config, try environment variables for Twilio…

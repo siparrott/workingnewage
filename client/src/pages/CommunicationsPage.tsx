@@ -98,9 +98,12 @@ const CommunicationsPage: React.FC = () => {
       });
 
       const result = await response.json();
-      
-      if (result.success) {
-        alert(`Email sent successfully! ${result.clientId ? 'Linked to client record.' : ''}`);
+
+      if (result.success && result.demo) {
+        // Honest: demo mode means nothing was actually delivered.
+        alert(`⚠️ Email NOT sent — ${result.error || 'email is not configured (demo mode).'}\n\nConfigure SMTP/Brevo (Setup → Email) to send for real.`);
+      } else if (result.success) {
+        alert(`✅ Email sent successfully! ${result.clientId ? 'Linked to client record.' : ''}`);
         setEmailForm({ to: '', subject: '', content: '', autoLinkClient: true });
         loadCommunications();
       } else {
