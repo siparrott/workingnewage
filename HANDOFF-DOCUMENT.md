@@ -24,6 +24,19 @@
 _Running log so the eventual §8–§12 rewrite is accurate and cheap. Newest first.
 Each entry maps to commits on `main`._
 
+### Onboarding-impact checklist (from the July 2026 hardening)
+
+New defaults/behaviours a **fresh tenant** now inherits — fold these into the onboarding docs/checklist during the §8–§12 rewrite. None break first-run onboarding; they are facts a new user/tenant must know.
+
+- **Boot migrations run automatically on first start** (idempotent `ADD COLUMN IF NOT EXISTS`): `voucher_sales.campaign_id` (email→order attribution), gallery image columns, studio_configs onboarding columns. Safe; no manual step. If the app runs on a DB role without ALTER rights, these warn-and-continue.
+- **A default "pre-shoot" questionnaire is auto-seeded at every startup** (`/q/pre-shoot`), in **German**, New-Age-flavoured. For a differently-branded or non-German tenant it will appear pre-made and should be edited. Note: it uses `ON CONFLICT (slug) DO UPDATE SET is_active=true`, so it **re-activates on every boot** even if a tenant deactivates it (content is not overwritten). Consider making this seed opt-in / tenant-templated for true multi-tenant onboarding.
+- **Provider config is per-tenant via the setup wizard** — SMTP/Brevo (EmailStep), SMS Twilio/Vonage (ExtrasStep), Stripe, storage. Services read these through `config-reader` (DB → env). Onboarding **is** how messaging/payments get turned on; nothing is hardcoded to New Age.
+- **Setup-wizard mutations are gated once an admin exists** — first-run onboarding is open (no admin yet); after Step 7 creates the admin, the credential-save + SMTP/Stripe-test endpoints require auth. Read-only status + `POST /complete` stay open so onboarding can't lock itself out.
+- **Email campaigns start with 0 subscribers** — a new tenant's first campaign sends to nobody until newsletter sign-ups populate `email_subscribers`. Expected, not a bug. There is **no admin UI to import/manage subscribers yet** (only `/api/newsletter/signup` adds them).
+- **Messaging degrades honestly when unconfigured** — email/SMS report "not configured / demo" instead of faking success. So a half-onboarded tenant gets truthful feedback.
+- **Reports read live DB data** — a brand-new tenant will see mostly zeros/empty-states (no invoices/vouchers/galleries yet), which is correct. No mock data masks an empty account.
+- **Known onboarding gaps still open**: WhatsApp needs an approved Business sender (SMS-first); email open/click tracking needs a pixel + click-redirect; Landing Pages has no on-page lead-capture form (CTAs route to /booking, /vouchers, /contact).
+
 ### July 15, 2026
 - **Email campaign bulk send queue (feature completed)** — replaced the `// TODO: bulk send queue` no-op in `POST /api/email/campaigns/send`. Audience = opted-in `email_subscribers` (status='active') honoring tag include/exclude; background batched+paced sender personalizes, tags links for attribution, appends an unsubscribe footer, sends via `EnhancedEmailService`, logs per-recipient `email_events`, and writes authoritative counters from the event log. Idempotent/resumable (skips already-attempted recipients). New public `GET /api/email/unsubscribe` (stateless HMAC token) flips subscriber status + bumps counters — required for bulk-mail compliance; unsubscribed addresses are excluded from future sends. **Known follow-up:** open/click tracking still needs a tracking pixel + click-redirect (the `POST /api/email/track/event` sink exists but nothing calls it automatically), and the subscribers list has no admin CRUD UI yet (only newsletter signup populates it).
 - **Revenue by Service from invoice line items** — `GET /api/reports/revenue-by-service` sums `crm_invoice_items` (quantity×unit_price) on PAID invoices grouped by line-item description; Reports pie now real (invoices have no service field).
