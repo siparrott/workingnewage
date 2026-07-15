@@ -113,7 +113,8 @@ const ComprehensiveReportsPage: React.FC = () => {
         vouchersResponse,
         blogResponse,
         campaignsResponse,
-        galleriesResponse
+        galleriesResponse,
+        revenueByServiceResponse
       ] = await Promise.allSettled([
         fetch(`/api/crm/invoices?from=${startDate.toISOString()}`, fetchOptions),
         fetch('/api/crm/clients', fetchOptions),
@@ -122,7 +123,8 @@ const ComprehensiveReportsPage: React.FC = () => {
         fetch(`/api/vouchers/sales?from=${startDate.toISOString()}`, fetchOptions),
         fetch('/api/blog/posts', fetchOptions),
         fetch('/api/admin/email/campaigns', fetchOptions),
-        fetch('/api/reports/gallery-analytics', fetchOptions)
+        fetch('/api/reports/gallery-analytics', fetchOptions),
+        fetch(`/api/reports/revenue-by-service?from=${startDate.toISOString()}`, fetchOptions)
       ]);
 
       // Process API responses
@@ -155,6 +157,9 @@ const ComprehensiveReportsPage: React.FC = () => {
       const safeBlogPosts = Array.isArray(blogPosts) ? blogPosts : [];
       const safeCampaigns = Array.isArray(campaigns) ? campaigns : [];
       const safeGalleryStats = Array.isArray(galleryStats) ? galleryStats : [];
+      const revenueByServiceRaw = revenueByServiceResponse.status === 'fulfilled' && revenueByServiceResponse.value.ok
+        ? await revenueByServiceResponse.value.json() : [];
+      const safeRevenueByService = Array.isArray(revenueByServiceRaw) ? revenueByServiceRaw : [];
 
       // Note: bookings API not yet implemented
       const bookings = [];
@@ -162,7 +167,12 @@ const ComprehensiveReportsPage: React.FC = () => {
       // Create comprehensive report data
       const comprehensiveData: ComprehensiveReportData = {
         revenueByMonth: processRevenueByMonth(safeInvoices),
-        revenueByService: processRevenueByService(safeInvoices),
+        // Real breakdown from invoice line items (paid invoices) via the backend.
+        revenueByService: safeRevenueByService.map((r: any) => ({
+          service: r.service || 'Other',
+          revenue: Number(r.revenue) || 0,
+          percentage: Number(r.percentage) || 0,
+        })),
         profitability: processProfitability(safeInvoices),
         clientsBySource: processClientsBySource(safeClients),
         clientRetention: processClientRetention(safeClients, safeInvoices),
