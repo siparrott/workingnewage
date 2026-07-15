@@ -40,15 +40,22 @@ interface PublicLandingPageRendererProps {
   previewExpiresAt?: string | null;
 }
 
-function getCtaHref(ctaAction: string): string {
+function getCtaHref(ctaAction: string, voucherSlug?: string | null): string {
   let base: string;
-  switch (ctaAction) {
-    case 'book_now': base = '/booking'; break;
-    case 'buy_voucher': base = '/vouchers'; break;
-    case 'enquire':
-    case 'callback':
-    case 'waitlist':
-    default: base = '/contact'; break;
+  // A bound voucher product wins: send the visitor straight to that product's
+  // personalize → Stripe flow at its fixed price. Falls back to the /vouchers
+  // list (or the action's default) when nothing is bound.
+  if (voucherSlug) {
+    base = `/voucher/${voucherSlug}`;
+  } else {
+    switch (ctaAction) {
+      case 'book_now': base = '/booking'; break;
+      case 'buy_voucher': base = '/vouchers'; break;
+      case 'enquire':
+      case 'callback':
+      case 'waitlist':
+      default: base = '/contact'; break;
+    }
   }
   // Propagate campaign/UTM params from the landing URL onto the CTA target so
   // attribution survives even without cookies/localStorage.
@@ -73,7 +80,7 @@ export function PublicLandingPageRenderer({
 }: PublicLandingPageRendererProps) {
   const content = page.content_json || {};
   const ctaAction = page.cta_action || 'enquire';
-  const ctaHref = getCtaHref(ctaAction);
+  const ctaHref = getCtaHref(ctaAction, (page as any).cta_voucher_slug);
   const ctaText = content.hero?.ctaText || page.cta_text || 'Jetzt buchen';
 
   // Build SEO metadata
@@ -114,6 +121,8 @@ export function PublicLandingPageRenderer({
       <PublicLandingPageHero
         key="hero"
         data={content.hero}
+        imageUrl={(page as any).hero_image_url || null}
+        videoUrl={(page as any).hero_video_url || null}
         ctaHref={ctaHref}
         ctaText={ctaText}
         pageId={page.id}

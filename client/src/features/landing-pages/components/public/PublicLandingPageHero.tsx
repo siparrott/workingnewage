@@ -10,6 +10,8 @@ interface PublicLandingPageHeroProps {
     eyebrow?: string;
     badgeText?: string;
   };
+  imageUrl?: string | null;
+  videoUrl?: string | null;
   ctaHref: string;
   ctaText: string;
   pageId: string;
@@ -19,15 +21,33 @@ interface PublicLandingPageHeroProps {
 
 export function PublicLandingPageHero({
   data,
+  imageUrl,
+  videoUrl,
   ctaHref,
   ctaText,
   pageId,
   pageSlug,
   isPreview,
 }: PublicLandingPageHeroProps) {
+  const hasMedia = !!(imageUrl || videoUrl);
   return (
-    <section className="relative bg-gradient-to-br from-purple-700 via-purple-600 to-pink-600 text-white">
-      <div className="max-w-5xl mx-auto px-6 py-20 md:py-28 text-center">
+    <section className="relative bg-gradient-to-br from-purple-700 via-purple-600 to-pink-600 text-white overflow-hidden">
+      {/* Optional background media (video preferred over image), with a dark
+          overlay so the headline/CTA stay readable. */}
+      {videoUrl ? (
+        <video
+          className="absolute inset-0 w-full h-full object-cover"
+          src={videoUrl}
+          autoPlay
+          muted
+          loop
+          playsInline
+        />
+      ) : imageUrl ? (
+        <img className="absolute inset-0 w-full h-full object-cover" src={imageUrl} alt="" />
+      ) : null}
+      {hasMedia && <div className="absolute inset-0 bg-black/55" />}
+      <div className="relative max-w-5xl mx-auto px-6 py-20 md:py-28 text-center">
         {data.eyebrow && (
           <p className="text-purple-200 text-sm uppercase tracking-wider mb-4 font-medium">
             {data.eyebrow}
