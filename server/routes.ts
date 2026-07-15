@@ -17996,6 +17996,13 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
       const page = await neonDb.getLandingPage(req.params.id);
       if (!page) return res.status(404).json({ error: 'Landing page not found' });
 
+      // Defensive: ensure the preview columns exist even if the boot migration
+      // hasn't run on this DB yet (otherwise the UPDATE below 500s).
+      try {
+        await runSql(`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS preview_token TEXT`);
+        await runSql(`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS preview_token_expires_at TIMESTAMPTZ`);
+      } catch { /* best effort */ }
+
       // Generate a random preview token (64-char hex)
       const { randomBytes } = await import('crypto');
       const previewToken = randomBytes(32).toString('hex');
