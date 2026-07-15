@@ -187,11 +187,11 @@ const AgentChatWidget: React.FC = () => {
 
   // Chat window when open
   return (
-    <div 
-      className={`fixed bottom-6 right-6 z-50 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden transition-all duration-300 ${
-        isMinimized ? 'w-96 h-14' : 'w-[780px] h-[910px]'
+    <div
+      className={`fixed bottom-6 right-6 z-50 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden transition-all duration-300 flex flex-col ${
+        isMinimized ? 'w-96 h-14' : 'w-[720px] h-[720px]'
       }`}
-      style={{ maxHeight: 'calc(100vh - 100px)' }}
+      style={{ maxHeight: 'calc(100vh - 48px)' }}
     >
       {/* Header */}
       <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-4 py-3 flex items-center justify-between">
@@ -224,7 +224,7 @@ const AgentChatWidget: React.FC = () => {
 
       {/* Chat content (hidden when minimized) */}
       {!isMinimized && (
-        <div className="flex h-[850px]">
+        <div className="flex flex-1 min-h-0">
           {/* Quick suggestions sidebar - always visible */}
           <div className="w-[240px] bg-purple-50 border-r border-purple-100 p-3 overflow-y-auto flex-shrink-0">
             <p className="text-xs font-semibold text-purple-700 mb-3 uppercase tracking-wide">Quick Actions</p>
@@ -293,9 +293,9 @@ const AgentChatWidget: React.FC = () => {
           </div>
 
           {/* Main chat area */}
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col min-h-0 min-w-0">
             {/* Messages area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 bg-gray-50">
               {messages.length === 0 && (
                 <div className="text-center text-gray-500 py-12">
                   <Bot className="w-16 h-16 mx-auto mb-4 text-purple-300" />
@@ -333,7 +333,7 @@ const AgentChatWidget: React.FC = () => {
             </div>
 
             {/* Input area */}
-            <div className="p-3 border-t border-gray-200 bg-white">
+            <div className="p-3 border-t border-gray-200 bg-white flex-shrink-0">
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleNewSession}
