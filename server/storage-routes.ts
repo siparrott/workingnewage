@@ -7,7 +7,7 @@ import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import { eq, and, sql as sqlOperator } from 'drizzle-orm';
 import { db } from './db';
-import { requireAuth } from './auth';
+import { requireAuth, getCurrentUser } from './auth';
 import { 
   storageSubscriptions, 
   storageUsage,
@@ -47,15 +47,14 @@ router.post('/create-checkout-session', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    // Get user details
-    const user = await db.select()
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-
-    if (!user || user.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+    // Resolve the signed-in admin the same way the rest of the app does
+    // (admin_users). The old code queried a separate `users` table the admin
+    // isn't in → "User not found".
+    const currentUser: any = await getCurrentUser(req);
+    if (!currentUser) {
+      return res.status(401).json({ error: 'Not authenticated' });
     }
+    const userEmail: string = currentUser.email || '';
 
     // Check if user already has a subscription
     const existingSub = await db.select()
@@ -63,8 +62,8 @@ router.post('/create-checkout-session', async (req: Request, res: Response) => {
       .where(eq(storageSubscriptions.userId, userId))
       .limit(1);
 
-    if (existingSub && existingSub.length > 0 && existingSub[0].status === 'active') {
-      return res.status(400).json({ error: 'Already have an active subscription' });
+    if (existingSub && existingSub.length > 0 && existingSub[0].status === 'active' && existingSub[0].tier !== 'free') {
+      return res.status(400).json({ error: 'You already have an active paid subscription.' });
     }
 
     // Get price ID for tier
@@ -76,7 +75,9 @@ router.post('/create-checkout-session', async (req: Request, res: Response) => {
 
     const priceId = priceIds[tier as keyof typeof priceIds];
     if (!priceId) {
-      return res.status(400).json({ error: 'Invalid tier' });
+      // Honest, non-cryptic message: paid tiers require Stripe products/prices
+      // (STRIPE_PRICE_*) which aren't set on this installation.
+      return res.status(400).json({ error: 'Paid storage plans are not enabled on this installation. You can keep using the Free plan — open “Go to My Archive” to manage your files.' });
     }
 
     // Create Stripe customer if doesn't exist
@@ -84,7 +85,7 @@ router.post('/create-checkout-session', async (req: Request, res: Response) => {
     
     if (!customerId) {
       const customer = await stripe.customers.create({
-        email: user[0].email,
+        email: userEmail,
         metadata: {
           userId: userId,
           tier: tier,
