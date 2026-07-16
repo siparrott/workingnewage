@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, Globe, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -12,10 +12,20 @@ const Header: React.FC = () => {
   const location = useLocation();
   const { language, setLanguage, t } = useLanguage();
   
-  // Get site settings for logo
+  // Get logo. Priority: studio_configs (Studio Customization) → CMS site.logo
+  // override → env-injected SITE.logo → bundled default.
+  const [dbLogo, setDbLogo] = useState<string | null>(null);
+  useEffect(() => {
+    fetch('/api/studio/public-branding')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.logoUrl) setDbLogo(d.logoUrl); })
+      .catch(() => {});
+  }, []);
+
   const tSite = useManualPageContent('site-settings');
   const customLogo = tSite('site.logo');
-  const logoUrl = customLogo && customLogo !== 'site.logo' ? customLogo : '/frontend-logo.jpg';
+  const logoUrl = dbLogo
+    || (customLogo && customLogo !== 'site.logo' ? customLogo : '/frontend-logo.jpg');
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
