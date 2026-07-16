@@ -48,74 +48,73 @@ Returns: Filtered list of appointments with client information`,
   risk: "low",
   handler: async (ctx: ToolContext, args: z.infer<typeof params>) => {
     try {
-      // Build WHERE clauses
+      // Build WHERE clauses — query photography_sessions (the table the CALENDAR
+      // shows). studio_appointments was empty, so the agent used to report "no
+      // appointments" while the calendar had hundreds of sessions.
       const whereClauses: string[] = [];
       const queryParams: any[] = [];
       let paramIndex = 1;
 
       if (args.status && args.status !== "any") {
-        whereClauses.push(`a.status = $${paramIndex}`);
+        whereClauses.push(`ps.status = $${paramIndex}`);
         queryParams.push(args.status);
         paramIndex++;
       }
 
       if (args.appointmentType && args.appointmentType !== "any") {
-        whereClauses.push(`a.appointment_type = $${paramIndex}`);
-        queryParams.push(args.appointmentType);
+        whereClauses.push(`ps.session_type ILIKE $${paramIndex}`);
+        queryParams.push(`%${args.appointmentType}%`);
         paramIndex++;
       }
 
       if (args.clientId) {
-        whereClauses.push(`a.client_id = $${paramIndex}`);
+        whereClauses.push(`ps.client_id = $${paramIndex}`);
         queryParams.push(args.clientId);
         paramIndex++;
       }
 
       if (args.startDate) {
-        whereClauses.push(`a.start_date_time >= $${paramIndex}::timestamp`);
+        whereClauses.push(`ps.start_time >= $${paramIndex}::timestamp`);
         queryParams.push(args.startDate);
         paramIndex++;
       }
 
       if (args.endDate) {
-        whereClauses.push(`a.start_date_time <= $${paramIndex}::timestamp + interval '1 day'`);
+        whereClauses.push(`ps.start_time <= $${paramIndex}::timestamp + interval '1 day'`);
         queryParams.push(args.endDate);
         paramIndex++;
       }
 
       if (args.upcoming) {
-        whereClauses.push(`a.start_date_time >= NOW()`);
+        whereClauses.push(`ps.start_time >= NOW()`);
       }
 
-      const whereClause = whereClauses.length > 0 
-        ? `WHERE ${whereClauses.join(' AND ')}` 
+      const whereClause = whereClauses.length > 0
+        ? `WHERE ${whereClauses.join(' AND ')}`
         : '';
 
-      // Main query with client join
+      // Main query with client join — reads photography_sessions (the calendar).
       const query = `
-        SELECT 
-          a.id,
-          a.title,
-          a.description,
-          a.appointment_type,
-          a.status,
-          a.start_date_time,
-          a.end_date_time,
-          a.location,
-          a.notes,
-          a.reminder_sent,
-          a.reminder_date_time,
-          a.google_calendar_event_id,
-          a.client_id,
-          c.first_name || ' ' || c.last_name as client_name,
-          c.email as client_email,
-          c.phone as client_phone,
-          a.created_at,
-          a.updated_at
-        FROM studio_appointments a
-        LEFT JOIN crm_clients c ON a.client_id = c.id
+        SELECT
+          ps.id,
+          ps.title,
+          ps.session_type,
+          ps.status,
+          ps.start_time,
+          ps.end_time,
+          ps.location_name,
+          ps.notes,
+          ps.google_calendar_event_id,
+          ps.client_id,
+          COALESCE(NULLIF(TRIM(ps.client_name), ''), c.first_name || ' ' || c.last_name) as client_name,
+          COALESCE(ps.client_email, c.email) as client_email,
+          COALESCE(ps.client_phone, c.phone) as client_phone,
+          ps.created_at,
+          ps.updated_at
+        FROM photography_sessions ps
+        LEFT JOIN crm_clients c ON ps.client_id = c.id::text
         ${whereClause}
-        ORDER BY a.start_date_time ${args.upcoming ? 'ASC' : 'DESC'}
+        ORDER BY ps.start_time ${args.upcoming ? 'ASC' : 'DESC'}
         LIMIT $${paramIndex}
       `;
 
@@ -125,19 +124,15 @@ Returns: Filtered list of appointments with client information`,
 
       // Summary statistics
       const summaryQuery = `
-        SELECT 
+        SELECT
           COUNT(*) as total_count,
-          COUNT(*) FILTER (WHERE status = 'scheduled') as scheduled_count,
-          COUNT(*) FILTER (WHERE status = 'confirmed') as confirmed_count,
-          COUNT(*) FILTER (WHERE status = 'completed') as completed_count,
-          COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled_count,
-          COUNT(*) FILTER (WHERE status = 'no_show') as no_show_count,
-          COUNT(*) FILTER (WHERE appointment_type = 'consultation') as consultation_count,
-          COUNT(*) FILTER (WHERE appointment_type = 'photoshoot') as photoshoot_count,
-          COUNT(*) FILTER (WHERE appointment_type = 'delivery') as delivery_count,
-          COUNT(*) FILTER (WHERE appointment_type = 'meeting') as meeting_count,
-          COUNT(*) FILTER (WHERE start_date_time >= NOW()) as upcoming_count
-        FROM studio_appointments a
+          COUNT(*) FILTER (WHERE ps.status = 'scheduled') as scheduled_count,
+          COUNT(*) FILTER (WHERE ps.status = 'confirmed') as confirmed_count,
+          COUNT(*) FILTER (WHERE ps.status = 'completed') as completed_count,
+          COUNT(*) FILTER (WHERE ps.status = 'cancelled') as cancelled_count,
+          COUNT(*) FILTER (WHERE ps.status = 'no_show') as no_show_count,
+          COUNT(*) FILTER (WHERE ps.start_time >= NOW()) as upcoming_count
+        FROM photography_sessions ps
         ${whereClause}
       `;
 
@@ -147,15 +142,16 @@ Returns: Filtered list of appointments with client information`,
       const appointments = result.rows.map((row: any) => ({
         id: row.id,
         title: row.title,
-        description: row.description || "—",
-        type: row.appointment_type,
+        type: row.session_type || "session",
         status: row.status,
         timing: {
-          start: row.start_date_time,
-          end: row.end_date_time,
-          duration_minutes: Math.round((new Date(row.end_date_time).getTime() - new Date(row.start_date_time).getTime()) / 60000)
+          start: row.start_time,
+          end: row.end_time,
+          duration_minutes: (row.end_time && row.start_time)
+            ? Math.round((new Date(row.end_time).getTime() - new Date(row.start_time).getTime()) / 60000)
+            : null
         },
-        location: row.location || "Studio",
+        location: row.location_name || "Studio",
         client: {
           id: row.client_id,
           name: row.client_name || "Unknown",
@@ -163,10 +159,6 @@ Returns: Filtered list of appointments with client information`,
           phone: row.client_phone || "—"
         },
         notes: row.notes || "—",
-        reminder: {
-          sent: row.reminder_sent,
-          scheduled_at: row.reminder_date_time
-        },
         synced_to_google: !!row.google_calendar_event_id,
         created_at: row.created_at,
         updated_at: row.updated_at
@@ -181,12 +173,6 @@ Returns: Filtered list of appointments with client information`,
             completed: parseInt(summary.completed_count),
             cancelled: parseInt(summary.cancelled_count),
             no_show: parseInt(summary.no_show_count)
-          },
-          by_type: {
-            consultation: parseInt(summary.consultation_count),
-            photoshoot: parseInt(summary.photoshoot_count),
-            delivery: parseInt(summary.delivery_count),
-            meeting: parseInt(summary.meeting_count)
           },
           upcoming: parseInt(summary.upcoming_count),
           returned: appointments.length
