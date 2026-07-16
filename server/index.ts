@@ -477,6 +477,15 @@ app.use((req, res, next) => {
         console.warn('⚠️ studio_configs seed skipped:', seedError.message);
       }
 
+      // Seed starter Knowledge Base articles if the table is empty, so the
+      // customer chat assistant has content to answer from on a fresh install.
+      try {
+        const { seedKnowledgeBase } = await import('./seed-knowledge-base');
+        await seedKnowledgeBase();
+      } catch (kbSeedError: any) {
+        console.warn('⚠️ Knowledge Base seed skipped:', kbSeedError.message);
+      }
+
       // Auto-detect: if existing instance already has key infra, mark setup complete
       // Uses raw SQL to avoid Drizzle column-mapping failures if columns don't exist yet
       try {
