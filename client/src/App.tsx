@@ -82,6 +82,9 @@ import AdminLandingPageEditorPage from './pages/admin/AdminLandingPageEditorPage
 import PublicLandingPage from './pages/PublicLandingPage';
 import WebsiteWizard from './pages/admin/WebsiteWizard';
 import PriceListSettingsPage from './pages/admin/settings/PriceListSettingsPage';
+import StorageSettingsPage from './pages/admin/settings/StorageSettingsPage';
+import SmsSettingsPage from './pages/admin/settings/SmsSettingsPage';
+import StripeSettingsPage from './pages/admin/settings/StripeSettingsPage';
 import ManualWebsiteUpdatePage from './pages/admin/ManualWebsiteUpdatePage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import NeonProtectedRoute from './components/auth/NeonProtectedRoute';
@@ -579,6 +582,30 @@ function App() {
                   element={
                     <NeonProtectedRoute>
                       <PriceListSettingsPage />
+                    </NeonProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/settings/storage"
+                  element={
+                    <NeonProtectedRoute>
+                      <StorageSettingsPage />
+                    </NeonProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/settings/sms"
+                  element={
+                    <NeonProtectedRoute>
+                      <SmsSettingsPage />
+                    </NeonProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/settings/payments"
+                  element={
+                    <NeonProtectedRoute>
+                      <StripeSettingsPage />
                     </NeonProtectedRoute>
                   }
                 />

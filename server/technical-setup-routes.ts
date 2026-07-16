@@ -19,6 +19,7 @@ import {
 import { eq, sql } from 'drizzle-orm';
 import { encrypt } from './utils/encryption';
 import { config } from './config-reader';
+import { invalidateTransporter } from './utils/smtp-helper';
 
 const router = Router();
 
@@ -205,8 +206,9 @@ router.post('/email', async (req: Request, res: Response) => {
     }
 
     await db.update(studioIntegrations).set(updateData).where(eq(studioIntegrations.id, siId));
-    
+
     config.invalidate();
+    invalidateTransporter(); // drop the cached SMTP transporter so new creds apply now
     res.json({ success: true });
   } catch (error) {
     console.error('[technical-setup] Email save error:', error);
