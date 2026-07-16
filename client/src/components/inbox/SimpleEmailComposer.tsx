@@ -79,8 +79,11 @@ const SimpleEmailComposer: React.FC<SimpleEmailComposerProps> = ({
       });
 
       const result = await response.json();
-      
-      if (result.success) {
+
+      if (result.success && result.demo) {
+        // Demo mode = logged to "Sent" but NOT actually delivered. Be honest.
+        alert('⚠️ Email was NOT delivered — ' + (result.error || 'email is not configured (demo mode).') + '\n\nCheck Settings → Email / SMTP (host, port 465, user, password).');
+      } else if (result.success) {
         // console.log removed
         onSent?.({ to, subject, body, attachments, messageId: result.messageId });
         clearDraft(); // Clear saved draft after successful send

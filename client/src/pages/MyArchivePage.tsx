@@ -113,10 +113,10 @@ export default function MyArchivePage() {
 
   // Fetch files in current folder
   const { data: files = [], isLoading: filesLoading } = useQuery<FileItem[]>({
-    queryKey: ['files', currentFolderId, String(currentFolderId), Date.now()],
-    staleTime: 0,
-    cacheTime: 0,
-    refetchOnMount: 'always',
+    // NOTE: a Date.now() in the key made every render a new query → the loader
+    // never settled ("Loading files…" forever). Key on the folder only.
+    queryKey: ['files', currentFolderId ?? 'root'],
+    staleTime: 10_000,
     queryFn: async () => {
       const url = currentFolderId
         ? `/api/files?folderId=${currentFolderId}`
@@ -303,7 +303,9 @@ export default function MyArchivePage() {
               Subscribe to a storage plan to start uploading and organizing your files.
             </p>
             <a
-              href="/admin/digital-files"
+              href="https://www.backblaze.com/cloud-storage/pricing"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
             >
               View Storage Plans
@@ -415,7 +417,9 @@ export default function MyArchivePage() {
                     You're using {usage.percentUsed}% of your storage. Upgrade now to avoid running out of space!
                   </p>
                   <a
-                    href="/admin/digital-files"
+                    href="https://www.backblaze.com/cloud-storage/pricing"
+              target="_blank"
+              rel="noopener noreferrer"
                     className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
                   >
                     <Zap className="w-4 h-4 mr-2" />
@@ -438,7 +442,9 @@ export default function MyArchivePage() {
                     You've used {usage.percentUsed}% of your storage. Consider upgrading for more space and features.
                   </p>
                   <a
-                    href="/admin/digital-files"
+                    href="https://www.backblaze.com/cloud-storage/pricing"
+              target="_blank"
+              rel="noopener noreferrer"
                     className="inline-flex items-center px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-sm font-medium"
                   >
                     View Upgrade Options
@@ -460,7 +466,9 @@ export default function MyArchivePage() {
                     Upgrade to get up to 1TB of storage and unlock premium features like client galleries!
                   </p>
                   <a
-                    href="/admin/digital-files"
+                    href="https://www.backblaze.com/cloud-storage/pricing"
+              target="_blank"
+              rel="noopener noreferrer"
                     className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
                   >
                     See Plans & Pricing

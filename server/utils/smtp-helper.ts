@@ -28,7 +28,10 @@ export async function getSmtpTransporter(): Promise<nodemailer.Transporter> {
   }
 
   const host = await config.getOrDefault('smtp_host', process.env.SMTP_HOST || 'smtp.easyname.com');
-  const port = await config.getNumber('smtp_port', parseInt(process.env.SMTP_PORT || '587'));
+  // Default to 465 (implicit SSL) — the port the studio's working automations use
+  // for easyname. 587/STARTTLS was the default and silently failed → demo mode →
+  // "Sent" rows that never delivered. Override with smtp_port / SMTP_PORT if needed.
+  const port = await config.getNumber('smtp_port', parseInt(process.env.SMTP_PORT || '465'));
   const user = await config.get('smtp_user') || process.env.BUSINESS_MAILBOX_USER || process.env.SMTP_USER || '';
   const pass = await config.get('smtp_pass') || process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || '';
   const secure = await config.getBoolean('smtp_secure', port === 465);

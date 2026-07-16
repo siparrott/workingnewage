@@ -135,15 +135,28 @@ router.get('/thumbnail/:id', async (req, res) => {
 // GET /api/files - Retrieve digital files with filters
 router.get('/', async (req, res) => {
   try {
-    const { 
-      folder_name, 
-      file_type, 
-      client_id, 
+    const {
+      folder_name,
+      folderId,
+      file_type,
+      client_id,
       session_id,
       search_term,
       is_public,
-      limit = '20'
+      limit = '200'
     } = req.query;
+
+    // Files store a folderName string, but the client sends the photo_folders id.
+    // Resolve id → name so opening a folder actually lists ITS files.
+    let resolvedFolderName: string | null = null;
+    if (folderId) {
+      try {
+        const { neon } = await import('../db-compat.js');
+        const sql = neon(process.env.DATABASE_URL!);
+        const rows = await sql`SELECT name FROM photo_folders WHERE id = ${String(folderId)} LIMIT 1`;
+        resolvedFolderName = rows[0]?.name || '__no_such_folder__';
+      } catch { resolvedFolderName = null; }
+    }
 
     const baseQuery = db.select({
       id: digitalFiles.id,
@@ -164,8 +177,10 @@ router.get('/', async (req, res) => {
     // Apply filters
     const conditions = [];
     
-    if (folder_name) {
-  conditions.push(ilike(digitalFiles.folderName, `%${folder_name}%`));
+    if (resolvedFolderName) {
+      conditions.push(eq(digitalFiles.folderName, resolvedFolderName));
+    } else if (folder_name) {
+      conditions.push(ilike(digitalFiles.folderName, `%${folder_name}%`));
     }
     
     if (file_type) {
@@ -304,7 +319,19 @@ router.post('/upload', upload.single('file'), async (req, res) => {
                      req.file.mimetype === 'application/pdf' ? 'document' : 'other';
     
     const fileExt = path.extname(req.file.originalname);
-    const folderName = req.body.folderName || 'Manual Website Images';
+    // The client sends folderId (photo_folders id); resolve it to the folder name
+    // so the file is stored IN that folder (was defaulting everything to
+    // "Manual Website Images", so folders always looked empty).
+    let folderName = req.body.folderName;
+    if (!folderName && req.body.folderId) {
+      try {
+        const { neon } = await import('../db-compat.js');
+        const sql = neon(process.env.DATABASE_URL!);
+        const rows = await sql`SELECT name FROM photo_folders WHERE id = ${String(req.body.folderId)} LIMIT 1`;
+        folderName = rows[0]?.name || undefined;
+      } catch { /* fall through to default */ }
+    }
+    folderName = folderName || 'Manual Website Images';
     const fileName = `${folderName}/${fileId}${fileExt}`;
     
     // Upload to Backblaze B2
