@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { Calendar, Tag, AlertCircle, Info, ArrowLeft } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { SEOHead } from '../components/SEO/SEOHead';
 
 interface ApiVoucher {
   id: string;
@@ -115,6 +116,15 @@ const VoucherDetailPage: React.FC = () => {
 
   return (
     <Layout>
+      <SEOHead
+        title={`${voucher.name} – Fotoshooting Gutschein Wien | New Age Fotografie`}
+        description={
+          (voucher.description || '').slice(0, 150) ||
+          `${voucher.name}: Fotoshooting-Gutschein von New Age Fotografie Wien – das perfekte Geschenk.`
+        }
+        canonical={`/gutschein/${voucher.slug || slug}`}
+        ogImage={voucher.imageUrl || voucher.thumbnailUrl || undefined}
+      />
       <div className="container mx-auto px-4 py-8">
         {/* Back button */}
         <button 

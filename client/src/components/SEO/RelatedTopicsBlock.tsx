@@ -65,8 +65,10 @@ const PREISE: LinkItem = {
   de: 'Preise & Pakete für Ihr Shooting',
   en: 'Pricing & packages for your shoot',
 };
+// Consolidated on /preise/ — /fotoshooting-preise-wien/ 301s there (duplicate
+// pricing pages were splitting authority; July 2026 SEO audit).
 const PREISE_WIEN: LinkItem = {
-  to: '/fotoshooting-preise-wien/',
+  to: '/preise/',
   de: 'Fotoshooting Preise Wien – transparenter Überblick',
   en: 'Photoshoot Pricing Vienna – transparent overview',
 };

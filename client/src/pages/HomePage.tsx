@@ -1109,7 +1109,7 @@ const HomePage: React.FC = () => {
               </Link>
             </li>
             <li>
-              <Link to="/fotoshooting-preise-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
+              <Link to="/preise/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
                 {language === 'en' ? 'Photoshoot Pricing Vienna' : 'Fotoshooting Preise Wien'}
               </Link>
             </li>

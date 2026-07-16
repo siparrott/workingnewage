@@ -21,10 +21,37 @@
   </url>
   <url>
     <loc>https://www.newagefotografie.com/blog/</loc>
-    <lastmod>2026-04-21</lastmod>
+    <lastmod>2026-06-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
+
+  <!-- Blog Posts — Familienfotos pillar cluster -->
+  <url>
+    <loc>https://www.newagefotografie.com/blog/familienfotos-locations-wien</loc>
+    <lastmod>2026-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.newagefotografie.com/blog/familienfotos-im-studio-vs-outdoor-in-wien-was-passt-zu-euch</loc>
+    <lastmod>2026-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.newagefotografie.com/blog/familienfotos-in-wien-preise-ablauf-perfekte-vorbereitung</loc>
+    <lastmod>2026-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.newagefotografie.com/blog/die-besten-outfits-fuer-familienfotos-in-wien</loc>
+    <lastmod>2026-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
   <url>
     <loc>https://www.newagefotografie.com/warteliste/</loc>
     <lastmod>2026-04-21</lastmod>
@@ -210,12 +237,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.newagefotografie.com/fotoshooting-preise-wien/</loc>
-    <lastmod>2026-04-21</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://www.newagefotografie.com/faq/</loc>
     <lastmod>2026-04-21</lastmod>
     <changefreq>monthly</changefreq>
@@ -252,5 +273,29 @@
     <lastmod>2026-02-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://www.newagefotografie.com/blog/digitale-bilder-oder-wandbilder</loc>
+    <lastmod>2026-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.newagefotografie.com/blog/businessportraits-in-wien-preise-kleidung-erfolgstipps-f-r-starke-auftritte</loc>
+    <lastmod>2026-01-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.newagefotografie.com/blog/schwangerschaftsfotos-in-wien-ideen-kleidung-der-beste-zeitpunkt</loc>
+    <lastmod>2025-12-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.newagefotografie.com/blog/tipps-fuer-neugeborenenfotos-wien</loc>
+    <lastmod>2025-12-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
 </urlset>

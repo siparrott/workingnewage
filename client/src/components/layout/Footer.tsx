@@ -307,12 +307,21 @@ const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link 
-                  to="/fotoshooting-preise-wien/" 
+                <Link
+                  to="/preise/"
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
                   Fotoshooting Preise Wien
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/kundenstimmen/"
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Kundenstimmen – 4.9★ auf Google
                 </Link>
               </li>
             </ul>
