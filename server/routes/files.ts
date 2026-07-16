@@ -6,26 +6,22 @@ import multer from 'multer';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 import crypto from 'crypto';
+import { getS3Client, getS3Config } from '../services/s3-storage';
 // removed unused imports
 
 const router = Router();
 
-// Initialize S3 client for Backblaze B2
-const s3Client = new S3Client({
-  endpoint: process.env.AWS_S3_ENDPOINT || 'https://s3.eu-central-003.backblazeb2.com',
-  region: process.env.AWS_REGION || 'eu-central-003',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-  },
-});
+// S3 client + bucket/endpoint resolve from onboarding config (studio_integrations)
+// then AWS_* env, via the shared config-aware helpers — so wizard-configured
+// storage works, not just env.
 
 // Helper to build public B2 URL with proper URL encoding for spaces and special chars
 const buildB2Url = (key: string): string => {
-  const bucket = process.env.AWS_S3_BUCKET || '';
-  const endpoint = process.env.AWS_S3_ENDPOINT || '';
+  const cfg = getS3Config();
+  const bucket = cfg.bucket;
+  const endpoint = cfg.endpoint;
   // URL encode the key path, preserving slashes
   const encodedKey = key.split('/').map(part => encodeURIComponent(part)).join('/');
   if (endpoint.includes('backblazeb2.com')) {
@@ -330,8 +326,8 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     }
     
     // Upload to B2
-    await s3Client.send(new PutObjectCommand({
-      Bucket: process.env.AWS_S3_BUCKET || '',
+    await getS3Client().send(new PutObjectCommand({
+      Bucket: getS3Config().bucket,
       Key: fileName,
       Body: processedBuffer,
       ContentType: processedMime,
@@ -355,8 +351,8 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         
         const thumbFileName = `${folderName}/${fileId}_thumb.webp`;
         
-        await s3Client.send(new PutObjectCommand({
-          Bucket: process.env.AWS_S3_BUCKET || '',
+        await getS3Client().send(new PutObjectCommand({
+          Bucket: getS3Config().bucket,
           Key: thumbFileName,
           Body: thumbBuffer,
           ContentType: 'image/webp',

@@ -5176,7 +5176,7 @@ Bitte versuchen Sie es später noch einmal.`;
         try {
           // Upload to B2/S3
           console.log(`[GALLERY UPLOAD] Attempting S3 upload for ${file.originalname}...`);
-          await s3Client.send(new PutObjectCommand({
+          await getS3Client().send(new PutObjectCommand({
             Bucket: s3Config.bucket,
             Key: key,
             Body: file.buffer,
@@ -12618,12 +12618,13 @@ ${getBizName()} CRM System
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      // Validate essential env vars early
-      if (!process.env.AWS_S3_BUCKET) {
-        return res.status(500).json({ error: 'Cloud storage bucket not configured (AWS_S3_BUCKET missing)' });
+      // Resolve storage from onboarding config (studio_integrations) then env.
+      const s3cfg = getS3Config();
+      if (!s3cfg.bucket) {
+        return res.status(500).json({ error: 'Cloud storage is not configured. Set it in Setup → Storage (or the AWS_S3_* env vars).' });
       }
-      if (!process.env.AWS_S3_ENDPOINT) {
-        console.warn('[VOUCHER IMAGE] AWS_S3_ENDPOINT missing; falling back to standard S3 URL format');
+      if (!s3cfg.endpoint) {
+        console.warn('[VOUCHER IMAGE] storage endpoint missing; falling back to standard S3 URL format');
       }
 
       console.log("[VOUCHER IMAGE] Uploading to B2:", {
@@ -12674,8 +12675,8 @@ ${getBizName()} CRM System
       console.log("[VOUCHER IMAGE] Uploading to B2 with keys:", { mainKey, thumbKey, transformed: didTransform });
 
       // Upload main image
-      await s3Client.send(new PutObjectCommand({
-        Bucket: process.env.AWS_S3_BUCKET || '',
+      await getS3Client().send(new PutObjectCommand({
+        Bucket: getS3Config().bucket,
         Key: mainKey,
         Body: processedBuffer,
         ContentType: processedMime,
@@ -12690,8 +12691,8 @@ ${getBizName()} CRM System
       // Helper to build public URL (supports Backblaze B2 S3 & download endpoints)
       // Properly URL encodes spaces and special characters in the path
       const buildPublicUrl = (key: string): string => {
-        const bucket = process.env.AWS_S3_BUCKET || '';
-        const endpoint = process.env.AWS_S3_ENDPOINT || '';
+        const bucket = s3cfg.bucket;
+        const endpoint = s3cfg.endpoint;
         // URL encode each path segment, preserving slashes
         const encodedKey = key.split('/').map(part => encodeURIComponent(part)).join('/');
         if (endpoint.includes('backblazeb2.com')) {
@@ -12710,8 +12711,8 @@ ${getBizName()} CRM System
       let thumbUrl: string | null = null;
       if (thumbnailBuffer) {
         try {
-          await s3Client.send(new PutObjectCommand({
-            Bucket: process.env.AWS_S3_BUCKET || '',
+          await getS3Client().send(new PutObjectCommand({
+            Bucket: getS3Config().bucket,
             Key: thumbKey,
             Body: thumbnailBuffer,
             ContentType: thumbnailMime,
@@ -12738,7 +12739,7 @@ ${getBizName()} CRM System
         thumbUrl,
         originalSize: req.file.size,
         processedSize: processedBuffer.length,
-        bucket: process.env.AWS_S3_BUCKET
+        bucket: s3cfg.bucket
       });
 
       res.json({ url: mainUrl, thumbnailUrl: thumbUrl, originalSize: req.file.size, processedSize: processedBuffer.length });
@@ -12771,7 +12772,7 @@ ${getBizName()} CRM System
   // Diagnostics endpoint for upload environment
   app.get('/api/upload/debug/env', (req: Request, res: Response) => {
     res.json({
-      bucketSet: !!process.env.AWS_S3_BUCKET,
+      bucketSet: !!getS3Config().bucket,
       endpointSet: !!process.env.AWS_S3_ENDPOINT,
       region: process.env.AWS_REGION || 'eu-central-1',
       forcePathStyle: !!process.env.AWS_S3_ENDPOINT,
@@ -14019,15 +14020,15 @@ ${getBizName()} CRM System
       if (req.body.metaDescription !== undefined) updates.metaDescription = req.body.metaDescription;
       console.log('[VOUCHER UPDATE] Updates object:', updates);
       const product = await neonDb.updateVoucherProduct(req.params.id, updates);
-      const bucketName = process.env.AWS_S3_BUCKET || '';
-      const parseKey = (urlStr: string): string | null => { if (!urlStr) return null; try { const u = new URL(urlStr); let p = u.pathname.replace(/^\//,''); const b = process.env.AWS_S3_BUCKET||''; if (p.startsWith(b + '/')) p = p.slice(b.length+1); return p||null; } catch { return null; } };
+      const bucketName = getS3Config().bucket;
+      const parseKey = (urlStr: string): string | null => { if (!urlStr) return null; try { const u = new URL(urlStr); let p = u.pathname.replace(/^\//,''); const b = getS3Config().bucket; if (p.startsWith(b + '/')) p = p.slice(b.length+1); return p||null; } catch { return null; } };
       if (existing && bucketName) {
         const newImageUrl = req.body.imageUrl; const newThumbUrl = req.body.thumbnailUrl;
         if (existing.imageUrl && newImageUrl && existing.imageUrl !== newImageUrl) {
-          const oldKey = parseKey(existing.imageUrl); if (oldKey) { try { await s3Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: oldKey })); console.log('[VOUCHER UPDATE] Deleted old image object:', oldKey); } catch (e) { console.warn('[VOUCHER UPDATE] Failed to delete old image object:', oldKey, e); } }
+          const oldKey = parseKey(existing.imageUrl); if (oldKey) { try { await getS3Client().send(new DeleteObjectCommand({ Bucket: bucketName, Key: oldKey })); console.log('[VOUCHER UPDATE] Deleted old image object:', oldKey); } catch (e) { console.warn('[VOUCHER UPDATE] Failed to delete old image object:', oldKey, e); } }
         }
         if (existing.thumbnailUrl && newThumbUrl && existing.thumbnailUrl !== newThumbUrl) {
-          const oldThumbKey = parseKey(existing.thumbnailUrl); if (oldThumbKey) { try { await s3Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: oldThumbKey })); console.log('[VOUCHER UPDATE] Deleted old thumbnail object:', oldThumbKey); } catch (e) { console.warn('[VOUCHER UPDATE] Failed to delete old thumbnail object:', oldThumbKey, e); } }
+          const oldThumbKey = parseKey(existing.thumbnailUrl); if (oldThumbKey) { try { await getS3Client().send(new DeleteObjectCommand({ Bucket: bucketName, Key: oldThumbKey })); console.log('[VOUCHER UPDATE] Deleted old thumbnail object:', oldThumbKey); } catch (e) { console.warn('[VOUCHER UPDATE] Failed to delete old thumbnail object:', oldThumbKey, e); } }
         }
       }
       const response = {
@@ -14081,15 +14082,15 @@ ${getBizName()} CRM System
       }
 
       const existing = await neonDb.getVoucherProduct(id);
-      const bucketName = process.env.AWS_S3_BUCKET || '';
-      const parseKey = (urlStr: string): string | null => { if (!urlStr) return null; try { const u = new URL(urlStr); let p = u.pathname.replace(/^\//,''); const b = process.env.AWS_S3_BUCKET||''; if (p.startsWith(b + '/')) p = p.slice(b.length+1); return p||null; } catch { return null; } };
+      const bucketName = getS3Config().bucket;
+      const parseKey = (urlStr: string): string | null => { if (!urlStr) return null; try { const u = new URL(urlStr); let p = u.pathname.replace(/^\//,''); const b = getS3Config().bucket; if (p.startsWith(b + '/')) p = p.slice(b.length+1); return p||null; } catch { return null; } };
       if (existing && bucketName) {
         const imgUrl = (existing.imageUrl ?? existing.image_url) as string | undefined;
         const thumbUrl = (existing.thumbnailUrl ?? existing.thumbnail_url) as string | undefined;
         for (const url of [imgUrl, thumbUrl]) {
           const key = url ? parseKey(url) : null;
           if (key) {
-            try { await s3Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: key })); console.log('[VOUCHER DELETE] Deleted object:', key); } catch (e) { console.warn('[VOUCHER DELETE] Failed to delete object:', key, e); }
+            try { await getS3Client().send(new DeleteObjectCommand({ Bucket: bucketName, Key: key })); console.log('[VOUCHER DELETE] Deleted object:', key); } catch (e) { console.warn('[VOUCHER DELETE] Failed to delete object:', key, e); }
           }
         }
       }
@@ -17775,21 +17776,14 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
 
   // Storage health check (diagnostics for Backblaze/AWS S3 configuration)
   app.get('/api/storage/health', async (_req: Request, res: Response) => {
-    const bucket = process.env.AWS_S3_BUCKET || '';
-    const endpoint = process.env.AWS_S3_ENDPOINT || '';
-    const region = process.env.AWS_REGION || 'eu-central-003';
-    const accessConfigured = Boolean(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY);
+    const cfg = getS3Config();
+    const { bucket, endpoint, region } = cfg;
+    const accessConfigured = cfg.isConfigured;
 
     let canList = false;
     let error: string | undefined;
     try {
-      const client = new S3Client({
-        region,
-        endpoint: endpoint || undefined,
-        // path-style required for Backblaze S3 compatibility when endpoint is set
-        forcePathStyle: Boolean(endpoint),
-      });
-      await client.send(new ListObjectsV2Command({ Bucket: bucket, MaxKeys: 1 }));
+      await getS3Client().send(new ListObjectsV2Command({ Bucket: bucket, MaxKeys: 1 }));
       canList = true;
     } catch (e: any) {
       error = e?.message || String(e);
