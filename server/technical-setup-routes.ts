@@ -270,6 +270,11 @@ router.post('/storage', async (req: Request, res: Response) => {
     await db.update(studioIntegrations).set(updateData).where(eq(studioIntegrations.id, siId));
 
     config.invalidate();
+    // Refresh the storage client cache so uploads use the new creds immediately.
+    try {
+      const { invalidateStorageConfig } = await import('./services/s3-storage');
+      invalidateStorageConfig();
+    } catch { /* best effort */ }
     res.json({ success: true });
   } catch (error) {
     console.error('[technical-setup] Storage save error:', error);

@@ -1,13 +1,56 @@
 import { S3Client, ListObjectsV2Command, PutObjectCommand } from '@aws-sdk/client-s3';
+import { config as appConfig } from '../config-reader';
 
-export function getS3Config() {
+// Storage credentials resolve from the onboarding wizard (studio_integrations,
+// via config-reader) FIRST, then AWS_* env fallback — same bridge pattern as SMTP,
+// so a tenant that configures Backblaze in the wizard actually gets working
+// uploads. getS3Config() stays SYNC (many callers) and returns the latest
+// resolved config from `_current`, which is refreshed at boot + whenever storage
+// config is saved (invalidateStorageConfig) + lazily on a TTL.
+interface StorageConfig {
+  bucket: string; endpoint: string; region: string;
+  accessKeyId: string; secretAccessKey: string; isConfigured: boolean;
+}
+
+function envStorageConfig(): StorageConfig {
   const bucket = process.env.AWS_S3_BUCKET || '';
   const endpoint = (process.env.AWS_S3_ENDPOINT || '').replace(/\/$/, '');
   const region = process.env.AWS_REGION || 'eu-central-1';
   const accessKeyId = process.env.AWS_ACCESS_KEY_ID || '';
   const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || '';
-  const isConfigured = !!(bucket && accessKeyId && secretAccessKey);
-  return { bucket, endpoint, region, accessKeyId, secretAccessKey, isConfigured };
+  return { bucket, endpoint, region, accessKeyId, secretAccessKey, isConfigured: !!(bucket && accessKeyId && secretAccessKey) };
+}
+
+let _current: StorageConfig = envStorageConfig();
+let _lastLoad = 0;
+const STORAGE_TTL = 60_000;
+
+async function resolveStorageConfig(): Promise<StorageConfig> {
+  const bucket = (await appConfig.get('storage_bucket')) || process.env.AWS_S3_BUCKET || '';
+  const endpoint = ((await appConfig.get('storage_endpoint')) || process.env.AWS_S3_ENDPOINT || '').replace(/\/$/, '');
+  const region = (await appConfig.get('storage_region')) || process.env.AWS_REGION || 'eu-central-1';
+  const accessKeyId = (await appConfig.get('storage_access_key_id')) || process.env.AWS_ACCESS_KEY_ID || '';
+  const secretAccessKey = (await appConfig.get('storage_secret_key')) || process.env.AWS_SECRET_ACCESS_KEY || '';
+  return { bucket, endpoint, region, accessKeyId, secretAccessKey, isConfigured: !!(bucket && accessKeyId && secretAccessKey) };
+}
+
+export async function refreshStorageConfig(): Promise<void> {
+  try { _current = await resolveStorageConfig(); _lastLoad = Date.now(); } catch { /* keep previous */ }
+}
+
+/** Call after storage config is saved so the next request uses the new creds. */
+export function invalidateStorageConfig(): void {
+  _lastLoad = 0;
+  refreshStorageConfig().catch(() => {});
+}
+
+export function getS3Config(): StorageConfig {
+  // Lazy background refresh once the cache is stale (non-blocking).
+  if (Date.now() - _lastLoad > STORAGE_TTL) {
+    _lastLoad = Date.now();
+    refreshStorageConfig().catch(() => {});
+  }
+  return _current;
 }
 
 export function getS3Client() {
@@ -78,21 +121,10 @@ import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import sharp from 'sharp';
 
-// Initialize S3 Client (compatible with AWS S3 and Backblaze B2)
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'eu-central-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-  },
-  // Support for Backblaze B2 S3-compatible API
-  endpoint: process.env.AWS_S3_ENDPOINT || undefined,
-  forcePathStyle: process.env.AWS_S3_ENDPOINT ? true : false, // Required for B2
-});
-
-const BUCKET_NAME = process.env.AWS_S3_BUCKET || '';
+// S3 client + bucket + endpoint now come from the config-aware helpers above
+// (getS3Client() / getS3Config()) so onboarding-wizard storage config works —
+// not just AWS_* env. CLOUDFRONT_URL stays env-only (optional CDN).
 const CLOUDFRONT_URL = process.env.AWS_CLOUDFRONT_URL;
-const S3_ENDPOINT = process.env.AWS_S3_ENDPOINT || '';
 
 export interface UploadResult {
   key: string;
@@ -122,7 +154,7 @@ export async function uploadFile(
 
   // Upload to S3
   const command = new PutObjectCommand({
-    Bucket: BUCKET_NAME,
+    Bucket: getS3Config().bucket,
     Key: key,
     Body: file,
     ContentType: mimeType,
@@ -135,7 +167,7 @@ export async function uploadFile(
     },
   });
 
-  await s3Client.send(command);
+  await getS3Client().send(command);
 
   // Get file URL
   const url = getFileUrl(key);
@@ -181,14 +213,14 @@ async function createThumbnail(
     const thumbnailKey = originalKey.replace('/uploads/', '/thumbnails/').replace(path.extname(originalKey), '.jpg');
 
     const command = new PutObjectCommand({
-      Bucket: BUCKET_NAME,
+      Bucket: getS3Config().bucket,
       Key: thumbnailKey,
       Body: thumbnailBuffer,
       ContentType: 'image/jpeg',
       ACL: 'private',
     });
 
-    await s3Client.send(command);
+    await getS3Client().send(command);
 
     return {
       key: thumbnailKey,
@@ -208,16 +240,16 @@ async function createThumbnail(
  * Get file URL (CloudFront or S3 direct)
  */
 function getFileUrl(key: string): string {
+  const cfg = getS3Config();
   // Prefer CDN if configured
   if (CLOUDFRONT_URL) {
     return `${CLOUDFRONT_URL.replace(/\/$/, '')}/${key}`;
   }
   // If using Backblaze B2 S3-compatible endpoint, use path-style URL
-  if (S3_ENDPOINT && /backblazeb2\.com/i.test(S3_ENDPOINT)) {
-    return `${S3_ENDPOINT.replace(/\/$/, '')}/${BUCKET_NAME}/${key}`;
+  if (cfg.endpoint && /backblazeb2\.com/i.test(cfg.endpoint)) {
+    return `${cfg.endpoint.replace(/\/$/, '')}/${cfg.bucket}/${key}`;
   }
-  const region = process.env.AWS_REGION || 'us-east-1';
-  return `https://${BUCKET_NAME}.amazonaws.com/${key}`.replace('amazonaws.com', `s3.${region}.amazonaws.com`);
+  return `https://${cfg.bucket}.s3.${cfg.region}.amazonaws.com/${key}`;
 }
 
 /**
@@ -225,11 +257,11 @@ function getFileUrl(key: string): string {
  */
 export async function getPresignedDownloadUrl(key: string, expiresIn: number = 3600): Promise<string> {
   const command = new GetObjectCommand({
-    Bucket: BUCKET_NAME,
+    Bucket: getS3Config().bucket,
     Key: key,
   });
 
-  const url = await getSignedUrl(s3Client, command, { expiresIn });
+  const url = await getSignedUrl(getS3Client(), command, { expiresIn });
   return url;
 }
 
@@ -238,20 +270,20 @@ export async function getPresignedDownloadUrl(key: string, expiresIn: number = 3
  */
 export async function deleteFile(key: string): Promise<void> {
   const command = new DeleteObjectCommand({
-    Bucket: BUCKET_NAME,
+    Bucket: getS3Config().bucket,
     Key: key,
   });
 
-  await s3Client.send(command);
+  await getS3Client().send(command);
 
   // Also delete thumbnail if exists
   const thumbnailKey = key.replace('/uploads/', '/thumbnails/').replace(path.extname(key), '.jpg');
   try {
     const thumbnailCommand = new DeleteObjectCommand({
-      Bucket: BUCKET_NAME,
+      Bucket: getS3Config().bucket,
       Key: thumbnailKey,
     });
-    await s3Client.send(thumbnailCommand);
+    await getS3Client().send(thumbnailCommand);
   } catch (error) {
     // Thumbnail might not exist, that's okay
     console.log('No thumbnail to delete or error deleting thumbnail:', error);
@@ -263,11 +295,11 @@ export async function deleteFile(key: string): Promise<void> {
  */
 export async function getFileMetadata(key: string) {
   const command = new HeadObjectCommand({
-    Bucket: BUCKET_NAME,
+    Bucket: getS3Config().bucket,
     Key: key,
   });
 
-  const response = await s3Client.send(command);
+  const response = await getS3Client().send(command);
   return {
     size: response.ContentLength,
     contentType: response.ContentType,
@@ -285,12 +317,12 @@ export async function listFiles(subscriptionId: string, folderId?: string) {
     : `uploads/${subscriptionId}/`;
 
   const command = new ListObjectsV2Command({
-    Bucket: BUCKET_NAME,
+    Bucket: getS3Config().bucket,
     Prefix: prefix,
     MaxKeys: 1000,
   });
 
-  const response = await s3Client.send(command);
+  const response = await getS3Client().send(command);
   return response.Contents || [];
 }
 
@@ -304,11 +336,11 @@ export async function copyFile(
 ): Promise<string> {
   // Download source file
   const getCommand = new GetObjectCommand({
-    Bucket: BUCKET_NAME,
+    Bucket: getS3Config().bucket,
     Key: sourceKey,
   });
 
-  const { Body, ContentType } = await s3Client.send(getCommand);
+  const { Body, ContentType } = await getS3Client().send(getCommand);
   
   if (!Body) {
     throw new Error('Failed to download source file');
@@ -330,7 +362,7 @@ export async function copyFile(
   const destinationKey = `uploads/${folderPath}/${fileName}`;
 
   const putCommand = new PutObjectCommand({
-    Bucket: BUCKET_NAME,
+    Bucket: getS3Config().bucket,
     Key: destinationKey,
     Body: buffer,
     ContentType: ContentType || 'application/octet-stream',
@@ -341,7 +373,7 @@ export async function copyFile(
     },
   });
 
-  await s3Client.send(putCommand);
+  await getS3Client().send(putCommand);
 
   return destinationKey;
 }
@@ -355,13 +387,13 @@ export async function calculateStorageUsed(subscriptionId: string): Promise<numb
 
   do {
     const command = new ListObjectsV2Command({
-      Bucket: BUCKET_NAME,
+      Bucket: getS3Config().bucket,
       Prefix: `uploads/${subscriptionId}/`,
       MaxKeys: 1000,
       ContinuationToken: continuationToken,
     });
 
-    const response = await s3Client.send(command);
+    const response = await getS3Client().send(command);
     
     if (response.Contents) {
       totalSize += response.Contents.reduce((sum, obj) => sum + (obj.Size || 0), 0);

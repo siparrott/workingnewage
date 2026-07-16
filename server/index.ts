@@ -430,6 +430,16 @@ app.use((req, res, next) => {
         console.warn('⚠️ landing pages migration already applied or failed:', migrationError.message);
       }
 
+      // Warm the storage-config cache (studio_integrations → env) so
+      // wizard-configured Backblaze/S3 works from the first upload request.
+      try {
+        const { refreshStorageConfig } = await import('./services/s3-storage');
+        await refreshStorageConfig();
+        console.log('✅ Storage config warmed (wizard config → env fallback)');
+      } catch (storageWarmErr: any) {
+        console.warn('⚠️ Storage config warm failed:', storageWarmErr?.message || storageWarmErr);
+      }
+
       // Run onboarding columns migration
       try {
         await db.execute(sql`ALTER TABLE studio_configs ADD COLUMN IF NOT EXISTS technical_setup_complete BOOLEAN DEFAULT FALSE`);
