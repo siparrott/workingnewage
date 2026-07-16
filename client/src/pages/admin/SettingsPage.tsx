@@ -15,7 +15,10 @@ import {
   Key,
   DollarSign,
   Camera,
-  Sparkles
+  Sparkles,
+  HardDrive,
+  MessageSquare,
+  CreditCard
 } from 'lucide-react';
 
 const SettingsPage: React.FC = () => {
@@ -57,8 +60,42 @@ const SettingsPage: React.FC = () => {
       ]
     },
     {
-      title: 'System Configuration',
-      description: 'Configure core system settings',
+      title: 'Connections & Integrations',
+      description: 'Email, storage, SMS and payments — the services configured during onboarding, editable any time',
+      items: [
+        {
+          icon: Mail,
+          title: 'Email & SMTP',
+          description: 'Outgoing mail server for leads, invoices and campaigns (with test send)',
+          path: '/admin/settings/email',
+          color: 'bg-red-500'
+        },
+        {
+          icon: HardDrive,
+          title: 'Cloud Storage',
+          description: 'Backblaze B2 / S3 credentials used for all uploads (with connection test)',
+          path: '/admin/settings/storage',
+          color: 'bg-green-500'
+        },
+        {
+          icon: MessageSquare,
+          title: 'SMS',
+          description: 'Twilio / Vonage text-message provider for reminders',
+          path: '/admin/settings/sms',
+          color: 'bg-teal-500'
+        },
+        {
+          icon: CreditCard,
+          title: 'Payments (Stripe)',
+          description: 'Stripe keys for voucher sales and online payments (with test)',
+          path: '/admin/settings/payments',
+          color: 'bg-indigo-500'
+        }
+      ]
+    },
+    {
+      title: 'System',
+      description: 'Core system configuration',
       items: [
         {
           icon: DollarSign,
@@ -66,74 +103,6 @@ const SettingsPage: React.FC = () => {
           description: 'Manage price list items and import CSV files',
           path: '/admin/settings/price-list',
           color: 'bg-emerald-500'
-        },
-        {
-          icon: Database,
-          title: 'Database Settings',
-          description: 'Manage database connections and migrations',
-          path: '/admin/settings/database',
-          color: 'bg-green-500'
-        },
-        {
-          icon: Mail,
-          title: 'Email & Lead Notifications',
-          description: 'Configure SMTP settings and the lead notification email address',
-          path: '/admin/settings/email',
-          color: 'bg-red-500'
-        },
-        {
-          icon: Globe,
-          title: 'Website Settings',
-          description: 'Manage website configuration and SEO',
-          path: '/admin/settings/website',
-          color: 'bg-purple-500'
-        }
-      ]
-    },
-    {
-      title: 'Security & Access',
-      description: 'Manage security settings and user access',
-      items: [
-        {
-          icon: Shield,
-          title: 'Security Settings',
-          description: 'Configure authentication and security policies',
-          path: '/admin/settings/security',
-          color: 'bg-orange-500'
-        },
-        {
-          icon: Users,
-          title: 'User Management',
-          description: 'Manage user accounts and permissions',
-          path: '/admin/settings/users',
-          color: 'bg-indigo-500'
-        },
-        {
-          icon: Key,
-          title: 'API Keys',
-          description: 'Manage API keys and integrations',
-          path: '/admin/settings/api-keys',
-          color: 'bg-yellow-500'
-        }
-      ]
-    },
-    {
-      title: 'Appearance & Notifications',
-      description: 'Customize appearance and notification preferences',
-      items: [
-        {
-          icon: Palette,
-          title: 'Theme Settings',
-          description: 'Customize colors, fonts, and layouts',
-          path: '/admin/settings/theme',
-          color: 'bg-pink-500'
-        },
-        {
-          icon: Bell,
-          title: 'Notifications',
-          description: 'Configure notification preferences',
-          path: '/admin/settings/notifications',
-          color: 'bg-teal-500'
         }
       ]
     }
@@ -202,29 +171,6 @@ const SettingsPage: React.FC = () => {
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <button className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors">
-              <Database className="h-6 w-6 text-blue-600 mb-2" />
-              <p className="text-sm font-medium text-blue-900">Test Database</p>
-            </button>
-            <button className="p-4 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition-colors">
-              <Mail className="h-6 w-6 text-green-600 mb-2" />
-              <p className="text-sm font-medium text-green-900">Test Email</p>
-            </button>
-            <button className="p-4 bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 transition-colors">
-              <Shield className="h-6 w-6 text-purple-600 mb-2" />
-              <p className="text-sm font-medium text-purple-900">Security Check</p>
-            </button>
-            <button className="p-4 bg-orange-50 hover:bg-orange-100 rounded-lg border border-orange-200 transition-colors">
-              <Globe className="h-6 w-6 text-orange-600 mb-2" />
-              <p className="text-sm font-medium text-orange-900">Clear Cache</p>
-            </button>
-          </div>
         </div>
       </div>
     </AdminLayout>
