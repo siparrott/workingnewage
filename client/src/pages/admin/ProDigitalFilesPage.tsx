@@ -12,6 +12,7 @@ interface StorageSubscription {
   storageLimit?: number;
   usageGB?: string;
   limitGB?: string;
+  billingEnabled?: boolean;
 }
 
 const ProDigitalFilesPage: React.FC = () => {
@@ -154,7 +155,10 @@ const ProDigitalFilesPage: React.FC = () => {
     };
     
     const currentTier = tierInfo[subscription.tier as keyof typeof tierInfo] || tierInfo.free;
-    
+    // Paid tiers are a reseller feature — hidden on self-hosted installs where
+    // Stripe subscription prices aren't configured.
+    const billingEnabled = !!subscription.billingEnabled;
+
     return (
       <AdminLayout>
         <div className="max-w-4xl mx-auto space-y-6">
@@ -206,7 +210,7 @@ const ProDigitalFilesPage: React.FC = () => {
                 Go to My Archive
               </button>
               
-              {currentTier.nextTier && (
+              {currentTier.nextTier && billingEnabled && (
                 <button
                   onClick={() => {
                     // Scroll to pricing section
@@ -221,7 +225,7 @@ const ProDigitalFilesPage: React.FC = () => {
             </div>
 
             {/* Upgrade Hint */}
-            {currentTier.nextTier && (
+            {currentTier.nextTier && billingEnabled && (
               <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <p className="text-sm text-yellow-800">
                   💡 <strong>Need more space?</strong> Upgrade to {currentTier.nextTier} for more storage and advanced features.
@@ -231,7 +235,7 @@ const ProDigitalFilesPage: React.FC = () => {
           </div>
 
           {/* Show upgrade options below if not on highest tier */}
-          {currentTier.nextTier && (
+          {currentTier.nextTier && billingEnabled && (
             <div className="space-y-4">
               <div className="text-center">
                 <h3 className="text-xl font-bold text-gray-900 mb-2">
@@ -370,6 +374,7 @@ const ProDigitalFilesPage: React.FC = () => {
             </button>
           </div>
 
+          {subscription?.billingEnabled && (<>
           {/* Starter Plan */}
           <div className="bg-white rounded-lg shadow p-6 border-2 border-gray-200">
             <div className="text-center">
@@ -440,6 +445,7 @@ const ProDigitalFilesPage: React.FC = () => {
               {subscribing === 'enterprise' ? 'Loading...' : 'Get Started'}
             </button>
           </div>
+          </>)}
         </div>
 
         {/* Features */}

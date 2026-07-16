@@ -587,25 +587,41 @@ const ComprehensiveReportsPage: React.FC = () => {
 
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue by Service</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <RechartsPieChart>
-              <Pie
-                data={reportData?.revenueByService || []}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({service, percentage}) => `${service} (${percentage.toFixed(1)}%)`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="revenue"
-              >
-                {(reportData?.revenueByService || []).map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => [`€${value}`, 'Revenue']} />
-            </RechartsPieChart>
-          </ResponsiveContainer>
+          {(() => {
+            // Service names are long — inline pie labels overlap badly. Show the
+            // top 8 slices (+ "Other") with a readable side legend instead.
+            const sorted = [...(reportData?.revenueByService || [])].sort((a, b) => b.revenue - a.revenue);
+            const top = sorted.slice(0, 8);
+            const rest = sorted.slice(8);
+            const restRev = rest.reduce((s, r) => s + (r.revenue || 0), 0);
+            const restPct = rest.reduce((s, r) => s + (r.percentage || 0), 0);
+            const data = restRev > 0 ? [...top, { service: 'Other', revenue: restRev, percentage: restPct }] : top;
+            return (
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                <div className="w-full sm:w-1/2" style={{ height: 240 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsPieChart>
+                      <Pie data={data} cx="50%" cy="50%" outerRadius={92} dataKey="revenue" nameKey="service">
+                        {data.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value: any) => [`€${Number(value).toLocaleString('de-DE')}`, 'Revenue']} />
+                    </RechartsPieChart>
+                  </ResponsiveContainer>
+                </div>
+                <ul className="w-full sm:w-1/2 space-y-1.5 max-h-[240px] overflow-y-auto pr-1 text-sm">
+                  {data.map((s, i) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-sm flex-none" style={{ background: COLORS[i % COLORS.length] }} />
+                      <span className="flex-1 truncate text-gray-700" title={s.service}>{s.service}</span>
+                      <span className="text-gray-500 tabular-nums whitespace-nowrap">{(s.percentage || 0).toFixed(1)}%</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })()}
         </div>
       </div>
 
