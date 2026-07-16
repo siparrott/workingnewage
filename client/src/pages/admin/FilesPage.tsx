@@ -159,7 +159,7 @@ const FilesPage: React.FC = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Digital Files</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">Cloud Storage</h1>
             <p className="text-gray-600">Manage and share files with clients</p>
           </div>
           <button

@@ -51,7 +51,7 @@ const translations = {
     'admin.blog': 'Blog Posts',
     'admin.surveys': 'Surveys',
     'admin.reports': 'Reports',
-    'admin.digitalFiles': 'Digital Files',
+    'admin.digitalFiles': 'Cloud Storage',
     
     // Common actions
     'action.create': 'Create',
@@ -718,7 +718,7 @@ const translations = {
   'nav.galleriesAdmin': 'Galleries',
   'nav.invoices': 'Invoices',
   'nav.calendar': 'Calendar',
-  'nav.digitalFiles': 'Digital Files',
+  'nav.digitalFiles': 'Cloud Storage',
   'nav.blogAdmin': 'Blog',
   'nav.aiAutoblog': 'AI AutoBlog',
   'nav.emailCampaigns': 'Email Campaigns',
@@ -1174,7 +1174,7 @@ const translations = {
     'admin.blog': 'Blog-Beiträge',
     'admin.surveys': 'Umfragen',
     'admin.reports': 'Berichte',
-    'admin.digitalFiles': 'Digitale Dateien',
+    'admin.digitalFiles': 'Cloud-Speicher',
     
     // Common actions
     'action.create': 'Erstellen',
@@ -1829,7 +1829,7 @@ const translations = {
   'nav.galleriesAdmin': 'Galerien',
   'nav.invoices': 'Rechnungen',
   'nav.calendar': 'Kalender',
-  'nav.digitalFiles': 'Digitale Dateien',
+  'nav.digitalFiles': 'Cloud-Speicher',
   'nav.blogAdmin': 'Blog',
   'nav.aiAutoblog': 'KI AutoBlog',
   'nav.emailCampaigns': 'E-Mail Kampagnen',

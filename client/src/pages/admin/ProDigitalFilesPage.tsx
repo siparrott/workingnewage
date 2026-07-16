@@ -332,7 +332,7 @@ const ProDigitalFilesPage: React.FC = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Digital Files Storage</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">Cloud Storage</h1>
             <p className="text-gray-600">Cloud storage for photographers - subscription based service</p>
           </div>
           {/* Demo Mode Button */}
