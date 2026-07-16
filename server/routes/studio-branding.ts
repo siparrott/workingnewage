@@ -2,15 +2,16 @@
  * Studio Branding routes
  *
  * Powers the admin "Studio Customization" page. Persists studio branding
- * (logo, business info, brand colours, active template) and — crucially —
- * mirrors the LOGO and BUSINESS INFO into `manual_page_content` so they
- * actually drive the public website Header (`site-settings` → `site.logo`)
- * and the invoice/PDF template (`contact` → `contact.*`). Without that mirror
- * the settings would be orphan data that never appears on the site.
+ * (logo, business info, brand colours, active template) to `studio_configs`
+ * — a single-row table for a self-hosted studio, read everywhere via LIMIT 1.
  *
- * `studio_configs` (single-row for a self-hosted studio) is the authoritative
- * store for the form; the manual_page_content rows are the render-time source
- * the public site already reads.
+ * Propagation to the public site + invoices is done by having the READERS
+ * consume studio_configs directly (a clean singleton), NOT by mirroring into
+ * per-studioId CMS rows:
+ *   - Public site header  -> GET /api/studio/public-branding (logo + name)
+ *   - Invoice / PDF        -> /api/studio-config (extended to read studio_configs)
+ * This avoids any studioId / foreign-key coupling, so a Save can never fail
+ * on a mismatched CMS row.
  *
  * Note on colours: the public site is painted with ~2000 hardcoded Tailwind
  * `purple/violet` literals and defines no `:root` theme tokens, so brand
@@ -20,94 +21,25 @@
 
 import express from 'express';
 import { db } from '../db';
-import { studioConfigs, manualPageContent } from '../../shared/schema';
-import { eq, and } from 'drizzle-orm';
+import { studioConfigs } from '../../shared/schema';
+import { eq } from 'drizzle-orm';
 import { requireAuth } from '../auth';
 
 const router = express.Router();
 
-const getStudioId = (req: any): string =>
-  req.user?.studioId || (process.env.STUDIO_ID || '550e8400-e29b-41d4-a716-446655440000');
-
-// Languages the public site / invoice may render in — write branding to both so
-// the logo + business info appear regardless of the visitor's language toggle.
-const LANGS = ['de', 'en'];
-
-/** Merge a patch of keys into a manual_page_content page, publishing immediately. */
-async function upsertPageContent(studioId: string, pageId: string, patch: Record<string, string>) {
-  for (const language of LANGS) {
-    const [rec] = await db
-      .select()
-      .from(manualPageContent)
-      .where(
-        and(
-          eq(manualPageContent.studioId, studioId),
-          eq(manualPageContent.pageId, pageId),
-          eq(manualPageContent.language, language)
-        )
-      )
-      .limit(1);
-
-    // Preserve any other keys already stored on this page.
-    const merged = {
-      ...(rec?.publishedContent as Record<string, string> | undefined),
-      ...(rec?.draftContent as Record<string, string> | undefined),
-      ...patch,
-    };
-
-    if (rec) {
-      await db
-        .update(manualPageContent)
-        .set({
-          draftContent: merged,
-          publishedContent: merged,
-          status: 'published',
-          publishedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(manualPageContent.id, rec.id));
-    } else {
-      await db.insert(manualPageContent).values({
-        studioId,
-        pageId,
-        language,
-        draftContent: merged,
-        publishedContent: merged,
-        status: 'published',
-        publishedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    }
-  }
+/** Read the single studio_configs row (or null). */
+async function getSingleton() {
+  const [sc] = await db.select().from(studioConfigs).limit(1);
+  return sc || null;
 }
 
 /**
- * GET /api/studio/branding
- * Load current branding for the admin form. Logo prefers the live
- * `site-settings` value (what the public header actually shows).
+ * GET /api/studio/branding  (admin)
+ * Load current branding for the admin form.
  */
-router.get('/branding', requireAuth, async (req, res) => {
+router.get('/branding', requireAuth, async (_req, res) => {
   try {
-    const studioId = getStudioId(req);
-    const [sc] = await db.select().from(studioConfigs).limit(1);
-
-    // Logo: the public header reads manual_page_content site.logo first.
-    let logoUrl: string | null = sc?.logoUrl || null;
-    const [siteSettings] = await db
-      .select()
-      .from(manualPageContent)
-      .where(
-        and(
-          eq(manualPageContent.studioId, studioId),
-          eq(manualPageContent.pageId, 'site-settings'),
-          eq(manualPageContent.language, 'de')
-        )
-      )
-      .limit(1);
-    const siteLogo = (siteSettings?.publishedContent as any)?.['site.logo'];
-    if (siteLogo && siteLogo !== 'site.logo') logoUrl = siteLogo;
-
+    const sc = await getSingleton();
     return res.json({
       studioName: sc?.studioName || '',
       ownerEmail: sc?.ownerEmail || '',
@@ -116,7 +48,7 @@ router.get('/branding', requireAuth, async (req, res) => {
       city: sc?.city || '',
       phone: sc?.phone || '',
       email: sc?.email || sc?.ownerEmail || '',
-      logoUrl,
+      logoUrl: sc?.logoUrl || null,
       primaryColor: sc?.primaryColor || '#7C3AED',
       secondaryColor: sc?.secondaryColor || '#F59E0B',
       activeTemplate: sc?.activeTemplate || 'template-01-modern-minimal',
@@ -128,13 +60,30 @@ router.get('/branding', requireAuth, async (req, res) => {
 });
 
 /**
- * PUT /api/studio/branding
- * Persist branding to studio_configs AND mirror logo + business info into
- * manual_page_content so the public site + invoices reflect the changes.
+ * GET /api/studio/public-branding  (public, no auth)
+ * Minimal branding the public site header consumes (logo + name).
+ */
+router.get('/public-branding', async (_req, res) => {
+  try {
+    const sc = await getSingleton();
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    return res.json({
+      logoUrl: sc?.logoUrl || null,
+      studioName: sc?.studioName || null,
+    });
+  } catch (error: any) {
+    // Never break the public header — return empty on error.
+    return res.json({ logoUrl: null, studioName: null });
+  }
+});
+
+/**
+ * PUT /api/studio/branding  (admin)
+ * Persist branding to studio_configs. This is the single source of truth;
+ * the invoice endpoint and public header read it back.
  */
 router.put('/branding', requireAuth, async (req, res) => {
   try {
-    const studioId = getStudioId(req);
     const {
       studioName,
       businessName,
@@ -148,7 +97,6 @@ router.put('/branding', requireAuth, async (req, res) => {
       activeTemplate,
     } = req.body || {};
 
-    // 1) Authoritative store: studio_configs (single row).
     const set: any = { updatedAt: new Date() };
     if (studioName !== undefined) set.studioName = studioName;
     if (businessName !== undefined) set.businessName = businessName;
@@ -161,7 +109,7 @@ router.put('/branding', requireAuth, async (req, res) => {
     if (secondaryColor !== undefined) set.secondaryColor = secondaryColor;
     if (activeTemplate !== undefined) set.activeTemplate = activeTemplate;
 
-    const [existing] = await db.select().from(studioConfigs).limit(1);
+    const existing = await getSingleton();
     if (existing) {
       await db.update(studioConfigs).set(set).where(eq(studioConfigs.id, existing.id));
     } else {
@@ -170,23 +118,6 @@ router.put('/branding', requireAuth, async (req, res) => {
         ownerEmail: email || 'admin@localhost',
         ...set,
       });
-    }
-
-    // 2) Mirror the logo into the store the public Header + invoice read.
-    if (logoUrl !== undefined && logoUrl) {
-      await upsertPageContent(studioId, 'site-settings', { 'site.logo': logoUrl });
-    }
-
-    // 3) Mirror business info into the `contact` page (invoice footer + contact).
-    const contactPatch: Record<string, string> = {};
-    if (studioName !== undefined && studioName) contactPatch['contact.studioName'] = studioName;
-    if (address !== undefined && address) {
-      contactPatch['contact.studioAddress'] = city ? `${address}, ${city}` : address;
-    }
-    if (phone !== undefined && phone) contactPatch['contact.phone'] = phone;
-    if (email !== undefined && email) contactPatch['contact.email'] = email;
-    if (Object.keys(contactPatch).length > 0) {
-      await upsertPageContent(studioId, 'contact', contactPatch);
     }
 
     return res.json({ success: true });

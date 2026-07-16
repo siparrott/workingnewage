@@ -6637,14 +6637,23 @@ Bitte versuchen Sie es später noch einmal.`;
         if (contactContent['contact.openingHours'] && isValidValue(contactContent['contact.openingHours'])) studioConfig.openingHours = contactContent['contact.openingHours'];
       }
       
-      // Fetch dateFormat from studio_configs table
+      // Fetch branding + dateFormat from studio_configs (the Studio
+      // Customization page's authoritative store). These take priority so a
+      // studio's saved logo / business info appears on invoices.
       const [dbConfig] = await db
-        .select({ dateFormat: studioConfigs.dateFormat })
+        .select()
         .from(studioConfigs)
         .limit(1)
         .catch(() => [null as any]);
-      if (dbConfig?.dateFormat) {
-        studioConfig.dateFormat = dbConfig.dateFormat;
+      if (dbConfig?.dateFormat) studioConfig.dateFormat = dbConfig.dateFormat;
+      if (dbConfig?.logoUrl) studioConfig.logo = dbConfig.logoUrl;
+      if (dbConfig?.businessName || dbConfig?.studioName) {
+        studioConfig.studioName = dbConfig.businessName || dbConfig.studioName;
+      }
+      if (dbConfig?.phone) studioConfig.phone = dbConfig.phone;
+      if (dbConfig?.email) studioConfig.email = dbConfig.email;
+      if (dbConfig?.address) {
+        studioConfig.address = dbConfig.city ? `${dbConfig.address}, ${dbConfig.city}` : dbConfig.address;
       }
     } catch (error) {
       console.warn('Could not fetch studio config from database, using defaults:', (error as any)?.message);

@@ -13,7 +13,9 @@ import {
   Bell,
   Users,
   Key,
-  DollarSign
+  DollarSign,
+  Camera,
+  Sparkles
 } from 'lucide-react';
 
 const SettingsPage: React.FC = () => {
@@ -22,15 +24,35 @@ const SettingsPage: React.FC = () => {
 
   const settingsCategories = [
     {
-      title: 'Knowledge & Documentation',
-      description: 'Manage your knowledge base and documentation',
+      title: 'Studio Profile & Branding',
+      description: 'Your business details, logo and website appearance — the information collected during onboarding, editable any time',
+      items: [
+        {
+          icon: Camera,
+          title: 'Studio Customization',
+          description: 'Logo, studio name, contact details, brand colours and website template',
+          path: '/admin/studio-templates',
+          color: 'bg-purple-500'
+        }
+      ]
+    },
+    {
+      title: 'AI Assistant & Knowledge',
+      description: 'Manage your AI assistant and its knowledge base',
       items: [
         {
           icon: BookOpen,
           title: t('nav.knowledgeBase'),
-          description: 'Access and manage your knowledge base articles',
+          description: 'Support articles + FAQ the chat assistant answers from',
           path: '/admin/knowledge-base',
           color: 'bg-blue-500'
+        },
+        {
+          icon: Sparkles,
+          title: 'AI Agent Console',
+          description: 'Monitor the CRM AI agent: usage, performance and full audit trail',
+          path: '/admin/agent-console',
+          color: 'bg-violet-500'
         }
       ]
     },
