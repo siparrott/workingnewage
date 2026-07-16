@@ -137,11 +137,19 @@ const StudioCustomization: React.FC = () => {
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open('/', '_blank', 'noopener')}
+                  >
                     <Eye className="h-4 w-4 mr-2" />
                     Preview Live Site
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.location.reload()}
+                  >
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Refresh
                   </Button>
