@@ -118,6 +118,7 @@ export interface LandingPageOfferBlock {
   intro?: string;
   bullets: string[];
   urgency?: string;
+  price?: string;
 }
 
 export interface LandingPageBenefitsBlock {

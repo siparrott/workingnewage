@@ -31,12 +31,20 @@ export default function LandingPageOfferEditor({ data, onChange }: Props) {
         placeholder="What's included..."
         addLabel="Add Bullet"
       />
-      <LandingPageInlineTextField
-        label="Urgency"
-        value={data.urgency || ''}
-        onChange={v => onChange({ ...data, urgency: v })}
-        placeholder="e.g., Only 5 spots left this month"
-      />
+      <div className="grid grid-cols-2 gap-3">
+        <LandingPageInlineTextField
+          label="Price"
+          value={data.price || ''}
+          onChange={v => onChange({ ...data, price: v })}
+          placeholder="e.g., €225"
+        />
+        <LandingPageInlineTextField
+          label="Urgency"
+          value={data.urgency || ''}
+          onChange={v => onChange({ ...data, urgency: v })}
+          placeholder="e.g., Only 5 spots left"
+        />
+      </div>
     </div>
   );
 }
