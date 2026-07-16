@@ -78,6 +78,9 @@ function normalizeOffer(raw: unknown) {
     intro: str(o.intro || o.description),
     bullets: arr(o.bullets || o.inclusions).map(i => str(i)),
     urgency: str(o.urgency),
+    // Preserve the price the AI generated (was silently dropped, which stripped
+    // the offer price from the public page after any edit).
+    price: str(o.price),
   };
 }
 
@@ -156,18 +159,34 @@ export function serializeEditorContent(
   content: LandingPageGeneratedContent,
   meta: LandingPageContentMeta
 ): Record<string, unknown> {
+  // The editor works in one field vocabulary (title/intro/bullets/primaryCtaText)
+  // while the PUBLIC renderer reads another (headline/description/inclusions/
+  // ctaText/price). Write BOTH so an editor save can never blank the public page
+  // or drop the offer price. normalize* reads either on the way back in.
+  const h: any = content.hero || {};
+  const o: any = content.offerSection;
+  const pr: any = content.problemSection;
+  const w: any = content.whyChooseUs;
+  const fc: any = content.finalCta;
+
   return {
     meta,
-    hero: content.hero,
+    hero: { ...h, ctaText: h.primaryCtaText ?? h.ctaText },
     trustBar: content.trustBar,
-    problemSection: content.problemSection,
-    offerSection: content.offerSection,
+    problemSection: pr ? { ...pr, headline: pr.title, painPoints: pr.paragraphs } : undefined,
+    offerSection: o ? {
+      ...o,
+      headline: o.title,
+      description: o.intro,
+      inclusions: o.bullets,
+      price: o.price ?? '',
+    } : undefined,
     benefits: content.benefits,
-    whyChooseUs: content.whyChooseUs,
+    whyChooseUs: w ? { ...w, headline: w.title, reasons: w.points } : undefined,
     inclusions: content.inclusions,
     testimonials: content.testimonials,
     faq: content.faq,
-    finalCta: content.finalCta,
+    finalCta: fc ? { ...fc, headline: fc.title, description: fc.body, ctaText: fc.primaryCtaText } : undefined,
     seo: content.seo,
   };
 }
