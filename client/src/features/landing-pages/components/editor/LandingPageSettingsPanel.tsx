@@ -18,6 +18,8 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
   const { toast } = useToast();
   const p = page as any;
   const [voucherSlug, setVoucherSlug] = useState<string>(p.cta_voucher_slug || '');
+  const [offerAmount, setOfferAmount] = useState<string>(p.cta_voucher_amount != null ? String(p.cta_voucher_amount) : '');
+  const [offerTitle, setOfferTitle] = useState<string>(p.cta_voucher_title || '');
   const [heroImage, setHeroImage] = useState<string>(p.hero_image_url || '');
   const [heroVideo, setHeroVideo] = useState<string>(p.hero_video_url || '');
   const [products, setProducts] = useState<VoucherProduct[]>([]);
@@ -85,9 +87,34 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
         {page.offer_summary && <div className="flex justify-between"><span>Offer</span><span className="font-medium text-gray-700 text-right max-w-[160px] truncate">{page.offer_summary}</span></div>}
       </div>
 
-      {/* CTA → Voucher product binding */}
+      {/* CTA → dynamic-priced voucher offer */}
       <div className="pt-4 border-t space-y-2">
-        <Label className="text-xs font-semibold text-gray-700">Voucher product (CTA target)</Label>
+        <Label className="text-xs font-semibold text-gray-700">Voucher offer — CTA price</Label>
+        <div className="flex gap-2">
+          <input
+            type="number" min="0" step="1" value={offerAmount}
+            onChange={(e) => setOfferAmount(e.target.value)}
+            onBlur={() => saveField('cta_voucher_amount', offerAmount && Number(offerAmount) > 0 ? offerAmount : null)}
+            placeholder="€ e.g. 225"
+            className="w-24 border border-gray-300 rounded-md px-2 py-2 text-sm focus:ring-2 focus:ring-purple-500"
+          />
+          <input
+            type="text" value={offerTitle}
+            onChange={(e) => setOfferTitle(e.target.value)}
+            onBlur={() => saveField('cta_voucher_title', offerTitle || null)}
+            placeholder="Offer title (defaults to page title)"
+            className="flex-1 border border-gray-300 rounded-md px-2 py-2 text-sm focus:ring-2 focus:ring-purple-500"
+          />
+        </div>
+        <p className="text-xs text-gray-400">
+          Set a price and the “Jetzt buchen” CTA sends buyers to personalise &amp; pay <b>exactly this amount</b>
+          via Stripe (they download/print the voucher after). This overrides the product below.
+        </p>
+      </div>
+
+      {/* CTA → Voucher product binding (fixed price; used only if no offer price above) */}
+      <div className="pt-4 border-t space-y-2">
+        <Label className="text-xs font-semibold text-gray-700">Voucher product (fixed-price alternative)</Label>
         <select
           value={voucherSlug}
           onChange={(e) => { setVoucherSlug(e.target.value); saveField('cta_voucher_slug', e.target.value || null); }}
