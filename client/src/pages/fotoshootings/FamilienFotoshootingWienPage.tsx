@@ -37,7 +37,7 @@ export default function FamilienFotoshootingWienPage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
-                  to="/termin-planen"
+                  to="/warteliste"
                   className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
                 >
                   Termin buchen
@@ -181,7 +181,7 @@ export default function FamilienFotoshootingWienPage() {
               </span>
             </Link>
             <Link
-              to="/paar-fotoshooting-wien/"
+              to="/portrait-fotografie-wien/"
               className="block bg-white rounded-xl p-6 hover:shadow-lg transition-shadow"
             >
               <h3 className="font-semibold text-lg mb-2">Paar-Fotoshooting</h3>
@@ -273,7 +273,7 @@ export default function FamilienFotoshootingWienPage() {
             Buchen Sie jetzt Ihren Termin und sichern Sie sich die schönsten Erinnerungen
           </p>
           <Link
-            to="/termin-planen"
+            to="/warteliste"
             className="inline-flex items-center px-8 py-4 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-lg"
           >
             Jetzt Termin vereinbaren

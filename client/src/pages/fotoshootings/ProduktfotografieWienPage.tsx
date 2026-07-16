@@ -370,7 +370,7 @@ export default function ProduktfotografieWienPage() {
 
               {/* Real Estate Photography */}
               <Link
-                to="/immobilienfotografie-wien/"
+                to="/immobilien-fotografie-wien/"
                 className="bg-gray-50 rounded-lg p-6 hover:shadow-lg transition-shadow group"
               >
                 <Star className="h-12 w-12 text-purple-600 mb-4" />

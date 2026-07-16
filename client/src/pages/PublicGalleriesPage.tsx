@@ -18,6 +18,7 @@ import {
   List
 } from 'lucide-react';
 import { useManualPageContent } from '../hooks/useManualPageContent';
+import { SEOHead } from '../components/SEO/SEOHead';
 
 const PublicGalleriesPage: React.FC = () => {
   const t = useManualPageContent('galleries');
@@ -89,6 +90,11 @@ const PublicGalleriesPage: React.FC = () => {
 
   return (
     <Layout>
+      <SEOHead
+        title="Foto-Galerien – New Age Fotografie Wien"
+        description="Öffentliche Foto-Galerien von New Age Fotografie: Familien-, Baby- und Business-Aufnahmen aus unserem Fotostudio in Wien."
+        canonical="/galleries"
+      />
       <div className="min-h-screen bg-gray-50">
         {/* Modern Header */}
         <div className="bg-white border-b border-gray-200 shadow-sm">

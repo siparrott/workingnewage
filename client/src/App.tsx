@@ -115,7 +115,6 @@ import KinderFotografieWienPage from './pages/fotoshootings/KinderFotografieWien
 import PortraitfotografieWienPage from './pages/fotoshootings/PortraitfotografieWienPage';
 import UeberUnsPage from './pages/support/UeberUnsPage';
 import PreisePage from './pages/support/PreisePage';
-import FotoshootingPreiseWienPage from './pages/support/FotoshootingPreiseWienPage';
 import FAQPage from './pages/support/FAQPage';
 import KundenstimmenPage from './pages/support/KundenstimmenPage';
 import ImpressumPage from './pages/support/ImpressumPage';
@@ -206,7 +205,9 @@ function App() {
                 {/* Support Pages */}
                 <Route path="/ueber-uns/" element={<UeberUnsPage />} />
                 <Route path="/preise/" element={<PreisePage />} />
-                <Route path="/fotoshooting-preise-wien/" element={<FotoshootingPreiseWienPage />} />
+                {/* Duplicate pricing page consolidated on /preise/ (server 301s
+                    direct hits; this covers client-side navigation too). */}
+                <Route path="/fotoshooting-preise-wien/" element={<Navigate to="/preise/" replace />} />
                 <Route path="/faq/" element={<FAQPage />} />
                 <Route path="/kundenstimmen/" element={<KundenstimmenPage />} />
                 <Route path="/impressum/" element={<ImpressumPage />} />

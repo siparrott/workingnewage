@@ -19,6 +19,18 @@ export const SEO_REDIRECTS: Record<string, string> = {
   "/blog/warum-familienfotos-wertvoller-werden": "/familienfotos-wien/",
   "/blog/mehrgenerationen-familienfotos-fallstudie": "/familienfotos-wien/",
   "/blog/wer-kann-beim-fotoshooting-dabei-sein": "/familienfotos-wien/",
+
+  // July 2026 SEO audit: duplicate pages splitting authority + dead routes.
+  // Duplicate real-estate page (non-hyphenated variant was never a real route
+  // component; all authority belongs on the hyphenated cornerstone page).
+  "/immobilienfotografie-wien": "/immobilien-fotografie-wien/",
+  // Duplicate pricing page: /preise has ~22 internal inbound links vs 4 —
+  // consolidate on /preise so one pricing page ranks instead of neither.
+  "/fotoshooting-preise-wien": "/preise/",
+  // Dead routes that were linked internally but never defined in the router —
+  // crawlers saw the SPA shell with the homepage's title (duplicate-title set).
+  "/termin-planen": "/warteliste",
+  "/paar-fotoshooting-wien": "/portrait-fotografie-wien/",
 };
 
 export function seoRedirects(req: Request, res: Response, next: NextFunction) {

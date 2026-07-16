@@ -34,7 +34,7 @@ export default function BabyFotografieWienPage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
-                  to="/termin-planen"
+                  to="/warteliste"
                   className="inline-flex items-center justify-center px-8 py-4 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors font-semibold"
                 >
                   Termin buchen
@@ -136,7 +136,7 @@ export default function BabyFotografieWienPage() {
                 </li>
               </ul>
               <Link
-                to="/termin-planen"
+                to="/warteliste"
                 className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
               >
                 Jetzt buchen
@@ -175,7 +175,7 @@ export default function BabyFotografieWienPage() {
                 </li>
               </ul>
               <Link
-                to="/termin-planen"
+                to="/warteliste"
                 className="block text-center px-6 py-3 bg-white text-pink-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
               >
                 Jetzt buchen
@@ -337,7 +337,7 @@ export default function BabyFotografieWienPage() {
             Sichern Sie sich jetzt Ihren Wunschtermin für zauberhafte Neugeborenen-Fotos
           </p>
           <Link
-            to="/termin-planen"
+            to="/warteliste"
             className="inline-flex items-center px-8 py-4 bg-white text-pink-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-lg"
           >
             Jetzt reservieren

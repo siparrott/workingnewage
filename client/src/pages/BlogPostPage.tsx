@@ -3,7 +3,10 @@ import { useParams, Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 // Supabase removed - blog data now served via Neon database API
 import { Calendar, ArrowLeft, Clock } from 'lucide-react';
-import { Helmet } from 'react-helmet';
+// react-helmet-async (NOT legacy react-helmet): the app wraps routes in
+// react-helmet-async's HelmetProvider, so the legacy package's tags were
+// never managed by it — blog meta could silently fail to render.
+import { Helmet } from 'react-helmet-async';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -489,9 +492,26 @@ const BlogPostPage: React.FC = () => {
                   Schwangerschaftsfotos Wien
                 </Link>
               </li>
+              <li>
+                <Link to="/neugeborenenfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                  Neugeborenenfotos Wien
+                </Link>
+              </li>
+              <li>
+                <Link to="/business-portrait-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                  Business Portraits Wien
+                </Link>
+              </li>
+              <li>
+                <Link to="/vouchers" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                  Geschenkgutscheine
+                </Link>
+              </li>
             </ul>
             <p className="text-gray-700">
               <Link to="/preise/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">Preise ansehen</Link>
+              <span className="mx-2 text-gray-400">·</span>
+              <Link to="/kundenstimmen/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">4.9★ Kundenstimmen</Link>
               <span className="mx-2 text-gray-400">·</span>
               <Link to="/warteliste/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">Termin sichern</Link>
             </p>

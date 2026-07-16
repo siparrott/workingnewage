@@ -69,25 +69,31 @@ const publicRoutes = [
   '/portrait-fotografie-wien/',
   
   // Support Pages
+  // NOTE: /fotoshooting-preise-wien/ intentionally absent — it 301s to /preise/
+  // (duplicate-pricing consolidation, July 2026 SEO audit).
   '/ueber-uns/',
   '/preise/',
-  '/fotoshooting-preise-wien/',
   '/faq/',
   '/kundenstimmen/',
   '/impressum/',
   '/agb/',
   '/datenschutz/',
-  
+  '/model-release/',
+  '/calculator',
+  '/galleries',
+
   // Fotoshooting Types
   '/fotoshootings/business',
   '/fotoshootings/event',
   '/fotoshootings/wedding',
-  
+
   // Gutschein Pages
   '/gutschein',
   '/gutschein/family',
   '/gutschein/newborn',
   '/gutschein/maternity',
+  '/gutschein/baby',
+  '/gutschein/business',
 
   // Blog posts — prerendered so crawlers get static HTML, not JS-only pages.
   // Keep in sync with published posts (content/articles + Neon blog_posts).

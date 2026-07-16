@@ -592,6 +592,17 @@ app.use((req, res, next) => {
     // SPA catch-all so /blog/<slug> redirects instead of serving the app shell.
     app.use(seoRedirects);
 
+    // Keep the admin app out of search results. robots.txt disallows /admin/
+    // but doesn't DEindex already-crawled URLs; X-Robots-Tag does. The SPA
+    // catch-all serves index.html (title = homepage) for /admin, which the SEO
+    // audit flagged as an indexed duplicate-title page.
+    app.use((req, res, next) => {
+      if (req.path === '/admin' || req.path.startsWith('/admin/')) {
+        res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+      }
+      next();
+    });
+
     // Setup Vite BEFORE starting the server
     console.log('🔧 Setting up Vite frontend...');
     let viteReady = false;
