@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Layout from '../../components/layout/Layout';
 import TemplateSelector from '../../components/admin/TemplateSelector';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,12 +49,15 @@ const StudioCustomization: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [activeTab, setActiveTab] = useState('template');
+  const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // SEO Meta Tags
     document.title = 'Studio Customization - Template & Design Management';
-    
+
     // Update meta description
     let metaDescription = document.querySelector('meta[name="description"]');
     if (!metaDescription) {
@@ -69,21 +72,54 @@ const StudioCustomization: React.FC = () => {
     };
   }, []);
 
-  const handleTemplateSelect = async (templateId: string) => {
-    setSaving(true);
-    try {
-      // Apply template changes
-      setConfig(prev => ({ ...prev, activeTemplate: templateId }));
-      
-      // Here you would typically make an API call to save the template
-      // await apiRequest('/api/studio/template', { method: 'PUT', body: { templateId } });
-      
-      // console.log removed
-    } catch (error) {
-      // console.error removed
-    } finally {
-      setSaving(false);
+  // Load the studio's saved branding on mount (falls back to defaults on error).
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/studio/branding');
+        if (res.ok) {
+          const data = await res.json();
+          setConfig(prev => ({
+            ...prev,
+            studioName: data.studioName || prev.studioName,
+            ownerEmail: data.ownerEmail || prev.ownerEmail,
+            businessName: data.businessName || prev.businessName,
+            address: data.address || prev.address,
+            city: data.city || prev.city,
+            phone: data.phone || prev.phone,
+            email: data.email || prev.email,
+            logoUrl: data.logoUrl || prev.logoUrl,
+            primaryColor: data.primaryColor || prev.primaryColor,
+            secondaryColor: data.secondaryColor || prev.secondaryColor,
+            activeTemplate: data.activeTemplate || prev.activeTemplate,
+          }));
+        }
+      } catch {
+        // Keep defaults; the form still works offline.
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const persistBranding = async (payload: Partial<StudioConfig>) => {
+    const res = await fetch('/api/studio/branding', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Save failed (HTTP ${res.status})`);
     }
+    return res.json();
+  };
+
+  const handleTemplateSelect = async (templateId: string) => {
+    // Selecting a template updates the active choice; it is persisted on Save.
+    setConfig(prev => ({ ...prev, activeTemplate: templateId }));
+    setStatusMsg({ type: 'success', text: 'Template selected — click "Save Configuration" to apply.' });
   };
 
   const handlePreview = (templateId: string) => {
@@ -94,14 +130,43 @@ const StudioCustomization: React.FC = () => {
 
   const handleSaveConfig = async () => {
     setSaving(true);
+    setStatusMsg(null);
     try {
-      // Save configuration
-      // await apiRequest('/api/studio/config', { method: 'PUT', body: config });
-      // console.log removed
-    } catch (error) {
-      // console.error removed
+      await persistBranding(config);
+      setStatusMsg({ type: 'success', text: 'Saved. Your logo and business details are now live on the website and invoices.' });
+    } catch (error: any) {
+      setStatusMsg({ type: 'error', text: error?.message || 'Could not save. Please try again.' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleLogoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    setStatusMsg(null);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api/upload/image', { method: 'POST', body: form });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Upload failed (HTTP ${res.status})`);
+      }
+      const data = await res.json();
+      const url = data.url || data.imageUrl;
+      if (!url) throw new Error('Upload succeeded but no URL was returned.');
+      setConfig(prev => ({ ...prev, logoUrl: url }));
+      // Persist the logo immediately so it appears on the site without a
+      // separate Save click (this is the action the user just took).
+      await persistBranding({ logoUrl: url });
+      setStatusMsg({ type: 'success', text: 'Logo uploaded and applied to your website header and invoices.' });
+    } catch (error: any) {
+      setStatusMsg({ type: 'error', text: error?.message || 'Logo upload failed.' });
+    } finally {
+      setUploadingLogo(false);
+      if (logoInputRef.current) logoInputRef.current.value = '';
     }
   };
 
@@ -287,6 +352,11 @@ const StudioCustomization: React.FC = () => {
                         />
                       </div>
                     </div>
+                    <p className="text-xs text-gray-400 pt-1">
+                      Brand colours are saved with your studio profile and used by
+                      selected website templates. The current live theme uses a fixed
+                      palette, so changing these will not restyle every page yet.
+                    </p>
                   </CardContent>
                 </Card>
 
@@ -301,12 +371,44 @@ const StudioCustomization: React.FC = () => {
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Studio Logo</label>
+                        <input
+                          ref={logoInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleLogoFile}
+                        />
                         <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                          <Camera className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                          <p className="text-sm text-gray-600 mb-2">Upload your logo</p>
-                          <Button variant="outline" size="sm">
-                            Choose File
+                          {config.logoUrl ? (
+                            <img
+                              src={config.logoUrl}
+                              alt="Studio logo"
+                              className="mx-auto mb-4 max-h-24 w-auto object-contain"
+                            />
+                          ) : (
+                            <Camera className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                          )}
+                          <p className="text-sm text-gray-600 mb-2">
+                            {config.logoUrl ? 'Your current logo' : 'Upload your logo'}
+                          </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={uploadingLogo}
+                            onClick={() => logoInputRef.current?.click()}
+                          >
+                            {uploadingLogo ? (
+                              <>
+                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              config.logoUrl ? 'Replace Logo' : 'Choose File'
+                            )}
                           </Button>
+                          <p className="text-xs text-gray-400 mt-3">
+                            Appears on your public website header and on invoices. PNG or JPG.
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -427,8 +529,15 @@ const StudioCustomization: React.FC = () => {
           </div>
 
           {/* Save Button */}
-          <div className="flex justify-end mt-8">
-            <Button 
+          <div className="flex items-center justify-end gap-4 mt-8">
+            {statusMsg && (
+              <span
+                className={`text-sm ${statusMsg.type === 'success' ? 'text-green-600' : 'text-red-600'}`}
+              >
+                {statusMsg.text}
+              </span>
+            )}
+            <Button
               onClick={handleSaveConfig}
               disabled={saving}
               size="lg"

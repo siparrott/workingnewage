@@ -29,6 +29,7 @@ import agentV2Routes from './routes/agent-v2';
 import agentShadowRoutes from './routes/agent-shadow';
 // Manual Pages: Squarespace-style CMS for public pages
 import manualPagesRoutes from './routes/manual-pages';
+import studioBrandingRoutes from './routes/studio-branding';
 
 // Import and configure session middleware
 import { sessionConfig, requireAuth } from './auth';
@@ -226,6 +227,10 @@ console.log('[AGENT-V2] Routes registered at /api/agent/v2');
 // Manual Pages CMS routes
 app.use('/api/manual-pages', manualPagesRoutes);
 console.log('[MANUAL-PAGES] Routes registered at /api/manual-pages');
+
+// Studio Branding (logo, business info, colours, template) — drives public site
+app.use('/api/studio', studioBrandingRoutes);
+console.log('[STUDIO-BRANDING] Routes registered at /api/studio/branding');
 
 // Shadow mode routes (V1 vs V2 comparison)
 if (process.env.AGENT_V2_SHADOW === 'true') {
@@ -453,6 +458,23 @@ app.use((req, res, next) => {
         console.log('✅ Onboarding columns migration completed');
       } catch (migrationError: any) {
         console.warn('⚠️ Onboarding columns migration already applied or failed:', migrationError.message);
+      }
+
+      // Seed a single studio_configs row if none exists, so the Studio
+      // Customization page (GET/PUT /api/studio/branding) and the singleton
+      // LIMIT-1 reads elsewhere always have a row to read/update. Use the
+      // canonical STUDIO_ID as the row id so manual_page_content rows (logo /
+      // contact) — which are keyed on that same studioId and carry an FK to
+      // studio_configs.id — can be written on a fresh instance.
+      try {
+        const scCheck = await db.execute(sql`SELECT id FROM studio_configs LIMIT 1`);
+        if (!scCheck.rows?.length) {
+          const canonicalStudioId = process.env.STUDIO_ID || '550e8400-e29b-41d4-a716-446655440000';
+          await db.execute(sql`INSERT INTO studio_configs (id, studio_name, owner_email) VALUES (${canonicalStudioId}::uuid, 'My Studio', 'admin@localhost')`);
+          console.log('✅ Seeded studio_configs singleton row');
+        }
+      } catch (seedError: any) {
+        console.warn('⚠️ studio_configs seed skipped:', seedError.message);
       }
 
       // Auto-detect: if existing instance already has key infra, mark setup complete
