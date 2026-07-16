@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { useCart } from '../context/CartContext';
@@ -15,6 +15,20 @@ const CartPage: React.FC = () => {
   const [appliedVoucher, setAppliedVoucher] = useState<AppliedVoucher | undefined>();
   const [showVoucherFlow, setShowVoucherFlow] = useState(false);
   const [selectedVoucherItem, setSelectedVoucherItem] = useState<any>(null);
+
+  // Dynamic-priced voucher offer launched from a landing page:
+  // /cart?vf=personalization&amount=225&title=…  → open the personalize→Stripe
+  // flow at exactly that price (charged verbatim; also printed on the PDF).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const amount = parseFloat(params.get('amount') || '');
+    if (amount > 0) {
+      const title = (params.get('title') || 'Gutschein').slice(0, 120);
+      setSelectedVoucherItem({ name: title, title, price: amount, type: 'voucher' });
+      setShowVoucherFlow(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleQuantityChange = (id: string, value: number) => {
     if (value > 0 && value <= 10) {

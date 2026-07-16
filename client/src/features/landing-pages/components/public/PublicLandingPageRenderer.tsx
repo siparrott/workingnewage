@@ -40,12 +40,20 @@ interface PublicLandingPageRendererProps {
   previewExpiresAt?: string | null;
 }
 
-function getCtaHref(ctaAction: string, voucherSlug?: string | null): string {
+function getCtaHref(page: any): string {
+  const amount = Number(page.cta_voucher_amount) || 0;
+  const voucherSlug = page.cta_voucher_slug;
+  const ctaAction = page.cta_action || 'enquire';
   let base: string;
-  // A bound voucher product wins: send the visitor straight to that product's
-  // personalize → Stripe flow at its fixed price. Falls back to the /vouchers
-  // list (or the action's default) when nothing is bound.
-  if (voucherSlug) {
+  // Priority:
+  // 1. A DYNAMIC-priced voucher offer → open the personalize → Stripe flow at
+  //    exactly this amount/title (the customer pays the offer price, e.g. €225).
+  // 2. A bound voucher product → that product's fixed-price personalize flow.
+  // 3. The conversion action's default page.
+  if (amount > 0) {
+    const title = page.cta_voucher_title || page.content_json?.offerSection?.headline || page.title || 'Gutschein';
+    base = `/cart?vf=personalization&amount=${encodeURIComponent(String(amount))}&title=${encodeURIComponent(String(title))}`;
+  } else if (voucherSlug) {
     base = `/voucher/${voucherSlug}`;
   } else {
     switch (ctaAction) {
@@ -57,20 +65,17 @@ function getCtaHref(ctaAction: string, voucherSlug?: string | null): string {
       default: base = '/contact'; break;
     }
   }
-  // Propagate campaign/UTM params from the landing URL onto the CTA target so
-  // attribution survives even without cookies/localStorage.
+  // Propagate campaign/UTM params from the landing URL so attribution survives.
   try {
     const src = new URLSearchParams(window.location.search);
-    const keep = new URLSearchParams();
+    const keep: string[] = [];
     ['utm_campaign', 'utm_source', 'utm_medium', 'nac', 'campaign_id'].forEach((k) => {
       const v = src.get(k);
-      if (v) keep.set(k, v);
+      if (v) keep.push(`${k}=${encodeURIComponent(v)}`);
     });
-    const qs = keep.toString();
-    return qs ? `${base}?${qs}` : base;
-  } catch {
-    return base;
-  }
+    if (keep.length) base += (base.includes('?') ? '&' : '?') + keep.join('&');
+  } catch {}
+  return base;
 }
 
 export function PublicLandingPageRenderer({
@@ -80,7 +85,7 @@ export function PublicLandingPageRenderer({
 }: PublicLandingPageRendererProps) {
   const content = page.content_json || {};
   const ctaAction = page.cta_action || 'enquire';
-  const ctaHref = getCtaHref(ctaAction, (page as any).cta_voucher_slug);
+  const ctaHref = getCtaHref(page);
   const ctaText = content.hero?.ctaText || page.cta_text || 'Jetzt buchen';
 
   // Build SEO metadata

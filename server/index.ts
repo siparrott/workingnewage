@@ -417,8 +417,12 @@ app.use((req, res, next) => {
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS preview_token_expires_at TIMESTAMPTZ`);
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS canonical_url TEXT`);
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS noindex BOOLEAN DEFAULT FALSE`);
-        // CTA voucher-product binding + hero media (image/video).
+        // CTA voucher binding + hero media (image/video). cta_voucher_amount +
+        // cta_voucher_title drive a DYNAMIC-priced voucher offer (the CTA sends
+        // the customer to personalise + pay exactly this amount via Stripe).
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS cta_voucher_slug TEXT`);
+        await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS cta_voucher_amount NUMERIC`);
+        await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS cta_voucher_title TEXT`);
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS hero_image_url TEXT`);
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS hero_video_url TEXT`);
         console.log('✅ landing_page_events + publishing/media/CTA columns ensured');
