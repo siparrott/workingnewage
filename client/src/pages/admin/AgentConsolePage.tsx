@@ -79,31 +79,17 @@ const AgentConsolePage: React.FC = () => {
     setLoading(true);
     try {
       if (activeTab === 'overview' || activeTab === 'audit') {
-        // Fetch audit stats (placeholder - implement actual endpoint)
-        // const statsRes = await fetch('/api/agent/v2/stats');
-        // const stats = await statsRes.json();
-        // setAuditStats(stats);
-        
-        // Mock data for now
-        setAuditStats({
-          total: 245,
-          successful: 232,
-          failed: 13,
-          successRate: 94.7,
-          avgDuration: 1847,
-          toolUsage: {
-            'crm.clients.search': 89,
-            'crm.leads.list': 34,
-            'invoices.list': 45,
-            'email.draft': 28,
-            'calendar.create': 21,
-            'clients.update': 15,
-            'invoices.create': 8,
-            'email.send': 3,
-            'invoices.send': 1,
-            'invoices.mark_paid': 1,
-          },
-        });
+        // Real execution stats from the agent_audit table (last 30 days).
+        const statsRes = await fetch('/api/agent/v2/audit/stats?days=30');
+        if (statsRes.ok) {
+          setAuditStats(await statsRes.json());
+        }
+
+        // Real audit log — every tool call ToolBus executes is recorded here.
+        const logsRes = await fetch('/api/agent/v2/audit/logs?limit=100');
+        if (logsRes.ok) {
+          setAuditLogs(await logsRes.json());
+        }
       }
 
       if (activeTab === 'shadow') {

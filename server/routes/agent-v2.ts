@@ -14,7 +14,7 @@ import { z } from "zod";
 import { randomUUID } from "crypto";
 import { db } from "../db";
 import { agentSession, agentMessage, agentAudit } from "../../shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc, gte } from "drizzle-orm";
 import { ToolContext, ConfirmRequiredError, AuthzError, ValidationError } from "../../agent/v2/core/Types";
 import { listOpenAITools, executeTool, getStats } from "../../agent/v2/core/ToolBus";
 import { getRecommendedMode } from "../../agent/v2/core/Guardrails";
@@ -336,6 +336,75 @@ router.get("/stats", async (req: Request, res: Response) => {
     const stats = getStats();
     return res.json(stats);
   } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/agent/v2/audit/stats?days=30
+ * Aggregate EXECUTION stats from the real agent_audit table (every tool call is
+ * logged there by ToolBus). Powers the Agent Console "Overview" tab, which used
+ * to show hardcoded mock numbers.
+ */
+router.get("/audit/stats", async (req: Request, res: Response) => {
+  try {
+    const days = Math.min(parseInt(req.query.days as string) || 30, 365);
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const logs = await db.select().from(agentAudit).where(gte(agentAudit.createdAt, since));
+
+    const total = logs.length;
+    const successful = logs.filter(l => l.ok).length;
+    const failed = total - successful;
+    const avgDuration = total > 0
+      ? Math.round(logs.reduce((sum, l) => sum + (l.duration || 0), 0) / total)
+      : 0;
+    const toolUsage = logs.reduce((acc: Record<string, number>, l) => {
+      acc[l.tool] = (acc[l.tool] || 0) + 1;
+      return acc;
+    }, {});
+
+    return res.json({
+      total,
+      successful,
+      failed,
+      successRate: total > 0 ? (successful / total) * 100 : 0,
+      avgDuration,
+      toolUsage,
+    });
+  } catch (error: any) {
+    console.error("[Agent V2] Audit stats error:", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/agent/v2/audit/logs?limit=100
+ * Recent tool executions across all sessions. Powers the Agent Console
+ * "Audit Log" tab (previously never queried, so it always showed empty).
+ */
+router.get("/audit/logs", async (req: Request, res: Response) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
+    const logs = await db
+      .select()
+      .from(agentAudit)
+      .orderBy(desc(agentAudit.createdAt))
+      .limit(limit);
+
+    return res.json(
+      logs.map(l => ({
+        id: l.id,
+        sessionId: l.sessionId,
+        tool: l.tool,
+        ok: l.ok,
+        error: l.error,
+        duration: l.duration,
+        simulated: l.simulated,
+        createdAt: l.createdAt,
+      }))
+    );
+  } catch (error: any) {
+    console.error("[Agent V2] Audit logs error:", error);
     return res.status(500).json({ error: error.message });
   }
 });
