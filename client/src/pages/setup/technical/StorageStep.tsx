@@ -103,9 +103,10 @@ export default function StorageStep({ onComplete, onBack }: Props) {
             <HardDrive className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />
           </div>
           <div>
-            <CardTitle>File Storage</CardTitle>
+            <CardTitle>Cloud Storage (Backblaze B2)</CardTitle>
             <CardDescription>
-              Configure S3-compatible storage for photos, gallery images, and file uploads.
+              Configure Backblaze B2 (or another S3-compatible provider). This powers Cloud Storage,
+              client galleries, voucher &amp; landing-page images, and all file uploads.
             </CardDescription>
           </div>
         </div>
@@ -137,11 +138,11 @@ export default function StorageStep({ onComplete, onBack }: Props) {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="accessKeyId">
-              Access Key ID <span className="text-red-500">*</span>
+              Access Key ID{provider === 'backblaze' && <span className="font-normal text-slate-400"> — Backblaze keyID</span>} <span className="text-red-500">*</span>
             </Label>
             <Input
               id="accessKeyId"
-              placeholder="Your access key"
+              placeholder={provider === 'backblaze' ? 'Backblaze keyID (App Keys)' : 'Your access key'}
               value={accessKeyId}
               onChange={e => setAccessKeyId(e.target.value)}
               className="font-mono text-sm"
@@ -149,13 +150,13 @@ export default function StorageStep({ onComplete, onBack }: Props) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="storageSecretKey">
-              Secret Key <span className="text-red-500">*</span>
+              Secret Key{provider === 'backblaze' && <span className="font-normal text-slate-400"> — Backblaze applicationKey</span>} <span className="text-red-500">*</span>
               {current?.storage?.secretKeySet && <span className="text-green-600 text-xs ml-2">(saved)</span>}
             </Label>
             <Input
               id="storageSecretKey"
               type="password"
-              placeholder={current?.storage?.secretKeySet ? '••••••••' : 'Your secret key'}
+              placeholder={current?.storage?.secretKeySet ? '••••••••' : (provider === 'backblaze' ? 'Backblaze applicationKey' : 'Your secret key')}
               value={secretKey}
               onChange={e => setSecretKey(e.target.value)}
               className="font-mono text-sm"

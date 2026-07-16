@@ -488,8 +488,11 @@ router.delete('/:id', async (req, res) => {
 router.get('/usage', async (req, res) => {
   try {
     const userId = req.session?.userId;
-    
-    console.log('📊 Usage check request:', { 
+    // Paid storage tiers require Stripe subscription prices. On a self-hosted
+    // single-studio install these aren't set, so the UI hides the paid plans.
+    const billingEnabled = !!(process.env.STRIPE_PRICE_STARTER || process.env.STRIPE_PRICE_PROFESSIONAL || process.env.STRIPE_PRICE_ENTERPRISE);
+
+    console.log('📊 Usage check request:', {
       userId, 
       hasSession: !!req.session,
       sessionKeys: req.session ? Object.keys(req.session) : []
@@ -504,7 +507,8 @@ router.get('/usage', async (req, res) => {
         fileCount: 0,
         percentUsed: '0',
         usageGB: '0',
-        limitGB: '0'
+        limitGB: '0',
+        billingEnabled
       });
     }
     
@@ -535,7 +539,8 @@ router.get('/usage', async (req, res) => {
         fileCount: 0,
         percentUsed: '0',
         usageGB: '0',
-        limitGB: '0'
+        limitGB: '0',
+        billingEnabled
       });
     }
     
@@ -566,7 +571,8 @@ router.get('/usage', async (req, res) => {
       fileCount: fileCount,
       percentUsed: percentUsed.toFixed(2),
       usageGB: currentGB.toFixed(2),
-      limitGB: limitGB.toFixed(2)
+      limitGB: limitGB.toFixed(2),
+      billingEnabled
     });
   } catch (error) {
     console.error('Failed to get storage usage:', error);
