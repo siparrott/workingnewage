@@ -16,15 +16,35 @@ const CartPage: React.FC = () => {
   const [showVoucherFlow, setShowVoucherFlow] = useState(false);
   const [selectedVoucherItem, setSelectedVoucherItem] = useState<any>(null);
 
-  // Dynamic-priced voucher offer launched from a landing page:
-  // /cart?vf=personalization&amount=225&title=…  → open the personalize→Stripe
-  // flow at exactly that price (charged verbatim; also printed on the PDF).
+  // Dynamic-priced voucher offer launched from a landing page. The price is
+  // carried in a SERVER-SIGNED token (?offer=…) so it can't be edited; the token
+  // is decoded here only for display, then re-verified server-side at checkout.
+  // (Legacy ?amount/&title still opens the flow but is not tamper-proof.)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const amount = parseFloat(params.get('amount') || '');
-    if (amount > 0) {
-      const title = (params.get('title') || 'Gutschein').slice(0, 120);
-      setSelectedVoucherItem({ name: title, title, price: amount, type: 'voucher' });
+    const decodeOffer = (token: string): { amount: number; title: string } | null => {
+      try {
+        let b = token.split('.')[0].replace(/-/g, '+').replace(/_/g, '/');
+        while (b.length % 4) b += '=';
+        const j = JSON.parse(atob(b));
+        const amt = (Number(j.a) || 0) / 100;
+        return amt > 0 ? { amount: amt, title: String(j.t || 'Gutschein') } : null;
+      } catch { return null; }
+    };
+    const offerToken = params.get('offer');
+    let item: any = null;
+    if (offerToken) {
+      const dec = decodeOffer(offerToken);
+      if (dec) item = { name: dec.title, title: dec.title, price: dec.amount, type: 'voucher', offerToken };
+    } else {
+      const amount = parseFloat(params.get('amount') || '');
+      if (amount > 0) {
+        const title = (params.get('title') || 'Gutschein').slice(0, 120);
+        item = { name: title, title, price: amount, type: 'voucher' };
+      }
+    }
+    if (item) {
+      setSelectedVoucherItem(item);
       setShowVoucherFlow(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -151,6 +171,7 @@ const CartPage: React.FC = () => {
         voucherType={selectedVoucherItem.name}
         baseAmount={selectedVoucherItem.price}
         productSlug={slug}
+        offerToken={(selectedVoucherItem as any).offerToken}
         initialVoucher={initialVoucher}
         onComplete={handleVoucherFlowComplete}
         onBack={handleBackFromVoucherFlow}

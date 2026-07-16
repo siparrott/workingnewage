@@ -10,6 +10,7 @@ interface VoucherFlowProps {
   onComplete: (checkoutData: any) => void;
   onBack?: () => void;
   productSlug?: string;
+  offerToken?: string;
   initialVoucher?: { code: string; discountCents: number };
 }
 
@@ -21,6 +22,7 @@ const VoucherFlow: React.FC<VoucherFlowProps> = ({
   onComplete,
   onBack,
   productSlug,
+  offerToken,
   initialVoucher,
 }) => {
   const { language } = useLanguage();
@@ -229,6 +231,7 @@ const VoucherFlow: React.FC<VoucherFlowProps> = ({
           voucherData={voucherData}
           baseAmount={baseAmount}
           productSlug={productSlug}
+          offerToken={offerToken}
           initialVoucher={initialVoucher}
           onBack={handleBackToPersonalization}
           onCheckout={handleCheckoutComplete}

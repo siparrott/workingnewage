@@ -3,6 +3,7 @@ import { findCoupon, allowsSku, isCouponActive } from './coupons';
 import { v4 as uuidv4 } from 'uuid';
 import { VoucherGenerationService, GeneratedVoucher } from './voucherGenerationService';
 import { EnhancedEmailService } from './enhancedEmailService';
+import { verifyOfferToken } from '../utils/offer-token';
 
 // Check if Stripe key is properly configured
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -210,6 +211,19 @@ export class StripeVoucherService {
       if (clientDiscountCents > 0) {
         // Keep coupon code only for metadata/analytics but skip re-applying a percentage/amount rule
         matchedCoupon = null;
+      }
+
+      // Server-authoritative price for landing-page voucher offers: verify the
+      // signed token and FORCE the primary item's price/name to the signed values,
+      // so an edited ?offer= / item.price can never change what is charged. A
+      // present-but-invalid token is a tamper attempt → reject.
+      const signedOffer = (data as any).offerToken ? verifyOfferToken((data as any).offerToken) : null;
+      if ((data as any).offerToken && !signedOffer) {
+        throw new Error('Invalid or tampered offer token');
+      }
+      if (signedOffer && data.items && data.items[0]) {
+        data.items[0].price = Math.round(signedOffer.amount * 100); // cents
+        data.items[0].name = signedOffer.title;
       }
 
       // If a custom coupon applies, compute discounted unit amounts per applicable SKU and always use dynamic price_data
