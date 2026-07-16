@@ -9,6 +9,7 @@ interface EnhancedCheckoutPageProps {
   baseAmount: number;
   onCheckout: (checkoutData: CheckoutData) => void;
   productSlug?: string;
+  offerToken?: string;
   initialVoucher?: { code: string; discountCents: number };
   onBack?: () => void;
 }
@@ -26,6 +27,7 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
   baseAmount,
   onCheckout,
   productSlug,
+  offerToken,
   initialVoucher,
   onBack
 }) => {
@@ -175,7 +177,10 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
         mode: 'voucher',
         paymentMethod: finalPaymentMethod,
         // Email→order attribution: campaign that drove this purchase (if any).
-        campaignId: getAttributedCampaignId() || undefined
+        campaignId: getAttributedCampaignId() || undefined,
+        // Server-signed landing-page offer price (tamper-proof). When present the
+        // server verifies it and charges the SIGNED amount, ignoring items[].price.
+        offerToken: offerToken || undefined
       };
 
       console.log('➡️ Creating checkout session with payload:', payload);

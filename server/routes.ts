@@ -19355,18 +19355,29 @@ URL: ${page.slug ? `/lp/${page.slug}` : ''}
     try {
       const previewToken = req.query.preview as string | undefined;
 
+      // Sign the voucher-offer amount server-side so the CTA URL can't be edited
+      // to pay a different price (the checkout verifies this token).
+      const attachOfferToken = async (pg: any) => {
+        if (pg && Number(pg.cta_voucher_amount) > 0) {
+          const { signOfferToken } = await import('./utils/offer-token');
+          const title = pg.cta_voucher_title || pg.content_json?.offerSection?.headline || pg.title || 'Gutschein';
+          pg.cta_offer_token = signOfferToken({ amount: Number(pg.cta_voucher_amount), title });
+        }
+        return pg;
+      };
+
       // If preview token provided, try preview access first (allows viewing unpublished pages)
       if (previewToken) {
         const previewPage = await neonDb.getLandingPageForPreview(req.params.slug, previewToken);
         if (previewPage) {
-          return res.json({ ...previewPage, _isPreview: true });
+          return res.json({ ...(await attachOfferToken(previewPage)), _isPreview: true });
         }
         // Invalid/expired token — fall through to normal published check
       }
 
       const page = await neonDb.getLandingPageBySlug(req.params.slug);
       if (!page) return res.status(404).json({ error: 'Page not found' });
-      res.json(page);
+      res.json(await attachOfferToken(page));
     } catch (error) {
       console.error('Error fetching public landing page:', error);
       res.status(500).json({ error: 'Failed to fetch page' });

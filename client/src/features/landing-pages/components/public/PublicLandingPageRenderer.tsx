@@ -51,8 +51,14 @@ function getCtaHref(page: any): string {
   // 2. A bound voucher product → that product's fixed-price personalize flow.
   // 3. The conversion action's default page.
   if (amount > 0) {
-    const title = page.cta_voucher_title || page.content_json?.offerSection?.headline || page.title || 'Gutschein';
-    base = `/cart?vf=personalization&amount=${encodeURIComponent(String(amount))}&title=${encodeURIComponent(String(title))}`;
+    // Prefer the server-signed offer token (tamper-proof price). Fall back to
+    // raw amount/title only if the token is somehow absent.
+    if (page.cta_offer_token) {
+      base = `/cart?vf=personalization&offer=${encodeURIComponent(String(page.cta_offer_token))}`;
+    } else {
+      const title = page.cta_voucher_title || page.content_json?.offerSection?.headline || page.title || 'Gutschein';
+      base = `/cart?vf=personalization&amount=${encodeURIComponent(String(amount))}&title=${encodeURIComponent(String(title))}`;
+    }
   } else if (voucherSlug) {
     base = `/voucher/${voucherSlug}`;
   } else {
