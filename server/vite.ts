@@ -188,6 +188,100 @@ export async function setupVite(app: Express, server: Server) {
   });
 }
 
+// ── Request-time SEO meta for data-driven routes ────────────────────────────
+// Blog posts and voucher-detail pages get their <title>/<meta> from API data,
+// which does NOT exist during the build-time prerender — puppeteer captured the
+// "not found" error state, so crawlers saw default-title error pages. Instead,
+// the server (which has the DB) injects the real title/description/canonical
+// into the served HTML for these routes and bypasses the bad prerender files.
+interface RouteMeta { title: string; description: string; canonical: string }
+
+const routeMetaCache = new Map<string, { meta: RouteMeta | null; at: number }>();
+const ROUTE_META_TTL = 5 * 60_000;
+
+async function lookupRouteMeta(reqPath: string): Promise<RouteMeta | null> {
+  const cached = routeMetaCache.get(reqPath);
+  if (cached && Date.now() - cached.at < ROUTE_META_TTL) return cached.meta;
+
+  let meta: RouteMeta | null = null;
+  try {
+    const blogMatch = reqPath.match(/^\/blog\/([^/]+)\/?$/);
+    const voucherMatch = reqPath.match(/^\/gutschein\/([^/]+)\/?$/);
+
+    if (blogMatch) {
+      const slug = decodeURIComponent(blogMatch[1]);
+      const { db } = await import("./db.js");
+      const { blogPosts } = await import("../shared/schema.js");
+      const { eq } = await import("drizzle-orm");
+      const [post] = await db
+        .select({
+          title: blogPosts.title,
+          seoTitle: blogPosts.seoTitle,
+          excerpt: blogPosts.excerpt,
+          metaDescription: blogPosts.metaDescription,
+          published: blogPosts.published,
+        })
+        .from(blogPosts)
+        .where(eq(blogPosts.slug, slug))
+        .limit(1);
+      if (post && post.published) {
+        meta = {
+          title: post.seoTitle || `${post.title} | New Age Fotografie Blog`,
+          description: (post.metaDescription || post.excerpt || post.title).slice(0, 160),
+          canonical: `${SITE_ORIGIN}/blog/${slug}`,
+        };
+      }
+    } else if (voucherMatch) {
+      const slug = decodeURIComponent(voucherMatch[1]);
+      // Dedicated components (with their own SEO) exist for these slugs.
+      if (!["family", "newborn", "maternity"].includes(slug)) {
+        const { db } = await import("./db.js");
+        const { voucherProducts } = await import("../shared/schema.js");
+        const { eq } = await import("drizzle-orm");
+        const [v] = await db
+          .select({
+            name: voucherProducts.name,
+            description: voucherProducts.description,
+            metaTitle: voucherProducts.metaTitle,
+            metaDescription: voucherProducts.metaDescription,
+          })
+          .from(voucherProducts)
+          .where(eq(voucherProducts.slug, slug))
+          .limit(1);
+        if (v) {
+          meta = {
+            title: v.metaTitle || `${v.name} – Fotoshooting Gutschein Wien | New Age Fotografie`,
+            description: (v.metaDescription || v.description || `${v.name}: Fotoshooting-Gutschein von New Age Fotografie Wien.`).slice(0, 160),
+            canonical: `${SITE_ORIGIN}/gutschein/${slug}`,
+          };
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[route-meta] lookup failed:", (err as any)?.message);
+    return null; // don't cache transient DB errors
+  }
+
+  routeMetaCache.set(reqPath, { meta, at: Date.now() });
+  return meta;
+}
+
+const htmlEsc = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+function injectRouteMeta(html: string, meta: RouteMeta): string {
+  let out = html.replace(/<title>[^<]*<\/title>/, `<title>${htmlEsc(meta.title)}</title>`);
+  out = out.replace(
+    /<meta name="description" content="[^"]*"\s*\/?>/,
+    `<meta name="description" content="${htmlEsc(meta.description)}" />`,
+  );
+  const extra =
+    `<link rel="canonical" href="${htmlEsc(meta.canonical)}" />\n` +
+    `    <meta property="og:title" content="${htmlEsc(meta.title)}" />\n` +
+    `    <meta property="og:description" content="${htmlEsc(meta.description)}" />`;
+  return out.replace("</head>", `    ${extra}\n  </head>`);
+}
+
 export function serveStatic(app: Express) {
   // In production, dist is at the root level, not relative to server/
   const distPath = path.resolve(process.cwd(), "dist");
@@ -245,10 +339,18 @@ export function serveStatic(app: Express) {
 
   // fall through to index.html if the file doesn't exist
   // BUT exclude /api/* routes - those should return 404 JSON, not HTML
-  app.use("*", (req, res) => {
+  app.use("*", async (req, res) => {
     // If it's an API request that wasn't handled, return JSON 404
     if (req.originalUrl.startsWith('/api/')) {
       return res.status(404).json({ error: 'API endpoint not found', path: req.originalUrl });
+    }
+
+    // Data-driven routes (blog posts, voucher details): inject real meta from
+    // the DB and serve the shell — bypassing prerendered files for these paths,
+    // which captured the build-time "not found" error state (no API at build).
+    const meta = await lookupRouteMeta(req.path);
+    if (meta) {
+      return res.status(200).type("html").send(injectRouteMeta(renderedIndex(), meta));
     }
 
     const prerenderedHtmlPath = resolvePrerenderedHtmlPath(req.path);
