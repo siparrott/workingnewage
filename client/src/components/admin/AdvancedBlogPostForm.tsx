@@ -142,6 +142,19 @@ const recommendTagsFromContent = (
     .map((x) => x.tag);
 };
 
+// Format a stored date (ISO or local string) as the LOCAL "YYYY-MM-DDTHH:mm"
+// a datetime-local input expects. The previous code round-tripped through
+// toISOString() (UTC), so the displayed time shifted by the timezone offset
+// on every keystroke — typing a date visibly "jumped" (e.g. 18/07 → 07/06)
+// and could silently land the schedule in the PAST, which publishes the post
+// immediately on the next scheduler sweep.
+const toLocalInputValue = (v: string): string => {
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = false }) => {
   const navigate = useNavigate();
   const { language } = useLanguage();
@@ -463,6 +476,18 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
       const isScheduled = formData.status === 'SCHEDULED'
         && !!formData.scheduled_for
         && new Date(formData.scheduled_for).getTime() > Date.now();
+
+      // HARD GUARD: a SCHEDULED post with a past/invalid date must never fall
+      // through to publish-now (that's how a mistyped date mass-published the
+      // July backlog). Block and let the user fix the date.
+      if (formData.status === 'SCHEDULED' && !isScheduled) {
+        setError(de
+          ? 'Das Veröffentlichungsdatum liegt in der Vergangenheit oder ist ungültig. Bitte ein zukünftiges Datum wählen — sonst würde der Beitrag sofort veröffentlicht.'
+          : 'The publish date is in the past or invalid. Choose a future date — otherwise the post would publish immediately.');
+        setLoading(false);
+        return;
+      }
+
       const wantPublish = (publish || formData.status === 'PUBLISHED') && !isScheduled;
 
       const postData: any = {
@@ -476,7 +501,8 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
         imageUrl3: formData.image_url_3 || '',
         published: wantPublish,
         status: isScheduled ? 'SCHEDULED' : (wantPublish ? 'PUBLISHED' : 'DRAFT'),
-        scheduledFor: isScheduled ? formData.scheduled_for : null,
+        // Normalise to ISO here (state may hold the raw local input string).
+        scheduledFor: isScheduled ? new Date(formData.scheduled_for!).toISOString() : null,
         metaDescription: formData.meta_description || '',
         seoTitle: formData.seo_title || '',
         tags: formData.tags || []
@@ -867,10 +893,17 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
             </label>
             <input
               type="datetime-local"
-              value={formData.scheduled_for ? new Date(formData.scheduled_for).toISOString().slice(0, 16) : ''}
-              onChange={(e) => handleChange('scheduled_for', e.target.value ? new Date(e.target.value).toISOString() : '')}
+              value={formData.scheduled_for ? toLocalInputValue(formData.scheduled_for) : ''}
+              onChange={(e) => handleChange('scheduled_for', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
+            {formData.scheduled_for && new Date(formData.scheduled_for).getTime() <= Date.now() && (
+              <p className="mt-1 text-sm text-red-600 font-medium">
+                ⚠️ {de
+                  ? 'Dieses Datum liegt in der Vergangenheit — der Beitrag würde sofort veröffentlicht.'
+                  : 'This date is in the past — the post would publish immediately.'}
+              </p>
+            )}
           </div>
         )}
       </div>

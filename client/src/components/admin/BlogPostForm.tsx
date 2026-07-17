@@ -26,6 +26,18 @@ interface BlogPostFormProps {
   isEditing?: boolean;
 }
 
+// Format a stored date (ISO or local string) as the LOCAL "YYYY-MM-DDTHH:mm"
+// a datetime-local input expects. The previous toISOString() round-trip
+// rendered UTC into a local-time input, shifting the display by the timezone
+// offset (e.g. picking 16:17 showed 09:17 on a UTC+7 machine) and letting
+// schedules silently land in the past — which publishes immediately.
+const toLocalInputValue = (v: string): string => {
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 const BlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = false }) => {
   const navigate = useNavigate();  const [formData, setFormData] = useState<BlogPost>({
     title: '',
@@ -192,11 +204,21 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = false }) 
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         throw new Error('You must be logged in to create or edit posts');
       }
-      
+
+      // HARD GUARD: a SCHEDULED post with a past/invalid date must never save
+      // (it would publish immediately on the next scheduler sweep).
+      const effectiveStatus = publishNow ? 'PUBLISHED' : formData.status;
+      const scheduledIso = formData.scheduled_for ? new Date(formData.scheduled_for).toISOString() : null;
+      if (effectiveStatus === 'SCHEDULED' && (!scheduledIso || new Date(scheduledIso).getTime() <= Date.now())) {
+        setError('The publish date is in the past or invalid. Choose a future date — otherwise the post would publish immediately.');
+        setLoading(false);
+        return;
+      }
+
       // Map form data to API format
       const apiData = {
         title: formData.title,
@@ -223,7 +245,7 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = false }) 
             seo_title: apiData.seoTitle,
             meta_description: apiData.metaDescription,            tags: apiData.tags,
             published_at: apiData.status === 'PUBLISHED' ? apiData.publishedAt : null,
-            scheduled_for: apiData.status === 'SCHEDULED' ? formData.scheduled_for : null,
+            scheduled_for: apiData.status === 'SCHEDULED' ? scheduledIso : null,
             updated_at: new Date().toISOString()
           })
           .eq('id', post.id)
@@ -248,7 +270,7 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = false }) 
             seo_title: apiData.seoTitle,
             meta_description: apiData.metaDescription,            tags: apiData.tags || [],
             published_at: apiData.status === 'PUBLISHED' ? (apiData.publishedAt || new Date().toISOString()) : null,
-            scheduled_for: apiData.status === 'SCHEDULED' ? formData.scheduled_for : null,
+            scheduled_for: apiData.status === 'SCHEDULED' ? scheduledIso : null,
             view_count: 0
           })
           .select()
@@ -372,10 +394,15 @@ const BlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = false }) 
                 type="datetime-local"
                 id="scheduled_for"
                 name="scheduled_for"
-                value={formData.scheduled_for ? new Date(formData.scheduled_for).toISOString().slice(0, 16) : ''}
+                value={formData.scheduled_for ? toLocalInputValue(formData.scheduled_for) : ''}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               />
+              {formData.scheduled_for && new Date(formData.scheduled_for).getTime() <= Date.now() && (
+                <p className="mt-1 text-sm text-red-600 font-medium">
+                  ⚠️ This date is in the past — the post would publish immediately.
+                </p>
+              )}
             </div>
           )}
           
