@@ -348,9 +348,13 @@ export function serveStatic(app: Express) {
     // Data-driven routes (blog posts, voucher details): inject real meta from
     // the DB and serve the shell — bypassing prerendered files for these paths,
     // which captured the build-time "not found" error state (no API at build).
-    const meta = await lookupRouteMeta(req.path);
-    if (meta) {
-      return res.status(200).type("html").send(injectRouteMeta(renderedIndex(), meta));
+    if (/^\/(blog|gutschein)\//.test(req.path)) {
+      const meta = await lookupRouteMeta(req.path);
+      // Diagnostic: shows whether the DB lookup resolved for this path.
+      res.setHeader("X-Route-Meta", meta ? "hit" : "miss");
+      if (meta) {
+        return res.status(200).type("html").send(injectRouteMeta(renderedIndex(), meta));
+      }
     }
 
     const prerenderedHtmlPath = resolvePrerenderedHtmlPath(req.path);

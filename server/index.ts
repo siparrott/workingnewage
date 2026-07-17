@@ -486,6 +486,15 @@ app.use((req, res, next) => {
         console.warn('⚠️ Knowledge Base seed skipped:', kbSeedError.message);
       }
 
+      // Seed the three case-study blog DRAFTS (SEO audit follow-up) if absent.
+      // They land unpublished in the admin Blog list for photos + scheduling.
+      try {
+        const { seedCaseStudies } = await import('./seed-case-studies');
+        await seedCaseStudies();
+      } catch (csSeedError: any) {
+        console.warn('⚠️ Case-study seed skipped:', csSeedError.message);
+      }
+
       // Auto-detect: if existing instance already has key infra, mark setup complete
       // Uses raw SQL to avoid Drizzle column-mapping failures if columns don't exist yet
       try {

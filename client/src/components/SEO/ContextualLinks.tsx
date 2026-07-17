@@ -237,16 +237,19 @@ export const ContextualLinks: React.FC<ContextualLinksProps> = ({ pathname, lang
             </React.Fragment>
           ))}
           {' '}
+          {/* Closer links to /kontakt (not /warteliste): the audit found the
+              waitlist page absorbing the most link equity sitewide; kontakt is
+              the designated conversion page and was comparatively under-linked. */}
           {language === 'de' ? (
             <>
               Alle <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Preise ansehen</Link>{' '}
-              oder direkt <Link to="/warteliste/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Termin sichern</Link>.
+              oder direkt <Link to="/kontakt" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Termin anfragen</Link>.
               Ansehen im <Link to="/portfolio/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Portfolio</Link>.
             </>
           ) : (
             <>
               View all <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">prices</Link>{' '}
-              or <Link to="/warteliste/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">book your slot</Link>.
+              or <Link to="/kontakt" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">request a session</Link>.
               See our <Link to="/portfolio/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">portfolio</Link>.
             </>
           )}

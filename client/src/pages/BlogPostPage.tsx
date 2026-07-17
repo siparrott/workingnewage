@@ -514,7 +514,7 @@ const BlogPostPage: React.FC = () => {
               <span className="mx-2 text-gray-400">·</span>
               <Link to="/kundenstimmen/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">4.9★ Kundenstimmen</Link>
               <span className="mx-2 text-gray-400">·</span>
-              <Link to="/warteliste/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">Termin sichern</Link>
+              <Link to="/kontakt" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">Termin anfragen</Link>
             </p>
           </div>
 
