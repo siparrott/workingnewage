@@ -26,7 +26,7 @@ const SEOHead: React.FC<SEOHeadProps> = ({ title, description, keywords, canonic
       <title>{title}</title>
       <meta name="description" content={description} />
       <meta name="keywords" content={keywords} />
-      <link rel="canonical" href={canonical} />
+      <link rel="canonical" href={canonical.startsWith("http") ? canonical : `${SITE.url}${canonical}`} />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       <meta property="og:type" content="website" />

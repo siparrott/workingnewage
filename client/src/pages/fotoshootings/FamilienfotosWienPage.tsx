@@ -10,6 +10,7 @@ import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Baby, Music, Smil
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import { useCart } from '../../context/CartContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 
 export default function FamilienfotosWienPage() {
   const navigate = useNavigate();
@@ -85,11 +86,11 @@ export default function FamilienfotosWienPage() {
     <Layout>
     <div className="min-h-screen bg-white">
       <SEOHead
-        title="Familienfotos Wien – Natürliche Familienporträts im Studio & Outdoor | New Age Fotografie"
+        title={`Familienfotos Wien – Studio & Outdoor | ${SITE.name}`}
         description="Professionelle Familienfotos in Wien: Ruhiges Studio, freundliche Anleitung, echte Momente. Bis zu 12 Personen inkl. Kinder, Großeltern & Haustiere. Ab €199 – jetzt Termin buchen!"
         keywords="familienfotograf wien, familienfotos wien, familienfotografie wien, fotoshooting familie wien"
         canonical="/familienfotos-wien/"
-        ogImage="https://www.newagefotografie.com/images/family-hero.jpg"
+        ogImage={`${SITE.url}/images/family-hero.jpg`}
         hreflang={[
           { lang: 'de', url: '/familienfotos-wien/' },
           { lang: 'en', url: '/en/family-photos-vienna/' }
@@ -178,8 +179,8 @@ export default function FamilienfotosWienPage() {
             <div className="prose prose-lg max-w-none">
               <p className="text-lg text-gray-700 leading-relaxed">
                 {language === 'de'
-                  ? 'Willkommen bei New Age Fotografie – Ihrem Familienfotografen in Wien! Unser ruhiges Studio bietet den perfekten Rahmen für authentische Familienfotos. Ob kleine Familie oder Großfamilie mit bis zu 12 Personen – wir nehmen uns Zeit für echte Momente und natürliche Emotionen.'
-                  : 'Welcome to New Age Fotografie – your family photographer in Vienna! Our quiet studio provides the perfect setting for authentic family photos. Whether a small family or a large family of up to 12 people – we take the time for real moments and natural emotions.'}
+                  ? `Willkommen bei ${SITE.name} – Ihrem Familienfotografen in Wien! Unser ruhiges Studio bietet den perfekten Rahmen für authentische Familienfotos. Ob kleine Familie oder Großfamilie mit bis zu 12 Personen – wir nehmen uns Zeit für echte Momente und natürliche Emotionen.`
+                  : `Welcome to ${SITE.name} – your family photographer in Vienna! Our quiet studio provides the perfect setting for authentic family photos. Whether a small family or a large family of up to 12 people – we take the time for real moments and natural emotions.`}
               </p>
               <p className="text-lg text-gray-700 leading-relaxed mt-4">
                 {language === 'de'

@@ -4,13 +4,14 @@ import { RelatedServices } from '../../components/SEO/RelatedServices';
 import { ContextualLinks } from '../../components/SEO/ContextualLinks';
 import { Link } from 'react-router-dom';
 import { Baby, Heart, Smile, Camera, ArrowRight, Check, Gift } from 'lucide-react';
+import { SITE } from '../../config/site';
 
 export default function KinderFotografieWienPage() {
   return (
     <Layout>
     <div className="min-h-screen bg-white">
       <SEOHead
-        title="Kinder-Fotografie Wien – Natürliche Kinderfotos | New Age Fotografie"
+        title={`Kinder-Fotografie Wien | ${SITE.name}`}
         description="Professionelle Kinderfotografie in Wien. Natürliche, lebendige Kinderfotos im Studio oder Outdoor. Vom Kleinkind bis zum Teenager. Jetzt Termin buchen!"
         keywords="kinderfotografie wien, kinderfotos wien, kinderfotograf wien, kindershooting wien, kinderportraits wien"
         canonical="/kinder-fotografie-wien/"

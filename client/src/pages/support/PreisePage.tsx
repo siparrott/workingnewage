@@ -145,7 +145,7 @@ const PreisePage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Fotoshooting Preise Wien – Transparente Pakete ab €95 | New Age Fotografie"
+        title={`Fotoshooting Preise Wien – Pakete ab €95`}
         description="Alle Fotoshooting-Preise auf einen Blick: Familien ab €199, Baby & Newborn ab €199, Business Portraits ab €129, Schwangerschaft ab €179. Faire Pakete, keine versteckten Kosten."
         keywords="Fotoshooting Preise Wien, Fotograf Kosten Wien, Preisliste Fotografie Wien, Familienfotoshooting Preise"
         canonical="/preise/"

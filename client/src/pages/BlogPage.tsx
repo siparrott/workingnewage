@@ -331,7 +331,7 @@ const BlogPage: React.FC = () => {
         title={language === 'de' ? 'Fotografie Blog | New Age Fotografie' : 'Photography Blog | New Age Photography'}
         description={language === 'de' ? 'Tipps, Inspiration und Neuigkeiten rund um Fotografie in Wien. Familien-, Baby- und Business-Fotografie Insights.' : 'Tips, inspiration and news about photography in Vienna. Family, baby and business photography insights.'}
         keywords={language === 'de' ? 'Fotografie Blog Wien, Fotoshooting Tipps, Fotograf Inspiration' : 'Photography Blog Vienna, Photoshoot Tips, Photographer Inspiration'}
-        canonical="/blog"
+        canonical="/blog/"
         ogImage="https://i.postimg.cc/wTdZVLdC/photo-grid.jpg"
         hreflang={[
           { lang: 'de', url: 'https://newagefotografie.at/blog/' },

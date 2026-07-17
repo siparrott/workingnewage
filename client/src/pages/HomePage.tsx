@@ -16,6 +16,7 @@ import { getCachedData, setCachedData } from '../lib/persistentCache';
 import { ContextualLinks } from '../components/SEO/ContextualLinks';
 import { useImagePreloader } from '../hooks/useImagePreloader';
 import HomepageConfidenceSection from '../components/home/HomepageConfidenceSection';
+import { SITE } from '../config/site';
 
 // Translation mappings for German product names and descriptions
 const productNameTranslations: Record<string, string> = {
@@ -115,7 +116,7 @@ const HomePage: React.FC = () => {
   const { data: homepageImages, isLoading: isLoadingImages } = useQuery({
     queryKey: ['/api/homepage/images'],
     queryFn: async () => {
-      const endpoints = ['/api/homepage/images', 'https://www.newagefotografie.com/api/homepage/images'];
+      const endpoints = ['/api/homepage/images', `${SITE.url}/api/homepage/images`];
       let data: any[] | null = null;
 
       for (const endpoint of endpoints) {
@@ -173,25 +174,25 @@ const HomePage: React.FC = () => {
         heading: 'Find your perfect photoshoot package',
         subheading: 'In just 30 seconds, discover which package fits your family best.',
         body: 'No hidden prices. No surprises. Plan your personal photoshoot online with ease. Extra digital portraits are €20 each. Packages available.',
-        label: 'New Age Fotografie Price Calculator',
+        label: `${SITE.name} Price Calculator`,
         labelSub: 'Your personal package in just a few clicks',
         badge: 'Fast & obligation-free',
         trustOne: 'Over 5,000 portraits created',
         trustTwo: 'Family-run since 2012',
         trustThree: 'Studio in 1050 Vienna',
-        iframeTitle: 'PricingEmbed price calculator for New Age Fotografie',
+        iframeTitle: `PricingEmbed price calculator for ${SITE.name}`,
       }
     : {
         heading: 'Finden Sie Ihr perfektes Fotoshooting Paket',
         subheading: 'In nur 30 Sekunden erfahren Sie, welches Paket am besten zu Ihrer Familie passt.',
         body: 'Keine versteckten Preise. Keine Überraschungen. Planen Sie Ihr persönliches Fotoshooting ganz einfach online. Zusätzliche digitale Portraits je €20. Pakete verfügbar.',
-        label: 'New Age Fotografie Preisrechner',
+        label: `${SITE.name} Preisrechner`,
         labelSub: 'Ihr persönliches Paket in wenigen Klicks',
         badge: 'Schnell & unverbindlich',
         trustOne: 'Ueber 5.000 Portraits erstellt',
         trustTwo: 'Familiengefuehrt seit 2012',
         trustThree: 'Studio in 1050 Wien',
-        iframeTitle: 'PricingEmbed Preisrechner fuer New Age Fotografie',
+        iframeTitle: `PricingEmbed Preisrechner fuer ${SITE.name}`,
       };
 
   // Fetch voucher products from API with persistent cache
@@ -378,7 +379,7 @@ const HomePage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Familienfotograf Wien – Baby, Neugeborenen & Business Fotografie | New Age Fotografie"
+        title={`Familienfotograf Wien | ${SITE.name}`}
         description="Ihr professioneller Familienfotograf in Wien: Familien-, Baby-, Neugeborenen-, Schwangerschafts- und Businessfotos im Studio. Über 200 zufriedene Familien. Jetzt Termin buchen!"
         keywords="Fotograf Wien, Familienfotograf Wien, Babyfotograf Wien, Neugeborenenfotograf Wien, Businessfotografie Wien, Fotostudio Wien"
         canonical="/"
@@ -395,8 +396,8 @@ const HomePage: React.FC = () => {
           {JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'LocalBusiness',
-            '@id': 'https://www.newagefotografie.com/#business',
-            name: 'New Age Fotografie',
+            '@id': `${SITE.url}/#business`,
+            name: SITE.name,
             image: heroImageUrl || 'https://example.com/placeholder.jpg',
             description: 'Professioneller Familienfotograf in Wien. Spezialisiert auf Familienfotos, Schwangerschaftsfotos, Neugeborenenfotos und Business Portraits.',
             address: {
@@ -411,7 +412,7 @@ const HomePage: React.FC = () => {
               latitude: 48.191130,
               longitude: 16.356010
             },
-            url: 'https://www.newagefotografie.com',
+            url: SITE.url,
             telephone: '+43-XXX-XXXXXXX',
             priceRange: '€€',
             openingHours: 'Mo-Fr 09:00-18:00',
@@ -496,7 +497,7 @@ const HomePage: React.FC = () => {
             '@context': 'https://schema.org',
             '@type': 'BreadcrumbList',
             itemListElement: [
-              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.newagefotografie.com/' }
+              { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE.url}/` }
             ]
           })}
         </script>
@@ -1088,8 +1089,8 @@ const HomePage: React.FC = () => {
           </h2>
           <p className="text-center text-gray-700 max-w-2xl mx-auto mb-6 leading-relaxed">
             {language === 'en'
-              ? 'New Age Fotografie is your family photographer in Vienna 1050. Our studio in Margaretenstraße offers daylight rooms, calm posing areas for newborns, and a clean backdrop wall for business headshots – all within walking distance of public transport.'
-              : 'New Age Fotografie ist Ihr Familienfotograf Wien 1050. Unser Fotostudio Wien in der Margaretenstraße bietet Tageslicht-Räume, ruhige Pose-Bereiche für Neugeborene und eine saubere Hintergrundwand für Business-Headshots – fußläufig zu allen öffentlichen Verkehrsmitteln.'}
+              ? `${SITE.name} is your family photographer in Vienna 1050. Our studio in Margaretenstraße offers daylight rooms, calm posing areas for newborns, and a clean backdrop wall for business headshots – all within walking distance of public transport.`
+              : `${SITE.name} ist Ihr Familienfotograf Wien 1050. Unser Fotostudio Wien in der Margaretenstraße bietet Tageslicht-Räume, ruhige Pose-Bereiche für Neugeborene und eine saubere Hintergrundwand für Business-Headshots – fußläufig zu allen öffentlichen Verkehrsmitteln.`}
           </p>
           <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-sm text-center">
             <li>

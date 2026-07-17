@@ -93,7 +93,7 @@ const PublicGalleriesPage: React.FC = () => {
       <SEOHead
         title="Foto-Galerien – New Age Fotografie Wien"
         description="Öffentliche Foto-Galerien von New Age Fotografie: Familien-, Baby- und Business-Aufnahmen aus unserem Fotostudio in Wien."
-        canonical="/galleries"
+        canonical="/galleries/"
       />
       <div className="min-h-screen bg-gray-50">
         {/* Modern Header */}
