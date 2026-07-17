@@ -131,37 +131,64 @@ const InboxSettings: React.FC<InboxSettingsProps> = ({
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Save to backend
-      await saveEmailSettings({
-        smtpHost: settings.smtpHost,
-        smtpPort: settings.smtpPort,
-        smtpUser: settings.username,
-        smtpPass: settings.password,
-        fromEmail: settings.username, // Use username as from email
-        fromName: SITE.name,
-        // Email Signature
-        emailSignature: settings.emailSignature,
-        signatureEnabled: settings.signatureEnabled,
-        // Out of Office
-        outOfOfficeEnabled: settings.outOfOfficeEnabled,
-        outOfOfficeMessage: settings.outOfOfficeMessage,
-        outOfOfficeStartDate: settings.outOfOfficeStartDate,
-        outOfOfficeEndDate: settings.outOfOfficeEndDate
+      // Save the SMTP credentials to the CANONICAL config store
+      // (/api/setup/technical/email → studio_integrations via config-reader).
+      // This is what the actual email sender (smtp-helper) reads. The legacy
+      // /api/email/settings/save wrote to an email_settings table nothing
+      // sends from — a "successful" save there still left sending broken.
+      const port = String(settings.smtpPort || '465');
+      const canonicalRes = await fetch('/api/setup/technical/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          smtpHost: settings.smtpHost,
+          smtpPort: port,
+          smtpUser: settings.username,
+          smtpPass: settings.password || undefined,
+          smtpSecure: port === '465' ? true : undefined,
+          fromEmail: settings.username,
+          fromName: SITE.name,
+        }),
       });
-      
+      if (!canonicalRes.ok) {
+        const err = await canonicalRes.json().catch(() => ({}));
+        throw new Error(err.error || `Save failed (HTTP ${canonicalRes.status})`);
+      }
+
+      // Signature / out-of-office live in the legacy store — best-effort only;
+      // its failure must not fail the credential save.
+      try {
+        await saveEmailSettings({
+          smtpHost: settings.smtpHost,
+          smtpPort: settings.smtpPort,
+          smtpUser: settings.username,
+          smtpPass: settings.password,
+          fromEmail: settings.username,
+          fromName: SITE.name,
+          emailSignature: settings.emailSignature,
+          signatureEnabled: settings.signatureEnabled,
+          outOfOfficeEnabled: settings.outOfOfficeEnabled,
+          outOfOfficeMessage: settings.outOfOfficeMessage,
+          outOfOfficeStartDate: settings.outOfOfficeStartDate,
+          outOfOfficeEndDate: settings.outOfOfficeEndDate
+        });
+      } catch (legacyErr) {
+        console.warn('Legacy email-settings save failed (signature/out-of-office only):', legacyErr);
+      }
+
       setTestResult({
         success: true,
-        message: 'Email settings saved successfully!'
+        message: 'Email settings saved — the composer and automations now use these credentials.'
       });
-      
+
       onSave(settings);
       setTimeout(() => {
         onClose();
       }, 1500);
-    } catch (error) {
+    } catch (error: any) {
       setTestResult({
         success: false,
-        message: 'Failed to save email settings. Please try again.'
+        message: `Failed to save email settings: ${error?.message || 'please try again.'}`
       });
     } finally {
       setSaving(false);

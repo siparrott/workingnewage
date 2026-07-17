@@ -590,14 +590,35 @@ function LandingPageEditor({ page, onBack, onUpdate }: {
 
   const queryClient = useQueryClient();
 
+  // NOTE: these mutations previously did fetch().then(r => r.json()) with no
+  // r.ok check — the server's 422 "not ready to publish" validation response
+  // parsed fine, ran onSuccess with the error body, and the button appeared
+  // to silently do nothing. Errors are now surfaced to the user.
   const publishMutation = useMutation({
-    mutationFn: () => fetch(`/api/admin/landing-pages/${page.id}/publish`, { method: 'POST' }).then(r => r.json()),
+    mutationFn: async () => {
+      const r = await fetch(`/api/admin/landing-pages/${page.id}/publish`, { method: 'POST' });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        const msg = data?.validation?.errors?.length
+          ? `Not ready to publish:\n• ${data.validation.errors.join('\n• ')}`
+          : (data?.error || `Publish failed (HTTP ${r.status})`);
+        throw new Error(msg);
+      }
+      return data;
+    },
     onSuccess: (data) => { onUpdate(data); queryClient.invalidateQueries({ queryKey: ['/api/admin/landing-pages'] }); },
+    onError: (err: any) => { alert(err?.message || 'Publish failed'); },
   });
 
   const unpublishMutation = useMutation({
-    mutationFn: () => fetch(`/api/admin/landing-pages/${page.id}/unpublish`, { method: 'POST' }).then(r => r.json()),
+    mutationFn: async () => {
+      const r = await fetch(`/api/admin/landing-pages/${page.id}/unpublish`, { method: 'POST' });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data?.error || `Unpublish failed (HTTP ${r.status})`);
+      return data;
+    },
     onSuccess: (data) => { onUpdate(data); queryClient.invalidateQueries({ queryKey: ['/api/admin/landing-pages'] }); },
+    onError: (err: any) => { alert(err?.message || 'Unpublish failed'); },
   });
 
   const handleSave = async () => {
