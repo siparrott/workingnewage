@@ -2,6 +2,7 @@ import type { LandingPageSectionKey, LandingPageSectionVisibilityMap, LandingPag
 import type { LandingPageGeneratedContent } from '../../types/landingPageGeneration.types';
 import LandingPageSectionCard from './LandingPageSectionCard';
 import LandingPageEditorEmptyBlock from './LandingPageEditorEmptyBlock';
+import LandingPageArrayEditor from './LandingPageArrayEditor';
 import LandingPageHeroEditor from './LandingPageHeroEditor';
 import LandingPageOfferEditor from './LandingPageOfferEditor';
 import LandingPageProblemEditor from './LandingPageProblemEditor';
@@ -33,57 +34,81 @@ function renderSectionEditor(
   key: LandingPageSectionKey,
   content: LandingPageGeneratedContent,
   onUpdate: (data: unknown) => void,
+  onGenerate: () => void,
+  isGenerating: boolean,
 ): React.ReactNode {
   const def = getSectionDefinition(key);
+  const empty = (label: string) => (
+    <LandingPageEditorEmptyBlock
+      sectionLabel={label}
+      onGenerate={onGenerate}
+      isGenerating={isGenerating}
+    />
+  );
 
   switch (key) {
     case 'hero':
       return content.hero
         ? <LandingPageHeroEditor data={content.hero} onChange={onUpdate} />
-        : <LandingPageEditorEmptyBlock sectionLabel={def?.label ?? 'Hero'} />;
+        : empty(def?.label ?? 'Hero');
 
     case 'offerSection':
       return content.offerSection
         ? <LandingPageOfferEditor data={content.offerSection} onChange={onUpdate} />
-        : <LandingPageEditorEmptyBlock sectionLabel={def?.label ?? 'Offer'} />;
+        : empty(def?.label ?? 'Offer');
 
     case 'problemSection':
       return content.problemSection
         ? <LandingPageProblemEditor data={content.problemSection} onChange={onUpdate} />
-        : <LandingPageEditorEmptyBlock sectionLabel={def?.label ?? 'Problem'} />;
+        : empty(def?.label ?? 'Problem');
 
     case 'benefits':
       return content.benefits
         ? <LandingPageBenefitsEditor data={content.benefits} onChange={onUpdate} />
-        : <LandingPageEditorEmptyBlock sectionLabel={def?.label ?? 'Benefits'} />;
+        : empty(def?.label ?? 'Benefits');
 
     case 'whyChooseUs':
       return content.whyChooseUs
         ? <LandingPageWhyChooseUsEditor data={content.whyChooseUs} onChange={onUpdate} />
-        : <LandingPageEditorEmptyBlock sectionLabel={def?.label ?? 'Why Choose Us'} />;
+        : empty(def?.label ?? 'Why Choose Us');
 
     case 'inclusions':
       return content.inclusions
         ? <LandingPageInclusionsEditor data={content.inclusions} onChange={onUpdate} />
-        : <LandingPageEditorEmptyBlock sectionLabel={def?.label ?? 'Inclusions'} />;
+        : empty(def?.label ?? 'Inclusions');
 
     case 'testimonials':
       return content.testimonials
         ? <LandingPageTestimonialsEditor data={content.testimonials} onChange={onUpdate} />
-        : <LandingPageEditorEmptyBlock sectionLabel={def?.label ?? 'Testimonials'} />;
+        : empty(def?.label ?? 'Testimonials');
 
     case 'faq':
       return content.faq
         ? <LandingPageFaqEditor data={content.faq} onChange={onUpdate} />
-        : <LandingPageEditorEmptyBlock sectionLabel={def?.label ?? 'FAQ'} />;
+        : empty(def?.label ?? 'FAQ');
 
     case 'finalCta':
       return content.finalCta
         ? <LandingPageFinalCtaEditor data={content.finalCta} onChange={onUpdate} />
-        : <LandingPageEditorEmptyBlock sectionLabel={def?.label ?? 'Final CTA'} />;
+        : empty(def?.label ?? 'Final CTA');
 
-    case 'trustBar':
-      return <LandingPageEditorEmptyBlock sectionLabel="Trust Bar (visual only)" />;
+    case 'trustBar': {
+      // Previously ALWAYS showed the empty block — trust-bar content was
+      // uneditable and looked "not generated" even when it existed.
+      const tb = content.trustBar as { items?: string[] } | undefined;
+      return tb?.items?.length
+        ? (
+          <LandingPageArrayEditor
+            label="Trust points (shown as a bar under the hero)"
+            items={tb.items}
+            onChange={(items) => onUpdate({ ...tb, items })}
+            placeholder="e.g., Seit 2012 in Wien tätig"
+            addLabel="Add trust point"
+            maxItems={6}
+          />
+        )
+        : empty('Trust Bar');
+    }
 
     case 'seo':
       // SEO is handled separately in the right panel
@@ -129,7 +154,13 @@ export default function LandingPageEditorCanvas({
           onMoveDown={() => onMoveSectionDown(key)}
           onRemove={() => onRemoveSection(key)}
         >
-          {renderSectionEditor(key, content, data => onUpdateSection(key, data))}
+          {renderSectionEditor(
+            key,
+            content,
+            data => onUpdateSection(key, data),
+            () => onRegenerate(key),
+            regeneratingSection === key,
+          )}
         </LandingPageSectionCard>
       ))}
     </div>

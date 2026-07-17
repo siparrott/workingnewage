@@ -307,15 +307,27 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
       {/* Step 1: Delivery Options */}
       {currentStep === 1 && (
         <div>
-          {onBack && (
-            <button
-              onClick={onBack}
-              className="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4"
-            >
-              <ArrowLeft size={20} />
-              <span>{language === 'en' ? 'Back to Cart' : 'Zurück zum Warenkorb'}</span>
-            </button>
-          )}
+          {onBack && (() => {
+            // Visitors arriving from a landing-page offer (?offer=…) never saw
+            // a cart — "Back to Cart" was wrong. Take them back to the landing
+            // page instead (history.back(), since they navigated from it).
+            const cameFromOffer = (() => {
+              try { return new URLSearchParams(window.location.search).has('offer'); } catch { return false; }
+            })();
+            return (
+              <button
+                onClick={cameFromOffer ? () => window.history.back() : onBack}
+                className="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4"
+              >
+                <ArrowLeft size={20} />
+                <span>
+                  {cameFromOffer
+                    ? (language === 'en' ? 'Back to offer' : 'Zurück zum Angebot')
+                    : (language === 'en' ? 'Back to Cart' : 'Zurück zum Warenkorb')}
+                </span>
+              </button>
+            );
+          })()}
           <h2 className="text-2xl font-bold mb-6 text-center">{t.step1Title}</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {deliveryOptions.map((option) => (

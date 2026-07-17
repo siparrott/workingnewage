@@ -18274,8 +18274,28 @@ ${context.extras || ''}`;
       const contentJson = typeof page.content_json === 'string' ? JSON.parse(page.content_json) : page.content_json;
       const currentContent = contentJson?.[sectionKey] || {};
 
+      // Per-section JSON schemas. Without these, regenerating an EMPTY section
+      // let the model invent an arbitrary shape the editor/renderer can't use
+      // (the section stayed blank). Array sections must be wrapped in
+      // {"items": [...]} because response_format json_object can't return a
+      // top-level array — unwrapped below.
+      const SECTION_SCHEMAS: Record<string, { schema: string; unwrapItems?: boolean }> = {
+        hero: { schema: '{"eyebrow": "short kicker (optional)", "headline": "main headline", "subheadline": "1-2 sentences", "ctaText": "primary button label", "secondaryCtaText": "secondary button label (optional)", "badgeText": "small badge (optional)"}' },
+        trustBar: { schema: '{"items": ["4 short trust points, e.g. \\"Seit 2012 in Wien\\""]}' },
+        problemSection: { schema: '{"headline": "question-style headline", "description": "2-3 sentences", "painPoints": ["3 short pain points"]}' },
+        offerSection: { schema: '{"headline": "offer name", "description": "2-3 sentences", "price": "e.g. \\"€225\\"", "inclusions": ["4-6 things included"], "urgency": "scarcity line (optional)"}' },
+        benefits: { schema: '{"items": [{"title": "benefit", "description": "1 sentence"}] } with 4-6 items', unwrapItems: true },
+        whyChooseUs: { schema: '{"headline": "section headline", "reasons": [{"title": "reason", "description": "1 sentence"}] } with 3-4 reasons' },
+        testimonials: { schema: '{"items": [{"quote": "testimonial text", "author": "first name + initial", "role": "e.g. Familienshooting"}] } with 2-3 items', unwrapItems: true },
+        faq: { schema: '{"items": [{"question": "...", "answer": "2-3 sentences"}] } with 4-6 items', unwrapItems: true },
+        finalCta: { schema: '{"headline": "closing headline", "description": "1-2 sentences", "ctaText": "button label"}' },
+        seo: { schema: '{"title": "max 60 chars incl. city", "metaDescription": "max 155 chars"}' },
+      };
+      const sectionSpec = SECTION_SCHEMAS[sectionKey];
+
       const modeInstruction = mode ? `Mode: ${mode}.` : '';
       const customPart = customInstruction ? `\nAdditional instruction: ${customInstruction}` : '';
+      const hasCurrent = currentContent && Object.keys(currentContent).length > 0;
 
       const OpenAI = (await import('openai')).default;
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
@@ -18285,24 +18305,32 @@ ${context.extras || ''}`;
         messages: [
           {
             role: 'system',
-            content: `You are an expert landing page copywriter. Regenerate ONLY the "${sectionKey}" section of a landing page. Return ONLY a valid JSON object matching the structure of that section. ${modeInstruction} Keep the same tone and context but write fresh, improved copy. If input is German, write German output.`
+            content: `You are an expert landing page copywriter. ${hasCurrent ? 'Regenerate' : 'Generate'} ONLY the "${sectionKey}" section of a landing page. Return ONLY a valid JSON object EXACTLY matching this structure: ${sectionSpec ? sectionSpec.schema : 'the structure of the current content'}. ${modeInstruction} Write in German unless the page context is clearly English. Fresh, conversion-focused copy; no placeholder text.`
           },
           {
             role: 'user',
-            content: `Regenerate the "${sectionKey}" section.\n\nPage context: title="${page.title}", service="${page.primary_service || ''}", city="${page.city || ''}"\n\nCurrent content to improve: ${JSON.stringify(currentContent)}${customPart}`
+            content: `${hasCurrent ? 'Regenerate (improve)' : 'Generate from scratch'} the "${sectionKey}" section.\n\nPage context: title="${page.title}", service="${page.primary_service || ''}", city="${page.city || ''}", audience="${page.target_audience || ''}", offer="${page.offer_summary || ''}"\n\n${hasCurrent ? `Current content to improve: ${JSON.stringify(currentContent)}` : 'This section is currently EMPTY — write it from the page context.'}${customPart}`
           }
         ],
         temperature: 0.9,
-        max_tokens: 1000,
+        max_tokens: 1200,
         response_format: { type: "json_object" }
       });
 
       const responseText = completion.choices[0]?.message?.content || '{}';
-      let regenerated;
+      let regenerated: any;
       try {
         regenerated = JSON.parse(responseText);
       } catch {
         return res.status(500).json({ error: 'AI returned invalid JSON' });
+      }
+
+      // Unwrap array sections ({"items": [...]} → [...]) so the editor and
+      // public renderer receive the array shape they expect.
+      if (sectionSpec?.unwrapItems) {
+        regenerated = Array.isArray(regenerated) ? regenerated : (regenerated.items || regenerated[sectionKey] || []);
+      } else if (sectionKey === 'trustBar' && Array.isArray(regenerated)) {
+        regenerated = { items: regenerated };
       }
 
       res.json({ sectionKey, content: regenerated });

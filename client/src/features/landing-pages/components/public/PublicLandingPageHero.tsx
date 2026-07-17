@@ -44,7 +44,14 @@ export function PublicLandingPageHero({
           playsInline
         />
       ) : imageUrl ? (
-        <img className="absolute inset-0 w-full h-full object-cover" src={imageUrl} alt="" />
+        // object-position favours the upper part of the photo — hero images
+        // are usually people, and centre-cropping cut heads off.
+        <img
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ objectPosition: 'center 25%' }}
+          src={imageUrl}
+          alt=""
+        />
       ) : null}
       {hasMedia && <div className="absolute inset-0 bg-black/55" />}
       <div className="relative max-w-5xl mx-auto px-6 py-20 md:py-28 text-center">

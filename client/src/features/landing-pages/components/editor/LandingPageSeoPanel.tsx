@@ -21,6 +21,7 @@ export default function LandingPageSeoPanel({ seo, onUpdate }: Props) {
         onChange={v => onUpdate('seoTitle', v)}
         placeholder="Page title for search engines"
         maxLength={70}
+        importance="required"
         helperText={titleLen > 60 ? '⚠️ Over 60 characters' : `${titleLen}/60 recommended`}
       />
 
@@ -31,6 +32,7 @@ export default function LandingPageSeoPanel({ seo, onUpdate }: Props) {
         placeholder="Brief description for search results"
         rows={3}
         maxLength={170}
+        importance="required"
         helperText={descLen > 160 ? '⚠️ Over 160 characters' : `${descLen}/160 recommended`}
       />
 
@@ -39,6 +41,7 @@ export default function LandingPageSeoPanel({ seo, onUpdate }: Props) {
         value={seo.keyphrase}
         onChange={v => onUpdate('keyphrase', v)}
         placeholder="e.g., family photography vienna"
+        importance="recommended"
         helperText="The primary keyword this page should rank for"
       />
 

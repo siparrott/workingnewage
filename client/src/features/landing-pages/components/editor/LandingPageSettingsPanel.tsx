@@ -135,12 +135,24 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
       <div className="pt-4 border-t space-y-3">
         <Label className="text-xs font-semibold text-gray-700">Hero image</Label>
         {heroImage ? (
-          <div className="relative">
-            <img src={heroImage} alt="Hero" className="w-full h-28 object-cover rounded-md border" />
+          // Miniature of the REAL hero: same wide crop (object-cover), same
+          // dark overlay, with the page headline overlaid — so what you see
+          // here is what the visitor sees, not an arbitrary thumbnail crop.
+          <div className="relative aspect-[5/2] rounded-md border overflow-hidden">
+            <img src={heroImage} alt="Hero" className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/55" />
+            <div className="absolute inset-0 flex items-center justify-center px-3">
+              <p className="text-white text-[10px] font-extrabold text-center leading-tight line-clamp-2">
+                {((p as any).content_json?.hero?.headline as string) || p.hero_headline || 'Ihre Headline'}
+              </p>
+            </div>
             <button
               onClick={() => { setHeroImage(''); saveField('hero_image_url', null); }}
               className="absolute top-1 right-1 bg-black/60 text-white text-xs px-2 py-0.5 rounded"
             >Remove</button>
+            <span className="absolute bottom-1 left-1 bg-black/50 text-white/80 text-[9px] px-1.5 py-0.5 rounded">
+              Hero-Vorschau
+            </span>
           </div>
         ) : (
           <div className="flex items-center justify-center h-20 border-2 border-dashed border-gray-200 rounded-md text-gray-400">

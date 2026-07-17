@@ -350,6 +350,16 @@ export function serveStatic(app: Express) {
     return cachedIndex;
   };
 
+  // Shell with the prerendered homepage body stripped — for any route that
+  // isn't the homepage itself (prevents the homepage-content flash).
+  let cachedEmptyShell: string | null = null;
+  const emptiedShell = (): string => {
+    if (cachedEmptyShell === null) {
+      cachedEmptyShell = emptyHydrationRoot(renderedIndex());
+    }
+    return cachedEmptyShell;
+  };
+
   // fall through to index.html if the file doesn't exist
   // BUT exclude /api/* routes - those should return 404 JSON, not HTML
   app.use("*", async (req, res) => {
@@ -394,7 +404,7 @@ export function serveStatic(app: Express) {
         // is the prerendered HOMEPAGE, and serving its body caused a visible
         // homepage flash before React rendered the actual page (worst on
         // /lp/<slug> "View Live"). Meta is additionally injected on a hit.
-        let html = emptyHydrationRoot(renderedIndex());
+        let html = emptiedShell();
         if (meta) html = injectRouteMeta(html, meta);
         return res.status(200).type("html").send(html);
       } catch {
@@ -428,8 +438,14 @@ export function serveStatic(app: Express) {
       }
     }
 
-    // For all other requests (frontend routes), serve the SPA with identity injected
-    res.status(200).type("html").send(renderedIndex());
+    // For all other requests (frontend routes), serve the SPA with identity
+    // injected. dist/index.html is the PRERENDERED HOMEPAGE, so every
+    // non-homepage route served from it flashed homepage content until React
+    // rendered (reported on /cart after the landing-page CTA, /contact, …).
+    // Serve the emptied shell everywhere except "/" itself.
+    res.status(200).type("html").send(
+      requestPath === "/" ? renderedIndex() : emptiedShell()
+    );
    } catch (fatal) {
     // Last-resort guard: this handler must NEVER leave a request hanging
     // (an unhandled async throw here previously meant no response at all →
