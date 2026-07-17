@@ -12,6 +12,8 @@ interface PublicLandingPageHeroProps {
   };
   imageUrl?: string | null;
   videoUrl?: string | null;
+  /** JSON {x,y,zoom} from the editor's drag-to-fit tool. */
+  imagePosition?: string | null;
   ctaHref: string;
   ctaText: string;
   pageId: string;
@@ -19,10 +21,26 @@ interface PublicLandingPageHeroProps {
   isPreview: boolean;
 }
 
+// Parse the editor's stored crop; defaults favour the upper part of the photo
+// (hero images are usually people — centre-cropping cut heads off).
+function parseHeroPosition(raw?: string | null): { x: number; y: number; zoom: number } {
+  try {
+    const v = raw ? JSON.parse(raw) : null;
+    return {
+      x: Math.min(100, Math.max(0, Number(v?.x ?? 50))),
+      y: Math.min(100, Math.max(0, Number(v?.y ?? 25))),
+      zoom: Math.min(2, Math.max(1, Number(v?.zoom ?? 1))),
+    };
+  } catch {
+    return { x: 50, y: 25, zoom: 1 };
+  }
+}
+
 export function PublicLandingPageHero({
   data,
   imageUrl,
   videoUrl,
+  imagePosition,
   ctaHref,
   ctaText,
   pageId,
@@ -30,6 +48,7 @@ export function PublicLandingPageHero({
   isPreview,
 }: PublicLandingPageHeroProps) {
   const hasMedia = !!(imageUrl || videoUrl);
+  const pos = parseHeroPosition(imagePosition);
   return (
     <section className="relative bg-gradient-to-br from-purple-700 via-purple-600 to-pink-600 text-white overflow-hidden">
       {/* Optional background media (video preferred over image), with a dark
@@ -44,11 +63,14 @@ export function PublicLandingPageHero({
           playsInline
         />
       ) : imageUrl ? (
-        // object-position favours the upper part of the photo — hero images
-        // are usually people, and centre-cropping cut heads off.
+        // Crop set by the editor's drag-to-fit tool (object-position + zoom).
         <img
           className="absolute inset-0 w-full h-full object-cover"
-          style={{ objectPosition: 'center 25%' }}
+          style={{
+            objectPosition: `${pos.x}% ${pos.y}%`,
+            transform: pos.zoom > 1 ? `scale(${pos.zoom})` : undefined,
+            transformOrigin: `${pos.x}% ${pos.y}%`,
+          }}
           src={imageUrl}
           alt=""
         />

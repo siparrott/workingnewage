@@ -136,6 +136,7 @@ export function PublicLandingPageRenderer({
         data={content.hero}
         imageUrl={(page as any).hero_image_url || null}
         videoUrl={(page as any).hero_video_url || null}
+        imagePosition={(page as any).hero_image_position || null}
         ctaHref={ctaHref}
         ctaText={ctaText}
         pageId={page.id}

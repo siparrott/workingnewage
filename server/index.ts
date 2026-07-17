@@ -430,6 +430,8 @@ app.use((req, res, next) => {
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS cta_voucher_title TEXT`);
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS hero_image_url TEXT`);
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS hero_video_url TEXT`);
+        // Drag-to-fit hero crop: JSON {x,y,zoom} — object-position % + scale.
+        await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS hero_image_position TEXT`);
         console.log('✅ landing_page_events + publishing/media/CTA columns ensured');
       } catch (migrationError: any) {
         console.warn('⚠️ landing pages migration already applied or failed:', migrationError.message);

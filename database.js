@@ -2339,7 +2339,7 @@ if (!connectionString) {
           'generation_context_json', 'preview_image_url', 'published_url', 'published_at',
           'preview_token', 'preview_token_expires_at', 'canonical_url', 'noindex',
           'cta_voucher_slug', 'cta_voucher_amount', 'cta_voucher_title',
-          'hero_image_url', 'hero_video_url'
+          'hero_image_url', 'hero_video_url', 'hero_image_position'
         ];
 
         for (const key of allowedFields) {

@@ -26,6 +26,58 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Drag-to-fit hero crop: object-position (x/y in %) + zoom. Drag the
+  // preview to choose the visible area; saved per page and applied 1:1 on
+  // the public hero.
+  const parsePos = (raw: any): { x: number; y: number; zoom: number } => {
+    try {
+      const v = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      return {
+        x: Math.min(100, Math.max(0, Number(v?.x ?? 50))),
+        y: Math.min(100, Math.max(0, Number(v?.y ?? 25))),
+        zoom: Math.min(2, Math.max(1, Number(v?.zoom ?? 1))),
+      };
+    } catch { return { x: 50, y: 25, zoom: 1 }; }
+  };
+  const [heroPos, setHeroPos] = useState(() => parsePos(p.hero_image_position));
+  const posRef = useRef(heroPos);
+  posRef.current = heroPos;
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [dragging, setDragging] = useState(false);
+
+  const startHeroDrag = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setDragging(true);
+    const rect = previewRef.current?.getBoundingClientRect();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const start = { ...posRef.current };
+    const onMove = (ev: MouseEvent) => {
+      if (!rect) return;
+      // Dragging right shows more of the image's left side → x decreases.
+      const dx = ((ev.clientX - startX) / rect.width) * 100;
+      const dy = ((ev.clientY - startY) / rect.height) * 100;
+      setHeroPos({
+        x: Math.min(100, Math.max(0, start.x - dx)),
+        y: Math.min(100, Math.max(0, start.y - dy)),
+        zoom: start.zoom,
+      });
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      setDragging(false);
+      saveField('hero_image_position', JSON.stringify(posRef.current));
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const setZoom = (zoom: number) => {
+    setHeroPos((prev) => ({ ...prev, zoom }));
+  };
+  const commitZoom = () => saveField('hero_image_position', JSON.stringify(posRef.current));
+
   useEffect(() => {
     fetch('/api/vouchers/products', { credentials: 'include' })
       .then(r => (r.ok ? r.json() : []))
@@ -135,28 +187,61 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
       <div className="pt-4 border-t space-y-3">
         <Label className="text-xs font-semibold text-gray-700">Hero image</Label>
         {heroImage ? (
-          // Miniature of the REAL hero: same wide crop (object-cover), same
-          // dark overlay, with the page headline overlaid — so what you see
-          // here is what the visitor sees, not an arbitrary thumbnail crop.
-          <div className="relative aspect-[5/2] rounded-md border overflow-hidden">
-            <img src={heroImage} alt="Hero" className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/55" />
-            <div className="absolute inset-0 flex items-center justify-center px-3">
+          // Miniature of the REAL hero (same crop + overlay + headline) that
+          // is also the crop TOOL: drag the image to choose the visible area,
+          // zoom with the slider. Saved per page, applied 1:1 on the public
+          // hero.
+          <div
+            ref={previewRef}
+            onMouseDown={startHeroDrag}
+            className={`relative aspect-[5/2] rounded-md border overflow-hidden select-none ${dragging ? 'cursor-grabbing ring-2 ring-purple-400' : 'cursor-grab'}`}
+          >
+            <img
+              src={heroImage}
+              alt="Hero"
+              draggable={false}
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{
+                objectPosition: `${heroPos.x}% ${heroPos.y}%`,
+                transform: heroPos.zoom > 1 ? `scale(${heroPos.zoom})` : undefined,
+                transformOrigin: `${heroPos.x}% ${heroPos.y}%`,
+              }}
+            />
+            <div className="absolute inset-0 bg-black/55 pointer-events-none" />
+            <div className="absolute inset-0 flex items-center justify-center px-3 pointer-events-none">
               <p className="text-white text-[10px] font-extrabold text-center leading-tight line-clamp-2">
                 {((p as any).content_json?.hero?.headline as string) || p.hero_headline || 'Ihre Headline'}
               </p>
             </div>
             <button
+              onMouseDown={(e) => e.stopPropagation()}
               onClick={() => { setHeroImage(''); saveField('hero_image_url', null); }}
               className="absolute top-1 right-1 bg-black/60 text-white text-xs px-2 py-0.5 rounded"
             >Remove</button>
-            <span className="absolute bottom-1 left-1 bg-black/50 text-white/80 text-[9px] px-1.5 py-0.5 rounded">
-              Hero-Vorschau
+            <span className="absolute bottom-1 left-1 bg-black/50 text-white/80 text-[9px] px-1.5 py-0.5 rounded pointer-events-none">
+              ✥ Ziehen zum Ausrichten
             </span>
           </div>
         ) : (
           <div className="flex items-center justify-center h-20 border-2 border-dashed border-gray-200 rounded-md text-gray-400">
             <ImageIcon className="h-5 w-5 mr-2" /> <span className="text-xs">No hero image</span>
+          </div>
+        )}
+        {heroImage && (
+          <div className="flex items-center gap-2">
+            <Label className="text-[10px] text-gray-500 shrink-0">Zoom</Label>
+            <input
+              type="range"
+              min={1}
+              max={2}
+              step={0.05}
+              value={heroPos.zoom}
+              onChange={(e) => setZoom(Number(e.target.value))}
+              onMouseUp={commitZoom}
+              onTouchEnd={commitZoom}
+              className="w-full accent-purple-600"
+            />
+            <span className="text-[10px] text-gray-500 w-8 text-right">{heroPos.zoom.toFixed(2)}×</span>
           </div>
         )}
         <input ref={fileRef} type="file" accept="image/*" className="hidden"
