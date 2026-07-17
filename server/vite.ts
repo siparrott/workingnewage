@@ -6,6 +6,7 @@ import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 // viteConfig imported dynamically in setupVite to avoid production issues
 import { nanoid } from "nanoid";
+import { renderIndexHtml, getSiteIdentity } from "./lib/siteIdentity.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -226,13 +227,23 @@ const htmlEsc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 function injectRouteMeta(html: string, meta: RouteMeta): string {
-  let out = html.replace(/<title>[^<]*<\/title>/, `<title>${htmlEsc(meta.title)}</title>`);
-  out = out.replace(
-    /<meta name="description" content="[^"]*"\s*\/?>/,
-    `<meta name="description" content="${htmlEsc(meta.description)}" />`,
-  );
+  // dist/index.html is the PRERENDERED HOMEPAGE (the '/' route overwrites it
+  // at build time), so:
+  //  - tags carry attributes (e.g. <title data-rh="true">) — the regexes must
+  //    tolerate them or the injection silently no-ops;
+  //  - existing canonical/og tags from the homepage must be REMOVED, or the
+  //    page would carry conflicting duplicates;
+  //  - the homepage body must be emptied so 40 blog URLs don't serve
+  //    identical homepage content to non-JS crawlers (duplicate content).
+  let out = html.replace(/<title[^>]*>[^<]*<\/title>/, `<title>${htmlEsc(meta.title)}</title>`);
+  out = out.replace(/<meta[^>]*name="description"[^>]*>/g, "");
+  out = out.replace(/<link[^>]*rel="canonical"[^>]*>/g, "");
+  out = out.replace(/<meta[^>]*property="og:(title|description|url)"[^>]*>/g, "");
+  // Empty the hydration root: React re-renders the correct route on load.
+  out = out.replace(/(<div id="root"[^>]*>)[\s\S]*?(<\/div>\s*(?:<script|<\/body>))/, "$1$2");
   const extra =
-    `<link rel="canonical" href="${htmlEsc(meta.canonical)}" />\n` +
+    `<meta name="description" content="${htmlEsc(meta.description)}" />\n` +
+    `    <link rel="canonical" href="${htmlEsc(meta.canonical)}" />\n` +
     `    <meta property="og:title" content="${htmlEsc(meta.title)}" />\n` +
     `    <meta property="og:description" content="${htmlEsc(meta.description)}" />`;
   return out.replace("</head>", `    ${extra}\n  </head>`);
@@ -284,12 +295,19 @@ export function serveStatic(app: Express) {
 
   // Per-tenant index.html: fill %SITE_*% identity placeholders once (env is
   // stable per process). A template with no placeholders passes through
-  // unchanged, so this is safe on both index.html variants.
+  // unchanged, so this is safe on both index.html variants. Additionally
+  // stamp the tenant name over the prerender-baked "My Studio" fallback
+  // (dist/index.html is the prerendered homepage, rendered without env).
   let cachedIndex: string | null = null;
   const renderedIndex = (): string => {
     if (cachedIndex === null) {
       const raw = fs.readFileSync(path.resolve(distPath, "index.html"), "utf-8");
-      cachedIndex = renderIndexHtml(raw);
+      let html = renderIndexHtml(raw);
+      try {
+        const name = getSiteIdentity().name;
+        if (name && name !== "My Studio") html = html.split("My Studio").join(name);
+      } catch { /* identity unavailable — serve as-is */ }
+      cachedIndex = html;
     }
     return cachedIndex;
   };
