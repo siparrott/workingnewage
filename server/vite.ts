@@ -302,19 +302,26 @@ export function serveStatic(app: Express) {
       return res.status(404).json({ error: 'API endpoint not found', path: req.originalUrl });
     }
 
+    // IMPORTANT: inside app.use("*") Express strips the matched mount path,
+    // so req.path is always "/" here. The real request path must come from
+    // req.originalUrl (query string removed). Using req.path silently broke
+    // per-route logic in this handler.
+    const requestPath = (req.originalUrl || "/").split("?")[0];
+
     // Data-driven routes (blog posts, voucher details): inject real meta from
-    // the DB and serve the shell — bypassing prerendered files for these paths,
-    // which captured the build-time "not found" error state (no API at build).
-    if (/^\/(blog|gutschein)\//.test(req.path)) {
-      const meta = await lookupRouteMeta(req.path);
+    // the DB and serve the shell — NEVER the prerendered files for these
+    // paths, which captured the build-time "not found" error state (the
+    // prerenderer has no API/DB). Even on a lookup miss the shell is better
+    // than a prerendered error page.
+    if (/^\/(blog|gutschein)\//.test(requestPath)) {
+      const meta = await lookupRouteMeta(requestPath);
       // Diagnostic: shows whether the DB lookup resolved for this path.
       res.setHeader("X-Route-Meta", meta ? "hit" : "miss");
-      if (meta) {
-        return res.status(200).type("html").send(injectRouteMeta(renderedIndex(), meta));
-      }
+      const html = renderedIndex();
+      return res.status(200).type("html").send(meta ? injectRouteMeta(html, meta) : html);
     }
 
-    const prerenderedHtmlPath = resolvePrerenderedHtmlPath(req.path);
+    const prerenderedHtmlPath = resolvePrerenderedHtmlPath(requestPath);
     if (prerenderedHtmlPath) {
       return res.sendFile(prerenderedHtmlPath);
     }
