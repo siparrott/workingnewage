@@ -110,6 +110,41 @@ export default function HochzeitsfotografieWienPage() {
               }
             })}
           </script>
+          {/* FAQPage schema — the on-page FAQ was not marked up before; FAQ rich
+              results are a major SERP surface for "hochzeitsfotograf wien" queries. */}
+          <script type="application/ld+json">
+            {JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: [
+                {
+                  '@type': 'Question',
+                  name: 'Was kostet ein Hochzeitsfotograf in Wien?',
+                  acceptedAnswer: { '@type': 'Answer', text: 'Bei uns starten Hochzeitspakete ab €599 (Auszug mit 30 bearbeiteten Fotos). Standesamt/kleine Feier ab €1.299 (halber Tag, alle Portraits als Datei), ganztägige Begleitung ab €2.499 inkl. aller Bilder, Online-Galerie, Prints und Leinwand-Collage.' }
+                },
+                {
+                  '@type': 'Question',
+                  name: 'Wie schnell bekommen wir unsere Hochzeitsfotos?',
+                  acceptedAnswer: { '@type': 'Answer', text: 'Sneak Peeks (15–30 Bilder) innerhalb von 24–48 Stunden, die finale Galerie innerhalb von 7 Tagen. Express-Lieferung nach Verfügbarkeit.' }
+                },
+                {
+                  '@type': 'Question',
+                  name: 'Wie weit im Voraus sollten wir den Hochzeitsfotografen buchen?',
+                  acceptedAnswer: { '@type': 'Answer', text: 'Für Termine in der Hauptsaison (Mai–September) empfehlen wir 6–12 Monate Vorlauf, Standesamt-Termine unter der Woche sind oft auch kurzfristiger möglich.' }
+                },
+                {
+                  '@type': 'Question',
+                  name: 'Wie viele Bilder bekommen wir?',
+                  acceptedAnswer: { '@type': 'Answer', text: 'Richtwert: 70–100 Bilder pro Stunde, je nach Programmdichte und Gästezahl.' }
+                },
+                {
+                  '@type': 'Question',
+                  name: 'Arbeitet ihr bei der Trauung unauffällig?',
+                  acceptedAnswer: { '@type': 'Answer', text: 'Ja – leise Kameras, klare Abläufe, koordinierte Gruppenfotos. Emotionen vor Inszenierung; wir kennen die Abläufe der Wiener Standesämter und Kirchen.' }
+                }
+              ]
+            })}
+          </script>
         </Helmet>
 
         {/* Hero */}
@@ -181,7 +216,7 @@ export default function HochzeitsfotografieWienPage() {
                   <Link to="/familienfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Familienfotos Wien</Link> und{' '}
                   <Link to="/portrait-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Portraitfotografie Wien</Link> an.
                   Alle{' '}<Link to="/calculator" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Hochzeitsfotos-Pakete & Preise</Link> – oder direkt{' '}
-                  <Link to="/warteliste/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Termin buchen</Link>.
+                  <Link to="/kontakt" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Termin anfragen</Link>.
                 </>
               ) : (
                 <>
@@ -197,6 +232,60 @@ export default function HochzeitsfotografieWienPage() {
 
         {/* Extended Content Section - Safe Copy Slot */}
         {language === 'de' && <MarkdownCopySlot content={newageCopyMap['hochzeitsfotografie-wien'].markdown} />}
+
+        {/* Pillar guide: cost + how to choose (search-focused H2s). German-only,
+            matching the MarkdownCopySlot pattern — the SEO audience is German. */}
+        {language === 'de' && (
+          <section className="py-16 bg-white">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+              <h2 className="text-3xl font-bold text-gray-900 mb-6">Was kostet ein Hochzeitsfotograf in Wien?</h2>
+              <p className="text-gray-700 leading-relaxed mb-6">
+                Die ehrliche Antwort nach 13+ Jahren im Geschäft: In Wien reicht die Spanne von
+                ca. €500 für eine Standesamt-Begleitung bis über €4.000 für Ganztagsreportagen
+                mit Album. Entscheidend ist nicht der Stundensatz, sondern was ihr am Ende in
+                der Hand habt — Anzahl der bearbeiteten Bilder, Nutzungsrechte und wie schnell
+                ihr die Galerie bekommt. So ordnen sich unsere Pakete ein:
+              </p>
+              <div className="overflow-x-auto mb-8">
+                <table className="w-full bg-gray-50 rounded-xl overflow-hidden text-sm">
+                  <thead className="bg-purple-600 text-white">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Anlass</th>
+                      <th className="px-4 py-3 text-left">Typischer Umfang</th>
+                      <th className="px-4 py-3 text-left">Unser Paket</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    <tr><td className="px-4 py-3 font-medium">Standesamt kompakt</td><td className="px-4 py-3">2–3 Std., Zeremonie + Paarshoot</td><td className="px-4 py-3">ab €599</td></tr>
+                    <tr><td className="px-4 py-3 font-medium">Standesamt / kleine Feier</td><td className="px-4 py-3">Halber Tag, alle Portraits als Datei</td><td className="px-4 py-3">ab €1.299</td></tr>
+                    <tr><td className="px-4 py-3 font-medium">Ganztägige Hochzeit</td><td className="px-4 py-3">Getting Ready bis Party, alle Bilder + Galerie + Leinwand</td><td className="px-4 py-3">ab €2.499</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-gray-700 leading-relaxed mb-10">
+                Alle Details auf der <Link to="/preise/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Preisseite</Link> —
+                und wer erst später heiratet: Pakete sind bis zu 2 Jahre gültig und damit auch
+                als <Link to="/vouchers" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Geschenkgutschein</Link> beliebt.
+              </p>
+
+              <h2 className="text-3xl font-bold text-gray-900 mb-6">Wie findet ihr den richtigen Hochzeitsfotografen in Wien?</h2>
+              <p className="text-gray-700 leading-relaxed mb-4">
+                Drei Fragen trennen nach unserer Erfahrung die guten von den falschen Entscheidungen:
+              </p>
+              <ul className="space-y-3 text-gray-700 mb-6 list-disc pl-6">
+                <li><strong>Passt der Stil zu euch?</strong> Schaut nicht auf Einzelbilder, sondern auf ganze Reportagen im <Link to="/portfolio" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Portfolio</Link> — ein Fotograf, der nur „Best-ofs" zeigt, zeigt nicht, wie er einen Regentag rettet.</li>
+                <li><strong>Wie arbeitet er/sie am Tag selbst?</strong> Fragt nach dem Ablauf bei Gruppenfotos und der Zeremonie. Unsere Antwort steht oben — dezent, koordiniert, Emotionen vor Inszenierung.</li>
+                <li><strong>Was sagen echte Paare?</strong> Lest Bewertungen mit Details, nicht nur Sterne: unsere <Link to="/kundenstimmen/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Kundenstimmen (4,9★ auf Google)</Link>.</li>
+              </ul>
+              <p className="text-gray-700 leading-relaxed">
+                Und der wichtigste Praxis-Tipp für Wien: Bucht das Standesamt unter der Woche,
+                wenn ihr flexibel seid — Termine sind leichter zu bekommen, die Locations
+                (Hofburg bis Alte Donau) sind leerer, und das Licht am späten Nachmittag gehört euch.
+                Fragen? <Link to="/kontakt" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Schreibt uns direkt</Link>.
+              </p>
+            </div>
+          </section>
+        )}
 
         {/* Feature Image 4 */}
         {heroImage4 && (
@@ -331,7 +420,7 @@ export default function HochzeitsfotografieWienPage() {
                   <div className="flex items-start"><Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" /><span className="text-gray-700">{language === 'de' ? 'Gültig bis 2 Jahre' : 'Valid for up to 2 years'}</span></div>
                 </div>
                 <Link
-                  to="/warteliste"
+                  to="/kontakt"
                   className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
                 >
                   {language === 'de' ? 'Jetzt sichern' : 'Book now'}
@@ -357,7 +446,7 @@ export default function HochzeitsfotografieWienPage() {
                   <div className="flex items-start"><Check className="h-5 w-5 text-yellow-300 mr-3 mt-0.5" /><span>{language === 'de' ? 'Gültig bis 2 Jahre' : 'Valid for up to 2 years'}</span></div>
                 </div>
                 <Link
-                  to="/warteliste"
+                  to="/kontakt"
                   className="block w-full text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
                 >
                   {language === 'de' ? 'Jetzt sichern' : 'Book now'}
@@ -382,7 +471,7 @@ export default function HochzeitsfotografieWienPage() {
                   <div className="flex items-start"><Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" /><span className="text-gray-700">{language === 'de' ? 'Gültig bis 2 Jahre' : 'Valid for up to 2 years'}</span></div>
                 </div>
                 <Link
-                  to="/warteliste"
+                  to="/kontakt"
                   className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
                 >
                   {language === 'de' ? 'Jetzt sichern' : 'Book now'}
@@ -508,6 +597,30 @@ export default function HochzeitsfotografieWienPage() {
             </div>
           </div>
         </section>
+
+        {/* Wedding cluster hub — the pillar links out to every wedding-adjacent
+            page; wedding blog posts link back here as they publish. */}
+        {language === 'de' && (
+          <section className="py-12 bg-gray-50">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Rund um eure Hochzeit</h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                <Link to="/fotoshootings/wedding" className="bg-white rounded-xl p-5 hover:shadow-md transition-shadow text-purple-700 font-medium">
+                  Hochzeits-Shooting buchen →
+                </Link>
+                <Link to="/eventfotografie-wien/" className="bg-white rounded-xl p-5 hover:shadow-md transition-shadow text-purple-700 font-medium">
+                  Eventfotografie (Polterabend & Feier) →
+                </Link>
+                <Link to="/schwangerschaftsfotos-wien/" className="bg-white rounded-xl p-5 hover:shadow-md transition-shadow text-purple-700 font-medium">
+                  Paar- & Babybauch-Shooting →
+                </Link>
+                <Link to="/blog" className="bg-white rounded-xl p-5 hover:shadow-md transition-shadow text-purple-700 font-medium">
+                  Hochzeits-Tipps im Blog →
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
 
         <RelatedServices currentPath="/hochzeitsfotografie-wien/" />
       </div>
