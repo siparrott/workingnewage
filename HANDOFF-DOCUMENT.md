@@ -1,21 +1,20 @@
 # SmartTog Platform — Developer Handoff Document
 
-**Prepared:** March 3, 2026
-**Author:** GitHub Copilot (Senior Full-Stack Engineer — AI Pair)
+**Prepared:** March 3, 2026 · **Revised:** July 17, 2026 (post-hardening — §8–§12 rewritten)
+**Author:** GitHub Copilot (Senior Full-Stack Engineer — AI Pair); July 2026 revision: Claude Code
 **Repository:** `workingnewage` (TogNinja / SmartTog Platform)
 **Production URL:** https://newagefotografie.com
 **Deployment:** GitHub → Heroku (Node.js) + Neon PostgreSQL + Backblaze B2
 
 ---
 
-> **⚠️ This document is mid-hardening (status as of July 14, 2026).**
-> Sections 8–12 and the endpoint table predate the July 2026 hardening work.
-> Rather than rewrite them in place while changes are still landing, all
-> hardening is tracked in the **Hardening Log** below, and §10 carries an updated
-> status banner. **Until hardening is declared complete, trust the Hardening Log
-> and the §10 status banner over the original prose in §8–§12.** A full rewrite
-> of §8–§12 and the endpoint table is deferred until then, so onboarding docs
-> don't drift with every commit.
+> **✅ Hardening complete — document revised July 17, 2026.**
+> The July 2026 hardening pass is finished. §8 now contains the **definitive
+> onboarding runbook for a new studio** plus the hardening summary; §9–§12 have
+> been refreshed to the current state. The **Hardening Log** below is retained
+> verbatim as the historical change record — each entry maps to commits on
+> `main`. Where §8–§12 and the log describe the same change, they agree; the
+> log carries the implementation detail.
 
 ---
 
@@ -100,7 +99,7 @@ New defaults/behaviours a **fresh tenant** now inherits — fold these into the 
 5. [Database Design](#5-database-design)
 6. [External Integrations](#6-external-integrations)
 7. [Environment Configuration](#7-environment-configuration)
-8. [Recent Work Completed](#8-recent-work-completed)
+8. [Hardening Summary & Onboarding Runbook](#8-hardening-summary--onboarding-runbook)
 9. [Known Issues & Technical Debt](#9-known-issues--technical-debt)
 10. [Security Findings (CRITICAL)](#10-security-findings-critical)
 11. [Demo Duplication Viability](#11-demo-duplication-viability)
@@ -500,39 +499,120 @@ TOGNINJA_BRAND=demo         # Brand identity (demo vs newage vs blank)
 
 ---
 
-## 8. Recent Work Completed
+## 8. Hardening Summary & Onboarding Runbook
 
-### Session Summary (March 3, 2026)
+### 8.1 What the July 2026 hardening changed (summary)
 
-| Commit | Description | Files Changed |
-|--------|-------------|---------------|
-| `5e8729f` | **Comprehensive 2-stage onboarding system** — Technical Setup Wizard (7 steps: DB, domain, email, Stripe, storage, extras, security) + Creative Setup Wizard (5 phases: basics, integrations, scanning, fix-first, drafts). Includes encryption utility, config-reader, SMTP helper, ~60 brand hardcode replacements. | 35 files, 3996 insertions, 287 deletions |
-| `7b4e210` | **Fix build + Add lead-to-client conversion** — Fixed broken import path in `MySubscriptionPage.tsx` (`./../../lib/dateFormat` → `../lib/dateFormat`). Added `POST /api/leads/:id/convert-to-client` endpoint + UserPlus button on Admin Leads page with spinner, duplicate detection, and toast feedback. | 3 files, 129 insertions, 2 deletions |
-| (staged) | **Fix onboarding guard blocking existing instances** — Added startup migrations for onboarding columns, auto-detection of existing instances (marks setup complete if infra already configured), persists creative setup completion to DB, reads `creativeSetupComplete` flag to avoid `setupMode` resetting on restart. | 3 files (index.ts, technical-setup-routes.ts, setup-routes.ts) |
+The full detail lives in the **Hardening Log** at the top of this document.
+The one-paragraph version: every module in §1's feature table was smoke-tested
+against production and fixed where broken. The recurring themes were
+(a) **honesty** — email/SMS/storage report real failure instead of faking
+success; mock dashboards (Agent Console, Reports) now read real data;
+(b) **config bridging** — services read the wizard's DB config via
+`config-reader` (DB → env fallback) instead of env-only, so onboarding
+actually configures the system; (c) **security** — setup endpoints auth-gated
+once an admin exists, HMAC-signed voucher prices, `/admin` deindexed;
+(d) **editability** — everything collected during onboarding is now editable
+in Settings; and (e) **SEO** — duplicate pages 301-consolidated, per-page
+meta, request-time meta injection for data-driven routes, waitlist
+link-equity rebalanced, wedding pillar built.
 
-### Pending Commit (Staged, Not Pushed)
+### 8.2 Onboarding a new studio — the definitive runbook
 
-The onboarding guard fix is staged but **was not pushed** (user skipped the terminal command). This fix is critical for the user to access their existing database through the admin dashboard without being redirected to the setup wizard.
+This is the correct, current path to stand up a **new tenant** of this
+platform. It assumes a fresh Postgres database and an empty object-storage
+bucket.
 
-**Action required:** Push the staged commit:
-```bash
-git add -A
-git commit -m "Fix onboarding guard blocking existing instances"
-git push
-```
+**Step 0 — Provision infrastructure**
+- Node host (Heroku or the portable Docker image — see §11), Postgres
+  (Neon), an S3-compatible bucket (**Backblaze B2 recommended; storage is
+  REQUIRED** — galleries, voucher images, landing-page media and file
+  delivery all upload to it), Stripe account, SMTP mailbox.
+- Minimum env: `DATABASE_URL`, `SESSION_SECRET`, `JWT_SECRET`. Site identity
+  env (`BUSINESS_NAME`, `PUBLIC_SITE_URL`, `CONTACT_EMAIL`, `BUSINESS_PHONE`,
+  `LOGO_URL`, `SITE_LOCALE`, …) brands the public shell via
+  `server/lib/siteIdentity.ts` (`%SITE_*%` placeholders + `window.__SITE_CONFIG__`).
+  Everything else can be configured in the wizard instead of env.
+- Build: `heroku-postbuild` runs `PRERENDER=1` (static prerender of public
+  marketing routes; falls back to a plain build if prerender fails).
+
+**Step 1 — First boot (automatic)**
+Idempotent boot migrations + seeds run on every start
+(`server/index.ts`): `ADD COLUMN IF NOT EXISTS` migrations; a
+`studio_configs` singleton row (keyed on `STUDIO_ID`, default
+`550e8400-…440000`); a German **pre-shoot questionnaire** at `/q/pre-shoot`
+(re-activates each boot — edit content, don't just deactivate); **9 German
+Knowledge-Base starter articles** (only when the table is empty) that feed
+the customer chat assistant; and **3 case-study blog DRAFTS**.
+⚠️ **Tenant note:** the questionnaire, KB articles and especially the
+case-study drafts are German and partly New-Age-specific (the case studies
+quote New Age's real Google reviews). They never auto-publish, but a new
+tenant must edit or delete them before use.
+
+**Step 2 — Technical Setup Wizard** (`/setup` — open until an admin exists,
+auth-gated after). Steps: Welcome → Domain → **Email** (SMTP host/port/user/
+pass — **port 465 + SSL recommended**; optional IMAP for the Inbox; optional
+Brevo key for bulk campaigns; live test-send) → **Stripe** (publishable +
+secret + webhook secret; live key test) → **Storage** (Backblaze keyID/
+applicationKey/bucket/endpoint/region; live connection test) → **Extras**
+(SMS Twilio/Vonage — SMS-first, WhatsApp needs an approved Business sender;
+OpenAI/Anthropic keys; Google Calendar; GA4/Meta pixel) → **Security**
+(creates the admin user; from this point setup mutations require auth).
+Secrets are AES-256-GCM encrypted at rest (`studio_integrations`) and read
+back through `config-reader` (DB first, env fallback). Saves invalidate the
+config cache — and the SMTP transporter — immediately.
+
+**Step 3 — Creative setup + branding**
+- **Studio Customization** (`/admin/studio-templates`, also in Settings):
+  upload the logo (→ public header + invoices, immediately), business
+  name/address/phone/email (→ invoices + contact surfaces). Brand colours
+  are persisted but do **not** re-theme the site (hardcoded palette); template
+  selection persists the choice only (no re-skin engine yet).
+- Content CMS (manual pages), price list (wizard or CSV import), voucher
+  products, scheduling types.
+
+**Step 4 — Verify with the built-in tests**
+Settings → Connections & Integrations: **Email & SMTP** (send test), **Cloud
+Storage** (connection test), **Payments** (Stripe key test), **SMS**. All
+onboarding config is editable here forever — no wizard re-run needed.
+
+**What a fresh tenant should expect on day one**
+- Reports/dashboards show real zeros (no mock data).
+- Email campaigns have 0 subscribers until `/api/newsletter/signup` fills
+  `email_subscribers` (no admin import UI yet).
+- Unconfigured channels degrade honestly ("not configured", never fake
+  "sent").
+- The AI agent works against live CRM data; its Console (Settings → AI
+  Assistant & Knowledge) shows real audit stats.
 
 ---
 
 ## 9. Known Issues & Technical Debt
 
-### Critical Issues
+> Refreshed July 17, 2026 (post-hardening). The March "critical" list is
+> resolved or externally-verifiable only; the genuine open items are marked.
 
-| # | Issue | Location | Impact |
-|---|-------|----------|--------|
-| 1 | **`.env` with live secrets is committed to git** | `.env` (repo root) | Anyone with repo access has full system access |
-| 2 | **SESSION_SECRET = Stripe live key** | `.env` line 13 | Session forgery + Stripe compromise linked |
-| 3 | **No rate limiting** on auth/lead/webhook endpoints | `server/routes.ts` | Brute force / spam / DoS |
-| 4 | **DEMO_MODE=true + ALLOW_DEMO_LOGIN=true** may be set in prod | `.env` / Heroku | Auth bypass in production |
+### Critical Issues — March list, current status
+
+| # | Issue (March 2026) | Status (July 17, 2026) |
+|---|--------------------|------------------------|
+| 1 | `.env` with live secrets committed to git | ✅ **Never true** — verified `.env` was never committed (empty `git log --all -- .env`), is gitignored. |
+| 2 | SESSION_SECRET = Stripe live key | ⚠️ **Verify on Heroku** — not verifiable from the repo; ensure a random `SESSION_SECRET` config var is set. |
+| 3 | No rate limiting on auth/lead/webhook endpoints | 🟡 **Partial** — global 300/min cap + strict 30/15-min cap on `/api/auth` POSTs; webhooks exempt (signature-verified). Per-endpoint limits on public forms still recommended. |
+| 4 | DEMO_MODE / ALLOW_DEMO_LOGIN in prod | ⚠️ **Verify on Heroku** — `heroku config -a newagefotografie \| grep -iE "DEMO"` should be empty/false. |
+
+### Open items (July 2026)
+
+| # | Issue | Notes |
+|---|-------|-------|
+| A | **`helmet` not applied** | 30 min; §10. |
+| B | **No CSRF protection** | Session-cookie auth ⇒ state-changing routes CSRF-exposed; §10. |
+| C | Fixed-product/package voucher prices client-supplied | Landing-offer prices are HMAC-signed (server-authoritative); the older fixed-product flow still trusts the client. |
+| D | No email open/click tracking | Campaign analytics lack pixel + click-redirect. |
+| E | No subscriber admin UI | Only `/api/newsletter/signup` adds subscribers. |
+| F | WhatsApp sending | Needs an approved WhatsApp Business sender (SMS works). |
+| G | Colour theming / template re-skin | Studio Customization persists colours + template choice; live re-theme is future work (~2000 hardcoded Tailwind colour literals). |
+| H | Seeded content is German/New-Age flavoured | Questionnaire, KB articles, case-study drafts — a non-German or non-NAF tenant must edit them (see §8.2 Step 1). |
 
 ### High-Priority Debt
 
@@ -546,7 +626,7 @@ git push
 | 10 | No automated tests (zero) | N/A | Large (40h+ for baseline) |
 | 11 | `config-reader.ts` partially adopted — many `process.env.*` calls remain | Various server files | Medium (4h) |
 | 12 | No DB indexes beyond primary keys | `shared/schema.ts` | Small (2h) |
-| 13 | Creative setup `setupMode` only persisted in-memory (fixed in staged commit) | `server/setup-routes.ts` | ✅ Fixed (pending push) |
+| 13 | Creative setup `setupMode` only persisted in-memory | `server/setup-routes.ts` | ✅ Fixed & deployed (persists to DB; auto-detects existing instances) |
 | 14 | No migration version tracking | N/A | Medium (4h) |
 | 15 | ~100+ ad-hoc check/migration scripts in repo root | `check-*.js`, `add-*.ts`, `run-*.ts` | Small (2h cleanup) |
 
@@ -566,8 +646,9 @@ git push
 
 ## 10. Security Findings (CRITICAL)
 
-> **Status update — July 14, 2026 (verified against the codebase).** The original
-> findings below were written March 3, 2026. Current, checked state:
+> **Status update — July 17, 2026 (verified against the codebase; unchanged
+> from the July 14 verification except as noted).** The original findings
+> below were written March 3, 2026. Current, checked state:
 >
 > | Finding | Status (July 14, 2026) |
 > |---------|------------------------|
@@ -640,110 +721,85 @@ heroku config:get ALLOW_DEMO_LOGIN -a <app-name>  # should be empty or "false"
 
 ---
 
-## 11. Demo Duplication Viability
+## 11. Demo / Second-Tenant Deployment
 
-### Verdict: ✅ Feasible — 6 working days (likely estimate)
+> Rewritten July 17, 2026. The March estimate ("~6 working days of prep")
+> is obsolete — most of that prep was DONE during hardening.
 
-The single-tenant, env-driven architecture means a demo is achievable by deploying a second Heroku app from the same `main` branch with different config vars. No multi-tenancy refactor needed.
+### Current state: ✅ largely ready
 
-### What Must Be Built
+A demo already exists: the **portable Docker image** built from the
+`portable-pg` branch, deployed on Render, with its own Postgres
+(`TENANT_ZERO_RUNBOOK.md` is the walkthrough). The hardening pass closed the
+March gaps:
 
-| Item | Effort | Description |
-|------|--------|-------------|
-| DEMO_MODE safety gates | 6h | Wrap email/SMS/payment/calendar sends in `if (!DEMO_MODE)` checks |
-| Demo seed script | 12h | Realistic placeholder data (clients, invoices, galleries, etc.) |
-| Brand abstraction | 8h | Remaining "New Age" references → config-driven |
-| Email template extraction | 8h | Inline HTML → template files with variable injection |
-| Seed runner + release phase | 2h | Auto-seed on first deploy |
-| Demo banner + reset button | 2h | UI indicators for demo mode |
-| Provisioning (Heroku + Neon + B2 + Stripe test) | 3h | Manual setup of isolated services |
-| QA + documentation | 4h | Visual walkthrough + deploy guide |
-| **TOTAL** | **~45h** | **~6 working days** |
+| March item | Status |
+|------------|--------|
+| DEMO_MODE safety gates | ✅ Messaging degrades honestly when unconfigured; demo sends are surfaced as such (never fake "sent"). |
+| Brand abstraction | ✅ `siteIdentity.ts` env-driven identity (`%SITE_*%`, `window.__SITE_CONFIG__`) + `studio_configs` branding via Studio Customization. Remaining literals are cosmetic. |
+| Config-reader adoption | ✅ Email/SMS/Stripe/storage all read wizard DB config → env fallback. |
+| Seed on first deploy | ✅ Boot seeds (studio_configs singleton, questionnaire, KB articles) run idempotently on start. A *rich demo-data* seed (fake clients/invoices/galleries) is still optional work. |
+| Provisioning | ✅ Proven: Render + Postgres via the portable image. |
 
-### Time Estimates
+### To refresh the demo after hardening
 
-| Scenario | Days | Assumptions |
-|----------|------|-------------|
-| Best case | 4 | Everything goes smoothly, minimal brand leakage, simple seed |
-| **Likely** | **6** | Some email templates need rework, seed needs iteration, 1-2 bugs |
-| Worst case | 9 | Major refactor in email templates, config-reader issues, B2 complications |
+The demo image predates the hardening commits. Rebuild from the current
+`portable-pg` (all hardening is on both branches), tag a fresh image, and
+redeploy on Render per `TENANT_ZERO_RUNBOOK.md`. Then run the §8.2 runbook
+as the demo tenant would — that doubles as onboarding QA.
 
-### Recommended Approach
+### Recommended approach (unchanged)
 
-**Single repository, two Heroku apps, env-driven behaviour.**
-
-Do NOT fork/duplicate the repo. Every feature fix would need to be applied twice. Instead, all demo-specific behaviour is behind environment flag checks:
-
-```bash
-# Production
-DEMO_MODE=false
-SEED_MODE=none
-
-# Demo
-DEMO_MODE=true
-SEED_MODE=demo
-```
+**Single repository, env-driven behaviour.** Do NOT fork the repo per
+tenant; a second deployment differs only in env + wizard config.
 
 ---
 
 ## 12. Prioritised Action Items
 
-### Phase 0: Security Emergency (Day 0 — Do Immediately)
+> Rewritten July 17, 2026, post-hardening. The March Phase 0–3 items are
+> done or moot (see §9/§11); what follows is the real remaining backlog.
 
-- [ ] Add `.env` to `.gitignore` and remove from git tracking
-- [ ] Purge `.env` from git history
-- [ ] Rotate ALL API keys and secrets
-- [ ] Generate proper `SESSION_SECRET` (not Stripe key)
-- [ ] Verify `DEMO_MODE=false` and `ALLOW_DEMO_LOGIN=false` on Heroku prod
-- [ ] Push the staged onboarding guard fix commit
+### Phase A: Close the last security gaps (hours, not days)
 
-### Phase 1: Demo Foundation (Days 1–3)
+- [ ] Add `helmet` security headers (30 min)
+- [ ] Add CSRF protection for session-cookie state-changing routes (2 h)
+- [ ] Per-endpoint rate limits on public forms (contact, questionnaire, voucher) (2 h)
+- [ ] Externally verify: prod `SESSION_SECRET` is random; `DEMO_MODE`/`ALLOW_DEMO_LOGIN` unset; rotate keys pasted into chats during July work (Render, GitHub PAT, Supabase, AxixOS)
+- [ ] Extend server-side price validation to fixed-product/package vouchers (landing offers already HMAC-signed)
 
-- [ ] Implement `DEMO_MODE` safety gates (email, SMS, payments, calendar)
-- [ ] Complete `config-reader.ts` adoption (replace remaining `process.env.*`)
-- [ ] Extract email templates to separate files
-- [ ] Eliminate remaining "New Age" brand references
-- [ ] Create demo seed script (`server/seed/demo-seed.ts`)
+### Phase B: Demo refresh + onboarding QA (1 day)
 
-### Phase 2: Demo Deployment (Days 4–5)
+- [ ] Rebuild the portable image from current `portable-pg`; redeploy on Render (`TENANT_ZERO_RUNBOOK.md`)
+- [ ] Run the §8.2 onboarding runbook end-to-end as a fresh tenant (doubles as QA)
+- [ ] Edit/delete the German/NAF-specific seeds for the demo tenant (questionnaire, KB, case-study drafts)
+- [ ] Optional: rich demo-data seed (fake clients/invoices/galleries)
 
-- [ ] Provision new Heroku app with isolated config vars
-- [ ] Provision new Neon database, run schema push + seed
-- [ ] Provision new B2 bucket, upload placeholder images
-- [ ] Configure Stripe test mode products/prices
-- [ ] Add seed runner to Procfile release phase
-- [ ] Add demo banner component + reset demo button
+### Phase C: Product gaps surfaced during hardening
 
-### Phase 3: QA & Handoff (Day 6)
+- [ ] Email campaign open/click tracking (pixel + click-redirect)
+- [ ] Subscriber admin UI (import/manage `email_subscribers`)
+- [ ] WhatsApp Business sender approval (SMS already works)
+- [ ] Colour theming + template re-skin engine (Studio Customization persists both today)
+- [ ] Remaining SEO editorial track: commercial-B2B pillar, trust-hub pillar (wedding pillar shipped July 17), title-length trims
 
-- [ ] Visual walkthrough of every admin page in demo
-- [ ] Visual walkthrough of every public page in demo
-- [ ] Test lead submission → client conversion → invoice → payment flow
-- [ ] Verify no brand leakage, no real sends, no real charges
-- [ ] Write deployment documentation
+### Phase D: Engineering quality (unchanged from March, still valid)
 
-### Phase 4: Engineering Hardening (Week 2+)
+- [ ] Split `routes.ts` monolith into module files
+- [ ] Consolidate the 4 email service implementations into 1
+- [ ] Zod input validation on all endpoints
+- [ ] DB indexes on key query columns
+- [ ] drizzle-kit migration tracking
+- [ ] API integration tests (Vitest + Supertest); then E2E (Playwright)
+- [ ] Structured logging (Pino) + error tracking (Sentry)
+- [ ] Clean up ad-hoc scripts in repo root; GitHub Actions CI
 
-- [ ] Add `express-rate-limit` + `helmet`
-- [ ] Split `routes.ts` monolith into ~10 module files
-- [ ] Consolidate 4 email services into 1
-- [ ] Add input validation (Zod) on all endpoints
-- [ ] Add DB indexes on key query columns
-- [ ] Set up proper migration system (drizzle-kit generate/migrate)
-- [ ] Add API integration tests (Vitest + Supertest)
-- [ ] Add structured logging (Pino)
-- [ ] Clean up ~100 ad-hoc scripts from repo root
-- [ ] Set up GitHub Actions CI (lint + test + build)
-
-### Phase 5: Scale Preparation (Month 2+)
+### Phase E: Scale preparation (unchanged)
 
 - [ ] Image optimisation pipeline (thumbnails, WebP, CDN)
 - [ ] Separate worker dyno for background jobs
-- [ ] Error tracking (Sentry)
-- [ ] Uptime monitoring
-- [ ] E2E tests (Playwright)
-- [ ] i18n framework for multi-language support
-- [ ] Multi-tenant architecture for SmartTog Hub BYOC model
+- [ ] i18n framework
+- [ ] Multi-tenant architecture for the SmartTog Hub BYOC model
 
 ---
 
