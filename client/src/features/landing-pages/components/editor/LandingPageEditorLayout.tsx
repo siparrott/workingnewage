@@ -101,6 +101,31 @@ export default function LandingPageEditorLayout({
 }: Props) {
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
   const [regenerateDialogSection, setRegenerateDialogSection] = useState<LandingPageSectionKey | null>(null);
+
+  // Resizable right panel (drag the divider). Width persists across sessions.
+  const [panelWidth, setPanelWidth] = useState<number>(() => {
+    try {
+      const saved = Number(localStorage.getItem('lpEditorPanelWidth'));
+      return saved >= 280 && saved <= 700 ? saved : 320;
+    } catch { return 320; }
+  });
+  const startPanelResize = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const onMove = (ev: MouseEvent) => {
+      const w = Math.min(700, Math.max(280, window.innerWidth - ev.clientX));
+      setPanelWidth(w);
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      setPanelWidth((w) => {
+        try { localStorage.setItem('lpEditorPanelWidth', String(w)); } catch {}
+        return w;
+      });
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, []);
   const { revisions, isLoading: revisionsLoading } = useLandingPageRevisions(String(page.id));
 
   const handleRegenerate = useCallback((key: LandingPageSectionKey) => {
@@ -171,10 +196,20 @@ export default function LandingPageEditorLayout({
           </div>
         </main>
 
-        {/* Right sidebar — settings / SEO / readiness */}
-        <aside className="w-80 shrink-0 border-l bg-white overflow-y-auto">
+        {/* Drag handle — resize the right panel */}
+        <div
+          onMouseDown={startPanelResize}
+          title="Drag to resize"
+          className="w-1.5 shrink-0 cursor-col-resize bg-gray-100 hover:bg-purple-300 active:bg-purple-400 transition-colors"
+        />
+
+        {/* Right sidebar — settings / SEO / readiness (resizable) */}
+        <aside style={{ width: panelWidth }} className="shrink-0 border-l bg-white overflow-y-auto">
           <Tabs defaultValue="settings">
-            <TabsList className="w-full border-b rounded-none bg-gray-50 px-2 pt-2">
+            {/* flex-wrap + h-auto: with 7 tabs the single-row list overflowed
+                a narrow panel and pushed Settings/SEO (incl. the hero-image
+                upload) out of reach. */}
+            <TabsList className="w-full h-auto flex-wrap justify-start gap-1 border-b rounded-none bg-gray-50 px-2 pt-2">
               <TabsTrigger value="settings" className="text-xs">Settings</TabsTrigger>
               <TabsTrigger value="seo" className="text-xs">SEO</TabsTrigger>
               <TabsTrigger value="readiness" className="text-xs">Readiness</TabsTrigger>
