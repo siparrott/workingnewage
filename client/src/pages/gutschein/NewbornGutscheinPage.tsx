@@ -3,7 +3,6 @@ import GutscheinLayout from '../../components/gutschein/GutscheinLayout';
 import { Check, Clock, Heart, Camera } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useNavigate } from 'react-router-dom';
-import { SITE } from '../../config/site';
 
 const NewbornGutscheinPage: React.FC = () => {
   const { addItem } = useCart();
@@ -149,7 +148,7 @@ const NewbornGutscheinPage: React.FC = () => {
       title="Neugeborenen-Fotoshooting Gutschein Wien"
       subtitle="Die ersten kostbaren Momente Ihres Babys festhalten"
       image="https://i.postimg.cc/WzrVSs3F/3-J9-A3679-renamed-3632.jpg"
-      seoTitle={`Neugeborenen-Fotoshooting Gutschein Wien – Geschenk für Neugeborene ab 5 Tagen | ${SITE.name}`}
+      seoTitle={`Neugeborenen-Fotoshooting Gutschein Wien – Geschenk`}
       seoDescription="Das perfekte Geschenk für werdende Eltern: Gutschein für ein professionelles Neugeborenen-Fotoshooting in Wien. Sanfte Babyfotografie im warmen Studio. Sofort per E-Mail verfügbar."
       seoKeywords="Neugeborenen Fotoshooting Gutschein Wien, Newborn Geschenk, Baby Gutschein Fotograf Wien"
       canonical="/gutschein/newborn/"

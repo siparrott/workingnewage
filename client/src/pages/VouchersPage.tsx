@@ -117,19 +117,32 @@ const VouchersPage: React.FC = () => {
     }));
   }, [voucherProducts]);
 
-  // Show loading skeleton while data is fetching
+  // Show loading skeleton while data is fetching.
+  // IMPORTANT: this state is what the build-time prerenderer captures (the
+  // voucher API isn't available during the build), so it must carry the FULL
+  // page SEO (title/description/canonical) and a real H1 — previously it had
+  // only a bare 28-char title, no canonical and an <h2>, which the SEO audit
+  // flagged as thin/missing-H1/missing-canonical on /vouchers.
   if (isLoading || !voucherProducts) {
     return (
       <Layout>
-        <Helmet>
-          <title>{vouchersTitle}</title>
-        </Helmet>
+        <SEOHead
+          title={language === 'de' ? `Fotoshooting Gutscheine in Wien | ${SITE.name}` : 'Photoshoot Vouchers in Vienna | New Age Photography'}
+          description={language === 'de' ? 'Fotoshooting Gutscheine als perfektes Geschenk. Wählen Sie aus Familie, Baby oder Business Paketen. Sofort per E-Mail!' : 'Photoshoot vouchers as the perfect gift. Choose from family, baby or business packages. Instantly via email!'}
+          keywords={language === 'de' ? 'Fotoshooting Gutschein Wien, Geschenkgutschein Fotograf, Gutschein Fotoshooting' : 'Photoshoot Voucher Vienna, Gift voucher photographer, Voucher photoshoot'}
+          canonical="/vouchers/"
+        />
         <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 pt-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div className="text-center mb-12">
-              <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                 {vouchersTitle}
-              </h2>
+              </h1>
+              <p className="text-lg text-gray-600 mb-4">
+                {language === 'de'
+                  ? 'Fotoshooting-Gutscheine als perfektes Geschenk: Familie, Baby, Schwangerschaft oder Business — sofort per E-Mail, bis zu 2 Jahre gültig.'
+                  : 'Photoshoot vouchers as the perfect gift: family, baby, maternity or business — delivered instantly by email, valid for up to 2 years.'}
+              </p>
               <p className="text-lg text-gray-600 animate-pulse">Loading vouchers...</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

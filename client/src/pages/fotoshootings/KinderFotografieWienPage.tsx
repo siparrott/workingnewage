@@ -11,7 +11,7 @@ export default function KinderFotografieWienPage() {
     <Layout>
     <div className="min-h-screen bg-white">
       <SEOHead
-        title={`Kinder-Fotografie Wien – Natürliche Kinderfotos | ${SITE.name}`}
+        title={`Kinder-Fotografie Wien | ${SITE.name}`}
         description="Professionelle Kinderfotografie in Wien. Natürliche, lebendige Kinderfotos im Studio oder Outdoor. Vom Kleinkind bis zum Teenager. Jetzt Termin buchen!"
         keywords="kinderfotografie wien, kinderfotos wien, kinderfotograf wien, kindershooting wien, kinderportraits wien"
         canonical="/kinder-fotografie-wien/"

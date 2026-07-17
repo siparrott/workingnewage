@@ -86,7 +86,7 @@ export default function FamilienfotosWienPage() {
     <Layout>
     <div className="min-h-screen bg-white">
       <SEOHead
-        title={`Familienfotos Wien – Natürliche Familienporträts im Studio & Outdoor | ${SITE.name}`}
+        title={`Familienfotos Wien – Studio & Outdoor | ${SITE.name}`}
         description="Professionelle Familienfotos in Wien: Ruhiges Studio, freundliche Anleitung, echte Momente. Bis zu 12 Personen inkl. Kinder, Großeltern & Haustiere. Ab €199 – jetzt Termin buchen!"
         keywords="familienfotograf wien, familienfotos wien, familienfotografie wien, fotoshooting familie wien"
         canonical="/familienfotos-wien/"

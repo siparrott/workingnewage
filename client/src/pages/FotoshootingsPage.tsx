@@ -75,7 +75,7 @@ const FotoshootingsPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title={`Fotoshootings in Wien buchen – Familie, Baby, Business & Hochzeit | ${SITE.name}`}
+        title={`Fotoshootings in Wien buchen | ${SITE.name}`}
         description="Professionelle Fotoshootings in Wien: Familien-, Baby-, Neugeborenen-, Business- und Hochzeitsfotografie. Flexible Pakete ab €95, Studio & Outdoor. Jetzt Wunschtermin sichern!"
         keywords="Fotoshooting Wien buchen, Fotoshooting Pakete Wien, Familienfotoshooting Wien, Business Fotoshooting Wien"
         canonical="/fotoshootings/"

@@ -8,7 +8,7 @@ const CalculatorPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title={`Fotoshooting Preisrechner Wien – Kosten & Pakete berechnen | ${SITE.name}`}
+        title={`Fotoshooting Preisrechner Wien | ${SITE.name}`}
         description="Berechnen Sie die Kosten Ihres Fotoshootings in Wien sofort online. Familien-, Baby-, Business- und Schwangerschaftspakete ab €95 – transparent und ohne versteckte Gebühren."
         keywords="Fotoshooting Preisrechner Wien, Fotoshooting Kosten berechnen, Fotografie Pakete Wien, Preiskalkulator Fotograf Wien"
         canonical="/calculator/"

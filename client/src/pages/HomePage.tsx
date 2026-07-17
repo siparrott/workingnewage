@@ -379,7 +379,7 @@ const HomePage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title={`Familienfotograf Wien – Baby, Neugeborenen & Business Fotografie | ${SITE.name}`}
+        title={`Familienfotograf Wien | ${SITE.name}`}
         description="Ihr professioneller Familienfotograf in Wien: Familien-, Baby-, Neugeborenen-, Schwangerschafts- und Businessfotos im Studio. Über 200 zufriedene Familien. Jetzt Termin buchen!"
         keywords="Fotograf Wien, Familienfotograf Wien, Babyfotograf Wien, Neugeborenenfotograf Wien, Businessfotografie Wien, Fotostudio Wien"
         canonical="/"

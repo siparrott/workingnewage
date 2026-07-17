@@ -310,7 +310,7 @@ Ja – wir liefern passende Varianten.`
 
 export const newageCopyMap: Record<string, ServicePageCopy> = {
   'bewerbungsfotos-wien': {
-    title: 'Bewerbungsfotos & LinkedIn Fotos Wien – Professionell ab €89 | New Age Fotografie',
+    title: 'Bewerbungsfotos & LinkedIn Fotos Wien ab €89',
     metaDescription: 'Professionelle Bewerbungsfotos & LinkedIn Portraits in Wien. Weiches Studio-Licht, freundliche Anleitung, schnelle Lieferung. Verschiedene Looks, digitale Dateien – jetzt Termin buchen!',
     h1: 'Bewerbungsfotos & LinkedIn-Portraits in Wien – Professionell & Sympathisch',
     markdown: withSeoExpansion(`## Was ihr erwarten könnt
@@ -351,14 +351,14 @@ Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
   },
 
   'business-portrait-wien': {
-    title: 'Business Portraits Wien – Corporate & CEO Fotografie | New Age Fotografie',
+    title: 'Business Portraits Wien | New Age Fotografie',
     metaDescription: 'Professionelle Business Portraits & Corporate Headshots in Wien. Ruhig, professionell, auf den Punkt – für LinkedIn, Website & Geschäftsberichte. Im Studio oder vor Ort – jetzt Termin buchen!',
     h1: 'Business-Portraits & Corporate-Fotografie in Wien – Vertrauen im Bild',
     markdown: withSeoExpansion(`## Was ihr erwarten könnt\n- **Freundliche Anleitung** statt Unsicherheit vor der Kamera\n- **Weiches, professionelles Licht** (Octa-Softboxen) für natürliche Hauttöne\n- **Persönlichkeit im Bild:** Bringen Sie gern 2–3 Outfits mit (Business/Smart Casual) und – wenn relevant – Arbeitsmaterial (Laptop, Headset, Werkzeug, Produktmuster).\n- **Flexibel mit Menschen & Tieren:** Haustiere sind willkommen – gebt uns kurz vorher Bescheid, dann planen wir eine kleine „Pet-Pause" ein.\n\n## Pakete & Optionen\n| Paket | Ideal für | Inklusive |\n|---|---|---|\n| **Classic** | 1–2 Motive | Shooting (ca. 60 Min.) · Auswahl · professionelle Retusche · digitale Lieferung |\n| **Plus** | mehrere Looks / Nutzung für Website + LinkedIn | mehr Motive · Varianten (quer/hoch) · konsistenter Look |\n| **Team Add-on** | Mitarbeiter-Set | wiederholbares Setup · einheitliche Bildsprache · effiziente Reihenfolge |\n\n## Ablauf – so läuft es bei uns\n1. **Kurzbriefing:** Ziel, Einsatz (Website/LinkedIn/Print), gewünschter Stil.\n2. **Ankommen & Outfit-Check:** Farben, Stoffe, Kragen, Details – wir optimieren schnell.\n3. **Shooting mit Anleitung:** klare Posen, kleine Mikro-Bewegungen, natürliche Mimik.\n4. **Auswahl:** Wenn es zeitlich passt, zeigen wir häufig noch am selben Tag eine Auswahl (IPS). Wenn es der letzte Termin ist, kommt die Auswahl bequem online.\n5. **Retusche & Lieferung:** Die fertigen Bilder liefern wir immer über eine private, passwortgeschützte Online-Galerie aus der Cloud.\n\n## Mini-FAQ\n**Wie lange dauert ein Shooting?**\nIn der Regel ca. 60 Minuten – effizient geplant.\n\n**Bietet ihr Make-up an?**\nNein. Bitte vorbereitet kommen. Unser Licht ist sehr schmeichelnd.\n\n**Wann bekomme ich die Bilder?**\nJe nach Paket/Retusche – Auswahl meist schnell, final nach Retusche über die Cloud.`, seoExpansion.businessSie)
   },
 
   'neugeborenenfotos-wien': {
-    title: 'Neugeborenenfotos Wien – Sanfte Babyfotografie in den ersten Tagen | New Age Fotografie',
+    title: 'Neugeborenenfotos Wien | New Age Fotografie',
     metaDescription: 'Neugeborenenfotos in Wien – sanft, sicher, natürlich. Weiches Studio-Licht für die ersten Lebenstage. Erfahrener Neugeborenenfotograf, warmes Studio. Jetzt Termin buchen!',
     h1: 'Neugeborenenfotos Wien – Zarte Bilder aus den ersten Lebenstagen',
     markdown: withSeoExpansion(`## Was ihr erwarten könnt\n- **Freundliche Anleitung** statt Unsicherheit vor der Kamera\n- **Weiches, professionelles Licht** (Octa-Softboxen) für natürliche Hauttöne\n- **Persönlichkeit im Bild:** Bringt gern persönliche Dinge mit: Spielzeug, Hobbys, Instrumente, Lieblingsbuch – das macht eure Bilder einzigartig.\n- **Flexibel mit Menschen & Tieren:** Haustiere sind willkommen – gebt uns kurz vorher Bescheid, dann planen wir eine kleine „Pet-Pause" ein.\n\n## Pakete & Optionen\n| Paket | Ideal für | Inklusive |\n|---|---|---|\n| **Basic** | ein Hauptmotiv | Shooting (ca. 60 Min.) · Auswahlgalerie · 1 retuschiertes Bild digital |\n| **Premium** | mehrere Lieblingsmotive | mehr retuschierte Bilder · Varianten · optionale Print/Leinwand-Add-ons |\n| **Deluxe** | „Alles drin" | größere Auswahl · mehr Retusche · ideal für Familien/Meilensteine |\n\n## Was ihr mitbringen solltet\n- Wickeltasche wie gewohnt (Windeln, Tücher, Schnuller/Fläschchen)\n- 1–2 neutrale Bodies/Decken, wenn ihr mögt\n- Ein kleines persönliches Item (z. B. Kuscheltier)\n\nWasser, Kaffee & Tee sind da – auf Wunsch auch Bier oder Prosecco. Make-up bieten wir nicht an – bitte kommt, wenn möglich, bereits mit Hair & Make-up. Unser Licht wirkt aber ohnehin sehr schmeichelnd.\n\n## Sicherheit & Umgang mit Neugeborenen\nBei Neugeborenen ist das Wichtigste: **Sicherheit vor allem**. Wir arbeiten ruhig, warm und ohne Hektik. Posen entstehen bei uns nicht „mit Druck", sondern mit Geduld, kleinen Handgriffen und Pausen.\n- Wir planen Zeit für Stillen/Fläschchen, Wickeln und Beruhigen ein.\n- Wir fotografieren sanft und natürlich – kein Zwang, keine riskanten Positionen.\n- Wenn euer Baby schläft: wunderbar. Wenn nicht: auch perfekt – wache Bilder sind oft die ehrlichsten.\n\n## Ablauf – so läuft euer Shooting\n1. **Kurzbriefing:** wer kommt, welche Kombinationen sind wichtig, welche Stimmung wollt ihr?\n2. **Ankommen & Outfit-Check:** wir stimmen Farben ab und geben Mini-Tipps.\n3. **Shooting mit Anleitung:** Gesamtmotiv, Teilgruppen, Einzelportraits – locker geführt.\n4. **Auswahl:** Wenn es zeitlich passt, zeigen wir häufig noch am selben Tag eine Auswahl (IPS). Wenn es der letzte Termin ist, kommt die Auswahl bequem online.\n5. **Retusche & Lieferung:** Die fertigen Bilder liefern wir immer über eine private, passwortgeschützte Online-Galerie aus der Cloud.\n\n## Mini-FAQ\n**Wie lange dauert das Shooting?**\nMeist ca. 60 Minuten – mit genug Zeit für die wichtigsten Motive.\n\n**Dürfen Haustiere mit?**\nJa. Kurz vorher Bescheid geben, dann planen wir entspannt.\n\n**Wann bekommen wir die Bilder?**\nAuswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`, seoExpansion.neugeboreneIhr)
@@ -535,7 +535,7 @@ Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
   },
 
   'babyfotos-wien': {
-    title: 'Babyfotos Wien (3–12 Monate) – Spielerische Babyfotografie | New Age Fotografie',
+    title: 'Babyfotos Wien (3–12 Monate) | New Age Fotografie',
     metaDescription: 'Babyfotos in Wien für Babys von 3–12 Monaten. Sitzen, Krabbeln, Lachen – wir fangen die Magie spielerisch und sicher ein. Professionelles Studio mit Requisiten. Jetzt Termin buchen!',
     h1: 'Babyfotos Wien (3–12 Monate) – Meilensteine spielerisch festhalten',
     markdown: withSeoExpansion(`## Was ihr erwarten könnt
@@ -578,7 +578,7 @@ Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
   },
 
   'teamfotos-wien': {
-    title: 'Team- & Mitarbeiterfotos Wien – Einheitliche Portraits fürs Team | New Age Fotografie',
+    title: 'Team- & Mitarbeiterfotos Wien | New Age Fotografie',
     metaDescription: 'Professionelle Team- & Mitarbeiterfotos in Wien. Einheitlicher Look, wiederholbares Setup für konsistente Bildsprache. Im Studio oder vor Ort – effizient geplant. Jetzt Termin buchen!',
     h1: 'Team- & Mitarbeiterfotos Wien – Einheitliche Bildsprache für Ihr Unternehmen',
     markdown: withSeoExpansion(`## Was ihr erwarten könnt
@@ -619,7 +619,7 @@ Auswahl je nach Terminlage schnell; final nach Retusche bequem über die Cloud.`
   },
 
   'schwangerschaftsfotos-wien': {
-    title: 'Schwangerschaftsfotos Wien – Babybauch-Shooting im Studio | New Age Fotografie',
+    title: 'Schwangerschaftsfotos Wien | New Age Fotografie',
     metaDescription: 'Schwangerschaftsfotos in Wien – einfühlsames Babybauch-Shooting im Studio. Weiches Licht, entspannte Atmosphäre. Ideal in Woche 28–34. Verschiedene Styles, Partner willkommen. Jetzt Termin buchen!',
     h1: 'Schwangerschaftsfotos Wien – Babybauch-Shooting voller Emotionen',
     markdown: withSeoExpansion(`## Was ihr erwarten könnt
