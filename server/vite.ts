@@ -6,7 +6,6 @@ import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 // viteConfig imported dynamically in setupVite to avoid production issues
 import { nanoid } from "nanoid";
-import { renderIndexHtml } from "./lib/siteIdentity.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,7 +23,7 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-const SITE_ORIGIN = process.env.PUBLIC_SITE_URL || "https://www.newagefotografie.com";
+const SITE_ORIGIN = "https://www.newagefotografie.com";
 
 // Serve /sitemap.xml dynamically: take the curated static sitemap as the base
 // and inject a <url> for every PUBLISHED blog post (publishedAt <= now). This
@@ -78,34 +77,8 @@ function registerDynamicSitemap(app: Express, baseFilePath: string) {
         .filter(Boolean)
         .join("\n");
 
-      // Published landing pages (/lp/:slug) — appear automatically once published.
-      let lpUrls = "";
-      try {
-        const neonMod: any = await import("../database.js");
-        const neonDb = neonMod.default || neonMod;
-        const lps = (typeof neonDb.getLandingPages === "function" ? await neonDb.getLandingPages("published") : []) || [];
-        lpUrls = lps
-          .filter((p: any) => p.slug)
-          .map((p: any) => {
-            const loc = `${SITE_ORIGIN}/lp/${p.slug}`;
-            if (existing.has(loc)) return "";
-            const ts = p.updated_at || p.published_at;
-            const lastmod = ts ? new Date(ts).toISOString().slice(0, 10) : "";
-            return (
-              `  <url>\n    <loc>${loc}</loc>\n` +
-              (lastmod ? `    <lastmod>${lastmod}</lastmod>\n` : "") +
-              `    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>`
-            );
-          })
-          .filter(Boolean)
-          .join("\n");
-      } catch (lpErr) {
-        console.warn("[sitemap] landing-page lookup failed (blog still included):", lpErr);
-      }
-
-      const injected = [blogUrls, lpUrls].filter(Boolean).join("\n");
-      let xml = injected
-        ? base.replace("</urlset>", `${injected}\n</urlset>`)
+      let xml = blogUrls
+        ? base.replace("</urlset>", `${blogUrls}\n</urlset>`)
         : base;
       // Declare the image-sitemap namespace on <urlset> when we emit image tags.
       if (hasImages && !xml.includes("xmlns:image")) {
@@ -177,8 +150,6 @@ export async function setupVite(app: Express, server: Server) {
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
-      // Fill per-tenant %SITE_*% identity placeholders before Vite's transform.
-      template = renderIndexHtml(template);
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
@@ -198,6 +169,9 @@ interface RouteMeta { title: string; description: string; canonical: string }
 
 const routeMetaCache = new Map<string, { meta: RouteMeta | null; at: number }>();
 const ROUTE_META_TTL = 5 * 60_000;
+
+// Prerendered HTML with tenant identity stamped in, cached per file path.
+const prerenderedCache = new Map<string, string>();
 
 async function lookupRouteMeta(reqPath: string): Promise<RouteMeta | null> {
   const cached = routeMetaCache.get(reqPath);
@@ -310,22 +284,8 @@ export function serveStatic(app: Express) {
   // static dist/sitemap.xml is served first and the dynamic handler never runs.
   registerDynamicSitemap(app, path.resolve(distPath, "sitemap.xml"));
 
-  // Per-tenant index.html: fill %SITE_*% identity placeholders once (env is
-  // stable per process) and serve the rendered HTML for the root + SPA routes.
-  let cachedIndex: string | null = null;
-  const renderedIndex = (): string => {
-    if (cachedIndex === null) {
-      const raw = fs.readFileSync(path.resolve(distPath, "index.html"), "utf-8");
-      cachedIndex = renderIndexHtml(raw);
-    }
-    return cachedIndex;
-  };
-  app.get(["/", "/index.html"], (_req, res) => {
-    res.status(200).type("html").send(renderedIndex());
-  });
-
-  // Serve static files from dist (index served above so identity is injected)
-  app.use(express.static(distPath, { index: false }));
+  // Serve static files from dist
+  app.use(express.static(distPath));
 
   // Explicitly serve robots.txt and sitemap.xml for SEO
   app.get("/robots.txt", (_req, res) => {
@@ -385,10 +345,28 @@ export function serveStatic(app: Express) {
 
     const prerenderedHtmlPath = resolvePrerenderedHtmlPath(requestPath);
     if (prerenderedHtmlPath) {
-      return res.sendFile(prerenderedHtmlPath);
+      // The prerender browser has no env/window.__SITE_CONFIG__, so pages
+      // whose Helmet titles interpolate SITE.name bake the neutral fallback
+      // "My Studio" into the static HTML. Stamp the real tenant identity in
+      // at serve time (cached per path).
+      try {
+        let html = prerenderedCache.get(prerenderedHtmlPath);
+        if (html === undefined) {
+          html = fs.readFileSync(prerenderedHtmlPath, "utf-8");
+          const { getSiteIdentity } = await import("./lib/siteIdentity.js");
+          const name = getSiteIdentity().name;
+          if (name && name !== "My Studio") {
+            html = html.split("My Studio").join(name);
+          }
+          prerenderedCache.set(prerenderedHtmlPath, html);
+        }
+        return res.status(200).type("html").send(html);
+      } catch {
+        return res.sendFile(prerenderedHtmlPath);
+      }
     }
 
-    // For all other requests (frontend routes), serve the SPA with identity injected
-    res.status(200).type("html").send(renderedIndex());
+    // For all other requests (frontend routes), serve the SPA
+    res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
