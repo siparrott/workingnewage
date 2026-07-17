@@ -1109,6 +1109,21 @@ const HomePage: React.FC = () => {
               </Link>
             </li>
             <li>
+              <Link to="/hochzeitsfotografie-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Wedding Photography Vienna' : 'Hochzeitsfotografie Wien'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/gewerbliche-fotografie-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Commercial Photography Vienna' : 'Gewerbliche Fotografie Wien'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/warum-new-age-fotografie/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Why New Age Fotografie?' : 'Warum New Age Fotografie?'}
+              </Link>
+            </li>
+            <li>
               <Link to="/preise/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
                 {language === 'en' ? 'Photoshoot Pricing Vienna' : 'Fotoshooting Preise Wien'}
               </Link>

@@ -18,6 +18,66 @@ import { useLanguage } from '../context/LanguageContext';
 const looksLikeHtml = (s: string) =>
   /<(p|h[1-6]|ul|ol|li|div|img|table|strong|em|blockquote|br|span|a)[\s>/]/i.test(s);
 
+// Cluster → pillar uplink (pillar/cluster SEO architecture): pick the pillar
+// page that matches THIS post's topic so every article passes authority to the
+// right money page, instead of the same generic list on every post.
+interface PillarLink { to: string; label: string; }
+const PILLARS: Array<{ match: RegExp; pillar: PillarLink; siblings: PillarLink[] }> = [
+  { match: /hochzeit|braut|trauung|standesamt/i,
+    pillar: { to: '/hochzeitsfotografie-wien/', label: 'Hochzeitsfotografie Wien' },
+    siblings: [
+      { to: '/schwangerschaftsfotos-wien/', label: 'Paar- & Babybauch-Shooting' },
+      { to: '/gewerbliche-fotografie-wien/', label: 'Eventfotografie & mehr' },
+    ] },
+  { match: /neugeboren|newborn/i,
+    pillar: { to: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
+    siblings: [
+      { to: '/babyfotos-wien/', label: 'Babyfotos Wien' },
+      { to: '/familienfotos-wien/', label: 'Familienfotos Wien' },
+    ] },
+  { match: /schwanger|babybauch|maternity/i,
+    pillar: { to: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaftsfotos Wien' },
+    siblings: [
+      { to: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
+      { to: '/familienfotos-wien/', label: 'Familienfotos Wien' },
+    ] },
+  { match: /\bbaby|babyfoto/i,
+    pillar: { to: '/babyfotos-wien/', label: 'Babyfotos Wien (3–12 Monate)' },
+    siblings: [
+      { to: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
+      { to: '/kinder-fotografie-wien/', label: 'Kinder-Fotografie Wien' },
+    ] },
+  { match: /kinder|kids/i,
+    pillar: { to: '/kinder-fotografie-wien/', label: 'Kinder-Fotografie Wien' },
+    siblings: [
+      { to: '/familienfotos-wien/', label: 'Familienfotos Wien' },
+      { to: '/babyfotos-wien/', label: 'Babyfotos Wien' },
+    ] },
+  { match: /business|bewerbung|linkedin|portrait|headshot|team/i,
+    pillar: { to: '/business-portrait-wien/', label: 'Business Portraits Wien' },
+    siblings: [
+      { to: '/gewerbliche-fotografie-wien/', label: 'Gewerbliche Fotografie Wien' },
+      { to: '/teamfotos-wien/', label: 'Teamfotos Wien' },
+    ] },
+  { match: /produkt|immobilie|event|firmen/i,
+    pillar: { to: '/gewerbliche-fotografie-wien/', label: 'Gewerbliche Fotografie Wien' },
+    siblings: [
+      { to: '/business-portrait-wien/', label: 'Business Portraits Wien' },
+      { to: '/teamfotos-wien/', label: 'Teamfotos Wien' },
+    ] },
+];
+const DEFAULT_PILLAR = {
+  pillar: { to: '/familienfotos-wien/', label: 'Familienfotos Wien' },
+  siblings: [
+    { to: '/babyfotos-wien/', label: 'Babyfotos Wien' },
+    { to: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaftsfotos Wien' },
+  ],
+};
+function pillarForPost(post: { title?: string; slug?: string; excerpt?: string | null }) {
+  const haystack = `${post.title || ''} ${post.slug || ''} ${post.excerpt || ''}`;
+  return PILLARS.find((p) => p.match.test(haystack)) || DEFAULT_PILLAR;
+}
+
 interface BlogPost {
   id: string;
   title: string;
@@ -474,49 +534,43 @@ const BlogPostPage: React.FC = () => {
             )}
           </div>
 
-          {/* Passende Fotoshootings – internal link block at end of post */}
-          <div className="mt-10 bg-purple-50 border border-purple-100 rounded-xl p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Passende Fotoshootings</h3>
-            <ul className="grid sm:grid-cols-3 gap-3 mb-4">
-              <li>
-                <Link to="/familienfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
-                  Familienfotos Wien
+          {/* Cluster → pillar uplink: this post's PRIMARY pillar first (topic-
+              matched), two sibling services, then the conversion layer. */}
+          {(() => {
+            const { pillar, siblings } = pillarForPost(post);
+            return (
+              <div className="mt-10 bg-purple-50 border border-purple-100 rounded-xl p-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">Passendes Fotoshooting</h3>
+                <Link
+                  to={pillar.to}
+                  className="block bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg px-5 py-3 mb-4 transition-colors"
+                >
+                  → {pillar.label}: Infos, Pakete & Beispiele
                 </Link>
-              </li>
-              <li>
-                <Link to="/babyfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
-                  Babyfotografie Wien
-                </Link>
-              </li>
-              <li>
-                <Link to="/schwangerschaftsfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
-                  Schwangerschaftsfotos Wien
-                </Link>
-              </li>
-              <li>
-                <Link to="/neugeborenenfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
-                  Neugeborenenfotos Wien
-                </Link>
-              </li>
-              <li>
-                <Link to="/business-portrait-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
-                  Business Portraits Wien
-                </Link>
-              </li>
-              <li>
-                <Link to="/vouchers" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
-                  Geschenkgutscheine
-                </Link>
-              </li>
-            </ul>
-            <p className="text-gray-700">
-              <Link to="/preise/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">Preise ansehen</Link>
-              <span className="mx-2 text-gray-400">·</span>
-              <Link to="/kundenstimmen/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">4.9★ Kundenstimmen</Link>
-              <span className="mx-2 text-gray-400">·</span>
-              <Link to="/kontakt" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">Termin anfragen</Link>
-            </p>
-          </div>
+                <ul className="grid sm:grid-cols-3 gap-3 mb-4">
+                  {siblings.map((s) => (
+                    <li key={s.to}>
+                      <Link to={s.to} className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                        {s.label}
+                      </Link>
+                    </li>
+                  ))}
+                  <li>
+                    <Link to="/vouchers" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
+                      Geschenkgutscheine
+                    </Link>
+                  </li>
+                </ul>
+                <p className="text-gray-700">
+                  <Link to="/preise/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">Preise ansehen</Link>
+                  <span className="mx-2 text-gray-400">·</span>
+                  <Link to="/kundenstimmen/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">4.9★ Kundenstimmen</Link>
+                  <span className="mx-2 text-gray-400">·</span>
+                  <Link to="/kontakt" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">Termin anfragen</Link>
+                </p>
+              </div>
+            );
+          })()}
 
           {/* Related Posts */}
           {relatedPosts.length > 0 && (

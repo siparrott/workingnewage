@@ -91,6 +91,34 @@ export default function WarumNewAgePage() {
           </div>
         </section>
 
+        {/* Our Process — "So läuft's ab" (supporting content per the
+            pillar/cluster architecture: builds trust, answers objections). */}
+        {de && (
+          <section className="py-16 bg-white">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+              <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">So läuft ein Shooting bei uns ab</h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                {[
+                  { n: '1', t: 'Anfrage', d: 'Kurz schreiben, was ihr euch vorstellt — wir antworten mit Terminvorschlägen und einem konkreten Angebot.' },
+                  { n: '2', t: 'Termin & Vorbereitung', d: 'Wir klären Outfits, Wünsche und Ablauf vorab, damit am Shooting-Tag alles entspannt ist.' },
+                  { n: '3', t: 'Das Shooting', d: 'Ca. 60 Minuten im Tageslichtstudio (1050 Wien) oder outdoor — locker geführt, Pausen jederzeit.' },
+                  { n: '4', t: 'Auswahl & Bilder', d: 'Private Online-Galerie, professionelle Retusche eurer Favoriten, auf Wunsch Leinwand & Prints.' },
+                ].map((s) => (
+                  <div key={s.n} className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+                    <div className="w-8 h-8 rounded-full bg-purple-600 text-white font-bold flex items-center justify-center mb-3">{s.n}</div>
+                    <h3 className="font-semibold text-gray-900 mb-1">{s.t}</h3>
+                    <p className="text-sm text-gray-600">{s.d}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="text-center text-gray-600 mt-8">
+                Fragen zum Ablauf? Alle Antworten im <Link to="/faq/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">FAQ</Link>{' '}
+                oder direkt <Link to="/kontakt" className="text-purple-600 hover:text-purple-700 underline underline-offset-2">Termin anfragen</Link>.
+              </p>
+            </div>
+          </section>
+        )}
+
         {/* Guarantees (German) */}
         {de && (
           <section className="py-16 bg-gray-50">
