@@ -10,6 +10,7 @@ import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, MapPin, Gift, Cal
 import { useCart } from '../../context/CartContext';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 
 export default function HochzeitsfotografieWienPage() {
   const navigate = useNavigate();
@@ -75,7 +76,7 @@ export default function HochzeitsfotografieWienPage() {
           description={newageCopyMap['hochzeitsfotografie-wien'].metaDescription}
           keywords="hochzeitsfotograf wien, hochzeitsfotografie wien, standesamt wien fotos, brautpaarshooting wien"
           canonical="/hochzeitsfotografie-wien/"
-          ogImage="https://www.newagefotografie.com/images/wedding-hero.jpg"
+          ogImage={`${SITE.url}/images/wedding-hero.jpg`}
           hreflang={[
             { lang: 'de', url: '/hochzeitsfotografie-wien/' },
             { lang: 'en', url: '/en/wedding-photography-vienna/' }
@@ -91,7 +92,7 @@ export default function HochzeitsfotografieWienPage() {
               name: 'Hochzeitsfotografie Wien',
               serviceType: 'Wedding Photography',
               areaServed: { '@type': 'City', name: 'Wien' },
-              provider: { '@type': 'LocalBusiness', name: 'New Age Fotografie' },
+              provider: { '@type': 'LocalBusiness', name: SITE.name },
               offers: {
                 '@type': 'AggregateOffer',
                 lowPrice: '599',

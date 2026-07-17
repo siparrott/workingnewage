@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCircle, ArrowLeft, Download, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useManualPageContent } from '../hooks/useManualPageContent';
+import { SITE } from '../config/site';
 
 const VoucherSuccessPage: React.FC = () => {
   const navigate = useNavigate();
@@ -93,10 +94,10 @@ const VoucherSuccessPage: React.FC = () => {
               </p>
               <div className="space-y-2 text-sm">
                 <p>
-                  <strong>{t('voucher.phone')}:</strong> +43 677 633 99210
+                  <strong>{t('voucher.phone')}:</strong> {SITE.phone}
                 </p>
                 <p>
-                  <strong>{t('voucher.email')}:</strong> hallo@newagefotografie.com
+                  <strong>{t('voucher.email')}:</strong> {SITE.email}
                 </p>
                 <p>
                   <strong>{t('voucher.openingHours')}:</strong> {t('voucher.openingTimes')}

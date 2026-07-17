@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { SITE } from '../../config/site';
 // Simple alert component for authentication messages
 const Alert = ({ variant, children }: { variant?: 'default' | 'destructive'; children: React.ReactNode }) => (
   <div className={`p-3 rounded-md border ${variant === 'destructive' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
@@ -119,7 +120,7 @@ export default function NeonAdminLoginPage() {
               <Camera className="h-8 w-8 text-white" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">New Age Fotografie</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{SITE.name}</h1>
           <p className="text-gray-600 mt-2">Admin Dashboard Login</p>
         </div>
 

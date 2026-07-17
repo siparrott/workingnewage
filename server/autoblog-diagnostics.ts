@@ -28,7 +28,7 @@ export async function runAutoBlogDiagnostics(): Promise<DiagnosticResult[]> {
   
   // Check #2: Assistant instructions not re-sent
   try {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
     const assistant = await openai.beta.assistants.retrieve(BLOG_ASSISTANT);
     diagnostics.push({
       issue: "Assistant instructions not re-sent - using chat.completions instead of assistant",

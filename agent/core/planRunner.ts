@@ -36,7 +36,7 @@ export async function planAndExecute(userMessage: string, ctx: AgentCtx): Promis
     }
 
     // Create OpenAI client
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
     
     // Get planner assistant ID from environment or use fallback
     const plannerAssistantId = process.env.PLANNER_ASSISTANT_ID;
@@ -99,7 +99,7 @@ export async function planAndExecute(userMessage: string, ctx: AgentCtx): Promis
 
 async function planWithChatCompletion(userMessage: string, catalog: any, ctx: AgentCtx): Promise<PlanResult> {
   try {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
     const systemPrompt = readFileSync("prompts/planner_system.txt", "utf-8");
     
     const response = await openai.chat.completions.create({

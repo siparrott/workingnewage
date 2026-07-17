@@ -10,6 +10,7 @@ import { useManualPageContent } from '../../hooks/useManualPageContent';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
 import { newageCopyMap } from '../../content/newageCopyMap';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 
 // CACHE BUST v2.0
 export default function ProduktfotografieWienPage() {
@@ -62,7 +63,7 @@ export default function ProduktfotografieWienPage() {
           description={newageCopyMap['produkt-fotografie-wien'].metaDescription}
           keywords="produktfotograf wien, produktfotografie wien, e-commerce fotos wien, amazon bilder wien"
           canonical="/produkt-fotografie-wien/"
-          ogImage="https://www.newagefotografie.com/images/product-hero.jpg"
+          ogImage={`${SITE.url}/images/product-hero.jpg`}
           hreflang={[
             { lang: 'de', url: '/produkt-fotografie-wien/' },
             { lang: 'en', url: '/en/product-photography-vienna/' }
@@ -78,7 +79,7 @@ export default function ProduktfotografieWienPage() {
               name: 'Produkt- & E-Commerce-Fotografie Wien',
               serviceType: 'Product Photography',
               areaServed: { '@type': 'City', name: 'Wien' },
-              provider: { '@type': 'LocalBusiness', name: 'New Age Fotografie' },
+              provider: { '@type': 'LocalBusiness', name: SITE.name },
               offers: { '@type': 'AggregateOffer', lowPrice: '390', highPrice: '1790', priceCurrency: 'EUR' }
             })}
           </script>

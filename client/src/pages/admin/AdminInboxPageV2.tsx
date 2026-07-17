@@ -38,6 +38,7 @@ import {
   Loader2,
   Shield
 } from 'lucide-react';
+import { SITE } from '../../config/site';
 
 interface EmailMessage {
   id: string;
@@ -576,8 +577,8 @@ const AdminInboxPage: React.FC = () => {
       const emailMessages: EmailMessage[] = data.map((msg: any) => ({
         id: msg.id,
         from: msg.senderEmail || msg.sender_email,
-        fromName: msg.senderName || msg.sender_name || 'New Age Fotografie',
-        to: msg.recipientEmail || msg.recipient_email || 'hallo@newagefotografie.com',
+        fromName: msg.senderName || msg.sender_name || SITE.name,
+        to: msg.recipientEmail || msg.recipient_email || SITE.email,
         subject: msg.subject?.replace('[SENT] ', '') || '(No Subject)',
         body: msg.content,
         timestamp: msg.createdAt || msg.created_at || msg.sentAt || msg.sent_at,

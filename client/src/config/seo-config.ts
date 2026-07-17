@@ -1,13 +1,15 @@
 /**
- * Centralized SEO Configuration for New Age Fotografie
- * 
+ * Centralized SEO Configuration for the studio
+ *
  * Each public page must have unique:
  * - title: 55-60 chars, format "{Primary Keyword in Wien} | New Age Fotografie"
  * - h1: Human-readable, service-first, NOT repeating title verbatim
  * - description: 140-160 chars, includes service + location + emotional hook
- * 
+ *
  * Following Google E-E-A-T and local SEO best practices for Austria.
  */
+
+import { SITE } from './site';
 
 export interface PageSEO {
   title: string;
@@ -19,7 +21,7 @@ export interface PageSEO {
 }
 
 // Brand suffix for consistent title format
-export const BRAND_SUFFIX = ' | New Age Fotografie';
+export const BRAND_SUFFIX = ` | ${SITE.name}`;
 
 /**
  * SEO configurations for all public-facing pages
@@ -216,7 +218,7 @@ export const seoConfig: Record<string, PageSEO> = {
   '/gutschein': {
     title: 'Gutscheine für Fotoshootings' + BRAND_SUFFIX,
     h1: 'Gutscheine für unvergessliche Fotomomente',
-    description: 'Fotoshooting-Gutscheine von New Age Fotografie. Das perfekte Geschenk für Familie und Freunde in Wien.',
+    description: `Fotoshooting-Gutscheine von ${SITE.name}. Das perfekte Geschenk für Familie und Freunde in Wien.`,
     keywords: 'Gutschein Fotoshooting, Geschenk Fotograf Wien, Erlebnisgutschein Foto',
     canonical: '/gutschein',
   },
@@ -248,9 +250,9 @@ export const seoConfig: Record<string, PageSEO> = {
   // ==================== SUPPORT PAGES ====================
   '/ueber-uns/': {
     title: 'Über uns | Fotostudio Wien seit 2012' + BRAND_SUFFIX,
-    h1: 'Über uns – New Age Fotografie Wien',
-    description: 'Lerne New Age Fotografie kennen – dein Fotostudio in Wien seit 2012 für Familienfotografie, Babybauch, Neugeborene und Business Portraits. Persönlich, modern und authentisch.',
-    keywords: 'Fotostudio Wien, New Age Fotografie Wien, Familienfotografie Wien, Babybauch Wien, Neugeborene Wien, Business Portrait Wien',
+    h1: `Über uns – ${SITE.name} Wien`,
+    description: `Lerne ${SITE.name} kennen – dein Fotostudio in Wien seit 2012 für Familienfotografie, Babybauch, Neugeborene und Business Portraits. Persönlich, modern und authentisch.`,
+    keywords: `Fotostudio Wien, ${SITE.name} Wien, Familienfotografie Wien, Babybauch Wien, Neugeborene Wien, Business Portrait Wien`,
     canonical: '/ueber-uns/',
   },
 
@@ -265,7 +267,7 @@ export const seoConfig: Record<string, PageSEO> = {
   '/faq/': {
     title: 'FAQ - Häufige Fragen' + BRAND_SUFFIX,
     h1: 'Häufig gestellte Fragen',
-    description: 'Antworten auf Ihre Fragen zu Fotoshootings bei New Age Fotografie Wien. Ablauf, Preise, Termine und mehr.',
+    description: `Antworten auf Ihre Fragen zu Fotoshootings bei ${SITE.name} Wien. Ablauf, Preise, Termine und mehr.`,
     keywords: 'FAQ Fotoshooting, Fragen Fotograf Wien, Fotoshooting Ablauf',
     canonical: '/faq/',
   },
@@ -274,7 +276,7 @@ export const seoConfig: Record<string, PageSEO> = {
     title: 'Kundenstimmen & Bewertungen' + BRAND_SUFFIX,
     h1: 'Das sagen unsere Kunden',
     description: 'Lesen Sie echte Bewertungen und Erfahrungen unserer Kunden. Über 200 zufriedene Familien in Wien.',
-    keywords: 'Kundenstimmen Fotograf Wien, Bewertungen New Age Fotografie, Erfahrungen',
+    keywords: `Kundenstimmen Fotograf Wien, Bewertungen ${SITE.name}, Erfahrungen`,
     canonical: '/kundenstimmen/',
   },
 
@@ -282,8 +284,8 @@ export const seoConfig: Record<string, PageSEO> = {
   '/kontakt': {
     title: 'Kontakt - Fotograf in Wien' + BRAND_SUFFIX,
     h1: 'Kontaktieren Sie uns',
-    description: 'Kontaktieren Sie New Age Fotografie in Wien. Rufen Sie an oder schreiben Sie uns. Wir freuen uns auf Sie!',
-    keywords: 'Kontakt Fotograf Wien, Fotostudio Kontakt, New Age Fotografie Adresse',
+    description: `Kontaktieren Sie ${SITE.name} in Wien. Rufen Sie an oder schreiben Sie uns. Wir freuen uns auf Sie!`,
+    keywords: `Kontakt Fotograf Wien, Fotostudio Kontakt, ${SITE.name} Adresse`,
     canonical: '/kontakt',
   },
 
@@ -331,8 +333,8 @@ export function getSEOConfig(path: string): PageSEO {
     : (seoConfig[path + '/'] ? path + '/' : path);
   
   return seoConfig[normalizedPath] || seoConfig[path] || {
-    title: 'New Age Fotografie | Fotograf in Wien',
-    h1: 'New Age Fotografie',
+    title: `${SITE.name} | Fotograf in Wien`,
+    h1: SITE.name,
     description: 'Professionelle Fotografie in Wien für Familie, Baby und Business.',
     canonical: path,
   };

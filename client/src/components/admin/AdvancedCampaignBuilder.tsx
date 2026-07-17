@@ -30,6 +30,7 @@ import {
   predictEngagement 
 } from '../../lib/email-marketing';
 import { sendCampaign } from '../../lib/email-marketing';
+import { SITE } from '../../config/site';
 
 interface AdvancedCampaignBuilderProps {
   campaign?: EmailCampaign;
@@ -49,9 +50,9 @@ const AdvancedCampaignBuilder: React.FC<AdvancedCampaignBuilderProps> = ({
     subject: '',
     preview_text: '',
     content: '',
-    sender_name: 'New Age Fotografie',
-    sender_email: 'info@newagefotografie.com',
-    reply_to: 'info@newagefotografie.com',
+    sender_name: SITE.name,
+    sender_email: SITE.email,
+    reply_to: SITE.email,
     status: 'draft',
     segments: [],
     tags_include: [],
@@ -205,7 +206,7 @@ const AdvancedCampaignBuilder: React.FC<AdvancedCampaignBuilderProps> = ({
       } else {
         saved = await createCampaign({ ...campaignData, status: 'draft', created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
       }
-      const testEmail = window.prompt('Send test email to:', 'hallo@newagefotografie.com') || undefined;
+      const testEmail = window.prompt('Send test email to:', SITE.email) || undefined;
       const result = await sendCampaign(saved.id, { test_send: true, test_emails: testEmail ? [testEmail] : undefined });
       if (result?.success) {
         alert(`✅ ${result.message || `Test email sent to ${testEmail}.`}`);

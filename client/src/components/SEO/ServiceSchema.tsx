@@ -1,4 +1,5 @@
 import { Helmet } from 'react-helmet-async';
+import { SITE } from '../../config/site';
 
 interface ServiceSchemaProps {
   serviceName: string;
@@ -17,11 +18,11 @@ export function ServiceSchema({
   serviceName,
   description,
   url,
-  image = 'https://www.newagefotografie.com/og-default.jpg',
+  image = `${SITE.url}/og-default.jpg`,
   priceRange = '€€',
   serviceType = 'PhotographyService'
 }: ServiceSchemaProps) {
-  const siteUrl = 'https://www.newagefotografie.com';
+  const siteUrl = SITE.url;
   const fullUrl = url.startsWith('http') ? url : `${siteUrl}${url}`;
 
   const schema = {
@@ -35,10 +36,10 @@ export function ServiceSchema({
     provider: {
       '@type': 'LocalBusiness',
       '@id': `${siteUrl}/#business`,
-      name: 'New Age Fotografie',
+      name: SITE.name,
       url: siteUrl,
-      telephone: '+43 677 633 99210',
-      email: 'hallo@newagefotografie.com',
+      telephone: SITE.phone,
+      email: SITE.email,
       priceRange: priceRange,
       address: {
         '@type': 'PostalAddress',

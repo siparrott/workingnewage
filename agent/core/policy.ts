@@ -1,5 +1,4 @@
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
+import { db } from '../../server/db.js';
 import { aiPolicies } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 
@@ -28,8 +27,7 @@ export interface AgentPolicy {
   email_domain_trustlist: string[]; // domains that can receive auto emails
 }
 
-const sql = neon(process.env.DATABASE_URL!);
-const db = drizzle(sql);
+// `db` is the shared portable (node-postgres) drizzle instance from server/db.ts.
 
 export async function loadPolicy(studioId: string): Promise<AgentPolicy> {
   try {

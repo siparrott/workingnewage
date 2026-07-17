@@ -1,6 +1,7 @@
 import React from 'react';
+import { SITE } from '../../config/site';
 
-// CACHE BUST v3 - FORCE REBUILD - 20251210-1628  
+// CACHE BUST v3 - FORCE REBUILD - 20251210-1628
 const TEMPLATE_VERSION = 'v3.0.0-20251210-1628';
 
 interface InvoiceTemplateProps {
@@ -40,11 +41,11 @@ interface InvoiceTemplateProps {
 const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ 
   invoice, 
   companyInfo = {
-    name: "New Age Fotografie",
+    name: SITE.name,
     address: "Julius-Tandler-Platz 5/13, 1090 Wien, Austria",
-    email: "office@newagefotografie.com",
-    phone: "+43 677 633 99210",
-    website: "www.newagefotografie.com"
+    email: SITE.email,
+    phone: SITE.phone,
+    website: SITE.url.replace(/^https?:\/\//, '')
   }
 }) => {
   // Debug logging (CACHE BUST v3 - FORCED REBUILD)

@@ -3,17 +3,18 @@ import Layout from '../../components/layout/Layout';
 import { Link } from 'react-router-dom';
 import { ContextualLinks } from '../../components/SEO/ContextualLinks';
 import { Baby, Heart, Shield, Star, ArrowRight, Check, Clock, Users, Camera } from 'lucide-react';
+import { SITE } from '../../config/site';
 
 export default function BabyFotografieWienPage() {
   return (
     <Layout>
     <div className="min-h-screen bg-white">
       <SEOHead
-        title="Baby- & Newborn-Fotografie in Wien – New Age Fotografie"
+        title={`Baby- & Newborn-Fotografie in Wien – ${SITE.name}`}
         description="Zarte Neugeborenenfotos mit Herz und Sicherheit. Erinnerungen für immer."
         keywords="babyfotograf wien, newborn fotografie wien, neugeborenen fotoshooting, babyshooting wien"
         canonical="/baby-fotografie-wien/"
-        ogImage="https://www.newagefotografie.com/images/baby-hero.jpg"
+        ogImage={`${SITE.url}/images/baby-hero.jpg`}
         hreflang={[
           { lang: 'de', url: '/baby-fotografie-wien/' },
           { lang: 'en', url: '/en/baby-photography-vienna/' }

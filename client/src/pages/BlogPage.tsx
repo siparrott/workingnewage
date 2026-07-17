@@ -7,6 +7,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useManualPageContent } from '../hooks/useManualPageContent';
 import { SEOHead } from '../components/SEO/SEOHead';
 import { Helmet } from 'react-helmet-async';
+import { SITE } from '../config/site';
 
 interface BlogPost {
   id: string;
@@ -219,8 +220,8 @@ const BlogPage: React.FC = () => {
 
   useEffect(() => {
     // SEO Meta Tags
-    document.title = language === 'de' 
-      ? 'Blog - Fotografie Tipps & Inspiration | New Age Fotografie Wien'
+    document.title = language === 'de'
+      ? `Blog - Fotografie Tipps & Inspiration | ${SITE.name} Wien`
       : 'Blog - Photography Tips & Inspiration | New Age Photography Vienna';
     
     // Update meta description
@@ -241,10 +242,10 @@ const BlogPage: React.FC = () => {
       ogTitle.setAttribute('property', 'og:title');
       document.head.appendChild(ogTitle);
     }
-    ogTitle.setAttribute('content', language === 'de' ? 'Fotografie Blog - New Age Fotografie Wien' : 'Photography Blog - New Age Photography Vienna');
+    ogTitle.setAttribute('content', language === 'de' ? `Fotografie Blog - ${SITE.name} Wien` : 'Photography Blog - New Age Photography Vienna');
 
     return () => {
-      document.title = language === 'de' ? 'New Age Fotografie - Familienfotograf Wien' : 'New Age Photography - Family Photographer Vienna';
+      document.title = language === 'de' ? `${SITE.name} - Familienfotograf Wien` : 'New Age Photography - Family Photographer Vienna';
     };
   }, [language]);
   
@@ -328,7 +329,7 @@ const BlogPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title={language === 'de' ? 'Fotografie Blog | New Age Fotografie' : 'Photography Blog | New Age Photography'}
+        title={language === 'de' ? `Fotografie Blog | ${SITE.name}` : 'Photography Blog | New Age Photography'}
         description={language === 'de' ? 'Tipps, Inspiration und Neuigkeiten rund um Fotografie in Wien. Familien-, Baby- und Business-Fotografie Insights.' : 'Tips, inspiration and news about photography in Vienna. Family, baby and business photography insights.'}
         keywords={language === 'de' ? 'Fotografie Blog Wien, Fotoshooting Tipps, Fotograf Inspiration' : 'Photography Blog Vienna, Photoshoot Tips, Photographer Inspiration'}
         canonical="/blog/"
@@ -345,12 +346,12 @@ const BlogPage: React.FC = () => {
           {JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Blog",
-            "name": "New Age Fotografie Blog",
+            "name": `${SITE.name} Blog`,
             "description": language === 'de' ? "Fotografie-Tipps, Behind-the-Scenes und Inspiration für Fotoshootings in Wien" : "Photography tips, behind-the-scenes and inspiration for photoshoots in Vienna",
             "url": "https://newagefotografie.at/blog/",
             "publisher": {
               "@type": "Organization",
-              "name": "New Age Fotografie",
+              "name": SITE.name,
               "logo": {
                 "@type": "ImageObject",
                 "url": "https://newagefotografie.at/logo.png"
@@ -366,11 +367,11 @@ const BlogPage: React.FC = () => {
               "dateModified": post.updatedAt,
               "author": {
                 "@type": "Organization",
-                "name": "New Age Fotografie"
+                "name": SITE.name
               },
               "publisher": {
                 "@type": "Organization",
-                "name": "New Age Fotografie",
+                "name": SITE.name,
                 "logo": {
                   "@type": "ImageObject",
                   "url": "https://newagefotografie.at/logo.png"

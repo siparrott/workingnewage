@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext';
 import VoucherFlow from '../components/voucher/VoucherFlow';
 import { CheckCircle, AlertCircle, CreditCard, User, Mail, ArrowLeft } from 'lucide-react';
 import { purchaseVoucher } from '../lib/voucher';
+import { SITE } from '../config/site';
 
 interface LocationState {
   quantity: number;
@@ -68,7 +69,7 @@ const CheckoutPage: React.FC = () => {
     validUntil: '',
     terms: apiProduct.termsAndConditions || '',
     stock: apiProduct.stockLimit ?? 999,
-    partner: { id: '1', title: 'New Age Fotografie', logo: '', description: '' },
+    partner: { id: '1', title: SITE.name, logo: '', description: '' },
   } : null);
   
   // --- All hooks are declared BEFORE any conditional return (Rules of Hooks).

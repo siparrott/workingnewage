@@ -18,6 +18,7 @@ import {
   MessageCircle,
   Phone
 } from 'lucide-react';
+import { SITE } from '../../config/site';
 
 interface InvoiceFormProps {
   invoice?: Invoice;
@@ -252,7 +253,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
       
       const emailPayload = {
         email_address: emailData.email_address || clientEmail,
-        subject: emailData.subject || `Rechnung ${invoiceNumber} - New Age Fotografie`,
+        subject: emailData.subject || `Rechnung ${invoiceNumber} - ${SITE.name}`,
         message: emailData.message || 'Vielen Dank für Ihr Vertrauen! Anbei finden Sie Ihre Rechnung für unsere Fotografie-Dienstleistungen.'
       };
 
@@ -299,7 +300,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
     
     setEmailData({
       email_address: selectedClient?.email || '',
-      subject: `Rechnung ${invoice?.invoice_number || formData.invoice_number} - New Age Fotografie`,
+      subject: `Rechnung ${invoice?.invoice_number || formData.invoice_number} - ${SITE.name}`,
       message: 'Vielen Dank für Ihr Vertrauen! Anbei finden Sie Ihre Rechnung für unsere Fotografie-Dienstleistungen.'
     });
     setShowEmailModal(true);

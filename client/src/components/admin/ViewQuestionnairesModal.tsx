@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Eye, Calendar, FileText, Download } from 'lucide-react';
+import { SITE } from '../../config/site';
 
 interface QuestionnaireResponse {
   id: string;
@@ -97,7 +98,7 @@ const ViewQuestionnairesModal: React.FC<ViewQuestionnairesModalProps> = ({
         </head>
         <body>
           <div class="header">
-            <h1>New Age Fotografie</h1>
+            <h1>${SITE.name}</h1>
             <h2>Questionnaire Response</h2>
           </div>
           <div class="meta-info">

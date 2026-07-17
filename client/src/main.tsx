@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { TemplateProvider } from './contexts/TemplateContext';
+import { SITE } from './config/site';
 import { captureCampaignFromUrl } from './lib/attribution';
 import './index.css';
 
@@ -81,8 +82,8 @@ const initializeApp = () => {
             <h1 style="margin: 0 0 20px 0; font-size: 2rem;">NEW AGE FOTOGRAFIE</h1>
             <p style="margin: 0 0 20px 0;">Lade Anwendung...</p>
             <p style="margin: 0; opacity: 0.8;">
-              Bei Problemen kontaktieren Sie uns: 
-              <a href="mailto:hallo@newagefotografie.com" style="color: #fff;">hallo@newagefotografie.com</a>
+              Bei Problemen kontaktieren Sie uns:
+              <a href="mailto:${SITE.email}" style="color: #fff;">${SITE.email}</a>
             </p>
           </div>
         </div>

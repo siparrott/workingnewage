@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lock } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 
 const invoiceI18n: Record<string, Record<string, string>> = {
   en: {
@@ -147,11 +148,11 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
   // State for studio configuration
   const [studioConfig, setStudioConfig] = useState<StudioConfig>({
     logo: null,
-    studioName: 'New Age Fotografie',
+    studioName: SITE.name,
     address: 'Wehrgasse 11A/2+5, 1050 Wien',
     addressNote: '',
     phone: '+43 699 194 77 607',
-    email: 'kontakt@newagefotografie.com',
+    email: SITE.email,
     openingHours: 'Termine nach Vereinbarung'
   });
   const [configLoaded, setConfigLoaded] = useState(false);

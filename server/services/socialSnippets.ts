@@ -39,7 +39,7 @@ export interface PreparedSocialPack {
 }
 
 let _o: OpenAI | null = null;
-const openai = () => (_o ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY }));
+const openai = () => (_o ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' }));
 
 const stripHtml = (s = '') => s.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 

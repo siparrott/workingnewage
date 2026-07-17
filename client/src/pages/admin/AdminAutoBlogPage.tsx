@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 // import { Progress } from '@/components/ui/progress'; // TODO: Add progress component
+import { SITE } from '../../config/site';
 import { Badge } from '@/components/ui/badge';
 // import { Alert, AlertDescription } from '@/components/ui/alert'; // TODO: Add alert component
 import { Upload, Image, Wand2, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
@@ -43,7 +44,7 @@ export default function AdminAutoBlogPage() {
   const [publishOption, setPublishOption] = useState<'draft' | 'publish' | 'schedule'>('draft');
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
-  const [siteUrl, setSiteUrl] = useState('https://www.newagefotografie.com');
+  const [siteUrl, setSiteUrl] = useState(SITE.url);
   const [customSlug, setCustomSlug] = useState('');
   const [result, setResult] = useState<AutoBlogResult | null>(null);
   const [status, setStatus] = useState<AutoBlogStatus | null>(null);

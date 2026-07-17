@@ -1,6 +1,7 @@
 import React from 'react';
 import GutscheinLayout from '../../components/gutschein/GutscheinLayout';
 import { Clock, Users, Camera, Briefcase } from 'lucide-react';
+import { SITE } from '../../config/site';
 
 const BusinessFotoshootingPage: React.FC = () => {
   const businessPhotos = [
@@ -50,7 +51,7 @@ const BusinessFotoshootingPage: React.FC = () => {
       title="Business Fotoshooting Wien – Portraits für LinkedIn & Website"
       subtitle="Professionell. Authentisch. Unvergesslich."
       image="https://i.postimg.cc/6Q2c2gS1/Whats-App-Image-2025-05-24-at-2-38-45-PM-2.jpg"
-      seoTitle="Business Fotoshooting Wien – Professionelle Portraits ab €95 | New Age Fotografie"
+      seoTitle={`Business Fotoshooting Wien – Professionelle Portraits ab €95 | ${SITE.name}`}
       seoDescription="Business Fotoshooting in Wien: Professionelle Portraits für LinkedIn, Website & Bewerbung. Headshots, Team- und Corporate-Fotos im Studio. Pakete ab €95 – jetzt Termin buchen!"
       seoKeywords="Business Fotoshooting Wien, Corporate Photography Wien, Businessfotos Wien, LinkedIn Portrait Wien"
       canonical="/fotoshootings/business/"
@@ -205,7 +206,7 @@ const BusinessFotoshootingPage: React.FC = () => {
           {/* Call to Action */}
           <div className="bg-purple-600 text-white rounded-lg p-8 text-center">
             <h3 className="text-2xl font-bold mb-4">Jetzt Shooting buchen und Eindruck hinterlassen.</h3>
-            <p className="text-lg mb-6">Businessfotos in Wien & Zürich – New Age Fotografie</p>
+            <p className="text-lg mb-6">Businessfotos in Wien & Zürich – {SITE.name}</p>
             <a 
               href="/warteliste" 
               className="inline-block bg-white text-purple-600 font-bold py-3 px-8 rounded-lg hover:bg-gray-100 transition-colors"

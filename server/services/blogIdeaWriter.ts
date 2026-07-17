@@ -44,7 +44,7 @@ const ALLOWED_LINKS = [
 
 let _openai: OpenAI | null = null;
 function openai(): OpenAI {
-  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
   return _openai;
 }
 

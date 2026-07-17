@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, Check, ChevronRight, ChevronLeft, Camera, Eye, Download, ArrowLeft } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 
 interface DeliveryOption {
   id: string;
@@ -801,7 +802,7 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
             {/* Footer with logo placeholder */}
             <div className="bg-gray-50 p-4 text-center border-t">
               <p className="text-xs text-gray-500">
-                New Age Fotografie | www.newagefotografie.com
+                {SITE.name} | {SITE.url.replace(/^https?:\/\//, '')}
               </p>
             </div>
           </div>

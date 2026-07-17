@@ -4,11 +4,15 @@ import { Facebook, Instagram, Twitter, User, LogIn, Mail } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { submitNewsletterForm } from '../../lib/forms';
+import { SITE } from '../../config/site';
 
 const Footer: React.FC = () => {
   const { t, language } = useLanguage();
   const { user, signOut } = useAuth();
   const [email, setEmail] = useState('');
+  // Match a configured social link by platform keyword (empty → icon hidden).
+  const socialUrl = (kw: string) => SITE.social.find((u) => u.toLowerCase().includes(kw)) || '';
+  const phoneDigits = SITE.phone.replace(/[^0-9]/g, '');
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -65,18 +69,22 @@ const Footer: React.FC = () => {
               onClick={scrollToTop}
               className="text-white text-xl font-bold mb-4 block"
             >
-              New Age Fotografie
+              {SITE.name}
             </Link>
             <p className="text-gray-300 mb-4">
               {t('footer.tagline')}
             </p>
             <div className="flex space-x-4">
-              <a href="https://facebook.com/newagefotografie" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors">
-                <Facebook size={20} />
-              </a>
-              <a href="https://instagram.com/newagefotografie" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors">
-                <Instagram size={20} />
-              </a>
+              {socialUrl('facebook') && (
+                <a href={socialUrl('facebook')} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors">
+                  <Facebook size={20} />
+                </a>
+              )}
+              {socialUrl('instagram') && (
+                <a href={socialUrl('instagram')} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors">
+                  <Instagram size={20} />
+                </a>
+              )}
             </div>
           </div>
           
@@ -341,24 +349,28 @@ const Footer: React.FC = () => {
               <li className="text-sm">
                 {t('contact.addressNote')}
               </li>
-              <li>
-                <a 
-                  href="https://wa.me/4367763399210" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-sm hover:text-purple-300 transition-colors"
-                >
-                  Tel/WhatsApp: +43 677 633 99210
-                </a>
-              </li>
-              <li>
-                <a 
-                  href="mailto:hallo@newagefotografie.com"
-                  className="text-sm hover:text-purple-300 transition-colors"
-                >
-                  hallo@newagefotografie.com
-                </a>
-              </li>
+              {SITE.phone && (
+                <li>
+                  <a
+                    href={`https://wa.me/${phoneDigits}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm hover:text-purple-300 transition-colors"
+                  >
+                    Tel/WhatsApp: {SITE.phone}
+                  </a>
+                </li>
+              )}
+              {SITE.email && (
+                <li>
+                  <a
+                    href={`mailto:${SITE.email}`}
+                    className="text-sm hover:text-purple-300 transition-colors"
+                  >
+                    {SITE.email}
+                  </a>
+                </li>
+              )}
               {user ? (
                 <>
                   <li className="pt-2">
@@ -447,7 +459,7 @@ const Footer: React.FC = () => {
         
         {/* Copyright */}
         <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-300">
-          <p>&copy; 2025 New Age Fotografie. {t('footer.copyright')}</p>
+          <p>&copy; {new Date().getFullYear()} {SITE.name}. {t('footer.copyright')}</p>
           <p className="mt-2 text-sm space-x-3">
             <button
               type="button"

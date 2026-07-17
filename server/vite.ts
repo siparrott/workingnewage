@@ -369,7 +369,10 @@ export function serveStatic(app: Express) {
         let html = prerenderedCache.get(prerenderedHtmlPath);
         if (html === undefined) {
           html = fs.readFileSync(prerenderedHtmlPath, "utf-8");
-          const { getSiteIdentity } = await import("./lib/siteIdentity.js");
+          // Fill any %SITE_*% placeholders the prerender snapshot carried
+          // through (the prerender browser sees the raw template), then stamp
+          // the tenant name over the env-less "My Studio" fallback.
+          html = renderIndexHtml(html);
           const name = getSiteIdentity().name;
           if (name && name !== "My Studio") {
             html = html.split("My Studio").join(name);

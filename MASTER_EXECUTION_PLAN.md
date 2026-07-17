@@ -14,7 +14,6 @@
 - [x] 🤖 Scoped integration API keys implemented (`integration_api_keys`, `authOrApiKey`, mint script).
 - [x] 🤖 IA handoff + contract confirmation, onboarding spec, viability study, build kickoff (docs).
 - [x] 🤖 Blog: Pulse distribution, cadence scheduler, sortable list (existing feature work).
-- [x] 🤖 **IA handoff contract honored (v0.4.0):** dry-run enablers (check-slug/unpublish/revisions/media/analytics on scoped keys), LP revision restore, LP-in-sitemap — implemented + **verified live** on tenant-zero (scope enforcement proven: 403 for missing scope). Not built (with reason): provisioning webhook (Phase-2 + IA payload), deprovisioning purge (moot per-deployment), blog-post revisions (optional).
 
 ---
 
@@ -25,7 +24,7 @@
 - [ ] 🧑 Confirm **service delivery** = private container image (not source pull). *(Recommended.)*
 - [ ] 🧑 Create a **private registry** namespace (GHCR / Docker Hub private / ECR) + a pull token.
 - [ ] 🧑 Create a **Render account** for tenant-zero + a **Render API key**.
-- [x] 🧑🤖 **Supabase** project live (`alhofnvlxmrjutxtosum`, eu-north-1) — 🤖 pushed schema (72 tables) + seeded baseline (admin / config / prices / vouchers) via the **portable driver over the Session pooler**. **Runtime-validated against Supabase** (`node-postgres — SSL on`, inserts OK). Use the pooler URL (port 5432) as `DATABASE_URL`.
+- [ ] 🧑 Create a **Neon** project/DB for tenant-zero (separate from prod).
 - [ ] 🧑 Decide **Render deploy-auth flow**: customer pastes a Render API token vs OAuth handshake.
 
 ### 0B. Template repo
@@ -36,45 +35,20 @@
 ### 0C. Containerize (the keystone)
 - [x] 🤖 Write a **Dockerfile** for the single Express service (build React → serve from Express).
 - [x] 🤖 Add CI to **build + push the private image** on tag (`.github/workflows/build-image.yml` → GHCR).
-- [~] 🧑 Verify image builds in CI + pulls with creds. (`v0.1.0` = Neon; **`v0.2.0` = portable/Supabase-ready**, building now.)
+- [~] 🧑 Verify the image builds in CI (running now via `v0.1.0`) + pulls with issued creds.
 
-### 0C.1 Portable DB (Supabase-ready) — DONE
-- [x] 🤖 Runtime swapped Neon serverless → **node-postgres** (`server/db.ts` + `server/db-compat.ts` shim; all server + agent `neon()`/`neon-http` users repointed). Works with Supabase / Neon / any Postgres.
-- [x] 🤖 On branch **`portable-pg`**, tag **`v0.2.0`** → building the Supabase-ready image. **Not on `origin/main` — prod stays on Neon.**
-- Deferred (non-runtime; no effect on tenant-zero): `dist-server/`, `hub/`, root dev scripts, stale `agent/integrations/pricing.js`.
+### 0D. Tenant-zero reference instance
+- [ ] 🤖 Provide a `render.yaml` / deploy steps for the **image** (not source), `DEMO_MODE=true`, health check.
+- [ ] 🧑 Deploy tenant-zero to Render from the image; set boot env (`DATABASE_URL`, `SESSION_SECRET`, encryption key).
+- [x] 🤖 Wrap `db:push → db:init → demo seed` into one `bootstrap` script (`npm run bootstrap [-- --demo]`); you run it against tenant-zero.
+- [ ] 🧑 Confirm tenant-zero loads (still branded "New Age" — expected).
 
-### 0D. Tenant-zero reference instance — LIVE ✅
-- [x] 🤖 Deploy steps for the **image** documented → [TENANT_ZERO_RUNBOOK.md](TENANT_ZERO_RUNBOOK.md) (`DEMO_MODE=true`, health check `/api/health`).
-- [x] 🤖 **Deployed via the Render API** — service `tenant-zero` (`srv-d97mkqt7vvec73chebp0`, Frankfurt), image `:v0.3.0`, GHCR pull credential, boot env set (`SESSION_SECRET`/`ENCRYPTION_KEY` auto-generated).
-- [x] 🤖 `bootstrap` script (`npm run bootstrap [-- --demo]`) — ran against Supabase; schema + baseline + demo content seeded.
-- [x] 🤖 **Confirmed live** at **https://tenant-zero.onrender.com** — `/api/health` 200, root 200, `/api/blog/posts` returns the 2 demo posts from Supabase (full stack: container → Express → portable driver → Supabase). Still branded "New Age" (expected until Phase 1).
+### 0E. Gated-services spine
+- [ ] 🤖 Extend `authOrApiKey`/`integration_api_keys` with scopes: `ai-agent`, `ia`, `shootcleaner`, `pixelseal`.
+- [ ] 🤖 Add an **entitlement check** (periodic; revoked/expired key disables *that* premium feature, not the app).
+- [ ] 🧑 Mint an **IA scoped key** for tenant-zero; IA does a dry-run publish (3 posts + 1 landing page).
 
-### 0E. Gated-services spine — DONE
-- [x] 🤖 **Entitlement spine built** (`server/lib/entitlement.ts`): gated services `ia`/`ai-agent`/`shootcleaner`/`pixelseal`; periodic licence check vs `ENTITLEMENT_URL`+`LICENSE_KEY` with TTL cache + fail-safe grace; `requireEntitlement(service)` middleware to gate premium routes. Permissive when unconfigured (stub). Policy lives in the entitlement-server response (so open decisions don't block the mechanism). *(On `portable-pg`; ships in the next image.)*
-- [x] 🤖 **IA key minted + write loop PROVEN on live tenant-zero:** `ia_live_cc18…` (scopes `blog:write`,`landing-pages:write`) → `POST /api/blog/posts` created a post (uuid, DRAFT); no-key POST → **401**. Revoke via `integration_api_keys.status='revoked'`.
-- Open (product decisions, non-blocking): PixelSeal scope + which services are mandatory vs upsell — these are entitlement-server config, not code.
-
-### 0F. Provisioning blockers found during tenant-zero bootstrap — FIXED (v0.3.0)
-- [x] 🤖 **Schema FK type mismatch — fixed:** `scheduler_bookings.client_id` `text` → `uuid` (matches `crm_clients.id`). A fresh push now applies **100% cleanly** (72 tables + all FKs, validated on Supabase); no other mismatches surfaced.
-- [x] 🤖 **`bootstrap` script — fixed:** `db:push` → `scripts/db-push.mjs` wrapper (drizzle-kit `push:pg` + required flags + TLS, args-array/no-shell); `demo:setup` rewritten to the current schema (crmClients / crmLeads / galleries / blogPosts, uuid ids, idempotent, resilient) and runs via tsx; bootstrap's demo step is best-effort (non-fatal). **Validated end-to-end on Supabase:** `bootstrap --demo` → schema + baseline + clients:3/leads:2/galleries:2/blog:2, exit 0.
-- **Tenant-zero re-bootstrapped clean** — fresh schema (all FKs) + baseline + demo content. Deploy image **`v0.3.0`** (portable + these fixes). Sessions/invoices demo intentionally omitted (low value; complex required FKs).
-- [ ] 🤖 **Boot-robustness bug (found at deploy):** `server/routes/price-wizard.ts` (and `agent/core/knowledge-base.ts`) instantiate the OpenAI client at **import time**, so the app **crashes on boot if `OPENAI_API_KEY` is unset** — breaks the "boots degraded without optional keys" promise. Placeholder keys set on tenant-zero to unblock; **lazy-init the AI clients in Phase 1** so tenants boot cleanly regardless.
-
-**GATE 0 ✅ ACHIEVED** — tenant-zero live from the private image (Render→Supabase), IA read/write proven (401 without key), entitlement stub built. → Phase 1.
-
----
-
-## Workstream M — Migrate PRODUCTION (newagefotografie) Heroku → Render
-*Parallel track (user request). **High-stakes: this is the LIVE business.** Zero-downtime approach — stand up + verify on Render, flip DNS LAST, then decommission Heroku.*
-
-Facts: prod on Heroku (Node buildpack, `main`, **Neon** DB); domain `www.newagefotografie.com`; Redis addon is **unused** (no code refs). The portable `pg` driver works with Neon too, so the same image can run prod.
-
-- [ ] 🧑 Export Heroku config → the full prod secret set: `heroku config -s -a <app>` (Stripe **live**, S3/B2, OpenAI, SMTP/Brevo, Google, SMS, `SESSION_SECRET`, `DATABASE_URL`, …).
-- [ ] 🧑 **Keep Neon for prod** (recommended — zero data migration) vs move to Supabase (bigger job). 
-- [ ] 🧑 **Prerender decision:** prod builds static SEO HTML (`PRERENDER=1` + Chrome). The image skips it → SEO impact. Options: (a) accept client-render, (b) add Chrome to a prod image, (c) run prerender in CI. 
-- [ ] 🤖 Create the Render web service (image from `main`, or source build) with the prod env; **disable in-process cron on the parallel instance** so it doesn't double-run blog-publish/IMAP against the shared live Neon DB.
-- [ ] 🤖/🧑 Verify on the Render URL — site, admin, Stripe webhooks (repoint), mail, storage, calendar.
-- [ ] 🧑 **DNS cutover:** add custom domain in Render → update `www.newagefotografie.com` DNS → Render provisions SSL → decommission Heroku.
+**GATE 0:** tenant-zero live from a private image + IA read/write proven + entitlement stub working. ✅ → Phase 1.
 
 ---
 
@@ -98,7 +72,7 @@ Facts: prod on Heroku (Node buildpack, `main`, **Neon** DB); domain `www.newagef
 **Goal:** one command stands up a new customer instance; a clean first-run wizard personalises it.
 
 ### 2A. `provision-tenant` (Render API)
-- [ ] 🤖 Script: create Render web service from the private image in the customer's account → attach the tenant DB (Supabase / Neon / any Postgres) → set Bucket-A boot secrets → deploy → `bootstrap` → create admin → mint + register gated-service keys → return `{ url, admin creds }`.
+- [ ] 🤖 Script: create Render web service from the private image in the customer's account → attach Neon DB → set Bucket-A boot secrets → deploy → `bootstrap` → create admin → mint + register gated-service keys → return `{ url, admin creds }`.
 - [ ] 🧑 Provide a test customer Render token; we provision a second throwaway instance end-to-end.
 
 ### 2B. Onboarding wizard (build on the existing setup routes — don't greenfield)
@@ -145,4 +119,4 @@ Facts: prod on Heroku (Node buildpack, `main`, **Neon** DB); domain `www.newagef
 ---
 
 ## Immediate next action
-**Deploy tenant-zero (Gate 0D)** — see [TENANT_ZERO_RUNBOOK.md](TENANT_ZERO_RUNBOOK.md). 🧑 finish the **Supabase** project + the **read:packages** PAT → deploy a Render service from **`ghcr.io/siparrott/studioos-platform:v0.2.0`** (portable image) against the Supabase URL → `npm run bootstrap -- --demo` → connect IA. 🤖 standing by to adjust the image if the CI build surfaces anything.
+**Phase 0A + 0B.** You: create the private template repo, the private registry token, a Render API key, and a Neon DB for tenant-zero. Me: I'll write the Dockerfile + `bootstrap` script the moment the repo exists (or I can draft them here now against this codebase so they're ready to drop in). Tell me which and we start.

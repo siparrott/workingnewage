@@ -16,6 +16,7 @@ import {
   Wand2,
   BarChart3
 } from 'lucide-react';
+import { SITE } from '../../config/site';
 
 interface ThemeSettings {
   primaryColor: string;
@@ -433,7 +434,7 @@ const CustomizationPage: React.FC = () => {
                       <div className="h-8 w-8 bg-white rounded-full flex items-center justify-center mr-2">
                         <span style={{ color: themeSettings.primaryColor }}>NA</span>
                       </div>
-                      <span className="font-bold">New Age Fotografie</span>
+                      <span className="font-bold">{SITE.name}</span>
                     </div>
                   </div>
                   <div className="p-4 bg-white" style={{ fontFamily: themeSettings.fontFamily }}>
@@ -456,7 +457,7 @@ const CustomizationPage: React.FC = () => {
                     }`}
                     style={{ fontFamily: themeSettings.fontFamily }}
                   >
-                    © 2025 New Age Fotografie
+                    © 2025 {SITE.name}
                   </div>
                 </div>
               </div>

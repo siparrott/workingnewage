@@ -27,7 +27,7 @@ const router = express.Router();
 
 // OpenAI client
 const openai = process.env.OPENAI_API_KEY 
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' })
   : null;
 
 /**

@@ -9,6 +9,7 @@ import { useManualPageContent } from '../../hooks/useManualPageContent';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
 import { newageCopyMap } from '../../content/newageCopyMap';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 
 export default function TeamfotosWienPage() {
   const t = useManualPageContent('teamfotos');
@@ -61,7 +62,7 @@ export default function TeamfotosWienPage() {
         description={newageCopyMap['teamfotos-wien'].metaDescription}
         keywords="teamfotos wien, mitarbeiterfotos wien, team fotografie wien, corporate team shooting wien"
         canonical="/teamfotos-wien/"
-        ogImage="https://www.newagefotografie.com/images/team-hero.jpg"
+        ogImage={`${SITE.url}/images/team-hero.jpg`}
         hreflang={[
           { lang: 'de', url: '/teamfotos-wien/' },
           { lang: 'en', url: '/en/team-photos-vienna/' }
@@ -144,7 +145,7 @@ export default function TeamfotosWienPage() {
             <div className="prose prose-lg max-w-none">
               <p className="text-lg text-gray-700 leading-relaxed">
                 {language === 'de'
-                  ? 'Willkommen bei New Age Fotografie – Ihrem Partner für professionelle Teamfotos in Wien! Wir kommen mit mobilem Studio direkt zu Ihnen ins Unternehmen und erstellen einheitliche, markenkonforme Mitarbeiterportraits. Durchschnittlich 7–8 Minuten pro Person, inklusive Gruppenfoto und voller kommerzieller Nutzungsrechte.'
+                  ? `Willkommen bei ${SITE.name} – Ihrem Partner für professionelle Teamfotos in Wien! Wir kommen mit mobilem Studio direkt zu Ihnen ins Unternehmen und erstellen einheitliche, markenkonforme Mitarbeiterportraits. Durchschnittlich 7–8 Minuten pro Person, inklusive Gruppenfoto und voller kommerzieller Nutzungsrechte.`
                   : 'Welcome to New Age Photography – your partner for professional team photos in Vienna! We come with a mobile studio directly to your company and create consistent, brand-aligned employee portraits. An average of 7–8 minutes per person, including group photo and full commercial usage rights.'}
               </p>
               <p className="text-lg text-gray-700 leading-relaxed mt-4">

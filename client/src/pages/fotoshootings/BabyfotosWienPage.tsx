@@ -11,6 +11,7 @@ import { useManualPageContent } from '../../hooks/useManualPageContent';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
 import { newageCopyMap } from '../../content/newageCopyMap';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 
 export default function BabyfotosWienPage() {
   const navigate = useNavigate();
@@ -76,7 +77,7 @@ export default function BabyfotosWienPage() {
         description={newageCopyMap['babyfotos-wien'].metaDescription}
         keywords="babyfotos wien, babyfotografie wien, baby fotoshooting wien, babyfotograf wien"
         canonical="/babyfotos-wien/"
-        ogImage="https://www.newagefotografie.com/images/baby-hero.jpg"
+        ogImage={`${SITE.url}/images/baby-hero.jpg`}
         hreflang={[
           { lang: 'de', url: '/babyfotos-wien/' },
           { lang: 'en', url: '/en/baby-photos-vienna/' }
@@ -93,7 +94,7 @@ export default function BabyfotosWienPage() {
             "serviceType": "Babyfotografie",
             "provider": {
               "@type": "LocalBusiness",
-              "name": "New Age Fotografie",
+              "name": SITE.name,
               "areaServed": "Wien, Österreich"
             },
             "areaServed": {
@@ -660,7 +661,7 @@ export default function BabyfotosWienPage() {
       {/* Why New Age Section */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-8">{language === 'de' ? 'Warum New Age Fotografie?' : 'Why New Age Photography?'}</h2>
+          <h2 className="text-3xl font-bold text-center mb-8">{language === 'de' ? `Warum ${SITE.name}?` : 'Why New Age Photography?'}</h2>
           
           <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-white rounded-xl p-6 text-center">

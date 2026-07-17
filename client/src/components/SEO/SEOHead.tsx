@@ -1,4 +1,5 @@
 import { Helmet } from 'react-helmet-async';
+import { SITE } from '../../config/site';
 
 interface SEOProps {
   title: string;
@@ -19,13 +20,39 @@ export function SEOHead({
   description,
   keywords,
   canonical,
-  ogImage = 'https://www.newagefotografie.com/og-default.jpg',
+  ogImage = `${SITE.url}/og-default.jpg`,
   ogType = 'website',
   noindex = false,
   hreflang = []
 }: SEOProps) {
-  const siteUrl = 'https://www.newagefotografie.com';
+  const siteUrl = SITE.url;
   const fullCanonical = canonical ? `${siteUrl}${canonical}` : undefined;
+
+  // Build the LocalBusiness structured data from the tenant's identity,
+  // omitting any fields that aren't configured yet.
+  const hasAddress =
+    SITE.address.street || SITE.address.city || SITE.address.postalCode || SITE.address.country;
+  const structuredData: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'ProfessionalService',
+    name: SITE.name,
+    image: ogImage,
+    '@id': siteUrl,
+    url: siteUrl,
+    priceRange: '€€',
+  };
+  if (SITE.phone) structuredData.telephone = SITE.phone;
+  if (SITE.email) structuredData.email = SITE.email;
+  if (hasAddress) {
+    structuredData.address = {
+      '@type': 'PostalAddress',
+      ...(SITE.address.street ? { streetAddress: SITE.address.street } : {}),
+      ...(SITE.address.city ? { addressLocality: SITE.address.city } : {}),
+      ...(SITE.address.postalCode ? { postalCode: SITE.address.postalCode } : {}),
+      ...(SITE.address.country ? { addressCountry: SITE.address.country } : {}),
+    };
+  }
+  if (SITE.social.length) structuredData.sameAs = SITE.social;
 
   return (
     <Helmet>
@@ -34,28 +61,28 @@ export function SEOHead({
       <meta name="title" content={title} />
       <meta name="description" content={description} />
       {keywords && <meta name="keywords" content={keywords} />}
-      
+
       {/* Robots */}
       {noindex && <meta name="robots" content="noindex, nofollow" />}
-      
+
       {/* Canonical */}
       {fullCanonical && <link rel="canonical" href={fullCanonical} />}
-      
+
       {/* Open Graph / Facebook */}
       <meta property="og:type" content={ogType} />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       {fullCanonical && <meta property="og:url" content={fullCanonical} />}
       <meta property="og:image" content={ogImage} />
-      <meta property="og:site_name" content="New Age Fotografie" />
-      <meta property="og:locale" content="de_AT" />
-      
+      <meta property="og:site_name" content={SITE.name} />
+      <meta property="og:locale" content={SITE.locale} />
+
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={ogImage} />
-      
+
       {/* Hreflang for multilingual */}
       {hreflang.map((link) => (
         <link
@@ -65,43 +92,10 @@ export function SEOHead({
           href={`${siteUrl}${link.url}`}
         />
       ))}
-      
-      {/* Structured Data - Local Business */}
+
+      {/* Structured Data - Local Business (per-tenant) */}
       <script type="application/ld+json">
-        {JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "ProfessionalService",
-          "name": "New Age Fotografie",
-          "image": ogImage,
-          "@id": siteUrl,
-          "url": siteUrl,
-          "telephone": "+43 677 633 99210",
-          "priceRange": "€€",
-          "address": {
-            "@type": "PostalAddress",
-            "streetAddress": "Wehrgasse 11A/2+5",
-            "addressLocality": "Wien",
-            "postalCode": "1050",
-            "addressCountry": "AT"
-          },
-          "geo": {
-            "@type": "GeoCoordinates",
-            "latitude": 48.1943,
-            "longitude": 16.3541
-          },
-          "openingHoursSpecification": [
-            {
-              "@type": "OpeningHoursSpecification",
-              "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-              "opens": "09:00",
-              "closes": "18:00"
-            }
-          ],
-          "sameAs": [
-            "https://www.facebook.com/newagefotografie",
-            "https://www.instagram.com/newagefotografie"
-          ]
-        })}
+        {JSON.stringify(structuredData)}
       </script>
     </Helmet>
   );

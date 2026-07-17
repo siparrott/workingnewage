@@ -11,6 +11,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
 import { newageCopyMap } from '../../content/newageCopyMap';
+import { SITE } from '../../config/site';
 
 export default function SchwangerschaftsfotosWienPage() {
   const { language } = useLanguage();
@@ -63,7 +64,7 @@ export default function SchwangerschaftsfotosWienPage() {
         description={newageCopyMap['schwangerschaftsfotos-wien'].metaDescription}
         keywords={t('maternity.seo.keywords')}
         canonical="/schwangerschaftsfotos-wien/"
-        ogImage="https://www.newagefotografie.com/images/maternity-hero.jpg"
+        ogImage={`${SITE.url}/images/maternity-hero.jpg`}
         hreflang={[
           { lang: 'de', url: '/schwangerschaftsfotos-wien/' },
           { lang: 'en', url: '/en/maternity-photography-vienna/' }
@@ -147,7 +148,7 @@ export default function SchwangerschaftsfotosWienPage() {
             <div className="prose prose-lg max-w-none">
               <p className="text-lg text-gray-700 leading-relaxed">
                 {language === 'de'
-                  ? 'Willkommen bei New Age Fotografie – Ihrem Partner für emotionale Schwangerschaftsfotos in Wien! Unser Studio bietet den perfekten Rahmen für stilvolle Babybauch-Portraits. Ob klassisch, natürlich oder kreativ – wir nehmen uns Zeit für authentische Momente.'
+                  ? `Willkommen bei ${SITE.name} – Ihrem Partner für emotionale Schwangerschaftsfotos in Wien! Unser Studio bietet den perfekten Rahmen für stilvolle Babybauch-Portraits. Ob klassisch, natürlich oder kreativ – wir nehmen uns Zeit für authentische Momente.`
                   : 'Welcome to New Age Photography – your partner for emotional maternity photos in Vienna! Our studio provides the perfect setting for stylish baby bump portraits. Whether classic, natural, or creative – we take time for authentic moments.'}
               </p>
               <p className="text-lg text-gray-700 leading-relaxed mt-4">

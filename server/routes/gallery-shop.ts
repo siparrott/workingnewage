@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { neon } from '@neondatabase/serverless';
+import { neon } from '../db-compat.js';
 
 const router = Router();
 const sql = neon(process.env.DATABASE_URL!);
@@ -9,7 +9,7 @@ const sql = neon(process.env.DATABASE_URL!);
 router.get('/print-catalog', async (req, res) => {
   try {
     // For now, use a default studio ID - in production this would come from auth
-    const studioId = '550e8400-e29b-41d4-a716-446655440000';
+    const studioId = (process.env.STUDIO_ID || '550e8400-e29b-41d4-a716-446655440000');
     
     const products = await sql`
       SELECT id, sku, name, base_price, unit, variant_json, is_active
@@ -40,7 +40,7 @@ const checkoutSchema = z.object({
 router.post('/checkout', async (req, res) => {
   try {
     const data = checkoutSchema.parse(req.body);
-    const studioId = '550e8400-e29b-41d4-a716-446655440000';
+    const studioId = (process.env.STUDIO_ID || '550e8400-e29b-41d4-a716-446655440000');
 
     // 1. Fetch product prices
     const skus = data.items.map(i => i.product_sku);
@@ -119,7 +119,7 @@ router.post('/checkout', async (req, res) => {
 router.get('/orders/:galleryId', async (req, res) => {
   try {
     const { galleryId } = req.params;
-    const studioId = '550e8400-e29b-41d4-a716-446655440000';
+    const studioId = (process.env.STUDIO_ID || '550e8400-e29b-41d4-a716-446655440000');
 
     const orders = await sql`
       SELECT 

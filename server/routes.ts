@@ -598,7 +598,7 @@ async function generateModernInvoicePDF(invoice: any, client: any): Promise<Buff
   
   // Try to fetch dynamic studio configuration
   try {
-    const studioId = '550e8400-e29b-41d4-a716-446655440000'; // Default demo studio ID
+    const studioId = (process.env.STUDIO_ID || '550e8400-e29b-41d4-a716-446655440000'); // Default demo studio ID
     const language = 'de';
     
     // Fetch site settings (logo) - with error handling
@@ -2106,7 +2106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Transcribing audio file:', audioFile.originalname, 'Size:', audioFile.size, 'bytes');
 
       const OpenAI = (await import('openai')).default;
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
 
       // Create a temporary file for OpenAI Whisper API
       const fs = await import('fs');
@@ -2204,7 +2204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Use the actual Phase B agent system
-      const studioId = '550e8400-e29b-41d4-a716-446655440000'; // Valid UUID
+      const studioId = (process.env.STUDIO_ID || '550e8400-e29b-41d4-a716-446655440000'); // Valid UUID
       const userId = '550e8400-e29b-41d4-a716-446655440001';
       
       // Import runAgent dynamically to avoid module loading issues
@@ -2886,7 +2886,7 @@ Bitte versuchen Sie es später noch einmal.`;
         title: post.title,
         excerpt: out.excerpt || post.excerpt || undefined,
         body: htmlWithImages,
-        url: `https://www.newagefotografie.com/blog/${post.slug}`,
+        url: `${process.env.PUBLIC_SITE_URL || 'https://www.newagefotografie.com'}/blog/${post.slug}`,
         pillar: req.body?.pillar,
       });
       const ideaWithSocial = {
@@ -2927,7 +2927,7 @@ Bitte versuchen Sie es später noch einmal.`;
         title: post.title,
         excerpt: post.excerpt || undefined,
         body: post.contentHtml || post.content || undefined,
-        url: `https://www.newagefotografie.com/blog/${post.slug}`,
+        url: `${process.env.PUBLIC_SITE_URL || 'https://www.newagefotografie.com'}/blog/${post.slug}`,
         pillar: (post.tags || [])[0],
       });
 
@@ -6587,7 +6587,7 @@ Bitte versuchen Sie es später noch einmal.`;
     };
     
     try {
-      const studioId = req.query.studioId as string || '550e8400-e29b-41d4-a716-446655440000';
+      const studioId = req.query.studioId as string || (process.env.STUDIO_ID || '550e8400-e29b-41d4-a716-446655440000');
       const language = (req.query.language as string) || 'de';
       
       // Try to fetch site settings (logo) if table exists
@@ -12621,7 +12621,7 @@ ${getBizName()} CRM System
   
   // Voucher Products Routes
   // ==================== IMAGE UPLOAD ROUTES ====================
-  app.post("/api/upload/image", authenticateUser, upload.single('file'), async (req: Request, res: Response) => {
+  app.post("/api/upload/image", authOrApiKey('media:write'), upload.single('file'), async (req: Request, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
@@ -17015,7 +17015,7 @@ Was interessiert Sie am meisten?`;
       const { BLOG_ASSISTANT, DEBUG_OPENAI } = await import('./config');
       
       // Initialize OpenAI Assistant API with debug logging
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
       
       if (DEBUG_OPENAI) {
         // Some OpenAI client implementations may not expose these properties in types
@@ -17979,7 +17979,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
   });
 
   // POST unpublish landing page
-  app.post("/api/admin/landing-pages/:id/unpublish", authenticateUser, async (req: Request, res: Response) => {
+  app.post("/api/admin/landing-pages/:id/unpublish", authOrApiKey('landing-pages:write'), async (req: Request, res: Response) => {
     try {
       const updated = await neonDb.updateLandingPage(req.params.id, {
         status: 'draft',
@@ -18039,13 +18039,35 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
   });
 
   // GET landing page revisions
-  app.get("/api/admin/landing-pages/:id/revisions", authenticateUser, async (req: Request, res: Response) => {
+  app.get("/api/admin/landing-pages/:id/revisions", authOrApiKey('landing-pages:write'), async (req: Request, res: Response) => {
     try {
       const revisions = await neonDb.getLandingPageRevisions(req.params.id);
       res.json(revisions);
     } catch (error) {
       console.error('Error fetching revisions:', error);
       res.status(500).json({ error: 'Failed to fetch revisions' });
+    }
+  });
+
+  // POST restore a landing-page revision (rollback safety net for autonomous publishers)
+  app.post("/api/admin/landing-pages/:id/revisions/:revisionId/restore", authOrApiKey('landing-pages:write'), async (req: Request, res: Response) => {
+    try {
+      const revisions = await neonDb.getLandingPageRevisions(req.params.id);
+      const rev = (revisions || []).find((r: any) => String(r.id) === String(req.params.revisionId));
+      if (!rev) return res.status(404).json({ error: 'Revision not found' });
+      // Snapshot current content first, so the restore itself is reversible.
+      const current = await neonDb.getLandingPage(req.params.id);
+      if (current) {
+        await neonDb.createLandingPageRevision(current.id, current.content_json, current.generation_context_json, (req as any).user?.id || 'restore');
+      }
+      const updated = await neonDb.updateLandingPage(req.params.id, {
+        content_json: rev.content_json,
+        generation_context_json: rev.generation_context_json,
+      });
+      res.json({ success: true, restoredFromVersion: rev.version_number, page: updated });
+    } catch (error) {
+      console.error('Error restoring revision:', error);
+      res.status(500).json({ error: 'Failed to restore revision' });
     }
   });
 
@@ -18062,7 +18084,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
   });
 
   // POST check slug availability
-  app.post("/api/admin/landing-pages/check-slug", authenticateUser, async (req: Request, res: Response) => {
+  app.post("/api/admin/landing-pages/check-slug", authOrApiKey('landing-pages:write'), async (req: Request, res: Response) => {
     try {
       const { slug, excludeId } = req.body;
       if (!slug) return res.status(400).json({ error: 'Slug is required' });
@@ -18080,7 +18102,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
       const context = req.body;
       
       const OpenAI = (await import('openai')).default;
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
 
       const systemPrompt = `You are an expert landing page copywriter specializing in photography studios and creative businesses. You write high-converting, emotionally compelling landing page copy that balances warmth with persuasion.
 
@@ -18212,7 +18234,7 @@ ${context.extras || ''}`;
       const { section, context, currentContent } = req.body;
       
       const OpenAI = (await import('openai')).default;
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
 
       const completion = await openai.chat.completions.create({
         model: process.env.OPENAI_LANDING_MODEL || process.env.OPENAI_PRICE_MODEL || 'gpt-4o-mini',
@@ -18256,7 +18278,7 @@ ${context.extras || ''}`;
       const customPart = customInstruction ? `\nAdditional instruction: ${customInstruction}` : '';
 
       const OpenAI = (await import('openai')).default;
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
 
       const completion = await openai.chat.completions.create({
         model: process.env.OPENAI_LANDING_MODEL || process.env.OPENAI_PRICE_MODEL || 'gpt-4o-mini',
@@ -18308,7 +18330,7 @@ ${context.extras || ''}`;
   });
 
   // GET analytics for a single landing page
-  app.get("/api/admin/landing-pages/:id/analytics", authenticateUser, async (req: Request, res: Response) => {
+  app.get("/api/admin/landing-pages/:id/analytics", authOrApiKey('analytics:read'), async (req: Request, res: Response) => {
     try {
       const days = parseInt(req.query.days as string) || 30;
       const analytics = await neonDb.getLandingPageAnalytics(req.params.id, days);
@@ -18403,7 +18425,7 @@ ${context.extras || ''}`;
       const content = typeof page.content_json === 'string' ? JSON.parse(page.content_json) : page.content_json;
 
       const OpenAI = (await import('openai')).default;
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
 
       const pageContext = `
 Page: "${page.name}"

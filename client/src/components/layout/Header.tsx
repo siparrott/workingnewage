@@ -26,7 +26,7 @@ const Header: React.FC = () => {
   const tSite = useManualPageContent('site-settings');
   const customLogo = tSite('site.logo');
   const logoUrl = dbLogo
-    || (customLogo && customLogo !== 'site.logo' ? customLogo : '/frontend-logo.jpg');
+    || (customLogo && customLogo !== 'site.logo' ? customLogo : (SITE.logo || '/frontend-logo.jpg'));
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
@@ -78,9 +78,9 @@ const Header: React.FC = () => {
     <header className="bg-white shadow-sm sticky top-0 z-50 relative">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <Link to="/" className="flex items-center">
-          <img 
-            src={logoUrl} 
-            alt="New Age Fotografie"
+          <img
+            src={logoUrl}
+            alt={SITE.name}
             className="h-24 w-auto"
           />
         </Link>

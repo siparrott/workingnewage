@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { BLOG_ASSISTANT, getAssistantInstructions } from './config';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
 
 /**
  * Fixed AutoBlog generation using proper Assistant API calls (no fetch() bypass)

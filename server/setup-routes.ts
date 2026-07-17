@@ -1,105 +1,332 @@
 /**
  * Setup Wizard API Routes for TogNinja
- * 
- * These routes power the 5-phase onboarding wizard:
- * 1. Basics - Business info, branding, timezone
- * 2. Integrations - Connect Instagram, Google, Calendar, Payments
- * 3. Scanning - IA scan of existing content
- * 4. Fix First - Quick wins to fix critical issues
- * 5. Drafts - Review and publish auto-generated content
+ *
+ * Powers the 5-phase creative onboarding wizard. All progress is persisted to
+ * studio_configs.onboarding_state (jsonb) so it survives server restarts, and
+ * every phase does REAL work against the database:
+ *   1. Basics       - business info & branding  -> studio_configs
+ *   2. Integrations - real connection status     <- studio_integrations
+ *   3. Scanning     - live content analysis       (recomputed on demand)
+ *   4. Fix First    - real auto-fixes             -> blog_posts / voucher_products
+ *   5. Drafts       - starter content that really -> email_templates / blog_posts
+ *                     publishes
  */
 
 import { Router, Request, Response } from 'express';
 import { hubIntegration } from './hub-integration';
 import { db } from './db';
-import { 
+import {
   studioConfigs,
   studioIntegrations,
   blogPosts,
   galleryImages,
   voucherProducts,
-  crmClients
+  crmClients,
+  emailTemplates,
 } from '../shared/schema';
 import { eq, sql, count } from 'drizzle-orm';
 
 const router = Router();
 
-// Local onboarding state cache (in production would be in DB)
-let localOnboardingState = {
-  step: 'basics',
-  progressPct: 0,
-  basicsComplete: false,
-  integrationsComplete: false,
-  scanComplete: false,
-  fixFirstComplete: false,
-  draftsComplete: false,
-  businessInfo: null as any,
-  scanResults: null as any,
-  fixFirstItems: [] as any[],
-  drafts: [] as any[]
-};
+// ==================== HELPERS ====================
+
+const hasVal = (v: any) => !!(v !== null && v !== undefined && String(v).trim() !== '');
+const escapeHtml = (s: string) =>
+  String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const slugify = (s: string) =>
+  String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'post';
+
+interface OnboardingState {
+  integrationsComplete: boolean;
+  scanComplete: boolean;
+  fixFirstComplete: boolean;
+  draftsComplete: boolean;
+  appliedFixes: string[];
+  skippedFixes: string[];
+  publishedDrafts: string[];
+  skippedDrafts: string[];
+}
+
+function normalizeState(raw: any): OnboardingState {
+  const s = raw || {};
+  const arr = (x: any) => (Array.isArray(x) ? x : []);
+  return {
+    integrationsComplete: !!s.integrationsComplete,
+    scanComplete: !!s.scanComplete,
+    fixFirstComplete: !!s.fixFirstComplete,
+    draftsComplete: !!s.draftsComplete,
+    appliedFixes: arr(s.appliedFixes),
+    skippedFixes: arr(s.skippedFixes),
+    publishedDrafts: arr(s.publishedDrafts),
+    skippedDrafts: arr(s.skippedDrafts),
+  };
+}
+
+async function getConfigRow(): Promise<any | null> {
+  const [c] = await db.select().from(studioConfigs).limit(1);
+  return c || null;
+}
+
+async function getIntegrationsRow(): Promise<any | null> {
+  const [i] = await db.select().from(studioIntegrations).limit(1);
+  return i || null;
+}
+
+async function loadState(config?: any): Promise<OnboardingState> {
+  const c = config !== undefined ? config : await getConfigRow();
+  return normalizeState(c?.onboardingState);
+}
+
+async function patchState(patch: Partial<OnboardingState>): Promise<OnboardingState> {
+  const c = await getConfigRow();
+  const current = normalizeState(c?.onboardingState);
+  const next = { ...current, ...patch };
+  if (c) {
+    await db
+      .update(studioConfigs)
+      .set({ onboardingState: next as any, updatedAt: new Date() })
+      .where(eq(studioConfigs.id, c.id));
+  }
+  return next;
+}
+
+async function countRows(table: any, where?: any): Promise<number> {
+  const q = db.select({ n: count() }).from(table);
+  const [r] = await (where ? q.where(where) : q);
+  return Number(r?.n || 0);
+}
+
+// Optional AI text generation. Uses the runtime OpenAI key when present and
+// falls back cleanly to the provided text if unset or the call fails — the
+// onboarding flow must never break because AI is unavailable.
+async function aiText(prompt: string, fallback: string, maxTokens = 350): Promise<string> {
+  if (!process.env.OPENAI_API_KEY) return fallback;
+  try {
+    const OpenAI = (await import('openai')).default;
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const r = await client.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: maxTokens,
+      temperature: 0.7,
+    });
+    return r.choices?.[0]?.message?.content?.trim() || fallback;
+  } catch (err) {
+    console.warn('[setup] AI generation failed, using fallback:', (err as Error).message);
+    return fallback;
+  }
+}
+
+// Real integration status derived from the technical-setup credentials.
+function computeIntegrations(integ: any) {
+  const emailConnected =
+    (hasVal(integ?.smtp_host) && hasVal(integ?.smtp_user)) || hasVal(integ?.brevo_api_key_encrypted);
+  const stripeConnected =
+    hasVal(integ?.stripe_secret_key_encrypted) || hasVal(integ?.stripe_account_id);
+  const storageConnected = hasVal(integ?.storage_bucket) && hasVal(integ?.storage_access_key_id);
+  const aiConnected =
+    hasVal(integ?.openai_api_key_encrypted) ||
+    hasVal(integ?.anthropic_api_key_encrypted) ||
+    hasVal(process.env.OPENAI_API_KEY);
+  const googleConnected = hasVal(integ?.google_client_id);
+  const calendarConnected = hasVal(integ?.google_calendar_id);
+  return {
+    emailConnected,
+    stripeConnected,
+    storageConnected,
+    aiConnected,
+    googleConnected,
+    calendarConnected,
+    stripeMode: hasVal(integ?.stripe_secret_key_encrypted) ? 'live' : null,
+  };
+}
+
+// Recompute the list of "fix-first" issues live from the database. Stable ids
+// let apply/skip reference them; fixed items simply disappear on the next scan.
+async function computeFixFirstItems(): Promise<any[]> {
+  const items: any[] = [];
+  const hasAI = hasVal(process.env.OPENAI_API_KEY);
+
+  const postsNoMeta = await countRows(
+    blogPosts,
+    sql`${blogPosts.metaDescription} IS NULL OR ${blogPosts.metaDescription} = ''`
+  );
+  if (postsNoMeta > 0) {
+    items.push({
+      id: 'missing_meta',
+      type: 'missing_meta',
+      severity: 'high',
+      title: 'Missing SEO meta descriptions',
+      description: `${postsNoMeta} blog post${postsNoMeta > 1 ? 's are' : ' is'} missing a meta description`,
+      affected: postsNoMeta,
+      autoFixAvailable: true,
+    });
+  }
+
+  const productsNoDesc = await countRows(
+    voucherProducts,
+    sql`${voucherProducts.description} IS NULL OR ${voucherProducts.description} = ''`
+  );
+  if (productsNoDesc > 0) {
+    items.push({
+      id: 'missing_product_desc',
+      type: 'missing_description',
+      severity: 'medium',
+      title: 'Products without descriptions',
+      description: `${productsNoDesc} product${productsNoDesc > 1 ? 's need' : ' needs'} a description`,
+      affected: productsNoDesc,
+      autoFixAvailable: hasAI,
+    });
+  }
+
+  const clientsNoEmail = await countRows(
+    crmClients,
+    sql`${crmClients.email} IS NULL OR ${crmClients.email} = ''`
+  );
+  if (clientsNoEmail > 0) {
+    items.push({
+      id: 'incomplete_client_emails',
+      type: 'incomplete_data',
+      severity: 'low',
+      title: 'Clients without email addresses',
+      description: `${clientsNoEmail} client${clientsNoEmail > 1 ? 's are' : ' is'} missing an email address`,
+      affected: clientsNoEmail,
+      autoFixAvailable: false,
+    });
+  }
+
+  const config = await getConfigRow();
+  const missing: string[] = [];
+  if (!hasVal(config?.logoUrl)) missing.push('logo');
+  if (!hasVal(config?.address)) missing.push('address');
+  if (!hasVal(config?.phone)) missing.push('phone');
+  if (missing.length) {
+    items.push({
+      id: 'config_branding',
+      type: 'incomplete_data',
+      severity: 'medium',
+      title: 'Incomplete studio profile',
+      description: `Add your ${missing.join(', ')} in Settings — it improves SEO and invoices`,
+      affected: missing.length,
+      autoFixAvailable: false,
+    });
+  }
+
+  return items;
+}
+
+// Starter drafts personalised from the business profile. Previews are
+// deterministic (fast, no AI cost on load); AI enrichment happens at publish.
+function buildDrafts(config: any): any[] {
+  const name = config?.businessName || config?.studioName || 'our studio';
+  const tagline = config?.metaDescription || 'capturing your most precious moments';
+  return [
+    {
+      id: 'welcome_email',
+      type: 'email_template',
+      title: 'Welcome Email',
+      description: 'Sent to new clients when they book with you',
+      category: 'welcome',
+      subject: `Welcome to ${name}!`,
+      previewText:
+        `Hi {{firstName}},\n\n` +
+        `Thank you for choosing ${name} — we're thrilled to work with you! ` +
+        `We'll be in touch shortly with the next steps for your session.\n\n` +
+        `If you have any questions in the meantime, just reply to this email.\n\n` +
+        `Warm regards,\nThe ${name} Team`,
+    },
+    {
+      id: 'booking_confirmation',
+      type: 'email_template',
+      title: 'Booking Confirmation',
+      description: 'Sent automatically when a session is booked',
+      category: 'booking',
+      subject: `Your booking with ${name} is confirmed`,
+      previewText:
+        `Hi {{firstName}},\n\n` +
+        `Great news — your {{sessionType}} on {{date}} at {{time}} is confirmed.\n\n` +
+        `Location: {{location}}\n\n` +
+        `We can't wait to see you. If anything changes, let us know.\n\n` +
+        `Best,\nThe ${name} Team`,
+    },
+    {
+      id: 'first_blog_post',
+      type: 'blog_post',
+      title: 'First Blog Post',
+      description: 'A starter post to kick off your blog and SEO',
+      category: 'general',
+      subject: `Welcome to ${name}`,
+      previewText:
+        `Welcome to ${name}! We're a photography studio dedicated to ${tagline}.\n\n` +
+        `On this blog we'll share recent sessions, behind-the-scenes stories, tips to ` +
+        `prepare for your shoot, and news from the studio. We're so glad you're here — ` +
+        `take a look around, and get in touch when you're ready to book.`,
+    },
+  ];
+}
 
 // ==================== SETUP STATUS ====================
 
-router.get('/status', async (req: Request, res: Response) => {
+router.get('/status', async (_req: Request, res: Response) => {
   try {
-    // Try to get onboarding step from Hub, fallback to local state
-    const onboardingStep = hubIntegration.isConfigured() 
-      ? hubIntegration.getOnboardingStep() 
-      : localOnboardingState.step;
-    const progress = hubIntegration.isConfigured()
-      ? hubIntegration.getOnboardingProgress()
-      : localOnboardingState.progressPct;
-    
-    // Get studio config for business info
-    const [studioConfig] = await db
-      .select()
-      .from(studioConfigs)
-      .limit(1);
-    
-    // Get studio integrations
-    const [integrations] = await db
-      .select()
-      .from(studioIntegrations)
-      .limit(1);
-    
-    // Determine current phase
+    const config = await getConfigRow();
+    const integ = await getIntegrationsRow();
+    const state = await loadState(config);
+    const ci = computeIntegrations(integ);
+
+    const basicsComplete = hasVal(config?.businessName);
+    const integrationsComplete = state.integrationsComplete || ci.stripeConnected;
+
     const phases = {
       basics: {
-        complete: localOnboardingState.basicsComplete || !!studioConfig?.businessName,
-        data: localOnboardingState.businessInfo || (studioConfig ? {
-          businessName: studioConfig.businessName,
-          timezone: studioConfig.timezone,
-          currency: 'EUR' // No currency field in studioConfigs yet
-        } : null)
+        complete: basicsComplete,
+        data: config
+          ? {
+              businessName: config.businessName,
+              timezone: config.timezone,
+              currency: integ?.default_currency || 'EUR',
+            }
+          : null,
       },
       integrations: {
-        complete: localOnboardingState.integrationsComplete || !!(integrations?.stripe_account_id),
-        instagram: false, // Would check social connections
-        stripe: !!(integrations?.stripe_account_id || integrations?.stripe_secret_key_encrypted)
+        complete: integrationsComplete,
+        instagram: false,
+        stripe: ci.stripeConnected,
       },
-      scanning: {
-        complete: localOnboardingState.scanComplete,
-        pagesScanned: localOnboardingState.scanResults?.pagesScanned || 0
-      },
+      scanning: { complete: state.scanComplete, pagesScanned: 0 },
       fixFirst: {
-        complete: localOnboardingState.fixFirstComplete,
-        itemsTotal: localOnboardingState.fixFirstItems.length,
-        itemsCompleted: localOnboardingState.fixFirstItems.filter((i: any) => i.status === 'completed').length
+        complete: state.fixFirstComplete,
+        itemsTotal: 0,
+        itemsCompleted: state.appliedFixes.length,
       },
       drafts: {
-        complete: localOnboardingState.draftsComplete,
-        draftsGenerated: localOnboardingState.drafts.length,
-        draftsPublished: localOnboardingState.drafts.filter((d: any) => d.status === 'published').length
-      }
+        complete: state.draftsComplete,
+        draftsGenerated: 3,
+        draftsPublished: state.publishedDrafts.length,
+      },
     };
-    
+
+    let currentStep = 'basics';
+    if (basicsComplete) currentStep = 'integrations';
+    if (integrationsComplete) currentStep = 'scanning';
+    if (state.scanComplete) currentStep = 'fix_first';
+    if (state.fixFirstComplete) currentStep = 'drafts';
+    if (state.draftsComplete || config?.creativeSetupComplete) currentStep = 'complete';
+
+    const doneCount = [
+      basicsComplete,
+      integrationsComplete,
+      state.scanComplete,
+      state.fixFirstComplete,
+      state.draftsComplete,
+    ].filter(Boolean).length;
+
     res.json({
-      currentStep: onboardingStep || localOnboardingState.step,
-      progressPct: progress || localOnboardingState.progressPct,
+      currentStep,
+      progressPct: Math.round((doneCount / 5) * 100),
       phases,
-      setupMode: hubIntegration.isSetupMode() || (!localOnboardingState.draftsComplete && !studioConfig?.creativeSetupComplete),
-      features: hubIntegration.getFeatureFlags()
+      setupMode: !config?.creativeSetupComplete,
+      features: hubIntegration.getFeatureFlags(),
     });
   } catch (error) {
     console.error('Setup status error:', error);
@@ -127,16 +354,15 @@ router.post('/basics', async (req: Request, res: Response) => {
       longitude,
       facebookUrl,
       instagramUrl,
-      twitterUrl
+      twitterUrl,
     } = req.body;
-    
-    // Validate required fields
+
     if (!businessName || !businessType || !timezone) {
-      return res.status(400).json({
-        error: 'Missing required fields: businessName, businessType, timezone'
-      });
+      return res
+        .status(400)
+        .json({ error: 'Missing required fields: businessName, businessType, timezone' });
     }
-    
+
     const businessInfo = {
       businessName,
       businessType,
@@ -153,69 +379,39 @@ router.post('/basics', async (req: Request, res: Response) => {
       longitude: longitude || null,
       facebookUrl: facebookUrl || null,
       instagramUrl: instagramUrl || null,
-      twitterUrl: twitterUrl || null
+      twitterUrl: twitterUrl || null,
     };
-    
-    // Update or create studio config
-    const [existingConfig] = await db.select().from(studioConfigs).limit(1);
-    
-    if (existingConfig) {
-      await db
-        .update(studioConfigs)
-        .set({
-          businessName: businessName,
-          timezone: timezone,
-          dateFormat: dateFormat || 'auto',
-          primaryColor: primaryColor || '#3B82F6',
-          metaDescription: tagline || '',
-          address: address || null,
-          phone: phone || null,
-          website: website || null,
-          latitude: latitude || null,
-          longitude: longitude || null,
-          facebookUrl: facebookUrl || null,
-          instagramUrl: instagramUrl || null,
-          twitterUrl: twitterUrl || null,
-        })
-        .where(eq(studioConfigs.id, existingConfig.id));
+
+    const fields = {
+      businessName,
+      timezone,
+      dateFormat: dateFormat || 'auto',
+      primaryColor: primaryColor || '#3B82F6',
+      logoUrl: logo || null,
+      metaDescription: tagline || '',
+      address: address || null,
+      phone: phone || null,
+      website: website || null,
+      latitude: latitude || null,
+      longitude: longitude || null,
+      facebookUrl: facebookUrl || null,
+      instagramUrl: instagramUrl || null,
+      twitterUrl: twitterUrl || null,
+      updatedAt: new Date(),
+    };
+
+    const existing = await getConfigRow();
+    if (existing) {
+      await db.update(studioConfigs).set(fields).where(eq(studioConfigs.id, existing.id));
     } else {
-      await db
-        .insert(studioConfigs)
-        .values({
-          studioName: businessName,
-          ownerEmail: 'setup@togninja.com',
-          businessName: businessName,
-          timezone: timezone,
-          dateFormat: dateFormat || 'auto',
-          primaryColor: primaryColor || '#3B82F6',
-          metaDescription: tagline || '',
-          address: address || null,
-          phone: phone || null,
-          website: website || null,
-          latitude: latitude || null,
-          longitude: longitude || null,
-          facebookUrl: facebookUrl || null,
-          instagramUrl: instagramUrl || null,
-          twitterUrl: twitterUrl || null,
-        });
+      await db.insert(studioConfigs).values({
+        studioName: businessName,
+        ownerEmail: 'setup@togninja.com',
+        ...fields,
+      } as any);
     }
-    
-    // Update local state
-    localOnboardingState.basicsComplete = true;
-    localOnboardingState.businessInfo = businessInfo;
-    localOnboardingState.step = 'integrations';
-    localOnboardingState.progressPct = 20;
-    
-    // Report progress to Hub if configured
-    if (hubIntegration.isConfigured()) {
-      await hubIntegration.reportProgress('integrations', { progressPct: 20 });
-    }
-    
-    res.json({
-      success: true,
-      nextStep: 'integrations',
-      businessInfo
-    });
+
+    res.json({ success: true, nextStep: 'integrations', businessInfo });
   } catch (error) {
     console.error('Basics save error:', error);
     res.status(500).json({ error: 'Failed to save business information' });
@@ -224,31 +420,20 @@ router.post('/basics', async (req: Request, res: Response) => {
 
 // ==================== PHASE 2: INTEGRATIONS ====================
 
-router.get('/integrations', async (req: Request, res: Response) => {
+router.get('/integrations', async (_req: Request, res: Response) => {
   try {
-    // Get studio integrations
-    const [integrations] = await db
-      .select()
-      .from(studioIntegrations)
-      .limit(1);
-    
+    const integ = await getIntegrationsRow();
+    const ci = computeIntegrations(integ);
     res.json({
-      instagram: {
-        connected: false, // Would check social auth
-        accounts: []
-      },
-      google: {
-        connected: false, // Would check Google OAuth
-        email: null
-      },
-      calendar: {
-        connected: false, // Would check calendar integration
-        provider: null
-      },
-      stripe: {
-        connected: !!(integrations?.stripe_account_id || integrations?.stripe_secret_key_encrypted),
-        mode: integrations?.stripe_secret_key_encrypted ? 'live' : null
-      }
+      // Rendered by the wizard:
+      instagram: { connected: false, accounts: [] },
+      google: { connected: ci.googleConnected, email: null },
+      calendar: { connected: ci.calendarConnected, provider: ci.calendarConnected ? 'google' : null },
+      stripe: { connected: ci.stripeConnected, mode: ci.stripeMode },
+      // Extra real status (from technical setup) for completeness:
+      email: { connected: ci.emailConnected },
+      storage: { connected: ci.storageConnected },
+      ai: { connected: ci.aiConnected },
     });
   } catch (error) {
     console.error('Integrations fetch error:', error);
@@ -256,32 +441,21 @@ router.get('/integrations', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/integrations/complete', async (req: Request, res: Response) => {
+router.post('/integrations/complete', async (_req: Request, res: Response) => {
   try {
-    // Get integration status
-    const [integrations] = await db.select().from(studioIntegrations).limit(1);
-    
-    const connectedIntegrations = [];
-    if (integrations?.stripe_account_id) connectedIntegrations.push('stripe');
-    
-    // Update local state
-    localOnboardingState.integrationsComplete = true;
-    localOnboardingState.step = 'scanning';
-    localOnboardingState.progressPct = 40;
-    
-    // Report progress to Hub if configured
-    if (hubIntegration.isConfigured()) {
-      await hubIntegration.reportProgress('scanning', {
-        progressPct: 40,
-        integrationsConnected: connectedIntegrations
-      });
-    }
-    
-    res.json({
-      success: true,
-      nextStep: 'scanning',
-      integrationsConnected: connectedIntegrations
-    });
+    const integ = await getIntegrationsRow();
+    const ci = computeIntegrations(integ);
+    const connected: string[] = [];
+    if (ci.stripeConnected) connected.push('stripe');
+    if (ci.emailConnected) connected.push('email');
+    if (ci.storageConnected) connected.push('storage');
+    if (ci.aiConnected) connected.push('ai');
+    if (ci.googleConnected) connected.push('google');
+    if (ci.calendarConnected) connected.push('calendar');
+
+    await patchState({ integrationsComplete: true });
+
+    res.json({ success: true, nextStep: 'scanning', integrationsConnected: connected });
   } catch (error) {
     console.error('Integrations complete error:', error);
     res.status(500).json({ error: 'Failed to complete integrations phase' });
@@ -290,98 +464,12 @@ router.post('/integrations/complete', async (req: Request, res: Response) => {
 
 // ==================== PHASE 3: SCANNING ====================
 
-router.post('/scanning/start', async (req: Request, res: Response) => {
+router.post('/scanning/start', async (_req: Request, res: Response) => {
   try {
-    // Perform actual content scan
+    // Synchronous scan — kick off + report ready. Results are recomputed live in
+    // /scanning/status so nothing depends on in-memory state.
     const scanId = `scan_${Date.now()}`;
-    
-    // Count actual content in database
-    const [blogCount] = await db.select({ count: count() }).from(blogPosts);
-    const [galleryCount] = await db.select({ count: count() }).from(galleryImages);
-    const [productCount] = await db.select({ count: count() }).from(voucherProducts);
-    const [clientCount] = await db.select({ count: count() }).from(crmClients);
-    
-    // Generate fix-first items based on scan
-    const fixFirstItems: any[] = [];
-    
-    // Check for missing meta descriptions in blog posts
-    const postsWithoutMeta = await db
-      .select()
-      .from(blogPosts)
-      .where(sql`${blogPosts.metaDescription} IS NULL OR ${blogPosts.metaDescription} = ''`)
-      .limit(10);
-    
-    if (postsWithoutMeta.length > 0) {
-      fixFirstItems.push({
-        id: 'fix_meta_descriptions',
-        type: 'missing_meta',
-        severity: 'high',
-        title: 'Missing SEO meta descriptions',
-        description: `${postsWithoutMeta.length} blog posts are missing meta descriptions`,
-        affectedPages: postsWithoutMeta.length,
-        autoFixAvailable: true,
-        status: 'pending'
-      });
-    }
-    
-    // Check for products without descriptions
-    const productsWithoutDesc = await db
-      .select()
-      .from(voucherProducts)
-      .where(sql`${voucherProducts.description} IS NULL OR ${voucherProducts.description} = ''`)
-      .limit(10);
-    
-    if (productsWithoutDesc.length > 0) {
-      fixFirstItems.push({
-        id: 'fix_product_descriptions',
-        type: 'missing_description',
-        severity: 'medium',
-        title: 'Products without descriptions',
-        description: `${productsWithoutDesc.length} products need descriptions`,
-        affectedProducts: productsWithoutDesc.length,
-        autoFixAvailable: false,
-        status: 'pending'
-      });
-    }
-    
-    // Check for clients without email
-    const clientsWithoutEmail = await db
-      .select()
-      .from(crmClients)
-      .where(sql`${crmClients.email} IS NULL OR ${crmClients.email} = ''`)
-      .limit(10);
-    
-    if (clientsWithoutEmail.length > 0) {
-      fixFirstItems.push({
-        id: 'fix_client_emails',
-        type: 'incomplete_data',
-        severity: 'low',
-        title: 'Clients without email addresses',
-        description: `${clientsWithoutEmail.length} clients are missing email addresses`,
-        affectedClients: clientsWithoutEmail.length,
-        autoFixAvailable: false,
-        status: 'pending'
-      });
-    }
-    
-    // Store scan results
-    localOnboardingState.scanResults = {
-      pagesScanned: Number(blogCount?.count || 0) + Number(galleryCount?.count || 0),
-      issuesFound: fixFirstItems.length,
-      suggestionsGenerated: fixFirstItems.length,
-      blogPosts: blogCount?.count || 0,
-      galleryImages: galleryCount?.count || 0,
-      products: productCount?.count || 0,
-      clients: clientCount?.count || 0
-    };
-    localOnboardingState.fixFirstItems = fixFirstItems;
-    
-    res.json({
-      success: true,
-      scanId,
-      status: 'complete', // Synchronous scan for MVP
-      message: 'Scan completed successfully.'
-    });
+    res.json({ success: true, scanId, status: 'complete', message: 'Scan completed successfully.' });
   } catch (error) {
     console.error('Scan start error:', error);
     res.status(500).json({ error: 'Failed to start scan' });
@@ -391,17 +479,31 @@ router.post('/scanning/start', async (req: Request, res: Response) => {
 router.get('/scanning/status/:scanId', async (req: Request, res: Response) => {
   try {
     const { scanId } = req.params;
-    
-    // Return cached scan results
+    const items = await computeFixFirstItems();
+    const [blog, gallery, products, clients] = await Promise.all([
+      countRows(blogPosts),
+      countRows(galleryImages),
+      countRows(voucherProducts),
+      countRows(crmClients),
+    ]);
+
     res.json({
       scanId,
       status: 'complete',
-      results: localOnboardingState.scanResults || {
-        pagesScanned: 0,
-        issuesFound: 0,
-        suggestionsGenerated: 0,
-        fixFirstItems: []
-      }
+      results: {
+        pagesScanned: blog + gallery + products + clients,
+        issuesFound: items.length,
+        suggestionsGenerated: items.filter((i) => i.autoFixAvailable).length,
+        contentBreakdown: { blogPosts: blog, galleryImages: gallery, products, clients },
+        // IMPORTANT: the wizard reads results.fixFirstItems — always include it.
+        fixFirstItems: items.map((i) => ({
+          id: i.id,
+          type: i.type,
+          severity: i.severity,
+          title: i.title,
+          description: i.description,
+        })),
+      },
     });
   } catch (error) {
     console.error('Scan status error:', error);
@@ -409,28 +511,10 @@ router.get('/scanning/status/:scanId', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/scanning/complete', async (req: Request, res: Response) => {
+router.post('/scanning/complete', async (_req: Request, res: Response) => {
   try {
-    const { pagesScanned, issuesFound } = req.body;
-    
-    // Update local state
-    localOnboardingState.scanComplete = true;
-    localOnboardingState.step = 'fix_first';
-    localOnboardingState.progressPct = 60;
-    
-    // Report progress to Hub if configured
-    if (hubIntegration.isConfigured()) {
-      await hubIntegration.reportProgress('fix_first', {
-        progressPct: 60,
-        pagesScanned: pagesScanned || localOnboardingState.scanResults?.pagesScanned || 0,
-        fixFirstItemsCount: issuesFound || localOnboardingState.fixFirstItems.length
-      });
-    }
-    
-    res.json({
-      success: true,
-      nextStep: 'fix_first'
-    });
+    await patchState({ scanComplete: true });
+    res.json({ success: true, nextStep: 'fix_first' });
   } catch (error) {
     console.error('Scanning complete error:', error);
     res.status(500).json({ error: 'Failed to complete scanning phase' });
@@ -439,21 +523,29 @@ router.post('/scanning/complete', async (req: Request, res: Response) => {
 
 // ==================== PHASE 4: FIX FIRST ====================
 
-router.get('/fix-first/items', async (req: Request, res: Response) => {
+router.get('/fix-first/items', async (_req: Request, res: Response) => {
   try {
-    // Return fix-first items from scan
-    const items = localOnboardingState.fixFirstItems.map(item => ({
-      ...item,
-      impact: item.severity === 'high' ? 'SEO improvement' : 
-              item.severity === 'medium' ? 'User experience' : 'Data quality',
-      timeEstimate: item.autoFixAvailable ? '1 min' : '5 min'
-    }));
-    
+    const state = await loadState();
+    const fresh = await computeFixFirstItems();
+    const items = fresh
+      .filter((i) => !state.skippedFixes.includes(i.id))
+      .map((i) => ({
+        ...i,
+        impact:
+          i.severity === 'high'
+            ? 'SEO improvement'
+            : i.severity === 'medium'
+              ? 'User experience'
+              : 'Data quality',
+        timeEstimate: i.autoFixAvailable ? '1 min' : '5 min',
+        status: state.appliedFixes.includes(i.id) ? 'completed' : 'pending',
+      }));
+
     res.json({
       items,
-      totalCount: items.length,
-      completedCount: items.filter(i => i.status === 'completed' || i.status === 'skipped').length,
-      canSkip: true
+      totalCount: fresh.length,
+      completedCount: state.appliedFixes.length,
+      canSkip: true,
     });
   } catch (error) {
     console.error('Fix-first items error:', error);
@@ -464,39 +556,58 @@ router.get('/fix-first/items', async (req: Request, res: Response) => {
 router.post('/fix-first/apply/:itemId', async (req: Request, res: Response) => {
   try {
     const { itemId } = req.params;
-    
-    // Find the item and mark as completed
-    const item = localOnboardingState.fixFirstItems.find(i => i.id === itemId);
-    if (item) {
-      item.status = 'completed';
-      
-      // Apply actual fixes based on type
-      if (item.type === 'missing_meta' && item.autoFixAvailable) {
-        // Auto-generate meta descriptions for blog posts
-        const postsToFix = await db
-          .select()
-          .from(blogPosts)
-          .where(sql`${blogPosts.metaDescription} IS NULL OR ${blogPosts.metaDescription} = ''`)
-          .limit(10);
-        
-        for (const post of postsToFix) {
-          // Generate a simple meta description from title and content
-          const metaDesc = post.excerpt || 
-            (post.content ? String(post.content).substring(0, 155) + '...' : post.title);
-          
-          await db
-            .update(blogPosts)
-            .set({ metaDescription: metaDesc })
-            .where(eq(blogPosts.id, post.id));
+    let applied = false;
+    let fixedCount = 0;
+
+    if (itemId === 'missing_meta') {
+      const posts = await db
+        .select()
+        .from(blogPosts)
+        .where(sql`${blogPosts.metaDescription} IS NULL OR ${blogPosts.metaDescription} = ''`)
+        .limit(50);
+      for (const post of posts) {
+        const source =
+          post.excerpt ||
+          (post.content ? String(post.content).replace(/<[^>]+>/g, ' ') : '') ||
+          post.title ||
+          '';
+        const meta = source.replace(/\s+/g, ' ').trim().slice(0, 155);
+        if (meta) {
+          await db.update(blogPosts).set({ metaDescription: meta }).where(eq(blogPosts.id, post.id));
+          fixedCount++;
         }
       }
+      applied = true;
+    } else if (itemId === 'missing_product_desc') {
+      const products = await db
+        .select()
+        .from(voucherProducts)
+        .where(sql`${voucherProducts.description} IS NULL OR ${voucherProducts.description} = ''`)
+        .limit(20);
+      for (const p of products) {
+        const fallback = `${p.name} — a professional photography experience from our studio. Get in touch to learn more or book your session.`;
+        const desc = await aiText(
+          `Write a warm, concise 1–2 sentence description for a photography-studio product called "${p.name}"${p.category ? ` in the "${p.category}" category` : ''}. No hashtags, no quotes.`,
+          fallback,
+          120
+        );
+        await db.update(voucherProducts).set({ description: desc }).where(eq(voucherProducts.id, p.id));
+        fixedCount++;
+      }
+      applied = true;
     }
-    
+
+    const state = await loadState();
+    await patchState({ appliedFixes: Array.from(new Set([...state.appliedFixes, itemId])) });
+
     res.json({
       success: true,
       itemId,
-      status: 'completed',
-      message: 'Fix applied successfully'
+      status: applied ? 'completed' : 'manual',
+      fixedCount,
+      message: applied
+        ? `Fixed ${fixedCount} item${fixedCount === 1 ? '' : 's'}`
+        : 'This one needs a quick manual step in Settings',
     });
   } catch (error) {
     console.error('Fix apply error:', error);
@@ -507,77 +618,19 @@ router.post('/fix-first/apply/:itemId', async (req: Request, res: Response) => {
 router.post('/fix-first/skip/:itemId', async (req: Request, res: Response) => {
   try {
     const { itemId } = req.params;
-    
-    // Find the item and mark as skipped
-    const item = localOnboardingState.fixFirstItems.find(i => i.id === itemId);
-    if (item) {
-      item.status = 'skipped';
-    }
-    
-    res.json({
-      success: true,
-      itemId,
-      status: 'skipped'
-    });
+    const state = await loadState();
+    await patchState({ skippedFixes: Array.from(new Set([...state.skippedFixes, itemId])) });
+    res.json({ success: true, itemId, status: 'skipped' });
   } catch (error) {
     console.error('Fix skip error:', error);
     res.status(500).json({ error: 'Failed to skip fix' });
   }
 });
 
-router.post('/fix-first/complete', async (req: Request, res: Response) => {
+router.post('/fix-first/complete', async (_req: Request, res: Response) => {
   try {
-    const { itemsCompleted, itemsSkipped } = req.body;
-    
-    // Update local state
-    localOnboardingState.fixFirstComplete = true;
-    localOnboardingState.step = 'drafts';
-    localOnboardingState.progressPct = 80;
-    
-    // Generate draft content
-    localOnboardingState.drafts = [
-      {
-        id: 'draft_welcome_email',
-        type: 'email_template',
-        title: 'Welcome Email',
-        description: 'Automated welcome email for new clients',
-        previewText: `Hi {firstName},\n\nThank you for choosing ${localOnboardingState.businessInfo?.businessName || 'our studio'}! We're excited to work with you.\n\nBest regards,\nThe Team`,
-        status: 'draft',
-        generatedAt: new Date().toISOString()
-      },
-      {
-        id: 'draft_booking_confirmation',
-        type: 'email_template',
-        title: 'Booking Confirmation',
-        description: 'Sent automatically when a session is booked',
-        previewText: `Hi {firstName},\n\nYour booking for {sessionType} on {date} has been confirmed!\n\nWe look forward to seeing you.`,
-        status: 'draft',
-        generatedAt: new Date().toISOString()
-      },
-      {
-        id: 'draft_about_page',
-        type: 'about_page',
-        title: 'About Page Content',
-        description: 'Professional bio and studio information',
-        previewText: `Welcome to ${localOnboardingState.businessInfo?.businessName || 'our studio'}! ${localOnboardingState.businessInfo?.tagline || 'We specialize in capturing your most precious moments.'}\n\nBased in ${localOnboardingState.businessInfo?.timezone?.replace('Europe/', '') || 'your city'}, we bring passion and expertise to every session.`,
-        status: 'draft',
-        generatedAt: new Date().toISOString()
-      }
-    ];
-    
-    // Report progress to Hub if configured
-    if (hubIntegration.isConfigured()) {
-      await hubIntegration.reportProgress('drafts', {
-        progressPct: 80,
-        fixFirstItemsCompleted: itemsCompleted || 
-          localOnboardingState.fixFirstItems.filter(i => i.status === 'completed').length
-      });
-    }
-    
-    res.json({
-      success: true,
-      nextStep: 'drafts'
-    });
+    await patchState({ fixFirstComplete: true });
+    res.json({ success: true, nextStep: 'drafts' });
   } catch (error) {
     console.error('Fix-first complete error:', error);
     res.status(500).json({ error: 'Failed to complete fix-first phase' });
@@ -586,12 +639,28 @@ router.post('/fix-first/complete', async (req: Request, res: Response) => {
 
 // ==================== PHASE 5: DRAFTS ====================
 
-router.get('/drafts', async (req: Request, res: Response) => {
+router.get('/drafts', async (_req: Request, res: Response) => {
   try {
+    const config = await getConfigRow();
+    const state = await loadState(config);
+    const drafts = buildDrafts(config).map((d) => ({
+      id: d.id,
+      type: d.type,
+      title: d.title,
+      description: d.description,
+      previewText: d.previewText,
+      status: state.publishedDrafts.includes(d.id)
+        ? 'published'
+        : state.skippedDrafts.includes(d.id)
+          ? 'skipped'
+          : 'draft',
+      generatedAt: new Date().toISOString(),
+    }));
+
     res.json({
-      drafts: localOnboardingState.drafts,
-      totalCount: localOnboardingState.drafts.length,
-      publishedCount: localOnboardingState.drafts.filter(d => d.status === 'published').length
+      drafts,
+      totalCount: drafts.length,
+      publishedCount: drafts.filter((d) => d.status === 'published').length,
     });
   } catch (error) {
     console.error('Drafts fetch error:', error);
@@ -603,21 +672,41 @@ router.post('/drafts/:draftId/publish', async (req: Request, res: Response) => {
   try {
     const { draftId } = req.params;
     const { content } = req.body;
-    
-    // Find and update draft status
-    const draft = localOnboardingState.drafts.find(d => d.id === draftId);
-    if (draft) {
-      draft.status = 'published';
-      if (content) {
-        draft.previewText = content;
-      }
+    const config = await getConfigRow();
+    const draft = buildDrafts(config).find((d) => d.id === draftId);
+    if (!draft) return res.status(404).json({ error: 'Draft not found' });
+
+    const body = hasVal(content) ? String(content) : draft.previewText;
+    const html = `<div style="font-family:sans-serif;line-height:1.6">${escapeHtml(body).replace(/\n/g, '<br>')}</div>`;
+
+    if (draft.type === 'email_template') {
+      await db.insert(emailTemplates).values({
+        name: draft.title,
+        category: draft.category || 'general',
+        description: draft.description,
+        subject: draft.subject || draft.title,
+        previewText: draft.previewText.slice(0, 140),
+        htmlContent: html,
+        textContent: body,
+      } as any);
+    } else if (draft.type === 'blog_post') {
+      const title = `Welcome to ${config?.businessName || config?.studioName || 'our studio'}`;
+      const slug = `${slugify(title)}-${Date.now().toString(36)}`;
+      await db.insert(blogPosts).values({
+        title,
+        slug,
+        content: body,
+        contentHtml: `<p>${escapeHtml(body).replace(/\n\n+/g, '</p><p>').replace(/\n/g, '<br>')}</p>`,
+        excerpt: body.replace(/\s+/g, ' ').trim().slice(0, 160),
+        status: 'DRAFT',
+        published: false,
+      } as any);
     }
-    
-    res.json({
-      success: true,
-      draftId,
-      status: 'published'
-    });
+
+    const state = await loadState();
+    await patchState({ publishedDrafts: Array.from(new Set([...state.publishedDrafts, draftId])) });
+
+    res.json({ success: true, draftId, status: 'published' });
   } catch (error) {
     console.error('Draft publish error:', error);
     res.status(500).json({ error: 'Failed to publish draft' });
@@ -627,18 +716,9 @@ router.post('/drafts/:draftId/publish', async (req: Request, res: Response) => {
 router.post('/drafts/:draftId/skip', async (req: Request, res: Response) => {
   try {
     const { draftId } = req.params;
-    
-    // Find and update draft status
-    const draft = localOnboardingState.drafts.find(d => d.id === draftId);
-    if (draft) {
-      draft.status = 'skipped';
-    }
-    
-    res.json({
-      success: true,
-      draftId,
-      status: 'skipped'
-    });
+    const state = await loadState();
+    await patchState({ skippedDrafts: Array.from(new Set([...state.skippedDrafts, draftId])) });
+    res.json({ success: true, draftId, status: 'skipped' });
   } catch (error) {
     console.error('Draft skip error:', error);
     res.status(500).json({ error: 'Failed to skip draft' });
@@ -647,32 +727,27 @@ router.post('/drafts/:draftId/skip', async (req: Request, res: Response) => {
 
 // ==================== COMPLETE SETUP ====================
 
-router.post('/complete', async (req: Request, res: Response) => {
+router.post('/complete', async (_req: Request, res: Response) => {
   try {
-    // Update local state
-    localOnboardingState.draftsComplete = true;
-    localOnboardingState.step = 'ready';
-    localOnboardingState.progressPct = 100;
-    
-    // Persist to DB so state survives server restarts
-    try {
-      const [sc] = await db.select().from(studioConfigs).limit(1);
-      if (sc) {
-        await db.update(studioConfigs).set({ creativeSetupComplete: true }).where(eq(studioConfigs.id, sc.id));
-      }
-    } catch (dbErr) {
-      console.warn('[setup] Could not persist creative setup flag:', dbErr);
+    await patchState({ draftsComplete: true });
+
+    // Persist the completion flag so the wizard doesn't reappear after restart.
+    const config = await getConfigRow();
+    if (config) {
+      await db
+        .update(studioConfigs)
+        .set({ creativeSetupComplete: true, updatedAt: new Date() })
+        .where(eq(studioConfigs.id, config.id));
     }
-    
-    // Mark onboarding as complete in Hub
+
     if (hubIntegration.isConfigured()) {
       await hubIntegration.completeOnboarding();
     }
-    
+
     res.json({
       success: true,
       message: 'Setup complete! Your studio management system is ready.',
-      redirectTo: '/admin/dashboard'
+      redirectTo: '/admin/dashboard',
     });
   } catch (error) {
     console.error('Setup complete error:', error);

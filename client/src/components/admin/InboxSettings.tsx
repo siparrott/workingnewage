@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Settings, Server, Mail, Eye, EyeOff, TestTube, Save, RefreshCw, Lock, TestTube2, CheckCircle, AlertCircle, Plane, FileSignature, Calendar } from 'lucide-react';
 import { getEmailSettings, saveEmailSettings } from '../../api/email';
+import { SITE } from '../../config/site';
 
 interface EmailSettings {
   provider: 'gmail' | 'outlook' | 'smtp';
@@ -137,7 +138,7 @@ const InboxSettings: React.FC<InboxSettingsProps> = ({
         smtpUser: settings.username,
         smtpPass: settings.password,
         fromEmail: settings.username, // Use username as from email
-        fromName: 'New Age Fotografie',
+        fromName: SITE.name,
         // Email Signature
         emailSignature: settings.emailSignature,
         signatureEnabled: settings.signatureEnabled,
@@ -520,9 +521,9 @@ const InboxSettings: React.FC<InboxSettingsProps> = ({
                   placeholder={`Mit freundlichen Grüßen,
 
 Andrea Scheucher
-New Age Fotografie
+${SITE.name}
 Tel: +43 XXX XXXXXXX
-Web: www.newagefotografie.com`}
+Web: ${SITE.url.replace(/^https?:\/\//, '')}`}
                 />
                 <p className="text-xs text-gray-500 mt-2">
                   Tip: Use line breaks to format your signature. HTML is not supported.

@@ -12,6 +12,7 @@ import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Briefcase, Linked
 import { useCart } from '../../context/CartContext';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 
 export default function BusinessPortraitWienPage() {
   const navigate = useNavigate();
@@ -24,14 +25,14 @@ export default function BusinessPortraitWienPage() {
     en: {
       heroTitle: 'Business Portraits & Corporate Photography in Vienna',
       heroSubtitle: 'Strong Image. Clear Message.',
-      heroDescription: 'Your business portraits are created at New Age Fotografie in our Vienna studio – perfect for LinkedIn, CEO portraits and personal branding. We guide you relaxed through the shoot, coach expression & posture, and deliver fully retouched files in high-res – commercial usage rights included.',
+      heroDescription: `Your business portraits are created at ${SITE.name} in our Vienna studio – perfect for LinkedIn, CEO portraits and personal branding. We guide you relaxed through the shoot, coach expression & posture, and deliver fully retouched files in high-res – commercial usage rights included.`,
       primaryCta: 'Book a Spot on the Waitlist',
       secondaryCta: 'Give a Business Voucher',
     },
     de: {
       heroTitle: 'Business-Portraits & Corporate-Fotografie in Wien',
       heroSubtitle: 'Starkes Bild. Klare Botschaft.',
-      heroDescription: 'Ihre Business-Portraits entstehen bei New Age Fotografie im Studio in Wien – perfekt für LinkedIn, CEO-Porträts und Personal-Branding. Wir führen Sie entspannt durchs Shooting, coachen Ausdruck & Haltung und liefern vollständig retuschierte Dateien in High-Res – kommerzielle Nutzungsrechte inklusive.',
+      heroDescription: `Ihre Business-Portraits entstehen bei ${SITE.name} im Studio in Wien – perfekt für LinkedIn, CEO-Porträts und Personal-Branding. Wir führen Sie entspannt durchs Shooting, coachen Ausdruck & Haltung und liefern vollständig retuschierte Dateien in High-Res – kommerzielle Nutzungsrechte inklusive.`,
       primaryCta: 'Termin auf der Warteliste sichern',
       secondaryCta: 'Business-Gutschein verschenken',
     }
@@ -77,7 +78,7 @@ export default function BusinessPortraitWienPage() {
         description={newageCopyMap['business-portrait-wien'].metaDescription}
         keywords="business portrait wien, corporate fotografie wien, linkedin foto wien, ceo portrait wien"
         canonical="/business-portrait-wien/"
-        ogImage="https://www.newagefotografie.com/images/business-hero.jpg"
+        ogImage={`${SITE.url}/images/business-hero.jpg`}
         hreflang={[
           { lang: 'de', url: '/business-portrait-wien/' },
           { lang: 'en', url: '/en/business-portrait-vienna/' }
@@ -164,7 +165,7 @@ export default function BusinessPortraitWienPage() {
             <div className="prose prose-lg max-w-none">
               <p className="text-lg text-gray-700 leading-relaxed">
                 {language === 'de'
-                  ? 'Willkommen bei New Age Fotografie – Ihrem Partner für professionelle Business-Portraits in Wien! Unser Studio bietet die perfekte Umgebung für LinkedIn-Headshots, CEO-Porträts und Personal-Branding-Fotografie. Mit präzisem Licht, variablen Hintergründen und professionellem Ausdrucks-Coaching entstehen Portraits, die auf LinkedIn performen und im Geschäftsbericht bestehen.'
+                  ? `Willkommen bei ${SITE.name} – Ihrem Partner für professionelle Business-Portraits in Wien! Unser Studio bietet die perfekte Umgebung für LinkedIn-Headshots, CEO-Porträts und Personal-Branding-Fotografie. Mit präzisem Licht, variablen Hintergründen und professionellem Ausdrucks-Coaching entstehen Portraits, die auf LinkedIn performen und im Geschäftsbericht bestehen.`
                   : 'Welcome to New Age Photography – your partner for professional business portraits in Vienna! Our studio provides the perfect environment for LinkedIn headshots, CEO portraits and personal branding photography. With precise lighting, variable backgrounds and professional expression coaching, we create portraits that perform on LinkedIn and stand up in annual reports.'}
               </p>
               <p className="text-lg text-gray-700 leading-relaxed mt-4">

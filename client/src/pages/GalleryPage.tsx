@@ -7,6 +7,7 @@ import { getGalleryBySlug, getPublicGalleryImages, authenticateGallery, uploadGa
 import { Gallery, GalleryImage } from '../types/gallery';
 import { ArrowLeft, Download, Share2, Heart, Loader2, AlertCircle, Play, Lock, Mail, Image, Grid, Settings, HelpCircle, Calendar, HardDrive, CheckSquare, Info, Upload, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { SITE } from '../config/site';
 
 const GalleryPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -55,7 +56,7 @@ const GalleryPage: React.FC = () => {
 
   useEffect(() => {
     // SEO Meta Tags
-    document.title = 'Foto-Galerie Wien - Familienfotos & Porträts | New Age Fotografie';
+    document.title = `Foto-Galerie Wien - Familienfotos & Porträts | ${SITE.name}`;
     
     // Update meta description
     let metaDescription = document.querySelector('meta[name="description"]');
@@ -73,10 +74,10 @@ const GalleryPage: React.FC = () => {
       ogTitle.setAttribute('property', 'og:title');
       document.head.appendChild(ogTitle);
     }
-    ogTitle.setAttribute('content', 'Foto-Galerie - New Age Fotografie Wien');
+    ogTitle.setAttribute('content', `Foto-Galerie - ${SITE.name} Wien`);
 
     return () => {
-      document.title = 'New Age Fotografie - Familienfotograf Wien';
+      document.title = `${SITE.name} - Familienfotograf Wien`;
     };
   }, []);
 

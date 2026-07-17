@@ -5,6 +5,7 @@ import Layout from '../../components/layout/Layout';
 import { RelatedTopicsBlock } from '../../components/SEO/RelatedTopicsBlock';
 import { PillarLinksBlock } from '../../components/SEO/PillarLinksBlock';
 import { SEOHead } from '../../components/SEO/SEOHead';
+import { SITE } from '../../config/site';
 
 const UeberUnsPage: React.FC = () => {
   const trustLogos = ['BBC', 'Canon', 'Stadt Wien', 'ÖBB', 'Internationale Unternehmen'];
@@ -22,7 +23,7 @@ const UeberUnsPage: React.FC = () => {
     {
       year: '2012',
       station: 'Wien',
-      story: 'Die Eröffnung von New Age Fotografie.',
+      story: `Die Eröffnung von ${SITE.name}.`,
     },
     {
       year: 'Heute',
@@ -115,7 +116,7 @@ const UeberUnsPage: React.FC = () => {
 
   const faqs = [
     {
-      question: 'Wie lange gibt es New Age Fotografie schon?',
+      question: `Wie lange gibt es ${SITE.name} schon?`,
       answer: 'Unser Fotostudio gibt es seit 2012 in Wien. Seitdem durften wir zahlreiche Familien, Unternehmen und Privatpersonen fotografieren.',
     },
     {
@@ -139,9 +140,9 @@ const UeberUnsPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Über uns | Fotostudio Wien seit 2012 – New Age Fotografie"
-        description="Lerne New Age Fotografie kennen – dein Fotostudio in Wien seit 2012 für Familienfotografie, Babybauch, Neugeborene und Business Portraits. Persönlich, modern und authentisch."
-        keywords="Fotostudio Wien, New Age Fotografie Wien, Familienfotografie Wien, Babybauch Wien, Neugeborene Wien, Business Portrait Wien"
+        title={`Über uns | Fotostudio Wien seit 2012 – ${SITE.name}`}
+        description={`Lerne ${SITE.name} kennen – dein Fotostudio in Wien seit 2012 für Familienfotografie, Babybauch, Neugeborene und Business Portraits. Persönlich, modern und authentisch.`}
+        keywords={`Fotostudio Wien, ${SITE.name} Wien, Familienfotografie Wien, Babybauch Wien, Neugeborene Wien, Business Portrait Wien`}
         canonical="/ueber-uns/"
       />
 
@@ -150,7 +151,7 @@ const UeberUnsPage: React.FC = () => {
         {JSON.stringify({
           "@context": "https://schema.org",
           "@type": "LocalBusiness",
-          "name": "New Age Fotografie",
+          "name": SITE.name,
           "description": "Fotostudio in Wien seit 2012 für Familienfotografie, Babybauch, Neugeborene und Business Portraits.",
           "address": {
             "@type": "PostalAddress",
@@ -158,7 +159,7 @@ const UeberUnsPage: React.FC = () => {
             "addressCountry": "AT"
           },
           "areaServed": "Vienna, Austria",
-          "url": "https://www.newagefotografie.com",
+          "url": SITE.url,
           "sameAs": [
             "https://www.capetowncarnival.com/",
             "https://eurovision.tv/event/vienna-2015"
@@ -185,14 +186,14 @@ const UeberUnsPage: React.FC = () => {
         <section className="bg-slate-950 text-white py-24">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.25em] text-purple-300 mb-6">Über uns</p>
-            <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">Über uns – New Age Fotografie Wien</h1>
+            <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">Über uns – {SITE.name} Wien</h1>
             <h2 className="text-2xl md:text-3xl font-semibold mb-6 text-white/95">Euer Fotostudio in Wien für echte Erinnerungen seit 2012</h2>
             <div className="max-w-3xl mx-auto space-y-4 text-lg md:text-xl text-white/85 leading-relaxed">
               <p>Manche Momente passieren nur einmal.</p>
               <p>Ein Baby ist nur wenige Tage ein Neugeborenes. Kinder verändern sich jedes Jahr. Familien wachsen. Menschen beginnen neue Kapitel.</p>
               <p>Genau deshalb fotografieren wir nicht einfach Bilder.</p>
               <p>Wir erschaffen Erinnerungen, die auch in vielen Jahren noch Bedeutung haben.</p>
-              <p>Willkommen bei <strong>New Age Fotografie – eurem Fotostudio in Wien für Familien, Babybauch, Neugeborene, Business Portraits und besondere Lebensmomente.</strong></p>
+              <p>Willkommen bei <strong>{SITE.name} – eurem Fotostudio in Wien für Familien, Babybauch, Neugeborene, Business Portraits und besondere Lebensmomente.</strong></p>
               <p>Seit 2012 durften wir bereits tausende Menschen vor unserer Kamera begleiten – immer mit demselben Ziel:</p>
               <p className="font-semibold text-white">Natürlich. Persönlich. Zeitlos.</p>
             </div>
@@ -226,7 +227,7 @@ const UeberUnsPage: React.FC = () => {
 
         <section className="py-16 bg-slate-50">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl md:text-4xl font-bold mb-3">Die Geschichte hinter New Age Fotografie</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-3">Die Geschichte hinter {SITE.name}</h2>
             <h3 className="text-2xl font-semibold text-slate-800 mb-8">Vom internationalen Fotografen zum Fotostudio in Wien</h3>
             <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
               <table className="w-full min-w-[720px] border-collapse">
@@ -253,7 +254,7 @@ const UeberUnsPage: React.FC = () => {
 
         <section className="py-16 bg-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-            <h2 className="text-3xl md:text-4xl font-bold">Matthew – der Fotograf hinter New Age Fotografie</h2>
+            <h2 className="text-3xl md:text-4xl font-bold">Matthew – der Fotograf hinter {SITE.name}</h2>
             <p className="text-lg text-slate-700">Hallo, ich bin Matthew.</p>
             <p className="text-lg text-slate-700">Nach vielen Jahren hinter der Kamera habe ich eines gelernt: Die beste Technik der Welt bedeutet wenig, wenn Menschen sich vor der Kamera nicht wohlfühlen.</p>
             <p className="text-lg text-slate-700">Ein gutes Portrait beginnt nicht mit dem Auslösen der Kamera. Es beginnt mit Vertrauen.</p>
@@ -348,7 +349,7 @@ const UeberUnsPage: React.FC = () => {
 
         <section className="py-16 bg-slate-950 text-white">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl md:text-4xl font-bold mb-8">Warum Kunden New Age Fotografie wählen</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-8">Warum Kunden {SITE.name} wählen</h2>
             <div className="grid gap-4 md:grid-cols-2">
               {reasons.map((reason) => (
                 <div key={reason} className="flex items-start gap-3 rounded-xl bg-white/5 px-5 py-4 border border-white/10">

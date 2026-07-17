@@ -125,7 +125,7 @@ Ihr Team von {{studioName}}`;
 
     try {
       // Dynamic import to avoid circular dependency
-      const { neon } = await import('@neondatabase/serverless');
+      const { neon } = await import('../db-compat.js');
       const sql = neon(process.env.DATABASE_URL!);
       const rows = await sql`SELECT value FROM app_settings WHERE key = 'questionnaire_confirmation_email' LIMIT 1`;
       if (rows.length > 0) {

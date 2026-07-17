@@ -3,6 +3,7 @@ import { Plus, Download, Send, Eye, Edit, Trash2, MessageCircle, Link, Share, Ph
 import { listInvoices, createInvoice, updateInvoiceStatus, deleteInvoice } from '../../api/invoices';
 import InvoiceTemplate from '../../components/invoice/InvoiceTemplate';
 import PriceListModal from '../../components/invoice/PriceListModal';
+import { SITE } from '../../config/site';
 
 // CACHE BUST v3 - FORCE REBUILD - 20251210-1628
 const INVOICE_VIEWER_VERSION = 'v3.0.0-20251210-1628';
@@ -211,7 +212,7 @@ export default function InvoicesPage() {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              subject: `Rechnung ${createdInvoice.invoiceNumber || createdInvoice.id} - New Age Fotografie`,
+              subject: `Rechnung ${createdInvoice.invoiceNumber || createdInvoice.id} - ${SITE.name}`,
               message: 'Anbei senden wir Ihnen Ihre Rechnung zu. Bei Fragen stehen wir Ihnen gerne zur Verfügung.',
               includeAttachment: true
             })
@@ -555,7 +556,7 @@ export default function InvoicesPage() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          subject: `Rechnung ${selectedInvoice.invoice_number} - New Age Fotografie`,
+          subject: `Rechnung ${selectedInvoice.invoice_number} - ${SITE.name}`,
           message: 'Anbei senden wir Ihnen Ihre Rechnung zu. Bei Fragen stehen wir Ihnen gerne zur Verfügung.',
           includeAttachment: true
         }),
@@ -1199,14 +1200,14 @@ export default function InvoicesPage() {
               <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
                 <h4 className="font-medium text-green-900 mb-2">📱 WhatsApp Message Preview</h4>
                 <div className="text-sm text-green-800 bg-white p-3 rounded border italic">
-                  "Hallo! 👋 Hier ist Ihre Rechnung #{selectedInvoice.invoice_number || selectedInvoice.id} von New Age Fotografie über €{selectedInvoice.total_amount?.toFixed(2) || '0.00'}. 
-                  
+                  "Hallo! 👋 Hier ist Ihre Rechnung #{selectedInvoice.invoice_number || selectedInvoice.id} von {SITE.name} über €{selectedInvoice.total_amount?.toFixed(2) || '0.00'}.
+
                   Sie können die Rechnung hier einsehen: [Invoice Link]
-                  
+
                   Bei Fragen stehen wir Ihnen gerne zur Verfügung! 📸
-                  
+
                   Vielen Dank für Ihr Vertrauen!
-                  New Age Fotografie Team"
+                  {SITE.name} Team"
                 </div>
               </div>
 
@@ -1298,13 +1299,13 @@ export default function InvoicesPage() {
               <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
                 <h4 className="font-medium text-purple-900 mb-2">📱 SMS Message Preview</h4>
                 <div className="text-sm text-purple-800 bg-white p-3 rounded border italic">
-                  "Hallo! Hier ist Ihre Rechnung #{selectedInvoice.invoice_number || selectedInvoice.id} von New Age Fotografie über €{selectedInvoice.total_amount?.toFixed(2) || '0.00'}. 
-                  
+                  "Hallo! Hier ist Ihre Rechnung #{selectedInvoice.invoice_number || selectedInvoice.id} von {SITE.name} über €{selectedInvoice.total_amount?.toFixed(2) || '0.00'}.
+
                   Rechnung ansehen: [Invoice Link]
-                  
+
                   Bei Fragen: +43 677 633 99210
-                  
-                  New Age Fotografie Team"
+
+                  {SITE.name} Team"
                 </div>
               </div>
 
@@ -1396,7 +1397,7 @@ export default function InvoicesPage() {
               <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <h4 className="font-medium text-blue-900 mb-2">📧 Email Preview</h4>
                 <div className="text-sm text-blue-800 bg-white p-3 rounded border">
-                  <p className="font-medium mb-2">Subject: Rechnung {selectedInvoice.invoice_number || selectedInvoice.id} - New Age Fotografie</p>
+                  <p className="font-medium mb-2">Subject: Rechnung {selectedInvoice.invoice_number || selectedInvoice.id} - {SITE.name}</p>
                   <p className="italic">
                     "Liebe/r Kunde,
                     <br /><br />
@@ -1407,7 +1408,7 @@ export default function InvoicesPage() {
                     Fälligkeitsdatum: {new Date(selectedInvoice.due_date).toLocaleDateString('de-DE')}
                     <br /><br />
                     Mit freundlichen Grüßen,<br />
-                    New Age Fotografie Team"
+                    {SITE.name} Team"
                   </p>
                 </div>
               </div>

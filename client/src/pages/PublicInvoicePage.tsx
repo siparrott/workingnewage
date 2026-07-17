@@ -5,6 +5,7 @@ import InvoiceTemplate from '../components/invoice/InvoiceTemplate';
 import { useLanguage } from '../context/LanguageContext';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { SITE } from '../config/site';
 
 interface Invoice {
   id: string;
@@ -265,7 +266,7 @@ const PublicInvoicePage: React.FC = () => {
     const message = language === 'en'
       ? `Hello! I have a question about invoice #${invoice?.invoice_number}`
       : `Hallo! Ich habe eine Frage zur Rechnung #${invoice?.invoice_number}`;
-    const whatsappUrl = `https://wa.me/4367763399210?text=${encodeURIComponent(message)}`;
+    const whatsappUrl = `https://wa.me/${SITE.phone.replace(/[^0-9]/g,'')}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
 
@@ -293,11 +294,11 @@ const PublicInvoicePage: React.FC = () => {
           <p className="text-gray-600 mb-4">
             {error || (language === 'en' ? 'The invoice you are looking for does not exist or has been removed.' : 'Die gesuchte Rechnung existiert nicht oder wurde entfernt.')}
           </p>
-          <a 
-            href="https://newagefotografie.com" 
+          <a
+            href={SITE.url}
             className="text-purple-600 hover:text-purple-800 underline"
           >
-            {language === 'en' ? 'Return to New Age Fotografie' : 'Zurück zu New Age Fotografie'}
+            {language === 'en' ? `Return to ${SITE.name}` : `Zurück zu ${SITE.name}`}
           </a>
         </div>
       </div>
@@ -341,7 +342,7 @@ const PublicInvoicePage: React.FC = () => {
                 })()} #{invoice.invoice_number}
               </h1>
               <p className="text-sm text-gray-600">
-                {language === 'en' ? 'From New Age Fotografie' : 'Von New Age Fotografie'}
+                {language === 'en' ? `From ${SITE.name}` : `Von ${SITE.name}`}
               </p>
             </div>
             
@@ -394,15 +395,15 @@ const PublicInvoicePage: React.FC = () => {
               {language === 'en'
                 ? <>Questions about this invoice? Contact us on WhatsApp or email us at{' '}</>
                 : <>Fragen zu dieser Rechnung? Kontaktieren Sie uns per WhatsApp oder E-Mail an{' '}</>}
-              <a 
-                href="mailto:hallo@newagefotografie.com"
+              <a
+                href={`mailto:${SITE.email}`}
                 className="text-purple-600 hover:text-purple-800"
               >
-                hallo@newagefotografie.com
+                {SITE.email}
               </a>
             </p>
             <p>
-              © 2026 New Age Fotografie - {language === 'en' ? 'Professional Photography Services in Vienna' : 'Professionelle Fotografie-Dienstleistungen in Wien'}
+              © 2026 {SITE.name} - {language === 'en' ? 'Professional Photography Services in Vienna' : 'Professionelle Fotografie-Dienstleistungen in Wien'}
             </p>
           </div>
         </div>

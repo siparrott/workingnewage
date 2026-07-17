@@ -1,4 +1,4 @@
-import { neon } from "@neondatabase/serverless";
+import { neon } from "../../server/db-compat.js";
 import { scrapeSite } from "./webscrape";
 
 export async function analyzeAndStoreWebsite(studioId: string, url: string) {

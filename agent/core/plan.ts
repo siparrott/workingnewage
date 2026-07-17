@@ -5,7 +5,7 @@ import { toolRegistry } from "./tools";
 import { cleanQuery } from "./cleanQuery";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured'
 });
 
 export interface PlanResult {

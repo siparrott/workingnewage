@@ -89,6 +89,9 @@ export const studioConfigs = pgTable("studio_configs", {
   // Onboarding / Setup
   technicalSetupComplete: boolean("technical_setup_complete").default(false),
   creativeSetupComplete: boolean("creative_setup_complete").default(false),
+  // Durable progress for the creative setup wizard (phase flags, applied/skipped
+  // fix ids, published/skipped draft ids). Everything else is derived from the DB.
+  onboardingState: jsonb("onboarding_state"),
   
   // Status
   isActive: boolean("is_active").default(true),
@@ -1057,7 +1060,8 @@ export const schedulerBookings = pgTable("scheduler_bookings", {
   schedulerId: text("scheduler_id").notNull().references(() => schedulers.id),
   
   // Client info (may or may not link to existing CRM client)
-  clientId: text("client_id").references(() => crmClients.id),
+  // uuid to match crm_clients.id (was text → broke FK creation on a clean push)
+  clientId: uuid("client_id").references(() => crmClients.id),
   clientName: text("client_name").notNull(),
   clientEmail: text("client_email").notNull(),
   clientPhone: text("client_phone"),

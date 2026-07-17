@@ -32,8 +32,8 @@ export interface Template {
 export const templates: Template[] = [
   {
     id: 'naf-premium',
-    name: 'New Age Premium',
-    description: 'The original New Age Fotografie premium design with gradient hero and elegant styling',
+    name: 'Premium',
+    description: 'The original premium design with gradient hero and elegant styling',
     preview: '/templates/naf-premium-preview.png',
     category: 'premium',
     colors: {

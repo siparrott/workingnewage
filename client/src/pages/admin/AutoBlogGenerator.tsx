@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Upload, Check, Wand2, FileText, ExternalLink, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { SITE } from '../../config/site';
 
 interface UploadedImage {
   file: File;
@@ -28,7 +29,7 @@ export default function AutoBlogGenerator() {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [contentGuidance, setContentGuidance] = useState("");
   const [contentLanguage, setContentLanguage] = useState("deutsch");
-  const [websiteUrl, setWebsiteUrl] = useState("https://www.newagefotografie.com");
+  const [websiteUrl, setWebsiteUrl] = useState(SITE.url);
   const [customSlug, setCustomSlug] = useState("");
   const [publishingOption, setPublishingOption] = useState("draft");
   // Progress and completion tracking

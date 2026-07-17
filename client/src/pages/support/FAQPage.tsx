@@ -4,6 +4,7 @@ import { ChevronDown, Camera, Calendar, CreditCard, Image, Phone, Mail } from 'l
 import { PillarLinksBlock } from '../../components/SEO/PillarLinksBlock';
 import Layout from '../../components/layout/Layout';
 import { SEOHead } from '../../components/SEO/SEOHead';
+import { SITE } from '../../config/site';
 
 interface FAQItem {
   question: string;
@@ -19,7 +20,7 @@ const FAQPage: React.FC = () => {
     {
       category: 'Buchung & Vorbereitung',
       question: 'Wie buche ich ein Fotoshooting?',
-      answer: 'Sie können ganz einfach über unser Kontaktformular, per E-Mail (hallo@newagefotografie.com) oder telefonisch (+43 660 123 4567) einen Termin vereinbaren. Wir besprechen dann alle Details mit Ihnen.'
+      answer: `Sie können ganz einfach über unser Kontaktformular, per E-Mail (${SITE.email}) oder telefonisch (+43 660 123 4567) einen Termin vereinbaren. Wir besprechen dann alle Details mit Ihnen.`
     },
     {
       category: 'Buchung & Vorbereitung',
@@ -152,8 +153,8 @@ const FAQPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="FAQ - Häufige Fragen | New Age Fotografie"
-        description="Antworten auf Ihre Fragen zu Fotoshootings bei New Age Fotografie Wien. Ablauf, Preise, Termine und mehr."
+        title={`FAQ - Häufige Fragen | ${SITE.name}`}
+        description={`Antworten auf Ihre Fragen zu Fotoshootings bei ${SITE.name} Wien. Ablauf, Preise, Termine und mehr.`}
         keywords="FAQ Fotoshooting, Fragen Fotograf Wien, Fotoshooting Ablauf"
         canonical="/faq/"
       />
@@ -188,11 +189,11 @@ const FAQPage: React.FC = () => {
                   +43 660 123 4567
                 </a>
                 <a
-                  href="mailto:hallo@newagefotografie.com"
+                  href={`mailto:${SITE.email}`}
                   className="inline-flex items-center gap-2 bg-white text-purple-600 border-2 border-purple-600 px-6 py-2 rounded-full font-semibold hover:bg-purple-50 transition-colors"
                 >
                   <Mail className="w-4 h-4" />
-                  hallo@newagefotografie.com
+                  {SITE.email}
                 </a>
               </div>
             </div>

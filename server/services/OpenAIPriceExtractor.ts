@@ -60,7 +60,7 @@ export class OpenAIPriceExtractor {
 
   constructor() {
     this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured',
     });
     // Use a chat/completions-compatible model. Deliberately NOT process.env.OPENAI_MODEL —
     // the host sets that to a Responses-API-only model (e.g. a GPT-5/o-series), which

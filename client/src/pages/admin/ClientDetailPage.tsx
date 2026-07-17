@@ -6,6 +6,7 @@ import { googleCalendarService } from '../../services/googleCalendarService';
 import SendQuestionnaireModal from '../../components/admin/SendQuestionnaireModal';
 import ViewEmailsModal from '../../components/admin/ViewEmailsModal';
 import ViewQuestionnairesModal from '../../components/admin/ViewQuestionnairesModal';
+import { SITE } from '../../config/site';
 
 interface Client {
   id: string;
@@ -217,7 +218,7 @@ const ClientDetailPage: React.FC = () => {
         description: `Fotoshooting-Termin mit ${client.firstName} ${client.lastName}\n\nKontakt:\nE-Mail: ${client.email}\nTelefon: ${client.phone || 'Nicht angegeben'}\n\nAdresse: ${client.address || 'Nicht angegeben'}`,
         startTime: tomorrow,
         endTime: endTime,
-        location: 'New Age Fotografie Studio, Wehrgasse 11A/2+5, 1050 Wien',
+        location: `${SITE.name} Studio, Wehrgasse 11A/2+5, 1050 Wien`,
         attendees: [client.email],
         clientId: client.id
       };
@@ -269,7 +270,7 @@ const ClientDetailPage: React.FC = () => {
     }
     
     try {
-      const message = `Hallo ${client.firstName}, vielen Dank für Ihr Interesse an New Age Fotografie. Bei Fragen stehen wir gerne zur Verfügung!`;
+      const message = `Hallo ${client.firstName}, vielen Dank für Ihr Interesse an ${SITE.name}. Bei Fragen stehen wir gerne zur Verfügung!`;
       
       // Navigate to SMS composition
       navigate(`/admin/communications?action=sms&clientId=${client.id}&phone=${encodeURIComponent(client.phone)}&message=${encodeURIComponent(message)}`);

@@ -36,7 +36,7 @@ const SEOHead: React.FC<SEOHeadProps> = ({ title, description, keywords, canonic
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
       {hreflang.map(({ lang, url }) => (
-        <link key={lang} rel="alternate" hrefLang={lang} href={`https://www.newagefotografie.com${url}`} />
+        <link key={lang} rel="alternate" hrefLang={lang} href={`${SITE.url}${url}`} />
       ))}
       <html lang="de" />
       <meta name="geo.region" content="AT-9" />
@@ -123,7 +123,7 @@ const ImmobilienfotografieWienPage: React.FC = () => {
             "serviceType": "Real Estate Photography",
             "provider": {
               "@type": "Organization",
-              "name": "New Age Fotografie",
+              "name": SITE.name,
               "address": {
                 "@type": "PostalAddress",
                 "addressLocality": "Wien",

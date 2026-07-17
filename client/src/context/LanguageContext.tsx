@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { SITE } from '../config/site';
 
 type Language = 'en' | 'de';
 
@@ -789,7 +790,7 @@ const translations = {
   'manual.schwangerschaftsfotos.secondaryCta': 'Give a Maternity Voucher',
   'manual.businessportraits.heroTitle': 'Business Portraits & Corporate Photography in Vienna',
   'manual.businessportraits.heroTagline': 'Strong Image. Clear Message.',
-  'manual.businessportraits.heroDescription': 'Your business portraits are created at New Age Fotografie in our Vienna studio – perfect for LinkedIn, CEO portraits and personal branding. We guide you relaxed through the shoot, coach expression & posture, and deliver fully retouched files in high-res – commercial usage rights included.',
+  'manual.businessportraits.heroDescription': `Your business portraits are created at ${SITE.name} in our Vienna studio – perfect for LinkedIn, CEO portraits and personal branding. We guide you relaxed through the shoot, coach expression & posture, and deliver fully retouched files in high-res – commercial usage rights included.`,
   'manual.businessportraits.primaryCta': 'Book a Spot on the Waitlist',
   'manual.businessportraits.secondaryCta': 'Give a Business Voucher',
   'manual.teamfotos.heroTitle': 'Team & Employee Photos in Vienna',
@@ -927,7 +928,7 @@ const translations = {
   'manual.teamfotos.faqA4': 'Yes – follow-up bookings in the same style possible anytime (minimum 3 people).',
 
   // About Page
-  'about.hero.title': 'About New Age Fotografie — Vienna',
+  'about.hero.title': `About ${SITE.name} — Vienna`,
   'about.hero.description': 'A Vienna studio built on craft, calm direction, and real smiles. I\'m Simon, the founder. I\'ve photographed thousands of faces—from high street studios to global events—and I still love it. Every shoot. Every time.',
   'about.hero.cta': 'Book your spot on our studio waitlist →',
   'about.story.title': 'Our Story (short + true)',
@@ -946,7 +947,7 @@ const translations = {
   'about.timeline.2004.where': 'Cape Town',
   'about.timeline.2004.what': 'Opened New Age Portraits in Cape Town, Durban, Johannesburg.',
   'about.timeline.2012.where': 'Vienna',
-  'about.timeline.2012.what': 'Sold the SA studios to the owner of Olympus (regional). Moved to Palais Alserbach and launched New Age Fotografie.',
+  'about.timeline.2012.what': `Sold the SA studios to the owner of Olympus (regional). Moved to Palais Alserbach and launched ${SITE.name}.`,
   'about.timeline.since': 'Since',
   'about.timeline.since.where': 'Vienna • Europe',
   'about.timeline.since.what': 'Shot Eurovision in Vienna, UEFA & Champions League events, and weddings in England, Malta, South Africa, Austria.',
@@ -1598,7 +1599,7 @@ const translations = {
     'home.testimonial6Text': 'Die Fotos von unserer Firmenveranstaltung sind fantastisch. Jeder wichtige Moment wurde festgehalten, ohne dass es gestellt wirkt. Absolut empfehlenswert!',
     
     // FAQ Questions
-    'home.faqQuestion1': 'Was macht New Age Fotografie einzigartig?',
+    'home.faqQuestion1': `Was macht ${SITE.name} einzigartig?`,
     'home.faqQuestion2': 'Wo finden die Fotoshootings statt?',
     'home.faqQuestion3': 'Wie bereiten wir uns auf das Fotoshooting vor?',
     'home.faqQuestion4': 'Wie lange dauert ein Familienfotoshooting?',
@@ -1900,7 +1901,7 @@ const translations = {
   'manual.schwangerschaftsfotos.secondaryCta': 'Schwangerschafts-Gutschein verschenken',
   'manual.businessportraits.heroTitle': 'Business-Portraits & Corporate-Fotografie in Wien',
   'manual.businessportraits.heroTagline': 'Starkes Bild. Klare Botschaft.',
-  'manual.businessportraits.heroDescription': 'Ihre Business-Portraits entstehen bei New Age Fotografie im Studio in Wien – perfekt für LinkedIn, CEO-Porträts und Personal-Branding. Wir führen Sie entspannt durchs Shooting, coachen Ausdruck & Haltung und liefern vollständig retuschierte Dateien in High-Res – kommerzielle Nutzungsrechte inklusive.',
+  'manual.businessportraits.heroDescription': `Ihre Business-Portraits entstehen bei ${SITE.name} im Studio in Wien – perfekt für LinkedIn, CEO-Porträts und Personal-Branding. Wir führen Sie entspannt durchs Shooting, coachen Ausdruck & Haltung und liefern vollständig retuschierte Dateien in High-Res – kommerzielle Nutzungsrechte inklusive.`,
   'manual.businessportraits.primaryCta': 'Termin auf der Warteliste sichern',
   'manual.businessportraits.secondaryCta': 'Business-Gutschein verschenken',
   'manual.teamfotos.heroTitle': 'Team- & Mitarbeiterfotos in Wien',
@@ -2038,7 +2039,7 @@ const translations = {
   'manual.teamfotos.faqA4': 'Ja – Nachbuchungen im selben Stil jederzeit möglich (Mindestmenge 3 P.).',
 
   // About Page (Über Uns)
-  'about.hero.title': 'Über New Age Fotografie — Wien',
+  'about.hero.title': `Über ${SITE.name} — Wien`,
   'about.hero.description': 'Ein Wiener Studio, das auf Handwerk, ruhiger Führung und echten Lächeln basiert. Ich bin Simon, der Gründer. Ich habe Tausende von Gesichtern fotografiert – von High-Street-Studios bis zu globalen Events – und ich liebe es immer noch. Jedes Shooting. Jedes Mal.',
   'about.hero.cta': 'Reservieren Sie Ihren Platz auf unserer Studio-Warteliste →',
   'about.story.title': 'Unsere Geschichte (kurz + wahr)',
@@ -2057,7 +2058,7 @@ const translations = {
   'about.timeline.2004.where': 'Kapstadt',
   'about.timeline.2004.what': 'Eröffnete New Age Portraits in Kapstadt, Durban, Johannesburg.',
   'about.timeline.2012.where': 'Wien',
-  'about.timeline.2012.what': 'Verkaufte die SA-Studios an den Besitzer von Olympus (regional). Zog ins Palais Alserbach und startete New Age Fotografie.',
+  'about.timeline.2012.what': `Verkaufte die SA-Studios an den Besitzer von Olympus (regional). Zog ins Palais Alserbach und startete ${SITE.name}.`,
   'about.timeline.since': 'Seitdem',
   'about.timeline.since.where': 'Wien • Europa',
   'about.timeline.since.what': 'Fotografierte Eurovision in Wien, UEFA & Champions League Events und Hochzeiten in England, Malta, Südafrika, Österreich.',

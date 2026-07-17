@@ -1,19 +1,22 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="%SITE_LANG%">
   <head>
     <meta charset="UTF-8" />
-    
-    <!-- Primary SEO - Route-specific tags are injected by react-helmet-async during prerender/hydration -->
-    <title>New Age Fotografie</title>
+
+    <!-- Primary SEO — %SITE_*% placeholders are filled per-tenant by the server
+         (server/lib/siteIdentity.ts); route-specific tags are then injected by
+         react-helmet-async during hydration. -->
+    <title>%SITE_NAME%</title>
+    <meta name="description" content="%SITE_DESCRIPTION%">
 
     <!-- Viewport & Icons -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-    
+
     <!-- Cache Control - Force fresh assets -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    
+
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/favicon-16x16.png" sizes="16x16" type="image/png">
     <link rel="icon" href="/favicon-32x32.png" sizes="32x32" type="image/png">
@@ -21,70 +24,34 @@
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
-    <meta property="og:locale" content="de_AT">
-    <meta property="og:site_name" content="New Age Fotografie">
-    <meta property="og:image" content="https://www.newagefotografie.com/og-cover.jpg">
+    <meta property="og:locale" content="%SITE_LOCALE%">
+    <meta property="og:site_name" content="%SITE_NAME%">
+    <meta property="og:image" content="%SITE_OG_IMAGE%">
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="https://www.newagefotografie.com/og-cover.jpg">
+    <meta name="twitter:image" content="%SITE_OG_IMAGE%">
 
-    <!-- Google Analytics (GA4) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-8W76BVNNW9"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-8W76BVNNW9');
-    </script>
+    <!-- Analytics (injected only when GA_MEASUREMENT_ID is set) -->
+    %SITE_GA%
 
     <!-- Robots -->
     <meta name="robots" content="index, follow">
     <link rel="sitemap" type="application/xml" href="/sitemap.xml">
 
-    <!-- Structured Data (PhotoStudio) -->
-    <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "PhotoStudio",
-  "name": "New Age Fotografie",
-  "image": "https://www.newagefotografie.com/wp-content/uploads/2023/11/logo.png",
-  "@id": "https://www.newagefotografie.com",
-  "url": "https://www.newagefotografie.com",
-  "telephone": "+43 677 633 99210",
-  "address": {
-    "@type": "PostalAddress",
-    "streetAddress": "Wehrgasse 11A/2+5",
-    "addressLocality": "Wien",
-    "postalCode": "1050",
-    "addressCountry": "AT"
-  },
-  "geo": {
-    "@type": "GeoCoordinates",
-    "latitude": "48.1907",
-    "longitude": "16.3574"
-  },
-  "openingHoursSpecification": [
-    {
-      "@type": "OpeningHoursSpecification",
-      "dayOfWeek": [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday"
-      ],
-      "opens": "09:00",
-      "closes": "18:00"
-    }
-  ],
-  "description": "New Age Fotografie Studio Eingang Ecke Schönbrunnerstraße. Familien-, Baby-, Neugeborenen- und Businessfotografie in entspannter Atmosphäre.",
-  "sameAs": [
-    "https://www.facebook.com/newagefotografie",
-    "https://www.instagram.com/newagefotografie",
-    "https://www.linkedin.com/company/new-age-fotografie"
-  ]
-}
+    <!-- Structured Data (per-tenant, built server-side) -->
+    <script type="application/ld+json">%SITE_JSONLD%</script>
+
+    <!-- Tenant identity for the SPA (Footer, Header, SEO defaults).
+         Carried as a JSON script (never executed) + a safe loader, so an
+         UNREPLACED %SITE_CONFIG_JSON% token (e.g. during the build-time
+         prerender, which serves this file raw) is a harmless JSON.parse
+         failure instead of a page-crashing JS syntax error. -->
+    <script type="application/json" id="site-config">%SITE_CONFIG_JSON%</script>
+    <script>
+      try {
+        window.__SITE_CONFIG__ = JSON.parse(document.getElementById('site-config').textContent);
+      } catch (e) { /* placeholder not replaced — SPA falls back to defaults */ }
     </script>
   </head>
   <body>

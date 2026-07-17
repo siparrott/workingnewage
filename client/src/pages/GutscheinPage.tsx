@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Camera, Heart, Baby } from 'lucide-react';
 import { useManualPageContent } from '../hooks/useManualPageContent';
 import { SEOHead } from '../components/SEO/SEOHead';
+import { SITE } from '../config/site';
 
 const giftCardPackages = [
   {
@@ -37,8 +38,8 @@ const GutscheinPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Gutscheine für Fotoshootings | New Age Fotografie"
-        description="Fotoshooting-Gutscheine von New Age Fotografie. Das perfekte Geschenk für Familie und Freunde in Wien."
+        title={`Gutscheine für Fotoshootings | ${SITE.name}`}
+        description={`Fotoshooting-Gutscheine von ${SITE.name}. Das perfekte Geschenk für Familie und Freunde in Wien.`}
         keywords="Gutschein Fotoshooting, Geschenk Fotograf Wien, Erlebnisgutschein Foto"
         canonical="/gutschein/"
       />

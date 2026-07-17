@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, Wand2, FileText, Check, X, Sparkles } from 'lucide-react';
+import { SITE } from '../../config/site';
 
 interface GeneratedContent {
   title: string;
@@ -83,7 +84,7 @@ export default function AutoBlogGeneratorFixed() {
       // FIX #2: Add ALL form data properly
       formData.append('contentGuidance', contentGuidance);
       formData.append('language', 'de'); // German language
-      formData.append('siteUrl', 'https://www.newagefotografie.com');
+      formData.append('siteUrl', SITE.url);
       formData.append('customSlug', customSlug);
       formData.append('publishOption', publishingOption); // Note: using publishOption not publishingOption
 

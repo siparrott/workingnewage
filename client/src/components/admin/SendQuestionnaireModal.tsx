@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Mail, MessageCircle, Copy, Check } from 'lucide-react';
+import { SITE } from '../../config/site';
 
 interface Survey {
   id: string;
@@ -106,7 +107,7 @@ const SendQuestionnaireModal: React.FC<SendQuestionnaireModalProps> = ({
   const generateEmailLink = () => {
     if (!link) return '';
     
-    const subject = 'Ihr Fragebogen - New Age Fotografie';
+    const subject = `Ihr Fragebogen - ${SITE.name}`;
     const body = `Hallo ${client.firstName},
 
 bitte füllen Sie unseren Fragebogen über den folgenden Link aus:
@@ -116,7 +117,7 @@ ${link}
 Vielen Dank!
 
 Mit freundlichen Grüßen,
-New Age Fotografie Team`;
+${SITE.name} Team`;
     
     return `mailto:${client.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };

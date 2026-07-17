@@ -15,7 +15,7 @@ import { contentProcessor, type ImageAnalysisResult } from './autoblog-content-f
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY 
+  apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' 
 });
 
 // Enable debug logging as per expert advice
@@ -26,7 +26,7 @@ if (DEBUG_OPENAI) {
 
 // Claude 4.0 Sonnet as alternative LLM for higher quality content
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
+  apiKey: process.env.ANTHROPIC_API_KEY || 'not-configured'
 });
 
 interface ProcessedImage {
@@ -2085,7 +2085,7 @@ Die Bearbeitung dauert 1-2 Wochen. Alle finalen Bilder erhaltet ihr in einer pra
         title: blogPostData.title,
         excerpt: blogPostData.excerpt || undefined,
         body: blogPostData.contentHtml || blogPostData.content || undefined,
-        url: `https://www.newagefotografie.com/blog/${blogPostData.slug}`,
+        url: `${process.env.PUBLIC_SITE_URL || 'https://www.newagefotografie.com'}/blog/${blogPostData.slug}`,
         pillar: blogPostData.tags?.[0],
       });
       (validatedBlogData as any).ideaData = {
@@ -2167,7 +2167,7 @@ Die Bearbeitung dauert 1-2 Wochen. Alle finalen Bilder erhaltet ihr in einer pra
         title: generatedPost.title,
         excerpt: generatedPost.excerpt || undefined,
         body: generatedPost.contentHtml || generatedPost.content || undefined,
-        url: `https://www.newagefotografie.com/blog/${generatedPost.slug}`,
+        url: `${process.env.PUBLIC_SITE_URL || 'https://www.newagefotografie.com'}/blog/${generatedPost.slug}`,
         pillar: generatedPost.tags?.[0],
       });
       result.blogPost = {

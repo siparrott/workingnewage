@@ -1,4 +1,5 @@
 // Template API functions for studio customization
+import { SITE } from '../config/site';
 
 export interface TemplateConfig {
   id: string;
@@ -195,14 +196,14 @@ const getMockTemplates = (): TemplateConfig[] => [
 ];
 
 const getMockStudioConfig = (): StudioConfig => ({
-  studioName: 'New Age Fotografie',
-  ownerEmail: 'hallo@newagefotografie.com',
+  studioName: SITE.name,
+  ownerEmail: SITE.email,
   activeTemplate: 'template-01-modern-minimal',
   primaryColor: '#7C3AED',
   secondaryColor: '#F59E0B',
-  businessName: 'New Age Fotografie',
+  businessName: SITE.name,
   address: 'Schönbrunner Str. 25',
   city: 'Wien',
-  phone: '+43 677 633 99210',
-  email: 'hallo@newagefotografie.com'
+  phone: SITE.phone,
+  email: SITE.email
 });

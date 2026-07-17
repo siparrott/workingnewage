@@ -1,11 +1,11 @@
 // CRM data integration layer - Direct PostgreSQL access for better performance
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
+import { db } from '../../server/db.js';
+import { neon } from '../../server/db-compat.js';
 import { crmClients, crmLeads, photographySessions, crmInvoices } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 
 const sql = neon(process.env.DATABASE_URL!);
-const db = drizzle(sql);
+// `db` is the shared portable (node-postgres) drizzle instance from server/db.ts.
 
 // CRITICAL FIX: Add direct SQL fallback for reliable data access
 async function executeDirectSQL(query: string, params: any[] = []) {

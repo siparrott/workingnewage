@@ -1,9 +1,7 @@
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
+import { db } from '../../server/db.js';
 import { agentActionLog } from '../../shared/schema';
 
-const sql = neon(process.env.DATABASE_URL!);
-const db = drizzle(sql);
+// `db` is the shared portable (node-postgres) drizzle instance from server/db.ts.
 
 export interface AuditEntry {
   studio_id: string;

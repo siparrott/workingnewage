@@ -16,6 +16,7 @@ import {
   Eye,
   RefreshCw
 } from 'lucide-react';
+import { SITE } from '../../config/site';
 
 interface StudioConfig {
   id?: string;
@@ -34,16 +35,16 @@ interface StudioConfig {
 
 const StudioCustomization: React.FC = () => {
   const [config, setConfig] = useState<StudioConfig>({
-    studioName: 'New Age Fotografie',
-    ownerEmail: 'hallo@newagefotografie.com',
+    studioName: SITE.name,
+    ownerEmail: SITE.email,
     activeTemplate: 'template-01-modern-minimal',
     primaryColor: '#7C3AED',
     secondaryColor: '#F59E0B',
-    businessName: 'New Age Fotografie',
+    businessName: SITE.name,
     address: 'Schönbrunner Str. 25',
     city: 'Wien',
-    phone: '+43 677 633 99210',
-    email: 'hallo@newagefotografie.com'
+    phone: SITE.phone,
+    email: SITE.email
   });
 
   const [loading, setLoading] = useState(false);
@@ -67,7 +68,7 @@ const StudioCustomization: React.FC = () => {
     metaDescription.setAttribute('content', 'Customize your photography studio website with professional templates, branding, and business settings.');
 
     return () => {
-      document.title = 'New Age Fotografie - Familienfotograf Wien';
+      document.title = `${SITE.name} - Familienfotograf Wien`;
     };
   }, []);
 

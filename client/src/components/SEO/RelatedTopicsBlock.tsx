@@ -94,8 +94,8 @@ const KUNDENSTIMMEN: LinkItem = {
 };
 const UEBER_UNS: LinkItem = {
   to: '/ueber-uns/',
-  de: 'Über uns – das Team von New Age Fotografie',
-  en: 'About us – the New Age Fotografie team',
+  de: `Über uns – das Team von ${SITE.name}`,
+  en: `About us – the ${SITE.name} team`,
 };
 const GEWERBLICH: LinkItem = {
   to: '/gewerbliche-fotografie-wien/',

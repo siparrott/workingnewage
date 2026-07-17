@@ -1,6 +1,7 @@
 import React from 'react';
 import { Play, ExternalLink } from 'lucide-react';
 import { useDemoMode } from '../../hooks/useDemoMode';
+import { SITE } from '../../config/site';
 
 const DemoModeIndicator: React.FC = () => {
   const { isDemoMode } = useDemoMode();
@@ -30,7 +31,7 @@ const DemoModeIndicator: React.FC = () => {
           </div>
           
           <button
-            onClick={() => window.open('https://newagefotografie.com/get-started', '_blank')}
+            onClick={() => window.open(`${SITE.url}/get-started`, '_blank')}
             className="bg-white text-purple-600 px-4 py-1.5 rounded-full text-sm font-semibold hover:bg-gray-100 transition-colors flex items-center space-x-1"
           >
             <span>Get Started</span>
