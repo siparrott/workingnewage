@@ -4,6 +4,7 @@ import { Menu, Globe, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
+import { SITE } from '../../config/site';
 
 const Header: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);

@@ -127,8 +127,13 @@ export default defineConfig({
         routes: prerenderRoutes,
         renderer: '@prerenderer/renderer-puppeteer',
         rendererOptions: {
-          maxConcurrentRoutes: 4,
+          // 1 route at a time with a generous event timeout: the build dyno's
+          // shared CPU parsing the ~5MB bundle in 4 concurrent Chrome tabs blew
+          // past the default 30s 'prerender-ready' wait, failing whole builds
+          // ("event 'prerender-ready' did not occur within 30s").
+          maxConcurrentRoutes: 1,
           renderAfterDocumentEvent: 'prerender-ready',
+          timeout: 90000,
           headless: true,
           args: ['--no-sandbox', '--disable-setuid-sandbox'],
           // Heroku: chrome-for-testing buildpack binary; local: undefined (bundled Chromium).

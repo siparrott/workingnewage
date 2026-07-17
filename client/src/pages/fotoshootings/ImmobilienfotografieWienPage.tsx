@@ -11,6 +11,7 @@ import { useManualPageContent } from '../../hooks/useManualPageContent';
 import MarkdownCopySlot from '../../components/MarkdownCopySlot';
 import { newageCopyMap } from '../../content/newageCopyMap';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 
 interface SEOHeadProps {
   title: string;

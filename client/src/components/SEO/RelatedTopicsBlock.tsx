@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { SITE } from '../../config/site';
 
 /**
  * Additive "Das könnte Sie auch interessieren" block.
