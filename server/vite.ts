@@ -213,6 +213,24 @@ async function lookupRouteMeta(reqPath: string): Promise<RouteMeta | null> {
           };
         }
       }
+    } else {
+      const lpMatch = reqPath.match(/^\/lp\/([^/]+)\/?$/);
+      if (lpMatch) {
+        const slug = decodeURIComponent(lpMatch[1]);
+        // Same request-time accessor the dynamic sitemap uses for LPs.
+        const neonMod: any = await import("../database.js");
+        const neonDb = neonMod.default || neonMod;
+        const page = typeof neonDb.getLandingPageBySlug === "function"
+          ? await neonDb.getLandingPageBySlug(slug)
+          : null;
+        if (page) {
+          meta = {
+            title: page.seo_title || page.title || slug,
+            description: String(page.meta_description || page.content_json?.hero?.subheadline || page.title || "").slice(0, 160),
+            canonical: `${SITE_ORIGIN}/lp/${slug}`,
+          };
+        }
+      }
     }
   } catch (err) {
     console.warn("[route-meta] lookup failed:", (err as any)?.message);
@@ -225,6 +243,12 @@ async function lookupRouteMeta(reqPath: string): Promise<RouteMeta | null> {
 
 const htmlEsc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+// Remove the prerendered homepage body from the SPA shell so data-driven
+// routes don't flash homepage content before React renders the real page.
+function emptyHydrationRoot(html: string): string {
+  return html.replace(/(<div id="root"[^>]*>)[\s\S]*?(<\/div>\s*(?:<script|<\/body>))/, "$1$2");
+}
 
 function injectRouteMeta(html: string, meta: RouteMeta): string {
   // dist/index.html is the PRERENDERED HOMEPAGE (the '/' route overwrites it
@@ -239,8 +263,6 @@ function injectRouteMeta(html: string, meta: RouteMeta): string {
   out = out.replace(/<meta[^>]*name="description"[^>]*>/g, "");
   out = out.replace(/<link[^>]*rel="canonical"[^>]*>/g, "");
   out = out.replace(/<meta[^>]*property="og:(title|description|url)"[^>]*>/g, "");
-  // Empty the hydration root: React re-renders the correct route on load.
-  out = out.replace(/(<div id="root"[^>]*>)[\s\S]*?(<\/div>\s*(?:<script|<\/body>))/, "$1$2");
   const extra =
     `<meta name="description" content="${htmlEsc(meta.description)}" />\n` +
     `    <link rel="canonical" href="${htmlEsc(meta.canonical)}" />\n` +
@@ -337,7 +359,7 @@ export function serveStatic(app: Express) {
     // is wrapped — under NO circumstances may a meta lookup hang or 500 a
     // public page (a hung lookup previously turned /blog/<missing-slug> into
     // a 30s Heroku H12 → 503).
-    if (/^\/(blog|gutschein)\//.test(requestPath)) {
+    if (/^\/(blog|gutschein|lp)\//.test(requestPath)) {
       let meta: RouteMeta | null = null;
       let diag = "miss";
       try {
@@ -352,8 +374,13 @@ export function serveStatic(app: Express) {
       }
       try {
         res.setHeader("X-Route-Meta", diag);
-        const html = renderedIndex();
-        return res.status(200).type("html").send(meta ? injectRouteMeta(html, meta) : html);
+        // ALWAYS empty the hydration root for data-driven routes — the shell
+        // is the prerendered HOMEPAGE, and serving its body caused a visible
+        // homepage flash before React rendered the actual page (worst on
+        // /lp/<slug> "View Live"). Meta is additionally injected on a hit.
+        let html = emptyHydrationRoot(renderedIndex());
+        if (meta) html = injectRouteMeta(html, meta);
+        return res.status(200).type("html").send(html);
       } catch {
         return res.status(200).type("html").send(renderedIndex());
       }

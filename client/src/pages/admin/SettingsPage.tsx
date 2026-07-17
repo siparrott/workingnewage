@@ -36,6 +36,27 @@ const SettingsPage: React.FC = () => {
           description: 'Logo, studio name, contact details, brand colours and website template',
           path: '/admin/studio-templates',
           color: 'bg-purple-500'
+        },
+        {
+          icon: Palette,
+          title: 'Website Wizard',
+          description: 'Guided website content setup',
+          path: '/admin/website-wizard',
+          color: 'bg-fuchsia-500'
+        },
+        {
+          icon: Globe,
+          title: 'Website Analyzer',
+          description: 'Analyze your public website content',
+          path: '/admin/website-analyzer',
+          color: 'bg-cyan-600'
+        },
+        {
+          icon: Settings,
+          title: 'Manual Website Update',
+          description: 'Edit public page content directly (CMS)',
+          path: '/admin/manual-website-update',
+          color: 'bg-slate-500'
         }
       ]
     },

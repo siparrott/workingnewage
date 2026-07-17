@@ -125,24 +125,20 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { icon: BarChart3, label: t('nav.reports'), path: '/admin/reports' },
     { icon: FileText, label: 'Landing Pages', path: '/admin/landing-pages', badge: 'AI' },
     { icon: Bot, label: 'Agent V2 (Enhanced)', path: '/admin/agent-v2', badge: 'NEW' },
-    { icon: Activity, label: 'Agent Console', path: '/admin/agent-console' },
-    { 
-      icon: Palette, 
-      label: t('nav.customization'), 
-      path: '/admin/customization',
+    // ONE settings menu (was two: "Customization" + "Settings"). The former
+    // Customization sub-items and the Agent Console live here now; the
+    // Settings hub page mirrors the same structure as tiles.
+    {
+      icon: Settings,
+      label: t('nav.settings'),
+      path: '/admin/settings',
       subItems: [
         { icon: Palette, label: t('nav.studioTemplates'), path: '/admin/studio-templates' },
         { icon: Wand2, label: t('nav.websiteWizard'), path: '/admin/website-wizard' },
         { icon: Search, label: t('nav.websiteAnalyzer'), path: '/admin/website-analyzer' },
-        { icon: FileText, label: 'Manual Website Update', path: '/admin/manual-website-update', badge: 'NEW' },
-      ]
-    },
-    { 
-      icon: Settings, 
-      label: t('nav.settings'), 
-      path: '/admin/settings',
-      subItems: [
+        { icon: FileText, label: 'Manual Website Update', path: '/admin/manual-website-update' },
         { icon: BookOpen, label: t('nav.knowledgeBase'), path: '/admin/knowledge-base' },
+        { icon: Activity, label: 'Agent Console', path: '/admin/agent-console' },
       ]
     },
   ];
