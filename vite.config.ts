@@ -89,23 +89,20 @@ const publicRoutes = [
   '/fotoshootings/event',
   '/fotoshootings/wedding',
 
-  // Gutschein Pages
+  // Gutschein Pages (dedicated static components only — /gutschein/:slug
+  // catch-all pages like baby/business are data-driven and served via
+  // request-time meta injection in server/vite.ts, NOT prerendered).
   '/gutschein',
   '/gutschein/family',
   '/gutschein/newborn',
   '/gutschein/maternity',
-  '/gutschein/baby',
-  '/gutschein/business',
 
-  // Blog posts — prerendered so crawlers get static HTML, not JS-only pages.
-  // Keep in sync with published posts (content/articles + Neon blog_posts).
-  '/blog/familienfotos-locations-wien',
-  '/blog/familienfotos-im-studio-vs-outdoor-in-wien-was-passt-zu-euch',
-  '/blog/familienfotos-in-wien-preise-ablauf-perfekte-vorbereitung',
-  '/blog/die-besten-outfits-fuer-familienfotos-in-wien',
-  '/blog/tipps-fuer-neugeborenenfotos-wien',
-  '/blog/schwangerschaftsfotos-in-wien-ideen-kleidung-der-beste-zeitpunkt',
-  '/blog/businessportraits-in-wien-preise-kleidung-erfolgstipps-f-r-starke-auftritte',
+  // NOTE: blog posts are deliberately NOT prerendered anymore. The build has
+  // no API/DB, so puppeteer captured "post not found" error pages (July 2026
+  // SEO audit), and rendering every published post pushed the Heroku build
+  // toward its 15-minute kill limit once the backlog grew. Blog posts get
+  // their <title>/<meta>/canonical injected at request time from the DB
+  // (server/vite.ts lookupRouteMeta) and Googlebot renders the JS content.
 ];
 
 // Prerendering is controlled by a single explicit opt-in: the PRERENDER env var.
@@ -115,21 +112,11 @@ const publicRoutes = [
 // omit PRERENDER for speed; production sets it so static HTML is generated.
 const shouldPrerender = !!process.env.PRERENDER;
 
-// Published blog-post routes discovered at build time. scripts/gen-prerender-routes.mjs
-// queries the live DB (published & publishedAt <= now) and writes them here before
-// the build runs, so posts that went live since the last deploy get prerendered too —
-// without hand-editing publicRoutes. Read synchronously to keep this config sync
-// (setupVite spreads the default export, so it must not be a function/Promise).
-function loadDynamicBlogRoutes(): string[] {
-  try {
-    const p = path.resolve(__dirname, "prerender-blog-routes.json");
-    if (existsSync(p)) return JSON.parse(readFileSync(p, "utf8")) as string[];
-  } catch {
-    // ignore malformed/missing file — fall back to the static list
-  }
-  return [];
-}
-const prerenderRoutes = Array.from(new Set([...publicRoutes, ...loadDynamicBlogRoutes()]));
+// Blog posts are no longer prerendered (see NOTE above) — the dynamic route
+// discovery via prerender-blog-routes.json is intentionally not loaded. With
+// the mass-published backlog it ballooned the prerender phase past Heroku's
+// 15-minute build limit, and the prerendered output was error pages anyway.
+const prerenderRoutes = Array.from(new Set(publicRoutes));
 
 export default defineConfig({
   plugins: [
