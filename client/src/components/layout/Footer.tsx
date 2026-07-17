@@ -244,18 +244,12 @@ const Footer: React.FC = () => {
                   {t('footer.blogTips')}
                 </Link>
               </li>
+              {/* /warteliste intentionally NOT in the footer: it's already in the
+                  sitewide header nav, and the SEO audit found the waitlist page
+                  absorbing more link equity than any service page. */}
               <li>
-                <Link 
-                  to="/warteliste" 
-                  onClick={scrollToTop}
-                  className="text-gray-300 hover:text-white transition-colors text-sm"
-                >
-                  {t('footer.waitlist')}
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  to="/portfolio" 
+                <Link
+                  to="/portfolio"
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >

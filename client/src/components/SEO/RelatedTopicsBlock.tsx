@@ -104,10 +104,14 @@ const BLOG: LinkItem = {
 
 // Per-pathname default mapping (matches Step 2 of the IA prompt)
 const DEFAULTS: Record<string, LinkItem[]> = {
-  '/portfolio':       [FAMILIE, BABY, BUSINESS, WARTELISTE],
+  // WARTELISTE removed from these mappings (SEO audit: the waitlist page was
+  // the most-linked page on the site — a utility page absorbing the equity
+  // that should flow to service/money pages). The header nav still links it
+  // sitewide; these blocks now push equity to services, pricing and reviews.
+  '/portfolio':       [FAMILIE, BABY, BUSINESS, PREISE],
   '/ueber-uns/':      [FAMILIE, KUNDENSTIMMEN, KONTAKT, PREISE_WIEN],
-  '/kundenstimmen/':  [PORTFOLIO, WARTELISTE, FAMILIE, BUSINESS],
-  '/kontakt':         [FAMILIE, BUSINESS, WARTELISTE, GUTSCHEIN],
+  '/kundenstimmen/':  [PORTFOLIO, PREISE, FAMILIE, BUSINESS],
+  '/kontakt':         [FAMILIE, BUSINESS, KUNDENSTIMMEN, GUTSCHEIN],
   '/preise/':         [FAMILIE, NEUGEBORENE, BUSINESS, GUTSCHEIN],
   '/fotoshooting-preise-wien/': [FAMILIE, BABY, BUSINESS, PREISE, KONTAKT],
   '/familienfotos-wien/':       [BABY, NEUGEBORENE, SCHWANGER, PREISE_WIEN, GUTSCHEIN],
@@ -115,9 +119,9 @@ const DEFAULTS: Record<string, LinkItem[]> = {
   '/neugeborenenfotos-wien/':   [BABY, FAMILIE, SCHWANGER, PREISE_WIEN, GUTSCHEIN],
   '/schwangerschaftsfotos-wien/': [BABY, NEUGEBORENE, FAMILIE, PREISE_WIEN, GUTSCHEIN],
   '/business-portrait-wien/':   [BUSINESS, PORTFOLIO, KONTAKT, PREISE_WIEN],
-  '/galerie':         [PORTFOLIO, FAMILIE, BUSINESS, WARTELISTE],
-  '/galleries':       [PORTFOLIO, FAMILIE, BUSINESS, WARTELISTE],
-  '/blog':            [FAMILIE, BABY, BUSINESS, WARTELISTE, PREISE_WIEN],
+  '/galerie':         [PORTFOLIO, FAMILIE, BUSINESS, PREISE],
+  '/galleries':       [PORTFOLIO, FAMILIE, BUSINESS, PREISE],
+  '/blog':            [FAMILIE, BABY, BUSINESS, KUNDENSTIMMEN, PREISE_WIEN],
 };
 
 const FALLBACK: LinkItem[] = [FAMILIE, BABY, BUSINESS, KONTAKT, PREISE_WIEN];
