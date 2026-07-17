@@ -19382,11 +19382,34 @@ URL: ${page.slug ? `/lp/${page.slug}` : ''}
 
       // Sign the voucher-offer amount server-side so the CTA URL can't be edited
       // to pay a different price (the checkout verifies this token).
+      //
+      // Amount priority: explicit cta_voucher_amount (Settings panel) → the
+      // price advertised in the page's own generated content
+      // (content_json.offerSection.price, e.g. "€225" / "ab 1.299€"). The
+      // content fallback means every AI-generated landing page's "Jetzt
+      // buchen" opens the voucher personalization flow at the page's own
+      // advertised price out of the box — previously an unconfigured page
+      // fell through to a dead '/contact' route.
+      const parseOfferPrice = (raw: any): number => {
+        if (!raw) return 0;
+        let s = String(raw);
+        // German formats: strip thousands dots ("1.299"), comma decimals ("225,50")
+        s = s.replace(/\.(?=\d{3}\b)/g, '').replace(',', '.');
+        const m = s.match(/\d+(?:\.\d{1,2})?/);
+        return m ? parseFloat(m[0]) : 0;
+      };
       const attachOfferToken = async (pg: any) => {
-        if (pg && Number(pg.cta_voucher_amount) > 0) {
+        if (!pg) return pg;
+        const amount = Number(pg.cta_voucher_amount) > 0
+          ? Number(pg.cta_voucher_amount)
+          : parseOfferPrice(pg.content_json?.offerSection?.price);
+        if (amount > 0) {
           const { signOfferToken } = await import('./utils/offer-token');
           const title = pg.cta_voucher_title || pg.content_json?.offerSection?.headline || pg.title || 'Gutschein';
-          pg.cta_offer_token = signOfferToken({ amount: Number(pg.cta_voucher_amount), title });
+          pg.cta_offer_token = signOfferToken({ amount, title });
+          // Let the client's amount>0 branch engage even when the amount came
+          // from page content rather than the Settings panel.
+          if (!(Number(pg.cta_voucher_amount) > 0)) pg.cta_voucher_amount = amount;
         }
         return pg;
       };

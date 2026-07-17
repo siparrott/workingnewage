@@ -182,26 +182,18 @@ async function lookupRouteMeta(reqPath: string): Promise<RouteMeta | null> {
     const blogMatch = reqPath.match(/^\/blog\/([^/]+)\/?$/);
     const voucherMatch = reqPath.match(/^\/gutschein\/([^/]+)\/?$/);
 
+    // IMPORTANT: use the same request-time data path the dynamic sitemap uses
+    // (./storage.js) — proven to work in production. An earlier version did
+    // ad-hoc drizzle imports here and hung in production (30s → Heroku 503).
     if (blogMatch) {
       const slug = decodeURIComponent(blogMatch[1]);
-      const { db } = await import("./db.js");
-      const { blogPosts } = await import("../shared/schema.js");
-      const { eq } = await import("drizzle-orm");
-      const [post] = await db
-        .select({
-          title: blogPosts.title,
-          seoTitle: blogPosts.seoTitle,
-          excerpt: blogPosts.excerpt,
-          metaDescription: blogPosts.metaDescription,
-          published: blogPosts.published,
-        })
-        .from(blogPosts)
-        .where(eq(blogPosts.slug, slug))
-        .limit(1);
-      if (post && post.published) {
+      const { storage } = await import("./storage.js");
+      const posts = await storage.getBlogPosts(true);
+      const post: any = (posts as any[]).find((p) => p.slug === slug);
+      if (post) {
         meta = {
           title: post.seoTitle || `${post.title} | New Age Fotografie Blog`,
-          description: (post.metaDescription || post.excerpt || post.title).slice(0, 160),
+          description: String(post.metaDescription || post.excerpt || post.title).slice(0, 160),
           canonical: `${SITE_ORIGIN}/blog/${slug}`,
         };
       }
@@ -209,23 +201,13 @@ async function lookupRouteMeta(reqPath: string): Promise<RouteMeta | null> {
       const slug = decodeURIComponent(voucherMatch[1]);
       // Dedicated components (with their own SEO) exist for these slugs.
       if (!["family", "newborn", "maternity"].includes(slug)) {
-        const { db } = await import("./db.js");
-        const { voucherProducts } = await import("../shared/schema.js");
-        const { eq } = await import("drizzle-orm");
-        const [v] = await db
-          .select({
-            name: voucherProducts.name,
-            description: voucherProducts.description,
-            metaTitle: voucherProducts.metaTitle,
-            metaDescription: voucherProducts.metaDescription,
-          })
-          .from(voucherProducts)
-          .where(eq(voucherProducts.slug, slug))
-          .limit(1);
+        const { storage } = await import("./storage.js");
+        const products = await storage.getVoucherProducts();
+        const v: any = (products as any[]).find((p) => p.slug === slug);
         if (v) {
           meta = {
             title: v.metaTitle || `${v.name} – Fotoshooting Gutschein Wien | New Age Fotografie`,
-            description: (v.metaDescription || v.description || `${v.name}: Fotoshooting-Gutschein von New Age Fotografie Wien.`).slice(0, 160),
+            description: String(v.metaDescription || v.description || `${v.name}: Fotoshooting-Gutschein von New Age Fotografie Wien.`).slice(0, 160),
             canonical: `${SITE_ORIGIN}/gutschein/${slug}`,
           };
         }
@@ -284,8 +266,11 @@ export function serveStatic(app: Express) {
   // static dist/sitemap.xml is served first and the dynamic handler never runs.
   registerDynamicSitemap(app, path.resolve(distPath, "sitemap.xml"));
 
-  // Serve static files from dist
-  app.use(express.static(distPath));
+  // Serve static ASSETS from dist. index: false so directory index.html files
+  // (the prerendered pages) do NOT get served here — they must flow through
+  // the catch-all below, which stamps the tenant identity into them and
+  // handles the data-driven blog/voucher routes.
+  app.use(express.static(distPath, { index: false }));
 
   // Explicitly serve robots.txt and sitemap.xml for SEO
   app.get("/robots.txt", (_req, res) => {
@@ -297,9 +282,22 @@ export function serveStatic(app: Express) {
     }
   });
 
+  // Per-tenant index.html: fill %SITE_*% identity placeholders once (env is
+  // stable per process). A template with no placeholders passes through
+  // unchanged, so this is safe on both index.html variants.
+  let cachedIndex: string | null = null;
+  const renderedIndex = (): string => {
+    if (cachedIndex === null) {
+      const raw = fs.readFileSync(path.resolve(distPath, "index.html"), "utf-8");
+      cachedIndex = renderIndexHtml(raw);
+    }
+    return cachedIndex;
+  };
+
   // fall through to index.html if the file doesn't exist
   // BUT exclude /api/* routes - those should return 404 JSON, not HTML
   app.use("*", async (req, res) => {
+   try {
     // If it's an API request that wasn't handled, return JSON 404
     if (req.originalUrl.startsWith('/api/')) {
       return res.status(404).json({ error: 'API endpoint not found', path: req.originalUrl });
@@ -366,7 +364,18 @@ export function serveStatic(app: Express) {
       }
     }
 
-    // For all other requests (frontend routes), serve the SPA
-    res.sendFile(path.resolve(distPath, "index.html"));
+    // For all other requests (frontend routes), serve the SPA with identity injected
+    res.status(200).type("html").send(renderedIndex());
+   } catch (fatal) {
+    // Last-resort guard: this handler must NEVER leave a request hanging
+    // (an unhandled async throw here previously meant no response at all →
+    // 30s Heroku H12 → "Application Error" on public pages).
+    console.error("[serveStatic] catch-all failed:", (fatal as any)?.message);
+    try {
+      res.status(200).type("html").sendFile(path.resolve(distPath, "index.html"));
+    } catch {
+      res.status(500).send("Server error");
+    }
+   }
   });
 }

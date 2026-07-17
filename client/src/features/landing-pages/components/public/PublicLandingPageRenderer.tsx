@@ -63,12 +63,14 @@ function getCtaHref(page: any): string {
     base = `/voucher/${voucherSlug}`;
   } else {
     switch (ctaAction) {
-      case 'book_now': base = '/booking'; break;
+      // NOTE: '/booking' and '/contact' are NOT routes in this app — the old
+      // mapping sent visitors to the SPA shell (homepage flash / blank page).
+      case 'book_now': base = '/warteliste'; break;
       case 'buy_voucher': base = '/vouchers'; break;
+      case 'waitlist': base = '/warteliste'; break;
       case 'enquire':
       case 'callback':
-      case 'waitlist':
-      default: base = '/contact'; break;
+      default: base = '/kontakt'; break;
     }
   }
   // Propagate campaign/UTM params from the landing URL so attribution survives.
