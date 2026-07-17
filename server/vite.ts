@@ -170,6 +170,9 @@ interface RouteMeta { title: string; description: string; canonical: string }
 const routeMetaCache = new Map<string, { meta: RouteMeta | null; at: number }>();
 const ROUTE_META_TTL = 5 * 60_000;
 
+// Prerendered HTML with tenant identity stamped in, cached per file path.
+const prerenderedCache = new Map<string, string>();
+
 async function lookupRouteMeta(reqPath: string): Promise<RouteMeta | null> {
   const cached = routeMetaCache.get(reqPath);
   if (cached && Date.now() - cached.at < ROUTE_META_TTL) return cached.meta;
@@ -342,7 +345,25 @@ export function serveStatic(app: Express) {
 
     const prerenderedHtmlPath = resolvePrerenderedHtmlPath(requestPath);
     if (prerenderedHtmlPath) {
-      return res.sendFile(prerenderedHtmlPath);
+      // The prerender browser has no env/window.__SITE_CONFIG__, so pages
+      // whose Helmet titles interpolate SITE.name bake the neutral fallback
+      // "My Studio" into the static HTML. Stamp the real tenant identity in
+      // at serve time (cached per path).
+      try {
+        let html = prerenderedCache.get(prerenderedHtmlPath);
+        if (html === undefined) {
+          html = fs.readFileSync(prerenderedHtmlPath, "utf-8");
+          const { getSiteIdentity } = await import("./lib/siteIdentity.js");
+          const name = getSiteIdentity().name;
+          if (name && name !== "My Studio") {
+            html = html.split("My Studio").join(name);
+          }
+          prerenderedCache.set(prerenderedHtmlPath, html);
+        }
+        return res.status(200).type("html").send(html);
+      } catch {
+        return res.sendFile(prerenderedHtmlPath);
+      }
     }
 
     // For all other requests (frontend routes), serve the SPA
