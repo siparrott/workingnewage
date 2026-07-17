@@ -246,8 +246,24 @@ const htmlEsc = (s: string) =>
 
 // Remove the prerendered homepage body from the SPA shell so data-driven
 // routes don't flash homepage content before React renders the real page.
+// Regex can't reliably find the matching close tag of a div full of nested
+// divs, so walk the markup counting <div>/</div> depth instead.
 function emptyHydrationRoot(html: string): string {
-  return html.replace(/(<div id="root"[^>]*>)[\s\S]*?(<\/div>\s*(?:<script|<\/body>))/, "$1$2");
+  const openIdx = html.search(/<div id="root"[^>]*>/);
+  if (openIdx === -1) return html;
+  const contentStart = html.indexOf(">", openIdx) + 1;
+  let depth = 1;
+  const tag = /<div\b|<\/div>/g;
+  tag.lastIndex = contentStart;
+  let m: RegExpExecArray | null;
+  while ((m = tag.exec(html)) !== null) {
+    depth += m[0] === "</div>" ? -1 : 1;
+    if (depth === 0) {
+      // m.index points at the matching </div> of #root.
+      return html.slice(0, contentStart) + html.slice(m.index);
+    }
+  }
+  return html; // unbalanced markup — leave untouched
 }
 
 function injectRouteMeta(html: string, meta: RouteMeta): string {
