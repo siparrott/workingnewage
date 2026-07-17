@@ -86,6 +86,8 @@ import StorageSettingsPage from './pages/admin/settings/StorageSettingsPage';
 import SmsSettingsPage from './pages/admin/settings/SmsSettingsPage';
 import StripeSettingsPage from './pages/admin/settings/StripeSettingsPage';
 import ManualWebsiteUpdatePage from './pages/admin/ManualWebsiteUpdatePage';
+import GewerblicheFotografieWienPage from './pages/GewerblicheFotografieWienPage';
+import WarumNewAgePage from './pages/WarumNewAgePage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import NeonProtectedRoute from './components/auth/NeonProtectedRoute';
 import VoucherThankYouPage from './pages/VoucherThankYouPage';
@@ -213,6 +215,9 @@ function App() {
                 <Route path="/agb/" element={<AGBPage />} />
                 <Route path="/datenschutz/" element={<DatenschutzPage />} />
                 <Route path="/model-release/" element={<ModelReleasePage />} />
+                {/* SEO pillar hubs (July 2026 audit) */}
+                <Route path="/gewerbliche-fotografie-wien/" element={<GewerblicheFotografieWienPage />} />
+                <Route path="/warum-new-age-fotografie/" element={<WarumNewAgePage />} />
                 
                 <Route path="/gutschein" element={<GutscheinPage />} />
                 <Route path="/gutschein/family" element={<FamilyGutscheinPage />} />

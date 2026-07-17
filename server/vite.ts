@@ -356,12 +356,31 @@ export function serveStatic(app: Express) {
     // paths, which captured the build-time "not found" error state (the
     // prerenderer has no API/DB). Even on a lookup miss the shell is better
     // than a prerendered error page.
+    //
+    // BULLETPROOF: the lookup races a hard 1.5s timeout and the whole branch
+    // is wrapped — under NO circumstances may a meta lookup hang or 500 a
+    // public page (a hung lookup previously turned /blog/<missing-slug> into
+    // a 30s Heroku H12 → 503).
     if (/^\/(blog|gutschein)\//.test(requestPath)) {
-      const meta = await lookupRouteMeta(requestPath);
-      // Diagnostic: shows whether the DB lookup resolved for this path.
-      res.setHeader("X-Route-Meta", meta ? "hit" : "miss");
-      const html = renderedIndex();
-      return res.status(200).type("html").send(meta ? injectRouteMeta(html, meta) : html);
+      let meta: RouteMeta | null = null;
+      let diag = "miss";
+      try {
+        meta = await Promise.race([
+          lookupRouteMeta(requestPath),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500).unref?.()),
+        ]);
+        diag = meta ? "hit" : "miss";
+      } catch (err) {
+        diag = "error";
+        console.warn("[route-meta] branch failed:", (err as any)?.message);
+      }
+      try {
+        res.setHeader("X-Route-Meta", diag);
+        const html = renderedIndex();
+        return res.status(200).type("html").send(meta ? injectRouteMeta(html, meta) : html);
+      } catch {
+        return res.status(200).type("html").send(renderedIndex());
+      }
     }
 
     const prerenderedHtmlPath = resolvePrerenderedHtmlPath(requestPath);

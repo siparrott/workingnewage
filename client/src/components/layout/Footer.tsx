@@ -318,6 +318,24 @@ const Footer: React.FC = () => {
                   Kundenstimmen – 4.9★ auf Google
                 </Link>
               </li>
+              <li>
+                <Link
+                  to="/warum-new-age-fotografie/"
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Warum New Age Fotografie?
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/gewerbliche-fotografie-wien/"
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  Gewerbliche Fotografie Wien
+                </Link>
+              </li>
             </ul>
           </div>
           

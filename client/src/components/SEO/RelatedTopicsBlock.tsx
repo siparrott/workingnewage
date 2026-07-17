@@ -97,6 +97,16 @@ const UEBER_UNS: LinkItem = {
   de: `Über uns – das Team von ${SITE.name}`,
   en: `About us – the ${SITE.name} team`,
 };
+const GEWERBLICH: LinkItem = {
+  to: '/gewerbliche-fotografie-wien/',
+  de: 'Gewerbliche Fotografie Wien – Produkte, Immobilien & Events',
+  en: 'Commercial photography Vienna – products, real estate & events',
+};
+const WARUM: LinkItem = {
+  to: '/warum-new-age-fotografie/',
+  de: `Warum ${SITE.name}? Bewertungen, Team & FAQ`,
+  en: `Why ${SITE.name}? Reviews, team & FAQ`,
+};
 const BLOG: LinkItem = {
   to: '/blog',
   de: 'Fotografie-Blog – Tipps & Inspiration',
@@ -110,8 +120,8 @@ const DEFAULTS: Record<string, LinkItem[]> = {
   // that should flow to service/money pages). The header nav still links it
   // sitewide; these blocks now push equity to services, pricing and reviews.
   '/portfolio':       [FAMILIE, BABY, BUSINESS, PREISE],
-  '/ueber-uns/':      [FAMILIE, KUNDENSTIMMEN, KONTAKT, PREISE_WIEN],
-  '/kundenstimmen/':  [PORTFOLIO, PREISE, FAMILIE, BUSINESS],
+  '/ueber-uns/':      [FAMILIE, KUNDENSTIMMEN, WARUM, KONTAKT, PREISE_WIEN],
+  '/kundenstimmen/':  [PORTFOLIO, WARUM, PREISE, FAMILIE, BUSINESS],
   '/kontakt':         [FAMILIE, BUSINESS, KUNDENSTIMMEN, GUTSCHEIN],
   '/preise/':         [FAMILIE, NEUGEBORENE, BUSINESS, GUTSCHEIN],
   '/fotoshooting-preise-wien/': [FAMILIE, BABY, BUSINESS, PREISE, KONTAKT],
@@ -119,7 +129,7 @@ const DEFAULTS: Record<string, LinkItem[]> = {
   '/babyfotos-wien/':           [NEUGEBORENE, FAMILIE, SCHWANGER, PREISE_WIEN, GUTSCHEIN],
   '/neugeborenenfotos-wien/':   [BABY, FAMILIE, SCHWANGER, PREISE_WIEN, GUTSCHEIN],
   '/schwangerschaftsfotos-wien/': [BABY, NEUGEBORENE, FAMILIE, PREISE_WIEN, GUTSCHEIN],
-  '/business-portrait-wien/':   [BUSINESS, PORTFOLIO, KONTAKT, PREISE_WIEN],
+  '/business-portrait-wien/':   [BUSINESS, GEWERBLICH, PORTFOLIO, KONTAKT, PREISE_WIEN],
   '/galerie':         [PORTFOLIO, FAMILIE, BUSINESS, PREISE],
   '/galleries':       [PORTFOLIO, FAMILIE, BUSINESS, PREISE],
   '/blog':            [FAMILIE, BABY, BUSINESS, KUNDENSTIMMEN, PREISE_WIEN],

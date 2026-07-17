@@ -67,6 +67,8 @@ const publicRoutes = [
   // SEO Pillar Pages
   '/kinder-fotografie-wien/',
   '/portrait-fotografie-wien/',
+  '/gewerbliche-fotografie-wien/',
+  '/warum-new-age-fotografie/',
   
   // Support Pages
   // NOTE: /fotoshooting-preise-wien/ intentionally absent — it 301s to /preise/
