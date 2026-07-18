@@ -607,8 +607,37 @@ app.use((req, res, next) => {
     // but doesn't DEindex already-crawled URLs; X-Robots-Tag does. The SPA
     // catch-all serves index.html (title = homepage) for /admin, which the SEO
     // audit flagged as an indexed duplicate-title page.
+    //
+    // Same treatment for transactional / account / demo routes: they are
+    // client-only, so a crawler receives the empty SPA shell (homepage title,
+    // ~0 words) which reads as a thin, duplicate-title indexable page. These
+    // have no business in search results, so send X-Robots-Tag: noindex. (The
+    // React noindex prop can't help here — the crawler never runs the JS that
+    // would render it.)
+    const NOINDEX_EXACT = new Set([
+      '/vouchers/success',
+      '/voucher/thank-you',
+      '/my-subscription',
+      '/download-data',
+      '/demo-success',
+      '/gallery-shop-test',
+      '/image-test',
+      '/test-hero',
+      '/storage-demo',
+      '/storage-demo-index',
+      '/survey-demo',
+    ]);
+    const noindexPath = (p: string): boolean => {
+      const clean = (p.endsWith('/') && p.length > 1 ? p.slice(0, -1) : p);
+      if (clean === '/admin' || clean.startsWith('/admin/')) return true;
+      if (NOINDEX_EXACT.has(clean)) return true;
+      // Individual client gallery views (private, per-token) must not be indexed.
+      if (clean.startsWith('/gallery/') || clean.startsWith('/invoice/')) return true;
+      return false;
+    };
     app.use((req, res, next) => {
-      if (req.path === '/admin' || req.path.startsWith('/admin/')) {
+      const path = (req.originalUrl || req.path).split('?')[0];
+      if (noindexPath(path)) {
         res.setHeader('X-Robots-Tag', 'noindex, nofollow');
       }
       next();
