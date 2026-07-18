@@ -166,7 +166,7 @@ export async function setupVite(app: Express, server: Server) {
 // "not found" error state, so crawlers saw default-title error pages. Instead,
 // the server (which has the DB) injects the real title/description/canonical
 // into the served HTML for these routes and bypasses the bad prerender files.
-interface RouteMeta { title: string; description: string; canonical: string }
+interface RouteMeta { title: string; description: string; canonical: string; bodyHtml?: string }
 
 const routeMetaCache = new Map<string, { meta: RouteMeta | null; at: number }>();
 const ROUTE_META_TTL = 5 * 60_000;
@@ -189,13 +189,17 @@ async function lookupRouteMeta(reqPath: string): Promise<RouteMeta | null> {
     if (blogMatch) {
       const slug = decodeURIComponent(blogMatch[1]);
       const { storage } = await import("./storage.js");
-      const posts = await storage.getBlogPosts(true);
-      const post: any = (posts as any[]).find((p) => p.slug === slug);
-      if (post) {
+      // Single-row lookup (getBlogPosts(true) pulled EVERY post's full content
+      // for one meta hit). Guard published + publishedAt manually.
+      const post: any = await storage.getBlogPostBySlug(slug);
+      const isLive = post && post.published === true &&
+        (!post.publishedAt || new Date(post.publishedAt).getTime() <= Date.now());
+      if (isLive) {
         meta = {
           title: post.seoTitle || `${post.title} | New Age Fotografie Blog`,
           description: String(post.metaDescription || post.excerpt || post.title).slice(0, 160),
           canonical: `${SITE_ORIGIN}/blog/${slug}`,
+          bodyHtml: blogBodyHtml(post),
         };
       }
     } else if (voucherMatch) {
@@ -210,6 +214,12 @@ async function lookupRouteMeta(reqPath: string): Promise<RouteMeta | null> {
             title: v.metaTitle || `${v.name} – Fotoshooting Gutschein Wien | New Age Fotografie`,
             description: String(v.metaDescription || v.description || `${v.name}: Fotoshooting-Gutschein von New Age Fotografie Wien.`).slice(0, 160),
             canonical: `${SITE_ORIGIN}/gutschein/${slug}`,
+            bodyHtml:
+              `<div class="max-w-3xl mx-auto px-4 py-12">\n` +
+              `<h1 class="text-3xl font-bold text-gray-900 mb-4">${htmlEsc(String(v.name || slug))}</h1>\n` +
+              (v.description ? `<p class="text-gray-700 mb-6">${htmlEsc(String(v.description))}</p>\n` : "") +
+              `<p class="text-gray-700"><a href="/vouchers" class="underline">Alle Gutscheine</a> · <a href="/preise/" class="underline">Preise &amp; Pakete</a> · <a href="/kontakt" class="underline">Kontakt</a></p>\n` +
+              `</div>`,
           };
         }
       }
@@ -228,6 +238,7 @@ async function lookupRouteMeta(reqPath: string): Promise<RouteMeta | null> {
             title: page.seo_title || page.title || slug,
             description: String(page.meta_description || page.content_json?.hero?.subheadline || page.title || "").slice(0, 160),
             canonical: `${SITE_ORIGIN}/lp/${slug}`,
+            bodyHtml: lpBodyHtml(page),
           };
         }
       }
@@ -243,6 +254,176 @@ async function lookupRouteMeta(reqPath: string): Promise<RouteMeta | null> {
 
 const htmlEsc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+// ── Server-rendered body for data-driven routes ─────────────────────────────
+// Blog posts, landing pages and voucher details only exist as client-side
+// React renders — a non-JS crawler (most SEO auditors) sees an EMPTY <div
+// id="root"> and flags them as zero-word dead-end pages. Build a static HTML
+// version of the page body from the same DB data as the meta lookup and
+// inject it into the root at serve time. The client uses createRoot().render()
+// (not hydrateRoot), so React simply replaces this content on mount.
+
+// Mirror of BlogPostPage's topic-matched cluster→pillar uplinks — keep in sync.
+const BLOG_PILLARS: Array<{ match: RegExp; pillar: [string, string]; siblings: [string, string][] }> = [
+  { match: /hochzeit|braut|trauung|standesamt/i,
+    pillar: ["/hochzeitsfotografie-wien/", "Hochzeitsfotografie Wien"],
+    siblings: [["/schwangerschaftsfotos-wien/", "Paar- & Babybauch-Shooting"], ["/gewerbliche-fotografie-wien/", "Eventfotografie & mehr"]] },
+  { match: /neugeboren|newborn/i,
+    pillar: ["/neugeborenenfotos-wien/", "Neugeborenenfotos Wien"],
+    siblings: [["/babyfotos-wien/", "Babyfotos Wien"], ["/familienfotos-wien/", "Familienfotos Wien"]] },
+  { match: /schwanger|babybauch|maternity/i,
+    pillar: ["/schwangerschaftsfotos-wien/", "Schwangerschaftsfotos Wien"],
+    siblings: [["/neugeborenenfotos-wien/", "Neugeborenenfotos Wien"], ["/familienfotos-wien/", "Familienfotos Wien"]] },
+  { match: /\bbaby|babyfoto/i,
+    pillar: ["/babyfotos-wien/", "Babyfotos Wien (3–12 Monate)"],
+    siblings: [["/neugeborenenfotos-wien/", "Neugeborenenfotos Wien"], ["/kinder-fotografie-wien/", "Kinder-Fotografie Wien"]] },
+  { match: /kinder|kids/i,
+    pillar: ["/kinder-fotografie-wien/", "Kinder-Fotografie Wien"],
+    siblings: [["/familienfotos-wien/", "Familienfotos Wien"], ["/babyfotos-wien/", "Babyfotos Wien"]] },
+  { match: /business|bewerbung|linkedin|portrait|headshot|team/i,
+    pillar: ["/business-portrait-wien/", "Business Portraits Wien"],
+    siblings: [["/gewerbliche-fotografie-wien/", "Gewerbliche Fotografie Wien"], ["/teamfotos-wien/", "Teamfotos Wien"]] },
+  { match: /produkt|immobilie|event|firmen/i,
+    pillar: ["/gewerbliche-fotografie-wien/", "Gewerbliche Fotografie Wien"],
+    siblings: [["/business-portrait-wien/", "Business Portraits Wien"], ["/teamfotos-wien/", "Teamfotos Wien"]] },
+];
+const DEFAULT_BLOG_PILLAR = {
+  pillar: ["/familienfotos-wien/", "Familienfotos Wien"] as [string, string],
+  siblings: [["/babyfotos-wien/", "Babyfotos Wien"], ["/schwangerschaftsfotos-wien/", "Schwangerschaftsfotos Wien"]] as [string, string][],
+};
+
+// Legacy posts store raw Markdown in `content` (contentHtml empty). Minimal
+// conversion — headings + paragraphs — is enough for crawlable text.
+function markdownishToHtml(md: string): string {
+  return md.split(/\n{2,}/).map((block) => {
+    const t = block.trim();
+    if (!t) return "";
+    const h = t.match(/^(#{1,4})\s+(.*)$/s);
+    if (h) {
+      const level = Math.min(h[1].length + 1, 5);
+      return `<h${level}>${htmlEsc(h[2].trim())}</h${level}>`;
+    }
+    return `<p>${htmlEsc(t).replace(/\n/g, "<br/>")}</p>`;
+  }).filter(Boolean).join("\n");
+}
+
+function blogBodyHtml(post: any): string {
+  const haystack = `${post.title || ""} ${post.slug || ""} ${post.excerpt || ""}`;
+  const { pillar, siblings } = BLOG_PILLARS.find((p) => p.match.test(haystack)) || DEFAULT_BLOG_PILLAR;
+  const published = post.publishedAt ? new Date(post.publishedAt).toISOString().slice(0, 10) : "";
+  const content = post.contentHtml && String(post.contentHtml).trim()
+    ? String(post.contentHtml)
+    : markdownishToHtml(String(post.content || ""));
+  const cover = post.imageUrl
+    ? `<img src="${htmlEsc(String(post.imageUrl))}" alt="${htmlEsc(String(post.title || ""))}" class="w-full rounded-xl mb-8" />\n`
+    : "";
+  const siblingLinks = siblings.map(([to, label]) =>
+    `<li><a href="${to}" class="text-purple-700 underline underline-offset-2">${htmlEsc(label)}</a></li>`).join("\n");
+  return (
+    `<div class="max-w-3xl mx-auto px-4 py-12">\n` +
+    `<article>\n` +
+    `<h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">${htmlEsc(String(post.title || ""))}</h1>\n` +
+    (published ? `<p class="text-sm text-gray-500 mb-6">Veröffentlicht am ${published} · <a href="/blog" class="underline">New Age Fotografie Blog</a></p>\n` : "") +
+    cover +
+    `<div class="blog-post-content prose prose-purple max-w-none">\n${content}\n</div>\n` +
+    `</article>\n` +
+    `<div class="mt-10 bg-purple-50 border border-purple-100 rounded-xl p-6">\n` +
+    `<h3 class="text-xl font-bold text-gray-900 mb-4">Passendes Fotoshooting</h3>\n` +
+    `<a href="${pillar[0]}" class="block bg-purple-600 text-white font-semibold rounded-lg px-5 py-3 mb-4">→ ${htmlEsc(pillar[1])}: Infos, Pakete &amp; Beispiele</a>\n` +
+    `<ul class="grid sm:grid-cols-3 gap-3 mb-4">\n${siblingLinks}\n</ul>\n` +
+    `<p class="text-gray-700">Alle <a href="/preise/" class="underline">Preise &amp; Pakete</a> · <a href="/kundenstimmen/" class="underline">Kundenstimmen</a> · <a href="/kontakt" class="underline">Termin anfragen</a> · <a href="/vouchers" class="underline">Gutscheine</a></p>\n` +
+    `</div>\n` +
+    `</div>`
+  );
+}
+
+function lpBodyHtml(page: any): string {
+  const c = (page.content_json || {}) as Record<string, any>;
+  // content_json exists in two vocabularies (AI generation vs editor save) —
+  // read both, same as the public renderer.
+  const listOf = (v: any, key: string): any[] => (Array.isArray(v) ? v : Array.isArray(v?.[key]) ? v[key] : []);
+  const first = (...vals: any[]) => { for (const v of vals) if (typeof v === "string" && v.trim()) return v; return ""; };
+  const vis = (c.meta?.sectionVisibility || {}) as Record<string, any>;
+  const show = (k: string) => vis[k] !== false;
+  const parts: string[] = [];
+
+  const hero = c.hero || {};
+  if (show("hero")) {
+    const h1 = first(hero.headline, page.title, page.slug);
+    parts.push(`<h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-3">${htmlEsc(h1)}</h1>`);
+    if (first(hero.subheadline)) parts.push(`<p class="text-lg text-gray-600 mb-6">${htmlEsc(hero.subheadline)}</p>`);
+  }
+  if (show("trustBar")) {
+    const items = listOf(c.trustBar, "items").filter((i: any) => typeof i === "string" && i.trim());
+    if (items.length) parts.push(`<p class="text-sm text-gray-500 mb-6">${items.map((i: string) => htmlEsc(i)).join(" · ")}</p>`);
+  }
+  if (show("problemSection") && c.problemSection) {
+    const p = c.problemSection;
+    const paras = listOf(p.paragraphs || p.painPoints, "items");
+    if (first(p.title, p.headline)) parts.push(`<h2 class="text-2xl font-bold mt-8 mb-3">${htmlEsc(first(p.title, p.headline))}</h2>`);
+    for (const para of paras) if (typeof para === "string" && para.trim()) parts.push(`<p class="text-gray-700 mb-3">${htmlEsc(para)}</p>`);
+  }
+  if (show("offerSection") && c.offerSection) {
+    const o = c.offerSection;
+    if (first(o.title, o.headline)) parts.push(`<h2 class="text-2xl font-bold mt-8 mb-3">${htmlEsc(first(o.title, o.headline))}</h2>`);
+    if (first(o.intro, o.description)) parts.push(`<p class="text-gray-700 mb-3">${htmlEsc(first(o.intro, o.description))}</p>`);
+    const bullets = listOf(o.bullets || o.inclusions, "items").filter((b: any) => typeof b === "string" && b.trim());
+    if (bullets.length) parts.push(`<ul class="list-disc pl-6 mb-3 text-gray-700">${bullets.map((b: string) => `<li>${htmlEsc(b)}</li>`).join("")}</ul>`);
+    if (first(o.price)) parts.push(`<p class="font-semibold text-gray-900 mb-2">${htmlEsc(o.price)}</p>`);
+    if (first(o.urgency)) parts.push(`<p class="text-sm text-purple-700 mb-3">${htmlEsc(o.urgency)}</p>`);
+  }
+  if (show("benefits")) {
+    for (const b of listOf(c.benefits, "items")) {
+      if (b && (b.title || b.description)) parts.push(`<p class="text-gray-700 mb-2"><strong>${htmlEsc(String(b.title || ""))}</strong> ${htmlEsc(String(b.description || ""))}</p>`);
+    }
+  }
+  if (show("whyChooseUs") && c.whyChooseUs) {
+    const w = c.whyChooseUs;
+    if (first(w.title, w.headline)) parts.push(`<h2 class="text-2xl font-bold mt-8 mb-3">${htmlEsc(first(w.title, w.headline))}</h2>`);
+    const reasons = (Array.isArray(w.points) ? w.points : Array.isArray(w.reasons) ? w.reasons : [])
+      .map((r: any) => (typeof r === "string" ? { title: r, description: "" } : r || {}));
+    for (const r of reasons) {
+      if (r.title || r.description) parts.push(`<p class="text-gray-700 mb-2"><strong>${htmlEsc(String(r.title || ""))}</strong> ${htmlEsc(String(r.description || ""))}</p>`);
+    }
+  }
+  if (show("inclusions") && c.inclusions) {
+    const items = listOf(c.inclusions, "items").filter((i: any) => typeof i === "string" && i.trim());
+    if (first(c.inclusions.title, c.inclusions.headline)) parts.push(`<h2 class="text-2xl font-bold mt-8 mb-3">${htmlEsc(first(c.inclusions.title, c.inclusions.headline))}</h2>`);
+    if (items.length) parts.push(`<ul class="list-disc pl-6 mb-3 text-gray-700">${items.map((i: string) => `<li>${htmlEsc(i)}</li>`).join("")}</ul>`);
+  }
+  if (show("testimonials")) {
+    const ts = listOf(c.testimonials, "testimonials").filter((t: any) => t && t.quote);
+    if (ts.length) {
+      parts.push(`<h2 class="text-2xl font-bold mt-8 mb-3">Das sagen unsere Kunden</h2>`);
+      for (const t of ts) parts.push(`<blockquote class="text-gray-700 italic mb-2">„${htmlEsc(String(t.quote))}" — ${htmlEsc(String(t.author || ""))}</blockquote>`);
+    }
+  }
+  if (show("faq")) {
+    const faqs = listOf(c.faq, "items").filter((f: any) => f && f.question);
+    if (faqs.length) {
+      parts.push(`<h2 class="text-2xl font-bold mt-8 mb-3">Häufige Fragen</h2>`);
+      for (const f of faqs) {
+        parts.push(`<p class="font-semibold text-gray-900 mb-1">${htmlEsc(String(f.question))}</p>`);
+        parts.push(`<p class="text-gray-700 mb-3">${htmlEsc(String(f.answer || ""))}</p>`);
+      }
+    }
+  }
+  if (show("finalCta") && c.finalCta) {
+    const fc = c.finalCta;
+    if (first(fc.title, fc.headline)) parts.push(`<h2 class="text-2xl font-bold mt-8 mb-3">${htmlEsc(first(fc.title, fc.headline))}</h2>`);
+    if (first(fc.body, fc.description)) parts.push(`<p class="text-gray-700 mb-3">${htmlEsc(first(fc.body, fc.description))}</p>`);
+  }
+  parts.push(`<p class="mt-8 text-gray-700"><a href="/kontakt" class="underline">Kontakt &amp; Termin anfragen</a> · <a href="/vouchers" class="underline">Gutscheine</a> · <a href="/preise/" class="underline">Preise</a></p>`);
+  return `<div class="max-w-3xl mx-auto px-4 py-12">\n${parts.join("\n")}\n</div>`;
+}
+
+// Insert static body content into the (already emptied) hydration root.
+function injectBodyIntoRoot(html: string, bodyHtml: string): string {
+  const openIdx = html.search(/<div id="root"[^>]*>/);
+  if (openIdx === -1) return html;
+  const contentStart = html.indexOf(">", openIdx) + 1;
+  return html.slice(0, contentStart) + bodyHtml + html.slice(contentStart);
+}
 
 // Remove the prerendered homepage body from the SPA shell so data-driven
 // routes don't flash homepage content before React renders the real page.
@@ -403,9 +584,17 @@ export function serveStatic(app: Express) {
         // ALWAYS empty the hydration root for data-driven routes — the shell
         // is the prerendered HOMEPAGE, and serving its body caused a visible
         // homepage flash before React rendered the actual page (worst on
-        // /lp/<slug> "View Live"). Meta is additionally injected on a hit.
+        // /lp/<slug> "View Live"). Meta is additionally injected on a hit,
+        // and the static body (real crawlable content) goes into the emptied
+        // root; React's createRoot().render() replaces it on mount.
         let html = emptiedShell();
-        if (meta) html = injectRouteMeta(html, meta);
+        if (meta) {
+          html = injectRouteMeta(html, meta);
+          if (meta.bodyHtml) {
+            html = injectBodyIntoRoot(html, meta.bodyHtml);
+            res.setHeader("X-Route-Body", "hit");
+          }
+        }
         return res.status(200).type("html").send(html);
       } catch {
         return res.status(200).type("html").send(renderedIndex());

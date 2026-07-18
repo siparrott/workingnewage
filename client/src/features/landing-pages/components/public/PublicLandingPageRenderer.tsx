@@ -96,6 +96,17 @@ export function PublicLandingPageRenderer({
   const ctaHref = getCtaHref(page);
   const ctaText = content.hero?.ctaText || page.cta_text || 'Jetzt buchen';
 
+  // content_json exists in TWO vocabularies: AI generation writes raw arrays
+  // (benefits: [...], faq: [...]) while an editor save writes normalized
+  // objects (benefits: {title, items}, faq: {title, items}, testimonials:
+  // {title, testimonials}). Reading only one shape silently hid these
+  // sections after any editor save — accept both.
+  const listOf = (v: any, key: string): any[] =>
+    Array.isArray(v) ? v : Array.isArray(v?.[key]) ? v[key] : [];
+  const benefitItems = listOf(content.benefits, 'items');
+  const testimonialItems = listOf(content.testimonials, 'testimonials');
+  const faqItems = listOf(content.faq, 'items');
+
   // Build SEO metadata
   const metadata = buildLandingPageMetadata({
     seoTitle: page.seo_title || page.content_json?.seo?.title || '',
@@ -115,7 +126,7 @@ export function PublicLandingPageRenderer({
     canonicalUrl: metadata.canonical || `${window.location.origin}/lp/${page.slug}`,
     city: page.city || null,
     primaryService: page.primary_service || null,
-    faqItems: Array.isArray(content.faq) ? content.faq : undefined,
+    faqItems: faqItems.length > 0 ? faqItems : undefined,
     offerName: content.offerSection?.headline,
     offerDescription: content.offerSection?.description,
   });
@@ -165,8 +176,8 @@ export function PublicLandingPageRenderer({
       />
     ) : null,
 
-    benefits: () => content.benefits && content.benefits.length > 0 ? (
-      <PublicLandingPageBenefitsSection key="benefits" data={content.benefits} />
+    benefits: () => benefitItems.length > 0 ? (
+      <PublicLandingPageBenefitsSection key="benefits" data={benefitItems} />
     ) : null,
 
     whyChooseUs: () => content.whyChooseUs ? (
@@ -174,15 +185,18 @@ export function PublicLandingPageRenderer({
     ) : null,
 
     inclusions: () => content.inclusions ? (
-      <PublicLandingPageInclusionsSection key="inclusions" data={content.inclusions} />
+      <PublicLandingPageInclusionsSection
+        key="inclusions"
+        data={{ ...content.inclusions, headline: content.inclusions.headline || content.inclusions.title }}
+      />
     ) : null,
 
-    testimonials: () => content.testimonials && content.testimonials.length > 0 ? (
-      <PublicLandingPageTestimonialsSection key="testimonials" data={content.testimonials} />
+    testimonials: () => testimonialItems.length > 0 ? (
+      <PublicLandingPageTestimonialsSection key="testimonials" data={testimonialItems} />
     ) : null,
 
-    faq: () => content.faq && content.faq.length > 0 ? (
-      <PublicLandingPageFaqSection key="faq" data={content.faq} />
+    faq: () => faqItems.length > 0 ? (
+      <PublicLandingPageFaqSection key="faq" data={faqItems} />
     ) : null,
 
     finalCta: () => content.finalCta ? (

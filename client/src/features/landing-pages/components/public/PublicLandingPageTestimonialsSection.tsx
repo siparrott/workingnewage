@@ -7,6 +7,7 @@ interface PublicLandingPageTestimonialsSectionProps {
     quote: string;
     author: string;
     role?: string;
+    source?: string; // editor saves "source", AI generation saves "role" — accept both
   }>;
 }
 
@@ -30,7 +31,7 @@ export function PublicLandingPageTestimonialsSection({ data }: PublicLandingPage
               <p className="text-gray-700 italic mb-4 leading-relaxed">"{t.quote}"</p>
               <div>
                 <p className="font-semibold text-gray-900">— {t.author}</p>
-                {t.role && <p className="text-sm text-gray-500">{t.role}</p>}
+                {(t.role || t.source) && <p className="text-sm text-gray-500">{t.role || t.source}</p>}
               </div>
             </div>
           ))}

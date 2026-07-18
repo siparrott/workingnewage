@@ -182,7 +182,12 @@ export function serializeEditorContent(
       price: o.price ?? '',
     } : undefined,
     benefits: content.benefits,
-    whyChooseUs: w ? { ...w, headline: w.title, reasons: w.points } : undefined,
+    whyChooseUs: w ? {
+      ...w,
+      headline: w.title,
+      // Public card reads {title, description} objects — plain strings render as empty cards.
+      reasons: (w.points ?? []).map((p: any) => (typeof p === 'string' ? { title: p, description: '' } : p)),
+    } : undefined,
     inclusions: content.inclusions,
     testimonials: content.testimonials,
     faq: content.faq,
