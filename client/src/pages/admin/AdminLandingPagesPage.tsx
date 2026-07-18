@@ -103,9 +103,16 @@ export default function AdminLandingPagesPage() {
             setStep={setWizardStep}
             onBack={handleBackToList}
             onComplete={(page) => {
-              setEditingPage(page as any);
-              setView('editor');
               queryClient.invalidateQueries({ queryKey: [LANDING_PAGES_QUERY_KEY] });
+              // Open the full editor (hero-image upload, readiness-validated
+              // publish) rather than the legacy inline editor, which lacked
+              // hero upload and whose publish path was unreliable. Same
+              // destination as editing an existing page.
+              if ((page as any)?.id) {
+                navigate(`/admin/landing-pages/${(page as any).id}`);
+              } else {
+                handleBackToList();
+              }
             }}
           />
         )}
