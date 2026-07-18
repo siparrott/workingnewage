@@ -35,6 +35,43 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/manual-pages/published/all - PUBLIC: merged published content for
+// the whole studio as one flat {translationKey: value} map. The public site's
+// LanguageContext overlays this on the built-in copy — this is the link that
+// makes Manual Website Update edits actually reach the live pages.
+router.get('/published/all', async (req, res) => {
+  try {
+    const studioId = getStudioId(req);
+    const { language = 'de' } = req.query;
+
+    const records = await db
+      .select()
+      .from(manualPageContent)
+      .where(
+        and(
+          eq(manualPageContent.studioId, studioId),
+          eq(manualPageContent.language, language as string)
+        )
+      );
+
+    const content: Record<string, string> = {};
+    for (const r of records) {
+      const pub = (r.publishedContent || {}) as Record<string, unknown>;
+      for (const [k, v] of Object.entries(pub)) {
+        if (typeof v === 'string' && v.trim()) content[k] = v;
+      }
+    }
+
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
+    res.json({ language, content });
+  } catch (error) {
+    // Table missing or DB error — the site must still render its built-in copy.
+    console.warn('Published manual content fallback:', (error as any)?.message || error);
+    res.setHeader('Cache-Control', 'public, max-age=60');
+    res.json({ language: req.query.language || 'de', content: {} });
+  }
+});
+
 // GET /api/manual-pages/:pageId - Get content for a specific page
 router.get('/:pageId', async (req, res) => {
   try {

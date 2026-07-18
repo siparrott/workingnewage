@@ -868,11 +868,11 @@ const translations = {
   'manual.eventfotografie.faqA4': 'Often yes for single-track. For parallel sessions, a large venue or VIP focus, we recommend a 2nd camera.',
   'manual.familienfotos.faqHeading': 'Mini-FAQ',
   'manual.familienfotos.faqQ1': 'How many outfit changes can we manage?',
-  'manual.familienfotos.faqA1': 'In 90 min. usually 2 looks per person; Basic: 1–2 looks depending on group size.',
+  'manual.familienfotos.faqA1': 'In 60 min. usually 2 looks per person; Basic: 1–2 looks depending on group size.',
   'manual.familienfotos.faqQ2': 'Can pets come along?',
   'manual.familienfotos.faqA2': 'Yes – a short heads-up in advance so we can plan a \'pet break\'.',
   'manual.familienfotos.faqQ3': 'How quickly do we get the images?',
-  'manual.familienfotos.faqA3': 'Selection in 3–5 days, final retouching in 10–14 days (express possible).',
+  'manual.familienfotos.faqA3': 'Selection can be made the same day; final retouching for digital images within 7 days, prints within 14 days.',
   'manual.hochzeitsfotografie.faqHeading': 'FAQ',
   'manual.hochzeitsfotografie.faqQ1': 'How quickly do we get photos?',
   'manual.hochzeitsfotografie.faqA1': 'Sneak peeks in 24–48 hours, the full gallery within seven days – faster than express possible.',
@@ -1979,11 +1979,11 @@ const translations = {
   'manual.eventfotografie.faqA4': 'Single-Track oft ja. Bei Parallel-Sessions, großer Venue oder VIP-Fokus empfehlen wir 2. Kamera.',
   'manual.familienfotos.faqHeading': 'Mini-FAQ',
   'manual.familienfotos.faqQ1': 'Wie viele Outfitwechsel schaffen wir?',
-  'manual.familienfotos.faqA1': 'In 90 Min. meist 2 Looks pro Person; Basic: 1–2 Looks je nach Gruppengröße.',
+  'manual.familienfotos.faqA1': 'In 60 Min. meist 2 Looks pro Person; Basic: 1–2 Looks je nach Gruppengröße.',
   'manual.familienfotos.faqQ2': 'Dürfen Haustiere mit?',
   'manual.familienfotos.faqA2': 'Ja – kurze Info vorab, damit wir eine „Pet-Pause" einplanen.',
   'manual.familienfotos.faqQ3': 'Wie schnell bekommen wir die Bilder?',
-  'manual.familienfotos.faqA3': 'Auswahl in 3–5 Tagen, finale Retusche in 10–14 Tagen (Express möglich).',
+  'manual.familienfotos.faqA3': 'Auswahl noch am selben Tag möglich; finale Retusche digital innerhalb von 7 Tagen, Prints innerhalb von 14 Tagen.',
   'manual.hochzeitsfotografie.faqHeading': 'FAQ',
   'manual.hochzeitsfotografie.faqQ1': 'Wie schnell bekommen wir Fotos?',
   'manual.hochzeitsfotografie.faqA1': 'Sneak Peeks gibt\'s in 24–48 Stunden, die vollständige Galerie innerhalb von 7 Tagen – schneller als Express möglich.',
@@ -2288,8 +2288,29 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     try { document.documentElement.lang = language; } catch {}
   }, [language]);
 
+  // Published "Manual Website Update" content (Settings → Manual Website
+  // Update saves to /api/manual-pages). Without this overlay, admin edits were
+  // stored in the DB but the live site kept rendering the built-in copy.
+  const [manualOverrides, setManualOverrides] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/manual-pages/published/all?language=${language}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && data && typeof data.content === 'object' && data.content) {
+          setManualOverrides(data.content as Record<string, string>);
+        }
+      } catch { /* offline/prerender — built-in copy is the fallback */ }
+    })();
+    return () => { cancelled = true; };
+  }, [language]);
+
   const t = (key: string): string => {
-    // Prefer current language, then fallback to English, then the key
+    // Published admin edits win, then current language, then English, then the key
+    const override = manualOverrides[key];
+    if (typeof override === 'string' && override.trim()) return override;
     const current = (translations[language] as any)[key];
     if (current) return current;
     const fallbackEn = (translations.en as any)[key];

@@ -512,7 +512,7 @@ export default function FamilienfotosWienPage() {
           <div className="space-y-6">
             <div className="bg-white rounded-xl p-6 shadow-sm">
               <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.familienfotos.faqQ1', 'Wie viele Outfitwechsel schaffen wir?')}</h3>
-              <p className="text-gray-600">{fromManual('manual.familienfotos.faqA1', 'In 90 Min. meist 2 Looks pro Person; Basic: 1–2 Looks je nach Gruppengröße.')}</p>
+              <p className="text-gray-600">{fromManual('manual.familienfotos.faqA1', 'In 60 Min. meist 2 Looks pro Person; Basic: 1–2 Looks je nach Gruppengröße.')}</p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm">
               <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.familienfotos.faqQ2', 'Dürfen Haustiere mit?')}</h3>
@@ -520,7 +520,7 @@ export default function FamilienfotosWienPage() {
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm">
               <h3 className="font-bold text-lg text-gray-900 mb-2">{fromManual('manual.familienfotos.faqQ3', 'Wie schnell bekommen wir die Bilder?')}</h3>
-              <p className="text-gray-600">{fromManual('manual.familienfotos.faqA3', 'Auswahl in 3–5 Tagen, finale Retusche in 10–14 Tagen (Express möglich).')}</p>
+              <p className="text-gray-600">{fromManual('manual.familienfotos.faqA3', 'Auswahl noch am selben Tag möglich; finale Retusche digital innerhalb von 7 Tagen, Prints innerhalb von 14 Tagen.')}</p>
             </div>
           </div>
         </div>
