@@ -6,9 +6,12 @@ import { ContextualLinks } from '../../components/SEO/ContextualLinks';
 import { Link } from 'react-router-dom';
 import { Camera, Heart, Users, Star, ArrowRight, Check } from 'lucide-react';
 import VoucherPackagesList from '../../components/vouchers/VoucherPackagesList';
+import { useLanguage } from '../../context/LanguageContext';
 import { SITE } from '../../config/site';
 
 export default function FamilienFotoshootingWienPage() {
+  const { language } = useLanguage();
+  const de = language === 'de';
   return (
     <Layout>
     <div className="min-h-screen bg-white">
@@ -30,25 +33,26 @@ export default function FamilienFotoshootingWienPage() {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-                Familien-Fotoshooting in Wien
+                {de ? 'Familien-Fotoshooting in Wien' : 'Family Photo Shoot in Vienna'}
               </h1>
               <p className="text-xl text-gray-600 mb-8">
-                Echte Emotionen und natürliche Familienportraits im Studio oder Outdoor. 
-                Wir halten die schönsten Momente Ihrer Familie für die Ewigkeit fest.
+                {de
+                  ? 'Echte Emotionen und natürliche Familienportraits im Studio oder Outdoor. Wir halten die schönsten Momente Ihrer Familie für die Ewigkeit fest.'
+                  : 'Real emotions and natural family portraits in the studio or outdoors. We capture your family’s most beautiful moments to treasure forever.'}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   to="/warteliste"
                   className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
                 >
-                  Termin buchen
+                  {de ? 'Termin buchen' : 'Book an Appointment'}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
                 <Link
                   to="/preise"
                   className="inline-flex items-center justify-center px-8 py-4 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors font-semibold"
                 >
-                  Preise ansehen
+                  {de ? 'Preise ansehen' : 'View Prices'}
                 </Link>
               </div>
             </div>
@@ -67,34 +71,34 @@ export default function FamilienFotoshootingWienPage() {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-center mb-12">
-            Warum ein Familien-Fotoshooting bei {SITE.name}?
+            {de ? <>Warum ein Familien-Fotoshooting bei {SITE.name}?</> : <>Why choose a family photo shoot at {SITE.name}?</>}
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
                 <Heart className="h-8 w-8 text-purple-600" />
               </div>
-              <h3 className="text-xl font-semibold mb-3">Natürliche Emotionen</h3>
+              <h3 className="text-xl font-semibold mb-3">{de ? 'Natürliche Emotionen' : 'Natural Emotions'}</h3>
               <p className="text-gray-600">
-                Spontane, ungezwungene Aufnahmen, die echte Verbindungen zeigen
+                {de ? 'Spontane, ungezwungene Aufnahmen, die echte Verbindungen zeigen' : 'Spontaneous, relaxed shots that show real connection'}
               </p>
             </div>
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
                 <Users className="h-8 w-8 text-purple-600" />
               </div>
-              <h3 className="text-xl font-semibold mb-3">Für alle Generationen</h3>
+              <h3 className="text-xl font-semibold mb-3">{de ? 'Für alle Generationen' : 'For All Generations'}</h3>
               <p className="text-gray-600">
-                Von Neugeborenen bis Großeltern – alle sind willkommen
+                {de ? 'Von Neugeborenen bis Großeltern – alle sind willkommen' : 'From newborns to grandparents – everyone is welcome'}
               </p>
             </div>
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
                 <Camera className="h-8 w-8 text-purple-600" />
               </div>
-              <h3 className="text-xl font-semibold mb-3">Studio & Outdoor</h3>
+              <h3 className="text-xl font-semibold mb-3">{de ? 'Studio & Outdoor' : 'Studio & Outdoor'}</h3>
               <p className="text-gray-600">
-                Wählen Sie zwischen gemütlichem Studio oder natürlichen Locations
+                {de ? 'Wählen Sie zwischen gemütlichem Studio oder natürlichen Locations' : 'Choose between a cosy studio or natural outdoor locations'}
               </p>
             </div>
           </div>
@@ -104,7 +108,7 @@ export default function FamilienFotoshootingWienPage() {
       {/* Packages Section - dynamic from vouchers API */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">Unsere Familien-Pakete</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">{de ? 'Unsere Familien-Pakete' : 'Our Family Packages'}</h2>
           <div className="max-w-4xl mx-auto">
             {/* VoucherPackagesList will fetch and render vouchers for this category */}
             <React.Suspense fallback={<div className="text-center">Loading packages...</div>}>
@@ -118,35 +122,35 @@ export default function FamilienFotoshootingWienPage() {
       {/* Process Section */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">So läuft Ihr Familien-Shooting ab</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">{de ? 'So läuft Ihr Familien-Shooting ab' : 'How Your Family Shoot Works'}</h2>
           <div className="grid md:grid-cols-4 gap-8">
             <div className="text-center">
               <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-purple-600">1</span>
               </div>
-              <h3 className="font-semibold mb-2">Termin buchen</h3>
-              <p className="text-gray-600 text-sm">Online oder telefonisch</p>
+              <h3 className="font-semibold mb-2">{de ? 'Termin buchen' : 'Book an appointment'}</h3>
+              <p className="text-gray-600 text-sm">{de ? 'Online oder telefonisch' : 'Online or by phone'}</p>
             </div>
             <div className="text-center">
               <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-purple-600">2</span>
               </div>
-              <h3 className="font-semibold mb-2">Vorbesprechung</h3>
-              <p className="text-gray-600 text-sm">Wünsche & Location klären</p>
+              <h3 className="font-semibold mb-2">{de ? 'Vorbesprechung' : 'Consultation'}</h3>
+              <p className="text-gray-600 text-sm">{de ? 'Wünsche & Location klären' : 'Discuss wishes & location'}</p>
             </div>
             <div className="text-center">
               <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-purple-600">3</span>
               </div>
-              <h3 className="font-semibold mb-2">Fotoshooting</h3>
-              <p className="text-gray-600 text-sm">Entspannt & professionell</p>
+              <h3 className="font-semibold mb-2">{de ? 'Fotoshooting' : 'Photo shoot'}</h3>
+              <p className="text-gray-600 text-sm">{de ? 'Entspannt & professionell' : 'Relaxed & professional'}</p>
             </div>
             <div className="text-center">
               <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl font-bold text-purple-600">4</span>
               </div>
-              <h3 className="font-semibold mb-2">Bildauswahl</h3>
-              <p className="text-gray-600 text-sm">Online-Galerie nach 7 Tagen</p>
+              <h3 className="font-semibold mb-2">{de ? 'Bildauswahl' : 'Image selection'}</h3>
+              <p className="text-gray-600 text-sm">{de ? 'Online-Galerie nach 7 Tagen' : 'Online gallery after 7 days'}</p>
             </div>
           </div>
         </div>
@@ -155,42 +159,42 @@ export default function FamilienFotoshootingWienPage() {
       {/* Related Services - Internal Links */}
       <section className="py-16 bg-purple-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-center mb-8">Weitere Fotografie-Services</h2>
+          <h2 className="text-2xl font-bold text-center mb-8">{de ? 'Weitere Fotografie-Services' : 'More Photography Services'}</h2>
           <div className="grid md:grid-cols-3 gap-6">
             <Link
               to="/baby-fotografie-wien/"
               className="block bg-white rounded-xl p-6 hover:shadow-lg transition-shadow"
             >
-              <h3 className="font-semibold text-lg mb-2">Baby & Newborn Fotografie</h3>
+              <h3 className="font-semibold text-lg mb-2">{de ? 'Baby & Newborn Fotografie' : 'Baby & Newborn Photography'}</h3>
               <p className="text-gray-600 text-sm mb-4">
-                Zarte Neugeborenenfotos mit Herz und Sicherheit
+                {de ? 'Zarte Neugeborenenfotos mit Herz und Sicherheit' : 'Gentle newborn photos with heart and safety'}
               </p>
               <span className="text-purple-600 font-semibold flex items-center">
-                Mehr erfahren <ArrowRight className="ml-1 h-4 w-4" />
+                {de ? 'Mehr erfahren' : 'Learn more'} <ArrowRight className="ml-1 h-4 w-4" />
               </span>
             </Link>
             <Link
               to="/schwangerschaftsfotos-wien/"
               className="block bg-white rounded-xl p-6 hover:shadow-lg transition-shadow"
             >
-              <h3 className="font-semibold text-lg mb-2">Schwangerschafts-Fotos</h3>
+              <h3 className="font-semibold text-lg mb-2">{de ? 'Schwangerschafts-Fotos' : 'Maternity Photos'}</h3>
               <p className="text-gray-600 text-sm mb-4">
-                Emotionale Babybauch-Portraits im Studio oder Outdoor
+                {de ? 'Emotionale Babybauch-Portraits im Studio oder Outdoor' : 'Emotional baby bump portraits in studio or outdoor'}
               </p>
               <span className="text-purple-600 font-semibold flex items-center">
-                Mehr erfahren <ArrowRight className="ml-1 h-4 w-4" />
+                {de ? 'Mehr erfahren' : 'Learn more'} <ArrowRight className="ml-1 h-4 w-4" />
               </span>
             </Link>
             <Link
               to="/portrait-fotografie-wien/"
               className="block bg-white rounded-xl p-6 hover:shadow-lg transition-shadow"
             >
-              <h3 className="font-semibold text-lg mb-2">Paar-Fotoshooting</h3>
+              <h3 className="font-semibold text-lg mb-2">{de ? 'Paar-Fotoshooting' : 'Couples Photo Shoot'}</h3>
               <p className="text-gray-600 text-sm mb-4">
-                Romantische Paarshootings für besondere Momente
+                {de ? 'Romantische Paarshootings für besondere Momente' : 'Romantic couples shoots for special moments'}
               </p>
               <span className="text-purple-600 font-semibold flex items-center">
-                Mehr erfahren <ArrowRight className="ml-1 h-4 w-4" />
+                {de ? 'Mehr erfahren' : 'Learn more'} <ArrowRight className="ml-1 h-4 w-4" />
               </span>
             </Link>
           </div>
@@ -202,10 +206,10 @@ export default function FamilienFotoshootingWienPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Weitere Fotografie-Services
+              {de ? 'Weitere Fotografie-Services' : 'More Photography Services'}
             </h2>
             <p className="text-lg text-gray-600">
-              Perfekte Ergänzungen für Ihre Familienfotografie
+              {de ? 'Perfekte Ergänzungen für Ihre Familienfotografie' : 'Perfect complements to your family photography'}
             </p>
           </div>
 
@@ -217,13 +221,13 @@ export default function FamilienFotoshootingWienPage() {
             >
               <Heart className="h-12 w-12 text-purple-600 mb-4" />
               <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
-                Schwangerschaftsfotos
+                {de ? 'Schwangerschaftsfotos' : 'Maternity Photos'}
               </h3>
               <p className="text-gray-600 mb-4">
-                Halten Sie die wunderschöne Babybauchzeit vor der Geburt fest – im Studio oder Outdoor.
+                {de ? 'Halten Sie die wunderschöne Babybauchzeit vor der Geburt fest – im Studio oder Outdoor.' : 'Capture the beautiful bump time before the birth – in the studio or outdoors.'}
               </p>
               <span className="text-purple-600 font-semibold inline-flex items-center">
-                Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
+                {de ? 'Mehr erfahren' : 'Learn more'} <ArrowRight className="ml-2 h-4 w-4" />
               </span>
             </Link>
 
@@ -234,13 +238,13 @@ export default function FamilienFotoshootingWienPage() {
             >
               <Camera className="h-12 w-12 text-purple-600 mb-4" />
               <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
-                Baby & Newborn Fotografie
+                {de ? 'Baby & Newborn Fotografie' : 'Baby & Newborn Photography'}
               </h3>
               <p className="text-gray-600 mb-4">
-                Zarte Neugeborenenfotos in den ersten Lebenstagen – sicher und liebevoll.
+                {de ? 'Zarte Neugeborenenfotos in den ersten Lebenstagen – sicher und liebevoll.' : 'Gentle newborn photos in the first days of life – safe and loving.'}
               </p>
               <span className="text-purple-600 font-semibold inline-flex items-center">
-                Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
+                {de ? 'Mehr erfahren' : 'Learn more'} <ArrowRight className="ml-2 h-4 w-4" />
               </span>
             </Link>
 
@@ -251,13 +255,13 @@ export default function FamilienFotoshootingWienPage() {
             >
               <Users className="h-12 w-12 text-purple-600 mb-4" />
               <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
-                Business Portraits
+                {de ? 'Business Portraits' : 'Business Portraits'}
               </h3>
               <p className="text-gray-600 mb-4">
-                Professionelle Mitarbeiterfotos und Headshots für LinkedIn und Firmenwebsite.
+                {de ? 'Professionelle Mitarbeiterfotos und Headshots für LinkedIn und Firmenwebsite.' : 'Professional team photos and headshots for LinkedIn and your company website.'}
               </p>
               <span className="text-purple-600 font-semibold inline-flex items-center">
-                Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
+                {de ? 'Mehr erfahren' : 'Learn more'} <ArrowRight className="ml-2 h-4 w-4" />
               </span>
             </Link>
           </div>
@@ -268,16 +272,16 @@ export default function FamilienFotoshootingWienPage() {
       <section className="py-16 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Bereit für unvergessliche Familienfotos?
+            {de ? 'Bereit für unvergessliche Familienfotos?' : 'Ready for unforgettable family photos?'}
           </h2>
           <p className="text-xl mb-8 opacity-90">
-            Buchen Sie jetzt Ihren Termin und sichern Sie sich die schönsten Erinnerungen
+            {de ? 'Buchen Sie jetzt Ihren Termin und sichern Sie sich die schönsten Erinnerungen' : 'Book your appointment now and secure your most beautiful memories'}
           </p>
           <Link
             to="/warteliste"
             className="inline-flex items-center px-8 py-4 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-lg"
           >
-            Jetzt Termin vereinbaren
+            {de ? 'Jetzt Termin vereinbaren' : 'Book an Appointment Now'}
             <ArrowRight className="ml-2 h-5 w-5" />
           </Link>
         </div>

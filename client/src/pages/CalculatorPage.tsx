@@ -3,8 +3,11 @@ import { Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { SEOHead } from '../components/SEO/SEOHead';
 import { SITE } from '../config/site';
+import { useLanguage } from '../context/LanguageContext';
 
 const CalculatorPage: React.FC = () => {
+  const { language } = useLanguage();
+  const de = language === 'de';
   return (
     <Layout>
       <SEOHead
@@ -18,11 +21,10 @@ const CalculatorPage: React.FC = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
-              Fotoshooting Preisrechner Wien – Kosten sofort berechnen
+              {de ? 'Fotoshooting Preisrechner Wien – Kosten sofort berechnen' : 'Vienna Photo Shoot Price Calculator – Get Your Cost Instantly'}
             </h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Konfigurieren Sie Ihr persönliches Fotoshooting und erhalten Sie sofort eine transparente Preisauskunft.
-              Wählen Sie aus Familien-, Baby-, Business- oder Eventpaketen ab €95.
+              {de ? 'Konfigurieren Sie Ihr persönliches Fotoshooting und erhalten Sie sofort eine transparente Preisauskunft. Wählen Sie aus Familien-, Baby-, Business- oder Eventpaketen ab €95.' : 'Configure your personal photo shoot and get a transparent price quote instantly. Choose from family, baby, business and event packages starting at €95.'}
             </p>
           </div>
           <div className="qk-widget" style={{ maxWidth: '720px', margin: '0 auto' }}>
@@ -45,35 +47,35 @@ const CalculatorPage: React.FC = () => {
           {/* Package overview for SEO context */}
           <div className="mt-12 grid md:grid-cols-3 gap-6 text-center">
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <div className="text-3xl font-bold text-purple-600 mb-2">ab €95</div>
+              <div className="text-3xl font-bold text-purple-600 mb-2">{de ? 'ab €95' : 'from €95'}</div>
               <p className="text-gray-800 font-semibold">Mini-Shooting</p>
-              <p className="text-sm text-gray-500 mt-1">30 Minuten, 5 bearbeitete Fotos</p>
+              <p className="text-sm text-gray-500 mt-1">{de ? '30 Minuten, 5 bearbeitete Fotos' : '30 minutes, 5 edited photos'}</p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm border-2 border-purple-200">
-              <div className="text-3xl font-bold text-purple-600 mb-2">ab €199</div>
+              <div className="text-3xl font-bold text-purple-600 mb-2">{de ? 'ab €199' : 'from €199'}</div>
               <p className="text-gray-800 font-semibold">Standard-Shooting</p>
-              <p className="text-sm text-gray-500 mt-1">60 Minuten, 15 bearbeitete Fotos</p>
+              <p className="text-sm text-gray-500 mt-1">{de ? '60 Minuten, 15 bearbeitete Fotos' : '60 minutes, 15 edited photos'}</p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <div className="text-3xl font-bold text-purple-600 mb-2">ab €299</div>
+              <div className="text-3xl font-bold text-purple-600 mb-2">{de ? 'ab €299' : 'from €299'}</div>
               <p className="text-gray-800 font-semibold">Premium-Shooting</p>
-              <p className="text-sm text-gray-500 mt-1">90 Minuten, 30 bearbeitete Fotos</p>
+              <p className="text-sm text-gray-500 mt-1">{de ? '90 Minuten, 30 bearbeitete Fotos' : '90 minutes, 30 edited photos'}</p>
             </div>
           </div>
 
           <div className="mt-8 text-center">
-            <p className="text-gray-600 mb-4">Haben Sie Fragen zu unseren Paketen?</p>
+            <p className="text-gray-600 mb-4">{de ? 'Haben Sie Fragen zu unseren Paketen?' : 'Questions about our packages?'}</p>
             <Link
               to="/kontakt"
               className="inline-flex items-center px-6 py-3 bg-purple-600 text-white rounded-full font-semibold hover:bg-purple-700 transition-colors mr-3"
             >
-              Persönliche Beratung
+              {de ? 'Persönliche Beratung' : 'Personal Consultation'}
             </Link>
             <Link
               to="/preise/"
               className="inline-flex items-center px-6 py-3 border-2 border-purple-600 text-purple-600 rounded-full font-semibold hover:bg-purple-50 transition-colors"
             >
-              Alle Preise ansehen
+              {de ? 'Alle Preise ansehen' : 'View All Prices'}
             </Link>
           </div>
         </div>

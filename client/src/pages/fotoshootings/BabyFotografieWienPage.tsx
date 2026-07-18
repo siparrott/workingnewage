@@ -3,9 +3,12 @@ import Layout from '../../components/layout/Layout';
 import { Link } from 'react-router-dom';
 import { ContextualLinks } from '../../components/SEO/ContextualLinks';
 import { Baby, Heart, Shield, Star, ArrowRight, Check, Clock, Users, Camera } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 import { SITE } from '../../config/site';
 
 export default function BabyFotografieWienPage() {
+  const { language } = useLanguage();
+  const de = language === 'de';
   return (
     <Layout>
     <div className="min-h-screen bg-white">
@@ -27,25 +30,26 @@ export default function BabyFotografieWienPage() {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-                Baby- & Newborn-Fotografie in Wien
+                {de ? 'Baby- & Newborn-Fotografie in Wien' : 'Baby & Newborn Photography in Vienna'}
               </h1>
               <p className="text-xl text-gray-600 mb-8">
-                Zarte, sichere und liebevolle Neugeborenen-Fotoshootings in Wien. 
-                Wir halten die ersten kostbaren Momente Ihres Babys für immer fest.
+                {de
+                  ? 'Zarte, sichere und liebevolle Neugeborenen-Fotoshootings in Wien. Wir halten die ersten kostbaren Momente Ihres Babys für immer fest.'
+                  : 'Gentle, safe, and loving newborn photo sessions in Vienna. We capture your baby\'s first precious moments forever.'}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   to="/warteliste"
                   className="inline-flex items-center justify-center px-8 py-4 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors font-semibold"
                 >
-                  Termin buchen
+                  {de ? 'Termin buchen' : 'Book an Appointment'}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
                 <Link
                   to="/gutschein/newborn"
                   className="inline-flex items-center justify-center px-8 py-4 border-2 border-pink-600 text-pink-600 rounded-lg hover:bg-pink-50 transition-colors font-semibold"
                 >
-                  Gutschein verschenken
+                  {de ? 'Gutschein verschenken' : 'Give a Voucher'}
                 </Link>
               </div>
             </div>
@@ -64,43 +68,43 @@ export default function BabyFotografieWienPage() {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-center mb-12">
-            Sicherheit & Komfort für Ihr Neugeborenes
+            {de ? 'Sicherheit & Komfort für Ihr Neugeborenes' : 'Safety & Comfort for Your Newborn'}
           </h2>
           <div className="grid md:grid-cols-4 gap-8">
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-pink-100 rounded-full mb-4">
                 <Shield className="h-8 w-8 text-pink-600" />
               </div>
-              <h3 className="text-lg font-semibold mb-3">Sicher & Hygienisch</h3>
+              <h3 className="text-lg font-semibold mb-3">{de ? 'Sicher & Hygienisch' : 'Safe & Hygienic'}</h3>
               <p className="text-gray-600 text-sm">
-                Höchste Hygiene-Standards und sichere Posing-Techniken
+                {de ? 'Höchste Hygiene-Standards und sichere Posing-Techniken' : 'Highest hygiene standards and safe posing techniques'}
               </p>
             </div>
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-pink-100 rounded-full mb-4">
                 <Clock className="h-8 w-8 text-pink-600" />
               </div>
-              <h3 className="text-lg font-semibold mb-3">Flexibel & Geduldig</h3>
+              <h3 className="text-lg font-semibold mb-3">{de ? 'Flexibel & Geduldig' : 'Flexible & Patient'}</h3>
               <p className="text-gray-600 text-sm">
-                Wir nehmen uns Zeit - Pausen für Stillen & Wickeln inklusive
+                {de ? 'Wir nehmen uns Zeit - Pausen für Stillen & Wickeln inklusive' : 'We take our time – breaks for feeding & diaper changes included'}
               </p>
             </div>
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-pink-100 rounded-full mb-4">
                 <Heart className="h-8 w-8 text-pink-600" />
               </div>
-              <h3 className="text-lg font-semibold mb-3">Warmes Studio</h3>
+              <h3 className="text-lg font-semibold mb-3">{de ? 'Warmes Studio' : 'Warm Studio'}</h3>
               <p className="text-gray-600 text-sm">
-                Angenehm warm (26-28°C) für nackte Baby-Fotografie
+                {de ? 'Angenehm warm (26-28°C) für nackte Baby-Fotografie' : 'Comfortably warm (26-28°C) for bare-skin baby photography'}
               </p>
             </div>
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-pink-100 rounded-full mb-4">
                 <Baby className="h-8 w-8 text-pink-600" />
               </div>
-              <h3 className="text-lg font-semibold mb-3">Ideales Alter</h3>
+              <h3 className="text-lg font-semibold mb-3">{de ? 'Ideales Alter' : 'Ideal Age'}</h3>
               <p className="text-gray-600 text-sm">
-                Beste Ergebnisse in den ersten 5-14 Lebenstagen
+                {de ? 'Beste Ergebnisse in den ersten 5-14 Lebenstagen' : 'Best results within the first 5-14 days of life'}
               </p>
             </div>
           </div>
@@ -110,7 +114,7 @@ export default function BabyFotografieWienPage() {
       {/* Packages Section */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">Newborn-Fotografie Pakete</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">{de ? 'Newborn-Fotografie Pakete' : 'Newborn Photography Packages'}</h2>
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Essential Package */}
             <div className="bg-white rounded-xl shadow-lg p-8">
@@ -121,33 +125,33 @@ export default function BabyFotografieWienPage() {
               <ul className="space-y-3 mb-8">
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>2-3 Stunden Shooting (inkl. Pausen)</span>
+                  <span>{de ? '2-3 Stunden Shooting (inkl. Pausen)' : '2-3 hour session (incl. breaks)'}</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>15 bearbeitete Bilder</span>
+                  <span>{de ? '15 bearbeitete Bilder' : '15 edited images'}</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Baby solo & mit Eltern</span>
+                  <span>{de ? 'Baby solo & mit Eltern' : 'Baby solo & with parents'}</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Requisiten & Textilien</span>
+                  <span>{de ? 'Requisiten & Textilien' : 'Props & fabrics'}</span>
                 </li>
               </ul>
               <Link
                 to="/warteliste"
                 className="block text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
               >
-                Jetzt buchen
+                {de ? 'Jetzt buchen' : 'Book Now'}
               </Link>
             </div>
 
             {/* Premium Package */}
             <div className="bg-gradient-to-br from-pink-600 to-purple-600 text-white rounded-xl shadow-2xl p-8">
               <div className="bg-yellow-400 text-gray-900 text-sm font-bold px-3 py-1 rounded-full inline-block mb-4">
-                EMPFOHLEN
+                {de ? 'EMPFOHLEN' : 'RECOMMENDED'}
               </div>
               <h3 className="text-2xl font-bold mb-4">Premium</h3>
               <div className="text-3xl font-bold mb-6">
@@ -156,30 +160,30 @@ export default function BabyFotografieWienPage() {
               <ul className="space-y-3 mb-8">
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>3-4 Stunden Shooting</span>
+                  <span>{de ? '3-4 Stunden Shooting' : '3-4 hour session'}</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>30 bearbeitete Bilder</span>
+                  <span>{de ? '30 bearbeitete Bilder' : '30 edited images'}</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Geschwister-Fotos inklusive</span>
+                  <span>{de ? 'Geschwister-Fotos inklusive' : 'Sibling photos included'}</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Premium Fotoalbum 20x20cm</span>
+                  <span>{de ? 'Premium Fotoalbum 20x20cm' : 'Premium photo album 20x20cm'}</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-yellow-300 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Alle Bilder in Druckqualität</span>
+                  <span>{de ? 'Alle Bilder in Druckqualität' : 'All images in print quality'}</span>
                 </li>
               </ul>
               <Link
                 to="/warteliste"
                 className="block text-center px-6 py-3 bg-white text-pink-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
               >
-                Jetzt buchen
+                {de ? 'Jetzt buchen' : 'Book Now'}
               </Link>
             </div>
           </div>
@@ -189,27 +193,30 @@ export default function BabyFotografieWienPage() {
       {/* Tips Section */}
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">Tipps für Ihr Newborn-Shooting</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">{de ? 'Tipps für Ihr Newborn-Shooting' : 'Tips for Your Newborn Session'}</h2>
           <div className="space-y-6">
             <div className="bg-pink-50 rounded-lg p-6">
-              <h3 className="font-semibold text-lg mb-2">📅 Bester Zeitpunkt</h3>
+              <h3 className="font-semibold text-lg mb-2">{de ? '📅 Bester Zeitpunkt' : '📅 Best Timing'}</h3>
               <p className="text-gray-700">
-                Buchen Sie bereits während der Schwangerschaft und planen Sie das Shooting für 
-                die ersten 5-14 Lebenstage ein, wenn Babys noch sehr schläfrig sind.
+                {de
+                  ? 'Buchen Sie bereits während der Schwangerschaft und planen Sie das Shooting für die ersten 5-14 Lebenstage ein, wenn Babys noch sehr schläfrig sind.'
+                  : 'Book during your pregnancy and plan the session for the first 5-14 days of life, when babies are still very sleepy.'}
               </p>
             </div>
             <div className="bg-pink-50 rounded-lg p-6">
-              <h3 className="font-semibold text-lg mb-2">🍼 Vor dem Termin</h3>
+              <h3 className="font-semibold text-lg mb-2">{de ? '🍼 Vor dem Termin' : '🍼 Before Your Session'}</h3>
               <p className="text-gray-700">
-                Füttern Sie Ihr Baby ca. 30 Minuten vor dem Shooting, damit es satt und zufrieden ist. 
-                Eine volle Windel und ein voller Bauch sorgen für entspannte Posen.
+                {de
+                  ? 'Füttern Sie Ihr Baby ca. 30 Minuten vor dem Shooting, damit es satt und zufrieden ist. Eine volle Windel und ein voller Bauch sorgen für entspannte Posen.'
+                  : 'Feed your baby about 30 minutes before the session so they are full and content. A fresh diaper and a full tummy make for relaxed poses.'}
               </p>
             </div>
             <div className="bg-pink-50 rounded-lg p-6">
-              <h3 className="font-semibold text-lg mb-2">👶 Was mitbringen?</h3>
+              <h3 className="font-semibold text-lg mb-2">{de ? '👶 Was mitbringen?' : '👶 What to Bring?'}</h3>
               <p className="text-gray-700">
-                Windeln, Feuchttücher, Schnuller (falls verwendet), ein Lieblingsdeckchen. 
-                Alle Requisiten und Textilien stellen wir.
+                {de
+                  ? 'Windeln, Feuchttücher, Schnuller (falls verwendet), ein Lieblingsdeckchen. Alle Requisiten und Textilien stellen wir.'
+                  : 'Diapers, wet wipes, a pacifier (if your baby uses one), and a favorite blanket. We provide all props and fabrics.'}
               </p>
             </div>
           </div>
@@ -219,42 +226,42 @@ export default function BabyFotografieWienPage() {
       {/* Related Services */}
       <section className="py-16 bg-pink-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-center mb-8">Passende Ergänzungen</h2>
+          <h2 className="text-2xl font-bold text-center mb-8">{de ? 'Passende Ergänzungen' : 'Perfect Additions'}</h2>
           <div className="grid md:grid-cols-3 gap-6">
             <Link
               to="/schwangerschaftsfotos-wien/"
               className="block bg-white rounded-xl p-6 hover:shadow-lg transition-shadow"
             >
-              <h3 className="font-semibold text-lg mb-2">Schwangerschafts-Fotos</h3>
+              <h3 className="font-semibold text-lg mb-2">{de ? 'Schwangerschafts-Fotos' : 'Maternity Photos'}</h3>
               <p className="text-gray-600 text-sm mb-4">
-                Halten Sie die Vorfreude auf Ihr Baby fest
+                {de ? 'Halten Sie die Vorfreude auf Ihr Baby fest' : 'Capture the anticipation of your baby\'s arrival'}
               </p>
               <span className="text-pink-600 font-semibold flex items-center">
-                Mehr erfahren <ArrowRight className="ml-1 h-4 w-4" />
+                {de ? 'Mehr erfahren' : 'Learn more'} <ArrowRight className="ml-1 h-4 w-4" />
               </span>
             </Link>
             <Link
               to="/familien-fotoshooting-wien/"
               className="block bg-white rounded-xl p-6 hover:shadow-lg transition-shadow"
             >
-              <h3 className="font-semibold text-lg mb-2">Familien-Fotoshooting</h3>
+              <h3 className="font-semibold text-lg mb-2">{de ? 'Familien-Fotoshooting' : 'Family Photo Shoot'}</h3>
               <p className="text-gray-600 text-sm mb-4">
-                Die ganze Familie gemeinsam vor der Kamera
+                {de ? 'Die ganze Familie gemeinsam vor der Kamera' : 'The whole family together in front of the camera'}
               </p>
               <span className="text-pink-600 font-semibold flex items-center">
-                Mehr erfahren <ArrowRight className="ml-1 h-4 w-4" />
+                {de ? 'Mehr erfahren' : 'Learn more'} <ArrowRight className="ml-1 h-4 w-4" />
               </span>
             </Link>
             <Link
               to="/kinder-fotografie-wien/"
               className="block bg-white rounded-xl p-6 hover:shadow-lg transition-shadow"
             >
-              <h3 className="font-semibold text-lg mb-2">Kinder-Fotografie</h3>
+              <h3 className="font-semibold text-lg mb-2">{de ? 'Kinder-Fotografie' : 'Children\'s Photography'}</h3>
               <p className="text-gray-600 text-sm mb-4">
-                Lebendige Kinderfotos voller Persönlichkeit
+                {de ? 'Lebendige Kinderfotos voller Persönlichkeit' : 'Vibrant children\'s photos full of personality'}
               </p>
               <span className="text-pink-600 font-semibold flex items-center">
-                Mehr erfahren <ArrowRight className="ml-1 h-4 w-4" />
+                {de ? 'Mehr erfahren' : 'Learn more'} <ArrowRight className="ml-1 h-4 w-4" />
               </span>
             </Link>
           </div>
@@ -266,10 +273,10 @@ export default function BabyFotografieWienPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Weitere Fotografie-Services
+              {de ? 'Weitere Fotografie-Services' : 'More Photography Services'}
             </h2>
             <p className="text-lg text-gray-600">
-              Komplettieren Sie Ihre Familien-Fotostory
+              {de ? 'Komplettieren Sie Ihre Familien-Fotostory' : 'Complete your family photo story'}
             </p>
           </div>
 
@@ -281,13 +288,15 @@ export default function BabyFotografieWienPage() {
             >
               <Heart className="h-12 w-12 text-pink-600 mb-4" />
               <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-pink-600 transition-colors">
-                Schwangerschaftsfotos
+                {de ? 'Schwangerschaftsfotos' : 'Maternity Photos'}
               </h3>
               <p className="text-gray-600 mb-4">
-                Halten Sie die Babybauchzeit vor der Geburt fest – die perfekte Ergänzung zum Newborn-Shooting.
+                {de
+                  ? 'Halten Sie die Babybauchzeit vor der Geburt fest – die perfekte Ergänzung zum Newborn-Shooting.'
+                  : 'Capture your bump before the birth – the perfect complement to a newborn session.'}
               </p>
               <span className="text-pink-600 font-semibold inline-flex items-center">
-                Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
+                {de ? 'Mehr erfahren' : 'Learn more'} <ArrowRight className="ml-2 h-4 w-4" />
               </span>
             </Link>
 
@@ -298,13 +307,15 @@ export default function BabyFotografieWienPage() {
             >
               <Users className="h-12 w-12 text-pink-600 mb-4" />
               <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-pink-600 transition-colors">
-                Familienfotografie
+                {de ? 'Familienfotografie' : 'Family Photography'}
               </h3>
               <p className="text-gray-600 mb-4">
-                Natürliche Familienporträts mit Baby – gemeinsame Momente festhalten.
+                {de
+                  ? 'Natürliche Familienporträts mit Baby – gemeinsame Momente festhalten.'
+                  : 'Natural family portraits with your baby – capturing moments together.'}
               </p>
               <span className="text-pink-600 font-semibold inline-flex items-center">
-                Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
+                {de ? 'Mehr erfahren' : 'Learn more'} <ArrowRight className="ml-2 h-4 w-4" />
               </span>
             </Link>
 
@@ -315,13 +326,15 @@ export default function BabyFotografieWienPage() {
             >
               <Camera className="h-12 w-12 text-pink-600 mb-4" />
               <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-pink-600 transition-colors">
-                Eventfotografie
+                {de ? 'Eventfotografie' : 'Event Photography'}
               </h3>
               <p className="text-gray-600 mb-4">
-                Professionelle Dokumentation von Taufen, Geburtstagen und Familienfeiern.
+                {de
+                  ? 'Professionelle Dokumentation von Taufen, Geburtstagen und Familienfeiern.'
+                  : 'Professional coverage of christenings, birthdays, and family celebrations.'}
               </p>
               <span className="text-pink-600 font-semibold inline-flex items-center">
-                Mehr erfahren <ArrowRight className="ml-2 h-4 w-4" />
+                {de ? 'Mehr erfahren' : 'Learn more'} <ArrowRight className="ml-2 h-4 w-4" />
               </span>
             </Link>
           </div>
@@ -332,16 +345,18 @@ export default function BabyFotografieWienPage() {
       <section className="py-16 bg-gradient-to-r from-pink-600 to-purple-600 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Die ersten Tage vergehen so schnell...
+            {de ? 'Die ersten Tage vergehen so schnell...' : 'The first days pass so quickly...'}
           </h2>
           <p className="text-xl mb-8 opacity-90">
-            Sichern Sie sich jetzt Ihren Wunschtermin für zauberhafte Neugeborenen-Fotos
+            {de
+              ? 'Sichern Sie sich jetzt Ihren Wunschtermin für zauberhafte Neugeborenen-Fotos'
+              : 'Secure your preferred date now for magical newborn photos'}
           </p>
           <Link
             to="/warteliste"
             className="inline-flex items-center px-8 py-4 bg-white text-pink-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-lg"
           >
-            Jetzt reservieren
+            {de ? 'Jetzt reservieren' : 'Reserve Now'}
             <ArrowRight className="ml-2 h-5 w-5" />
           </Link>
         </div>

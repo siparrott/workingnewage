@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import VoucherPersonalization from '@/components/VoucherPersonalization';
 import { SITE } from '../config/site';
+import { useLanguage } from '../context/LanguageContext';
 
 // Make sure to call `loadStripe` outside of a component's render to avoid
 // recreating the `Stripe` object on every render.
@@ -44,6 +45,8 @@ const CheckoutForm: React.FC<{ voucher: VoucherProduct }> = ({ voucher }) => {
   const elements = useElements();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const de = language === 'de';
   const [isProcessing, setIsProcessing] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -66,8 +69,8 @@ const CheckoutForm: React.FC<{ voucher: VoucherProduct }> = ({ voucher }) => {
 
     if (!acceptedTerms) {
       toast({
-        title: "Geschäftsbedingungen erforderlich",
-        description: "Bitte akzeptieren Sie die Geschäftsbedingungen um fortzufahren.",
+        title: de ? "Geschäftsbedingungen erforderlich" : "Terms and conditions required",
+        description: de ? "Bitte akzeptieren Sie die Geschäftsbedingungen um fortzufahren." : "Please accept the terms and conditions to continue.",
         variant: "destructive",
       });
       return;
@@ -75,8 +78,8 @@ const CheckoutForm: React.FC<{ voucher: VoucherProduct }> = ({ voucher }) => {
 
     if (!customerDetails.firstName || !customerDetails.lastName || !customerDetails.email) {
       toast({
-        title: "Fehlende Informationen",
-        description: "Bitte füllen Sie alle erforderlichen Felder aus.",
+        title: de ? "Fehlende Informationen" : "Missing information",
+        description: de ? "Bitte füllen Sie alle erforderlichen Felder aus." : "Please fill in all required fields.",
         variant: "destructive",
       });
       return;
@@ -115,21 +118,21 @@ const CheckoutForm: React.FC<{ voucher: VoucherProduct }> = ({ voucher }) => {
 
       if (error) {
         toast({
-          title: "Zahlung fehlgeschlagen",
+          title: de ? "Zahlung fehlgeschlagen" : "Payment failed",
           description: error.message,
           variant: "destructive",
         });
       } else {
         toast({
-          title: "Zahlung erfolgreich",
-          description: "Ihr Gutschein wird per E-Mail versendet!",
+          title: de ? "Zahlung erfolgreich" : "Payment successful",
+          description: de ? "Ihr Gutschein wird per E-Mail versendet!" : "Your voucher will be sent by email!",
         });
         navigate('/vouchers/success');
       }
     } catch (error: any) {
       toast({
-        title: "Fehler",
-        description: error.message || "Ein Fehler ist aufgetreten",
+        title: de ? "Fehler" : "Error",
+        description: error.message || (de ? "Ein Fehler ist aufgetreten" : "An error occurred"),
         variant: "destructive",
       });
     } finally {
@@ -141,10 +144,10 @@ const CheckoutForm: React.FC<{ voucher: VoucherProduct }> = ({ voucher }) => {
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Customer Details */}
       <div className="bg-white rounded-lg p-6 shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Ihre Kontaktdaten</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{de ? 'Ihre Kontaktdaten' : 'Your contact details'}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="firstName">Vorname *</Label>
+            <Label htmlFor="firstName">{de ? 'Vorname *' : 'First name *'}</Label>
             <Input
               id="firstName"
               type="text"
@@ -154,7 +157,7 @@ const CheckoutForm: React.FC<{ voucher: VoucherProduct }> = ({ voucher }) => {
             />
           </div>
           <div>
-            <Label htmlFor="lastName">Nachname *</Label>
+            <Label htmlFor="lastName">{de ? 'Nachname *' : 'Last name *'}</Label>
             <Input
               id="lastName"
               type="text"
@@ -164,7 +167,7 @@ const CheckoutForm: React.FC<{ voucher: VoucherProduct }> = ({ voucher }) => {
             />
           </div>
           <div>
-            <Label htmlFor="email">E-Mail *</Label>
+            <Label htmlFor="email">{de ? 'E-Mail *' : 'Email *'}</Label>
             <Input
               id="email"
               type="email"
@@ -174,7 +177,7 @@ const CheckoutForm: React.FC<{ voucher: VoucherProduct }> = ({ voucher }) => {
             />
           </div>
           <div>
-            <Label htmlFor="phone">Telefon</Label>
+            <Label htmlFor="phone">{de ? 'Telefon' : 'Phone'}</Label>
             <Input
               id="phone"
               type="tel"
@@ -187,7 +190,7 @@ const CheckoutForm: React.FC<{ voucher: VoucherProduct }> = ({ voucher }) => {
 
       {/* Quantity Selection */}
       <div className="bg-white rounded-lg p-6 shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Anzahl</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{de ? 'Anzahl' : 'Quantity'}</h3>
         <div className="flex items-center space-x-4">
           <Button
             type="button"
@@ -218,7 +221,7 @@ const CheckoutForm: React.FC<{ voucher: VoucherProduct }> = ({ voucher }) => {
 
       {/* Payment Details */}
       <div className="bg-white rounded-lg p-6 shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Zahlungsinformationen</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{de ? 'Zahlungsinformationen' : 'Payment details'}</h3>
         <div className="p-4 border rounded-lg">
           <CardElement
             options={{
@@ -244,8 +247,17 @@ const CheckoutForm: React.FC<{ voucher: VoucherProduct }> = ({ voucher }) => {
           onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
         />
         <Label htmlFor="terms" className="text-sm text-gray-600 leading-relaxed">
-          Ich habe die <a href="#" className="text-purple-600 hover:underline">Geschäftsbedingungen</a> gelesen und akzeptiere sie. 
-          Der Gutschein ist {voucher.validityPeriod} Tage gültig und nicht erstattungsfähig.
+          {de ? (
+            <>
+              Ich habe die <a href="#" className="text-purple-600 hover:underline">Geschäftsbedingungen</a> gelesen und akzeptiere sie.
+              Der Gutschein ist {voucher.validityPeriod} Tage gültig und nicht erstattungsfähig.
+            </>
+          ) : (
+            <>
+              I have read and accept the <a href="#" className="text-purple-600 hover:underline">terms and conditions</a>.
+              The voucher is valid for {voucher.validityPeriod} days and is non-refundable.
+            </>
+          )}
         </Label>
       </div>
 
@@ -258,10 +270,10 @@ const CheckoutForm: React.FC<{ voucher: VoucherProduct }> = ({ voucher }) => {
         {isProcessing ? (
           <div className="flex items-center space-x-2">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-            <span>Wird verarbeitet...</span>
+            <span>{de ? 'Wird verarbeitet...' : 'Processing...'}</span>
           </div>
         ) : (
-          `Jetzt kaufen - €${totalPrice.toFixed(2)}`
+          `${de ? 'Jetzt kaufen' : 'Buy now'} - €${totalPrice.toFixed(2)}`
         )}
       </Button>
     </form>
@@ -271,6 +283,8 @@ const CheckoutForm: React.FC<{ voucher: VoucherProduct }> = ({ voucher }) => {
 const VoucherCheckoutPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const de = language === 'de';
   const [voucher, setVoucher] = useState<VoucherProduct | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -317,10 +331,10 @@ const VoucherCheckoutPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Gutschein nicht gefunden</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">{de ? 'Gutschein nicht gefunden' : 'Voucher not found'}</h1>
           <Button onClick={() => navigate('/vouchers')} variant="outline">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Zurück zu den Gutscheinen
+            {de ? 'Zurück zu den Gutscheinen' : 'Back to vouchers'}
           </Button>
         </div>
       </div>
@@ -333,14 +347,14 @@ const VoucherCheckoutPage: React.FC = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Zahlungssystem wird eingerichtet
+            {de ? 'Zahlungssystem wird eingerichtet' : 'Payment system is being set up'}
           </h1>
           <p className="text-gray-600 mb-4">
-            Unser Zahlungssystem wird gerade konfiguriert. Bitte versuchen Sie es später noch einmal oder kontaktieren Sie uns direkt.
+            {de ? 'Unser Zahlungssystem wird gerade konfiguriert. Bitte versuchen Sie es später noch einmal oder kontaktieren Sie uns direkt.' : 'Our payment system is currently being configured. Please try again later or contact us directly.'}
           </p>
           <Button onClick={() => navigate('/vouchers')} variant="outline">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Zurück zu den Gutscheinen
+            {de ? 'Zurück zu den Gutscheinen' : 'Back to vouchers'}
           </Button>
         </div>
       </div>
@@ -371,7 +385,7 @@ const VoucherCheckoutPage: React.FC = () => {
               className="text-purple-600 hover:text-purple-700"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Zurück zu den Gutscheinen
+              {de ? 'Zurück zu den Gutscheinen' : 'Back to vouchers'}
             </Button>
           </div>
         </div>
@@ -397,7 +411,7 @@ const VoucherCheckoutPage: React.FC = () => {
               <div className="p-6">
                 <div className="flex items-center space-x-2 mb-3">
                   <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                    FOTOSHOOTING
+                    {de ? 'FOTOSHOOTING' : 'PHOTO SHOOT'}
                   </span>
                 </div>
                 
@@ -406,12 +420,12 @@ const VoucherCheckoutPage: React.FC = () => {
                 <div className="flex items-center space-x-4 text-sm text-gray-600 mb-4">
                   <div className="flex items-center space-x-1">
                     <Calendar className="w-4 h-4" />
-                    <span>Gültig bis {new Date(Date.now() + voucher.validityPeriod * 24 * 60 * 60 * 1000).toLocaleDateString('de-DE')}</span>
+                    <span>{de ? 'Gültig bis' : 'Valid until'} {new Date(Date.now() + voucher.validityPeriod * 24 * 60 * 60 * 1000).toLocaleDateString(de ? 'de-DE' : 'en-GB')}</span>
                   </div>
                   {voucher.sessionDuration && (
                     <div className="flex items-center space-x-1">
                       <Clock className="w-4 h-4" />
-                      <span>{voucher.sessionDuration} Min.</span>
+                      <span>{voucher.sessionDuration} {de ? 'Min.' : 'min'}</span>
                     </div>
                   )}
                 </div>
@@ -434,13 +448,13 @@ const VoucherCheckoutPage: React.FC = () => {
                         target.src = "/logo.png"; // Fallback to PNG version
                       }}
                     />
-                    <h3 className="font-semibold text-purple-900">Anbieter: {SITE.name}</h3>
+                    <h3 className="font-semibold text-purple-900">{de ? 'Anbieter' : 'Provider'}: {SITE.name}</h3>
                   </div>
                   <p className="text-sm text-purple-800 mb-2">
-                    <strong>Verfügbar:</strong> Noch 25 Gutscheine
+                    <strong>{de ? 'Verfügbar:' : 'Available:'}</strong> {de ? 'Noch 25 Gutscheine' : '25 vouchers left'}
                   </p>
                   <p className="text-xs text-purple-700">
-                    Professional Fotografie Studio • Wien, Austria
+                    {de ? 'Professional Fotografie Studio • Wien, Austria' : 'Professional Photography Studio • Vienna, Austria'}
                   </p>
                 </div>
 
@@ -448,7 +462,7 @@ const VoucherCheckoutPage: React.FC = () => {
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-2 flex items-center">
                       <Check className="w-4 h-4 mr-2 text-green-600" />
-                      Geschäftsbedingungen
+                      {de ? 'Geschäftsbedingungen' : 'Terms and conditions'}
                     </h3>
                     <div className="text-sm text-gray-600 whitespace-pre-line">
                       {voucher.description}
@@ -460,16 +474,16 @@ const VoucherCheckoutPage: React.FC = () => {
 
             {/* Studio Location */}
             <div className="mt-6 bg-white rounded-lg shadow-sm border p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Studio Standort</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{de ? 'Studio Standort' : 'Studio location'}</h3>
               <div className="space-y-2 mb-4">
                 <p className="text-gray-600">
-                  <strong>Eingang Ecke Schönbrunnerstraße</strong><br />
+                  <strong>{de ? 'Eingang Ecke Schönbrunnerstraße' : 'Entrance at the corner of Schönbrunnerstraße'}</strong><br />
                   Wehrgasse 11A/2+5<br />
-                  1050 Wien, Austria
+                  {de ? '1050 Wien, Austria' : '1050 Vienna, Austria'}
                 </p>
                 <p className="text-sm text-gray-500">
-                  5 Minuten von Kettenbrückengasse<br />
-                  Street parking available
+                  {de ? '5 Minuten von Kettenbrückengasse' : '5 minutes from Kettenbrückengasse'}<br />
+                  {de ? 'Street parking available' : 'Street parking available'}
                 </p>
               </div>
               

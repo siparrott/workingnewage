@@ -7,11 +7,14 @@ import { getGalleryBySlug, getPublicGalleryImages, authenticateGallery, uploadGa
 import { Gallery, GalleryImage } from '../types/gallery';
 import { ArrowLeft, Download, Share2, Heart, Loader2, AlertCircle, Play, Lock, Mail, Image, Grid, Settings, HelpCircle, Calendar, HardDrive, CheckSquare, Info, Upload, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { SITE } from '../config/site';
 
 const GalleryPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const { user, isAdmin } = useAuth();
+  const { language } = useLanguage();
+  const de = language === 'de';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [gallery, setGallery] = useState<Gallery | null>(null);
   const [images, setImages] = useState<GalleryImage[]>([]);
@@ -122,7 +125,7 @@ const GalleryPage: React.FC = () => {
       setGallery(data);
     } catch (err) {
       // console.error removed
-      setError('Failed to load gallery. Please try again.');
+      setError(de ? 'Galerie konnte nicht geladen werden. Bitte versuchen Sie es erneut.' : 'Failed to load gallery. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -135,7 +138,7 @@ const GalleryPage: React.FC = () => {
       setImages(data);
     } catch (err) {
       // console.error removed
-      setError('Failed to load gallery images. Please try again.');
+      setError(de ? 'Galeriebilder konnten nicht geladen werden. Bitte versuchen Sie es erneut.' : 'Failed to load gallery images. Please try again.');
       
       // If token is invalid, clear it and require re-authentication
       if (err instanceof Error && err.message.includes('Invalid token')) {
@@ -154,7 +157,7 @@ const GalleryPage: React.FC = () => {
     
     try {
       setUploading(true);
-      setUploadProgress(`Uploading ${files.length} images...`);
+      setUploadProgress(de ? `${files.length} Bilder werden hochgeladen...` : `Uploading ${files.length} images...`);
       
       const fileArray = Array.from(files);
       console.log(`[GalleryPage] Uploading ${fileArray.length} images to gallery ${gallery.id}`);
@@ -163,14 +166,14 @@ const GalleryPage: React.FC = () => {
       console.log(`[GalleryPage] Upload complete:`, uploadedImages);
       
       if (uploadedImages && uploadedImages.length > 0) {
-        setUploadProgress(`Successfully uploaded ${uploadedImages.length} images!`);
+        setUploadProgress(de ? `${uploadedImages.length} Bilder erfolgreich hochgeladen!` : `Successfully uploaded ${uploadedImages.length} images!`);
         
         // Refresh gallery images
         if (slug && authToken) {
           await fetchGalleryImages(slug, authToken);
         }
       } else {
-        setUploadProgress('Upload completed but no images were saved. Please check the server logs.');
+        setUploadProgress(de ? 'Upload abgeschlossen, aber keine Bilder wurden gespeichert. Bitte überprüfen Sie die Server-Logs.' : 'Upload completed but no images were saved. Please check the server logs.');
       }
       
       setTimeout(() => {
@@ -180,11 +183,11 @@ const GalleryPage: React.FC = () => {
       console.error('[GalleryPage] Upload failed:', err);
       const errorMessage = err?.message || 'Unknown error';
       if (errorMessage.includes('401') || errorMessage.includes('Authentication')) {
-        setUploadProgress('Upload failed: You must be logged in as admin. Please log in and try again.');
+        setUploadProgress(de ? 'Upload fehlgeschlagen: Sie müssen als Administrator angemeldet sein. Bitte melden Sie sich an und versuchen Sie es erneut.' : 'Upload failed: You must be logged in as admin. Please log in and try again.');
       } else if (errorMessage.includes('413') || errorMessage.includes('too large')) {
-        setUploadProgress('Upload failed: File is too large. Maximum size is 50MB per image.');
+        setUploadProgress(de ? 'Upload fehlgeschlagen: Die Datei ist zu groß. Die maximale Größe beträgt 50 MB pro Bild.' : 'Upload failed: File is too large. Maximum size is 50MB per image.');
       } else {
-        setUploadProgress(`Upload failed: ${errorMessage}`);
+        setUploadProgress(de ? `Upload fehlgeschlagen: ${errorMessage}` : `Upload failed: ${errorMessage}`);
       }
       setTimeout(() => {
         setUploadProgress('');
@@ -206,13 +209,13 @@ const GalleryPage: React.FC = () => {
     e.preventDefault();
     
     if (!email) {
-      setAuthError('Email is required');
+      setAuthError(de ? 'E-Mail ist erforderlich' : 'Email is required');
       return;
     }
     
     const isPasswordProtected = gallery?.isPasswordProtected;
     if (isPasswordProtected && !password) {
-      setAuthError('Password is required');
+      setAuthError(de ? 'Passwort ist erforderlich' : 'Password is required');
       return;
     }
     
@@ -233,7 +236,7 @@ const GalleryPage: React.FC = () => {
       // Notify parent component
       handleAuthenticated(token);
     } catch (err) {
-      setAuthError(err instanceof Error ? err.message : 'Authentication failed. Please try again.');
+      setAuthError(err instanceof Error ? err.message : (de ? 'Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut.' : 'Authentication failed. Please try again.'));
     } finally {
       setAuthLoading(false);
     }
@@ -283,7 +286,7 @@ const GalleryPage: React.FC = () => {
 
   const handleRunSlideshow = () => {
     if (selectedForSlideshow.size === 0) {
-      alert('Please select at least one image for the slideshow');
+      alert(de ? 'Bitte wählen Sie mindestens ein Bild für die Diashow aus' : 'Please select at least one image for the slideshow');
       return;
     }
     setShowSlideshow(true);
@@ -312,7 +315,7 @@ const GalleryPage: React.FC = () => {
     if (!gallery || !slug || !authToken) return;
     
     if (!gallery.downloadEnabled) {
-      alert('Downloads are disabled for this gallery.');
+      alert(de ? 'Downloads sind für diese Galerie deaktiviert.' : 'Downloads are disabled for this gallery.');
       return;
     }
     
@@ -362,7 +365,7 @@ const GalleryPage: React.FC = () => {
     })
     .catch(err => {
       // console.error removed
-      alert('Failed to download gallery. Please try again.');
+      alert(de ? 'Galerie konnte nicht heruntergeladen werden. Bitte versuchen Sie es erneut.' : 'Failed to download gallery. Please try again.');
     });
   };
 
@@ -388,14 +391,14 @@ const GalleryPage: React.FC = () => {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text)
         .then(() => {
-          alert('Gallery link copied to clipboard!');
+          alert(de ? 'Galerie-Link in die Zwischenablage kopiert!' : 'Gallery link copied to clipboard!');
         })
         .catch(err => {
           // console.error removed
-          prompt('Copy this link:', text);
+          prompt(de ? 'Diesen Link kopieren:' : 'Copy this link:', text);
         });
     } else {
-      prompt('Copy this link:', text);
+      prompt(de ? 'Diesen Link kopieren:' : 'Copy this link:', text);
     }
   };
 
@@ -463,7 +466,7 @@ const GalleryPage: React.FC = () => {
               
               <div>
                 <label className="block text-xs text-white/70 uppercase tracking-wider mb-2">
-                  Email
+                  {de ? 'E-Mail' : 'Email'}
                 </label>
                 <input
                   type="email"
@@ -478,7 +481,7 @@ const GalleryPage: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-white/70 uppercase tracking-wider mb-2">
-                    First Name
+                    {de ? 'Vorname' : 'First Name'}
                   </label>
                   <input
                     type="text"
@@ -490,7 +493,7 @@ const GalleryPage: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-xs text-white/70 uppercase tracking-wider mb-2">
-                    Last Name
+                    {de ? 'Nachname' : 'Last Name'}
                   </label>
                   <input
                     type="text"
@@ -505,7 +508,7 @@ const GalleryPage: React.FC = () => {
               {isPasswordProtected && (
                 <div>
                   <label className="block text-xs text-white/70 uppercase tracking-wider mb-2">
-                    Password
+                    {de ? 'Passwort' : 'Password'}
                   </label>
                   <input
                     type="password"
@@ -526,10 +529,10 @@ const GalleryPage: React.FC = () => {
                 {authLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Loading...
+                    {de ? 'Wird geladen...' : 'Loading...'}
                   </>
                 ) : (
-                  'Open Gallery'
+                  de ? 'Galerie öffnen' : 'Open Gallery'
                 )}
               </button>
             </form>
@@ -557,16 +560,16 @@ const GalleryPage: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
               </svg>
             </div>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">Gallery not found</h3>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">{de ? 'Galerie nicht gefunden' : 'Gallery not found'}</h3>
             <p className="mt-1 text-sm text-gray-500">
-              The gallery you're looking for doesn't exist or has been removed.
+              {de ? 'Die gesuchte Galerie existiert nicht oder wurde entfernt.' : "The gallery you're looking for doesn't exist or has been removed."}
             </p>
             <div className="mt-6">
               <Link
                 to="/"
                 className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
               >
-                Return to home
+                {de ? 'Zurück zur Startseite' : 'Return to home'}
               </Link>
             </div>
           </div>
@@ -580,7 +583,7 @@ const GalleryPage: React.FC = () => {
     return (
       <div className="fixed inset-0 w-full h-full bg-gray-900 flex items-center justify-center">
         <Loader2 className="h-8 w-8 text-white animate-spin" />
-        <span className="ml-2 text-white">Loading gallery...</span>
+        <span className="ml-2 text-white">{de ? 'Galerie wird geladen...' : 'Loading gallery...'}</span>
       </div>
     );
   }
@@ -598,7 +601,7 @@ const GalleryPage: React.FC = () => {
             {gallery?.coverImage && (
               <img
                 src={gallery.coverImage}
-                alt={gallery?.title ? `${gallery.title} – Galerie` : 'Galerie'}
+                alt={gallery?.title ? `${gallery.title} – ${de ? 'Galerie' : 'Gallery'}` : (de ? 'Galerie' : 'Gallery')}
                 className="w-10 h-10 rounded-lg object-cover"
               />
             )}
@@ -608,7 +611,7 @@ const GalleryPage: React.FC = () => {
         <div className="flex items-center gap-3">
           <button className="text-gray-500 hover:text-gray-700 flex items-center gap-1 text-sm">
             <HelpCircle size={16} />
-            <span className="hidden sm:inline">Get Help</span>
+            <span className="hidden sm:inline">{de ? 'Hilfe' : 'Get Help'}</span>
           </button>
         </div>
       </div>
@@ -629,7 +632,7 @@ const GalleryPage: React.FC = () => {
 
           {/* Quick Actions */}
           <div className="mb-6">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Quick Actions</h3>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{de ? 'Schnellaktionen' : 'Quick Actions'}</h3>
             <div className="space-y-1">
               <button
                 onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
@@ -640,7 +643,7 @@ const GalleryPage: React.FC = () => {
                 }`}
               >
                 <Heart size={16} className={showFavoritesOnly ? 'fill-current' : ''} />
-                {showFavoritesOnly ? 'Show All' : 'Favorites'}
+                {showFavoritesOnly ? (de ? 'Alle anzeigen' : 'Show All') : (de ? 'Favoriten' : 'Favorites')}
               </button>
               
               {gallery?.downloadEnabled && (
@@ -649,7 +652,7 @@ const GalleryPage: React.FC = () => {
                   className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                 >
                   <Download size={16} />
-                  Download All
+                  {de ? 'Alle herunterladen' : 'Download All'}
                 </button>
               )}
               
@@ -658,7 +661,7 @@ const GalleryPage: React.FC = () => {
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors"
               >
                 <Share2 size={16} />
-                Share Gallery
+                {de ? 'Galerie teilen' : 'Share Gallery'}
               </button>
 
               {selectedForSlideshow.size > 0 && (
@@ -667,7 +670,7 @@ const GalleryPage: React.FC = () => {
                   className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-green-500 text-white hover:bg-green-600 transition-colors"
                 >
                   <Play size={16} />
-                  Slideshow ({selectedForSlideshow.size})
+                  {de ? 'Diashow' : 'Slideshow'} ({selectedForSlideshow.size})
                 </button>
               )}
             </div>
@@ -681,25 +684,25 @@ const GalleryPage: React.FC = () => {
               onChange={(e) => setRatingFilter(e.target.value as any)}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
-              <option value="all">All Photos</option>
-              <option value="love">😊 Love</option>
-              <option value="maybe">😐 Maybe</option>
-              <option value="reject">☹️ Reject</option>
+              <option value="all">{de ? 'Alle Fotos' : 'All Photos'}</option>
+              <option value="love">{de ? '😊 Gefällt mir' : '😊 Love'}</option>
+              <option value="maybe">{de ? '😐 Vielleicht' : '😐 Maybe'}</option>
+              <option value="reject">{de ? '☹️ Ablehnen' : '☹️ Reject'}</option>
             </select>
           </div>
 
           {/* Gallery Info */}
           <div className="border-t border-gray-200 pt-4">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Gallery Info</h3>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{de ? 'Galerie-Info' : 'Gallery Info'}</h3>
             <div className="space-y-2 text-sm text-gray-600">
               <div className="flex items-center gap-2">
                 <Image size={14} />
-                <span>{filteredImages.length} photos</span>
+                <span>{filteredImages.length} {de ? 'Fotos' : 'photos'}</span>
               </div>
               {gallery?.createdAt && (
                 <div className="flex items-center gap-2">
                   <Calendar size={14} />
-                  <span>Created {new Date(gallery.createdAt).toLocaleDateString()}</span>
+                  <span>{de ? 'Erstellt' : 'Created'} {new Date(gallery.createdAt).toLocaleDateString(de ? 'de-DE' : 'en-US')}</span>
                 </div>
               )}
             </div>
@@ -719,7 +722,7 @@ const GalleryPage: React.FC = () => {
               }`}
             >
               <Heart size={16} className={showFavoritesOnly ? 'fill-current' : ''} />
-              Favorites
+              {de ? 'Favoriten' : 'Favorites'}
             </button>
             {gallery?.downloadEnabled && (
               <button
@@ -727,7 +730,7 @@ const GalleryPage: React.FC = () => {
                 className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm border border-gray-200 text-gray-700"
               >
                 <Download size={16} />
-                Download
+                {de ? 'Herunterladen' : 'Download'}
               </button>
             )}
             <button
@@ -735,7 +738,7 @@ const GalleryPage: React.FC = () => {
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm border border-gray-200 text-gray-700"
             >
               <Share2 size={16} />
-              Share
+              {de ? 'Teilen' : 'Share'}
             </button>
           </div>
 
@@ -755,11 +758,11 @@ const GalleryPage: React.FC = () => {
                   }}
                   className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                 />
-                Select all
+                {de ? 'Alle auswählen' : 'Select all'}
               </label>
               {selectedForSlideshow.size > 0 && (
                 <span className="text-sm text-gray-500">
-                  {selectedForSlideshow.size} selected
+                  {selectedForSlideshow.size} {de ? 'ausgewählt' : 'selected'}
                 </span>
               )}
               
@@ -782,12 +785,12 @@ const GalleryPage: React.FC = () => {
                     {uploading ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Uploading...
+                        {de ? 'Wird hochgeladen...' : 'Uploading...'}
                       </>
                     ) : (
                       <>
                         <Plus className="h-4 w-4 mr-2" />
-                        Add Images
+                        {de ? 'Bilder hinzufügen' : 'Add Images'}
                       </>
                     )}
                   </button>
@@ -798,9 +801,9 @@ const GalleryPage: React.FC = () => {
             {/* Upload Progress Banner */}
             {uploadProgress && (
               <div className={`mt-2 px-4 py-2 rounded-lg text-sm ${
-                uploadProgress.includes('failed') 
-                  ? 'bg-red-100 text-red-700' 
-                  : uploadProgress.includes('Successfully') 
+                uploadProgress.includes('failed') || uploadProgress.includes('fehlgeschlagen')
+                  ? 'bg-red-100 text-red-700'
+                  : uploadProgress.includes('Successfully') || uploadProgress.includes('erfolgreich')
                     ? 'bg-green-100 text-green-700'
                     : 'bg-blue-100 text-blue-700'
               }`}>
@@ -809,7 +812,7 @@ const GalleryPage: React.FC = () => {
             )}
             
             <div className="text-sm text-gray-500">
-              {filteredImages.length} photos
+              {filteredImages.length} {de ? 'Fotos' : 'photos'}
             </div>
           </div>
 
@@ -817,7 +820,7 @@ const GalleryPage: React.FC = () => {
           {loading ? (
             <div className="flex items-center justify-center h-64">
               <Loader2 className="h-8 w-8 text-purple-600 animate-spin" />
-              <span className="ml-2 text-gray-600">Loading images...</span>
+              <span className="ml-2 text-gray-600">{de ? 'Bilder werden geladen...' : 'Loading images...'}</span>
             </div>
           ) : error ? (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start">
@@ -841,15 +844,15 @@ const GalleryPage: React.FC = () => {
               {showFavoritesOnly && filteredImages.length === 0 && (
                 <div className="text-center py-12">
                   <Heart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No favorites yet</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{de ? 'Noch keine Favoriten' : 'No favorites yet'}</h3>
                   <p className="text-gray-500 mb-4">
-                    You haven't added any photos to your favorites.
+                    {de ? 'Sie haben noch keine Fotos zu Ihren Favoriten hinzugefügt.' : "You haven't added any photos to your favorites."}
                   </p>
                   <button
                     onClick={() => setShowFavoritesOnly(false)}
                     className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 transition-colors"
                   >
-                    Show all photos
+                    {de ? 'Alle Fotos anzeigen' : 'Show all photos'}
                   </button>
                 </div>
               )}
@@ -857,9 +860,9 @@ const GalleryPage: React.FC = () => {
               {!showFavoritesOnly && filteredImages.length === 0 && (
                 <div className="text-center py-12">
                   <Image className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No photos yet</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{de ? 'Noch keine Fotos' : 'No photos yet'}</h3>
                   <p className="text-gray-500">
-                    This gallery doesn't have any photos yet.
+                    {de ? 'Diese Galerie enthält noch keine Fotos.' : "This gallery doesn't have any photos yet."}
                   </p>
                 </div>
               )}

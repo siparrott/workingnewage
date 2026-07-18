@@ -6,10 +6,13 @@ import { Clock, Users, Camera, ArrowRight } from 'lucide-react';
 import { useManualPageContent } from '../hooks/useManualPageContent';
 import { SEOHead } from '../components/SEO/SEOHead';
 import { SITE } from '../config/site';
+import { useLanguage } from '../context/LanguageContext';
 
 const FotoshootingsPage: React.FC = () => {
   const navigate = useNavigate();
   const t = useManualPageContent('photoshoots');
+  const { language } = useLanguage();
+  const de = language === 'de';
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -192,7 +195,7 @@ const FotoshootingsPage: React.FC = () => {
             className="text-center mb-12"
           >
             <h2 className="text-3xl md:text-4xl font-bold text-purple-900 mb-4">
-              Warum {SITE.name}?
+              {de ? 'Warum' : 'Why'} {SITE.name}?
             </h2>
             <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto rounded-full" />
           </motion.div>
@@ -231,10 +234,12 @@ const FotoshootingsPage: React.FC = () => {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Bereit für Ihr Fotoshooting?
+              {de ? 'Bereit für Ihr Fotoshooting?' : 'Ready for your photoshoot?'}
             </h2>
             <p className="text-white/90 text-lg mb-8 max-w-2xl mx-auto">
-              Kontaktieren Sie uns heute und lassen Sie uns gemeinsam unvergessliche Momente festhalten.
+              {de
+                ? 'Kontaktieren Sie uns heute und lassen Sie uns gemeinsam unvergessliche Momente festhalten.'
+                : 'Get in touch today and let’s capture unforgettable moments together.'}
             </p>
             <motion.button
               onClick={() => navigate('/warteliste')}
@@ -242,7 +247,7 @@ const FotoshootingsPage: React.FC = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              Termin anfragen
+              {de ? 'Termin anfragen' : 'Request an appointment'}
             </motion.button>
           </motion.div>
         </div>

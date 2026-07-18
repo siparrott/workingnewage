@@ -101,6 +101,9 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
     from: language === 'en' ? 'From' : 'Von',
     subtotal: language === 'en' ? 'Subtotal' : 'Zwischensumme',
     shipping: language === 'en' ? 'Shipping' : 'Versand',
+    fotoshootingVoucher: language === 'en' ? 'Photoshoot Voucher' : 'Fotoshooting Gutschein',
+    ownPhoto: language === 'en' ? 'Own Photo' : 'Eigenes Foto',
+    voucher: language === 'en' ? 'Voucher' : 'Gutschein',
   };
 
   // Fetch design templates from API
@@ -124,11 +127,11 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
   const deliveryOptions: DeliveryOption[] = [
     {
       id: 'pdf',
-      name: 'PDF Versand',
-      description: 'Kostenlos',
+      name: language === 'en' ? 'PDF Delivery' : 'PDF Versand',
+      description: language === 'en' ? 'Free' : 'Kostenlos',
       price: 0,
       image: 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=400&h=300&fit=crop',
-      detailedDescription: 'Sofort downloaden und ausdrucken'
+      detailedDescription: language === 'en' ? 'Download and print instantly' : 'Sofort downloaden und ausdrucken'
     },
     {
       id: 'post-standard',
@@ -136,7 +139,7 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
       description: '4,49 €',
       price: 4.49,
       image: 'https://images.unsplash.com/photo-1566125882500-87e10f726cdc?w=400&h=300&fit=crop',
-      detailedDescription: 'Farbdruck auf 200g Papier | Versand per Post (3-5 Werktage)'
+      detailedDescription: language === 'en' ? 'Colour print on 200g paper | Postal delivery (3–5 business days)' : 'Farbdruck auf 200g Papier | Versand per Post (3-5 Werktage)'
     },
     {
       id: 'post-premium',
@@ -144,15 +147,15 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
       description: '6,49 €',
       price: 6.49,
       image: 'https://i.postimg.cc/RZ7PBrvT/firstvoucher-lettershop-premium.webp',
-      detailedDescription: 'Farbdruck auf hochwertigem 300g Papier inkl. passendem Umschlag | Versand per Post (3-5 Werktage)'
+      detailedDescription: language === 'en' ? 'Colour print on premium 300g paper incl. matching envelope | Postal delivery (3–5 business days)' : 'Farbdruck auf hochwertigem 300g Papier inkl. passendem Umschlag | Versand per Post (3-5 Werktage)'
     },
     {
       id: 'post-geschenkbox',
-      name: 'POST Geschenkbox',
+      name: language === 'en' ? 'POST Gift Box' : 'POST Geschenkbox',
       description: '34,95 €',
       price: 34.95,
       image: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&h=300&fit=crop',
-      detailedDescription: 'Premium-Gutschein in Geschenkbox | Premium-Seife (250 ml) & Premium-Schokoladen | Versand per Post (3-5 Werktage) - Kostenloser Versand innerhalb Österreichs'
+      detailedDescription: language === 'en' ? 'Premium voucher in a gift box | Premium soap (250 ml) & premium chocolates | Postal delivery (3–5 business days) – Free shipping within Austria' : 'Premium-Gutschein in Geschenkbox | Premium-Seife (250 ml) & Premium-Schokoladen | Versand per Post (3-5 Werktage) - Kostenloser Versand innerhalb Österreichs'
     }
   ];
 
@@ -374,7 +377,7 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
                 onClick={() => setCurrentStep(2)}
                 className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
               >
-                weiter zur Gestaltung
+                {language === 'en' ? 'Continue to design' : 'weiter zur Gestaltung'}
               </button>
             </div>
           )}
@@ -404,14 +407,14 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
                   hover:bg-blue-100
                 `}>
                   <Camera size={48} className="mx-auto mb-4 text-blue-500" />
-                  <p className="text-lg font-semibold text-blue-600 mb-2">Foto suchen</p>
-                  <p className="text-gray-600">Klicken Sie hier, um Ihr eigenes Foto hochzuladen</p>
+                  <p className="text-lg font-semibold text-blue-600 mb-2">{t.searchPhoto}</p>
+                  <p className="text-gray-600">{t.uploadPhotoHint}</p>
                   {uploading && (
-                    <p className="text-blue-600 mt-2 font-semibold">Hochladen...</p>
+                    <p className="text-blue-600 mt-2 font-semibold">{language === 'en' ? 'Uploading...' : 'Hochladen...'}</p>
                   )}
                   {customPhoto && !uploading && (
                     <p className="text-green-600 mt-2 font-semibold">
-                      ✓ {customPhoto.name} ausgewählt
+                      ✓ {customPhoto.name} {language === 'en' ? 'selected' : 'ausgewählt'}
                     </p>
                   )}
                   {uploadError && (
@@ -511,7 +514,7 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
 
           {/* Right Column: Voucher Preview */}
           <div className="lg:pl-8">
-            <h3 className="text-xl font-bold mb-6 text-center">Vorschau</h3>
+            <h3 className="text-xl font-bold mb-6 text-center">{language === 'en' ? 'Preview' : 'Vorschau'}</h3>
             
             {(selectedDesign || customPhoto) ? (
               <div className="relative">
@@ -537,8 +540,8 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
                       {/* Voucher Overlay */}
                       <div className="absolute inset-0 bg-black bg-opacity-20 rounded-lg flex items-center justify-center">
                         <div className="text-white text-center">
-                          <h4 className="text-2xl font-bold mb-2">Gutschein</h4>
-                          <p className="text-lg">{selectedDesign?.occasion || 'Eigenes Foto'}</p>
+                          <h4 className="text-2xl font-bold mb-2">{t.voucher}</h4>
+                          <p className="text-lg">{selectedDesign?.occasion || t.ownPhoto}</p>
                         </div>
                       </div>
                     </div>
@@ -547,8 +550,8 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
                     <div className="bg-white p-4 rounded-lg border-t-4 border-blue-500">
                       <div className="flex justify-between items-center mb-3">
                         <div>
-                          <h5 className="font-bold text-lg">Fotoshooting Gutschein</h5>
-                          <p className="text-gray-600 text-sm">1 Person, ca. 30 min</p>
+                          <h5 className="font-bold text-lg">{t.fotoshootingVoucher}</h5>
+                          <p className="text-gray-600 text-sm">{language === 'en' ? '1 person, approx. 30 min' : '1 Person, ca. 30 min'}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-2xl font-bold text-blue-600">{voucherAmount},00 €</p>
@@ -556,7 +559,7 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
                       </div>
                       
                       <div className="border-t pt-3">
-                        <p className="text-xs text-gray-500 mb-2">Einlösbar bis: 2 Jahre ab Kaufdatum</p>
+                        <p className="text-xs text-gray-500 mb-2">{language === 'en' ? 'Redeemable until: 2 years from purchase date' : 'Einlösbar bis: 2 Jahre ab Kaufdatum'}</p>
                         <div className="bg-gray-100 p-2 rounded text-center">
                           <p className="text-xs font-mono">DEMO-GUTSCHEIN-2024</p>
                         </div>
@@ -571,7 +574,7 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
                     onClick={() => setCurrentStep(3)}
                     className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors w-full lg:w-auto"
                   >
-                    Persönliche Nachricht hinzufügen
+                    {language === 'en' ? 'Add a personal message' : 'Persönliche Nachricht hinzufügen'}
                   </button>
                 </div>
               </div>
@@ -582,7 +585,7 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <p className="text-gray-500">Wählen Sie ein Design oder laden Sie ein Foto hoch, um eine Vorschau zu sehen</p>
+                <p className="text-gray-500">{language === 'en' ? 'Select a design or upload a photo to see a preview' : 'Wählen Sie ein Design oder laden Sie ein Foto hoch, um eine Vorschau zu sehen'}</p>
               </div>
             )}
           </div>
@@ -604,42 +607,42 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
           <div className="max-w-2xl mx-auto space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Empfänger Name (optional)
+                {t.recipientLabel}
               </label>
               <input
                 type="text"
                 value={recipientName}
                 onChange={(e) => setRecipientName(e.target.value)}
-                placeholder="Für wen ist dieser Gutschein?"
+                placeholder={t.recipientPlaceholder}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Persönliche Nachricht *
+                {t.messageLabel}
               </label>
               <textarea
                 value={personalMessage}
                 onChange={(e) => setPersonalMessage(e.target.value)}
-                placeholder="Widmung eingeben..."
+                placeholder={t.messagePlaceholder}
                 rows={6}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               />
               <p className="text-sm text-gray-500 mt-1">
-                {personalMessage.length}/500 Zeichen
+                {personalMessage.length}/500 {t.characters}
               </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Ihr Name (optional)
+                {t.senderLabel}
               </label>
               <input
                 type="text"
                 value={senderName}
                 onChange={(e) => setSenderName(e.target.value)}
-                placeholder="Von wem ist dieser Gutschein?"
+                placeholder={t.senderPlaceholder}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -647,64 +650,64 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
             {/* Shipping Address for postal delivery */}
             {selectedDelivery && (selectedDelivery.price > 0 || selectedDelivery.id.startsWith('post-')) && (
               <div className="space-y-3">
-                <h3 className="text-lg font-semibold">Lieferadresse</h3>
-                <p className="text-sm text-gray-600">Bitte geben Sie die Postadresse für den Versand des Gutscheins ein.</p>
+                <h3 className="text-lg font-semibold">{language === 'en' ? 'Delivery Address' : 'Lieferadresse'}</h3>
+                <p className="text-sm text-gray-600">{language === 'en' ? 'Please enter the postal address for shipping the voucher.' : 'Bitte geben Sie die Postadresse für den Versand des Gutscheins ein.'}</p>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Straße und Hausnummer *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{language === 'en' ? 'Street and house number *' : 'Straße und Hausnummer *'}</label>
                   <input
                     type="text"
                     value={shippingAddress.address1}
                     onChange={(e) => setShippingAddress(prev => ({ ...prev, address1: e.target.value }))}
                     className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${addressTouched && !shippingAddress.address1.trim() ? 'border-red-500' : 'border-gray-300'}`}
-                    placeholder="z.B. Schönbrunner Str. 25"
+                    placeholder={language === 'en' ? 'e.g. Schönbrunner Str. 25' : 'z.B. Schönbrunner Str. 25'}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Adresszusatz</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{language === 'en' ? 'Address line 2' : 'Adresszusatz'}</label>
                   <input
                     type="text"
                     value={shippingAddress.address2}
                     onChange={(e) => setShippingAddress(prev => ({ ...prev, address2: e.target.value }))}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Stiege, Tür, Etage (optional)"
+                    placeholder={language === 'en' ? 'Staircase, door, floor (optional)' : 'Stiege, Tür, Etage (optional)'}
                   />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="md:col-span-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">PLZ *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{language === 'en' ? 'Postcode *' : 'PLZ *'}</label>
                     <input
                       type="text"
                       value={shippingAddress.zip}
                       onChange={(e) => setShippingAddress(prev => ({ ...prev, zip: e.target.value }))}
                       className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${addressTouched && !shippingAddress.zip.trim() ? 'border-red-500' : 'border-gray-300'}`}
-                      placeholder="z.B. 1050"
+                      placeholder={language === 'en' ? 'e.g. 1050' : 'z.B. 1050'}
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Ort *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{language === 'en' ? 'City *' : 'Ort *'}</label>
                     <input
                       type="text"
                       value={shippingAddress.city}
                       onChange={(e) => setShippingAddress(prev => ({ ...prev, city: e.target.value }))}
                       className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${addressTouched && !shippingAddress.city.trim() ? 'border-red-500' : 'border-gray-300'}`}
-                      placeholder="z.B. Wien"
+                      placeholder={language === 'en' ? 'e.g. Vienna' : 'z.B. Wien'}
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Land *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{language === 'en' ? 'Country *' : 'Land *'}</label>
                   <select
                     value={shippingAddress.country}
                     onChange={(e) => setShippingAddress(prev => ({ ...prev, country: e.target.value }))}
                     className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${addressTouched && !shippingAddress.country.trim() ? 'border-red-500' : 'border-gray-300'}`}
                   >
-                    <option value="AT">Österreich</option>
-                    <option value="DE">Deutschland</option>
-                    <option value="CH">Schweiz</option>
+                    <option value="AT">{language === 'en' ? 'Austria' : 'Österreich'}</option>
+                    <option value="DE">{language === 'en' ? 'Germany' : 'Deutschland'}</option>
+                    <option value="CH">{language === 'en' ? 'Switzerland' : 'Schweiz'}</option>
                   </select>
                 </div>
                 {addressTouched && (!shippingAddress.address1.trim() || !shippingAddress.city.trim() || !shippingAddress.zip.trim()) && (
-                  <p className="text-sm text-red-600">Bitte füllen Sie alle Pflichtfelder der Lieferadresse aus.</p>
+                  <p className="text-sm text-red-600">{language === 'en' ? 'Please fill in all required fields of the delivery address.' : 'Bitte füllen Sie alle Pflichtfelder der Lieferadresse aus.'}</p>
                 )}
               </div>
             )}
@@ -728,7 +731,7 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
                 className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors w-full lg:w-auto disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
                 <Eye className="inline-block mr-2" size={20} />
-                Vorschau anzeigen
+                {t.showPreview}
               </button>
             </div>
           </div>
@@ -773,9 +776,9 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
               )}
               {/* Overlay with Gutschein badge */}
               <div className="absolute bottom-4 left-4 bg-white/90 px-4 py-2 rounded-lg">
-                <span className="font-semibold text-[#b3202e]">Gutschein</span>
-                {(selectedDesign?.occasion || 'Eigenes Foto') && (
-                  <span className="ml-2 text-gray-600">{selectedDesign?.occasion || 'Eigenes Foto'}</span>
+                <span className="font-semibold text-[#b3202e]">{t.voucher}</span>
+                {(selectedDesign?.occasion || t.ownPhoto) && (
+                  <span className="ml-2 text-gray-600">{selectedDesign?.occasion || t.ownPhoto}</span>
                 )}
               </div>
             </div>
@@ -783,30 +786,30 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
             {/* Personal Message as Heading */}
             <div className="p-6">
               <h3 className="text-2xl font-bold text-center text-gray-800 mb-4">
-                {personalMessage || 'Ihre persönliche Nachricht'}
+                {personalMessage || (language === 'en' ? 'Your personal message' : 'Ihre persönliche Nachricht')}
               </h3>
 
               {/* Red Banner */}
               <div className="bg-[#b3202e] text-white py-3 px-4 rounded-lg mb-4">
-                <span className="font-semibold">Fotoshooting Gutschein</span>
+                <span className="font-semibold">{t.fotoshootingVoucher}</span>
               </div>
 
               {/* Details */}
               <div className="space-y-2 text-sm text-gray-600">
                 {recipientName && (
-                  <p><span className="font-medium">Empfänger/in:</span> {recipientName}</p>
+                  <p><span className="font-medium">{t.recipient}:</span> {recipientName}</p>
                 )}
                 {senderName && (
-                  <p><span className="font-medium">Von:</span> {senderName}</p>
+                  <p><span className="font-medium">{t.from}:</span> {senderName}</p>
                 )}
-                <p><span className="font-medium">Gültig bis:</span> 12 Monate ab Kaufdatum</p>
+                <p><span className="font-medium">{t.validUntil}:</span> {t.monthsFromPurchase}</p>
               </div>
 
               {/* Price */}
               <div className="mt-6 pt-4 border-t text-right">
                 <p className="text-2xl font-bold text-gray-800">{voucherAmount.toFixed(2)} €</p>
                 {selectedDelivery && selectedDelivery.price > 0 && (
-                  <p className="text-sm text-gray-500">+ {selectedDelivery.price.toFixed(2)} € Versand</p>
+                  <p className="text-sm text-gray-500">+ {selectedDelivery.price.toFixed(2)} € {t.shipping}</p>
                 )}
               </div>
             </div>
@@ -825,18 +828,18 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
               onClick={() => setCurrentStep(3)}
               className="px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors w-full sm:w-auto"
             >
-              Zurück bearbeiten
+              {t.backToEdit}
             </button>
             <button
               onClick={handleComplete}
               className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors w-full sm:w-auto"
             >
-              Jetzt bezahlen & Gutschein erhalten
+              {t.payNow}
             </button>
           </div>
 
           <p className="text-center text-sm text-gray-500 mt-4">
-            Nach erfolgreicher Zahlung können Sie Ihren Gutschein als PDF herunterladen.
+            {t.afterPayment}
           </p>
         </div>
       )}
@@ -850,14 +853,14 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
                 <span className="text-xs text-center">Voucher<br/>Preview</span>
               </div>
               <div>
-                <h3 className="font-semibold text-sm">Fotoshooting Gutschein</h3>
+                <h3 className="font-semibold text-sm">{t.fotoshootingVoucher}</h3>
                 <p className="text-xs text-gray-600">
-                  {selectedDelivery.name} | {selectedDesign?.occasion || customPhoto?.name || 'Eigenes Foto'}
+                  {selectedDelivery.name} | {selectedDesign?.occasion || customPhoto?.name || t.ownPhoto}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xs text-gray-600">Zwischensumme</p>
+              <p className="text-xs text-gray-600">{t.subtotal}</p>
               <p className="font-bold">
                 {(voucherAmount + selectedDelivery.price).toFixed(2)} €
               </p>

@@ -4,6 +4,7 @@ import { PillarLinksBlock } from '../components/SEO/PillarLinksBlock';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Heart, Baby } from 'lucide-react';
 import { useManualPageContent } from '../hooks/useManualPageContent';
+import { useLanguage } from '../context/LanguageContext';
 import { SEOHead } from '../components/SEO/SEOHead';
 import { SITE } from '../config/site';
 
@@ -34,6 +35,8 @@ const giftCardPackages = [
 const GutscheinPage: React.FC = () => {
   const navigate = useNavigate();
   const t = useManualPageContent('gift-cards');
+  const { language } = useLanguage();
+  const de = language === 'de';
 
   return (
     <Layout>
@@ -47,7 +50,7 @@ const GutscheinPage: React.FC = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto text-center mb-12">
           <h1 className="text-4xl font-bold text-purple-900 mb-4">
-            {t('giftCards.heroTitle') || 'Fotoshooting-Gutscheine Wien – Das perfekte Geschenk'}
+            {t('giftCards.heroTitle') || (de ? 'Fotoshooting-Gutscheine Wien – Das perfekte Geschenk' : 'Photoshoot Gift Vouchers Vienna – The Perfect Gift')}
           </h1>
           <p className="text-xl text-gray-700 mb-4">
             {t('giftCards.heroSubtitle')}
@@ -92,7 +95,7 @@ const GutscheinPage: React.FC = () => {
           })}
         </div>
       </div>
-      <PillarLinksBlock currentPath="/gutschein/" title="Gutschein für welches Shooting?" />
+      <PillarLinksBlock currentPath="/gutschein/" title={de ? 'Gutschein für welches Shooting?' : 'A voucher for which shoot?'} />
     </Layout>
   );
 };

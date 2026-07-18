@@ -1,9 +1,12 @@
 import React from 'react';
 import GutscheinLayout from '../../components/gutschein/GutscheinLayout';
 import { Clock, Heart, Camera, Calendar } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 import { SITE } from '../../config/site';
 
 const EventFotoshootingPage: React.FC = () => {
+  const { language } = useLanguage();
+  const de = language === 'de';
   const eventPhotos = [
     {
       url: "https://i.postimg.cc/907tz7nR/21469528-10155302675513124-226449768-n.jpg",
@@ -111,8 +114,8 @@ const EventFotoshootingPage: React.FC = () => {
 
   return (
     <GutscheinLayout
-      title="Eventfotografie Wien – Professionelle Veranstaltungsfotos"
-      subtitle={`${SITE.name} – Authentisch. Professionell. Unvergesslich.`}
+      title={de ? 'Eventfotografie Wien – Professionelle Veranstaltungsfotos' : 'Event Photography Vienna – Professional Event Photos'}
+      subtitle={de ? `${SITE.name} – Authentisch. Professionell. Unvergesslich.` : `${SITE.name} – Authentic. Professional. Unforgettable.`}
       image="https://i.postimg.cc/rwtMhFtV/Ball-des-Sports-2025-www-newagefotografie-com-5513.jpg"
       seoTitle={`Event Fotoshooting Wien – Professionelle Eventfotografie | ${SITE.name}`}
       seoDescription="Eventfotografie in Wien: Professionelle Dokumentation Ihrer Veranstaltungen, Firmenfeiern, Konferenzen und besonderen Anlässe. Unaufdringlich, authentisch, hochwertig – jetzt anfragen!"
@@ -123,11 +126,21 @@ const EventFotoshootingPage: React.FC = () => {
         {/* Main Content */}
         <div className="mb-16">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-purple-900 mb-4">Ihre Veranstaltung. Ihre Emotionen. Perfekt eingefangen.</h2>
+            <h2 className="text-3xl font-bold text-purple-900 mb-4">{de ? 'Ihre Veranstaltung. Ihre Emotionen. Perfekt eingefangen.' : 'Your event. Your emotions. Perfectly captured.'}</h2>
             <p className="text-gray-700 text-lg">
-              Sie planen ein Event und möchten sich darauf verlassen können, dass alle wichtigen Momente eingefangen werden?
-              <br />
-              Wir sind auf natürliche, stimmungsvolle Eventfotografie spezialisiert – ohne gestellte Posen, ohne steife Atmosphäre.
+              {de ? (
+                <>
+                  Sie planen ein Event und möchten sich darauf verlassen können, dass alle wichtigen Momente eingefangen werden?
+                  <br />
+                  Wir sind auf natürliche, stimmungsvolle Eventfotografie spezialisiert – ohne gestellte Posen, ohne steife Atmosphäre.
+                </>
+              ) : (
+                <>
+                  Planning an event and want to be sure every important moment is captured?
+                  <br />
+                  We specialise in natural, atmospheric event photography – no staged poses, no stiff atmosphere.
+                </>
+              )}
             </p>
           </div>
 
@@ -151,30 +164,30 @@ const EventFotoshootingPage: React.FC = () => {
 
           {/* Why Choose Us */}
           <div className="bg-white rounded-lg shadow-lg p-8 mb-12">
-            <h3 className="text-2xl font-bold text-purple-900 mb-6">Warum Kunden uns wählen:</h3>
+            <h3 className="text-2xl font-bold text-purple-900 mb-6">{de ? 'Warum Kunden uns wählen:' : 'Why clients choose us:'}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h4 className="font-bold text-gray-800 mb-2">Unauffällig & präsent</h4>
+                <h4 className="font-bold text-gray-800 mb-2">{de ? 'Unauffällig & präsent' : 'Discreet yet present'}</h4>
                 <p className="text-gray-600">
-                  Wir bewegen uns dezent im Hintergrund und fangen echte Emotionen ein.
+                  {de ? 'Wir bewegen uns dezent im Hintergrund und fangen echte Emotionen ein.' : 'We move quietly in the background and capture genuine emotions.'}
                 </p>
               </div>
               <div>
-                <h4 className="font-bold text-gray-800 mb-2">Authentisch & natürlich</h4>
+                <h4 className="font-bold text-gray-800 mb-2">{de ? 'Authentisch & natürlich' : 'Authentic & natural'}</h4>
                 <p className="text-gray-600">
-                  Keine gestellten Bilder. Wir zeigen Sie, wie Sie wirklich sind – entspannt und sympathisch.
+                  {de ? 'Keine gestellten Bilder. Wir zeigen Sie, wie Sie wirklich sind – entspannt und sympathisch.' : 'No staged shots. We show you as you really are – relaxed and likeable.'}
                 </p>
               </div>
               <div>
-                <h4 className="font-bold text-gray-800 mb-2">Ruhig in jeder Situation</h4>
+                <h4 className="font-bold text-gray-800 mb-2">{de ? 'Ruhig in jeder Situation' : 'Calm in every situation'}</h4>
                 <p className="text-gray-600">
-                  Selbst in stressigen Momenten behalten wir den Überblick und dokumentieren jedes Detail.
+                  {de ? 'Selbst in stressigen Momenten behalten wir den Überblick und dokumentieren jedes Detail.' : 'Even in hectic moments we keep the overview and document every detail.'}
                 </p>
               </div>
               <div>
-                <h4 className="font-bold text-gray-800 mb-2">Schmeichelhafte Perspektiven</h4>
+                <h4 className="font-bold text-gray-800 mb-2">{de ? 'Schmeichelhafte Perspektiven' : 'Flattering perspectives'}</h4>
                 <p className="text-gray-600">
-                  Wir kennen die besten Blickwinkel, damit sich alle auf den Bildern wiedererkennen und mögen.
+                  {de ? 'Wir kennen die besten Blickwinkel, damit sich alle auf den Bildern wiedererkennen und mögen.' : 'We know the best angles, so everyone recognises and loves themselves in the photos.'}
                 </p>
               </div>
             </div>
@@ -182,7 +195,7 @@ const EventFotoshootingPage: React.FC = () => {
 
           {/* Additional Photo Grid */}
           <div className="mb-12">
-            <h3 className="text-2xl font-bold text-purple-900 mb-6 text-center">Impressionen unserer Arbeit</h3>
+            <h3 className="text-2xl font-bold text-purple-900 mb-6 text-center">{de ? 'Impressionen unserer Arbeit' : 'Impressions of our work'}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {additionalPhotos.map((photo, index) => (
                 <div key={index} className="relative group overflow-hidden rounded-lg">
@@ -204,7 +217,7 @@ const EventFotoshootingPage: React.FC = () => {
           {/* Ball des Sports Grid */}
           <div className="mb-16">
             <h3 className="text-2xl font-bold text-purple-900 mb-8 text-center">
-             Eleganz & Stil
+             {de ? 'Eleganz & Stil' : 'Elegance & Style'}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {ballSportsPhotos.map((photo, index) => (
@@ -227,29 +240,31 @@ const EventFotoshootingPage: React.FC = () => {
 
           {/* Flexible Booking */}
           <div className="bg-purple-50 rounded-lg p-8 mb-12">
-            <h3 className="text-2xl font-bold text-purple-900 mb-4">Flexibel buchbar – auch an Wochenenden & Feiertagen</h3>
+            <h3 className="text-2xl font-bold text-purple-900 mb-4">{de ? 'Flexibel buchbar – auch an Wochenenden & Feiertagen' : 'Flexible booking – including weekends & holidays'}</h3>
             <p className="text-gray-700">
-              Unser einfacher Buchungsprozess ist 7 Tage die Woche verfügbar – so passt sich Ihr Fotograf Ihrem Zeitplan an, nicht umgekehrt.
+              {de
+                ? 'Unser einfacher Buchungsprozess ist 7 Tage die Woche verfügbar – so passt sich Ihr Fotograf Ihrem Zeitplan an, nicht umgekehrt.'
+                : 'Our simple booking process is available 7 days a week – so your photographer fits your schedule, not the other way around.'}
             </p>
           </div>
 
           {/* Testimonials */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
             <div className="bg-white rounded-lg shadow-lg p-6">
-              <p className="text-gray-700 italic mb-4">"Perfekt für jedes Event."</p>
-              <p className="text-gray-700 italic mb-4">"Unauffällig, professionell, sympathisch."</p>
+              <p className="text-gray-700 italic mb-4">{de ? '"Perfekt für jedes Event."' : '“Perfect for any event.”'}</p>
+              <p className="text-gray-700 italic mb-4">{de ? '"Unauffällig, professionell, sympathisch."' : '“Discreet, professional, and warm.”'}</p>
             </div>
             <div className="bg-white rounded-lg shadow-lg p-6">
-              <p className="text-gray-700 italic mb-4">"Fotos, die man wirklich gerne teilt."</p>
-              <p className="text-gray-700 italic mb-4">"Einfach zu buchen, zuverlässig und herzlich."</p>
+              <p className="text-gray-700 italic mb-4">{de ? '"Fotos, die man wirklich gerne teilt."' : '“Photos you actually love to share.”'}</p>
+              <p className="text-gray-700 italic mb-4">{de ? '"Einfach zu buchen, zuverlässig und herzlich."' : '“Easy to book, reliable, and warm-hearted.”'}</p>
             </div>
           </div>
 
           {/* Contact Section */}
           <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-            <h3 className="text-2xl font-bold text-purple-900 mb-6">📍 Verfügbar in Wien & Zürich</h3>
-            <p className="text-lg mb-4">📅 Jetzt Termin sichern: <a href="/warteliste" className="text-purple-600 hover:text-purple-700">Termin planen</a></p>
-            <p className="text-lg">📸 {SITE.name} – Für bleibende Erinnerungen.</p>
+            <h3 className="text-2xl font-bold text-purple-900 mb-6">{de ? '📍 Verfügbar in Wien & Zürich' : '📍 Available in Vienna & Zurich'}</h3>
+            <p className="text-lg mb-4">📅 {de ? 'Jetzt Termin sichern:' : 'Secure your date now:'} <a href="/warteliste" className="text-purple-600 hover:text-purple-700">{de ? 'Termin planen' : 'Plan a date'}</a></p>
+            <p className="text-lg">📸 {SITE.name} – {de ? 'Für bleibende Erinnerungen.' : 'For lasting memories.'}</p>
           </div>
         </div>
       </div>

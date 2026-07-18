@@ -78,7 +78,20 @@ const AdminBlogPostsPage: React.FC = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' }>({ key: 'date', direction: 'desc' });
+  // Persist the chosen sort so it stays as the user left it across reloads and
+  // navigation, until they change it (was resetting to date-desc on every mount).
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' }>(() => {
+    try {
+      const saved = localStorage.getItem('adminBlogSort');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if ((parsed.key === 'date' || parsed.key === 'status') && (parsed.direction === 'asc' || parsed.direction === 'desc')) {
+          return parsed;
+        }
+      }
+    } catch { /* ignore malformed value */ }
+    return { key: 'date', direction: 'desc' };
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
@@ -450,11 +463,13 @@ const AdminBlogPostsPage: React.FC = () => {
   // Clicking a sortable column toggles direction; switching column uses a sensible default
   // (dates newest-first, statuses live-content-first).
   const toggleSort = (key: SortKey) => {
-    setSortConfig((prev) =>
-      prev.key === key
-        ? { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
-        : { key, direction: key === 'date' ? 'desc' : 'asc' },
-    );
+    setSortConfig((prev) => {
+      const next = prev.key === key
+        ? { key, direction: (prev.direction === 'asc' ? 'desc' : 'asc') as 'asc' | 'desc' }
+        : { key, direction: (key === 'date' ? 'desc' : 'asc') as 'asc' | 'desc' };
+      try { localStorage.setItem('adminBlogSort', JSON.stringify(next)); } catch { /* storage unavailable */ }
+      return next;
+    });
   };
 
   const sortIcon = (key: SortKey) => {

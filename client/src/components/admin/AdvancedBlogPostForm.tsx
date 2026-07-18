@@ -19,7 +19,8 @@ import {
   Loader2,
   X,
   Plus,
-  Sparkles
+  Sparkles,
+  Calendar
 } from 'lucide-react';
 
 interface BlogPost {
@@ -870,42 +871,52 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Publishing Status
-          </label>
-          <select
-            value={formData.status}
-            onChange={(e) => handleChange('status', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-          >
-            <option value="DRAFT">Draft</option>
-            <option value="PUBLISHED">Published</option>
-            <option value="SCHEDULED">Scheduled</option>
-          </select>
+      {/* Highlighted publish/schedule panel — the most consequential controls
+          on the form (a mis-set schedule date can auto-publish). */}
+      <div className="rounded-xl border-2 border-purple-300 bg-purple-50/60 p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Calendar className="h-5 w-5 text-purple-600" />
+          <h3 className="text-sm font-semibold text-purple-900 uppercase tracking-wide">
+            {de ? 'Veröffentlichung & Planung' : 'Publish & Schedule'}
+          </h3>
         </div>
-
-        {formData.status === 'SCHEDULED' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Publish Date
+              Publishing Status
             </label>
-            <input
-              type="datetime-local"
-              value={formData.scheduled_for ? toLocalInputValue(formData.scheduled_for) : ''}
-              onChange={(e) => handleChange('scheduled_for', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-            />
-            {formData.scheduled_for && new Date(formData.scheduled_for).getTime() <= Date.now() && (
-              <p className="mt-1 text-sm text-red-600 font-medium">
-                ⚠️ {de
-                  ? 'Dieses Datum liegt in der Vergangenheit — der Beitrag würde sofort veröffentlicht.'
-                  : 'This date is in the past — the post would publish immediately.'}
-              </p>
-            )}
+            <select
+              value={formData.status}
+              onChange={(e) => handleChange('status', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            >
+              <option value="DRAFT">Draft</option>
+              <option value="PUBLISHED">Published</option>
+              <option value="SCHEDULED">Scheduled</option>
+            </select>
           </div>
-        )}
+
+          {formData.status === 'SCHEDULED' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Publish Date
+              </label>
+              <input
+                type="datetime-local"
+                value={formData.scheduled_for ? toLocalInputValue(formData.scheduled_for) : ''}
+                onChange={(e) => handleChange('scheduled_for', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              />
+              {formData.scheduled_for && new Date(formData.scheduled_for).getTime() <= Date.now() && (
+                <p className="mt-1 text-sm text-red-600 font-medium">
+                  ⚠️ {de
+                    ? 'Dieses Datum liegt in der Vergangenheit — der Beitrag würde sofort veröffentlicht.'
+                    : 'This date is in the past — the post would publish immediately.'}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <div>

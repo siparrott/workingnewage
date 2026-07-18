@@ -6,13 +6,16 @@ import Layout from '../../components/layout/Layout';
 import { RelatedTopicsBlock } from '../../components/SEO/RelatedTopicsBlock';
 import { PillarLinksBlock } from '../../components/SEO/PillarLinksBlock';
 import { SEOHead } from '../../components/SEO/SEOHead';
+import { useLanguage } from '../../context/LanguageContext';
 
 // Map API categories → grouped sections for the Preise page.
 // Shared with the Vouchers page categorisation so cards stay in sync.
 const CATEGORY_GROUPS: {
   key: string;
   title: string;
+  titleEn: string;
   subtitle: string;
+  subtitleEn: string;
   icon: React.ReactNode;
   accent: string; // tailwind text color for price + icon bg
   bgIcon: string; // tailwind bg color for icon circle
@@ -21,7 +24,9 @@ const CATEGORY_GROUPS: {
   {
     key: 'family',
     title: 'Familien-Fotoshooting',
+    titleEn: 'Family Photo Shoot',
     subtitle: 'Authentische Familienmomente für die Ewigkeit',
+    subtitleEn: 'Authentic family moments to treasure forever',
     icon: <Users className="w-8 h-8 text-orange-600" />,
     accent: 'text-orange-600',
     bgIcon: 'bg-orange-100',
@@ -30,7 +35,9 @@ const CATEGORY_GROUPS: {
   {
     key: 'newborn',
     title: 'Baby & Newborn',
+    titleEn: 'Baby & Newborn',
     subtitle: 'Zarte Babyfotos in den ersten Lebenswochen',
+    subtitleEn: 'Tender baby photos in the very first weeks of life',
     icon: <Baby className="w-8 h-8 text-pink-600" />,
     accent: 'text-pink-600',
     bgIcon: 'bg-pink-100',
@@ -39,7 +46,9 @@ const CATEGORY_GROUPS: {
   {
     key: 'maternity',
     title: 'Schwangerschaftsfotos',
+    titleEn: 'Maternity Photography',
     subtitle: 'Die besondere Zeit vor der Geburt festhalten',
+    subtitleEn: 'Capturing the special time before birth',
     icon: <Heart className="w-8 h-8 text-purple-600" />,
     accent: 'text-purple-600',
     bgIcon: 'bg-purple-100',
@@ -48,7 +57,9 @@ const CATEGORY_GROUPS: {
   {
     key: 'business',
     title: 'Business Portrait',
+    titleEn: 'Business Portrait',
     subtitle: 'Professionelle Porträts für LinkedIn, Website & Team',
+    subtitleEn: 'Professional portraits for LinkedIn, your website & team',
     icon: <Briefcase className="w-8 h-8 text-blue-600" />,
     accent: 'text-blue-600',
     bgIcon: 'bg-blue-100',
@@ -57,7 +68,9 @@ const CATEGORY_GROUPS: {
   {
     key: 'event',
     title: 'Event & Hochzeit',
+    titleEn: 'Event & Wedding',
     subtitle: 'Bilder, die wichtige Momente festhalten',
+    subtitleEn: 'Images that hold on to the moments that matter',
     icon: <Camera className="w-8 h-8 text-yellow-600" />,
     accent: 'text-yellow-600',
     bgIcon: 'bg-yellow-100',
@@ -90,6 +103,9 @@ function stripMarkup(text: string | undefined): string {
 }
 
 const PreisePage: React.FC = () => {
+  const { language } = useLanguage();
+  const de = language === 'de';
+
   // Fetch the same live voucher catalogue the /vouchers page uses
   const { data: apiProducts, isLoading } = useQuery({
     queryKey: ['/api/vouchers/products', 'preise-page'],
@@ -157,10 +173,10 @@ const PreisePage: React.FC = () => {
           <div className="absolute inset-0 bg-black/20"></div>
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              Fotoshooting Preise in Wien – Faire Pakete für jeden Anlass
+              {de ? 'Fotoshooting Preise in Wien – Faire Pakete für jeden Anlass' : 'Photo Shoot Prices in Vienna – Fair Packages for Every Occasion'}
             </h1>
             <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
-              Transparente Preise, faire Pakete – alle bearbeiteten Bilder inklusive
+              {de ? 'Transparente Preise, faire Pakete – alle bearbeiteten Bilder inklusive' : 'Transparent prices, fair packages – all edited images included'}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
@@ -168,13 +184,13 @@ const PreisePage: React.FC = () => {
                 className="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:bg-gray-100 transition-colors inline-flex items-center justify-center gap-2"
               >
                 <Gift className="w-5 h-5" />
-                Gutschein verschenken
+                {de ? 'Gutschein verschenken' : 'Give a Voucher'}
               </Link>
               <Link
                 to="/kontakt"
                 className="bg-transparent border-2 border-white text-white px-8 py-3 rounded-full font-semibold hover:bg-white/10 transition-colors"
               >
-                Beratung anfragen
+                {de ? 'Beratung anfragen' : 'Request a Consultation'}
               </Link>
             </div>
           </div>
@@ -186,31 +202,31 @@ const PreisePage: React.FC = () => {
             <div className="flex items-start gap-4">
               <Info className="w-6 h-6 text-purple-600 flex-shrink-0 mt-1" />
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Das ist bei allen Paketen inklusive:</h3>
+                <h3 className="font-semibold text-gray-900 mb-2">{de ? 'Das ist bei allen Paketen inklusive:' : 'Included with every package:'}</h3>
                 <ul className="grid md:grid-cols-3 gap-2 text-gray-700">
                   <li className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-purple-600" />
-                    Professionelle Bildbearbeitung
+                    {de ? 'Professionelle Bildbearbeitung' : 'Professional image editing'}
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-purple-600" />
-                    Alle Bilder im Paket drinnen in voller Auflösung
+                    {de ? 'Alle Bilder im Paket drinnen in voller Auflösung' : 'All images in the package in full resolution'}
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-purple-600" />
-                    Online-Galerie zum Teilen
+                    {de ? 'Online-Galerie zum Teilen' : 'Online gallery for easy sharing'}
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-purple-600" />
-                    Nutzungsrechte inklusive
+                    {de ? 'Nutzungsrechte inklusive' : 'Usage rights included'}
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-purple-600" />
-                    Persönliche Beratung
+                    {de ? 'Persönliche Beratung' : 'Personal consultation'}
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-purple-600" />
-                    Keine versteckten Kosten
+                    {de ? 'Keine versteckten Kosten' : 'No hidden costs'}
                   </li>
                 </ul>
               </div>
@@ -222,32 +238,69 @@ const PreisePage: React.FC = () => {
         <section className="py-10 bg-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <p className="text-lg text-gray-700 leading-relaxed">
-              Hier finden Sie alle Preise für unsere Fotoshootings in Wien – von{' '}
-              <Link to="/familienfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Familienfotos Wien</Link> über{' '}
-              <Link to="/babyfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Babyfotografie Wien</Link>{' '}
-              und{' '}
-              <Link to="/neugeborenenfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Neugeborenenfotografie Wien</Link>{' '}
-              bis hin zu{' '}
-              <Link to="/business-portrait-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Business Portraits</Link>.
+              {de ? (
+                <>
+                  Hier finden Sie alle Preise für unsere Fotoshootings in Wien – von{' '}
+                  <Link to="/familienfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Familienfotos Wien</Link> über{' '}
+                  <Link to="/babyfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Babyfotografie Wien</Link>{' '}
+                  und{' '}
+                  <Link to="/neugeborenenfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Neugeborenenfotografie Wien</Link>{' '}
+                  bis hin zu{' '}
+                  <Link to="/business-portrait-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Business Portraits</Link>.
+                </>
+              ) : (
+                <>
+                  Here you will find all the prices for our photo shoots in Vienna – from{' '}
+                  <Link to="/familienfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Family Photos Vienna</Link> and{' '}
+                  <Link to="/babyfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Baby Photography Vienna</Link>{' '}
+                  to{' '}
+                  <Link to="/neugeborenenfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Newborn Photography Vienna</Link>{' '}
+                  and{' '}
+                  <Link to="/business-portrait-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Business Portraits</Link>.
+                </>
+              )}
             </p>
             <p className="text-lg text-gray-700 leading-relaxed mt-4">
-              Jedes Shooting ist individuell. Viele Kunden kombinieren mehrere Shootings wie{' '}
-              <Link to="/schwangerschaftsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Schwangerschaftsfotos Wien</Link>{' '}
-              und{' '}
-              <Link to="/babyfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Babyfotos Wien</Link>, oder
-              buchen ergänzend{' '}
-              <Link to="/kinder-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Kinderfotografie Wien</Link>{' '}
-              und{' '}
-              <Link to="/hochzeitsfotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Hochzeitsfotografie Wien</Link>.
-              Für Teams empfehlen wir{' '}
-              <Link to="/teamfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Teamfotos Wien</Link>{' '}
-              oder{' '}
-              <Link to="/bewerbungsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Bewerbungsfotos Wien</Link>.
-              Jetzt{' '}
-              <Link to="/warteliste/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Termin sichern</Link>{' '}
-              oder ins{' '}
-              <Link to="/portfolio/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Portfolio</Link>{' '}
-              schauen.
+              {de ? (
+                <>
+                  Jedes Shooting ist individuell. Viele Kunden kombinieren mehrere Shootings wie{' '}
+                  <Link to="/schwangerschaftsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Schwangerschaftsfotos Wien</Link>{' '}
+                  und{' '}
+                  <Link to="/babyfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Babyfotos Wien</Link>, oder
+                  buchen ergänzend{' '}
+                  <Link to="/kinder-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Kinderfotografie Wien</Link>{' '}
+                  und{' '}
+                  <Link to="/hochzeitsfotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Hochzeitsfotografie Wien</Link>.
+                  Für Teams empfehlen wir{' '}
+                  <Link to="/teamfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Teamfotos Wien</Link>{' '}
+                  oder{' '}
+                  <Link to="/bewerbungsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Bewerbungsfotos Wien</Link>.
+                  Jetzt{' '}
+                  <Link to="/warteliste/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Termin sichern</Link>{' '}
+                  oder ins{' '}
+                  <Link to="/portfolio/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Portfolio</Link>{' '}
+                  schauen.
+                </>
+              ) : (
+                <>
+                  Every shoot is individual. Many clients combine several shoots, such as{' '}
+                  <Link to="/schwangerschaftsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Maternity Photos Vienna</Link>{' '}
+                  and{' '}
+                  <Link to="/babyfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Baby Photos Vienna</Link>, or
+                  add on{' '}
+                  <Link to="/kinder-fotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Children's Photography Vienna</Link>{' '}
+                  and{' '}
+                  <Link to="/hochzeitsfotografie-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Wedding Photography Vienna</Link>.
+                  For teams we recommend{' '}
+                  <Link to="/teamfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Team Photos Vienna</Link>{' '}
+                  or{' '}
+                  <Link to="/bewerbungsfotos-wien/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Application Photos Vienna</Link>.
+                  Now{' '}
+                  <Link to="/warteliste/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">reserve a date</Link>{' '}
+                  or take a look at our{' '}
+                  <Link to="/portfolio/" className="text-purple-600 hover:text-purple-700 underline underline-offset-2 font-medium">Portfolio</Link>.
+                </>
+              )}
             </p>
           </div>
         </section>
@@ -256,7 +309,7 @@ const PreisePage: React.FC = () => {
         {isLoading && (
           <section className="py-16 bg-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-              <p className="text-gray-500">Pakete werden geladen…</p>
+              <p className="text-gray-500">{de ? 'Pakete werden geladen…' : 'Loading packages…'}</p>
             </div>
           </section>
         )}
@@ -265,15 +318,14 @@ const PreisePage: React.FC = () => {
           <section className="py-16 bg-white">
             <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
               <p className="text-gray-600 mb-6">
-                Unser aktueller Gutschein-Katalog wird gerade aktualisiert. Bitte sehen Sie sich die
-                Pakete direkt in unserem Shop an.
+                {de ? 'Unser aktueller Gutschein-Katalog wird gerade aktualisiert. Bitte sehen Sie sich die Pakete direkt in unserem Shop an.' : 'Our current voucher catalogue is being updated right now. Please take a look at the packages directly in our shop.'}
               </p>
               <Link
                 to="/vouchers"
                 className="inline-flex items-center gap-2 bg-purple-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-purple-700 transition-colors"
               >
                 <Gift className="w-5 h-5" />
-                Zu den Fotoshooting-Gutscheinen
+                {de ? 'Zu den Fotoshooting-Gutscheinen' : 'View Photo Shoot Vouchers'}
               </Link>
             </div>
           </section>
@@ -291,8 +343,8 @@ const PreisePage: React.FC = () => {
                 >
                   {group.icon}
                 </div>
-                <h2 className="text-4xl font-bold mb-4 text-gray-900">{group.title}</h2>
-                <p className="text-lg text-gray-600 max-w-2xl mx-auto">{group.subtitle}</p>
+                <h2 className="text-4xl font-bold mb-4 text-gray-900">{de ? group.title : group.titleEn}</h2>
+                <p className="text-lg text-gray-600 max-w-2xl mx-auto">{de ? group.subtitle : group.subtitleEn}</p>
               </div>
 
               <div className="grid md:grid-cols-3 gap-6">
@@ -342,7 +394,7 @@ const PreisePage: React.FC = () => {
                             to={detailHref}
                             className="block w-full text-center bg-gray-900 text-white py-3 rounded-full font-semibold hover:bg-gray-800 transition-colors"
                           >
-                            Mehr erfahren
+                            {de ? 'Mehr erfahren' : 'Learn more'}
                           </Link>
                         </div>
                       </div>
@@ -358,14 +410,14 @@ const PreisePage: React.FC = () => {
           <section className="py-10 bg-white border-t border-gray-100">
             <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
               <p className="text-gray-700 mb-4">
-                Alle Pakete, Gutscheine und Sonderangebote finden Sie auf unserer Gutschein-Seite.
+                {de ? 'Alle Pakete, Gutscheine und Sonderangebote finden Sie auf unserer Gutschein-Seite.' : 'You will find all packages, vouchers and special offers on our voucher page.'}
               </p>
               <Link
                 to="/vouchers"
                 className="inline-flex items-center gap-2 bg-purple-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-purple-700 transition-colors"
               >
                 <Gift className="w-5 h-5" />
-                Alle Gutscheine ansehen
+                {de ? 'Alle Gutscheine ansehen' : 'View All Vouchers'}
               </Link>
             </div>
           </section>
@@ -375,47 +427,43 @@ const PreisePage: React.FC = () => {
         <section className="py-16 bg-gray-50">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">
-              Häufige Fragen zu Preisen
+              {de ? 'Häufige Fragen zu Preisen' : 'Frequently Asked Questions About Prices'}
             </h2>
 
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-xl shadow-sm">
                 <h3 className="font-semibold text-lg mb-2 text-gray-900">
-                  Sind alle Bilder im Preis enthalten?
+                  {de ? 'Sind alle Bilder im Preis enthalten?' : 'Are all the images included in the price?'}
                 </h3>
                 <p className="text-gray-600">
-                  Ja! Sie erhalten alle im Paket angegebenen Bilder professionell bearbeitet in 
-                  voller Auflösung. Es gibt keine versteckten Kosten oder Nachkaufverpflichtungen.
+                  {de ? 'Ja! Sie erhalten alle im Paket angegebenen Bilder professionell bearbeitet in voller Auflösung. Es gibt keine versteckten Kosten oder Nachkaufverpflichtungen.' : 'Yes! You receive every image listed in the package, professionally edited and in full resolution. There are no hidden costs and no obligation to buy more.'}
                 </p>
               </div>
 
               <div className="bg-white p-6 rounded-xl shadow-sm">
                 <h3 className="font-semibold text-lg mb-2 text-gray-900">
-                  Kann ich zusätzliche Bilder erwerben?
+                  {de ? 'Kann ich zusätzliche Bilder erwerben?' : 'Can I purchase additional images?'}
                 </h3>
                 <p className="text-gray-600">
-                  Ja. Weitere bearbeitete Bilder können auf Wunsch nachträglich dazugebucht werden.
-                  Die aktuellen Konditionen besprechen wir gerne persönlich im Rahmen Ihrer Anfrage.
+                  {de ? 'Ja. Weitere bearbeitete Bilder können auf Wunsch nachträglich dazugebucht werden. Die aktuellen Konditionen besprechen wir gerne persönlich im Rahmen Ihrer Anfrage.' : 'Yes. Further edited images can be added on afterwards if you wish. We are happy to discuss the current terms personally as part of your enquiry.'}
                 </p>
               </div>
 
               <div className="bg-white p-6 rounded-xl shadow-sm">
                 <h3 className="font-semibold text-lg mb-2 text-gray-900">
-                  Gibt es Rabatte für mehrere Shootings?
+                  {de ? 'Gibt es Rabatte für mehrere Shootings?' : 'Are there discounts for multiple shoots?'}
                 </h3>
                 <p className="text-gray-600">
-                  Wenn Sie mehrere Shootings kombinieren möchten (z. B. Schwangerschaft + Newborn),
-                  erstellen wir Ihnen gerne ein individuelles Angebot. Sprechen Sie uns einfach an.
+                  {de ? 'Wenn Sie mehrere Shootings kombinieren möchten (z. B. Schwangerschaft + Newborn), erstellen wir Ihnen gerne ein individuelles Angebot. Sprechen Sie uns einfach an.' : 'If you would like to combine several shoots (e.g. maternity + newborn), we are happy to put together a personalised offer for you. Just get in touch.'}
                 </p>
               </div>
 
               <div className="bg-white p-6 rounded-xl shadow-sm">
                 <h3 className="font-semibold text-lg mb-2 text-gray-900">
-                  Wie funktionieren die Gutscheine?
+                  {de ? 'Wie funktionieren die Gutscheine?' : 'How do the vouchers work?'}
                 </h3>
                 <p className="text-gray-600">
-                  Gutscheine können für beliebige Beträge oder spezifische Pakete erworben werden. 
-                  Sie sind 3 Jahre gültig und können für alle unsere Leistungen eingelöst werden.
+                  {de ? 'Gutscheine können für beliebige Beträge oder spezifische Pakete erworben werden. Sie sind 3 Jahre gültig und können für alle unsere Leistungen eingelöst werden.' : 'Vouchers can be purchased for any amount or for specific packages. They are valid for 3 years and can be redeemed against any of our services.'}
                 </p>
               </div>
             </div>
@@ -425,7 +473,7 @@ const PreisePage: React.FC = () => {
                 to="/faq"
                 className="text-purple-600 font-semibold hover:underline text-lg"
               >
-                Alle FAQs ansehen →
+                {de ? 'Alle FAQs ansehen →' : 'View all FAQs →'}
               </Link>
             </div>
           </div>
@@ -434,23 +482,23 @@ const PreisePage: React.FC = () => {
         {/* CTA Section */}
         <section className="py-16 bg-gradient-to-br from-blue-600 via-purple-500 to-pink-500 text-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-4xl font-bold mb-6">Noch Fragen zu unseren Preisen?</h2>
+            <h2 className="text-4xl font-bold mb-6">{de ? 'Noch Fragen zu unseren Preisen?' : 'Still Have Questions About Our Prices?'}</h2>
             <p className="text-xl mb-8">
-              Wir beraten Sie gerne persönlich und finden das perfekte Paket für Ihre Wünsche!
+              {de ? 'Wir beraten Sie gerne persönlich und finden das perfekte Paket für Ihre Wünsche!' : 'We are happy to advise you personally and find the perfect package for your needs!'}
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link
                 to="/kontakt"
                 className="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:bg-gray-100 transition-colors"
               >
-                Jetzt beraten lassen
+                {de ? 'Jetzt beraten lassen' : 'Get Advice Now'}
               </Link>
               <Link
                 to="/vouchers"
                 className="bg-transparent border-2 border-white text-white px-8 py-3 rounded-full font-semibold hover:bg-white/10 transition-colors inline-flex items-center gap-2"
               >
                 <Gift className="w-5 h-5" />
-                Gutschein verschenken
+                {de ? 'Gutschein verschenken' : 'Give a Voucher'}
               </Link>
             </div>
           </div>
@@ -461,40 +509,40 @@ const PreisePage: React.FC = () => {
       <section className="py-12 bg-gray-50 border-t border-gray-100">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-            Beliebte Fotoshootings
+            {de ? 'Beliebte Fotoshootings' : 'Popular Photo Shoots'}
           </h3>
           <ul className="grid sm:grid-cols-2 gap-3 mb-6 max-w-2xl mx-auto">
             <li>
               <Link to="/familienfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
-                Familienfotos Wien
+                {de ? 'Familienfotos Wien' : 'Family Photos Vienna'}
               </Link>
             </li>
             <li>
               <Link to="/babyfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
-                Babyfotografie Wien
+                {de ? 'Babyfotografie Wien' : 'Baby Photography Vienna'}
               </Link>
             </li>
             <li>
               <Link to="/bewerbungsfotos-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
-                Bewerbungsfotos Wien
+                {de ? 'Bewerbungsfotos Wien' : 'Application Photos Vienna'}
               </Link>
             </li>
             <li>
               <Link to="/business-portrait-wien/" className="text-purple-700 hover:text-purple-900 font-medium underline underline-offset-2">
-                Business Portrait Wien
+                {de ? 'Business Portrait Wien' : 'Business Portrait Vienna'}
               </Link>
             </li>
           </ul>
           <p className="text-center text-gray-700">
             <Link to="/warteliste/" className="text-purple-700 hover:text-purple-900 font-semibold underline underline-offset-2">
-              Termin sichern
+              {de ? 'Termin sichern' : 'Reserve a Date'}
             </Link>
           </p>
         </div>
       </section>
 
       <PillarLinksBlock currentPath="/preise/" />
-      <RelatedTopicsBlock pathname="/preise/" language="de" />
+      <RelatedTopicsBlock pathname="/preise/" />
     </Layout>
   );
 };

@@ -7,6 +7,7 @@ import VoucherFlow from '../components/voucher/VoucherFlow';
 import { CheckCircle, AlertCircle, CreditCard, User, Mail, ArrowLeft } from 'lucide-react';
 import { purchaseVoucher } from '../lib/voucher';
 import { SITE } from '../config/site';
+import { useLanguage } from '../context/LanguageContext';
 
 interface LocationState {
   quantity: number;
@@ -24,7 +25,9 @@ const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const { getVoucherById, addOrder } = useAppContext();
   const { items: cartItems, total: cartTotal, clearCart } = useCart();
-  
+  const { language } = useLanguage();
+  const de = language === 'de';
+
   const state = location.state as LocationState;
   const initialQuantity = state?.quantity || 1;
   
@@ -163,15 +166,15 @@ const CheckoutPage: React.FC = () => {
       <Layout>
         <div className="container mx-auto px-4 py-16 text-center">
           <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold mb-4 text-gray-800">Gutschein nicht gefunden</h1>
+          <h1 className="text-2xl font-bold mb-4 text-gray-800">{de ? 'Gutschein nicht gefunden' : 'Voucher not found'}</h1>
           <p className="text-gray-600 mb-8">
-            Der gesuchte Gutschein konnte nicht gefunden werden.
+            {de ? 'Der gesuchte Gutschein konnte nicht gefunden werden.' : 'The voucher you are looking for could not be found.'}
           </p>
-          <button 
+          <button
             onClick={() => navigate('/vouchers')}
             className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
           >
-            Gutscheine durchsuchen
+            {de ? 'Gutscheine durchsuchen' : 'Browse vouchers'}
           </button>
         </div>
       </Layout>
@@ -199,13 +202,13 @@ const CheckoutPage: React.FC = () => {
     const newErrors: { [key: string]: string } = {};
     
     if (!purchaserName.trim()) {
-      newErrors.name = 'Name ist erforderlich';
+      newErrors.name = de ? 'Name ist erforderlich' : 'Name is required';
     }
-    
+
     if (!purchaserEmail.trim()) {
-      newErrors.email = 'E-Mail ist erforderlich';
+      newErrors.email = de ? 'E-Mail ist erforderlich' : 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(purchaserEmail)) {
-      newErrors.email = 'E-Mail ist ungültig';
+      newErrors.email = de ? 'E-Mail ist ungültig' : 'Email is invalid';
     }
     
     setErrors(newErrors);
@@ -257,7 +260,7 @@ const CheckoutPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Checkout error:', error);
-      setErrors({ submit: 'Zahlung konnte nicht verarbeitet werden. Bitte versuchen Sie es erneut.' });
+      setErrors({ submit: de ? 'Zahlung konnte nicht verarbeitet werden. Bitte versuchen Sie es erneut.' : 'Payment could not be processed. Please try again.' });
       setIsSubmitting(false);
     }
   };
@@ -283,22 +286,22 @@ const CheckoutPage: React.FC = () => {
           }}
           className="flex items-center text-purple-600 hover:text-purple-800 mb-6 transition-colors"
         >
-          <ArrowLeft size={16} className="mr-1" /> 
-          {voucher ? 'Zurück zum Gutschein' : 'Zurück zum Warenkorb'}
+          <ArrowLeft size={16} className="mr-1" />
+          {voucher ? (de ? 'Zurück zum Gutschein' : 'Back to voucher') : (de ? 'Zurück zum Warenkorb' : 'Back to cart')}
         </button>
-        
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-8">Kasse</h1>
+
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-8">{de ? 'Kasse' : 'Checkout'}</h1>
         
         <div className="md:grid md:grid-cols-3 md:gap-8">
           {/* Checkout form */}
           <div className="md:col-span-2 mb-8 md:mb-0">
             <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-semibold mb-6 text-gray-800">Ihre Informationen</h2>
+              <h2 className="text-xl font-semibold mb-6 text-gray-800">{de ? 'Ihre Informationen' : 'Your information'}</h2>
               
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
                   <label className="block text-gray-700 font-medium mb-2 flex items-center">
-                    <User size={16} className="mr-2" /> Vollständiger Name
+                    <User size={16} className="mr-2" /> {de ? 'Vollständiger Name' : 'Full name'}
                   </label>
                   <input
                     type="text"
@@ -314,7 +317,7 @@ const CheckoutPage: React.FC = () => {
                 
                 <div className="mb-6">
                   <label className="block text-gray-700 font-medium mb-2 flex items-center">
-                    <Mail size={16} className="mr-2" /> E-Mail-Adresse
+                    <Mail size={16} className="mr-2" /> {de ? 'E-Mail-Adresse' : 'Email address'}
                   </label>
                   <input
                     type="email"
@@ -330,20 +333,20 @@ const CheckoutPage: React.FC = () => {
                 
                 <div>
                   <h2 className="text-xl font-semibold mb-6 text-gray-800 flex items-center">
-                    <CreditCard size={20} className="mr-2" /> Zahlungsinformationen
+                    <CreditCard size={20} className="mr-2" /> {de ? 'Zahlungsinformationen' : 'Payment details'}
                   </h2>
                   
                   {(!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_test_')) && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                       <p className="text-blue-700 text-sm">
-                        <strong>Hinweis:</strong> Dies ist eine Demo-Anwendung. Es wird keine echte Zahlung verarbeitet.
+                        <strong>{de ? 'Hinweis:' : 'Note:'}</strong> {de ? 'Dies ist eine Demo-Anwendung. Es wird keine echte Zahlung verarbeitet.' : 'This is a demo application. No real payment will be processed.'}
                       </p>
                     </div>
                   )}
                   
                   <div className="mb-6">
                     <label className="block text-gray-700 font-medium mb-2">
-                      Karteninformationen
+                      {de ? 'Karteninformationen' : 'Card information'}
                     </label>
                     <input
                       type="text"
@@ -389,10 +392,10 @@ const CheckoutPage: React.FC = () => {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Verarbeitung...
+                      {de ? 'Verarbeitung...' : 'Processing...'}
                     </span>
                   ) : (
-                    `Zahlen €${totalPrice.toFixed(2)}`
+                    `${de ? 'Zahlen' : 'Pay'} €${totalPrice.toFixed(2)}`
                   )}
                 </button>
               </form>
@@ -402,7 +405,7 @@ const CheckoutPage: React.FC = () => {
           {/* Order summary */}
           <div className="md:col-span-1">
             <div className="bg-white rounded-lg shadow-lg p-6 sticky top-24">
-              <h2 className="text-xl font-semibold mb-6 text-gray-800">Bestellübersicht</h2>
+              <h2 className="text-xl font-semibold mb-6 text-gray-800">{de ? 'Bestellübersicht' : 'Order summary'}</h2>
               
               {voucher ? (
                 <>
@@ -415,14 +418,14 @@ const CheckoutPage: React.FC = () => {
                     <div className="ml-4">
                       <h3 className="font-medium text-gray-800">{voucher.title}</h3>
                       <p className="text-gray-600 text-sm">
-                        Gültig bis {new Date(voucher.validUntil).toLocaleDateString()}
+                        {de ? 'Gültig bis' : 'Valid until'} {new Date(voucher.validUntil).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
                   
                   <div className="mb-6">
                     <div className="flex justify-between mb-2">
-                      <label className="text-gray-600">Anzahl:</label>
+                      <label className="text-gray-600">{de ? 'Anzahl:' : 'Quantity:'}</label>
                       <input
                         type="number"
                         min="1"
@@ -435,14 +438,14 @@ const CheckoutPage: React.FC = () => {
                     </div>
                     
                     <div className="flex justify-between mb-2">
-                      <span className="text-gray-600">Preis pro Gutschein:</span>
+                      <span className="text-gray-600">{de ? 'Preis pro Gutschein:' : 'Price per voucher:'}</span>
                       <span className="text-gray-800">€{voucher.discountPrice.toFixed(2)}</span>
                     </div>
                     
                     <hr className="my-4 border-gray-200" />
                     
                     <div className="flex justify-between font-bold text-lg">
-                      <span>Gesamt:</span>
+                      <span>{de ? 'Gesamt:' : 'Total:'}</span>
                       <span className="text-purple-600">€{totalPrice.toFixed(2)}</span>
                     </div>
                   </div>
@@ -457,7 +460,7 @@ const CheckoutPage: React.FC = () => {
                       <div className="ml-4 flex-1">
                         <h3 className="font-medium text-gray-800">{item.title}</h3>
                         <p className="text-gray-600 text-sm">{item.packageType}</p>
-                        <p className="text-gray-600 text-sm">Menge: {item.quantity}</p>
+                        <p className="text-gray-600 text-sm">{de ? 'Menge:' : 'Quantity:'} {item.quantity}</p>
                       </div>
                       <div className="text-right">
                         <span className="text-gray-800">€{(item.price * item.quantity).toFixed(2)}</span>
@@ -468,7 +471,7 @@ const CheckoutPage: React.FC = () => {
                   <hr className="my-4 border-gray-200" />
                   
                   <div className="flex justify-between font-bold text-lg">
-                    <span>Gesamt:</span>
+                    <span>{de ? 'Gesamt:' : 'Total:'}</span>
                     <span className="text-purple-600">€{totalPrice.toFixed(2)}</span>
                   </div>
                 </>
@@ -478,9 +481,9 @@ const CheckoutPage: React.FC = () => {
                 <div className="flex items-start">
                   <CheckCircle size={20} className="text-green-500 mr-2 mt-0.5" />
                   <div>
-                    <h3 className="font-semibold text-gray-800 mb-1">Sicherer Gutscheinkauf</h3>
+                    <h3 className="font-semibold text-gray-800 mb-1">{de ? 'Sicherer Gutscheinkauf' : 'Secure voucher purchase'}</h3>
                     <p className="text-green-700 text-sm">
-                      Dieser Gutschein wird unmittelbar nach dem Kauf an Ihre E-Mail gesendet.
+                      {de ? 'Dieser Gutschein wird unmittelbar nach dem Kauf an Ihre E-Mail gesendet.' : 'This voucher will be sent to your email immediately after purchase.'}
                     </p>
                   </div>
                 </div>

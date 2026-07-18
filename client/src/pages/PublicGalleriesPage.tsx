@@ -19,9 +19,12 @@ import {
 } from 'lucide-react';
 import { useManualPageContent } from '../hooks/useManualPageContent';
 import { SEOHead } from '../components/SEO/SEOHead';
+import { useLanguage } from '../context/LanguageContext';
 
 const PublicGalleriesPage: React.FC = () => {
   const t = useManualPageContent('galleries');
+  const { language } = useLanguage();
+  const de = language === 'de';
   const [galleries, setGalleries] = useState<Gallery[]>([]);
   const [filteredGalleries, setFilteredGalleries] = useState<Gallery[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -73,7 +76,7 @@ const PublicGalleriesPage: React.FC = () => {
     if (!dateString) return '';
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return '';
-    return date.toLocaleDateString('de-DE', {
+    return date.toLocaleDateString(de ? 'de-DE' : 'en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -201,7 +204,7 @@ const PublicGalleriesPage: React.FC = () => {
               <div className="mb-6 flex items-center justify-between">
                 <p className="text-gray-600">
                   {filteredGalleries.length} {filteredGalleries.length === 1 ? t('gallery.galleryFound') : t('gallery.galleriesFound')} {t('gallery.found')}
-                  {searchTerm && ` für "${searchTerm}"`}
+                  {searchTerm && ` ${de ? 'für' : 'for'} "${searchTerm}"`}
                 </p>
               </div>
 

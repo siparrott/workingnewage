@@ -3,6 +3,7 @@ import { ShoppingCart, CreditCard, Mail, MapPin, Gift, Edit2, ChevronDown, Arrow
 import VoucherCodeInput from '../cart/VoucherCodeInput';
 import type { VoucherPersonalizationData } from './VoucherPersonalization';
 import { getAttributedCampaignId } from '../../lib/attribution';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface EnhancedCheckoutPageProps {
   voucherData?: VoucherPersonalizationData;
@@ -31,6 +32,8 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
   initialVoucher,
   onBack
 }) => {
+  const { language } = useLanguage();
+  const de = language === 'de';
   const [email, setEmail] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [appliedVoucherCode, setAppliedVoucherCode] = useState<string>();
@@ -118,11 +121,11 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
         setAppliedVoucherCode(result.coupon.code);
         setDiscount(discountAmount / 100);
         setShowVoucherInput(false);
-        return { success: true, discount: discountAmount, message: 'Gutscheincode erfolgreich angewendet!' };
+        return { success: true, discount: discountAmount, message: de ? 'Gutscheincode erfolgreich angewendet!' : 'Voucher code applied successfully!' };
       }
-      return { success: false, message: result.error || 'Ungültiger Gutscheincode' };
+      return { success: false, message: result.error || (de ? 'Ungültiger Gutscheincode' : 'Invalid voucher code') };
     } catch (err) {
-      return { success: false, message: 'Validierung fehlgeschlagen. Bitte erneut versuchen.' };
+      return { success: false, message: de ? 'Validierung fehlgeschlagen. Bitte erneut versuchen.' : 'Validation failed. Please try again.' };
     }
   };
 
@@ -135,11 +138,11 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
     if (isProcessing) return; // guard against double clicks
     setErrorMessage(null);
     if (!email.trim() || !voucherData) {
-      setErrorMessage('Bitte E-Mail eingeben.');
+      setErrorMessage(de ? 'Bitte E-Mail eingeben.' : 'Please enter your email.');
       return;
     }
     if (needsShipping && !hasShippingAddress) {
-      setErrorMessage('Lieferadresse fehlt. Bitte zurück und Adresse ausfüllen.');
+      setErrorMessage(de ? 'Lieferadresse fehlt. Bitte zurück und Adresse ausfüllen.' : 'Shipping address is missing. Please go back and fill in the address.');
       return;
     }
 
@@ -196,7 +199,7 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
 
       if (!response.ok) {
         console.error('❌ Checkout session creation failed:', result);
-        setErrorMessage(result?.error || 'Checkout konnte nicht gestartet werden.');
+        setErrorMessage(result?.error || (de ? 'Checkout konnte nicht gestartet werden.' : 'Checkout could not be started.'));
         setIsProcessing(false);
         return;
       }
@@ -206,12 +209,12 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
         window.location.href = result.url;
       } else {
         console.warn('⚠️ Kein URL Feld in Antwort. Result:', result);
-        setErrorMessage('Fehler: Keine Weiterleitungs-URL erhalten. Bitte später erneut versuchen.');
+        setErrorMessage(de ? 'Fehler: Keine Weiterleitungs-URL erhalten. Bitte später erneut versuchen.' : 'Error: No redirect URL received. Please try again later.');
         setIsProcessing(false);
       }
     } catch (error) {
       console.error('Unexpected checkout error:', error);
-      setErrorMessage('Unerwarteter Fehler beim Start des Checkouts.');
+      setErrorMessage(de ? 'Unerwarteter Fehler beim Start des Checkouts.' : 'Unexpected error while starting the checkout.');
       setIsProcessing(false);
     }
   };
@@ -252,12 +255,12 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
             className="inline-flex items-center text-purple-600 hover:text-purple-700 text-sm"
           >
             <ArrowLeft size={18} className="mr-1" />
-            Zurück zur Personalisierung
+            {de ? 'Zurück zur Personalisierung' : 'Back to personalization'}
           </button>
           <div className="flex items-center space-x-2 text-sm text-gray-600">
-            <span>Warenkorb</span>
+            <span>{de ? 'Warenkorb' : 'Cart'}</span>
             <ChevronDown size={16} className="rotate-[-90deg]" />
-            <span className="text-gray-900 font-medium">Kasse</span>
+            <span className="text-gray-900 font-medium">{de ? 'Kasse' : 'Checkout'}</span>
           </div>
         </div>
       </div>
@@ -268,16 +271,16 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
           <div className="lg:col-span-2 space-y-6">
             {/* Email Address */}
             <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h3 className="text-lg font-semibold mb-4">E-Mail Adresse eingeben</h3>
+              <h3 className="text-lg font-semibold mb-4">{de ? 'E-Mail Adresse eingeben' : 'Enter your email address'}</h3>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  E-Mail *
+                  {de ? 'E-Mail *' : 'Email *'}
                 </label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ihre-email@beispiel.de"
+                  placeholder={de ? 'ihre-email@beispiel.de' : 'your-email@example.com'}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
@@ -296,23 +299,23 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                     </svg>
-                    Wird weitergeleitet...
+                    {de ? 'Wird weitergeleitet...' : 'Redirecting...'}
                   </>
                 ) : (
-                  <span>Weiter</span>
+                  <span>{de ? 'Weiter' : 'Continue'}</span>
                 )}
               </button>
               {errorMessage && (
                 <p className="text-sm text-red-600 mt-3">{errorMessage}</p>
               )}
               {needsShipping && !hasShippingAddress && (
-                <p className="text-sm text-red-600 mt-2">Für die gewählte Versandart ist eine Lieferadresse erforderlich. Bitte gehen Sie zurück und füllen Sie die Adresse aus.</p>
+                <p className="text-sm text-red-600 mt-2">{de ? 'Für die gewählte Versandart ist eine Lieferadresse erforderlich. Bitte gehen Sie zurück und füllen Sie die Adresse aus.' : 'A shipping address is required for the selected shipping method. Please go back and fill in the address.'}</p>
               )}
             </div>
 
             {/* Payment Methods */}
             <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h3 className="text-lg font-semibold mb-4">Zahlungsart</h3>
+              <h3 className="text-lg font-semibold mb-4">{de ? 'Zahlungsart' : 'Payment method'}</h3>
               <div className="space-y-3">
                 <label 
                   className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
@@ -327,20 +330,20 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
                     className="text-blue-600"
                   />
                   <CreditCard size={20} className="text-gray-600" />
-                  <span>Kreditkarte / Debitkarte / Klarna</span>
+                  <span>{de ? 'Kreditkarte / Debitkarte / Klarna' : 'Credit card / Debit card / Klarna'}</span>
                   {paymentMethod === 'card' && email.trim() && voucherData && (!needsShipping || hasShippingAddress) && (
-                    <span className="ml-auto text-sm text-green-600">✓ Bereit zum Checkout</span>
+                    <span className="ml-auto text-sm text-green-600">{de ? '✓ Bereit zum Checkout' : '✓ Ready to check out'}</span>
                   )}
                 </label>
               </div>
               
               {(!email.trim() || !voucherData) && (
                 <p className="text-sm text-gray-500 mt-3">
-                  Bitte geben Sie Ihre E-Mail-Adresse ein, um eine Zahlungsart zu wählen.
+                  {de ? 'Bitte geben Sie Ihre E-Mail-Adresse ein, um eine Zahlungsart zu wählen.' : 'Please enter your email address to choose a payment method.'}
                 </p>
               )}
               {needsShipping && !hasShippingAddress && (
-                <p className="text-sm text-red-600 mt-2">Lieferadresse fehlt: Bitte zur Personalisierung zurückkehren und Adresse ergänzen.</p>
+                <p className="text-sm text-red-600 mt-2">{de ? 'Lieferadresse fehlt: Bitte zur Personalisierung zurückkehren und Adresse ergänzen.' : 'Shipping address is missing: please return to personalization and add the address.'}</p>
               )}
             </div>
           </div>
@@ -379,9 +382,9 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
                     )}
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold">Fotoshooting Gutschein</h3>
+                    <h3 className="font-semibold">{de ? 'Fotoshooting Gutschein' : 'Photo shoot voucher'}</h3>
                     <p className="text-sm text-gray-600">
-                      {voucherData.selectedDesign?.occasion || 'Eigenes Foto'}
+                      {voucherData.selectedDesign?.occasion || (de ? 'Eigenes Foto' : 'Own photo')}
                     </p>
                     {voucherData.personalMessage && (
                       <p className="text-sm text-gray-600 mt-1 italic">
@@ -402,7 +405,7 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
                       <span className="text-sm">{voucherData.deliveryOption.name}</span>
                     </div>
                     <span className="text-sm font-medium">
-                      {voucherData.deliveryOption.price === 0 ? 'Kostenlos' : `${voucherData.deliveryOption.price.toFixed(2)} €`}
+                      {voucherData.deliveryOption.price === 0 ? (de ? 'Kostenlos' : 'Free') : `${voucherData.deliveryOption.price.toFixed(2)} €`}
                     </span>
                   </div>
                 </div>
@@ -411,29 +414,29 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
 
             {/* Order Summary */}
             <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h3 className="text-lg font-semibold mb-4">Bestellübersicht</h3>
-              
+              <h3 className="text-lg font-semibold mb-4">{de ? 'Bestellübersicht' : 'Order summary'}</h3>
+
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span>Zwischensumme</span>
+                  <span>{de ? 'Zwischensumme' : 'Subtotal'}</span>
                   <span>{baseAmount.toFixed(2)} €</span>
                 </div>
-                
+
                 <div className="flex justify-between">
-                  <span>Versandkosten</span>
-                  <span>{deliveryAmount === 0 ? 'Kostenlos' : `${deliveryAmount.toFixed(2)} €`}</span>
+                  <span>{de ? 'Versandkosten' : 'Shipping'}</span>
+                  <span>{deliveryAmount === 0 ? (de ? 'Kostenlos' : 'Free') : `${deliveryAmount.toFixed(2)} €`}</span>
                 </div>
 
                 {discount > 0 && (
                   <div className="flex justify-between text-green-600">
-                    <span>Rabatt ({appliedVoucherCode})</span>
+                    <span>{de ? 'Rabatt' : 'Discount'} ({appliedVoucherCode})</span>
                     <span>-{discount.toFixed(2)} €</span>
                   </div>
                 )}
 
                 <div className="border-t pt-3">
                   <div className="flex justify-between font-semibold text-lg">
-                    <span>Gesamtpreis</span>
+                    <span>{de ? 'Gesamtpreis' : 'Total'}</span>
                     <span>{total.toFixed(2)} €</span>
                   </div>
                 </div>
@@ -447,7 +450,7 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
                     className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center space-x-1"
                   >
                     <Gift size={16} />
-                    <span>Geschenkkarte oder Rabattcode</span>
+                    <span>{de ? 'Geschenkkarte oder Rabattcode' : 'Gift card or discount code'}</span>
                     <ChevronDown size={16} className={showVoucherInput ? 'rotate-180' : ''} />
                   </button>
                 ) : (
@@ -456,14 +459,14 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
                       <div className="flex items-center space-x-2">
                         <Gift size={16} className="text-green-600" />
                         <span className="text-sm text-green-800">
-                          Code "{appliedVoucherCode}" angewendet
+                          {de ? 'Code' : 'Code'} "{appliedVoucherCode}" {de ? 'angewendet' : 'applied'}
                         </span>
                       </div>
                       <button
                         onClick={handleVoucherRemoved}
                         className="text-red-600 hover:text-red-700 text-sm"
                       >
-                        Entfernen
+                        {de ? 'Entfernen' : 'Remove'}
                       </button>
                     </div>
                   </div>
@@ -486,15 +489,15 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
                 <div className="flex items-center justify-center space-x-4">
                   <div className="flex items-center space-x-1 text-green-600">
                     <div className="w-2 h-2 bg-green-600 rounded-full"></div>
-                    <span className="text-sm">SSL Verschlüsselt</span>
+                    <span className="text-sm">{de ? 'SSL Verschlüsselt' : 'SSL encrypted'}</span>
                   </div>
                   <div className="flex items-center space-x-1 text-green-600">
                     <div className="w-2 h-2 bg-green-600 rounded-full"></div>
-                    <span className="text-sm">Sicher</span>
+                    <span className="text-sm">{de ? 'Sicher' : 'Secure'}</span>
                   </div>
                 </div>
                 <p className="text-xs text-gray-500">
-                  Ihre Daten werden verschlüsselt übertragen
+                  {de ? 'Ihre Daten werden verschlüsselt übertragen' : 'Your data is transmitted encrypted'}
                 </p>
               </div>
             </div>

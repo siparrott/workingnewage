@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 
 const VoucherThankYouPage: React.FC = () => {
+  const { language } = useLanguage();
+  const de = language === 'de';
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -58,15 +61,15 @@ const VoucherThankYouPage: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-8">
       <div className="max-w-md w-full bg-white p-6 rounded-lg shadow">
-        <h1 className="text-2xl font-bold mb-4">Vielen Dank für Ihren Kauf!</h1>
-        <p className="mb-4">Ihr personalisierter Gutschein steht zum Download bereit.</p>
+        <h1 className="text-2xl font-bold mb-4">{de ? 'Vielen Dank für Ihren Kauf!' : 'Thank you for your purchase!'}</h1>
+        <p className="mb-4">{de ? 'Ihr personalisierter Gutschein steht zum Download bereit.' : 'Your personalised voucher is ready to download.'}</p>
         <a
           id="download-again"
           href={downloadUrl || '#'}
           onClick={(e)=>{ if (!downloadUrl) e.preventDefault(); }}
           className={`inline-flex items-center justify-center px-4 py-2 rounded ${downloadUrl ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}
         >
-          Gutschein herunterladen
+          {de ? 'Gutschein herunterladen' : 'Download voucher'}
         </a>
       </div>
     </div>
