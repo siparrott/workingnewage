@@ -661,7 +661,122 @@ export const manualPageManifest: ManualPageDefinition[] = [
           ]
         : [])
     ]
-  }))
+  })),
+  // SEO pillar pages (July 2026) — text-only content, no hero image slots.
+  {
+    id: 'gewerbliche',
+    label: 'Gewerbliche Fotografie (Pillar)',
+    route: '/gewerbliche-fotografie-wien',
+    description: 'Commercial/B2B pillar page: hero, service hub cards, guide intro and CTAs.',
+    tags: ['SEO', 'Pillar', 'B2B'],
+    sections: [
+      {
+        id: 'gewerbliche-hero',
+        label: 'Hero Copy',
+        fields: [
+          makeField('gewerbliche-hero-title', 'Hero Title', 'manual.gewerbliche.heroTitle'),
+          makeField('gewerbliche-hero-description', 'Hero Description', 'manual.gewerbliche.heroDescription', 'longForm'),
+          makeField('gewerbliche-primary-cta', 'Primary CTA Label', 'manual.gewerbliche.primaryCta'),
+          makeField('gewerbliche-secondary-cta', 'Secondary CTA Label', 'manual.gewerbliche.secondaryCta')
+        ]
+      },
+      {
+        id: 'gewerbliche-services',
+        label: 'Service Hub Cards',
+        description: 'The five service cards linking to the detail pages.',
+        fields: [
+          makeField('gewerbliche-services-title', 'Section Title', 'manual.gewerbliche.servicesTitle'),
+          makeField('gewerbliche-services-intro', 'Section Intro', 'manual.gewerbliche.servicesIntro', 'longForm'),
+          makeField('gewerbliche-svc1-title', 'Card 1 Title (Produkt)', 'manual.gewerbliche.svc1Title'),
+          makeField('gewerbliche-svc1-desc', 'Card 1 Text', 'manual.gewerbliche.svc1Desc', 'longForm'),
+          makeField('gewerbliche-svc2-title', 'Card 2 Title (Immobilien)', 'manual.gewerbliche.svc2Title'),
+          makeField('gewerbliche-svc2-desc', 'Card 2 Text', 'manual.gewerbliche.svc2Desc', 'longForm'),
+          makeField('gewerbliche-svc3-title', 'Card 3 Title (Event)', 'manual.gewerbliche.svc3Title'),
+          makeField('gewerbliche-svc3-desc', 'Card 3 Text', 'manual.gewerbliche.svc3Desc', 'longForm'),
+          makeField('gewerbliche-svc4-title', 'Card 4 Title (Team)', 'manual.gewerbliche.svc4Title'),
+          makeField('gewerbliche-svc4-desc', 'Card 4 Text', 'manual.gewerbliche.svc4Desc', 'longForm'),
+          makeField('gewerbliche-svc5-title', 'Card 5 Title (Portraits)', 'manual.gewerbliche.svc5Title'),
+          makeField('gewerbliche-svc5-desc', 'Card 5 Text', 'manual.gewerbliche.svc5Desc', 'longForm')
+        ]
+      },
+      {
+        id: 'gewerbliche-guide',
+        label: 'Guide Section',
+        description: 'The "Warum ein Studio" guide (German). Bullet list with links stays in code.',
+        fields: [
+          makeField('gewerbliche-why-title', 'Guide Heading', 'manual.gewerbliche.whyTitle'),
+          makeField('gewerbliche-why-intro', 'Guide Intro Paragraph', 'manual.gewerbliche.whyIntro', 'longForm')
+        ]
+      },
+      {
+        id: 'gewerbliche-final',
+        label: 'Final CTA',
+        fields: [
+          makeField('gewerbliche-final-title', 'CTA Heading', 'manual.gewerbliche.finalCtaTitle'),
+          makeField('gewerbliche-final-button', 'CTA Button Label', 'manual.gewerbliche.finalCtaButton')
+        ]
+      }
+    ]
+  },
+  {
+    id: 'warum',
+    label: 'Warum New Age (Trust Hub)',
+    route: '/warum-new-age-fotografie',
+    description: 'Trust hub pillar: hero, proof cards, shooting process steps and CTAs.',
+    tags: ['SEO', 'Pillar', 'Trust'],
+    sections: [
+      {
+        id: 'warum-hero',
+        label: 'Hero Copy',
+        fields: [
+          makeField('warum-hero-title', 'Hero Title', 'manual.warum.heroTitle'),
+          makeField('warum-hero-description', 'Hero Description', 'manual.warum.heroDescription', 'longForm')
+        ]
+      },
+      {
+        id: 'warum-proof',
+        label: 'Proof Cards',
+        description: 'The four trust cards (reviews, experience, case studies, FAQ).',
+        fields: [
+          makeField('warum-proof1-title', 'Card 1 Title (Google)', 'manual.warum.proof1Title'),
+          makeField('warum-proof1-desc', 'Card 1 Text', 'manual.warum.proof1Desc', 'longForm'),
+          makeField('warum-proof2-title', 'Card 2 Title (Erfahrung)', 'manual.warum.proof2Title'),
+          makeField('warum-proof2-desc', 'Card 2 Text', 'manual.warum.proof2Desc', 'longForm'),
+          makeField('warum-proof3-title', 'Card 3 Title (Fallstudien)', 'manual.warum.proof3Title'),
+          makeField('warum-proof3-desc', 'Card 3 Text', 'manual.warum.proof3Desc', 'longForm'),
+          makeField('warum-proof4-title', 'Card 4 Title (FAQ)', 'manual.warum.proof4Title'),
+          makeField('warum-proof4-desc', 'Card 4 Text', 'manual.warum.proof4Desc', 'longForm')
+        ]
+      },
+      {
+        id: 'warum-process',
+        label: 'Shooting Process (German)',
+        description: 'The four "So läuft ein Shooting ab" steps.',
+        fields: [
+          makeField('warum-process-title', 'Section Heading', 'manual.warum.processTitle'),
+          makeField('warum-step1-title', 'Step 1 Title', 'manual.warum.step1Title'),
+          makeField('warum-step1-desc', 'Step 1 Text', 'manual.warum.step1Desc', 'longForm'),
+          makeField('warum-step2-title', 'Step 2 Title', 'manual.warum.step2Title'),
+          makeField('warum-step2-desc', 'Step 2 Text', 'manual.warum.step2Desc', 'longForm'),
+          makeField('warum-step3-title', 'Step 3 Title', 'manual.warum.step3Title'),
+          makeField('warum-step3-desc', 'Step 3 Text', 'manual.warum.step3Desc', 'longForm'),
+          makeField('warum-step4-title', 'Step 4 Title', 'manual.warum.step4Title'),
+          makeField('warum-step4-desc', 'Step 4 Text', 'manual.warum.step4Desc', 'longForm')
+        ]
+      },
+      {
+        id: 'warum-final',
+        label: 'Guarantees & Final CTA',
+        description: 'Guarantee list with links stays in code; headings and CTAs are editable.',
+        fields: [
+          makeField('warum-guarantees-title', 'Guarantees Heading', 'manual.warum.guaranteesTitle'),
+          makeField('warum-final-title', 'CTA Heading', 'manual.warum.finalCtaTitle'),
+          makeField('warum-primary-cta', 'Primary CTA Label', 'manual.warum.primaryCta'),
+          makeField('warum-secondary-cta', 'Secondary CTA Label', 'manual.warum.secondaryCta')
+        ]
+      }
+    ]
+  }
 ];
 
 export const manualPageMap = manualPageManifest.reduce<Record<string, ManualPageDefinition>>((acc, page) => {

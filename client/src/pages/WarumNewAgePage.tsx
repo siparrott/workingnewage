@@ -13,39 +13,30 @@ import { Star, Users, HelpCircle, BookOpen, ShieldCheck, MapPin, ArrowRight } fr
  * about one's own business violates Google's structured-data guidelines.
  */
 export default function WarumNewAgePage() {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const de = language === 'de';
 
+  // Same pattern as the fotoshooting pages: visible copy resolves via t(),
+  // which overlays published Manual Website Update content (Settings →
+  // Manual Website Update → "Warum New Age") over these defaults.
+  const fromManual = (key: string, fallback: string) => {
+    const value = t(key);
+    if (!value || value === key) return fallback;
+    return value;
+  };
+
   const proofs = [
-    {
-      icon: Star,
-      title: de ? '4,9★ auf Google' : '4.9★ on Google',
-      desc: de ? 'Über 250 echte Bewertungen von Wiener Familien und Unternehmen.' : 'Over 250 real reviews from Viennese families and businesses.',
-      to: '/kundenstimmen/',
-      cta: de ? 'Kundenstimmen lesen' : 'Read testimonials',
-    },
-    {
-      icon: Users,
-      title: de ? 'Seit 2012 in Wien' : 'In Vienna since 2012',
-      desc: de ? '13+ Jahre, hunderte Shootings pro Jahr — lernen Sie das Team kennen.' : '13+ years, hundreds of shoots per year — meet the team.',
-      to: '/ueber-uns/',
-      cta: de ? 'Über uns' : 'About us',
-    },
-    {
-      icon: BookOpen,
-      title: de ? 'Echte Fallstudien' : 'Real case studies',
-      desc: de ? 'Wie Shootings bei uns wirklich ablaufen — von der Anfrage bis zum Wandbild.' : 'How our shoots actually run — from enquiry to wall art.',
-      to: '/blog',
-      cta: de ? 'Zum Blog' : 'To the blog',
-    },
-    {
-      icon: HelpCircle,
-      title: 'FAQ',
-      desc: de ? 'Preise, Ablauf, Outfits, Lieferzeiten — die häufigsten Fragen, ehrlich beantwortet.' : 'Pricing, process, outfits, delivery — the most common questions answered honestly.',
-      to: '/faq/',
-      cta: de ? 'Fragen ansehen' : 'View FAQ',
-    },
-  ];
+    { icon: Star, n: 1, to: '/kundenstimmen/', cta: de ? 'Kundenstimmen lesen' : 'Read testimonials' },
+    { icon: Users, n: 2, to: '/ueber-uns/', cta: de ? 'Über uns' : 'About us' },
+    { icon: BookOpen, n: 3, to: '/blog', cta: de ? 'Zum Blog' : 'To the blog' },
+    { icon: HelpCircle, n: 4, to: '/faq/', cta: de ? 'Fragen ansehen' : 'View FAQ' },
+  ].map((p) => ({
+    icon: p.icon,
+    to: p.to,
+    cta: p.cta,
+    title: fromManual(`manual.warum.proof${p.n}Title`, ''),
+    desc: fromManual(`manual.warum.proof${p.n}Desc`, ''),
+  }));
 
   return (
     <Layout>
@@ -61,12 +52,10 @@ export default function WarumNewAgePage() {
         <section className="relative bg-gradient-to-br from-purple-900 via-gray-900 to-gray-900 text-white pt-24 pb-16">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-              {de ? 'Warum New Age Fotografie?' : 'Why New Age Fotografie?'}
+              {fromManual('manual.warum.heroTitle', de ? 'Warum New Age Fotografie?' : 'Why New Age Fotografie?')}
             </h1>
             <p className="text-xl text-gray-300 leading-relaxed">
-              {de
-                ? 'Ein Fotoshooting ist Vertrauenssache. Hier ist alles an einem Ort, was Ihnen die Entscheidung leicht macht — echte Bewertungen, unser Team, Fallstudien und ehrliche Antworten.'
-                : 'A photoshoot is a matter of trust. Everything that makes the decision easy, in one place — real reviews, our team, case studies and honest answers.'}
+              {fromManual('manual.warum.heroDescription', '')}
             </p>
           </div>
         </section>
@@ -96,14 +85,13 @@ export default function WarumNewAgePage() {
         {de && (
           <section className="py-16 bg-white">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">So läuft ein Shooting bei uns ab</h2>
+              <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">{fromManual('manual.warum.processTitle', 'So läuft ein Shooting bei uns ab')}</h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                {[
-                  { n: '1', t: 'Anfrage', d: 'Kurz schreiben, was ihr euch vorstellt — wir antworten mit Terminvorschlägen und einem konkreten Angebot.' },
-                  { n: '2', t: 'Termin & Vorbereitung', d: 'Wir klären Outfits, Wünsche und Ablauf vorab, damit am Shooting-Tag alles entspannt ist.' },
-                  { n: '3', t: 'Das Shooting', d: 'Ca. 60 Minuten im Tageslichtstudio (1050 Wien) oder outdoor — locker geführt, Pausen jederzeit.' },
-                  { n: '4', t: 'Auswahl & Bilder', d: 'Private Online-Galerie, professionelle Retusche eurer Favoriten, auf Wunsch Leinwand & Prints.' },
-                ].map((s) => (
+                {['1', '2', '3', '4'].map((n) => ({
+                  n,
+                  t: fromManual(`manual.warum.step${n}Title`, ''),
+                  d: fromManual(`manual.warum.step${n}Desc`, ''),
+                })).map((s) => (
                   <div key={s.n} className="bg-gray-50 rounded-xl p-5 border border-gray-100">
                     <div className="w-8 h-8 rounded-full bg-purple-600 text-white font-bold flex items-center justify-center mb-3">{s.n}</div>
                     <h3 className="font-semibold text-gray-900 mb-1">{s.t}</h3>
@@ -124,7 +112,7 @@ export default function WarumNewAgePage() {
           <section className="py-16 bg-gray-50">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
               <h2 className="text-3xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                <ShieldCheck className="h-8 w-8 text-purple-600" /> Woran Sie uns messen können
+                <ShieldCheck className="h-8 w-8 text-purple-600" /> {fromManual('manual.warum.guaranteesTitle', 'Woran Sie uns messen können')}
               </h2>
               <ul className="space-y-4 text-gray-700">
                 <li><strong>Wohlfühlen zuerst.</strong> „Ich bin unfotogen" hören wir jede Woche — und widerlegen es jede Woche. Die ersten Minuten jedes Shootings investieren wir in Atmosphäre, nicht in Technik.</li>
@@ -143,14 +131,14 @@ export default function WarumNewAgePage() {
         {/* Final CTA */}
         <section className="py-16 bg-gradient-to-r from-purple-700 to-purple-900 text-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl font-bold mb-6">{de ? 'Überzeugt? Dann lernen wir uns kennen.' : 'Convinced? Let’s meet.'}</h2>
+            <h2 className="text-3xl font-bold mb-6">{fromManual('manual.warum.finalCtaTitle', de ? 'Überzeugt? Dann lernen wir uns kennen.' : 'Convinced? Let’s meet.')}</h2>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/kontakt" className="inline-flex items-center justify-center px-8 py-4 bg-white text-purple-700 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-lg">
-                {de ? 'Termin anfragen' : 'Request a session'}
+                {fromManual('manual.warum.primaryCta', de ? 'Termin anfragen' : 'Request a session')}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
               <Link to="/portfolio" className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white rounded-lg hover:bg-white/10 transition-colors font-semibold text-lg">
-                {de ? 'Portfolio ansehen' : 'View portfolio'}
+                {fromManual('manual.warum.secondaryCta', de ? 'Portfolio ansehen' : 'View portfolio')}
               </Link>
             </div>
           </div>

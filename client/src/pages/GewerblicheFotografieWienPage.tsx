@@ -14,51 +14,30 @@ import { Camera, Building2, Package, CalendarDays, Users, ArrowRight, Check } fr
  * hub-and-spoke internal links.
  */
 export default function GewerblicheFotografieWienPage() {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const de = language === 'de';
 
+  // Same pattern as the fotoshooting pages: every visible string resolves via
+  // t(), which overlays published Manual Website Update content (Settings →
+  // Manual Website Update → "Gewerbliche Fotografie") over these defaults.
+  const fromManual = (key: string, fallback: string) => {
+    const value = t(key);
+    if (!value || value === key) return fallback;
+    return value;
+  };
+
   const services = [
-    {
-      icon: Package,
-      title: de ? 'Produktfotografie' : 'Product Photography',
-      desc: de
-        ? 'Shop-, Amazon- und Social-Bilder mit kommerziellen Nutzungsrechten.'
-        : 'Shop, Amazon and social imagery with commercial usage rights.',
-      to: '/produkt-fotografie-wien/',
-    },
-    {
-      icon: Building2,
-      title: de ? 'Immobilienfotografie' : 'Real Estate Photography',
-      desc: de
-        ? 'Wohnungen & Häuser, innen und außen — inkl. 360°-Bildern und Google-Maps-Update.'
-        : 'Apartments & houses, interior and exterior — incl. 360° images.',
-      to: '/immobilien-fotografie-wien/',
-    },
-    {
-      icon: CalendarDays,
-      title: de ? 'Eventfotografie' : 'Event Photography',
-      desc: de
-        ? 'Firmenfeiern, Konferenzen und Feiern — vom Kurzauftrag bis zur Ganztags-Coverage.'
-        : 'Corporate events and conferences — short assignments to full-day coverage.',
-      to: '/eventfotografie-wien/',
-    },
-    {
-      icon: Users,
-      title: de ? 'Team- & Mitarbeiterfotos' : 'Team & Staff Photos',
-      desc: de
-        ? 'Einheitlicher Look für das ganze Team — im Studio oder bei euch im Büro.'
-        : 'A consistent look for the whole team — in studio or at your office.',
-      to: '/teamfotos-wien/',
-    },
-    {
-      icon: Camera,
-      title: de ? 'Business Portraits & LinkedIn' : 'Business Portraits & LinkedIn',
-      desc: de
-        ? 'Corporate- und CEO-Portraits, Bewerbungs- und LinkedIn-Fotos.'
-        : 'Corporate and CEO portraits, application and LinkedIn photos.',
-      to: '/business-portrait-wien/',
-    },
-  ];
+    { icon: Package, n: 1, to: '/produkt-fotografie-wien/' },
+    { icon: Building2, n: 2, to: '/immobilien-fotografie-wien/' },
+    { icon: CalendarDays, n: 3, to: '/eventfotografie-wien/' },
+    { icon: Users, n: 4, to: '/teamfotos-wien/' },
+    { icon: Camera, n: 5, to: '/business-portrait-wien/' },
+  ].map((s) => ({
+    icon: s.icon,
+    to: s.to,
+    title: fromManual(`manual.gewerbliche.svc${s.n}Title`, ''),
+    desc: fromManual(`manual.gewerbliche.svc${s.n}Desc`, ''),
+  }));
 
   return (
     <Layout>
@@ -109,20 +88,18 @@ export default function GewerblicheFotografieWienPage() {
         <section className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white pt-24 pb-16">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-              {de ? 'Gewerbliche Fotografie in Wien' : 'Commercial Photography in Vienna'}
+              {fromManual('manual.gewerbliche.heroTitle', de ? 'Gewerbliche Fotografie in Wien' : 'Commercial Photography in Vienna')}
             </h1>
             <p className="text-xl text-gray-300 mb-8 leading-relaxed max-w-3xl mx-auto">
-              {de
-                ? 'Produkte, Immobilien, Events, Teams — ein Studio, ein Ansprechpartner, konsistente Qualität. Seit 13+ Jahren fotografieren wir für Wiener Unternehmen.'
-                : 'Products, real estate, events, teams — one studio, one contact, consistent quality. Photographing for Viennese businesses for 13+ years.'}
+              {fromManual('manual.gewerbliche.heroDescription', '')}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/kontakt" className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg">
-                {de ? 'Projekt anfragen' : 'Request a Quote'}
+                {fromManual('manual.gewerbliche.primaryCta', de ? 'Projekt anfragen' : 'Request a Quote')}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
               <Link to="/portfolio" className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white rounded-lg hover:bg-white/10 transition-colors font-semibold text-lg">
-                {de ? 'Portfolio ansehen' : 'View Portfolio'}
+                {fromManual('manual.gewerbliche.secondaryCta', de ? 'Portfolio ansehen' : 'View Portfolio')}
               </Link>
             </div>
           </div>
@@ -134,12 +111,10 @@ export default function GewerblicheFotografieWienPage() {
         <section className="py-16 bg-white">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
-              {de ? 'Unsere Business-Leistungen' : 'Our Business Services'}
+              {fromManual('manual.gewerbliche.servicesTitle', de ? 'Unsere Business-Leistungen' : 'Our Business Services')}
             </h2>
             <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
-              {de
-                ? 'Jede Leistung hat eine eigene Detailseite mit Paketen und Preisen — hier der Überblick.'
-                : 'Each service has its own detail page with packages and pricing — here is the overview.'}
+              {fromManual('manual.gewerbliche.servicesIntro', '')}
             </p>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {services.map((s) => (
@@ -160,13 +135,9 @@ export default function GewerblicheFotografieWienPage() {
         {de && (
           <section className="py-16 bg-gray-50">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-6">Warum ein Studio für alle Business-Fotos?</h2>
+              <h2 className="text-3xl font-bold text-gray-900 mb-6">{fromManual('manual.gewerbliche.whyTitle', 'Warum ein Studio für alle Business-Fotos?')}</h2>
               <p className="text-gray-700 leading-relaxed mb-6">
-                Der häufigste Fehler, den wir bei Wiener Unternehmen sehen: Website-Portraits vom einen
-                Fotografen, Produktbilder vom nächsten, Eventfotos vom dritten — drei Bildsprachen,
-                drei Abstimmungsprozesse, keine Konsistenz. Nach 13+ Jahren mit Firmenkunden ist unsere
-                Position klar: <strong>Eine konsistente Bildsprache über alle Kanäle ist ein
-                Markenwert</strong> — und mit einem Ansprechpartner auch schlicht weniger Arbeit.
+                {fromManual('manual.gewerbliche.whyIntro', '')}
               </p>
               <ul className="space-y-3 text-gray-700 mb-8 list-none">
                 <li className="flex items-start"><Check className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />Ein Briefing, ein Look — vom LinkedIn-Portrait bis zum Produktbild im Shop.</li>
@@ -186,9 +157,9 @@ export default function GewerblicheFotografieWienPage() {
         {/* Final CTA */}
         <section className="py-16 bg-gradient-to-r from-gray-900 to-gray-800 text-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl font-bold mb-6">{de ? 'Bereit für konsistente Business-Bilder?' : 'Ready for consistent business imagery?'}</h2>
+            <h2 className="text-3xl font-bold mb-6">{fromManual('manual.gewerbliche.finalCtaTitle', de ? 'Bereit für konsistente Business-Bilder?' : 'Ready for consistent business imagery?')}</h2>
             <Link to="/kontakt" className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg">
-              {de ? 'Projekt anfragen' : 'Request a Quote'}
+              {fromManual('manual.gewerbliche.finalCtaButton', de ? 'Projekt anfragen' : 'Request a Quote')}
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </div>
