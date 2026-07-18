@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Tag, Check, X } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface VoucherCodeInputProps {
   onApplyVoucher?: (code: string) => Promise<{ success: boolean; discount?: number; message: string }>;
@@ -20,6 +21,8 @@ const VoucherCodeInput: React.FC<VoucherCodeInputProps> = ({
   onRemoveVoucher,
   subtotal = 0
 }) => {
+  const { language } = useLanguage();
+  const de = language === 'de';
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -50,10 +53,10 @@ const VoucherCodeInput: React.FC<VoucherCodeInputProps> = ({
           onVoucherApplied(code.trim().toUpperCase(), discountAmount);
           setCode('');
           setMessageType('success');
-          setMessage(`Gutscheincode erfolgreich angewendet!`);
+          setMessage(de ? 'Gutscheincode erfolgreich angewendet!' : 'Voucher code applied successfully!');
         } else {
           setMessageType('error');
-          setMessage('Ungültiger Gutscheincode');
+          setMessage(de ? 'Ungültiger Gutscheincode' : 'Invalid voucher code');
         }
       } 
       // For cart page (promise-based)
@@ -71,7 +74,7 @@ const VoucherCodeInput: React.FC<VoucherCodeInputProps> = ({
       }
     } catch (error) {
       setMessageType('error');
-      setMessage('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
+      setMessage(de ? 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.' : 'Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +92,7 @@ const VoucherCodeInput: React.FC<VoucherCodeInputProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center text-green-700">
             <Check size={20} className="mr-2" />
-            <span className="font-medium">Gutscheincode angewendet: {appliedVoucher.code}</span>
+            <span className="font-medium">{de ? 'Gutscheincode angewendet' : 'Voucher applied'}: {appliedVoucher.code}</span>
           </div>
           <button
             onClick={onRemoveVoucher}
@@ -99,9 +102,9 @@ const VoucherCodeInput: React.FC<VoucherCodeInputProps> = ({
           </button>
         </div>
         <p className="text-sm text-green-600 mt-1">
-          {appliedVoucher.type === 'percentage' 
-            ? `${appliedVoucher.discount}% Rabatt` 
-            : `€${appliedVoucher.discount} Rabatt`}
+          {appliedVoucher.type === 'percentage'
+            ? `${appliedVoucher.discount}% ${de ? 'Rabatt' : 'discount'}`
+            : `€${appliedVoucher.discount} ${de ? 'Rabatt' : 'discount'}`}
         </p>
       </div>
     );
@@ -117,7 +120,7 @@ const VoucherCodeInput: React.FC<VoucherCodeInputProps> = ({
             value={code}
             onChange={(e) => setCode(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Gutscheincode eingeben"
+            placeholder={de ? 'Gutscheincode eingeben' : 'Enter voucher code'}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             disabled={isLoading}
           />
@@ -127,7 +130,7 @@ const VoucherCodeInput: React.FC<VoucherCodeInputProps> = ({
           disabled={!code.trim() || isLoading}
           className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg transition-colors"
         >
-          {isLoading ? 'Prüfen...' : 'Anwenden'}
+          {isLoading ? (de ? 'Prüfen...' : 'Checking...') : (de ? 'Anwenden' : 'Apply')}
         </button>
       </div>
       

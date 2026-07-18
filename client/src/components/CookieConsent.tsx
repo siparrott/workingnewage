@@ -9,6 +9,7 @@ import {
   writeConsent,
   type ConsentState,
 } from "../lib/consent";
+import { useLanguage } from "../context/LanguageContext";
 
 type Props = {
   privacyPolicyUrl?: string; // e.g. "/datenschutz"
@@ -66,6 +67,8 @@ export default function CookieConsent({
   privacyPolicyUrl = "/impressum/",
   imprintUrl = "/impressum/",
 }: Props) {
+  const { language } = useLanguage();
+  const de = language === "de";
   const [visible, setVisible] = useState(false);
   const [prefsOpen, setPrefsOpen] = useState(false);
 
@@ -127,22 +130,33 @@ export default function CookieConsent({
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="max-w-2xl">
                   <p className="text-base font-semibold text-gray-900">
-                    Cookies & Datenschutz
+                    {de ? "Cookies & Datenschutz" : "Cookies & Privacy"}
                   </p>
                   <p className="mt-1 text-sm text-gray-700">
-                    Wir verwenden <b>notwendige Cookies</b>, damit die Website funktioniert.
-                    Mit deiner Einwilligung nutzen wir außerdem optionale Cookies für{" "}
-                    <b>Statistik/Analytics</b> und <b>Marketing</b>, um Inhalte zu verbessern
-                    und Kampagnen zu messen. Du kannst deine Auswahl jederzeit ändern.
+                    {de ? (
+                      <>
+                        Wir verwenden <b>notwendige Cookies</b>, damit die Website funktioniert.
+                        Mit deiner Einwilligung nutzen wir außerdem optionale Cookies für{" "}
+                        <b>Statistik/Analytics</b> und <b>Marketing</b>, um Inhalte zu verbessern
+                        und Kampagnen zu messen. Du kannst deine Auswahl jederzeit ändern.
+                      </>
+                    ) : (
+                      <>
+                        We use <b>necessary cookies</b> to make the website work. With your consent
+                        we also use optional cookies for <b>statistics/analytics</b> and{" "}
+                        <b>marketing</b> to improve content and measure campaigns. You can change
+                        your choice at any time.
+                      </>
+                    )}
                   </p>
                   <p className="mt-2 text-xs text-gray-500">
-                    Mehr Infos:{" "}
+                    {de ? "Mehr Infos:" : "More info:"}{" "}
                     <a className="underline hover:no-underline" href={privacyPolicyUrl}>
-                      Datenschutz
+                      {de ? "Datenschutz" : "Privacy Policy"}
                     </a>{" "}
                     ·{" "}
                     <a className="underline hover:no-underline" href={imprintUrl}>
-                      Impressum
+                      {de ? "Impressum" : "Imprint"}
                     </a>
                   </p>
                 </div>
@@ -152,19 +166,19 @@ export default function CookieConsent({
                     onClick={() => setPrefsOpen(true)}
                     className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50"
                   >
-                    Einstellungen
+                    {de ? "Einstellungen" : "Settings"}
                   </button>
                   <button
                     onClick={rejectAll}
                     className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50"
                   >
-                    Ablehnen
+                    {de ? "Ablehnen" : "Reject"}
                   </button>
                   <button
                     onClick={acceptAll}
                     className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
                   >
-                    Alle akzeptieren
+                    {de ? "Alle akzeptieren" : "Accept all"}
                   </button>
                 </div>
               </div>
@@ -176,28 +190,32 @@ export default function CookieConsent({
       {/* Preferences Modal */}
       <FocusTrapModal
         open={prefsOpen}
-        title="Cookie-Einstellungen"
+        title={de ? "Cookie-Einstellungen" : "Cookie settings"}
         onClose={() => setPrefsOpen(false)}
       >
         <div className="space-y-4">
           <div className="rounded-xl border border-gray-200 p-3">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="font-semibold text-gray-900">Notwendig</p>
+                <p className="font-semibold text-gray-900">{de ? "Notwendig" : "Necessary"}</p>
                 <p className="mt-1 text-xs text-gray-600">
-                  Diese Cookies sind erforderlich (z.B. Sicherheit, Spracheinstellungen).
+                  {de
+                    ? "Diese Cookies sind erforderlich (z.B. Sicherheit, Spracheinstellungen)."
+                    : "These cookies are required (e.g. security, language settings)."}
                 </p>
               </div>
-              <span className="text-xs font-semibold text-gray-500">Immer aktiv</span>
+              <span className="text-xs font-semibold text-gray-500">{de ? "Immer aktiv" : "Always on"}</span>
             </div>
           </div>
 
           <label className="block rounded-xl border border-gray-200 p-3 cursor-pointer hover:bg-gray-50">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="font-semibold text-gray-900">Statistik / Analytics</p>
+                <p className="font-semibold text-gray-900">{de ? "Statistik / Analytics" : "Statistics / Analytics"}</p>
                 <p className="mt-1 text-xs text-gray-600">
-                  Hilft uns zu verstehen, welche Seiten gut funktionieren (z.B. Google Analytics).
+                  {de
+                    ? "Hilft uns zu verstehen, welche Seiten gut funktionieren (z.B. Google Analytics)."
+                    : "Helps us understand which pages work well (e.g. Google Analytics)."}
                 </p>
               </div>
               <input
@@ -214,7 +232,9 @@ export default function CookieConsent({
               <div>
                 <p className="font-semibold text-gray-900">Marketing</p>
                 <p className="mt-1 text-xs text-gray-600">
-                  Wird verwendet, um Kampagnen zu messen und relevante Inhalte anzuzeigen (z.B. Meta Pixel).
+                  {de
+                    ? "Wird verwendet, um Kampagnen zu messen und relevante Inhalte anzuzeigen (z.B. Meta Pixel)."
+                    : "Used to measure campaigns and show relevant content (e.g. Meta Pixel)."}
                 </p>
               </div>
               <input
@@ -231,19 +251,21 @@ export default function CookieConsent({
               onClick={rejectAll}
               className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50"
             >
-              Alles ablehnen
+              {de ? "Alles ablehnen" : "Reject all"}
             </button>
             <button
               onClick={savePreferences}
               className="rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
             >
-              Speichern
+              {de ? "Speichern" : "Save"}
             </button>
           </div>
 
           <p className="text-[11px] text-gray-500">
-            Version: {CONSENT_VERSION}
-            {existing?.updatedAtISO ? ` · Letzte Auswahl: ${new Date(existing.updatedAtISO).toLocaleString("de-AT")}` : ""}
+            {de ? "Version" : "Version"}: {CONSENT_VERSION}
+            {existing?.updatedAtISO
+              ? ` · ${de ? "Letzte Auswahl" : "Last choice"}: ${new Date(existing.updatedAtISO).toLocaleString(de ? "de-AT" : "en-GB")}`
+              : ""}
           </p>
         </div>
       </FocusTrapModal>

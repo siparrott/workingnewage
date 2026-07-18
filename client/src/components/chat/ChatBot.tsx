@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SITE } from '../../config/site';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface Message {
   text: string;
@@ -10,9 +11,14 @@ interface Message {
 }
 
 const ChatBot: React.FC = () => {
+  const { language } = useLanguage();
+  const de = language === 'de';
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { text: `Hallo! Ich bin Alex von ${SITE.name} Wien. 📸\n\nBevor wir starten, darf ich nach Ihrer WhatsApp Nummer oder E-Mail fragen? So kann ich Sie besser beraten und bei Interesse direkt kontaktieren.`, isUser: false }
+    { text: de
+        ? `Hallo! Ich bin Alex von ${SITE.name} Wien. 📸\n\nBevor wir starten, darf ich nach Ihrer WhatsApp Nummer oder E-Mail fragen? So kann ich Sie besser beraten und bei Interesse direkt kontaktieren.`
+        : `Hi! I’m Alex from ${SITE.name} Vienna. 📸\n\nBefore we start, may I ask for your WhatsApp number or email? That way I can advise you better and get in touch directly if you’re interested.`,
+      isUser: false }
   ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -59,20 +65,24 @@ const ChatBot: React.FC = () => {
       if (emailRegex.test(userMessage)) {
         setLeadFormData(prev => ({ ...prev, email: userMessage.match(emailRegex)?.[0] || '' }));
         setContactCaptured(true);
-        setMessages(prev => [...prev, { 
-          text: `Perfekt! Vielen Dank für Ihre E-Mail: ${userMessage.match(emailRegex)?.[0]}. Wie kann ich Ihnen bei Ihrem Fotoshooting helfen?`, 
-          isUser: false 
+        setMessages(prev => [...prev, {
+          text: de
+            ? `Perfekt! Vielen Dank für Ihre E-Mail: ${userMessage.match(emailRegex)?.[0]}. Wie kann ich Ihnen bei Ihrem Fotoshooting helfen?`
+            : `Perfect! Thank you for your email: ${userMessage.match(emailRegex)?.[0]}. How can I help you with your photoshoot?`,
+          isUser: false
         }]);
         setIsLoading(false);
         return;
       }
-      
+
       if (phoneRegex.test(userMessage)) {
         setLeadFormData(prev => ({ ...prev, phone: userMessage.match(phoneRegex)?.[0] || '' }));
         setContactCaptured(true);
-        setMessages(prev => [...prev, { 
-          text: `Super! Vielen Dank für Ihre Nummer: ${userMessage.match(phoneRegex)?.[0]}. Wie kann ich Ihnen bei Ihrem Fotoshooting helfen?`, 
-          isUser: false 
+        setMessages(prev => [...prev, {
+          text: de
+            ? `Super! Vielen Dank für Ihre Nummer: ${userMessage.match(phoneRegex)?.[0]}. Wie kann ich Ihnen bei Ihrem Fotoshooting helfen?`
+            : `Great! Thank you for your number: ${userMessage.match(phoneRegex)?.[0]}. How can I help you with your photoshoot?`,
+          isUser: false
         }]);
         setIsLoading(false);
         return;
@@ -80,7 +90,7 @@ const ChatBot: React.FC = () => {
     }
 
     // Add loading message
-    setMessages(prev => [...prev, { text: "Alex schreibt...", isUser: false, loading: true }]);
+    setMessages(prev => [...prev, { text: de ? 'Alex schreibt...' : 'Alex is typing...', isUser: false, loading: true }]);
 
     try {
       const response = await fetch('/api/openai/chat/message', {
@@ -97,7 +107,7 @@ const ChatBot: React.FC = () => {
       // Remove loading message and add actual response
       setMessages(prev => {
         const filtered = prev.filter(msg => !msg.loading);
-        return [...filtered, { text: data.response || "Entschuldigung, ich konnte Ihre Anfrage nicht bearbeiten.", isUser: false }];
+        return [...filtered, { text: data.response || (de ? 'Entschuldigung, ich konnte Ihre Anfrage nicht bearbeiten.' : 'Sorry, I couldn’t process your request.'), isUser: false }];
       });
 
       // Auto-save lead after capturing contact and conversation
@@ -111,7 +121,9 @@ const ChatBot: React.FC = () => {
       // console.error removed
       setMessages(prev => {
         const filtered = prev.filter(msg => !msg.loading);
-        return [...filtered, { text: `Entschuldigung, es gab ein technisches Problem. Bitte kontaktieren Sie uns direkt unter ${SITE.phone}.`, isUser: false }];
+        return [...filtered, { text: de
+          ? `Entschuldigung, es gab ein technisches Problem. Bitte kontaktieren Sie uns direkt unter ${SITE.phone}.`
+          : `Sorry, there was a technical problem. Please contact us directly at ${SITE.phone}.`, isUser: false }];
       });
     } finally {
       setIsLoading(false);
@@ -139,9 +151,11 @@ const ChatBot: React.FC = () => {
       });
 
       if (response.ok) {
-        setMessages(prev => [...prev, { 
-          text: "Vielen Dank! Ihre Kontaktdaten wurden gespeichert. Wir melden uns bald bei Ihnen!", 
-          isUser: false 
+        setMessages(prev => [...prev, {
+          text: de
+            ? 'Vielen Dank! Ihre Kontaktdaten wurden gespeichert. Wir melden uns bald bei Ihnen!'
+            : 'Thank you! Your contact details have been saved. We’ll be in touch soon!',
+          isUser: false
         }]);
         setShowLeadForm(false);
         setLeadFormData({ name: '', email: '', phone: '' });
@@ -178,9 +192,11 @@ const ChatBot: React.FC = () => {
 
   const triggerLeadCapture = () => {
     if (!contactCaptured && messages.filter(msg => msg.isUser).length >= 2) {
-      setMessages(prev => [...prev, { 
-        text: "Ich sehe Sie sind interessiert! Möchten Sie Ihre Kontaktdaten hinterlassen, damit wir Sie direkt kontaktieren können?", 
-        isUser: false 
+      setMessages(prev => [...prev, {
+        text: de
+          ? 'Ich sehe Sie sind interessiert! Möchten Sie Ihre Kontaktdaten hinterlassen, damit wir Sie direkt kontaktieren können?'
+          : 'I can see you’re interested! Would you like to leave your contact details so we can reach out to you directly?',
+        isUser: false
       }]);
       setShowLeadForm(true);
     }
@@ -241,25 +257,25 @@ const ChatBot: React.FC = () => {
               
               {showLeadForm && (
                 <div className="border-t p-4 bg-purple-50">
-                  <h4 className="font-semibold text-purple-800 mb-3">Kontakt hinterlassen</h4>
+                  <h4 className="font-semibold text-purple-800 mb-3">{de ? 'Kontakt hinterlassen' : 'Leave your contact details'}</h4>
                   <div className="space-y-2">
                     <input
                       type="text"
-                      placeholder="Ihr Name"
+                      placeholder={de ? 'Ihr Name' : 'Your name'}
                       value={leadFormData.name}
                       onChange={(e) => setLeadFormData(prev => ({ ...prev, name: e.target.value }))}
                       className="w-full p-2 border rounded text-sm"
                     />
                     <input
                       type="email"
-                      placeholder="E-Mail"
+                      placeholder={de ? 'E-Mail' : 'Email'}
                       value={leadFormData.email}
                       onChange={(e) => setLeadFormData(prev => ({ ...prev, email: e.target.value }))}
                       className="w-full p-2 border rounded text-sm"
                     />
                     <input
                       type="tel"
-                      placeholder="Telefon (optional)"
+                      placeholder={de ? 'Telefon (optional)' : 'Phone (optional)'}
                       value={leadFormData.phone}
                       onChange={(e) => setLeadFormData(prev => ({ ...prev, phone: e.target.value }))}
                       className="w-full p-2 border rounded text-sm"
@@ -269,13 +285,13 @@ const ChatBot: React.FC = () => {
                         onClick={saveLeadFromChat}
                         className="flex-1 bg-purple-600 text-white p-2 rounded text-sm hover:bg-purple-700"
                       >
-                        Senden
+                        {de ? 'Senden' : 'Send'}
                       </button>
                       <button
                         onClick={() => setShowLeadForm(false)}
                         className="px-4 bg-gray-300 text-gray-700 p-2 rounded text-sm hover:bg-gray-400"
                       >
-                        Später
+                        {de ? 'Später' : 'Later'}
                       </button>
                     </div>
                   </div>
@@ -289,7 +305,7 @@ const ChatBot: React.FC = () => {
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder="Type your message..."
+                    placeholder={de ? 'Nachricht schreiben...' : 'Type your message...'}
                     className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                   <button

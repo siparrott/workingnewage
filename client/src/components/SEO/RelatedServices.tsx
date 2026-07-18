@@ -1,6 +1,70 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Euro, Calendar } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
+
+// EN display translations for the German card titles/descriptions below. The
+// data map keeps its German keyword-rich anchors (SEO); only the rendered text
+// is swapped when EN is selected. Unknown strings fall through unchanged.
+const EN: Record<string, string> = {
+  'Weitere Fotoshootings in Wien': 'More Photo Sessions in Vienna',
+  'Mehr erfahren': 'Learn more',
+  'Preise & Pakete': 'Pricing & Packages',
+  'Termin buchen': 'Book a session',
+  'Familienfotos Wien': 'Family Photos Vienna',
+  'Familien-Fotoshooting Wien': 'Family Photo Session Vienna',
+  'Neugeborenenfotos Wien': 'Newborn Photos Vienna',
+  'Schwangerschaftsfotos Wien': 'Maternity Photos Vienna',
+  'Babyfotos Wien': 'Baby Photos Vienna',
+  'Kinderfotografie Wien': 'Children’s Photography Vienna',
+  'Business Portrait Wien': 'Business Portraits Vienna',
+  'Bewerbungsfotos Wien': 'Application Headshots Vienna',
+  'Teamfotos Wien': 'Team Photos Vienna',
+  'Portraitfotografie Wien': 'Portrait Photography Vienna',
+  'Eventfotografie Wien': 'Event Photography Vienna',
+  'Hochzeitsfotografie Wien': 'Wedding Photography Vienna',
+  'Studio-Fotografie Wien': 'Studio Photography Vienna',
+  'Produktfotografie Wien': 'Product Photography Vienna',
+  'Immobilienfotografie Wien': 'Real Estate Photography Vienna',
+  'Babybauch-Shooting im Studio': 'Baby bump shoot in the studio',
+  'Ab 5 Tage nach der Geburt': 'From 5 days after birth',
+  'Für Babys 3–12 Monate': 'For babies aged 3–12 months',
+  'Kinder natürlich fotografiert': 'Children photographed naturally',
+  'Transparente Preise ab €95': 'Transparent prices from €95',
+  'Jetzt auf die Warteliste': 'Join the waitlist now',
+  'Unser Pillar für Familienfotografie': 'Our hub for family photography',
+  'Für die ersten Lebenstage': 'For the very first days',
+  'Für die ganze Familie': 'For the whole family',
+  'Babybauch-Shooting': 'Baby bump shoot',
+  'Unser modernes Studio': 'Our modern studio',
+  'Für die ersten 14 Tage': 'For the first 14 days',
+  'Mit der ganzen Familie': 'With the whole family',
+  'Im professionellen Studio': 'In our professional studio',
+  'Nach der Geburt': 'After the birth',
+  'Im modernen Studio': 'In our modern studio',
+  'Für Neugeborene': 'For newborns',
+  'Für Karriere & HR': 'For careers & HR',
+  'Einheitliche Mitarbeiterbilder': 'Consistent staff headshots',
+  'Persönliche Portraits': 'Personal portraits',
+  'Für LinkedIn & Website': 'For LinkedIn & website',
+  'Einheitlicher Look fürs Team': 'A consistent look for the team',
+  'Einzelportraits für Profis': 'Individual portraits for professionals',
+  'Für Firmenevents': 'For corporate events',
+  'Professioneller Auftritt': 'A professional presence',
+  'Für Bewerbungen': 'For job applications',
+  'Für euren großen Tag': 'For your big day',
+  'Mitarbeiterfotos vor Ort': 'Staff photos on location',
+  'Für andere Events': 'For other events',
+  'Für Familientreffen': 'For family gatherings',
+  'Professionelle Businessfotos': 'Professional business photos',
+  'Familienshooting im Studio': 'Family shoot in the studio',
+  'Professionelle Produktbilder': 'Professional product images',
+  'Für Immobilien & Räume': 'For properties & interiors',
+  'Mitarbeiterfotos': 'Staff photos',
+  'Für Produkte & Objekte': 'For products & objects',
+  'Für Makler-Portraits': 'For agent portraits',
+  'Professionelle Portraits': 'Professional portraits',
+};
 
 export interface RelatedServiceLink {
   title: string;
@@ -155,7 +219,12 @@ const defaultLinks: RelatedServiceLink[] = [
   { title: 'Termin buchen', path: '/warteliste/', description: 'Jetzt auf die Warteliste' },
 ];
 
-export function RelatedServices({ currentPath, title = 'Weitere Fotoshootings in Wien' }: RelatedServicesProps) {
+export function RelatedServices({ currentPath, title }: RelatedServicesProps) {
+  const { language } = useLanguage();
+  const de = language === 'de';
+  // Translate a German data string for display when EN is selected.
+  const tr = (s?: string) => (!s ? s : de ? s : (EN[s] ?? s));
+  const headingText = title ?? tr('Weitere Fotoshootings in Wien')!;
   // Normalize path (ensure trailing slash)
   const normalizedPath = currentPath.endsWith('/') ? currentPath : `${currentPath}/`;
   const links = serviceLinks[normalizedPath] || defaultLinks;
@@ -176,7 +245,7 @@ export function RelatedServices({ currentPath, title = 'Weitere Fotoshootings in
     <section className="py-14 bg-gray-50" data-seo="related-services">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 className="text-2xl md:text-3xl font-bold text-purple-900 mb-8 text-center">
-          {title}
+          {headingText}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
           {serviceItems.map((link, index) => (
@@ -186,13 +255,13 @@ export function RelatedServices({ currentPath, title = 'Weitere Fotoshootings in
               className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-purple-200 transition-all group"
             >
               <h3 className="text-base font-semibold text-purple-800 mb-1.5 group-hover:text-purple-600 transition-colors leading-snug">
-                {link.title}
+                {tr(link.title)}
               </h3>
               {link.description && (
-                <p className="text-gray-500 text-sm mb-3 leading-snug">{link.description}</p>
+                <p className="text-gray-500 text-sm mb-3 leading-snug">{tr(link.description)}</p>
               )}
               <span className="inline-flex items-center text-purple-600 text-sm font-medium group-hover:text-purple-700">
-                Mehr erfahren <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                {tr('Mehr erfahren')} <ArrowRight className="ml-1 h-3.5 w-3.5" />
               </span>
             </Link>
           ))}
@@ -210,7 +279,7 @@ export function RelatedServices({ currentPath, title = 'Weitere Fotoshootings in
                 }`}
               >
                 {link.path === '/warteliste/' ? <Calendar className="h-4 w-4" /> : <Euro className="h-4 w-4" />}
-                {link.title}
+                {tr(link.title)}
               </Link>
             ))}
           </div>

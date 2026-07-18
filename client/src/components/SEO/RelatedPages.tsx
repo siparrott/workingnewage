@@ -1,10 +1,46 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface RelatedLink {
   href: string;
   label: string;
 }
+
+// EN display translations for the German link labels/heading below. The data
+// map keeps its German keyword anchors; only rendered text is swapped on EN.
+const EN: Record<string, string> = {
+  'Weitere Leistungen': 'More Services',
+  'Preise & Pakete': 'Pricing & Packages',
+  'Termin buchen': 'Book a session',
+  'Geschenkgutscheine': 'Gift Vouchers',
+  'Gift Vouchers (EN)': 'Gift Vouchers',
+  'Warteliste': 'Waitlist',
+  'Kontakt & Beratung': 'Contact & advice',
+  'Kundenstimmen': 'Testimonials',
+  'Über uns': 'About us',
+  'Kontakt': 'Contact',
+  'Persönliche Beratung': 'Personal advice',
+  'Familien-Gutschein': 'Family Voucher',
+  'Neugeborenen-Gutschein': 'Newborn Voucher',
+  'Schwangerschafts-Gutschein': 'Maternity Voucher',
+  'Alle Gutscheine': 'All Vouchers',
+  'Familienfotos Wien': 'Family Photos Vienna',
+  'Familien-Fotoshooting Wien': 'Family Photo Session Vienna',
+  'Neugeborenenfotos Wien': 'Newborn Photos Vienna',
+  'Schwangerschaftsfotos Wien': 'Maternity Photos Vienna',
+  'Babyfotos Wien': 'Baby Photos Vienna',
+  'Kinderfotografie Wien': 'Children’s Photography Vienna',
+  'Business Portrait Wien': 'Business Portraits Vienna',
+  'Bewerbungsfotos Wien': 'Application Headshots Vienna',
+  'Teamfotos Wien': 'Team Photos Vienna',
+  'Portraitfotografie Wien': 'Portrait Photography Vienna',
+  'Eventfotografie Wien': 'Event Photography Vienna',
+  'Hochzeitsfotografie Wien': 'Wedding Photography Vienna',
+  'Studio-Fotografie Wien': 'Studio Photography Vienna',
+  'Produktfotografie Wien': 'Product Photography Vienna',
+  'Immobilienfotografie Wien': 'Real Estate Photography Vienna',
+};
 
 // Site structure: maps each page to its relevant internal links
 const SITE_LINKS: Record<string, RelatedLink[]> = {
@@ -343,6 +379,8 @@ const SKIP_PATHS = new Set([
 
 const RelatedPages: React.FC = () => {
   const { pathname } = useLocation();
+  const { language } = useLanguage();
+  const tr = (s: string) => (language === 'de' ? s : (EN[s] ?? s));
 
   // Skip admin and transactional pages
   if (SKIP_PATHS.has(pathname) || pathname.startsWith('/admin') || pathname.startsWith('/checkout') || pathname.startsWith('/gallery/') || pathname.startsWith('/invoice/')) {
@@ -365,7 +403,7 @@ const RelatedPages: React.FC = () => {
     <section className="bg-gray-50 border-t border-gray-200 py-8">
       <div className="container mx-auto px-4">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-          Weitere Leistungen
+          {tr('Weitere Leistungen')}
         </h2>
         <ul className="flex flex-wrap gap-3">
           {filtered.map((link) => (
@@ -374,7 +412,7 @@ const RelatedPages: React.FC = () => {
                 to={link.href}
                 className="inline-block px-4 py-2 bg-white border border-purple-200 text-purple-700 rounded-full text-sm font-medium hover:bg-purple-50 hover:border-purple-400 transition-colors"
               >
-                {link.label}
+                {tr(link.label)}
               </Link>
             </li>
           ))}

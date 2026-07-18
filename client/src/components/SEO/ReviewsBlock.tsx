@@ -1,6 +1,7 @@
 import React from 'react';
 import { Star } from 'lucide-react';
 import { SITE } from '../../config/site';
+import { useLanguage } from '../../context/LanguageContext';
 
 /**
  * Social-proof + E-E-A-T block backed by the studio's real Google rating
@@ -20,6 +21,7 @@ const COUNT = '300';
 interface Testimonial {
   name: string;
   text: string;
+  textEn: string;
 }
 
 // Real reviews from the Google Business Profile.
@@ -27,16 +29,21 @@ const TESTIMONIALS: Testimonial[] = [
   {
     name: 'Bernhard Wistawel',
     text: 'Vielen Dank für das professionelle und gleichzeitig lustige Fotoshooting. Wir waren schon zum zweiten Mal da. Wir empfehlen euch weiter.',
+    textEn: 'Thank you for a photoshoot that was professional and great fun at the same time. This was already our second visit. We happily recommend you to others.',
   },
   {
     name: 'Michaela Pohanka',
     text: 'Nach fast 13 Jahren und einigen Neuzugängen in unserer Familie haben wir uns entschlossen: neue Familienfotos müssen her – und es war eine wunderbare Entscheidung.',
+    textEn: 'After almost 13 years and a few new additions to our family, we decided it was time for new family photos – and it was a wonderful decision.',
   },
 ];
 
 export const ReviewsBlock: React.FC<{ heading?: string }> = ({
-  heading = 'Das sagen unsere Kundinnen & Kunden',
+  heading,
 }) => {
+  const { language } = useLanguage();
+  const de = language === 'de';
+  const headingText = heading ?? (de ? 'Das sagen unsere Kundinnen & Kunden' : 'What Our Clients Say');
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'PhotoStudio',
@@ -61,7 +68,7 @@ export const ReviewsBlock: React.FC<{ heading?: string }> = ({
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <div className="text-center mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-purple-900 mb-2">{heading}</h2>
+          <h2 className="text-2xl md:text-3xl font-bold text-purple-900 mb-2">{headingText}</h2>
           <div className="flex items-center justify-center gap-2">
             <span className="flex" aria-hidden="true">
               {[0, 1, 2, 3, 4].map((i) => (
@@ -69,7 +76,7 @@ export const ReviewsBlock: React.FC<{ heading?: string }> = ({
               ))}
             </span>
             <span className="text-gray-700 font-medium">
-              {RATING.replace('.', ',')} · {COUNT}+ Bewertungen auf Google
+              {de ? RATING.replace('.', ',') : RATING} · {COUNT}+ {de ? 'Bewertungen auf Google' : 'reviews on Google'}
             </span>
           </div>
         </div>
@@ -82,11 +89,17 @@ export const ReviewsBlock: React.FC<{ heading?: string }> = ({
                   <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                 ))}
               </div>
-              <blockquote className="text-gray-700 text-sm leading-relaxed">“{t.text}”</blockquote>
+              <blockquote className="text-gray-700 text-sm leading-relaxed">“{de ? t.text : t.textEn}”</blockquote>
               <figcaption className="mt-3 text-sm font-semibold text-purple-800">{t.name}</figcaption>
             </figure>
           ))}
         </div>
+
+        {!de && (
+          <p className="text-center text-xs text-gray-400 mt-3">
+            Translated from the original German Google reviews.
+          </p>
+        )}
 
         <div className="text-center mt-8">
           <a
@@ -95,7 +108,7 @@ export const ReviewsBlock: React.FC<{ heading?: string }> = ({
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-purple-600 text-white font-semibold text-sm hover:bg-purple-700 transition-colors"
           >
-            Bewertung auf Google schreiben
+            {de ? 'Bewertung auf Google schreiben' : 'Write a review on Google'}
           </a>
         </div>
       </div>

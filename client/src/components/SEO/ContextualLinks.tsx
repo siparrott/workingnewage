@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface LinkSpec {
   to: string;
@@ -46,6 +47,7 @@ const CONTEXTS: Record<string, PageContext> = {
   },
   '/familien-fotoshooting-wien/': {
     intro: 'Als Pillar bieten unsere Familien-Fotoshootings den perfekten Rahmen – sehen Sie auch',
+    introEn: 'Our family photo sessions are the ideal starting point — take a look at',
     links: [
       { to: '/familienfotos-wien/', label: 'Familienfotos Wien' },
       { to: '/kinder-fotografie-wien/', label: 'Kinderfotografie Wien' },
@@ -57,6 +59,7 @@ const CONTEXTS: Record<string, PageContext> = {
   },
   '/babyfotos-wien/': {
     intro: 'Zu unseren Babyfotos Wien passen perfekt',
+    introEn: 'Our baby photos in Vienna pair perfectly with',
     links: [
       { to: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
       { to: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaftsfotos Wien' },
@@ -68,6 +71,7 @@ const CONTEXTS: Record<string, PageContext> = {
   },
   '/baby-fotografie-wien/': {
     intro: 'Unsere Baby-Fotografie Wien ergänzt sich ideal mit',
+    introEn: 'Our baby photography in Vienna combines ideally with',
     links: [
       { to: '/babyfotos-wien/', label: 'Babyfotos Wien' },
       { to: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
@@ -78,6 +82,7 @@ const CONTEXTS: Record<string, PageContext> = {
   },
   '/neugeborenenfotos-wien/': {
     intro: 'Ergänzend zu Neugeborenenfotos Wien passen',
+    introEn: 'Alongside newborn photos in Vienna, a great fit is',
     links: [
       { to: '/schwangerschaftsfotos-wien/', label: 'Schwangerschaftsfotos Wien' },
       { to: '/babyfotos-wien/', label: 'Babyfotos Wien' },
@@ -88,6 +93,7 @@ const CONTEXTS: Record<string, PageContext> = {
   },
   '/schwangerschaftsfotos-wien/': {
     intro: 'Nach Ihren Schwangerschaftsfotos Wien buchen viele Familien anschließend',
+    introEn: 'After maternity photos in Vienna, many families go on to book',
     links: [
       { to: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
       { to: '/babyfotos-wien/', label: 'Babyfotos Wien' },
@@ -98,6 +104,7 @@ const CONTEXTS: Record<string, PageContext> = {
   },
   '/kinder-fotografie-wien/': {
     intro: 'Zu unserer Kinderfotografie Wien passen auch',
+    introEn: 'Our kids photography in Vienna also pairs well with',
     links: [
       { to: '/familienfotos-wien/', label: 'Familienfotos Wien' },
       { to: '/babyfotos-wien/', label: 'Babyfotos Wien' },
@@ -110,6 +117,7 @@ const CONTEXTS: Record<string, PageContext> = {
   // ==== BUSINESS CLUSTER ====
   '/business-portrait-wien/': {
     intro: 'Neben Business Portrait Wien bieten wir auch',
+    introEn: 'Alongside business portraits in Vienna, we also offer',
     links: [
       { to: '/teamfotos-wien/', label: 'Teamfotos Wien' },
       { to: '/bewerbungsfotos-wien/', label: 'Bewerbungsfotos Wien' },
@@ -120,6 +128,7 @@ const CONTEXTS: Record<string, PageContext> = {
   },
   '/teamfotos-wien/': {
     intro: 'Ergänzend zu Teamfotos Wien empfehlen wir',
+    introEn: 'To complement team photos in Vienna, we recommend',
     links: [
       { to: '/business-portrait-wien/', label: 'Business Portrait Wien' },
       { to: '/bewerbungsfotos-wien/', label: 'Bewerbungsfotos Wien' },
@@ -130,6 +139,7 @@ const CONTEXTS: Record<string, PageContext> = {
   },
   '/bewerbungsfotos-wien/': {
     intro: 'Nach den Bewerbungsfotos Wien passen perfekt',
+    introEn: 'After application headshots in Vienna, a perfect match is',
     links: [
       { to: '/business-portrait-wien/', label: 'Business Portrait Wien' },
       { to: '/portrait-fotografie-wien/', label: 'Portraitfotografie Wien' },
@@ -141,6 +151,7 @@ const CONTEXTS: Record<string, PageContext> = {
   // ==== EVENT CLUSTER ====
   '/eventfotografie-wien/': {
     intro: 'Zu unserer Eventfotografie Wien passen auch',
+    introEn: 'Our event photography in Vienna also works well with',
     links: [
       { to: '/hochzeitsfotografie-wien/', label: 'Hochzeitsfotografie Wien' },
       { to: '/business-portrait-wien/', label: 'Business Portrait Wien' },
@@ -151,6 +162,7 @@ const CONTEXTS: Record<string, PageContext> = {
   },
   '/hochzeitsfotografie-wien/': {
     intro: 'Neben Hochzeitsfotografie Wien bieten wir auch',
+    introEn: 'Alongside wedding photography in Vienna, we also offer',
     links: [
       { to: '/eventfotografie-wien/', label: 'Eventfotografie Wien' },
       { to: '/familienfotos-wien/', label: 'Familienfotos Wien' },
@@ -162,6 +174,7 @@ const CONTEXTS: Record<string, PageContext> = {
   // ==== STUDIO / PORTRAIT / PRODUCT / REAL ESTATE ====
   '/studio-fotografie-wien/': {
     intro: 'In unserem Fotostudio Wien entstehen',
+    introEn: 'In our Vienna photo studio we create',
     links: [
       { to: '/familienfotos-wien/', label: 'Familienfotos Wien' },
       { to: '/neugeborenenfotos-wien/', label: 'Neugeborenenfotos Wien' },
@@ -172,6 +185,7 @@ const CONTEXTS: Record<string, PageContext> = {
   },
   '/portrait-fotografie-wien/': {
     intro: 'Unsere Portraitfotografie Wien umfasst auch',
+    introEn: 'Our portrait photography in Vienna also includes',
     links: [
       { to: '/business-portrait-wien/', label: 'Business Portrait Wien' },
       { to: '/bewerbungsfotos-wien/', label: 'Bewerbungsfotos Wien' },
@@ -182,6 +196,7 @@ const CONTEXTS: Record<string, PageContext> = {
   },
   '/produkt-fotografie-wien/': {
     intro: 'Neben Produktfotografie Wien bieten wir',
+    introEn: 'Alongside product photography in Vienna, we offer',
     links: [
       { to: '/studio-fotografie-wien/', label: 'Studio-Fotografie Wien' },
       { to: '/business-portrait-wien/', label: 'Business Portrait Wien' },
@@ -191,6 +206,7 @@ const CONTEXTS: Record<string, PageContext> = {
   },
   '/immobilien-fotografie-wien/': {
     intro: 'Ergänzend zur Immobilienfotografie Wien bieten wir',
+    introEn: 'To complement real estate photography in Vienna, we offer',
     links: [
       { to: '/produkt-fotografie-wien/', label: 'Produktfotografie Wien' },
       { to: '/business-portrait-wien/', label: 'Business Portrait Wien' },
@@ -210,7 +226,10 @@ interface ContextualLinksProps {
  * Purpose: satisfy IA Growth Engine — add topical internal links
  * with semantic anchor text directly in prose, NOT in nav/footer.
  */
-export const ContextualLinks: React.FC<ContextualLinksProps> = ({ pathname, language = 'de' }) => {
+export const ContextualLinks: React.FC<ContextualLinksProps> = ({ pathname, language: languageProp }) => {
+  // Self-aware: honour the selected language even if a page forgets the prop.
+  const { language: contextLanguage } = useLanguage();
+  const language = languageProp ?? contextLanguage;
   const ctx = CONTEXTS[pathname];
   if (!ctx) return null;
 
@@ -233,7 +252,7 @@ export const ContextualLinks: React.FC<ContextualLinksProps> = ({ pathname, lang
               >
                 {link.label}
               </Link>
-              {i < linkCount - 2 ? ', ' : i === linkCount - 2 ? ' und ' : '.'}
+              {i < linkCount - 2 ? ', ' : i === linkCount - 2 ? (language === 'de' ? ' und ' : ' and ') : '.'}
             </React.Fragment>
           ))}
           {' '}

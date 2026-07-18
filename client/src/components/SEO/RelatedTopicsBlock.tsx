@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { SITE } from '../../config/site';
+import { useLanguage } from '../../context/LanguageContext';
 
 /**
  * Additive "Das könnte Sie auch interessieren" block.
@@ -139,10 +140,14 @@ const FALLBACK: LinkItem[] = [FAMILIE, BABY, BUSINESS, KONTAKT, PREISE_WIEN];
 
 export const RelatedTopicsBlock: React.FC<RelatedTopicsBlockProps> = ({
   pathname,
-  language = 'de',
+  language: languageProp,
   links,
   title,
 }) => {
+  // Self-aware: a page that forgets to pass the prop still renders in the
+  // selected language. An explicit prop wins if given.
+  const { language: contextLanguage } = useLanguage();
+  const language = languageProp ?? contextLanguage;
   const items =
     links ??
     DEFAULTS[pathname] ??

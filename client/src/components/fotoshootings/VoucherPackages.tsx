@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Check, ShoppingCart, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface Package {
   title: string;
@@ -21,6 +22,8 @@ interface VoucherPackagesProps {
 const VoucherPackages: React.FC<VoucherPackagesProps> = ({ packages }) => {
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const { language } = useLanguage();
+  const de = language === 'de';
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
 
@@ -57,7 +60,7 @@ const VoucherPackages: React.FC<VoucherPackagesProps> = ({ packages }) => {
           >
             {pkg.isFeatured && (
               <div className="bg-purple-600 text-white text-center py-2">
-                <span className="text-sm font-medium">MEIST GEWÄHLT</span>
+                <span className="text-sm font-medium">{de ? 'MEIST GEWÄHLT' : 'MOST POPULAR'}</span>
               </div>
             )}
             <div className="p-6">
@@ -77,7 +80,7 @@ const VoucherPackages: React.FC<VoucherPackagesProps> = ({ packages }) => {
                 className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
               >
                 <ShoppingCart size={20} className="mr-2" />
-                In den Warenkorb
+                {de ? 'In den Warenkorb' : 'Add to cart'}
               </button>
             </div>
           </div>
@@ -89,7 +92,7 @@ const VoucherPackages: React.FC<VoucherPackagesProps> = ({ packages }) => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <div className="flex justify-between items-start mb-4">
-              <h3 className="text-xl font-bold text-gray-900">Paket zum Warenkorb hinzufügen</h3>
+              <h3 className="text-xl font-bold text-gray-900">{de ? 'Paket zum Warenkorb hinzufügen' : 'Add package to cart'}</h3>
               <button
                 onClick={() => setShowConfirmation(false)}
                 className="text-gray-400 hover:text-gray-500"
@@ -99,7 +102,9 @@ const VoucherPackages: React.FC<VoucherPackagesProps> = ({ packages }) => {
             </div>
             <div className="mb-6">
               <p className="text-gray-600">
-                Möchten Sie das {selectedPackage.title} Paket ({selectedPackage.subtitle}) für €{selectedPackage.price} zum Warenkorb hinzufügen?
+                {de
+                  ? `Möchten Sie das ${selectedPackage.title} Paket (${selectedPackage.subtitle}) für €${selectedPackage.price} zum Warenkorb hinzufügen?`
+                  : `Would you like to add the ${selectedPackage.title} package (${selectedPackage.subtitle}) for €${selectedPackage.price} to your cart?`}
               </p>
             </div>
             <div className="flex justify-end space-x-4">
@@ -107,13 +112,13 @@ const VoucherPackages: React.FC<VoucherPackagesProps> = ({ packages }) => {
                 onClick={() => setShowConfirmation(false)}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
               >
-                Abbrechen
+                {de ? 'Abbrechen' : 'Cancel'}
               </button>
               <button
                 onClick={confirmAddToCart}
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
               >
-                Hinzufügen
+                {de ? 'Hinzufügen' : 'Add'}
               </button>
             </div>
           </div>

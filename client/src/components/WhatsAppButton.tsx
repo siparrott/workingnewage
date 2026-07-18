@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
 import { MessageCircle, X } from 'lucide-react';
 import { SITE } from '../config/site';
+import { useLanguage } from '../context/LanguageContext';
 
 const WhatsAppButton: React.FC = () => {
+  const { language } = useLanguage();
+  const de = language === 'de';
   const [isOpen, setIsOpen] = useState(false);
   const phoneNumber = SITE.phone.replace(/[^0-9]/g, '');
   const whatsappUrl = `https://wa.me/${phoneNumber}`;
-  
+
   // Pre-filled message for better UX
-  const defaultMessage = encodeURIComponent('Hallo! Ich interessiere mich für ein Fotoshooting und hätte gerne mehr Informationen.');
+  const defaultMessage = encodeURIComponent(
+    de
+      ? 'Hallo! Ich interessiere mich für ein Fotoshooting und hätte gerne mehr Informationen.'
+      : 'Hello! I’m interested in a photoshoot and would love some more information.'
+  );
   const whatsappUrlWithMessage = `${whatsappUrl}?text=${defaultMessage}`;
 
   return (
@@ -27,7 +34,7 @@ const WhatsAppButton: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-sm">{SITE.name}</h3>
-                    <p className="text-xs text-green-100">Normalerweise antwortet innerhalb 1 Stunde</p>
+                    <p className="text-xs text-green-100">{de ? 'Normalerweise antwortet innerhalb 1 Stunde' : 'Typically replies within 1 hour'}</p>
                   </div>
                 </div>
                 <button 
@@ -43,9 +50,11 @@ const WhatsAppButton: React.FC = () => {
             <div className="p-4 bg-[#e5ddd5]">
               <div className="bg-white rounded-lg p-3 shadow-sm max-w-[85%]">
                 <p className="text-sm text-gray-700">
-                  👋 Hallo! Wie können wir Ihnen helfen? Schreiben Sie uns direkt über WhatsApp!
+                  {de
+                    ? '👋 Hallo! Wie können wir Ihnen helfen? Schreiben Sie uns direkt über WhatsApp!'
+                    : '👋 Hi there! How can we help? Message us directly on WhatsApp!'}
                 </p>
-                <span className="text-xs text-gray-400 mt-1 block text-right">Jetzt</span>
+                <span className="text-xs text-gray-400 mt-1 block text-right">{de ? 'Jetzt' : 'Now'}</span>
               </div>
             </div>
             
@@ -58,7 +67,7 @@ const WhatsAppButton: React.FC = () => {
                 className="flex items-center justify-center w-full py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-full transition-colors"
               >
                 <MessageCircle className="w-5 h-5 mr-2" />
-                Chat starten
+                {de ? 'Chat starten' : 'Start chat'}
               </a>
             </div>
           </div>
@@ -72,7 +81,7 @@ const WhatsAppButton: React.FC = () => {
               ? 'bg-gray-600 hover:bg-gray-700' 
               : 'bg-green-600 hover:bg-green-700'
           }`}
-          aria-label={isOpen ? 'Chat schließen' : 'WhatsApp Chat öffnen'}
+          aria-label={isOpen ? (de ? 'Chat schließen' : 'Close chat') : (de ? 'WhatsApp Chat öffnen' : 'Open WhatsApp chat')}
         >
           {isOpen ? (
             <X className="w-6 h-6 text-white" />

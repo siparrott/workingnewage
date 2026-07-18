@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, ArrowRight } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface Guide {
   slug: string;
@@ -34,7 +35,10 @@ const GUIDES: Record<string, Guide[]> = {
 };
 
 export const PillarGuides: React.FC<{ pillar: string }> = ({ pillar }) => {
+  const { language } = useLanguage();
   const guides = GUIDES[pillar];
+  // The linked guide articles exist only in German — hide the block on EN.
+  if (language !== 'de') return null;
   if (!guides || guides.length === 0) return null;
 
   return (
