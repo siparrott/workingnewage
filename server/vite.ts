@@ -418,11 +418,16 @@ function lpBodyHtml(page: any): string {
 }
 
 // Insert static body content into the (already emptied) hydration root.
+// The body is wrapped in a display:none container: non-JS crawlers still read
+// the text from the HTML source (SEO intact), but browsers never PAINT it, so
+// users don't see a flash of unstyled prose before React mounts. React's
+// createRoot().render() replaces the whole root on mount, removing this node.
 function injectBodyIntoRoot(html: string, bodyHtml: string): string {
   const openIdx = html.search(/<div id="root"[^>]*>/);
   if (openIdx === -1) return html;
   const contentStart = html.indexOf(">", openIdx) + 1;
-  return html.slice(0, contentStart) + bodyHtml + html.slice(contentStart);
+  const hidden = `<div data-prerender-fallback aria-hidden="true" style="display:none">${bodyHtml}</div>`;
+  return html.slice(0, contentStart) + hidden + html.slice(contentStart);
 }
 
 // Remove the prerendered homepage body from the SPA shell so data-driven
