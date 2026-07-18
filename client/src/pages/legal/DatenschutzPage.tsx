@@ -26,6 +26,12 @@ const DatenschutzPage: React.FC = () => {
               {de ? 'Impressum & Datenschutzerklärung' : 'Legal Notice & Privacy Policy'}
             </h1>
 
+            {!de && (
+              <p className="text-sm text-gray-500 -mt-6 mb-8">
+                English translation for convenience — the legally binding version is the German original.
+              </p>
+            )}
+
             <div className="prose prose-lg max-w-none text-gray-700">
               
               {/* Impressum Section */}
