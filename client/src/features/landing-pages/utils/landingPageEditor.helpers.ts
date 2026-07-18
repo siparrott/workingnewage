@@ -34,6 +34,7 @@ export function removeSection(
   const updatedMeta: LandingPageContentMeta = {
     sectionOrder: meta.sectionOrder.filter(k => k !== key),
     sectionVisibility: { ...meta.sectionVisibility, [key]: false },
+    sectionAlignment: { ...(meta.sectionAlignment || {}) },
   };
   return { content: updatedContent, meta: updatedMeta };
 }

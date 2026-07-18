@@ -51,11 +51,19 @@ export type LandingPageSectionVisibilityMap = Record<LandingPageSectionKey, bool
 
 export type LandingPageSectionOrder = LandingPageSectionKey[];
 
+// ── Section Alignment ────────────────────────────────────────────
+// Per-section text/content alignment, overriding the default centred layout.
+
+export type LandingPageSectionAlignment = 'left' | 'center' | 'right';
+
+export type LandingPageSectionAlignmentMap = Partial<Record<LandingPageSectionKey, LandingPageSectionAlignment>>;
+
 // ── Content Meta ─────────────────────────────────────────────────
 
 export interface LandingPageContentMeta {
   sectionOrder: LandingPageSectionOrder;
   sectionVisibility: LandingPageSectionVisibilityMap;
+  sectionAlignment: LandingPageSectionAlignmentMap;
 }
 
 // ── Editor State ─────────────────────────────────────────────────

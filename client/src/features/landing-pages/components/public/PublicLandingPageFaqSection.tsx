@@ -2,21 +2,23 @@
 
 import { HelpCircle } from 'lucide-react';
 import { PublicLandingPageSectionWrapper } from './PublicLandingPageSectionWrapper';
+import { alignText, type SectionAlign } from '../../utils/sectionAlignment';
 
 interface PublicLandingPageFaqSectionProps {
   data: Array<{
     question: string;
     answer: string;
   }>;
+  align?: SectionAlign;
 }
 
-export function PublicLandingPageFaqSection({ data }: PublicLandingPageFaqSectionProps) {
+export function PublicLandingPageFaqSection({ data, align = 'center' }: PublicLandingPageFaqSectionProps) {
   if (!data || data.length === 0) return null;
 
   return (
     <PublicLandingPageSectionWrapper bg="gray">
       <div className="max-w-3xl mx-auto">
-        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 text-center mb-10">
+        <h2 className={`text-3xl md:text-4xl font-bold text-gray-900 ${alignText(align)} mb-10`}>
           Häufige Fragen
         </h2>
         <div className="space-y-4">

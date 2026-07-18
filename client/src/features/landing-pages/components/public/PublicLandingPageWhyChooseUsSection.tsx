@@ -2,6 +2,7 @@
 
 import { Shield } from 'lucide-react';
 import { PublicLandingPageSectionWrapper } from './PublicLandingPageSectionWrapper';
+import { alignText, type SectionAlign } from '../../utils/sectionAlignment';
 
 interface PublicLandingPageWhyChooseUsSectionProps {
   data: {
@@ -10,9 +11,10 @@ interface PublicLandingPageWhyChooseUsSectionProps {
     // tolerate both so neither source renders empty cards.
     reasons?: Array<string | { title?: string; description?: string }>;
   };
+  align?: SectionAlign;
 }
 
-export function PublicLandingPageWhyChooseUsSection({ data }: PublicLandingPageWhyChooseUsSectionProps) {
+export function PublicLandingPageWhyChooseUsSection({ data, align = 'center' }: PublicLandingPageWhyChooseUsSectionProps) {
   const reasons = (data.reasons ?? [])
     .map(r => (typeof r === 'string' ? { title: r, description: '' } : { title: r?.title ?? '', description: r?.description ?? '' }))
     .filter(r => r.title || r.description);
@@ -20,7 +22,7 @@ export function PublicLandingPageWhyChooseUsSection({ data }: PublicLandingPageW
     <PublicLandingPageSectionWrapper bg="gray">
       <div className="max-w-3xl mx-auto">
         {data.headline && (
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 text-center mb-10">
+          <h2 className={`text-3xl md:text-4xl font-bold text-gray-900 ${alignText(align)} mb-10`}>
             {data.headline}
           </h2>
         )}

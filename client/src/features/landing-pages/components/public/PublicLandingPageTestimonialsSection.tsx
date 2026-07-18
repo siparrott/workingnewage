@@ -2,6 +2,7 @@
 
 import { Quote, Star, ExternalLink } from 'lucide-react';
 import { PublicLandingPageSectionWrapper } from './PublicLandingPageSectionWrapper';
+import { alignText, alignJustify, type SectionAlign } from '../../utils/sectionAlignment';
 
 // Real Google Business Profile reviews page — lets visitors verify the quotes.
 const GOOGLE_REVIEWS_URL = 'https://maps.app.goo.gl/fckY6bgN4dACo6H29';
@@ -13,18 +14,19 @@ interface PublicLandingPageTestimonialsSectionProps {
     role?: string;
     source?: string; // editor saves "source", AI generation saves "role" — accept both
   }>;
+  align?: SectionAlign;
 }
 
-export function PublicLandingPageTestimonialsSection({ data }: PublicLandingPageTestimonialsSectionProps) {
+export function PublicLandingPageTestimonialsSection({ data, align = 'center' }: PublicLandingPageTestimonialsSectionProps) {
   if (!data || data.length === 0) return null;
 
   return (
     <PublicLandingPageSectionWrapper bg="gray">
       <div className="max-w-4xl mx-auto">
-        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 text-center mb-3">
+        <h2 className={`text-3xl md:text-4xl font-bold text-gray-900 ${alignText(align)} mb-3`}>
           Das sagen unsere Kunden
         </h2>
-        <div className="flex items-center justify-center gap-2 mb-10 text-gray-600">
+        <div className={`flex items-center ${alignJustify(align)} gap-2 mb-10 text-gray-600`}>
           <span className="flex text-yellow-400">
             {[0, 1, 2, 3, 4].map((j) => <Star key={j} className="h-4 w-4 fill-current" />)}
           </span>
@@ -52,7 +54,7 @@ export function PublicLandingPageTestimonialsSection({ data }: PublicLandingPage
         </div>
 
         {/* Verify the source — real Google Business Profile */}
-        <div className="text-center mt-8">
+        <div className={`${alignText(align)} mt-8`}>
           <a
             href={GOOGLE_REVIEWS_URL}
             target="_blank"

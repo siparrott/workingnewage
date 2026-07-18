@@ -19,6 +19,9 @@ export function normalizeLandingPageContent(raw: Record<string, unknown> | null)
     sectionVisibility: rawMeta.sectionVisibility
       ? { ...DEFAULT_SECTION_VISIBILITY, ...rawMeta.sectionVisibility }
       : { ...DEFAULT_SECTION_VISIBILITY },
+    sectionAlignment: (rawMeta.sectionAlignment && typeof rawMeta.sectionAlignment === 'object')
+      ? { ...rawMeta.sectionAlignment }
+      : {},
   };
 
   // Normalize content blocks — ensure minimum safe shapes

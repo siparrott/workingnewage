@@ -7,7 +7,7 @@ import { applySectionPatch } from '../utils/applySectionPatch';
 import { evaluateLandingPagePublishReadiness } from '../utils/landingPageReadiness';
 import type { LandingPageRecord } from '../types/landingPage.types';
 import type { LandingPageGeneratedContent } from '../types/landingPageGeneration.types';
-import type { LandingPageSectionKey, LandingPageContentMeta, LandingPageSeoState, LandingPagePublishReadinessResult } from '../types/landingPageEditor.types';
+import type { LandingPageSectionKey, LandingPageContentMeta, LandingPageSeoState, LandingPagePublishReadinessResult, LandingPageSectionAlignment } from '../types/landingPageEditor.types';
 
 export function useLandingPageEditor(pageId: string) {
   const qc = useQueryClient();
@@ -67,6 +67,19 @@ export function useLandingPageEditor(pageId: string) {
 
   const handleToggleVisibility = useCallback((key: LandingPageSectionKey) => {
     setMeta(prev => prev ? { ...prev, sectionVisibility: toggleSectionVisibility(prev.sectionVisibility, key) } : prev);
+    markDirty();
+  }, [markDirty]);
+
+  const handleSetAlignment = useCallback((key: LandingPageSectionKey, align: LandingPageSectionAlignment) => {
+    setMeta(prev => {
+      if (!prev) return prev;
+      const current = prev.sectionAlignment || {};
+      // 'center' is the default → drop the key rather than storing it.
+      const next = { ...current };
+      if (align === 'center') delete next[key];
+      else next[key] = align;
+      return { ...prev, sectionAlignment: next };
+    });
     markDirty();
   }, [markDirty]);
 
@@ -180,6 +193,7 @@ export function useLandingPageEditor(pageId: string) {
     moveSectionUp: handleMoveSectionUp,
     moveSectionDown: handleMoveSectionDown,
     toggleVisibility: handleToggleVisibility,
+    setAlignment: handleSetAlignment,
     removeSection: handleRemoveSection,
     applyPatch: handleApplyPatch,
     save,

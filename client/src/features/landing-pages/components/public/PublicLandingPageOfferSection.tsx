@@ -3,6 +3,7 @@
 import { CheckCircle } from 'lucide-react';
 import { PublicLandingPageSectionWrapper } from './PublicLandingPageSectionWrapper';
 import { PublicLandingPageCtaButton } from './PublicLandingPageCtaButton';
+import { alignText, alignBlock, alignJustify, type SectionAlign } from '../../utils/sectionAlignment';
 
 interface PublicLandingPageOfferSectionProps {
   data: {
@@ -12,6 +13,7 @@ interface PublicLandingPageOfferSectionProps {
     inclusions?: string[];
     urgency?: string;
   };
+  align?: SectionAlign;
   ctaHref: string;
   ctaText: string;
   pageId: string;
@@ -21,6 +23,7 @@ interface PublicLandingPageOfferSectionProps {
 
 export function PublicLandingPageOfferSection({
   data,
+  align = 'center',
   ctaHref,
   ctaText,
   pageId,
@@ -30,9 +33,9 @@ export function PublicLandingPageOfferSection({
   const inclusions = (data.inclusions ?? []).filter(Boolean);
   return (
     <PublicLandingPageSectionWrapper bg="purple">
-      <div className="max-w-2xl mx-auto">
+      <div className={`max-w-2xl ${alignBlock(align)}`}>
         {/* Intro above the card */}
-        <div className="text-center mb-8">
+        <div className={`${alignText(align)} mb-8`}>
           {data.headline && (
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               {data.headline}
@@ -48,7 +51,7 @@ export function PublicLandingPageOfferSection({
         {/* The offer card — contains price, what's included, urgency and CTA */}
         <div className="bg-white rounded-2xl shadow-xl border border-purple-100 p-8 md:p-10">
           {data.price && (
-            <div className="text-center mb-8">
+            <div className={`${alignText(align)} mb-8`}>
               <span className="block text-5xl font-extrabold text-purple-600 leading-none">{data.price}</span>
             </div>
           )}
@@ -65,10 +68,10 @@ export function PublicLandingPageOfferSection({
           )}
 
           {data.urgency && (
-            <p className="text-red-600 font-semibold text-center mb-6">{data.urgency}</p>
+            <p className={`text-red-600 font-semibold ${alignText(align)} mb-6`}>{data.urgency}</p>
           )}
 
-          <div className="flex justify-center">
+          <div className={`flex ${alignJustify(align)}`}>
             <PublicLandingPageCtaButton
               href={ctaHref}
               label={ctaText}

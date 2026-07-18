@@ -6,6 +6,7 @@ import { Helmet } from 'react-helmet-async';
 import { buildLandingPageMetadata } from '../../utils/buildLandingPageMetadata';
 import { buildLandingPageSchema } from '../../utils/buildLandingPageSchema';
 import { getVisibleLandingPageSections } from '../../utils/landingPageVisibility';
+import { normalizeAlign } from '../../utils/sectionAlignment';
 import { trackPageView } from '../../utils/trackLandingPageEvent';
 import type { LandingPageSectionKey } from '../../types/landingPageEditor.types';
 import { PublicLandingPageHero } from './PublicLandingPageHero';
@@ -139,6 +140,11 @@ export function PublicLandingPageRenderer({
   // Get visible sections in configured order
   const visibleSections = getVisibleLandingPageSections(content);
 
+  // Per-section alignment (overrides the default centred layout). Stored in
+  // content_json.meta.sectionAlignment by the editor.
+  const alignmentMap = (content?.meta?.sectionAlignment ?? {}) as Record<string, 'left' | 'center' | 'right'>;
+  const alignFor = (key: string): 'left' | 'center' | 'right' => normalizeAlign(alignmentMap[key]);
+
   // Section renderer map — uses raw DB field names from content_json
   const sectionRenderers: Partial<Record<LandingPageSectionKey, () => React.JSX.Element | null>> = {
     hero: () => content.hero ? (
@@ -161,13 +167,14 @@ export function PublicLandingPageRenderer({
     ) : null,
 
     problemSection: () => content.problemSection ? (
-      <PublicLandingPageProblemSection key="problemSection" data={content.problemSection} />
+      <PublicLandingPageProblemSection key="problemSection" data={content.problemSection} align={alignFor('problemSection')} />
     ) : null,
 
     offerSection: () => content.offerSection ? (
       <PublicLandingPageOfferSection
         key="offerSection"
         data={content.offerSection}
+        align={alignFor('offerSection')}
         ctaHref={ctaHref}
         ctaText={ctaText}
         pageId={page.id}
@@ -177,32 +184,34 @@ export function PublicLandingPageRenderer({
     ) : null,
 
     benefits: () => benefitItems.length > 0 ? (
-      <PublicLandingPageBenefitsSection key="benefits" data={benefitItems} />
+      <PublicLandingPageBenefitsSection key="benefits" data={benefitItems} align={alignFor('benefits')} />
     ) : null,
 
     whyChooseUs: () => content.whyChooseUs ? (
-      <PublicLandingPageWhyChooseUsSection key="whyChooseUs" data={content.whyChooseUs} />
+      <PublicLandingPageWhyChooseUsSection key="whyChooseUs" data={content.whyChooseUs} align={alignFor('whyChooseUs')} />
     ) : null,
 
     inclusions: () => content.inclusions ? (
       <PublicLandingPageInclusionsSection
         key="inclusions"
         data={{ ...content.inclusions, headline: content.inclusions.headline || content.inclusions.title }}
+        align={alignFor('inclusions')}
       />
     ) : null,
 
     testimonials: () => testimonialItems.length > 0 ? (
-      <PublicLandingPageTestimonialsSection key="testimonials" data={testimonialItems} />
+      <PublicLandingPageTestimonialsSection key="testimonials" data={testimonialItems} align={alignFor('testimonials')} />
     ) : null,
 
     faq: () => faqItems.length > 0 ? (
-      <PublicLandingPageFaqSection key="faq" data={faqItems} />
+      <PublicLandingPageFaqSection key="faq" data={faqItems} align={alignFor('faq')} />
     ) : null,
 
     finalCta: () => content.finalCta ? (
       <PublicLandingPageFinalCta
         key="finalCta"
         data={content.finalCta}
+        align={alignFor('finalCta')}
         ctaHref={ctaHref}
         ctaText={ctaText}
         pageId={page.id}

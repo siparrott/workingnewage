@@ -24,6 +24,7 @@ export const DEFAULT_SEO: LandingPageSeoBlock = {
 export const DEFAULT_CONTENT_META: LandingPageContentMeta = {
   sectionOrder: [...DEFAULT_SECTION_ORDER],
   sectionVisibility: { ...DEFAULT_SECTION_VISIBILITY },
+  sectionAlignment: {},
 };
 
 export const EMPTY_EDITOR_CONTENT: LandingPageGeneratedContent = {

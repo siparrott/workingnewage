@@ -133,6 +133,7 @@ export default function AdminLandingPageEditorPage() {
       title={editor.title}
       sectionOrder={editor.meta.sectionOrder}
       visibility={editor.meta.sectionVisibility}
+      alignment={editor.meta.sectionAlignment}
       activeSection={editor.activeSection}
       readiness={editor.readiness}
       isDirty={editor.isDirty}
@@ -151,6 +152,7 @@ export default function AdminLandingPageEditorPage() {
       moveSectionUp={editor.moveSectionUp}
       moveSectionDown={editor.moveSectionDown}
       toggleVisibility={editor.toggleVisibility}
+      setAlignment={editor.setAlignment}
       removeSection={editor.removeSection}
       save={editor.save}
       onBack={handleBack}

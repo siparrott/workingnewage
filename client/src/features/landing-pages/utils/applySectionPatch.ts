@@ -24,6 +24,7 @@ export function applySectionPatch(
   const updatedMeta: LandingPageContentMeta = {
     sectionOrder: updatedOrder,
     sectionVisibility: updatedVisibility,
+    sectionAlignment: { ...(meta.sectionAlignment || {}) },
   };
 
   return { content: updatedContent as LandingPageGeneratedContent, meta: updatedMeta };

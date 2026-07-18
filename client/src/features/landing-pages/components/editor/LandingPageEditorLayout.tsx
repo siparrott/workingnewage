@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import type { LandingPageSectionKey } from '../../types/landingPageEditor.types';
 import type { LandingPageGeneratedContent } from '../../types/landingPageGeneration.types';
-import type { LandingPageSeoState, LandingPageSectionVisibilityMap, LandingPageSectionOrder, LandingPagePublishReadinessResult } from '../../types/landingPageEditor.types';
+import type { LandingPageSeoState, LandingPageSectionVisibilityMap, LandingPageSectionOrder, LandingPagePublishReadinessResult, LandingPageSectionAlignmentMap, LandingPageSectionAlignment } from '../../types/landingPageEditor.types';
 import type { LandingPageRecord } from '../../types/landingPage.types';
 import LandingPageEditorToolbar from './LandingPageEditorToolbar';
 import LandingPageSectionSidebar from './LandingPageSectionSidebar';
@@ -30,6 +30,7 @@ interface Props {
   title: string;
   sectionOrder: LandingPageSectionKey[];
   visibility: LandingPageSectionVisibilityMap;
+  alignment: LandingPageSectionAlignmentMap;
   activeSection: LandingPageSectionKey | null;
   readiness: LandingPagePublishReadinessResult;
   isDirty: boolean;
@@ -50,6 +51,7 @@ interface Props {
   moveSectionUp: (key: LandingPageSectionKey) => void;
   moveSectionDown: (key: LandingPageSectionKey) => void;
   toggleVisibility: (key: LandingPageSectionKey) => void;
+  setAlignment: (key: LandingPageSectionKey, align: LandingPageSectionAlignment) => void;
   removeSection: (key: LandingPageSectionKey) => void;
   save: () => Promise<void>;
   onBack: () => void;
@@ -71,6 +73,7 @@ export default function LandingPageEditorLayout({
   title,
   sectionOrder,
   visibility,
+  alignment,
   activeSection,
   readiness,
   isDirty,
@@ -85,6 +88,7 @@ export default function LandingPageEditorLayout({
   moveSectionUp,
   moveSectionDown,
   toggleVisibility,
+  setAlignment,
   removeSection,
   save,
   onBack,
@@ -169,9 +173,11 @@ export default function LandingPageEditorLayout({
           <LandingPageSectionSidebar
             sectionOrder={sectionOrder}
             visibility={visibility}
+            alignment={alignment}
             activeSection={activeSection}
             onSelect={setActiveSection}
             onToggleVisibility={toggleVisibility}
+            onSetAlignment={setAlignment}
             onRegenerate={handleRegenerate}
           />
         </aside>

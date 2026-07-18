@@ -2,6 +2,7 @@
 
 import { X } from 'lucide-react';
 import { PublicLandingPageSectionWrapper } from './PublicLandingPageSectionWrapper';
+import { alignText, alignBlock, type SectionAlign } from '../../utils/sectionAlignment';
 
 interface PublicLandingPageProblemSectionProps {
   data: {
@@ -9,9 +10,10 @@ interface PublicLandingPageProblemSectionProps {
     description?: string;
     painPoints?: string[];
   };
+  align?: SectionAlign;
 }
 
-export function PublicLandingPageProblemSection({ data }: PublicLandingPageProblemSectionProps) {
+export function PublicLandingPageProblemSection({ data, align = 'center' }: PublicLandingPageProblemSectionProps) {
   const points = (data.painPoints ?? []).filter(Boolean);
   // With 3 points use a 3-up grid, otherwise a 2-up — keeps the row balanced
   // and stops short items from floating in a centred column.
@@ -19,7 +21,7 @@ export function PublicLandingPageProblemSection({ data }: PublicLandingPageProbl
   return (
     <PublicLandingPageSectionWrapper bg="gray">
       <div className="max-w-5xl mx-auto">
-        <div className="max-w-2xl mx-auto text-center">
+        <div className={`max-w-2xl ${alignBlock(align)} ${alignText(align)}`}>
           {data.headline && (
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               {data.headline}
