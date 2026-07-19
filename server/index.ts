@@ -631,8 +631,10 @@ app.use((req, res, next) => {
       const clean = (p.endsWith('/') && p.length > 1 ? p.slice(0, -1) : p);
       if (clean === '/admin' || clean.startsWith('/admin/')) return true;
       if (NOINDEX_EXACT.has(clean)) return true;
-      // Individual client gallery views (private, per-token) must not be indexed.
-      if (clean.startsWith('/gallery/') || clean.startsWith('/invoice/')) return true;
+      // The private client-gallery area (login-gated) and per-token views must
+      // not be indexed. /gallery renders behind auth — a crawler only ever gets
+      // the empty shell, so keep it out of search.
+      if (clean === '/gallery' || clean.startsWith('/gallery/') || clean.startsWith('/invoice/')) return true;
       return false;
     };
     app.use((req, res, next) => {
