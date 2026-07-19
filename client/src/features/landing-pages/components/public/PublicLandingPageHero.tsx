@@ -36,6 +36,21 @@ function parseHeroPosition(raw?: string | null): { x: number; y: number; zoom: n
   }
 }
 
+// YouTube/Vimeo page URLs can't play in a <video> tag. Turn them into a
+// muted, looping, controls-free background embed. Returns null for anything
+// else (e.g. a direct .mp4), which then uses the <video> path.
+function getVideoEmbedUrl(url: string): string | null {
+  if (!url) return null;
+  const yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
+  if (yt) {
+    const id = yt[1];
+    return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&showinfo=0&modestbranding=1&rel=0&playsinline=1`;
+  }
+  const vm = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (vm) return `https://player.vimeo.com/video/${vm[1]}?background=1&autoplay=1&loop=1&muted=1`;
+  return null;
+}
+
 export function PublicLandingPageHero({
   data,
   imageUrl,
@@ -54,14 +69,31 @@ export function PublicLandingPageHero({
       {/* Optional background media (video preferred over image), with a dark
           overlay so the headline/CTA stay readable. */}
       {videoUrl ? (
-        <video
-          className="absolute inset-0 w-full h-full object-cover"
-          src={videoUrl}
-          autoPlay
-          muted
-          loop
-          playsInline
-        />
+        // YouTube/Vimeo links can't play in a <video> tag — render them as a
+        // muted, looping background iframe; direct files (.mp4) use <video>.
+        (() => {
+          const embed = getVideoEmbedUrl(videoUrl);
+          return embed ? (
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <iframe
+                className="absolute inset-0 w-full h-full"
+                src={embed}
+                title=""
+                allow="autoplay; encrypted-media; picture-in-picture"
+                loading="lazy"
+              />
+            </div>
+          ) : (
+            <video
+              className="absolute inset-0 w-full h-full object-cover"
+              src={videoUrl}
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          );
+        })()
       ) : imageUrl ? (
         // Crop set by the editor's drag-to-fit tool (object-position + zoom).
         <img

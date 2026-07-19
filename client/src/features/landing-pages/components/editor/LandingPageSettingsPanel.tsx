@@ -253,16 +253,16 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
         </Button>
 
         <LandingPageInlineTextField
-          label="Hero video URL (optional, .mp4)"
+          label="Hero video URL (optional — .mp4, YouTube or Vimeo)"
           value={heroVideo}
           onChange={setHeroVideo}
-          placeholder="https://…/video.mp4"
+          placeholder="https://youtu.be/… or https://…/video.mp4"
         />
         <Button variant="outline" size="sm" className="w-full"
           onClick={() => saveField('hero_video_url', heroVideo || null)}>
           Save video URL
         </Button>
-        <p className="text-xs text-gray-400">Video plays muted behind the hero; a dark overlay keeps text readable.</p>
+        <p className="text-xs text-gray-400">Plays muted &amp; looping behind the hero (a dark overlay keeps text readable). Paste a direct .mp4 link or a YouTube/Vimeo URL. Remember to Save.</p>
       </div>
     </div>
   );

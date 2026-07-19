@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import type { LandingPageSectionKey } from '../../types/landingPageEditor.types';
 import type { LandingPageGeneratedContent } from '../../types/landingPageGeneration.types';
@@ -137,6 +137,14 @@ export default function LandingPageEditorLayout({
   }, []);
   const { revisions, isLoading: revisionsLoading } = useLandingPageRevisions(String(page.id));
 
+  // Right-panel tab is controlled so selecting "SEO" in the left section nav
+  // switches the panel to its SEO tab (the SEO editor lives here, not in the
+  // scrollable canvas).
+  const [rightTab, setRightTab] = useState<string>('settings');
+  useEffect(() => {
+    if (activeSection === 'seo') setRightTab('seo');
+  }, [activeSection]);
+
   const handleRegenerate = useCallback((key: LandingPageSectionKey) => {
     setRegenerateDialogSection(key);
   }, []);
@@ -218,7 +226,7 @@ export default function LandingPageEditorLayout({
 
         {/* Right sidebar — settings / SEO / readiness (resizable) */}
         <aside style={{ width: panelWidth }} className="shrink-0 border-l bg-white overflow-y-auto">
-          <Tabs defaultValue="settings">
+          <Tabs value={rightTab} onValueChange={setRightTab}>
             {/* flex-wrap + h-auto: with 7 tabs the single-row list overflowed
                 a narrow panel and pushed Settings/SEO (incl. the hero-image
                 upload) out of reach. */}
@@ -237,7 +245,10 @@ export default function LandingPageEditorLayout({
                   value={t.value}
                   // Clear active state: filled purple pill so the current tab
                   // is unmistakable; inactive tabs are muted with a hover.
-                  className="text-xs rounded-md px-2.5 py-1 text-gray-600 hover:bg-gray-200 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:font-semibold data-[state=active]:shadow-sm data-[state=active]:hover:bg-purple-600"
+                  // ! (important) beats the base TabsTrigger's data-[state=active]:bg-background,
+                  // which otherwise wins at equal specificity and left the active tab looking
+                  // like a faint white box instead of a clear purple pill.
+                  className="text-xs rounded-md px-2.5 py-1 text-gray-600 hover:bg-gray-200 data-[state=active]:!bg-purple-600 data-[state=active]:!text-white data-[state=active]:!font-semibold data-[state=active]:!shadow-sm"
                 >
                   {t.label}
                 </TabsTrigger>
