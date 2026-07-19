@@ -215,14 +215,26 @@ export default function LandingPageEditorLayout({
             {/* flex-wrap + h-auto: with 7 tabs the single-row list overflowed
                 a narrow panel and pushed Settings/SEO (incl. the hero-image
                 upload) out of reach. */}
-            <TabsList className="w-full h-auto flex-wrap justify-start gap-1 border-b rounded-none bg-gray-50 px-2 pt-2">
-              <TabsTrigger value="settings" className="text-xs">Settings</TabsTrigger>
-              <TabsTrigger value="seo" className="text-xs">SEO</TabsTrigger>
-              <TabsTrigger value="readiness" className="text-xs">Readiness</TabsTrigger>
-              <TabsTrigger value="revisions" className="text-xs">Revisions</TabsTrigger>
-              <TabsTrigger value="growth" className="text-xs">Growth</TabsTrigger>
-              <TabsTrigger value="automation" className="text-xs">Automation</TabsTrigger>
-              <TabsTrigger value="execution" className="text-xs">Execution</TabsTrigger>
+            <TabsList className="w-full h-auto flex-wrap justify-start gap-1 border-b rounded-none bg-gray-50 px-2 pt-2 pb-2">
+              {[
+                { value: 'settings', label: 'Settings' },
+                { value: 'seo', label: 'SEO' },
+                { value: 'readiness', label: 'Readiness' },
+                { value: 'revisions', label: 'Revisions' },
+                { value: 'growth', label: 'Growth' },
+                { value: 'automation', label: 'Automation' },
+                { value: 'execution', label: 'Execution' },
+              ].map((t) => (
+                <TabsTrigger
+                  key={t.value}
+                  value={t.value}
+                  // Clear active state: filled purple pill so the current tab
+                  // is unmistakable; inactive tabs are muted with a hover.
+                  className="text-xs rounded-md px-2.5 py-1 text-gray-600 hover:bg-gray-200 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:font-semibold data-[state=active]:shadow-sm data-[state=active]:hover:bg-purple-600"
+                >
+                  {t.label}
+                </TabsTrigger>
+              ))}
             </TabsList>
 
             <div className="p-4">

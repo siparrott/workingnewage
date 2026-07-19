@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { LandingPageSectionKey, LandingPageSectionVisibilityMap, LandingPageSectionOrder } from '../../types/landingPageEditor.types';
 import type { LandingPageGeneratedContent } from '../../types/landingPageGeneration.types';
 import LandingPageSectionCard from './LandingPageSectionCard';
@@ -136,32 +137,42 @@ export default function LandingPageEditorCanvas({
   // Filter out seo from the canvas — it's in the right panel
   const canvasSections = sectionOrder.filter(k => k !== 'seo');
 
+  // Scroll the canvas to the selected section. Clicking a section in the left
+  // sidebar sets activeSection; without this it only highlighted the card.
+  const sectionRefs = useRef<Partial<Record<LandingPageSectionKey, HTMLDivElement | null>>>({});
+  useEffect(() => {
+    if (!activeSection) return;
+    const el = sectionRefs.current[activeSection];
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [activeSection]);
+
   return (
     <div className="space-y-4">
       {canvasSections.map((key, idx) => (
-        <LandingPageSectionCard
-          key={key}
-          sectionKey={key}
-          isVisible={visibility[key]}
-          isFirst={idx === 0}
-          isLast={idx === canvasSections.length - 1}
-          isActive={activeSection === key}
-          regenerating={regeneratingSection === key}
-          onActivate={() => onActivateSection(key)}
-          onRegenerate={() => onRegenerate(key)}
-          onToggleVisibility={() => onToggleVisibility(key)}
-          onMoveUp={() => onMoveSectionUp(key)}
-          onMoveDown={() => onMoveSectionDown(key)}
-          onRemove={() => onRemoveSection(key)}
-        >
-          {renderSectionEditor(
-            key,
-            content,
-            data => onUpdateSection(key, data),
-            () => onRegenerate(key),
-            regeneratingSection === key,
-          )}
-        </LandingPageSectionCard>
+        <div key={key} ref={el => { sectionRefs.current[key] = el; }} className="scroll-mt-4">
+          <LandingPageSectionCard
+            sectionKey={key}
+            isVisible={visibility[key]}
+            isFirst={idx === 0}
+            isLast={idx === canvasSections.length - 1}
+            isActive={activeSection === key}
+            regenerating={regeneratingSection === key}
+            onActivate={() => onActivateSection(key)}
+            onRegenerate={() => onRegenerate(key)}
+            onToggleVisibility={() => onToggleVisibility(key)}
+            onMoveUp={() => onMoveSectionUp(key)}
+            onMoveDown={() => onMoveSectionDown(key)}
+            onRemove={() => onRemoveSection(key)}
+          >
+            {renderSectionEditor(
+              key,
+              content,
+              data => onUpdateSection(key, data),
+              () => onRegenerate(key),
+              regeneratingSection === key,
+            )}
+          </LandingPageSectionCard>
+        </div>
       ))}
     </div>
   );
