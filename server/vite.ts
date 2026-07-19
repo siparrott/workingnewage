@@ -180,6 +180,16 @@ async function lookupRouteMeta(reqPath: string): Promise<RouteMeta | null> {
 
   let meta: RouteMeta | null = null;
   try {
+    // Static dedicated pages first (gutschein index + family/newborn/maternity).
+    // STATIC_ROUTE_META is a module const defined later in the file; this is a
+    // function, so it only reads it at request time (after module load) — safe.
+    const staticKey = (reqPath.replace(/\/+$/, "") || "/");
+    if (STATIC_ROUTE_META[staticKey]) {
+      meta = STATIC_ROUTE_META[staticKey];
+      routeMetaCache.set(reqPath, { meta, at: Date.now() });
+      return meta;
+    }
+
     const blogMatch = reqPath.match(/^\/blog\/([^/]+)\/?$/);
     const voucherMatch = reqPath.match(/^\/gutschein\/([^/]+)\/?$/);
 
@@ -416,6 +426,68 @@ function lpBodyHtml(page: any): string {
   parts.push(`<p class="mt-8 text-gray-700"><a href="/kontakt" class="underline">Kontakt &amp; Termin anfragen</a> · <a href="/vouchers" class="underline">Gutscheine</a> · <a href="/preise/" class="underline">Preise</a></p>`);
   return `<div class="max-w-3xl mx-auto px-4 py-12">\n${parts.join("\n")}\n</div>`;
 }
+
+// Dedicated gutschein pages (index + family/newborn/maternity) are React
+// components the build-time prerender never captured with content, so crawlers
+// got the empty shell with the homepage title (thin + duplicate-title, SEO
+// audit "Category B"). They aren't data-driven, so serve static meta + a
+// crawlable body here. Keyed by path without trailing slash.
+// NOTE: defined AFTER htmlEsc (a `const` above) — gutscheinBody calls htmlEsc,
+// and STATIC_ROUTE_META evaluates gutscheinBody at module load, so this block
+// MUST come after htmlEsc's initialization or it throws a TDZ ReferenceError
+// on boot (a build won't catch that — it crashed the dyno once).
+function gutscheinBody(h1: string, intro: string): string {
+  return (
+    `<div class="max-w-3xl mx-auto px-4 py-12">\n` +
+    `<h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">${htmlEsc(h1)}</h1>\n` +
+    `<p class="text-gray-700 mb-6 leading-relaxed">${htmlEsc(intro)}</p>\n` +
+    `<ul class="list-disc pl-6 mb-6 text-gray-700">\n` +
+    `<li><a href="/gutschein/family/" class="underline">Familien-Fotoshooting Gutschein</a></li>\n` +
+    `<li><a href="/gutschein/newborn/" class="underline">Neugeborenen-Fotoshooting Gutschein</a></li>\n` +
+    `<li><a href="/gutschein/maternity/" class="underline">Schwangerschafts-Fotoshooting Gutschein</a></li>\n` +
+    `</ul>\n` +
+    `<p class="text-gray-700">Alle <a href="/vouchers" class="underline">Gutscheine</a> · <a href="/preise/" class="underline">Preise &amp; Pakete</a> · <a href="/kundenstimmen/" class="underline">Kundenstimmen</a> · <a href="/kontakt" class="underline">Kontakt</a></p>\n` +
+    `</div>`
+  );
+}
+const STATIC_ROUTE_META: Record<string, RouteMeta> = {
+  "/gutschein": {
+    title: "Fotoshooting Gutscheine Wien verschenken | New Age Fotografie",
+    description: "Verschenken Sie ein Fotoshooting in Wien: Familien-, Neugeborenen- und Schwangerschafts-Gutscheine von New Age Fotografie. Flexibel einlösbar und persönlich gestaltbar.",
+    canonical: `${SITE_ORIGIN}/gutschein/`,
+    bodyHtml: gutscheinBody(
+      "Fotoshooting Gutscheine aus Wien verschenken",
+      "Ein Fotoshooting ist ein Geschenk, das bleibt. Bei New Age Fotografie in Wien (Studio in 1050 Wien) verschenken Sie einen Gutschein für ein Familien-, Neugeborenen- oder Schwangerschafts-Shooting — flexibel einlösbar und persönlich gestaltbar.",
+    ),
+  },
+  "/gutschein/family": {
+    title: "Familien-Fotoshooting Gutschein Wien | New Age Fotografie",
+    description: "Familien-Fotoshooting als Geschenk: Gutschein für ein Familienshooting in Wien bei New Age Fotografie. Bis zu 15 Personen, Tageslichtstudio in 1050 Wien, flexibel einlösbar.",
+    canonical: `${SITE_ORIGIN}/gutschein/family/`,
+    bodyHtml: gutscheinBody(
+      "Familien-Fotoshooting Gutschein aus Wien",
+      "Verschenken Sie ein entspanntes Familien-Fotoshooting in Wien. Bis zu 15 Personen (Kinder, Großeltern und Haustiere willkommen) im Tageslichtstudio in 1050 Wien. Der Gutschein ist flexibel einlösbar und kann persönlich gestaltet werden.",
+    ),
+  },
+  "/gutschein/newborn": {
+    title: "Neugeborenen-Fotoshooting Gutschein Wien | New Age Fotografie",
+    description: "Neugeborenen-Shooting verschenken: Gutschein für ein Neugeborenenfoto-Shooting in Wien. Sichere, sanfte Posings im warmen Tageslichtstudio in 1050 Wien.",
+    canonical: `${SITE_ORIGIN}/gutschein/newborn/`,
+    bodyHtml: gutscheinBody(
+      "Neugeborenen-Fotoshooting Gutschein aus Wien",
+      "Ein Gutschein für ein Neugeborenen-Shooting in Wien — die ersten Tage für immer festgehalten. Sichere, sanfte Posings im warmen Tageslichtstudio (1050 Wien), ideal in den ersten 5–14 Tagen nach der Geburt.",
+    ),
+  },
+  "/gutschein/maternity": {
+    title: "Schwangerschafts-Fotoshooting Gutschein Wien | New Age Fotografie",
+    description: "Babybauch-Shooting als Geschenk: Gutschein für ein Schwangerschafts-Fotoshooting in Wien bei New Age Fotografie. Elegant und entspannt im Studio in 1050 Wien.",
+    canonical: `${SITE_ORIGIN}/gutschein/maternity/`,
+    bodyHtml: gutscheinBody(
+      "Schwangerschafts-Fotoshooting Gutschein aus Wien",
+      "Verschenken Sie ein elegantes Babybauch-Shooting in Wien. Entspannte, stilvolle Schwangerschaftsfotos im Tageslichtstudio (1050 Wien) — Partner und Geschwister sind herzlich willkommen. Gutschein flexibel einlösbar.",
+    ),
+  },
+};
 
 // Insert static body content into the (already emptied) hydration root.
 // The body is wrapped in a display:none container: non-JS crawlers still read
