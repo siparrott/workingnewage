@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { LandingPageRecord } from '../../types/landingPage.types';
 import LandingPageInlineTextField from './LandingPageInlineTextField';
 import { Label } from '@/components/ui/label';
@@ -16,6 +17,7 @@ interface VoucherProduct { id: string; slug: string; name: string; price: string
 
 export default function LandingPageSettingsPanel({ page, title, onTitleChange }: Props) {
   const { toast } = useToast();
+  const qc = useQueryClient();
   const p = page as any;
   const [voucherSlug, setVoucherSlug] = useState<string>(p.cta_voucher_slug || '');
   const [offerAmount, setOfferAmount] = useState<string>(p.cta_voucher_amount != null ? String(p.cta_voucher_amount) : '');
@@ -96,6 +98,10 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
         body: JSON.stringify({ [field]: value }),
       });
       if (!res.ok) throw new Error('Save failed');
+      // Reflect the saved column in the editor's cached page so the live
+      // preview (e.g. the hero video/image) updates immediately, without a
+      // refetch that would reseed & wipe unsaved section edits.
+      qc.setQueryData(['landing-page', page.id], (old: any) => (old ? { ...old, [field]: value } : old));
       toast({ title: 'Saved', description: 'Setting updated.' });
     } catch {
       toast({ title: 'Save failed', description: 'Could not save the setting.', variant: 'destructive' });

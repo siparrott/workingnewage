@@ -9,6 +9,7 @@ import { useLandingPagePreviewUrl } from '../../features/landing-pages/hooks/use
 import LandingPageEditorLayout from '../../features/landing-pages/components/editor/LandingPageEditorLayout';
 import type { LandingPageSectionKey } from '../../features/landing-pages/types/landingPageEditor.types';
 import type { LandingPageSectionRegenerationMode } from '../../features/landing-pages/types/landingPageRegeneration.types';
+import { normalizeLandingPageContent } from '../../features/landing-pages/utils/normalizeLandingPageContent';
 import { useToast } from '@/hooks/use-toast';
 
 export default function AdminLandingPageEditorPage() {
@@ -24,7 +25,47 @@ export default function AdminLandingPageEditorPage() {
     },
   });
 
-  const { regenerate, regeneratingSection } = useRegenerateLandingPageSection(id!);
+  const { regenerate, regeneratingSection } = useRegenerateLandingPageSection(id!, {
+    onSuccess: (res) => {
+      // The AI endpoint returns a section in server shape (arrays are unwrapped,
+      // whyChooseUs uses reasons, testimonials use role). Re-wrap + run it
+      // through the same normalizer the editor uses so it maps to the editor's
+      // section shape, then apply to local state. (Without this the regenerated
+      // content was silently discarded.)
+      // Server returns { sectionKey, content }; the typed shape calls it
+      // `section` — accept either so a type drift can't silently break this.
+      const key = (((res as any).sectionKey ?? (res as any).section)) as LandingPageSectionKey;
+      const raw: any = (res as any).content;
+      if (raw == null) return;
+
+      // SEO isn't a content section — it lives in the SEO fields.
+      if (key === ('seo' as LandingPageSectionKey)) {
+        if (raw.title) editor.updateSeoField('seoTitle', String(raw.title));
+        if (raw.metaDescription) editor.updateSeoField('metaDescription', String(raw.metaDescription));
+        toast({ title: 'SEO regenerated', description: 'Review the new title/description, then Save.' });
+        return;
+      }
+
+      const existingTitle = (editor.content as any)?.[key]?.title || '';
+      let wrapped: any = raw;
+      if (Array.isArray(raw)) {
+        if (key === 'benefits' || key === 'faq' || key === 'inclusions') wrapped = { title: existingTitle, items: raw };
+        else if (key === 'testimonials') wrapped = { title: existingTitle, testimonials: raw };
+        else if (key === 'trustBar') wrapped = { items: raw };
+      }
+
+      const normalized = (normalizeLandingPageContent({ [key]: wrapped } as any).content as any)[key];
+      if (normalized !== undefined) {
+        editor.updateSection(key, normalized);
+        toast({ title: 'Section regenerated', description: 'Review the new copy, then Save.' });
+      } else {
+        toast({ title: 'Nothing generated', description: 'The AI returned no usable content. Try again.', variant: 'destructive' });
+      }
+    },
+    onError: (err: any) => {
+      toast({ title: 'Regeneration failed', description: err?.message || 'Could not regenerate the section.', variant: 'destructive' });
+    },
+  });
 
   const { publish, isPublishing } = usePublishLandingPage();
   const { unpublish, isUnpublishing } = useUnpublishLandingPage();

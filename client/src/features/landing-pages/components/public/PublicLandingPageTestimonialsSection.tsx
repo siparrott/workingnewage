@@ -39,24 +39,14 @@ export function PublicLandingPageTestimonialsSection({ data, align = 'center' }:
           </span>
           <span className="text-sm font-medium">Echte Google-Bewertungen</span>
         </div>
-        {/* 1 → centred; 2 → two-column grid; 3+ → masonry columns so
-            testimonials of very different lengths sit tidily instead of a
-            lopsided 2+1 grid with one huge cell. */}
-        <div
-          className={
-            data.length === 1
-              ? 'max-w-xl mx-auto'
-              : data.length >= 3
-              ? 'columns-1 md:columns-2 lg:columns-3 gap-6 [column-fill:_balance]'
-              : 'grid grid-cols-1 md:grid-cols-2 gap-6'
-          }
-        >
+        {/* Flex-wrap + justify-center so any number of testimonials sits
+            centred as a block under the heading (1→centred, 2→pair, 3→row,
+            5→3+2 centred) instead of left-aligned or lopsided. */}
+        <div className="flex flex-wrap justify-center gap-6">
           {data.map((t, i) => (
             <figure
               key={i}
-              className={`relative bg-white border border-gray-100 rounded-2xl p-7 pt-9 shadow-sm hover:shadow-md transition-shadow ${
-                data.length >= 3 ? 'break-inside-avoid mb-6' : ''
-              }`}
+              className="relative bg-white border border-gray-100 rounded-2xl p-7 pt-9 shadow-sm hover:shadow-md transition-shadow w-full sm:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1rem)] max-w-md flex flex-col"
             >
               <Quote className="absolute top-5 right-6 h-8 w-8 text-purple-100" aria-hidden="true" />
               <div className="flex gap-0.5 mb-3 text-yellow-400">

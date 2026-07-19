@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getEditableLandingPage, updateLandingPageDraft, suggestLandingPageFields } from '../services/landingPageEditor.client';
 import { normalizeLandingPageContent, serializeEditorContent } from '../utils/normalizeLandingPageContent';
@@ -30,9 +30,17 @@ export function useLandingPageEditor(pageId: string) {
   const [activeSection, setActiveSection] = useState<LandingPageSectionKey | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Initialize from fetched page
+  // Initialize from fetched page. Only reseed when the CONTENT actually changed
+  // (initial load or a revision restore) — NOT when only a settings column
+  // (hero_video_url, hero_image_url, …) changes via the Settings panel. Without
+  // this guard, saving a setting refetched the page and wiped any unsaved
+  // section edits back to the last-saved content.
+  const lastContentRef = useRef<string | null>(null);
   useEffect(() => {
     if (!page) return;
+    const cjStr = JSON.stringify(page.content_json ?? null);
+    if (lastContentRef.current === cjStr) return;
+    lastContentRef.current = cjStr;
     const { content: norm, meta: normMeta } = normalizeLandingPageContent(page.content_json as Record<string, unknown>);
     setContent(norm);
     setMeta(normMeta);

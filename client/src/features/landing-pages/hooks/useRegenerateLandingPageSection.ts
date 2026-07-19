@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { regenerateLandingPageSection, type RegenerateSectionPayload } from '../services/landingPageRegeneration.client';
 import type { LandingPageSectionKey } from '../types/landingPageEditor.types';
 import type { RegenerateLandingPageSectionResponse } from '../types/landingPageRegeneration.types';
@@ -10,7 +10,6 @@ interface UseRegenerateSectionOptions {
 }
 
 export function useRegenerateLandingPageSection(landingPageId: string, options?: UseRegenerateSectionOptions) {
-  const qc = useQueryClient();
   const [regeneratingSection, setRegeneratingSection] = useState<LandingPageSectionKey | null>(null);
 
   const mutation = useMutation({
@@ -20,7 +19,10 @@ export function useRegenerateLandingPageSection(landingPageId: string, options?:
     },
     onSuccess: (res) => {
       setRegeneratingSection(null);
-      qc.invalidateQueries({ queryKey: ['landing-page', landingPageId] });
+      // NOTE: regeneration is NOT persisted server-side — it returns fresh copy
+      // for the caller to apply to local editor state. Do NOT invalidate the
+      // page query here (that would refetch the old saved content and discard
+      // the regenerated section). The caller's onSuccess applies the result.
       options?.onSuccess?.(res);
     },
     onError: (err: Error) => {
