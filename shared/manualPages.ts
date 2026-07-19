@@ -776,7 +776,24 @@ export const manualPageManifest: ManualPageDefinition[] = [
         ]
       }
     ]
-  }
+  },
+  {
+    id: 'ueber-uns',
+    label: 'About Us / Über uns',
+    route: '/ueber-uns',
+    description: 'The founder photo shown on the About Us page (Simon). Upload here — no code or file drop needed.',
+    tags: ['About', 'Photo'],
+    sections: [
+      {
+        id: 'ueber-uns-founder',
+        label: 'Founder Photo',
+        description: 'The portrait shown next to the founder story on /ueber-uns/. Recommended a square image (e.g. 600×600).',
+        fields: [
+          makeField('ueber-uns-founder-photo', 'Founder Photo', 'manual.ueberuns.founderPhoto', 'image', 'Square portrait, e.g. 600×600px'),
+        ],
+      },
+    ],
+  },
 ];
 
 export const manualPageMap = manualPageManifest.reduce<Record<string, ManualPageDefinition>>((acc, page) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -41,7 +41,9 @@ import {
   Activity,
   Tags,
   TrendingUp,
-  Zap
+  Zap,
+  Camera,
+  Trash2
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -52,6 +54,40 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  // Admin profile photo. Uploaded to storage (B2); the URL persists in
+  // localStorage so it shows on this browser. Falls back to the person icon.
+  const [avatarUrl, setAvatarUrl] = useState<string>(() => {
+    try { return localStorage.getItem('adminAvatarUrl') || ''; } catch { return ''; }
+  });
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarFileRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folderName', 'Profile Photos');
+      const res = await fetch('/api/files/upload', { method: 'POST', body: fd });
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload?.error || 'Upload failed');
+      const url = payload.url || payload.thumbnailUrl;
+      if (!url) throw new Error('No URL returned');
+      setAvatarUrl(url);
+      try { localStorage.setItem('adminAvatarUrl', url); } catch {}
+    } catch (err: any) {
+      alert(`Could not upload photo: ${err?.message || 'unknown error'}`);
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+  const handleAvatarRemove = () => {
+    setAvatarUrl('');
+    try { localStorage.removeItem('adminAvatarUrl'); } catch {}
+  };
   const { language, setLanguage, t } = useLanguage();
   useDateFormatSync(); // Sync date format preference from server → localStorage
   const [newLeadsCount, setNewLeadsCount] = useState(0);
@@ -495,19 +531,63 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                   onClick={() => setAccountMenuOpen(!accountMenuOpen)}
                   className="flex items-center rounded-lg hover:bg-gray-100 px-2 py-1 transition-colors"
                 >
-                  <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-                    <User size={16} className="text-white" />
+                  <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center overflow-hidden">
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                        onError={() => handleAvatarRemove()}
+                      />
+                    ) : (
+                      <User size={16} className="text-white" />
+                    )}
                   </div>
                 </button>
+
+                {/* Hidden file input for the profile photo */}
+                <input
+                  ref={avatarFileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarUpload}
+                />
 
                 {accountMenuOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setAccountMenuOpen(false)} />
                     <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-2">
-                      <div className="px-4 py-3 border-b border-gray-100">
-                        <p className="text-sm font-medium text-gray-900">{user?.email}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">Administrator</p>
+                      <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3">
+                        <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {avatarUrl ? (
+                            <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                          ) : (
+                            <User size={18} className="text-white" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{user?.email}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">Administrator</p>
+                        </div>
                       </div>
+                      <button
+                        onClick={() => avatarFileRef.current?.click()}
+                        disabled={avatarUploading}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                      >
+                        <Camera size={16} className="mr-2 text-gray-400" />
+                        {avatarUploading ? 'Uploading…' : (avatarUrl ? 'Change profile photo' : 'Upload profile photo')}
+                      </button>
+                      {avatarUrl && (
+                        <button
+                          onClick={handleAvatarRemove}
+                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <Trash2 size={16} className="mr-2 text-gray-400" />
+                          Remove photo
+                        </button>
+                      )}
                       <button
                         onClick={() => { setAccountMenuOpen(false); navigate('/admin/settings'); }}
                         className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"

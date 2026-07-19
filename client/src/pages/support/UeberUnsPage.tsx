@@ -9,10 +9,16 @@ import { SITE } from '../../config/site';
 import { useLanguage } from '../../context/LanguageContext';
 
 const UeberUnsPage: React.FC = () => {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const de = language === 'de';
 
-  const SIMON_PHOTO = '/team/simon-parrott.jpg';
+  // Founder photo: prefer the one uploaded in Settings → Manual Website Update
+  // → "About Us / Über uns" → Founder Photo (stored as a URL). If none is set,
+  // fall back to a file dropped at /team/simon-parrott.jpg. t() returns the raw
+  // key when unset, so treat that as "not set".
+  const managed = t('manual.ueberuns.founderPhoto');
+  const managedPhoto = managed && managed !== 'manual.ueberuns.founderPhoto' ? managed : '';
+  const SIMON_PHOTO = managedPhoto || '/team/simon-parrott.jpg';
   const SIMON_LINKEDIN = 'https://www.linkedin.com/in/simon-parrott-192b5867/';
   const SIMON_INSTAGRAM = 'https://www.instagram.com/newagefotografie/';
 
