@@ -12,6 +12,14 @@
     <!-- Viewport & Icons -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 
+    <!-- Speed up image loading: open the TLS connection to the image hosts
+         early (most site photos are on i.postimg.cc; uploads on Backblaze B2)
+         so the first images don't wait on connection setup. -->
+    <link rel="preconnect" href="https://i.postimg.cc" crossorigin>
+    <link rel="dns-prefetch" href="https://i.postimg.cc">
+    <link rel="preconnect" href="https://s3.eu-central-003.backblazeb2.com" crossorigin>
+    <link rel="dns-prefetch" href="https://s3.eu-central-003.backblazeb2.com">
+
     <!-- Cache Control - Force fresh assets -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
