@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GalleryImage } from '../../types/gallery';
+import { proxiedImgProps } from '../../lib/imageProxy';
 import { Heart, Download, Trash2, Eye, Image, Share2, ShoppingCart, Star, Upload } from 'lucide-react';
 import { toggleImageFavorite, deleteGalleryImage, setGalleryCoverImage, setGalleryFeaturedImage } from '../../lib/gallery-api';
 import PrintOrderModal from './PrintOrderModal';
@@ -423,7 +424,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
                 onClick={() => openLightbox(image, index)}
               >
                 <img
-                  src={image.thumbUrl}
+                  {...proxiedImgProps(image.thumbUrl, { w: 500 })}
                   alt={image.filename}
                   className="w-full h-full object-cover transition-transform group-hover:scale-110"
                   loading="lazy"

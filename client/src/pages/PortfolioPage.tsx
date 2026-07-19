@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import useEmblaCarousel from 'embla-carousel-react';
 import { useQuery } from '@tanstack/react-query';
 import Layout from '../components/layout/Layout';
+import { proxiedImgProps } from '../lib/imageProxy';
 import { RelatedTopicsBlock } from '../components/SEO/RelatedTopicsBlock';
 import { PillarLinksBlock } from '../components/SEO/PillarLinksBlock';
 import { useNavigate } from 'react-router-dom';
@@ -175,7 +176,7 @@ const CategoryCarousel: React.FC<{
                         onClick={() => navigate(link)}
                       >
                         <img
-                          src={image.url}
+                          {...proxiedImgProps(image.url, { w: 800 })}
                           alt={image.alt || image.title || 'Portfolio image'}
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                           loading="lazy"
@@ -278,7 +279,7 @@ const FeaturedGrid: React.FC<{ images: PortfolioImage[] }> = ({ images }) => {
               onClick={() => navigate(getCategoryLink(image.category))}
             >
               <img
-                src={image.url}
+                {...proxiedImgProps(image.url, { w: 1000 })}
                 alt={image.alt || image.title || 'Featured image'}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 loading="lazy"

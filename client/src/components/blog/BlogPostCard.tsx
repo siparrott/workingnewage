@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Tag, User } from 'lucide-react';
 import { BlogPost } from '../../types/blog';
+import { proxyImage } from '../../lib/imageProxy';
 
 interface BlogPostCardProps {
   post: BlogPost;
@@ -9,7 +10,8 @@ interface BlogPostCardProps {
 }
 
 const BlogPostCard: React.FC<BlogPostCardProps> = ({ post, isAdmin = false }) => {
-  const formattedDate = post.published_at 
+  const coverUrl: string | undefined = (post as any).image_url;
+  const formattedDate = post.published_at
     ? new Date(post.published_at).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -19,17 +21,24 @@ const BlogPostCard: React.FC<BlogPostCardProps> = ({ post, isAdmin = false }) =>
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:shadow-lg hover:-translate-y-1">
-      {post.image_url && (
+      {coverUrl && (
         <div className="aspect-[14/9] overflow-hidden bg-gray-100">
           <img
-            src={post.image_url}
+            src={proxyImage(coverUrl, { w: 600 })}
             alt={post.title}
             className="w-full h-full object-contain"
             loading="lazy"
+            decoding="async"
             onError={(e) => {
-              // console.error removed
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.parentElement!.classList.add('hidden');
+              // Fall back to the original URL once if the proxy fails; only
+              // then hide the broken image.
+              const img = e.currentTarget;
+              if (coverUrl && img.src !== coverUrl) {
+                img.src = coverUrl;
+                return;
+              }
+              img.style.display = 'none';
+              img.parentElement!.classList.add('hidden');
             }}
           />
         </div>

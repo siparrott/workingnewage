@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
+import { proxyImage } from '../lib/imageProxy';
 // Supabase removed - blog data now served via Neon database API
 import { Calendar, ArrowLeft, Clock } from 'lucide-react';
 // react-helmet-async (NOT legacy react-helmet): the app wraps routes in
@@ -281,7 +282,7 @@ const BlogPostPage: React.FC = () => {
           {post.imageUrl && (
             <div className="mb-8">
               <img
-                src={post.imageUrl}
+                src={proxyImage(post.imageUrl, { w: 1400 })}
                 alt={post.title}
                 // max-h keeps a portrait ("Hochformat") cover from dominating the
                 // article; landscape covers still fill the column width.
@@ -290,6 +291,11 @@ const BlogPostPage: React.FC = () => {
                 decoding="async"
                 {...{ fetchpriority: 'high' }}
                 onError={(e) => {
+                  // Try the original URL once before showing the placeholder.
+                  if (post.imageUrl && e.currentTarget.src !== post.imageUrl) {
+                    e.currentTarget.src = post.imageUrl;
+                    return;
+                  }
                   const parent = e.currentTarget.parentElement;
                   if (parent) {
                     parent.innerHTML = `
