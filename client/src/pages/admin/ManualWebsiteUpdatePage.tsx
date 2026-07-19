@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { useLanguage } from '../../context/LanguageContext';
-import { Save, Eye, RotateCcw, FileText, Globe, Check, X, Upload, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Save, Eye, RotateCcw, FileText, Globe, Check, X, Upload, Trash2, Image as ImageIcon, Sparkles, TrendingUp } from 'lucide-react';
 import { manualPageManifest, type ManualPageDefinition, type ManualPageSection, type ManualPageField } from '../../../../shared/manualPages';
 import Cropper, { Area } from 'react-easy-crop';
 
@@ -1155,6 +1155,10 @@ const ManualWebsiteUpdatePage: React.FC = () => {
   const [cropOrientation, setCropOrientation] = useState<'landscape' | 'portrait' | 'wide'>('landscape');
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [isProcessingCrop, setIsProcessingCrop] = useState(false);
+  // AI field enhancement (refine in tone / SEO-optimise), keyed by translationKey.
+  const [aiFieldBusy, setAiFieldBusy] = useState<Record<string, 'refine' | 'seo'>>({});
+  const [aiFieldTips, setAiFieldTips] = useState<Record<string, string[]>>({});
+  const [aiFieldError, setAiFieldError] = useState<Record<string, string>>({});
   const queryClient = useQueryClient();
   const { t } = useLanguage();
 
@@ -1280,6 +1284,82 @@ const ManualWebsiteUpdatePage: React.FC = () => {
   const handleFieldChange = (fieldId: string, value: string) => {
     setEditedContent(prev => ({ ...prev, [fieldId]: value }));
     setHasUnsavedChanges(true);
+  };
+
+  // Refine the field text in the studio's tone, or SEO-optimise it. The result
+  // replaces the field value (still a draft until Save/Publish).
+  const enhanceField = async (field: ManualPageField, mode: 'refine' | 'seo') => {
+    const key = field.translationKey;
+    const current = (editedContent[key] || '').trim();
+    if (!current) {
+      setAiFieldError(prev => ({ ...prev, [key]: 'Enter some text first, then let AI improve it.' }));
+      return;
+    }
+    setAiFieldBusy(prev => ({ ...prev, [key]: mode }));
+    setAiFieldError(prev => { const n = { ...prev }; delete n[key]; return n; });
+    try {
+      const res = await fetch('/api/manual-pages/enhance-field', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          text: current,
+          mode,
+          label: field.label,
+          pageName: selectedPage?.label || '',
+          language,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.result) throw new Error(data?.error || 'AI could not improve this field');
+      handleFieldChange(key, data.result);
+      setAiFieldTips(prev => ({ ...prev, [key]: Array.isArray(data.tips) ? data.tips : [] }));
+    } catch (e: any) {
+      setAiFieldError(prev => ({ ...prev, [key]: e?.message || 'AI enhancement failed' }));
+    } finally {
+      setAiFieldBusy(prev => { const n = { ...prev }; delete n[key]; return n; });
+    }
+  };
+
+  // Small AI toolbar rendered under editable text fields.
+  const renderAiTools = (field: ManualPageField) => {
+    const key = field.translationKey;
+    const busy = aiFieldBusy[key];
+    const tips = aiFieldTips[key];
+    const err = aiFieldError[key];
+    return (
+      <div className="mt-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => enhanceField(field, 'refine')}
+            disabled={!!busy}
+            className="inline-flex items-center gap-1.5 rounded-md border border-purple-300 bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            {busy === 'refine' ? 'Refining…' : 'Refine in my tone'}
+          </button>
+          <button
+            type="button"
+            onClick={() => enhanceField(field, 'seo')}
+            disabled={!!busy}
+            className="inline-flex items-center gap-1.5 rounded-md border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <TrendingUp className="h-3.5 w-3.5" />
+            {busy === 'seo' ? 'Optimising…' : 'Improve SEO ranking'}
+          </button>
+        </div>
+        {err && <p className="mt-1.5 text-xs text-red-600">{err}</p>}
+        {tips && tips.length > 0 && (
+          <div className="mt-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2">
+            <p className="text-xs font-semibold text-emerald-800 mb-1">SEO tips applied:</p>
+            <ul className="list-disc pl-4 text-xs text-emerald-700 space-y-0.5">
+              {tips.map((tp, i) => <li key={i}>{tp}</li>)}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
   };
 
   // Handles image uploads and stores the returned serve URL in the draft content map.
@@ -1428,6 +1508,7 @@ const ManualWebsiteUpdatePage: React.FC = () => {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             placeholder={`Enter ${field.label.toLowerCase()}...`}
           />
+          {renderAiTools(field)}
           <p className="text-xs text-gray-400 mt-1">Key: {field.translationKey}</p>
         </div>
       );
@@ -1560,6 +1641,7 @@ const ManualWebsiteUpdatePage: React.FC = () => {
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
           placeholder={`Enter ${field.label.toLowerCase()}...`}
         />
+        {renderAiTools(field)}
         <p className="text-xs text-gray-400 mt-1">Key: {field.translationKey}</p>
       </div>
     );

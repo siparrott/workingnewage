@@ -1,7 +1,5 @@
 // Map Landing Page → Google My Business Post
 
-import type { LandingPageGmbPromo } from '../types/landingPagePromoPack.types';
-
 interface PageData {
   title: string;
   slug: string;
@@ -16,7 +14,7 @@ export function mapLandingPageToGmbPromo(
   page: PageData,
   tone: string,
   _objective: string,
-): LandingPageGmbPromo {
+): { gmbPost: string; gmbCta: string; gmbUrl: string } {
   const headline = page.heroHeadline || page.title;
   const sub = page.heroSubheadline || page.offerSummary || '';
   const cta = page.ctaText || 'Book Now';

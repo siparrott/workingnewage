@@ -135,6 +135,50 @@ router.get('/:pageId', async (req, res) => {
   }
 });
 
+// POST /api/manual-pages/enhance-field - AI refine or SEO-optimise a single
+// field's text, in the studio's tone. Registered BEFORE POST /:pageId so the
+// literal path isn't captured as a pageId.
+router.post('/enhance-field', requireAuth, async (req, res) => {
+  try {
+    const { text, mode = 'refine', label = '', pageName = '', language = 'de' } = req.body || {};
+    if (!text || typeof text !== 'string' || !text.trim()) {
+      return res.status(400).json({ error: 'text is required' });
+    }
+
+    const OpenAI = (await import('openai')).default;
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
+
+    const lang = language === 'en' ? 'English' : 'German';
+    const brand = 'New Age Fotografie — a warm, modern photography studio in Vienna. Friendly, human, confident but never salesy; short, natural sentences.';
+
+    const system = mode === 'seo'
+      ? `You are an SEO copywriter for ${brand} Rewrite the given website field so it ranks better for local photography search in Vienna, while keeping the SAME meaning, the SAME language (${lang}) and the author's warm tone. Naturally weave in relevant keywords (e.g. Fotostudio Wien and the service named in the field label) without keyword-stuffing. Keep it concise and human. Return ONLY a JSON object: {"result": "the improved text", "tips": ["2-4 very short SEO tips"]}.`
+      : `You are a copy editor for ${brand} Refine the given website field: fix grammar and flow and make it warm and natural in the studio's tone, keeping the SAME meaning and the SAME language (${lang}). Do NOT invent new facts, prices or claims, and keep roughly the same length. Return ONLY a JSON object: {"result": "the improved text"}.`;
+
+    const completion = await openai.chat.completions.create({
+      model: process.env.OPENAI_LANDING_MODEL || process.env.OPENAI_PRICE_MODEL || 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: `Field label: "${label}"\nPage: "${pageName}"\nLanguage: ${lang}\n\nText to ${mode === 'seo' ? 'SEO-optimise' : 'refine'}:\n${text}` },
+      ],
+      temperature: mode === 'seo' ? 0.7 : 0.5,
+      max_tokens: 800,
+      response_format: { type: 'json_object' },
+    });
+
+    const raw = completion.choices[0]?.message?.content || '{}';
+    let parsed: any;
+    try { parsed = JSON.parse(raw); } catch { return res.status(500).json({ error: 'AI returned an invalid response' }); }
+    const result = typeof parsed.result === 'string' ? parsed.result.trim() : '';
+    if (!result) return res.status(500).json({ error: 'AI returned no text' });
+
+    res.json({ result, tips: Array.isArray(parsed.tips) ? parsed.tips.slice(0, 4).filter((t: any) => typeof t === 'string') : [] });
+  } catch (error: any) {
+    console.error('Enhance field failed:', error?.message || error);
+    res.status(500).json({ error: 'Failed to enhance field. Check the OpenAI key is set.' });
+  }
+});
+
 // POST /api/manual-pages/:pageId - Create or update page content
 router.post('/:pageId', requireAuth, async (req, res) => {
   try {
