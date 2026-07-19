@@ -44,6 +44,28 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
         <Check className="h-3 w-3" /> Saved
       </span>
     ) : null;
+
+  // ONE dropdown that drives both stored columns (placement + position).
+  const VIDEO_POS_MAP: Record<string, { placement: string; position: string }> = {
+    hero: { placement: 'hero', position: 'top' },
+    below: { placement: 'below', position: 'top' },
+    middle: { placement: 'below', position: 'middle' },
+    end: { placement: 'below', position: 'end' },
+    both: { placement: 'both', position: 'top' },
+  };
+  const unifiedVideoPos = (() => {
+    if (videoPlacement === 'hero') return 'hero';
+    if (videoPlacement === 'both') return 'both';
+    if (videoPosition === 'middle') return 'middle';
+    if (videoPosition === 'end') return 'end';
+    return 'below';
+  })();
+  const setUnifiedVideoPos = (val: string) => {
+    const { placement, position } = VIDEO_POS_MAP[val] || VIDEO_POS_MAP.below;
+    setVideoPlacement(placement);
+    setVideoPosition(position);
+    savePatch({ hero_video_placement: placement, hero_video_position: position });
+  };
   const [products, setProducts] = useState<VoucherProduct[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -109,23 +131,25 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
 
   // Persist a single page column (partial update — the editor's content save
   // doesn't touch these columns, so there's no clobber).
-  const saveField = async (field: string, value: string | null): Promise<boolean> => {
+  // Persist one or more page columns in a single request.
+  const savePatch = async (patch: Record<string, string | null>): Promise<boolean> => {
     try {
       const res = await fetch(`/api/admin/landing-pages/${page.id}`, {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [field]: value }),
+        body: JSON.stringify(patch),
       });
       if (!res.ok) throw new Error('Save failed');
-      // Reflect the saved column in the editor's cached page so the live
-      // preview (e.g. the hero video/image) updates immediately, without a
-      // refetch that would reseed & wipe unsaved section edits.
-      qc.setQueryData(['landing-page', page.id], (old: any) => (old ? { ...old, [field]: value } : old));
+      // Reflect the saved columns in the editor's cached page so the live
+      // preview updates immediately, without a refetch that would reseed &
+      // wipe unsaved section edits.
+      qc.setQueryData(['landing-page', page.id], (old: any) => (old ? { ...old, ...patch } : old));
       // Obvious, in-place confirmation (settings auto-save, so the top Save
       // button never lights up for them).
-      setSavedFlash(field);
-      window.setTimeout(() => setSavedFlash((cur) => (cur === field ? null : cur)), 3000);
+      const first = Object.keys(patch)[0];
+      setSavedFlash(first);
+      window.setTimeout(() => setSavedFlash((cur) => (cur === first ? null : cur)), 3000);
       toast({ title: 'Saved', description: 'Setting updated.' });
       return true;
     } catch {
@@ -133,6 +157,7 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
       return false;
     }
   };
+  const saveField = (field: string, value: string | null): Promise<boolean> => savePatch({ [field]: value });
 
   // Dedicated save-status for the hero video, so the button gives an
   // unambiguous Saving… → Saved ✓ signal (with a progress bar).
@@ -358,50 +383,36 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
         )}
         <p className="text-xs text-gray-400">Paste a direct .mp4 link or a YouTube/Vimeo URL, then click Save.</p>
 
-        {/* Where the video appears — shown on EVERY landing page (persistent),
-            so the setting is discoverable even before a URL is pasted. */}
+        {/* ONE dropdown for where the video goes — shown on every landing page. */}
         <div className="space-y-1.5 pt-1">
           <div className="flex items-center justify-between">
             <Label className="text-xs font-medium text-gray-600">Video placement</Label>
             <SavedTick field="hero_video_placement" />
           </div>
           <select
-            value={videoPlacement}
-            onChange={(e) => { setVideoPlacement(e.target.value); saveField('hero_video_placement', e.target.value); }}
+            value={unifiedVideoPos}
+            onChange={(e) => setUnifiedVideoPos(e.target.value)}
             className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
           >
-            <option value="hero">Hero background (behind the headline)</option>
-            <option value="below">Section below the hero (keep the hero image)</option>
-            <option value="both">Both — hero background AND a section below</option>
+            <option value="hero">As the hero image (background, behind the headline)</option>
+            <option value="below">Below the hero</option>
+            <option value="middle">In the middle of the page</option>
+            <option value="end">At the bottom of the page (above the footer)</option>
+            <option value="both">Both — hero background + a section below</option>
           </select>
           <p className="text-[11px] text-gray-400">
             {!heroVideo.trim()
               ? 'Add a Hero video URL above to activate this. Your choice is remembered for this page.'
-              : videoPlacement === 'below'
-              ? 'The hero shows your image; the video plays in its own section.'
-              : videoPlacement === 'both'
-              ? 'The video plays behind the hero and again as a section.'
-              : 'The video plays muted & looping behind the hero (a dark overlay keeps text readable); it takes priority over the hero image.'}
+              : unifiedVideoPos === 'hero'
+              ? 'The video plays muted & looping behind the hero (a dark overlay keeps text readable); it takes priority over the hero image.'
+              : unifiedVideoPos === 'both'
+              ? 'The video plays behind the hero AND again as a section just below it.'
+              : unifiedVideoPos === 'below'
+              ? 'The hero shows your image; the video plays in its own section just below.'
+              : unifiedVideoPos === 'middle'
+              ? 'The hero shows your image; the video plays in its own section in the middle of the page.'
+              : 'The hero shows your image; the video plays in its own section at the bottom, above the footer.'}
           </p>
-
-          {/* Where the in-body video section sits (only when placed as a section) */}
-          {(videoPlacement === 'below' || videoPlacement === 'both') && (
-            <div className="space-y-1.5 pt-1">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium text-gray-600">Video position on the page</Label>
-                <SavedTick field="hero_video_position" />
-              </div>
-              <select
-                value={videoPosition}
-                onChange={(e) => { setVideoPosition(e.target.value); saveField('hero_video_position', e.target.value); }}
-                className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-              >
-                <option value="top">Just below the hero</option>
-                <option value="middle">Middle of the page</option>
-                <option value="end">Near the end (before the footer)</option>
-              </select>
-            </div>
-          )}
         </div>
       </div>
     </div>
