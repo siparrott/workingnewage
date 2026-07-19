@@ -1354,8 +1354,9 @@ const ManualWebsiteUpdatePage: React.FC = () => {
     try {
       let fileToUpload = cropModal.file;
 
-      // For "Wide Hero" orientation, always use original (no crop)
-      const shouldUseOriginal = useOriginal || cropOrientation === 'wide';
+      // Only skip cropping when the user explicitly clicks "Use Original".
+      // Every orientation (incl. Wide Hero) otherwise crops to its frame.
+      const shouldUseOriginal = useOriginal;
 
       if (!shouldUseOriginal && croppedAreaPixels) {
         const croppedBlob = await getCroppedImageBlob(cropModal.imageSrc, croppedAreaPixels, cropModal.mimeType);
@@ -1836,7 +1837,7 @@ const ManualWebsiteUpdatePage: React.FC = () => {
               image={cropModal.imageSrc}
               crop={cropPosition}
               zoom={cropZoom}
-              aspect={cropOrientation === 'landscape' ? 16 / 10 : cropOrientation === 'portrait' ? 10 / 16 : undefined}
+              aspect={cropOrientation === 'landscape' ? 16 / 10 : cropOrientation === 'portrait' ? 10 / 16 : 16 / 9}
               cropShape="rect"
               showGrid={true}
               onCropChange={setCropPosition}
@@ -1848,13 +1849,13 @@ const ManualWebsiteUpdatePage: React.FC = () => {
             />
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <div className={`relative border-2 border-white/80 rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.4)] ${
-                cropOrientation === 'landscape' ? 'w-[85%] max-w-[720px] aspect-[16/10]' : 
+                cropOrientation === 'landscape' ? 'w-[85%] max-w-[720px] aspect-[16/10]' :
                 cropOrientation === 'portrait' ? 'h-[85%] max-h-[640px] aspect-[10/16]' :
-                'w-[90%] h-[90%]'
+                'w-[90%] max-w-[760px] aspect-[16/9]'
               }`}>
                 <div className="absolute inset-0 rounded-xl border border-white/40 border-dashed" />
                 <span className="absolute bottom-3 right-3 rounded-full bg-black/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
-                  {cropOrientation === 'landscape' ? 'Landscape · 16:10' : cropOrientation === 'portrait' ? 'Portrait · 10:16' : 'Wide Hero · No Crop'} · {cropModal.field.label}
+                  {cropOrientation === 'landscape' ? 'Landscape · 16:10' : cropOrientation === 'portrait' ? 'Portrait · 10:16' : 'Wide Hero · 16:9'} · {cropModal.field.label}
                 </span>
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8">
                   <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-white/60"></div>
@@ -1913,23 +1914,21 @@ const ManualWebsiteUpdatePage: React.FC = () => {
             </button>
 
             <div className="flex gap-3">
-              {cropOrientation !== 'wide' && (
-                <button
-                  type="button"
-                  onClick={() => handleCropConfirm(true)}
-                  disabled={isProcessingCrop}
-                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Use Original
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => handleCropConfirm(true)}
+                disabled={isProcessingCrop}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Use Original
+              </button>
               <button
                 type="button"
                 onClick={() => handleCropConfirm(false)}
                 disabled={isProcessingCrop}
                 className="rounded-lg bg-purple-600 px-5 py-2 text-sm font-semibold text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isProcessingCrop ? 'Saving…' : cropOrientation === 'wide' ? 'Save Original (No Crop)' : 'Save Crop'}
+                {isProcessingCrop ? 'Saving…' : cropOrientation === 'wide' ? 'Save Wide Hero Crop' : 'Save Crop'}
               </button>
             </div>
           </div>

@@ -28,13 +28,13 @@ const UeberUnsPage: React.FC = () => {
   const storyRows = [
     {
       year: de ? 'Vor Wien' : 'Before Vienna',
-      station: de ? 'Südafrika & Großbritannien' : 'South Africa & the UK',
-      story: de ? 'Die ersten Schritte in der Portraitfotografie – geprägt durch unterschiedliche Menschen, Kulturen und Geschichten.' : 'The first steps in portrait photography – shaped by different people, cultures and stories.',
+      station: de ? 'Brighton (UK) & Südafrika' : 'Brighton (UK) & South Africa',
+      story: de ? 'Hier habe ich mein Handwerk gelernt – die ersten Schritte in der Portraitfotografie, geprägt durch unterschiedliche Menschen, Kulturen und Geschichten.' : 'Where I learned my craft – the first steps in portrait photography, shaped by different people, cultures and stories.',
     },
     {
-      year: de ? 'London' : 'London',
+      year: de ? 'Brighton (UK)' : 'Brighton (UK)',
       station: de ? 'Professionelle Fotografie' : 'Professional photography',
-      story: de ? 'Arbeit in einem der kreativsten Märkte Europas.' : 'Working in one of Europe’s most creative markets.',
+      story: de ? 'Arbeit in einer der kreativsten Küstenstädte Großbritanniens.' : 'Working in one of the UK’s most creative coastal cities.',
     },
     {
       year: '2012',
@@ -321,7 +321,7 @@ const UeberUnsPage: React.FC = () => {
             <p className="text-lg text-slate-700">{de ? 'Hallo, ich bin Simon.' : 'Hello, I’m Simon.'}</p>
             <p className="text-lg text-slate-700">{de ? 'Nach vielen Jahren hinter der Kamera habe ich eines gelernt: Die beste Technik der Welt bedeutet wenig, wenn Menschen sich vor der Kamera nicht wohlfühlen.' : 'After many years behind the camera, I’ve learned one thing: the best technology in the world means little if people don’t feel comfortable in front of the camera.'}</p>
             <p className="text-lg text-slate-700">{de ? 'Ein gutes Portrait beginnt nicht mit dem Auslösen der Kamera. Es beginnt mit Vertrauen.' : 'A good portrait doesn’t begin with the click of the shutter. It begins with trust.'}</p>
-            <p className="text-lg text-slate-700">{de ? <>Mein Weg führte mich von Südafrika über London nach Wien. Diese internationale Erfahrung prägt bis heute meinen Stil: <strong>Modern, natürlich und voller Persönlichkeit.</strong></> : <>My path led me from South Africa, via London, to Vienna. This international experience still shapes my style today: <strong>modern, natural and full of personality.</strong></>}</p>
+            <p className="text-lg text-slate-700">{de ? <>Mein Handwerk habe ich in Brighton (UK) und Südafrika gelernt, bevor Wien mein Zuhause wurde. Diese internationale Erfahrung prägt bis heute meinen Stil: <strong>Modern, natürlich und voller Persönlichkeit.</strong></> : <>I learned my craft in Brighton (UK) and South Africa before making Vienna my home. This international experience still shapes my style today: <strong>modern, natural and full of personality.</strong></>}</p>
             <p className="text-lg text-slate-700">{de ? 'Seit der Eröffnung unseres Studios in Wien durfte ich Familien wachsen sehen, Babys fotografieren, die heute schon zur Schule gehen, und Menschen begleiten, die normalerweise sagen:' : 'Since opening our studio in Vienna, I’ve watched families grow, photographed babies who are already at school today, and worked with people who usually say:'}</p>
             <p className="text-lg italic text-slate-800">{de ? '“Ich bin nicht fotogen.”' : '“I’m not photogenic.”'}</p>
             <p className="text-lg text-slate-700">{de ? 'Meine Antwort ist immer dieselbe:' : 'My answer is always the same:'}</p>

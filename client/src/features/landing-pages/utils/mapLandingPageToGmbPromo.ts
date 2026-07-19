@@ -25,7 +25,7 @@ export function mapLandingPageToGmbPromo(
   const gmbPost = [
     headline,
     sub ? `\n${sub}` : '',
-    tone === 'urgent' ? '\n\nLimited spots available — don't miss out!' : '',
+    tone === 'urgent' ? "\n\nLimited spots available — don't miss out!" : '',
     `\n\n${cta} at {{page_url}}`,
   ]
     .filter(Boolean)
