@@ -789,8 +789,8 @@ export const manualPageManifest: ManualPageDefinition[] = [
     id: 'ueber-uns',
     label: 'About Us / Über uns',
     route: '/ueber-uns',
-    description: 'The founder photo shown on the About Us page (Simon). Upload here — no code or file drop needed.',
-    tags: ['About', 'Photo'],
+    description: 'The founder photo and story shown on the About Us page (Simon). Edit here — no code needed. Leave a field blank to keep the built-in default.',
+    tags: ['About', 'Photo', 'Story'],
     sections: [
       {
         id: 'ueber-uns-founder',
@@ -798,6 +798,17 @@ export const manualPageManifest: ManualPageDefinition[] = [
         description: 'The portrait shown next to the founder story on /ueber-uns/. Recommended a square image (e.g. 600×600).',
         fields: [
           makeField('ueber-uns-founder-photo', 'Founder Photo', 'manual.ueberuns.founderPhoto', 'image', 'Square portrait, e.g. 600×600px'),
+        ],
+      },
+      {
+        id: 'ueber-uns-story',
+        label: 'Founder Story (text)',
+        description: 'The paragraphs of Simon’s story. Each field overrides the built-in text in the CURRENTLY selected language (switch EN/DE at the top). Leave blank to keep the default.',
+        fields: [
+          makeField('ueber-uns-intro', 'Intro line', 'manual.ueberuns.bio.intro', 'shortText', 'e.g. “Hello, I’m Simon.”'),
+          makeField('ueber-uns-craft', 'Craft & style paragraph', 'manual.ueberuns.bio.craft', 'longForm', 'Where you trained and your style (mention “authentic portraits”).'),
+          makeField('ueber-uns-journey', 'Studio journey paragraph', 'manual.ueberuns.bio.journey', 'longForm', 'Since opening the studio… ending with “…people who usually say:”'),
+          makeField('ueber-uns-closing', 'Closing line', 'manual.ueberuns.bio.closing', 'longForm', 'The reassuring “You are…” answer.'),
         ],
       },
     ],

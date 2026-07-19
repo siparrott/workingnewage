@@ -19,6 +19,14 @@ const UeberUnsPage: React.FC = () => {
   const managed = t('manual.ueberuns.founderPhoto');
   const managedPhoto = managed && managed !== 'manual.ueberuns.founderPhoto' ? managed : '';
   const SIMON_PHOTO = managedPhoto || '/team/simon-parrott.jpg';
+
+  // Founder-story paragraphs are editable in Settings → Manual Website Update →
+  // "About Us / Über uns" → Founder Story (per language). t() returns the raw
+  // key when unset, so fall back to the built-in copy below in that case.
+  const mv = (key: string, fallback: React.ReactNode): React.ReactNode => {
+    const v = t(key);
+    return v && v !== key ? v : fallback;
+  };
   const SIMON_LINKEDIN = 'https://www.linkedin.com/in/simon-parrott-192b5867/';
   const SIMON_INSTAGRAM = 'https://www.instagram.com/newagefotografie/';
 
@@ -318,14 +326,14 @@ const UeberUnsPage: React.FC = () => {
                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
               />
             )}
-            <p className="text-lg text-slate-700">{de ? 'Hallo, ich bin Simon.' : 'Hello, I’m Simon.'}</p>
+            <p className="text-lg text-slate-700">{mv('manual.ueberuns.bio.intro', de ? 'Hallo, ich bin Simon.' : 'Hello, I’m Simon.')}</p>
             <p className="text-lg text-slate-700">{de ? 'Nach vielen Jahren hinter der Kamera habe ich eines gelernt: Die beste Technik der Welt bedeutet wenig, wenn Menschen sich vor der Kamera nicht wohlfühlen.' : 'After many years behind the camera, I’ve learned one thing: the best technology in the world means little if people don’t feel comfortable in front of the camera.'}</p>
             <p className="text-lg text-slate-700">{de ? 'Ein gutes Portrait beginnt nicht mit dem Auslösen der Kamera. Es beginnt mit Vertrauen.' : 'A good portrait doesn’t begin with the click of the shutter. It begins with trust.'}</p>
-            <p className="text-lg text-slate-700">{de ? <>Mein Handwerk habe ich in Brighton (UK) und Südafrika gelernt, bevor Wien mein Zuhause wurde. Diese internationale Erfahrung prägt bis heute meinen Stil: <strong>Modern, natürlich und voller Persönlichkeit.</strong></> : <>I learned my craft in Brighton (UK) and South Africa before making Vienna my home. This international experience still shapes my style today: <strong>modern, natural and full of personality.</strong></>}</p>
-            <p className="text-lg text-slate-700">{de ? 'Seit der Eröffnung unseres Studios in Wien durfte ich Familien wachsen sehen, Babys fotografieren, die heute schon zur Schule gehen, und Menschen begleiten, die normalerweise sagen:' : 'Since opening our studio in Vienna, I’ve watched families grow, photographed babies who are already at school today, and worked with people who usually say:'}</p>
+            <p className="text-lg text-slate-700">{mv('manual.ueberuns.bio.craft', de ? <>Mein Handwerk habe ich in Brighton (UK) und Südafrika gelernt, bevor Wien mein Zuhause wurde. Diese internationale Erfahrung prägt bis heute meinen Stil: <strong>moderne, natürliche und authentische Portraits – voller Persönlichkeit Ihrer Familie.</strong></> : <>I learned my craft in Brighton (UK) and South Africa before making Vienna my home. This international experience still shapes my style today: <strong>modern, natural and authentic portraits, full of your family’s personality.</strong></>)}</p>
+            <p className="text-lg text-slate-700">{mv('manual.ueberuns.bio.journey', de ? 'Seit der Eröffnung unseres Studios in Wien im Jahr 2012 durften wir Familien wachsen sehen: Babys, die heute schon zur Schule gehen, Teenager, deren Hochzeiten wir später fotografiert haben – und Menschen begleiten, die normalerweise sagen:' : 'Since opening our studio in Vienna in 2012, we’ve watched families grow — babies who are already at school today, teenagers whose weddings we later photographed — and worked with people who usually say:')}</p>
             <p className="text-lg italic text-slate-800">{de ? '“Ich bin nicht fotogen.”' : '“I’m not photogenic.”'}</p>
             <p className="text-lg text-slate-700">{de ? 'Meine Antwort ist immer dieselbe:' : 'My answer is always the same:'}</p>
-            <p className="text-xl font-semibold text-slate-950">{de ? 'Doch. Du brauchst nur jemanden hinter der Kamera, der dich richtig sieht.' : 'You are. You just need someone behind the camera who truly sees you.'}</p>
+            <p className="text-xl font-semibold text-slate-950">{mv('manual.ueberuns.bio.closing', de ? 'Doch. Du brauchst nur jemanden hinter der Kamera, der dich wirklich sieht – und das authentische „Du“ einfängt, das man nicht stellen kann.' : 'You are. You just need someone behind the camera who truly sees you — someone who captures the authentic “you” that can’t be posed.')}</p>
             <div className="flex flex-wrap gap-4 pt-2">
               <a
                 href={SIMON_LINKEDIN}
