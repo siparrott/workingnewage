@@ -432,6 +432,8 @@ app.use((req, res, next) => {
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS hero_video_url TEXT`);
         // Video placement: 'hero' (background, default) | 'below' | 'both'.
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS hero_video_placement TEXT`);
+        // In-body video position: 'top' (below hero, default) | 'middle' | 'end'.
+        await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS hero_video_position TEXT`);
         // Drag-to-fit hero crop: JSON {x,y,zoom} — object-position % + scale.
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS hero_image_position TEXT`);
         console.log('✅ landing_page_events + publishing/media/CTA columns ensured');

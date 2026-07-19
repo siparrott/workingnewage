@@ -35,6 +35,7 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
   const [heroImage, setHeroImage] = useState<string>(p.hero_image_url || '');
   const [heroVideo, setHeroVideo] = useState<string>(p.hero_video_url || '');
   const [videoPlacement, setVideoPlacement] = useState<string>(p.hero_video_placement || 'hero');
+  const [videoPosition, setVideoPosition] = useState<string>(p.hero_video_position || 'top');
   // Which field just auto-saved (shows an inline green ✓ for a few seconds).
   const [savedFlash, setSavedFlash] = useState<string | null>(null);
   const SavedTick = ({ field }: { field: string }) =>
@@ -376,11 +377,30 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
             </select>
             <p className="text-[11px] text-gray-400">
               {videoPlacement === 'below'
-                ? 'The hero shows your image; the video plays in its own section just below.'
+                ? 'The hero shows your image; the video plays in its own section.'
                 : videoPlacement === 'both'
-                ? 'The video plays behind the hero and again as a section below.'
+                ? 'The video plays behind the hero and again as a section.'
                 : 'The video plays muted & looping behind the hero (a dark overlay keeps text readable); it takes priority over the hero image.'}
             </p>
+
+            {/* Where the in-body video section sits (only when placed as a section) */}
+            {(videoPlacement === 'below' || videoPlacement === 'both') && (
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium text-gray-600">Video position on the page</Label>
+                  <SavedTick field="hero_video_position" />
+                </div>
+                <select
+                  value={videoPosition}
+                  onChange={(e) => { setVideoPosition(e.target.value); saveField('hero_video_position', e.target.value); }}
+                  className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  <option value="top">Just below the hero</option>
+                  <option value="middle">Middle of the page</option>
+                  <option value="end">Near the end (before the footer)</option>
+                </select>
+              </div>
+            )}
           </div>
         )}
       </div>

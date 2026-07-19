@@ -152,6 +152,8 @@ export function PublicLandingPageRenderer({
   const videoPlacement = ((page as any).hero_video_placement || 'hero') as 'hero' | 'below' | 'both';
   const videoAsBackground = videoPlacement === 'hero' || videoPlacement === 'both';
   const showVideoSection = !!heroVideoUrl && (videoPlacement === 'below' || videoPlacement === 'both');
+  // Where the in-body video section sits: 'top' (just below hero), 'middle', 'end'.
+  const videoPosition = ((page as any).hero_video_position || 'top') as 'top' | 'middle' | 'end';
 
   // Section renderer map — uses raw DB field names from content_json
   const sectionRenderers: Partial<Record<LandingPageSectionKey, () => React.JSX.Element | null>> = {
@@ -256,20 +258,26 @@ export function PublicLandingPageRenderer({
       {isPreview && <PublicLandingPagePreviewBanner expiresAt={previewExpiresAt} />}
 
       <div className={`min-h-screen bg-white font-sans ${isPreview ? 'pt-10' : ''}`}>
-        {visibleSections.map(sectionKey => {
-          const renderer = sectionRenderers[sectionKey];
-          const el = renderer ? renderer() : null;
-          // Drop the in-body video section straight after the hero.
-          if (sectionKey === 'hero' && showVideoSection) {
-            return (
-              <React.Fragment key="hero+video">
-                {el}
-                <PublicLandingPageVideoSection videoUrl={heroVideoUrl} />
-              </React.Fragment>
-            );
+        {(() => {
+          // Render the visible sections, then splice the video section in at the
+          // chosen position (top = just below hero, middle, or end).
+          const els = visibleSections
+            .map((key) => {
+              const r = sectionRenderers[key];
+              return r ? r() : null;
+            })
+            .filter(Boolean) as React.JSX.Element[];
+
+          if (showVideoSection) {
+            const videoEl = <PublicLandingPageVideoSection key="video-section" videoUrl={heroVideoUrl} />;
+            let idx: number;
+            if (videoPosition === 'end') idx = els.length;
+            else if (videoPosition === 'middle') idx = Math.max(1, Math.ceil(els.length / 2));
+            else idx = 1; // 'top' → straight after the hero (first section)
+            els.splice(Math.min(idx, els.length), 0, videoEl);
           }
-          return el;
-        })}
+          return els;
+        })()}
 
         <PublicLandingPageSeoFooter city={page.city} />
       </div>
