@@ -1,7 +1,7 @@
 // PublicLandingPageRenderer — Phase 4 + Phase 5 Event Tracking
 // Master component that renders visible sections in order with SEO metadata + JSON-LD
 
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { buildLandingPageMetadata } from '../../utils/buildLandingPageMetadata';
 import { buildLandingPageSchema } from '../../utils/buildLandingPageSchema';
@@ -10,6 +10,7 @@ import { normalizeAlign } from '../../utils/sectionAlignment';
 import { trackPageView } from '../../utils/trackLandingPageEvent';
 import type { LandingPageSectionKey } from '../../types/landingPageEditor.types';
 import { PublicLandingPageHero } from './PublicLandingPageHero';
+import { PublicLandingPageVideoSection } from './PublicLandingPageVideoSection';
 import { PublicLandingPageTrustBar } from './PublicLandingPageTrustBar';
 import { PublicLandingPageProblemSection } from './PublicLandingPageProblemSection';
 import { PublicLandingPageOfferSection } from './PublicLandingPageOfferSection';
@@ -145,6 +146,13 @@ export function PublicLandingPageRenderer({
   const alignmentMap = (content?.meta?.sectionAlignment ?? {}) as Record<string, 'left' | 'center' | 'right'>;
   const alignFor = (key: string): 'left' | 'center' | 'right' => normalizeAlign(alignmentMap[key]);
 
+  // Hero video placement: 'hero' (background, default) | 'below' (image in the
+  // hero, video as its own section) | 'both'.
+  const heroVideoUrl = (page as any).hero_video_url || null;
+  const videoPlacement = ((page as any).hero_video_placement || 'hero') as 'hero' | 'below' | 'both';
+  const videoAsBackground = videoPlacement === 'hero' || videoPlacement === 'both';
+  const showVideoSection = !!heroVideoUrl && (videoPlacement === 'below' || videoPlacement === 'both');
+
   // Section renderer map — uses raw DB field names from content_json
   const sectionRenderers: Partial<Record<LandingPageSectionKey, () => React.JSX.Element | null>> = {
     hero: () => content.hero ? (
@@ -152,7 +160,8 @@ export function PublicLandingPageRenderer({
         key="hero"
         data={content.hero}
         imageUrl={(page as any).hero_image_url || null}
-        videoUrl={(page as any).hero_video_url || null}
+        videoUrl={heroVideoUrl}
+        videoAsBackground={videoAsBackground}
         imagePosition={(page as any).hero_image_position || null}
         ctaHref={ctaHref}
         ctaText={ctaText}
@@ -249,7 +258,17 @@ export function PublicLandingPageRenderer({
       <div className={`min-h-screen bg-white font-sans ${isPreview ? 'pt-10' : ''}`}>
         {visibleSections.map(sectionKey => {
           const renderer = sectionRenderers[sectionKey];
-          return renderer ? renderer() : null;
+          const el = renderer ? renderer() : null;
+          // Drop the in-body video section straight after the hero.
+          if (sectionKey === 'hero' && showVideoSection) {
+            return (
+              <React.Fragment key="hero+video">
+                {el}
+                <PublicLandingPageVideoSection videoUrl={heroVideoUrl} />
+              </React.Fragment>
+            );
+          }
+          return el;
         })}
 
         <PublicLandingPageSeoFooter city={page.city} />

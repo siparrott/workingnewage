@@ -12,6 +12,9 @@ interface PublicLandingPageHeroProps {
   };
   imageUrl?: string | null;
   videoUrl?: string | null;
+  /** When false, the hero shows the IMAGE and the video is rendered lower in
+   *  the page as its own section instead of the hero background. Default true. */
+  videoAsBackground?: boolean;
   /** JSON {x,y,zoom} from the editor's drag-to-fit tool. */
   imagePosition?: string | null;
   ctaHref: string;
@@ -55,6 +58,7 @@ export function PublicLandingPageHero({
   data,
   imageUrl,
   videoUrl,
+  videoAsBackground = true,
   imagePosition,
   ctaHref,
   ctaText,
@@ -62,17 +66,20 @@ export function PublicLandingPageHero({
   pageSlug,
   isPreview,
 }: PublicLandingPageHeroProps) {
-  const hasMedia = !!(imageUrl || videoUrl);
+  // Only treat the video as the hero background when placement allows it;
+  // otherwise the hero uses the image and the video renders lower down.
+  const bgVideo = videoAsBackground ? videoUrl : null;
+  const hasMedia = !!(imageUrl || bgVideo);
   const pos = parseHeroPosition(imagePosition);
   return (
     <section className="relative bg-gradient-to-br from-purple-700 via-purple-600 to-pink-600 text-white overflow-hidden">
       {/* Optional background media (video preferred over image), with a dark
           overlay so the headline/CTA stay readable. */}
-      {videoUrl ? (
+      {bgVideo ? (
         // YouTube/Vimeo links can't play in a <video> tag — render them as a
         // muted, looping background iframe; direct files (.mp4) use <video>.
         (() => {
-          const embed = getVideoEmbedUrl(videoUrl);
+          const embed = getVideoEmbedUrl(bgVideo);
           return embed ? (
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
               <iframe
@@ -86,7 +93,7 @@ export function PublicLandingPageHero({
           ) : (
             <video
               className="absolute inset-0 w-full h-full object-cover"
-              src={videoUrl}
+              src={bgVideo}
               autoPlay
               muted
               loop

@@ -34,6 +34,7 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
   const [offerTitle, setOfferTitle] = useState<string>(p.cta_voucher_title || '');
   const [heroImage, setHeroImage] = useState<string>(p.hero_image_url || '');
   const [heroVideo, setHeroVideo] = useState<string>(p.hero_video_url || '');
+  const [videoPlacement, setVideoPlacement] = useState<string>(p.hero_video_placement || 'hero');
   const [products, setProducts] = useState<VoucherProduct[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -335,7 +336,31 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
             )}
           </div>
         )}
-        <p className="text-xs text-gray-400">Plays muted &amp; looping behind the hero (a dark overlay keeps text readable). Paste a direct .mp4 link or a YouTube/Vimeo URL, then click Save. Video takes priority over the hero image.</p>
+        <p className="text-xs text-gray-400">Paste a direct .mp4 link or a YouTube/Vimeo URL, then click Save.</p>
+
+        {/* Where the video appears — lets you keep the hero IMAGE and show the
+            video lower in the page instead of as the hero background. */}
+        {heroVideo.trim() && (
+          <div className="space-y-1.5 pt-1">
+            <Label className="text-xs font-medium text-gray-600">Video placement</Label>
+            <select
+              value={videoPlacement}
+              onChange={(e) => { setVideoPlacement(e.target.value); saveField('hero_video_placement', e.target.value); }}
+              className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            >
+              <option value="hero">Hero background (behind the headline)</option>
+              <option value="below">Section below the hero (keep the hero image)</option>
+              <option value="both">Both — hero background AND a section below</option>
+            </select>
+            <p className="text-[11px] text-gray-400">
+              {videoPlacement === 'below'
+                ? 'The hero shows your image; the video plays in its own section just below.'
+                : videoPlacement === 'both'
+                ? 'The video plays behind the hero and again as a section below.'
+                : 'The video plays muted & looping behind the hero (a dark overlay keeps text readable); it takes priority over the hero image.'}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
