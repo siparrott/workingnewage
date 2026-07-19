@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import {
   ArrowLeft, ChevronRight, Wand2, RefreshCw, Monitor, Smartphone,
   Eye, Edit, CheckCircle, Globe, MessageSquare, Shield, HelpCircle,
-  Target, Users, Zap, Sparkles, Plus
+  Target, Users, Zap, Sparkles, Plus, Check, X
 } from 'lucide-react';
 
 // Feature imports — modular architecture
@@ -209,6 +209,34 @@ const defaultWizardData: WizardData = {
   slug: '',
 };
 
+// Service Type tiles. Editable by the user (add/rename/delete) and persisted
+// in localStorage under LP_SERVICE_TILES_KEY, so the default list below is only
+// the seed for a first-time user.
+interface ServiceTile { value: string; label: string; icon: string }
+const LP_SERVICE_TILES_KEY = 'lpServiceTiles';
+const DEFAULT_SERVICE_TILES: ServiceTile[] = [
+  { value: 'family', label: 'Family', icon: '👨‍👩‍👧‍👦' },
+  { value: 'newborn', label: 'Newborn', icon: '👶' },
+  { value: 'maternity', label: 'Maternity', icon: '🤰' },
+  { value: 'wedding', label: 'Wedding', icon: '💒' },
+  { value: 'business', label: 'Business', icon: '💼' },
+  { value: 'cake_smash', label: 'Cake Smash', icon: '🎂' },
+  { value: 'mini_session', label: 'Mini Session', icon: '⚡' },
+  { value: 'custom', label: 'Custom', icon: '✏️' },
+];
+const loadServiceTiles = (): ServiceTile[] => {
+  try {
+    const saved = localStorage.getItem(LP_SERVICE_TILES_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length) return parsed.filter((t) => t && t.value && t.label);
+    }
+  } catch { /* fall through to defaults */ }
+  return DEFAULT_SERVICE_TILES;
+};
+const slugifyServiceValue = (label: string): string =>
+  label.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || `svc_${label.length}`;
+
 // ===== WIZARD (TODO: Phase 2 — AI-powered generation) =====
 const WIZARD_STEPS = [
   { num: 1, title: 'What are you selling?', icon: Target },
@@ -229,8 +257,65 @@ function LandingPageWizard({ data, setData, step, setStep, onBack, onComplete }:
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
 
+  // Editable, persisted Service Type tiles + multi-select.
+  const [serviceTiles, setServiceTiles] = useState<ServiceTile[]>(loadServiceTiles);
+  const [manageTiles, setManageTiles] = useState(false);
+  const [editingTile, setEditingTile] = useState<string | null>(null); // tile value being edited, or '__new__'
+  const [tileDraft, setTileDraft] = useState<{ label: string; icon: string }>({ label: '', icon: '' });
+
+  const persistTiles = (tiles: ServiceTile[]) => {
+    setServiceTiles(tiles);
+    try { localStorage.setItem(LP_SERVICE_TILES_KEY, JSON.stringify(tiles)); } catch { /* ignore quota */ }
+  };
+
   const updateField = (field: keyof WizardData, value: string) => {
     setData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Selected services are stored as a comma-joined string in data.primaryService
+  // (keeps the server/DB contract unchanged — it flows into the AI prompt as-is).
+  const selectedServices = (data.primaryService || '').split(',').map(s => s.trim()).filter(Boolean);
+  const toggleService = (value: string) => {
+    const set = new Set(selectedServices);
+    if (set.has(value)) set.delete(value); else set.add(value);
+    updateField('primaryService', Array.from(set).join(', '));
+  };
+
+  const startEditTile = (tile: ServiceTile) => {
+    setEditingTile(tile.value);
+    setTileDraft({ label: tile.label, icon: tile.icon });
+  };
+  const startAddTile = () => {
+    setEditingTile('__new__');
+    setTileDraft({ label: '', icon: '✨' });
+  };
+  const saveTileDraft = () => {
+    const label = tileDraft.label.trim();
+    if (!label) return;
+    const icon = tileDraft.icon.trim() || '✨';
+    if (editingTile === '__new__') {
+      let value = slugifyServiceValue(label);
+      // ensure unique value
+      const existing = new Set(serviceTiles.map(t => t.value));
+      while (existing.has(value)) value = `${value}_1`;
+      persistTiles([...serviceTiles, { value, label, icon }]);
+    } else if (editingTile) {
+      persistTiles(serviceTiles.map(t => t.value === editingTile ? { ...t, label, icon } : t));
+    }
+    setEditingTile(null);
+    setTileDraft({ label: '', icon: '' });
+  };
+  const deleteTile = (value: string) => {
+    persistTiles(serviceTiles.filter(t => t.value !== value));
+    // Also drop it from the current selection if it was selected.
+    if (selectedServices.includes(value)) {
+      updateField('primaryService', selectedServices.filter(v => v !== value).join(', '));
+    }
+    if (editingTile === value) setEditingTile(null);
+  };
+  const resetTiles = () => {
+    persistTiles(DEFAULT_SERVICE_TILES);
+    setEditingTile(null);
   };
 
   const handleGenerate = async () => {
@@ -373,28 +458,124 @@ function LandingPageWizard({ data, setData, step, setStep, onBack, onComplete }:
               </div>
 
               <div className="space-y-2">
-                <Label className="font-medium">Service Type</Label>
-                <div className="grid grid-cols-4 gap-3">
-                  {[
-                    { value: 'family', label: 'Family', icon: '👨‍👩‍👧‍👦' },
-                    { value: 'newborn', label: 'Newborn', icon: '👶' },
-                    { value: 'maternity', label: 'Maternity', icon: '🤰' },
-                    { value: 'wedding', label: 'Wedding', icon: '💒' },
-                    { value: 'business', label: 'Business', icon: '💼' },
-                    { value: 'cake_smash', label: 'Cake Smash', icon: '🎂' },
-                    { value: 'mini_session', label: 'Mini Session', icon: '⚡' },
-                    { value: 'custom', label: 'Custom', icon: '✏️' },
-                  ].map(opt => (
-                    <button key={opt.value}
-                      onClick={() => updateField('primaryService', opt.value)}
-                      className={`p-3 border-2 rounded-lg text-center transition-all ${
-                        data.primaryService === opt.value ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-gray-300'
-                      }`}>
-                      <span className="text-xl">{opt.icon}</span>
-                      <p className="text-sm font-medium mt-1">{opt.label}</p>
+                <div className="flex items-center justify-between">
+                  <Label className="font-medium">Service Type <span className="text-xs font-normal text-gray-400">(select one or more)</span></Label>
+                  <div className="flex items-center gap-3">
+                    {manageTiles && (
+                      <button type="button" onClick={resetTiles} className="text-xs text-gray-500 hover:text-gray-700 underline">
+                        Reset to defaults
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => { setManageTiles(m => !m); setEditingTile(null); }}
+                      className={`text-xs font-medium underline ${manageTiles ? 'text-purple-700' : 'text-purple-600 hover:text-purple-800'}`}
+                    >
+                      {manageTiles ? 'Done editing' : 'Edit tiles'}
                     </button>
-                  ))}
+                  </div>
                 </div>
+                <div className="grid grid-cols-4 gap-3">
+                  {serviceTiles.map(opt => {
+                    const selected = selectedServices.includes(opt.value);
+                    const isEditing = editingTile === opt.value;
+                    if (isEditing) {
+                      return (
+                        <div key={opt.value} className="p-2 border-2 border-purple-400 rounded-lg bg-white space-y-1 col-span-2">
+                          <div className="flex gap-1">
+                            <input
+                              value={tileDraft.icon}
+                              onChange={e => setTileDraft(d => ({ ...d, icon: e.target.value }))}
+                              className="w-12 px-2 py-1 border rounded text-center text-lg"
+                              placeholder="🙂"
+                              aria-label="Icon"
+                            />
+                            <input
+                              value={tileDraft.label}
+                              onChange={e => setTileDraft(d => ({ ...d, label: e.target.value }))}
+                              onKeyDown={e => { if (e.key === 'Enter') saveTileDraft(); }}
+                              className="flex-1 px-2 py-1 border rounded text-sm"
+                              placeholder="Label"
+                              autoFocus
+                            />
+                          </div>
+                          <div className="flex gap-1">
+                            <button type="button" onClick={saveTileDraft} className="flex-1 px-2 py-1 bg-purple-600 text-white rounded text-xs font-medium hover:bg-purple-700">Save</button>
+                            <button type="button" onClick={() => setEditingTile(null)} className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs hover:bg-gray-200">Cancel</button>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={opt.value} className="relative">
+                        <button type="button"
+                          onClick={() => manageTiles ? startEditTile(opt) : toggleService(opt.value)}
+                          className={`w-full p-3 border-2 rounded-lg text-center transition-all ${
+                            selected ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-gray-300'
+                          }`}>
+                          {selected && !manageTiles && (
+                            <Check className="absolute top-1.5 right-1.5 h-4 w-4 text-purple-600" />
+                          )}
+                          <span className="text-xl">{opt.icon}</span>
+                          <p className="text-sm font-medium mt-1">{opt.label}</p>
+                          {manageTiles && <p className="text-[10px] text-purple-600 mt-0.5">Tap to edit</p>}
+                        </button>
+                        {manageTiles && (
+                          <button
+                            type="button"
+                            onClick={() => deleteTile(opt.value)}
+                            className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow hover:bg-red-600"
+                            aria-label={`Delete ${opt.label}`}
+                            title={`Delete ${opt.label}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* Add-new tile card (edit mode) */}
+                  {manageTiles && editingTile === '__new__' ? (
+                    <div className="p-2 border-2 border-dashed border-purple-400 rounded-lg bg-white space-y-1 col-span-2">
+                      <div className="flex gap-1">
+                        <input
+                          value={tileDraft.icon}
+                          onChange={e => setTileDraft(d => ({ ...d, icon: e.target.value }))}
+                          className="w-12 px-2 py-1 border rounded text-center text-lg"
+                          placeholder="✨"
+                          aria-label="Icon"
+                        />
+                        <input
+                          value={tileDraft.label}
+                          onChange={e => setTileDraft(d => ({ ...d, label: e.target.value }))}
+                          onKeyDown={e => { if (e.key === 'Enter') saveTileDraft(); }}
+                          className="flex-1 px-2 py-1 border rounded text-sm"
+                          placeholder="New service name"
+                          autoFocus
+                        />
+                      </div>
+                      <div className="flex gap-1">
+                        <button type="button" onClick={saveTileDraft} className="flex-1 px-2 py-1 bg-purple-600 text-white rounded text-xs font-medium hover:bg-purple-700">Add</button>
+                        <button type="button" onClick={() => setEditingTile(null)} className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs hover:bg-gray-200">Cancel</button>
+                      </div>
+                    </div>
+                  ) : manageTiles ? (
+                    <button
+                      type="button"
+                      onClick={startAddTile}
+                      className="p-3 border-2 border-dashed border-gray-300 rounded-lg text-center text-gray-500 hover:border-purple-400 hover:text-purple-600 transition-all flex flex-col items-center justify-center"
+                    >
+                      <Plus className="h-5 w-5" />
+                      <p className="text-xs font-medium mt-1">Add service</p>
+                    </button>
+                  ) : null}
+                </div>
+                {!manageTiles && selectedServices.length > 0 && (
+                  <p className="text-xs text-gray-500">
+                    Selected: {selectedServices.map(v => serviceTiles.find(t => t.value === v)?.label || v).join(', ')}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
