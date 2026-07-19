@@ -358,51 +358,51 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
         )}
         <p className="text-xs text-gray-400">Paste a direct .mp4 link or a YouTube/Vimeo URL, then click Save.</p>
 
-        {/* Where the video appears — lets you keep the hero IMAGE and show the
-            video lower in the page instead of as the hero background. */}
-        {heroVideo.trim() && (
-          <div className="space-y-1.5 pt-1">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-medium text-gray-600">Video placement</Label>
-              <SavedTick field="hero_video_placement" />
-            </div>
-            <select
-              value={videoPlacement}
-              onChange={(e) => { setVideoPlacement(e.target.value); saveField('hero_video_placement', e.target.value); }}
-              className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-            >
-              <option value="hero">Hero background (behind the headline)</option>
-              <option value="below">Section below the hero (keep the hero image)</option>
-              <option value="both">Both — hero background AND a section below</option>
-            </select>
-            <p className="text-[11px] text-gray-400">
-              {videoPlacement === 'below'
-                ? 'The hero shows your image; the video plays in its own section.'
-                : videoPlacement === 'both'
-                ? 'The video plays behind the hero and again as a section.'
-                : 'The video plays muted & looping behind the hero (a dark overlay keeps text readable); it takes priority over the hero image.'}
-            </p>
-
-            {/* Where the in-body video section sits (only when placed as a section) */}
-            {(videoPlacement === 'below' || videoPlacement === 'both') && (
-              <div className="space-y-1.5 pt-1">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-medium text-gray-600">Video position on the page</Label>
-                  <SavedTick field="hero_video_position" />
-                </div>
-                <select
-                  value={videoPosition}
-                  onChange={(e) => { setVideoPosition(e.target.value); saveField('hero_video_position', e.target.value); }}
-                  className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                >
-                  <option value="top">Just below the hero</option>
-                  <option value="middle">Middle of the page</option>
-                  <option value="end">Near the end (before the footer)</option>
-                </select>
-              </div>
-            )}
+        {/* Where the video appears — shown on EVERY landing page (persistent),
+            so the setting is discoverable even before a URL is pasted. */}
+        <div className="space-y-1.5 pt-1">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs font-medium text-gray-600">Video placement</Label>
+            <SavedTick field="hero_video_placement" />
           </div>
-        )}
+          <select
+            value={videoPlacement}
+            onChange={(e) => { setVideoPlacement(e.target.value); saveField('hero_video_placement', e.target.value); }}
+            className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+          >
+            <option value="hero">Hero background (behind the headline)</option>
+            <option value="below">Section below the hero (keep the hero image)</option>
+            <option value="both">Both — hero background AND a section below</option>
+          </select>
+          <p className="text-[11px] text-gray-400">
+            {!heroVideo.trim()
+              ? 'Add a Hero video URL above to activate this. Your choice is remembered for this page.'
+              : videoPlacement === 'below'
+              ? 'The hero shows your image; the video plays in its own section.'
+              : videoPlacement === 'both'
+              ? 'The video plays behind the hero and again as a section.'
+              : 'The video plays muted & looping behind the hero (a dark overlay keeps text readable); it takes priority over the hero image.'}
+          </p>
+
+          {/* Where the in-body video section sits (only when placed as a section) */}
+          {(videoPlacement === 'below' || videoPlacement === 'both') && (
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium text-gray-600">Video position on the page</Label>
+                <SavedTick field="hero_video_position" />
+              </div>
+              <select
+                value={videoPosition}
+                onChange={(e) => { setVideoPosition(e.target.value); saveField('hero_video_position', e.target.value); }}
+                className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              >
+                <option value="top">Just below the hero</option>
+                <option value="middle">Middle of the page</option>
+                <option value="end">Near the end (before the footer)</option>
+              </select>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
