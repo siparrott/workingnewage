@@ -271,7 +271,9 @@ const BlogPostPage: React.FC = () => {
               <img
                 src={post.imageUrl}
                 alt={post.title}
-                className="w-full rounded-xl shadow-lg mb-8"
+                // max-h keeps a portrait ("Hochformat") cover from dominating the
+                // article; landscape covers still fill the column width.
+                className="mx-auto block w-auto max-w-full max-h-[80vh] rounded-xl shadow-lg mb-8"
                 loading="lazy"
                 onError={(e) => {
                   const parent = e.currentTarget.parentElement;

@@ -11,7 +11,13 @@ interface ImageCropperProps {
   circular?: boolean;
   title?: string;
   helpText?: string;
+  // When true, show Landscape / Portrait / Square buttons so portrait
+  // ("Hochformat") photos aren't forced into a landscape frame.
+  allowOrientation?: boolean;
 }
+
+const ORIENTATIONS = { landscape: 14 / 9, portrait: 4 / 5, square: 1 } as const;
+type Orientation = keyof typeof ORIENTATIONS;
 
 // Utility to create cropped image blob
 async function getCroppedBlob(imageSrc: string, crop: { x: number; y: number }, zoom: number, area: { width: number; height: number, x: number, y: number }, outputWidth = 1400, outputHeight = 900): Promise<Blob> {
@@ -53,8 +59,10 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
   circular,
   title,
   helpText,
+  allowOrientation,
 }) => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [orientation, setOrientation] = useState<Orientation>('landscape');
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
@@ -87,7 +95,11 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
     img.src = imageUrl;
   }, [imageUrl]);
 
-  const effectiveAspect = aspect || naturalAspect || 14 / 9;
+  // With the orientation toggle the chosen orientation wins; otherwise use the
+  // passed aspect, then the image's natural aspect, then a landscape default.
+  const effectiveAspect = allowOrientation
+    ? ORIENTATIONS[orientation]
+    : (aspect || naturalAspect || 14 / 9);
 
   const onCropComplete = useCallback((_area: any, areaPixels: any) => {
     setCroppedAreaPixels(areaPixels);
@@ -118,6 +130,29 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
         <div className="space-y-1">
           {title && <h3 className="text-lg font-semibold text-gray-900">{title}</h3>}
           {helpText && <p className="text-sm text-gray-600">{helpText}</p>}
+        </div>
+      )}
+      {allowOrientation && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-gray-600">{de ? 'Format' : 'Format'}:</span>
+          {([
+            { key: 'landscape', label: de ? 'Querformat' : 'Landscape' },
+            { key: 'portrait', label: de ? 'Hochformat' : 'Portrait' },
+            { key: 'square', label: de ? 'Quadrat' : 'Square' },
+          ] as const).map((o) => (
+            <button
+              key={o.key}
+              type="button"
+              onClick={() => { setOrientation(o.key); setCrop({ x: 0, y: 0 }); setZoom(1); }}
+              className={`px-3 py-1 rounded-md text-sm border transition-colors ${
+                orientation === o.key
+                  ? 'bg-purple-600 text-white border-purple-600'
+                  : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
         </div>
       )}
       <div>
