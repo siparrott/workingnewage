@@ -35,14 +35,15 @@ export default function LandingPageSectionActions({
       {def?.supportsRegeneration && (
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="h-7 px-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+          className="h-8 px-3 mr-1 border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 hover:text-purple-800 font-medium gap-1.5"
           disabled={regenerating}
           onClick={onRegenerate}
-          title="Regenerate with AI"
+          title="Regenerate this section with AI"
         >
-          <Sparkles className={`h-3.5 w-3.5 ${regenerating ? 'animate-spin' : ''}`} />
+          <Sparkles className={`h-4 w-4 ${regenerating ? 'animate-spin' : ''}`} />
+          {regenerating ? 'Generating…' : 'Regenerate with AI'}
         </Button>
       )}
 

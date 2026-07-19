@@ -18514,7 +18514,7 @@ ${context.extras || ''}`;
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
 
       const pageContext = `
-Page: "${page.name}"
+Page: "${page.title || page.name || ''}"
 Service: ${page.primary_service || 'Photography'}
 City: ${page.city || 'Not specified'}
 Headline: ${content?.hero?.headline || ''}

@@ -32,13 +32,24 @@ export function PublicLandingPageTestimonialsSection({ data, align = 'center' }:
           </span>
           <span className="text-sm font-medium">Echte Google-Bewertungen</span>
         </div>
-        {/* A single testimonial in a 2-col grid looked sparse/lopsided —
-            center it; only use the grid from 2 items up. */}
-        <div className={data.length === 1 ? 'max-w-xl mx-auto' : 'grid grid-cols-1 md:grid-cols-2 gap-6'}>
+        {/* 1 → centred; 2 → two-column grid; 3+ → masonry columns so
+            testimonials of very different lengths sit tidily instead of a
+            lopsided 2+1 grid with one huge cell. */}
+        <div
+          className={
+            data.length === 1
+              ? 'max-w-xl mx-auto'
+              : data.length >= 3
+              ? 'columns-1 md:columns-2 lg:columns-3 gap-6 [column-fill:_balance]'
+              : 'grid grid-cols-1 md:grid-cols-2 gap-6'
+          }
+        >
           {data.map((t, i) => (
             <figure
               key={i}
-              className="relative bg-white border border-gray-100 rounded-2xl p-7 pt-9 shadow-sm hover:shadow-md transition-shadow"
+              className={`relative bg-white border border-gray-100 rounded-2xl p-7 pt-9 shadow-sm hover:shadow-md transition-shadow ${
+                data.length >= 3 ? 'break-inside-avoid mb-6' : ''
+              }`}
             >
               <Quote className="absolute top-5 right-6 h-8 w-8 text-purple-100" aria-hidden="true" />
               <div className="flex gap-0.5 mb-3 text-yellow-400">

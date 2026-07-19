@@ -28,7 +28,8 @@ export function PromoPackPanel({ landingPageId }: PromoPackPanelProps) {
     'gmb',
   ]);
 
-  const { generate, isGenerating, promoPack } = useLandingPagePromoPack(landingPageId);
+  const { generate, isGenerating, promoPack, error } = useLandingPagePromoPack(landingPageId);
+  const hasResult = promoPack && Object.values(promoPack).some((v) => typeof v === 'string' && v.trim());
 
   function toggleChannel(key: string) {
     setSelectedChannels((prev) =>
@@ -70,6 +71,19 @@ export function PromoPackPanel({ landingPageId }: PromoPackPanelProps) {
           </>
         )}
       </Button>
+
+      {error && (
+        <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
+          Couldn’t generate the promo pack: {(error as Error)?.message || 'unknown error'}.
+          {' '}If this keeps happening, the AI key (OPENAI_API_KEY) may not be configured.
+        </div>
+      )}
+
+      {!isGenerating && !error && !hasResult && (
+        <p className="text-xs text-gray-500">
+          Pick your channels and generate ready-to-post copy for each — Facebook, Instagram, email, Google Business and more.
+        </p>
+      )}
 
       {promoPack && (
         <div className="space-y-3">
