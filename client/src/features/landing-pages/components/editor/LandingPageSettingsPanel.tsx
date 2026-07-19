@@ -15,6 +15,16 @@ interface Props {
 
 interface VoucherProduct { id: string; slug: string; name: string; price: string | number; }
 
+// YouTube/Vimeo → embeddable URL (null for a direct .mp4, which uses <video>).
+function heroVideoEmbedUrl(url: string): string | null {
+  if (!url) return null;
+  const yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
+  if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
+  const vm = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (vm) return `https://player.vimeo.com/video/${vm[1]}`;
+  return null;
+}
+
 export default function LandingPageSettingsPanel({ page, title, onTitleChange }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -264,11 +274,35 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
           onChange={setHeroVideo}
           placeholder="https://youtu.be/… or https://…/video.mp4"
         />
-        <Button variant="outline" size="sm" className="w-full"
+        <Button type="button" variant="outline" size="sm" className="w-full"
           onClick={() => saveField('hero_video_url', heroVideo || null)}>
           Save video URL
         </Button>
-        <p className="text-xs text-gray-400">Plays muted &amp; looping behind the hero (a dark overlay keeps text readable). Paste a direct .mp4 link or a YouTube/Vimeo URL. Remember to Save.</p>
+
+        {/* Live preview — confirms the URL saved AND shows the actual embed so
+            you can tell at a glance whether the hero video will play. */}
+        {heroVideo.trim() && (
+          <div className="mt-1">
+            <p className="text-[11px] font-medium text-gray-500 mb-1">Preview</p>
+            <div className="relative w-full overflow-hidden rounded-md bg-black" style={{ paddingTop: '56.25%' }}>
+              {heroVideoEmbedUrl(heroVideo) ? (
+                <iframe
+                  className="absolute inset-0 h-full w-full"
+                  src={heroVideoEmbedUrl(heroVideo)!}
+                  title="Hero video preview"
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  loading="lazy"
+                />
+              ) : (
+                <video className="absolute inset-0 h-full w-full object-cover" src={heroVideo} controls muted playsInline />
+              )}
+            </div>
+            {heroVideo !== (p.hero_video_url || '') && (
+              <p className="text-[11px] text-amber-600 mt-1">Not saved yet — click “Save video URL”.</p>
+            )}
+          </div>
+        )}
+        <p className="text-xs text-gray-400">Plays muted &amp; looping behind the hero (a dark overlay keeps text readable). Paste a direct .mp4 link or a YouTube/Vimeo URL, then click Save. Video takes priority over the hero image.</p>
       </div>
     </div>
   );

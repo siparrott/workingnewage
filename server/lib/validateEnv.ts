@@ -21,6 +21,9 @@ export function validateEnv(): void {
   const errors: EnvError[] = [];
   const warnings: EnvError[] = [];
 
+  const isProduction = process.env.NODE_ENV === 'production';
+  const demoMode = (process.env.DEMO_MODE || '').toLowerCase() === 'true';
+
   // ── 1. Required variables ────────────────────────────────────────
   const required = ['DATABASE_URL'];
   for (const key of required) {
@@ -63,11 +66,39 @@ export function validateEnv(): void {
         break;
       }
     }
+
+    // Reject known placeholder / dev-default secrets. These pass the length +
+    // API-key checks but are GUESSABLE, so anyone who knows the value can forge
+    // admin session cookies. (Catches e.g. "dev-secret-change-in-production-…")
+    //
+    // NOTE: deliberately a WARNING, not fatal — a fatal check here would crash
+    // an already-running host that still carries a weak secret (the exact
+    // situation we're trying to flag). Rotate the secret, THEN this can be
+    // promoted to `severity: isProduction ? 'fatal' : 'warn'` so no future
+    // tenant can boot with a placeholder.
+    const placeholderPatterns = [
+      /change[-_ ]?in[-_ ]?production/i,
+      /change[-_ ]?me/i,
+      /\bdev[-_ ]?secret\b/i,
+      /\byour[-_ ]?secret\b/i,
+      /\bsecret[-_ ]?key\b/i,
+      /placeholder/i,
+      /\bexample\b/i,
+      /^changeme/i,
+      /1234567890/,
+      /^(secret|password|test|dev|demo)([-_]?\w+)?$/i,
+    ];
+    if (placeholderPatterns.some((p) => p.test(sessionSecret))) {
+      warnings.push({
+        variable: 'SESSION_SECRET',
+        message: `${isProduction ? '🔴 PRODUCTION: ' : ''}SESSION_SECRET looks like a placeholder/dev default (guessable → admin session cookies can be forged). Rotate it NOW to a random 32+ char secret (e.g. \`openssl rand -base64 48\`), then update the SESSION_SECRET config var.`,
+        severity: 'warn',
+      });
+    }
   }
 
   // ── 3. Stripe live/demo conflict ─────────────────────────────────
   const stripeKey = process.env.STRIPE_SECRET_KEY || '';
-  const demoMode = (process.env.DEMO_MODE || '').toLowerCase() === 'true';
 
   if (demoMode && stripeKey.startsWith('sk_live_')) {
     errors.push({
@@ -97,7 +128,6 @@ export function validateEnv(): void {
 
   // ── 5. Warn if production flags are mixed ────────────────────────
   const allowDemoLogin = (process.env.ALLOW_DEMO_LOGIN || '').toLowerCase() === 'true';
-  const isProduction = process.env.NODE_ENV === 'production';
 
   if (isProduction && allowDemoLogin && !demoMode) {
     warnings.push({
