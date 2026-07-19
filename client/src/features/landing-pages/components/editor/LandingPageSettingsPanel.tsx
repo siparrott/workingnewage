@@ -35,6 +35,14 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
   const [heroImage, setHeroImage] = useState<string>(p.hero_image_url || '');
   const [heroVideo, setHeroVideo] = useState<string>(p.hero_video_url || '');
   const [videoPlacement, setVideoPlacement] = useState<string>(p.hero_video_placement || 'hero');
+  // Which field just auto-saved (shows an inline green ✓ for a few seconds).
+  const [savedFlash, setSavedFlash] = useState<string | null>(null);
+  const SavedTick = ({ field }: { field: string }) =>
+    savedFlash === field ? (
+      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-600">
+        <Check className="h-3 w-3" /> Saved
+      </span>
+    ) : null;
   const [products, setProducts] = useState<VoucherProduct[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -113,6 +121,10 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
       // preview (e.g. the hero video/image) updates immediately, without a
       // refetch that would reseed & wipe unsaved section edits.
       qc.setQueryData(['landing-page', page.id], (old: any) => (old ? { ...old, [field]: value } : old));
+      // Obvious, in-place confirmation (settings auto-save, so the top Save
+      // button never lights up for them).
+      setSavedFlash(field);
+      window.setTimeout(() => setSavedFlash((cur) => (cur === field ? null : cur)), 3000);
       toast({ title: 'Saved', description: 'Setting updated.' });
       return true;
     } catch {
@@ -152,6 +164,10 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
   return (
     <div className="space-y-5">
       <h3 className="text-sm font-semibold text-gray-900">Page Settings</h3>
+      <p className="flex items-start gap-1.5 rounded-md bg-blue-50 border border-blue-100 px-2.5 py-1.5 text-[11px] text-blue-700">
+        <Check className="h-3.5 w-3.5 mt-px flex-shrink-0" />
+        <span>These settings <strong>save automatically</strong> when you change them — you don’t need the top “Save” button (that’s only for the section content on the left). Look for the green “✓ Saved”.</span>
+      </p>
 
       <LandingPageInlineTextField
         label="Page Title"
@@ -170,7 +186,10 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
 
       {/* CTA → dynamic-priced voucher offer */}
       <div className="pt-4 border-t space-y-2">
-        <Label className="text-xs font-semibold text-gray-700">Voucher offer — CTA price</Label>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-semibold text-gray-700">Voucher offer — CTA price</Label>
+          <span className="flex gap-1.5"><SavedTick field="cta_voucher_amount" /><SavedTick field="cta_voucher_title" /></span>
+        </div>
         <div className="flex gap-2">
           <input
             type="number" min="0" step="1" value={offerAmount}
@@ -342,7 +361,10 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
             video lower in the page instead of as the hero background. */}
         {heroVideo.trim() && (
           <div className="space-y-1.5 pt-1">
-            <Label className="text-xs font-medium text-gray-600">Video placement</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-medium text-gray-600">Video placement</Label>
+              <SavedTick field="hero_video_placement" />
+            </div>
             <select
               value={videoPlacement}
               onChange={(e) => { setVideoPlacement(e.target.value); saveField('hero_video_placement', e.target.value); }}
