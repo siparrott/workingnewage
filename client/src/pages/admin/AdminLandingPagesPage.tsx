@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
+import { SITE } from '../../config/site';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -175,10 +176,20 @@ interface WizardData {
   slug: string;
 }
 
+// Pre-fill the studio's location from the site/CRM config so it doesn't have
+// to be retyped for every landing page. Reads SITE.address (populated from the
+// BUSINESS_CITY / BUSINESS_ADDRESS / BUSINESS_POSTAL_CODE config the studio set
+// during onboarding); stays blank if unset.
+const CONFIG_CITY = (SITE.address?.city || '').trim();
+const CONFIG_STUDIO_LOCATION = [SITE.address?.street, [SITE.address?.postalCode, SITE.address?.city].filter(Boolean).join(' ')]
+  .filter(Boolean)
+  .join(', ')
+  .trim();
+
 const defaultWizardData: WizardData = {
   pageType: 'leads',
   primaryService: '',
-  city: '',
+  city: CONFIG_CITY,
   title: '',
   tone: 'warm',
   offerSummary: '',
@@ -188,7 +199,7 @@ const defaultWizardData: WizardData = {
   trustSignals: '',
   testimonials: '',
   yearsInBusiness: '',
-  studioLocation: '',
+  studioLocation: CONFIG_STUDIO_LOCATION,
   ctaText: 'Jetzt buchen',
   ctaAction: 'book_now',
   secondaryCtaText: '',
