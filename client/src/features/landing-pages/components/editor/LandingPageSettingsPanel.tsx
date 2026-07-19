@@ -4,7 +4,7 @@ import type { LandingPageRecord } from '../../types/landingPage.types';
 import LandingPageInlineTextField from './LandingPageInlineTextField';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Upload, Loader2, ImageIcon } from 'lucide-react';
+import { Upload, Loader2, ImageIcon, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Props {
@@ -99,7 +99,7 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
 
   // Persist a single page column (partial update — the editor's content save
   // doesn't touch these columns, so there's no clobber).
-  const saveField = async (field: string, value: string | null) => {
+  const saveField = async (field: string, value: string | null): Promise<boolean> => {
     try {
       const res = await fetch(`/api/admin/landing-pages/${page.id}`, {
         method: 'PUT',
@@ -113,9 +113,21 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
       // refetch that would reseed & wipe unsaved section edits.
       qc.setQueryData(['landing-page', page.id], (old: any) => (old ? { ...old, [field]: value } : old));
       toast({ title: 'Saved', description: 'Setting updated.' });
+      return true;
     } catch {
       toast({ title: 'Save failed', description: 'Could not save the setting.', variant: 'destructive' });
+      return false;
     }
+  };
+
+  // Dedicated save-status for the hero video, so the button gives an
+  // unambiguous Saving… → Saved ✓ signal (with a progress bar).
+  const [videoSaveStatus, setVideoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const saveVideoUrl = async () => {
+    setVideoSaveStatus('saving');
+    const ok = await saveField('hero_video_url', heroVideo.trim() || null);
+    setVideoSaveStatus(ok ? 'saved' : 'error');
+    if (ok) window.setTimeout(() => setVideoSaveStatus('idle'), 4000);
   };
 
   const handleUpload = async (file: File) => {
@@ -274,10 +286,31 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
           onChange={setHeroVideo}
           placeholder="https://youtu.be/… or https://…/video.mp4"
         />
-        <Button type="button" variant="outline" size="sm" className="w-full"
-          onClick={() => saveField('hero_video_url', heroVideo || null)}>
-          Save video URL
+        <Button
+          type="button"
+          variant={videoSaveStatus === 'saved' ? 'default' : 'outline'}
+          size="sm"
+          className={`w-full gap-2 ${videoSaveStatus === 'saved' ? 'bg-green-600 hover:bg-green-600 text-white' : ''}`}
+          disabled={videoSaveStatus === 'saving'}
+          onClick={saveVideoUrl}
+        >
+          {videoSaveStatus === 'saving' ? (
+            <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</>
+          ) : videoSaveStatus === 'saved' ? (
+            <><Check className="h-4 w-4" /> Saved ✓</>
+          ) : (
+            <>Save video URL</>
+          )}
         </Button>
+        {/* Progress bar while the save is in flight (built-in animate-pulse) */}
+        {videoSaveStatus === 'saving' && (
+          <div className="h-1.5 w-full overflow-hidden rounded bg-purple-100" role="progressbar" aria-label="Saving video URL">
+            <div className="h-full w-full bg-purple-600 animate-pulse" />
+          </div>
+        )}
+        {videoSaveStatus === 'error' && (
+          <p className="text-xs text-red-600">Save failed — please try again.</p>
+        )}
 
         {/* Live preview — confirms the URL saved AND shows the actual embed so
             you can tell at a glance whether the hero video will play. */}
