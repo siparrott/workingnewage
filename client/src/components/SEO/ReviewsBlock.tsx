@@ -2,6 +2,7 @@ import React from 'react';
 import { Star } from 'lucide-react';
 import { SITE } from '../../config/site';
 import { useLanguage } from '../../context/LanguageContext';
+import { useGoogleReviews } from '../../hooks/useGoogleReviews';
 
 /**
  * Social-proof + E-E-A-T block backed by the studio's real Google rating
@@ -43,6 +44,10 @@ export const ReviewsBlock: React.FC<{ heading?: string }> = ({
 }) => {
   const { language, t } = useLanguage();
   const de = language === 'de';
+  // Prefer live Google figures when configured; otherwise use the constants.
+  const { data: live } = useGoogleReviews();
+  const RATING_LIVE = live ? live.rating.toFixed(1) : RATING;
+  const COUNT_LIVE = live ? String(live.count) : COUNT;
   const headingText = heading ?? (de ? 'Das sagen unsere Kundinnen & Kunden' : 'What Our Clients Say');
   // Configurable review page (Settings → Manual Website Update → Site Settings →
   // Reviews); falls back to the hardcoded Google review link.
@@ -55,8 +60,8 @@ export const ReviewsBlock: React.FC<{ heading?: string }> = ({
     name: SITE.name,
     aggregateRating: {
       '@type': 'AggregateRating',
-      ratingValue: RATING,
-      reviewCount: COUNT,
+      ratingValue: RATING_LIVE,
+      reviewCount: COUNT_LIVE,
       bestRating: '5',
     },
     review: TESTIMONIALS.map((t) => ({
@@ -80,7 +85,7 @@ export const ReviewsBlock: React.FC<{ heading?: string }> = ({
               ))}
             </span>
             <span className="text-gray-700 font-medium">
-              {de ? RATING.replace('.', ',') : RATING} · {COUNT}+ {de ? 'Bewertungen auf Google' : 'reviews on Google'}
+              {de ? RATING_LIVE.replace('.', ',') : RATING_LIVE} · {COUNT_LIVE}+ {de ? 'Bewertungen auf Google' : 'reviews on Google'}
             </span>
           </div>
         </div>

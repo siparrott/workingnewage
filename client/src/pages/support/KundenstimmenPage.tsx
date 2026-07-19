@@ -7,6 +7,7 @@ import { PillarLinksBlock } from '../../components/SEO/PillarLinksBlock';
 import { SEOHead } from '../../components/SEO/SEOHead';
 import { SITE } from '../../config/site';
 import { useLanguage } from '../../context/LanguageContext';
+import { useGoogleReviews } from '../../hooks/useGoogleReviews';
 
 interface Testimonial {
   name: string;
@@ -20,6 +21,14 @@ interface Testimonial {
 const KundenstimmenPage: React.FC = () => {
   const { language } = useLanguage();
   const de = language === 'de';
+
+  // Live Google rating/count when GOOGLE_PLACES_API_KEY is configured; otherwise
+  // fall back to the last known figures so the page always shows numbers.
+  const { data: live } = useGoogleReviews();
+  const ratingNum = live?.rating || 4.9;
+  const ratingText = de ? ratingNum.toFixed(1).replace('.', ',') : ratingNum.toFixed(1);
+  const countText = String(live?.count || 253);
+  const reviewsUri = live?.mapsUri || 'https://maps.app.goo.gl/L5EFKkMSK7FaiRVa8';
 
   const testimonials: Testimonial[] = [
     {
@@ -158,11 +167,19 @@ const KundenstimmenPage: React.FC = () => {
 
             {/* Rating Summary */}
             <div className="flex flex-col items-center gap-4 bg-white/10 backdrop-blur-sm rounded-2xl p-8 max-w-md mx-auto">
-              <div className="text-6xl font-bold">{de ? '4,9' : '4.9'}</div>
+              <div className="text-6xl font-bold">{ratingText}</div>
               <div className="flex gap-1">
-                {renderStars(5)}
+                {renderStars(Math.round(ratingNum))}
               </div>
-              <p className="text-lg">{de ? 'Basierend auf 253 Bewertungen' : 'Based on 253 reviews'}</p>
+              <p className="text-lg">{de ? `Basierend auf ${countText} Bewertungen` : `Based on ${countText} reviews`}</p>
+              <a
+                href={reviewsUri}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm underline underline-offset-2 text-white/90 hover:text-white"
+              >
+                {de ? 'Auf Google ansehen' : 'View on Google'}
+              </a>
             </div>
           </div>
         </section>
@@ -184,7 +201,7 @@ const KundenstimmenPage: React.FC = () => {
                 <p className="text-gray-600">{de ? 'Weiterempfehlung' : 'Would recommend us'}</p>
               </div>
               <div>
-                <div className="text-4xl font-bold text-yellow-600 mb-2">{de ? '4,9' : '4.9'}</div>
+                <div className="text-4xl font-bold text-yellow-600 mb-2">{ratingText}</div>
                 <p className="text-gray-600">{de ? 'Durchschnittsbewertung' : 'Average rating'}</p>
               </div>
             </div>
@@ -197,6 +214,35 @@ const KundenstimmenPage: React.FC = () => {
             <h2 className="text-4xl font-bold text-center mb-4 text-gray-900">
               {de ? 'Was unsere Kunden sagen' : 'What Our Clients Say'}
             </h2>
+
+            {/* Live, verbatim Google reviews (only when the Places API is set up) */}
+            {live?.reviews && live.reviews.length > 0 && (
+              <div className="mb-12">
+                <div className="flex items-center justify-center gap-2 mb-6">
+                  <span className="inline-flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-4 py-1.5 text-sm font-medium text-gray-700 shadow-sm">
+                    <span className="flex text-yellow-400">{renderStars(Math.round(ratingNum))}</span>
+                    {de ? `${ratingText} · Echte Google-Bewertungen` : `${ratingText} · Live from Google`}
+                  </span>
+                </div>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {live.reviews.slice(0, 6).map((r, i) => (
+                    <div key={i} className="bg-white rounded-2xl p-7 shadow-sm border border-gray-100">
+                      <div className="mb-3">{renderStars(r.rating)}</div>
+                      <p className="text-gray-700 mb-5 leading-relaxed italic">"{r.text}"</p>
+                      <div className="border-t pt-3 flex items-center justify-between">
+                        <p className="font-semibold text-gray-900">{r.author}</p>
+                        {r.when && <p className="text-xs text-gray-500">{r.when}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-center text-xs text-gray-400 mt-6">
+                  {de
+                    ? 'Live von unserem Google-Unternehmensprofil geladen.'
+                    : 'Loaded live from our Google Business Profile.'}
+                </p>
+              </div>
+            )}
             {!de && (
               <p className="text-center text-sm text-gray-500 italic mb-8">
                 Reviews translated from the original German.

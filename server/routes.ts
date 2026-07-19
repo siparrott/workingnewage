@@ -2449,6 +2449,30 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
+  // Public: live Google rating + latest reviews (Places API New). Falls back to
+  // {configured:false} when GOOGLE_PLACES_API_KEY is unset so the site keeps
+  // rendering its curated reviews.
+  app.get("/api/reviews/google", async (req: Request, res: Response) => {
+    try {
+      const { isGoogleReviewsConfigured, getGoogleReviews } = await import('./services/googleReviews.js');
+      if (!isGoogleReviewsConfigured()) {
+        res.setHeader('Cache-Control', 'public, max-age=300');
+        return res.json({ configured: false });
+      }
+      const force = req.query.force === '1';
+      const data = await getGoogleReviews(force);
+      if (!data) {
+        res.setHeader('Cache-Control', 'public, max-age=120');
+        return res.json({ configured: true, available: false });
+      }
+      res.setHeader('Cache-Control', 'public, max-age=1800, stale-while-revalidate=3600');
+      res.json({ configured: true, available: true, ...data });
+    } catch (e: any) {
+      console.error('[reviews/google] error:', e?.message || e);
+      res.status(200).json({ configured: false, error: 'lookup failed' });
+    }
+  });
+
   app.get("/api/blog/posts/:identifier", async (req: Request, res: Response) => {
     try {
       const identifier = req.params.identifier;

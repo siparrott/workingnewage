@@ -1544,11 +1544,27 @@ const ManualWebsiteUpdatePage: React.FC = () => {
           >
             {value ? (
               <div className="relative group">
-                <img
-                  src={value}
-                  alt={field.label}
-                  className="w-full max-h-64 object-cover rounded-lg"
-                />
+                {/* Logos are shown exactly as they appear in the site header
+                    (contained on a white strip, header height) rather than
+                    stretched/cropped like a photo. */}
+                {field.translationKey.toLowerCase().includes('logo') ? (
+                  <div className="rounded-lg overflow-hidden">
+                    <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center">
+                      <img src={value} alt={field.label} className="h-14 w-auto max-w-[220px] object-contain" />
+                      <span className="ml-auto text-[10px] uppercase tracking-wide text-gray-400">Header preview</span>
+                    </div>
+                    <div className="bg-gray-900 px-4 py-3 flex items-center">
+                      <img src={value} alt={field.label} className="h-14 w-auto max-w-[220px] object-contain" />
+                      <span className="ml-auto text-[10px] uppercase tracking-wide text-gray-500">On dark</span>
+                    </div>
+                  </div>
+                ) : (
+                  <img
+                    src={value}
+                    alt={field.label}
+                    className="w-full max-h-64 object-contain bg-gray-50 rounded-lg"
+                  />
+                )}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all rounded-lg flex items-center justify-center">
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity text-white text-center px-4">
                     <p className="text-sm font-medium mb-2">Drop new image to replace</p>
