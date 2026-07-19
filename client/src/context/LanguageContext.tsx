@@ -1093,12 +1093,12 @@ const translations = {
   'faq.worry1.full': 'Children rarely sit still – and that\'s okay! We use games, bubbles, and silly sounds to capture genuine smiles. The best shots often come from unscripted moments. Parents are always surprised how quickly kids warm up.',
   
   'faq.worry2.q': 'How long does it take?',
-  'faq.worry2.micro': '45–90 min depending on session',
-  'faq.worry2.full': 'Family sessions typically run 60 minutes. Newborn sessions can take up to 90 minutes including feeding breaks. We never rush – the goal is relaxed, natural photos.',
+  'faq.worry2.micro': 'About 60 min – relaxed & fun',
+  'faq.worry2.full': 'A family session runs about 60 minutes — enough time for everyone to settle in, warm up and have a relaxed, fun time. Newborn sessions can take a little longer with feeding breaks. We never rush; the goal is natural, happy photos.',
   
   'faq.worry3.q': 'What should we wear?',
   'faq.worry3.micro': 'Soft neutrals, no logos',
-  'faq.worry3.full': 'Coordinate, don\'t match! Soft colors like cream, sage, dusty rose work beautifully. Avoid bold logos and busy patterns. You\'ll receive a detailed style guide after booking with Pinterest boards for inspiration.',
+  'faq.worry3.full': 'Coordinate, don\'t match! Soft colours like cream, sage and dusty rose work beautifully — avoid bold logos and busy patterns. We\'ll send you hints & tips with a link to our Pinterest inspiration board, and there\'s plenty more inspiration on our homepage.',
   
   'faq.worry4.q': 'When should I book newborn photos?',
   'faq.worry4.micro': 'Ideally 5–14 days after birth',
@@ -2249,12 +2249,12 @@ const translations = {
   'faq.worry1.full': 'Kinder sitzen selten still – und das ist okay! Wir nutzen Spiele, Seifenblasen und lustige Geräusche für echte Lächeln. Die besten Aufnahmen entstehen oft ungeplant. Eltern sind immer überrascht, wie schnell Kinder auftauen.',
   
   'faq.worry2.q': 'Wie lange dauert es?',
-  'faq.worry2.micro': '45–90 Min. je nach Session',
-  'faq.worry2.full': 'Familien-Sessions dauern ca. 60 Minuten. Neugeborenen-Sessions bis zu 90 Minuten inkl. Stillpausen. Wir hetzen nie – das Ziel sind entspannte, natürliche Fotos.',
+  'faq.worry2.micro': 'Ca. 60 Min. – entspannt & lustig',
+  'faq.worry2.full': 'Ein Familien-Shooting dauert etwa 60 Minuten — genug Zeit, damit alle ankommen, auftauen und eine entspannte, lustige Zeit haben. Neugeborenen-Sessions dauern mit Stillpausen etwas länger. Wir hetzen nie; das Ziel sind natürliche, fröhliche Fotos.',
   
   'faq.worry3.q': 'Was sollen wir anziehen?',
   'faq.worry3.micro': 'Sanfte Neutraltöne, keine Logos',
-  'faq.worry3.full': 'Koordinieren, nicht matchen! Sanfte Farben wie Creme, Salbei, Altrosa wirken wunderbar. Vermeiden Sie große Logos und unruhige Muster. Nach der Buchung erhalten Sie einen Stil-Leitfaden mit Pinterest-Boards.',
+  'faq.worry3.full': 'Koordinieren, nicht matchen! Sanfte Farben wie Creme, Salbei und Altrosa wirken wunderbar — vermeiden Sie große Logos und unruhige Muster. Wir senden Ihnen Tipps & Tricks mit einem Link zu unserem Pinterest-Inspirationsboard, und auf unserer Startseite finden Sie viele weitere Ideen.',
   
   'faq.worry4.q': 'Wann sollte ich Neugeborenenfotos buchen?',
   'faq.worry4.micro': 'Idealerweise 5–14 Tage nach Geburt',

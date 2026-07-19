@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle, MapPin, Phone } from 'lucide-react';
+import { CheckCircle, MapPin, Phone, Star, Linkedin, Instagram } from 'lucide-react';
 import Layout from '../../components/layout/Layout';
 import { RelatedTopicsBlock } from '../../components/SEO/RelatedTopicsBlock';
 import { PillarLinksBlock } from '../../components/SEO/PillarLinksBlock';
@@ -11,6 +11,10 @@ import { useLanguage } from '../../context/LanguageContext';
 const UeberUnsPage: React.FC = () => {
   const { language } = useLanguage();
   const de = language === 'de';
+
+  const SIMON_PHOTO = '/team/simon-parrott.jpg';
+  const SIMON_LINKEDIN = 'https://www.linkedin.com/in/simon-parrott-192b5867/';
+  const SIMON_INSTAGRAM = 'https://www.instagram.com/newagefotografie/';
 
   const trustLogos = de
     ? ['BBC', 'Canon', 'Stadt Wien', 'ÖBB', 'Internationale Unternehmen']
@@ -193,8 +197,13 @@ const UeberUnsPage: React.FC = () => {
           ],
           "founder": {
             "@type": "Person",
-            "name": "Matthew",
-            "jobTitle": "Photographer"
+            "name": "Simon Parrott",
+            "jobTitle": "Photographer",
+            "sameAs": [
+              SIMON_LINKEDIN,
+              SIMON_INSTAGRAM
+            ],
+            ...(SIMON_PHOTO ? { "image": SIMON_PHOTO } : {})
           },
           "knowsAbout": [
             "family photography",
@@ -231,6 +240,16 @@ const UeberUnsPage: React.FC = () => {
               >
                 {de ? 'Jetzt Fotoshooting entdecken' : 'Discover a photo shoot now'}
               </Link>
+            </div>
+            <div className="mt-8 inline-flex items-center gap-3 rounded-full border border-white/15 bg-white/10 px-6 py-3">
+              <span className="flex gap-0.5" aria-hidden="true">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="h-5 w-5 text-amber-400 fill-amber-400" />
+                ))}
+              </span>
+              <span className="text-base md:text-lg font-semibold text-white">
+                {de ? '4,9★ · 250+ Google-Bewertungen' : '4.9★ · 250+ Google reviews'}
+              </span>
             </div>
           </div>
         </section>
@@ -281,8 +300,19 @@ const UeberUnsPage: React.FC = () => {
 
         <section className="py-16 bg-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-            <h2 className="text-3xl md:text-4xl font-bold">{de ? <>Matthew – der Fotograf hinter {SITE.name}</> : <>Matthew – the photographer behind {SITE.name}</>}</h2>
-            <p className="text-lg text-slate-700">{de ? 'Hallo, ich bin Matthew.' : 'Hello, I’m Matthew.'}</p>
+            <h2 className="text-3xl md:text-4xl font-bold">{de ? <>Simon – der Fotograf hinter {SITE.name}</> : <>Simon – the photographer behind {SITE.name}</>}</h2>
+            {SIMON_PHOTO && (
+              <img
+                src={SIMON_PHOTO}
+                alt={de ? 'Simon Parrott, Fotograf bei New Age Fotografie Wien' : 'Simon Parrott, photographer at New Age Fotografie Vienna'}
+                loading="lazy"
+                className="w-40 h-40 rounded-2xl object-cover shadow-lg"
+                // Until the photo file is placed at SIMON_PHOTO, hide the
+                // element rather than showing a broken-image icon.
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+            )}
+            <p className="text-lg text-slate-700">{de ? 'Hallo, ich bin Simon.' : 'Hello, I’m Simon.'}</p>
             <p className="text-lg text-slate-700">{de ? 'Nach vielen Jahren hinter der Kamera habe ich eines gelernt: Die beste Technik der Welt bedeutet wenig, wenn Menschen sich vor der Kamera nicht wohlfühlen.' : 'After many years behind the camera, I’ve learned one thing: the best technology in the world means little if people don’t feel comfortable in front of the camera.'}</p>
             <p className="text-lg text-slate-700">{de ? 'Ein gutes Portrait beginnt nicht mit dem Auslösen der Kamera. Es beginnt mit Vertrauen.' : 'A good portrait doesn’t begin with the click of the shutter. It begins with trust.'}</p>
             <p className="text-lg text-slate-700">{de ? <>Mein Weg führte mich von Südafrika über London nach Wien. Diese internationale Erfahrung prägt bis heute meinen Stil: <strong>Modern, natürlich und voller Persönlichkeit.</strong></> : <>My path led me from South Africa, via London, to Vienna. This international experience still shapes my style today: <strong>modern, natural and full of personality.</strong></>}</p>
@@ -290,6 +320,24 @@ const UeberUnsPage: React.FC = () => {
             <p className="text-lg italic text-slate-800">{de ? '“Ich bin nicht fotogen.”' : '“I’m not photogenic.”'}</p>
             <p className="text-lg text-slate-700">{de ? 'Meine Antwort ist immer dieselbe:' : 'My answer is always the same:'}</p>
             <p className="text-xl font-semibold text-slate-950">{de ? 'Doch. Du brauchst nur jemanden hinter der Kamera, der dich richtig sieht.' : 'You are. You just need someone behind the camera who truly sees you.'}</p>
+            <div className="flex flex-wrap gap-4 pt-2">
+              <a
+                href={SIMON_LINKEDIN}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+              >
+                <Linkedin className="h-5 w-5 text-[#0a66c2]" /> {de ? 'Simon auf LinkedIn' : 'Simon on LinkedIn'}
+              </a>
+              <a
+                href={SIMON_INSTAGRAM}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+              >
+                <Instagram className="h-5 w-5 text-[#e1306c]" /> {de ? 'Auf Instagram folgen' : 'Follow on Instagram'}
+              </a>
+            </div>
           </div>
         </section>
 

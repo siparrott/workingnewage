@@ -135,8 +135,6 @@ const KundenstimmenPage: React.FC = () => {
     );
   };
 
-  const averageRating = (testimonials.reduce((acc, t) => acc + t.rating, 0) / testimonials.length).toFixed(1);
-
   return (
     <Layout>
       <SEOHead
@@ -160,11 +158,11 @@ const KundenstimmenPage: React.FC = () => {
 
             {/* Rating Summary */}
             <div className="flex flex-col items-center gap-4 bg-white/10 backdrop-blur-sm rounded-2xl p-8 max-w-md mx-auto">
-              <div className="text-6xl font-bold">{averageRating}</div>
+              <div className="text-6xl font-bold">{de ? '4,9' : '4.9'}</div>
               <div className="flex gap-1">
                 {renderStars(5)}
               </div>
-              <p className="text-lg">{de ? `Basierend auf ${testimonials.length} Bewertungen` : `Based on ${testimonials.length} reviews`}</p>
+              <p className="text-lg">{de ? 'Basierend auf 253 Bewertungen' : 'Based on 253 reviews'}</p>
             </div>
           </div>
         </section>
@@ -186,7 +184,7 @@ const KundenstimmenPage: React.FC = () => {
                 <p className="text-gray-600">{de ? 'Weiterempfehlung' : 'Would recommend us'}</p>
               </div>
               <div>
-                <div className="text-4xl font-bold text-yellow-600 mb-2">5.0</div>
+                <div className="text-4xl font-bold text-yellow-600 mb-2">{de ? '4,9' : '4.9'}</div>
                 <p className="text-gray-600">{de ? 'Durchschnittsbewertung' : 'Average rating'}</p>
               </div>
             </div>
