@@ -41,9 +41,13 @@ const TESTIMONIALS: Testimonial[] = [
 export const ReviewsBlock: React.FC<{ heading?: string }> = ({
   heading,
 }) => {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const de = language === 'de';
   const headingText = heading ?? (de ? 'Das sagen unsere Kundinnen & Kunden' : 'What Our Clients Say');
+  // Configurable review page (Settings → Manual Website Update → Site Settings →
+  // Reviews); falls back to the hardcoded Google review link.
+  const reviewUrlCfg = t('reviews.googleUrl');
+  const reviewUrl = reviewUrlCfg && reviewUrlCfg !== 'reviews.googleUrl' ? reviewUrlCfg : GOOGLE_REVIEW_URL;
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'PhotoStudio',
@@ -103,7 +107,7 @@ export const ReviewsBlock: React.FC<{ heading?: string }> = ({
 
         <div className="text-center mt-8">
           <a
-            href={GOOGLE_REVIEW_URL}
+            href={reviewUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-purple-600 text-white font-semibold text-sm hover:bg-purple-700 transition-colors"

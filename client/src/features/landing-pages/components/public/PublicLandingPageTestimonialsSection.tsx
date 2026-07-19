@@ -3,9 +3,11 @@
 import { Quote, Star, ExternalLink } from 'lucide-react';
 import { PublicLandingPageSectionWrapper } from './PublicLandingPageSectionWrapper';
 import { alignText, alignJustify, type SectionAlign } from '../../utils/sectionAlignment';
+import { useLanguage } from '../../../../context/LanguageContext';
 
-// Real Google Business Profile reviews page — lets visitors verify the quotes.
-const GOOGLE_REVIEWS_URL = 'https://maps.app.goo.gl/fckY6bgN4dACo6H29';
+// Fallback review page if none is configured in Settings → Manual Website
+// Update → Site Settings → Reviews (the `reviews.googleUrl` value).
+const DEFAULT_REVIEWS_URL = 'https://maps.app.goo.gl/fckY6bgN4dACo6H29';
 
 interface PublicLandingPageTestimonialsSectionProps {
   data: Array<{
@@ -18,6 +20,11 @@ interface PublicLandingPageTestimonialsSectionProps {
 }
 
 export function PublicLandingPageTestimonialsSection({ data, align = 'center' }: PublicLandingPageTestimonialsSectionProps) {
+  const { t } = useLanguage();
+  const reviewsUrl = (() => {
+    const v = t('reviews.googleUrl');
+    return v && v !== 'reviews.googleUrl' ? v : DEFAULT_REVIEWS_URL;
+  })();
   if (!data || data.length === 0) return null;
 
   return (
@@ -67,7 +74,7 @@ export function PublicLandingPageTestimonialsSection({ data, align = 'center' }:
         {/* Verify the source — real Google Business Profile */}
         <div className={`${alignText(align)} mt-8`}>
           <a
-            href={GOOGLE_REVIEWS_URL}
+            href={reviewsUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-purple-700 hover:text-purple-900 font-medium text-sm underline underline-offset-2"

@@ -65,6 +65,14 @@ export const manualPageManifest: ManualPageDefinition[] = [
         fields: [
           makeField('site-logo', 'Site Logo', 'site.logo', 'image', 'The main logo displayed in the website header (recommended size: 200x80px)')
         ]
+      },
+      {
+        id: 'site-reviews',
+        label: 'Reviews',
+        description: 'The review page visitors are sent to (Google, Facebook or a citation site). Used by the "read/write a review" links across the site.',
+        fields: [
+          makeField('site-review-url', 'Reviews page URL', 'reviews.googleUrl', 'shortText', 'e.g. your Google Business review link (https://maps.app.goo.gl/…)'),
+        ],
       }
     ]
   },
