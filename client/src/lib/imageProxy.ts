@@ -16,8 +16,11 @@ interface ProxyOpts {
 
 export function proxyImage(url: string | null | undefined, opts: ProxyOpts = {}): string {
   if (!url) return '';
-  // Leave data/blob URLs, SVGs and already-proxied URLs untouched.
-  if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+  // Only proxy ABSOLUTE http(s) URLs. Relative URLs (e.g. our own
+  // /api/proxy-image or /api/galleries/image endpoints, which already resize
+  // server-side) and data:/blob:/svg are passed through untouched — weserv
+  // can't fetch them and would break the image.
+  if (!/^https?:\/\//i.test(url)) return url;
   if (url.includes('images.weserv.nl')) return url;
   if (/\.svg(\?|$)/i.test(url)) return url;
 
