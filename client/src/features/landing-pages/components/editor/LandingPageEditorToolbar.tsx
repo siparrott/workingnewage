@@ -186,19 +186,23 @@ export default function LandingPageEditorToolbar({
           Duplicate
         </Button>
 
+        {/* Always clickable (except while saving) so the user can save at any
+            time for certainty; a subtle dot marks genuinely-unsaved changes. */}
         <Button
           type="button"
           size="sm"
           className="h-8 bg-purple-600 hover:bg-purple-700"
-          disabled={!isDirty || isSaving}
+          disabled={isSaving}
           onClick={onSave}
+          title={isDirty ? 'Save your changes' : 'Everything is saved — click to save again'}
         >
           {isSaving ? (
             <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
           ) : (
             <Save className="h-3.5 w-3.5 mr-1.5" />
           )}
-          Save
+          {isSaving ? 'Saving…' : isDirty ? 'Save' : 'Saved'}
+          {isDirty && !isSaving && <span className="ml-1.5 h-1.5 w-1.5 rounded-full bg-white/90 inline-block" aria-hidden="true" />}
         </Button>
 
         {/* Publish / Unpublish */}

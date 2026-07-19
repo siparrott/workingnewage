@@ -28,6 +28,8 @@ interface Props {
   onToggleVisibility: (key: LandingPageSectionKey) => void;
   onRemoveSection: (key: LandingPageSectionKey) => void;
   onRegenerate: (key: LandingPageSectionKey) => void;
+  /** Generate an EMPTY section directly (no mode dialog). */
+  onGenerateDirect: (key: LandingPageSectionKey) => void;
 }
 
 /** Maps a section key to the corresponding editor component */
@@ -133,6 +135,7 @@ export default function LandingPageEditorCanvas({
   onToggleVisibility,
   onRemoveSection,
   onRegenerate,
+  onGenerateDirect,
 }: Props) {
   // Filter out seo from the canvas — it's in the right panel
   const canvasSections = sectionOrder.filter(k => k !== 'seo');
@@ -168,7 +171,7 @@ export default function LandingPageEditorCanvas({
               key,
               content,
               data => onUpdateSection(key, data),
-              () => onRegenerate(key),
+              () => onGenerateDirect(key), // empty-state "Generate with AI" → direct, no dialog
               regeneratingSection === key,
             )}
           </LandingPageSectionCard>

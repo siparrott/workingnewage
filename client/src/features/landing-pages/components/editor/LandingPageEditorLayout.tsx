@@ -149,6 +149,12 @@ export default function LandingPageEditorLayout({
     setRegenerateDialogSection(key);
   }, []);
 
+  // Empty-section "Generate with AI" → generate from scratch immediately, no
+  // mode dialog (there's nothing to pick a "regenerate mode" for yet).
+  const handleGenerateDirect = useCallback((key: LandingPageSectionKey) => {
+    onRegenerateSection(key, 'rewrite');
+  }, [onRegenerateSection]);
+
   const handleRegenerateConfirm = useCallback((mode: LandingPageSectionRegenerationMode, customInstruction?: string) => {
     if (regenerateDialogSection) {
       onRegenerateSection(regenerateDialogSection, mode, customInstruction);
@@ -213,6 +219,7 @@ export default function LandingPageEditorLayout({
               onToggleVisibility={toggleVisibility}
               onRemoveSection={removeSection}
               onRegenerate={handleRegenerate}
+              onGenerateDirect={handleGenerateDirect}
             />
           </div>
         </main>
