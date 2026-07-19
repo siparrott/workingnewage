@@ -422,11 +422,12 @@ const ImageGrid: React.FC<ImageGridProps> = ({
                 className="aspect-square overflow-hidden rounded-lg cursor-pointer"
                 onClick={() => openLightbox(image, index)}
               >
-                <img 
-                  src={image.thumbUrl} 
+                <img
+                  src={image.thumbUrl}
                   alt={image.filename}
                   className="w-full h-full object-cover transition-transform group-hover:scale-110"
                   loading="lazy"
+                  decoding="async"
                 />
                 
                 {/* Overlay with buttons - positioned inside the clickable area */}

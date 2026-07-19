@@ -174,6 +174,7 @@ const ZoomableImage: React.FC<ZoomableImageProps> = ({
           className="w-full h-full object-cover transition-transform group-hover:scale-105"
           onError={onError}
           loading={loading}
+          decoding="async"
           onClick={handleImageClick}
         />
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">

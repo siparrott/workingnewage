@@ -229,6 +229,10 @@ const ZoomableImageV2: React.FC<ZoomableImageV2Props> = ({
             if (onError) onError(e);
           }}
           loading={priority ? 'eager' : loading}
+          decoding="async"
+          // Priority images are the above-the-fold LCP — hint the browser to
+          // fetch them ahead of the rest. Lowercase attr works on any React.
+          {...(priority ? { fetchpriority: 'high' } : {})}
         />
         
         {/* Loading skeleton */}

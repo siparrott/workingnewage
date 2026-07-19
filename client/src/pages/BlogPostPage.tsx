@@ -286,7 +286,9 @@ const BlogPostPage: React.FC = () => {
                 // max-h keeps a portrait ("Hochformat") cover from dominating the
                 // article; landscape covers still fill the column width.
                 className="mx-auto block w-auto max-w-full max-h-[80vh] rounded-xl shadow-lg mb-8"
-                loading="lazy"
+                loading="eager"
+                decoding="async"
+                {...{ fetchpriority: 'high' }}
                 onError={(e) => {
                   const parent = e.currentTarget.parentElement;
                   if (parent) {

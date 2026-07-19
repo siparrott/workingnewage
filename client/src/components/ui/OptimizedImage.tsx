@@ -118,6 +118,8 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
           objectFit: objectFit,
         }}
         loading={priority ? 'eager' : 'lazy'}
+        decoding="async"
+        {...(priority ? { fetchpriority: 'high' } : {})}
         onError={(e) => {
           setHasError(true);
           if (onError) onError(e);

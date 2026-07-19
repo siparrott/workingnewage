@@ -178,6 +178,8 @@ const CategoryCarousel: React.FC<{
                           src={image.url}
                           alt={image.alt || image.title || 'Portfolio image'}
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          loading="lazy"
+                          decoding="async"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                           <div className="absolute bottom-0 left-0 right-0 p-6">
@@ -279,6 +281,8 @@ const FeaturedGrid: React.FC<{ images: PortfolioImage[] }> = ({ images }) => {
                 src={image.url}
                 alt={image.alt || image.title || 'Featured image'}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                loading="lazy"
+                decoding="async"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-purple-900/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500">
                 <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
