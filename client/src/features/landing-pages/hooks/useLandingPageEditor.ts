@@ -114,42 +114,50 @@ export function useLandingPageEditor(pageId: string) {
   // copy the user already wrote). Returns how many fields were filled.
   const [isSuggesting, setIsSuggesting] = useState(false);
   const suggestFields = useCallback(async (): Promise<{ filled: number }> => {
-    if (!page) return { filled: 0 };
+    if (!page || !content) return { filled: 0 };
     setIsSuggesting(true);
     try {
       const { suggestions } = await suggestLandingPageFields(page.id);
       const isEmpty = (v: unknown) => !String(v ?? '').trim();
       let filled = 0;
 
-      // Hero optional/recommended fields
+      // Compute the merge synchronously from CURRENT state so the fill count is
+      // accurate and markDirty actually fires. (Counting inside a setState
+      // updater ran after this function returned → count was always 0, changes
+      // weren't marked dirty, and the optional fields looked un-suggested.)
+
+      // Hero: eyebrow (optional), subheadline (recommended), secondary CTA
+      // (optional), badge (optional) — fill each only if currently empty.
       const heroSug = suggestions.hero || {};
-      setContent(prev => {
-        if (!prev) return prev;
-        const hero: any = { ...(prev.hero || {}) };
-        (['eyebrow', 'subheadline', 'secondaryCtaText', 'badgeText'] as const).forEach(f => {
-          if (isEmpty(hero[f]) && !isEmpty((heroSug as any)[f])) { hero[f] = (heroSug as any)[f]; filled++; }
-        });
-        // Final CTA secondary button
-        const fc: any = prev.finalCta ? { ...prev.finalCta } : prev.finalCta;
-        if (fc && isEmpty(fc.secondaryCtaText) && !isEmpty(suggestions.finalCta?.secondaryCtaText)) {
-          fc.secondaryCtaText = suggestions.finalCta!.secondaryCtaText; filled++;
+      const hero: any = { ...(content.hero || {}) };
+      let heroChanged = false;
+      (['eyebrow', 'subheadline', 'secondaryCtaText', 'badgeText'] as const).forEach(f => {
+        if (isEmpty(hero[f]) && !isEmpty((heroSug as any)[f])) {
+          hero[f] = (heroSug as any)[f]; filled++; heroChanged = true;
         }
-        return { ...prev, hero, ...(fc ? { finalCta: fc } : {}) };
       });
+      if (heroChanged) updateSection('hero', hero);
 
-      // SEO focus keyphrase
+      // Final CTA secondary button (optional)
+      if (content.finalCta) {
+        const fc: any = { ...content.finalCta };
+        if (isEmpty(fc.secondaryCtaText) && !isEmpty(suggestions.finalCta?.secondaryCtaText)) {
+          fc.secondaryCtaText = suggestions.finalCta!.secondaryCtaText; filled++;
+          updateSection('finalCta', fc);
+        }
+      }
+
+      // SEO focus keyphrase (recommended)
       const kp = suggestions.seo?.keyphrase;
-      setSeo(prev => {
-        if (isEmpty(prev.keyphrase) && !isEmpty(kp)) { filled++; return { ...prev, keyphrase: kp! }; }
-        return prev;
-      });
+      if (isEmpty(seo.keyphrase) && !isEmpty(kp)) {
+        updateSeoField('keyphrase', kp!); filled++;
+      }
 
-      if (filled > 0) markDirty();
       return { filled };
     } finally {
       setIsSuggesting(false);
     }
-  }, [page, markDirty]);
+  }, [page, content, seo, updateSection, updateSeoField]);
 
   // Save
   const save = useCallback(async () => {
