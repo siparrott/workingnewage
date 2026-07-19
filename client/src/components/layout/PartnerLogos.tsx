@@ -64,6 +64,8 @@ const PartnerLogos: React.FC = () => {
               <img
                 src={partner.url}
                 alt={partner.alt}
+                loading="lazy"
+                decoding="async"
                 className="max-h-16 w-auto object-contain transition-transform hover:scale-105"
               />
             </a>

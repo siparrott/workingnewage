@@ -190,6 +190,8 @@ const GoogleReviews: React.FC = () => {
                   <img
                     src={review.profile_photo_url}
                     alt={review.author_name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-12 h-12 rounded-full mr-4"
                   />
                   <div>
