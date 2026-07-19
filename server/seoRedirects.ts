@@ -31,10 +31,6 @@ export const SEO_REDIRECTS: Record<string, string> = {
   // crawlers saw the SPA shell with the homepage's title (duplicate-title set).
   "/termin-planen": "/warteliste",
   "/paar-fotoshooting-wien": "/portrait-fotografie-wien/",
-  // /galerie renders the SAME component as /galleries — a duplicate that only
-  // served the empty shell (homepage title) to crawlers. Consolidate on the
-  // prerendered /galleries page.
-  "/galerie": "/galleries",
 };
 
 export function seoRedirects(req: Request, res: Response, next: NextFunction) {
