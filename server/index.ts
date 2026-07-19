@@ -437,6 +437,14 @@ app.use((req, res, next) => {
         console.warn('⚠️ landing pages migration already applied or failed:', migrationError.message);
       }
 
+      // Blog posts: optional video (uploaded .mp4 on B2, or a YouTube/Vimeo link).
+      try {
+        await db.execute(sql`ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS video_url TEXT`);
+        console.log('✅ blog_posts.video_url column ensured');
+      } catch (migrationError: any) {
+        console.warn('⚠️ blog_posts video migration already applied or failed:', migrationError.message);
+      }
+
       // Warm the storage-config cache (studio_integrations → env) so
       // wizard-configured Backblaze/S3 works from the first upload request.
       try {

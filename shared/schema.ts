@@ -141,6 +141,7 @@ export const blogPosts = pgTable("blog_posts", {
   imageUrl: text("image_url"),
   imageUrl2: text("image_url_2"),
   imageUrl3: text("image_url_3"),
+  videoUrl: text("video_url"), // uploaded .mp4 (B2) or a YouTube/Vimeo link
   published: boolean("published").default(false),
   publishedAt: timestamp("published_at"),
   scheduledFor: timestamp("scheduled_for"),
@@ -1192,6 +1193,7 @@ export const insertBlogPostSchema = createInsertSchema(blogPosts).pick({
   imageUrl: true,
   imageUrl2: true,
   imageUrl3: true,
+  videoUrl: true,
   tags: true,
   publishedAt: true,
   scheduledFor: true,

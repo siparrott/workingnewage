@@ -32,6 +32,7 @@ interface BlogPost {
   cover_image?: string;
   image_url_2?: string;
   image_url_3?: string;
+  video_url?: string;
   tags?: string[];
   status: 'IDEA' | 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' | 'ARCHIVED';
   ideaData?: any;
@@ -173,7 +174,8 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
     scheduled_for: '',
     cover_image: '',
     image_url_2: '',
-    image_url_3: ''
+    image_url_3: '',
+    video_url: ''
   });
   
   const [availableTags, setAvailableTags] = useState<{id: string, name: string}[]>([]);
@@ -182,9 +184,23 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
+  const [videoUploading, setVideoUploading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [pulseSending, setPulseSending] = useState(false);
   const [pulseMsg, setPulseMsg] = useState<string | null>(null);
+  // Per-send channel picker for Pulse. All on by default; the server still
+  // intersects this with the PULSE_PLATFORMS env allow-list.
+  const PULSE_CHANNELS: Array<{ id: string; label: string }> = [
+    { id: 'facebook', label: 'Facebook' },
+    { id: 'instagram', label: 'Instagram' },
+    { id: 'threads', label: 'Threads' },
+    { id: 'linkedin', label: 'LinkedIn' },
+    { id: 'googlebusiness', label: 'Google Business' },
+    { id: 'pinterest', label: 'Pinterest' },
+  ];
+  const [pulseChannels, setPulseChannels] = useState<string[]>(PULSE_CHANNELS.map((c) => c.id));
+  const togglePulseChannel = (id: string) =>
+    setPulseChannels((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
   const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
 
   const steps = [
@@ -211,6 +227,7 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
         cover_image: post.cover_image || '',
         image_url_2: post.image_url_2 || (post as any).imageUrl2 || '',
         image_url_3: post.image_url_3 || (post as any).imageUrl3 || '',
+        video_url: post.video_url || (post as any).videoUrl || '',
         id: post.id,
         author_id: post.author_id,
         published_at: post.published_at,
@@ -308,6 +325,49 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
       return false;
     } finally {
       setImageUploading(false);
+    }
+  };
+
+  // Upload a short video (≤10 MB) to B2 and store the returned URL in video_url.
+  const MAX_VIDEO_MB = 10;
+  const uploadVideoFile = async (file: File): Promise<void> => {
+    if (!file) return;
+    if (!file.type.startsWith('video/')) {
+      setError(de ? 'Bitte eine Videodatei auswählen.' : 'Please choose a video file.');
+      return;
+    }
+    if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
+      setError(de
+        ? `Video ist zu groß (max. ${MAX_VIDEO_MB} MB). Für längere Videos bitte einen YouTube-/Vimeo-Link einfügen.`
+        : `Video is too large (max ${MAX_VIDEO_MB} MB). For longer videos, paste a YouTube/Vimeo link instead.`);
+      return;
+    }
+    try {
+      setVideoUploading(true);
+      setError(null);
+      const getAdminToken = () => (typeof window !== 'undefined' ? (localStorage.getItem('ADMIN_TOKEN') || '') : '');
+      const uploadData = new FormData();
+      uploadData.append('file', file);
+      uploadData.append('folderName', 'Blog Videos');
+      uploadData.append('context', 'blog-video');
+      const response = await fetch('/api/files/upload', {
+        method: 'POST',
+        headers: { 'x-admin-token': getAdminToken() },
+        body: uploadData,
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.details || 'Upload failed');
+      }
+      const data = await response.json();
+      const publicUrl = data.url || data.publicUrl;
+      if (!publicUrl) throw new Error('No URL returned from upload');
+      handleChange('video_url', publicUrl);
+    } catch (err: any) {
+      console.error('[BLOG VIDEO UPLOAD] Error:', err);
+      setError((de ? 'Video-Upload fehlgeschlagen. ' : 'Failed to upload video. ') + (err.message || ''));
+    } finally {
+      setVideoUploading(false);
     }
   };
 
@@ -500,6 +560,7 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
         imageUrl: formData.cover_image || '',
         imageUrl2: formData.image_url_2 || '',
         imageUrl3: formData.image_url_3 || '',
+        videoUrl: formData.video_url || '',
         published: wantPublish,
         status: isScheduled ? 'SCHEDULED' : (wantPublish ? 'PUBLISHED' : 'DRAFT'),
         // Normalise to ISO here (state may hold the raw local input string).
@@ -653,7 +714,9 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}), // uses server default PULSE_MODE (draft unless changed)
+        // uses server default PULSE_MODE (draft unless changed); platforms
+        // restricts the send to the channels the user ticked.
+        body: JSON.stringify({ platforms: pulseChannels }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || (de ? 'Senden fehlgeschlagen' : 'Send failed'));
@@ -754,20 +817,94 @@ const AdvancedBlogPostForm: React.FC<BlogPostFormProps> = ({ post, isEditing = f
           : 'Tip: For a whole photo series with automatic EXIF/SEO metadata, use Idea Mode.'}
       </p>
 
+      {/* Optional video: upload a short clip (≤10 MB) OR paste a YouTube/Vimeo link */}
+      <div className="border-t border-gray-200 pt-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {de ? 'Video (optional)' : 'Video (optional)'}
+        </label>
+        <p className="text-xs text-gray-500 mb-2">
+          {de
+            ? 'Kurzes Video hochladen (max. 10 MB) oder einen YouTube-/Vimeo-Link einfügen.'
+            : 'Upload a short clip (max 10 MB) or paste a YouTube/Vimeo link.'}
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input
+            type="text"
+            value={formData.video_url || ''}
+            onChange={(e) => handleChange('video_url', e.target.value)}
+            placeholder={de ? 'https://youtube.com/…  oder  https://…/video.mp4' : 'https://youtube.com/…  or  https://…/video.mp4'}
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+          />
+          <label className={`inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-colors ${videoUploading ? 'bg-gray-200 text-gray-500' : 'bg-purple-600 text-white hover:bg-purple-700'}`}>
+            {videoUploading ? (de ? 'Lädt…' : 'Uploading…') : (de ? 'Video hochladen' : 'Upload video')}
+            <input
+              type="file"
+              accept="video/*"
+              className="hidden"
+              disabled={videoUploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) { uploadVideoFile(file); e.target.value = ''; }
+              }}
+            />
+          </label>
+          {formData.video_url && (
+            <button
+              type="button"
+              onClick={() => handleChange('video_url', '')}
+              className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              {de ? 'Entfernen' : 'Remove'}
+            </button>
+          )}
+        </div>
+        {formData.video_url && !videoUploading && (
+          <p className="mt-2 text-xs text-green-700 break-all">
+            {de ? 'Video gesetzt: ' : 'Video set: '}{formData.video_url}
+          </p>
+        )}
+      </div>
+
       {isEditing && post?.id && (
         <div className="border-t border-gray-200 pt-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">{de ? 'Social-Verteilung (Pulse)' : 'Social distribution (Pulse)'}</label>
+          <p className="text-xs text-gray-500 mb-2">{de ? 'Kanäle auswählen, an die gesendet werden soll:' : 'Choose which channels to send to:'}</p>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {PULSE_CHANNELS.map((c) => {
+              const on = pulseChannels.includes(c.id);
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => togglePulseChannel(c.id)}
+                  aria-pressed={on}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    on
+                      ? 'border-pink-500 bg-pink-50 text-pink-700'
+                      : 'border-gray-300 bg-white text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  {on ? <Check size={13} /> : null}
+                  {c.label}
+                </button>
+              );
+            })}
+          </div>
           <button
             type="button"
             onClick={sendToPulse}
-            disabled={pulseSending || !formData.cover_image}
+            disabled={pulseSending || !formData.cover_image || pulseChannels.length === 0}
             className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 disabled:opacity-50 inline-flex items-center"
             title={!formData.cover_image
               ? (de ? 'Titelbild erforderlich' : 'Cover image required')
-              : (de ? 'Social-Posts (FB/IG/Threads/LinkedIn/GMB/Pinterest) an Pulse senden' : 'Send social posts (FB/IG/Threads/LinkedIn/GMB/Pinterest) to Pulse')}
+              : pulseChannels.length === 0
+              ? (de ? 'Mindestens einen Kanal auswählen' : 'Select at least one channel')
+              : (de ? 'Social-Posts an ausgewählte Kanäle senden' : 'Send social posts to the selected channels')}
           >
             {pulseSending ? <Loader2 className="animate-spin mr-2" size={16} /> : <Send size={16} className="mr-2" />}
-            {de ? 'An Pulse senden (Social)' : 'Send to Pulse (Social)'}
+            {de
+              ? `An Pulse senden (${pulseChannels.length})`
+              : `Send to Pulse (${pulseChannels.length})`}
           </button>
           {pulseMsg && <p className="text-sm mt-2 text-gray-600">{pulseMsg}</p>}
         </div>

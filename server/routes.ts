@@ -2990,7 +2990,10 @@ Bitte versuchen Sie es später noch einmal.`;
       if (!sp) return res.status(400).json({ error: 'Post needs generated content before creating a social pack.' });
 
       const mode = typeof req.body?.mode === 'string' ? req.body.mode : undefined;
-      const rows = buildPulseRows(post as any, sp, mode ? { mode } : undefined);
+      const platforms = Array.isArray(req.body?.platforms)
+        ? req.body.platforms.filter((p: any) => typeof p === 'string')
+        : undefined;
+      const rows = buildPulseRows(post as any, sp, { ...(mode ? { mode } : {}), ...(platforms ? { platforms } : {}) });
 
       if (req.body?.dryRun === true) {
         return res.json({ success: true, dryRun: true, configured: isPulseConfigured(), rows });

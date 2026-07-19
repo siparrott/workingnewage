@@ -87,11 +87,23 @@ interface BlogPost {
   imageUrl: string | null;
   imageUrl2?: string | null;
   imageUrl3?: string | null;
+  videoUrl?: string | null;
   publishedAt: string;
   excerpt: string | null;
   author: {
     email: string;
   } | null;
+}
+
+// Turn a YouTube/Vimeo watch URL into an embeddable URL. Returns null for
+// direct video files (.mp4 etc.), which render in a <video> element instead.
+function getVideoEmbedUrl(url: string): string | null {
+  if (!url) return null;
+  const yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+  if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
+  const vimeo = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
+  return null;
 }
 
 interface RelatedPost {
@@ -293,7 +305,34 @@ const BlogPostPage: React.FC = () => {
               />
             </div>
           )}
-          
+
+          {/* Optional video — YouTube/Vimeo embed or a direct uploaded clip */}
+          {post.videoUrl && (
+            <div className="mb-8">
+              {getVideoEmbedUrl(post.videoUrl) ? (
+                <div className="relative w-full overflow-hidden rounded-xl shadow-lg" style={{ paddingTop: '56.25%' }}>
+                  <iframe
+                    src={getVideoEmbedUrl(post.videoUrl)!}
+                    title={post.title}
+                    className="absolute inset-0 h-full w-full"
+                    frameBorder={0}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    loading="lazy"
+                  />
+                </div>
+              ) : (
+                <video
+                  src={post.videoUrl}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="mx-auto block w-full max-w-full rounded-xl shadow-lg"
+                />
+              )}
+            </div>
+          )}
+
           {/* Post Content */}
           <div className="bg-white rounded-lg shadow-lg p-6 md:p-8 mb-8">
             {(post.contentHtml || post.content) ? (

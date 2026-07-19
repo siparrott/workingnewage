@@ -81,8 +81,13 @@ function toWallClock(d: Date, timeZone: string): string {
 export function buildPulseRows(
   post: PostLike,
   sp: PreparedSocialPack,
-  opts?: { mode?: string; when?: Date },
+  opts?: { mode?: string; when?: Date; platforms?: string[] },
 ): PulseRow[] {
+  // Optional per-send channel picker: when a non-empty list is passed, only
+  // those platforms are built (still intersected with PULSE_PLATFORMS below).
+  const pick = Array.isArray(opts?.platforms) && opts!.platforms!.length
+    ? new Set(opts!.platforms!.map((p) => p.toLowerCase()))
+    : null;
   const images = [post.imageUrl, post.imageUrl2, post.imageUrl3].filter((v): v is string => Boolean(v));
   const hashtags = (sp.hashtags || []).map((h) => (h.startsWith('#') ? h : `#${h}`)).join(' ');
   const groupKey = `newage-blog-${post.id}`;
@@ -108,6 +113,7 @@ export function buildPulseRows(
   const rows: PulseRow[] = [];
   for (const d of defs) {
     if (!PLATFORMS.includes(d.platform)) continue;
+    if (pick && !pick.has(d.platform)) continue;
     if (!d.content || !d.content.trim()) continue;
     if (d.needsMedia && images.length === 0) continue;
     // Optional per-platform account selector, e.g. PULSE_PROFILE_INSTAGRAM=acc_123.
