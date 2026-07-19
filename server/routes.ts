@@ -18340,6 +18340,64 @@ ${context.extras || ''}`;
     }
   });
 
+  // POST suggest the recommended/optional fields for an "optimal" landing page.
+  // Generates copy for the nice-to-have fields (hero eyebrow/subheadline/
+  // secondary-CTA/badge, final-CTA secondary CTA, SEO focus keyphrase) from the
+  // page's existing context. The CLIENT applies each suggestion ONLY where the
+  // field is currently empty, so nothing the user already wrote is overwritten.
+  app.post("/api/admin/landing-pages/:id/suggest-fields", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const page = await neonDb.getLandingPage(req.params.id);
+      if (!page) return res.status(404).json({ error: 'Landing page not found' });
+
+      const contentJson = typeof page.content_json === 'string' ? JSON.parse(page.content_json) : (page.content_json || {});
+      const hero = contentJson.hero || {};
+      const offer = contentJson.offerSection || {};
+
+      const schema = '{'
+        + '"hero": {'
+        + '"eyebrow": "short kicker line above the headline (2-4 words)",'
+        + '"subheadline": "1-2 sentence supporting line under the headline",'
+        + '"secondaryCtaText": "low-commitment secondary button label (e.g. \\"Pakete ansehen\\")",'
+        + '"badgeText": "tiny badge/label (2-4 words, may include one emoji)"'
+        + '},'
+        + '"finalCta": {"secondaryCtaText": "secondary button label for the closing CTA"},'
+        + '"seo": {"keyphrase": "the single primary keyword this page should rank for (2-4 words, include the city)"}'
+        + '}';
+
+      const OpenAI = (await import('openai')).default;
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
+
+      const completion = await openai.chat.completions.create({
+        model: process.env.OPENAI_LANDING_MODEL || process.env.OPENAI_PRICE_MODEL || 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert landing-page copywriter and SEO specialist. Suggest values for the OPTIONAL and RECOMMENDED fields that make a landing page optimal. Return ONLY a valid JSON object exactly matching: ${schema}. Match the language and tone of the existing copy (German unless the page is clearly English). Keep everything concise and conversion-focused; no placeholder text, no quotes around values beyond JSON.`
+          },
+          {
+            role: 'user',
+            content: `Suggest the recommended/optional fields for this page.\n\nContext: title="${page.title}", service="${page.primary_service || ''}", city="${page.city || ''}", audience="${page.target_audience || ''}", offer="${page.offer_summary || ''}"\nExisting headline: "${hero.headline || ''}"\nExisting subheadline: "${hero.subheadline || ''}"\nExisting primary CTA: "${hero.primaryCtaText || hero.ctaText || ''}"\nOffer: "${offer.headline || ''}" — "${offer.price || ''}"`
+          }
+        ],
+        temperature: 0.85,
+        max_tokens: 500,
+        response_format: { type: "json_object" }
+      });
+
+      let suggestions: any = {};
+      try {
+        suggestions = JSON.parse(completion.choices[0]?.message?.content || '{}');
+      } catch {
+        return res.status(500).json({ error: 'AI returned invalid JSON' });
+      }
+      res.json({ suggestions });
+    } catch (error: any) {
+      console.error('Error suggesting fields:', error.message);
+      res.status(500).json({ error: 'Failed to suggest fields' });
+    }
+  });
+
   // ==================== LANDING PAGE PHASE 5: EVENTS / ANALYTICS / VARIANTS / GROWTH ====================
 
   // PUBLIC: POST record a landing page event (no auth — public tracking)

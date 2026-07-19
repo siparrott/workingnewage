@@ -58,6 +58,9 @@ interface Props {
   // Duplicate
   onDuplicate: () => void;
   isDuplicating: boolean;
+  // AI: suggest recommended/optional fields (fills empties only)
+  onSuggestFields: () => void;
+  isSuggesting: boolean;
   // Regenerate
   onRegenerateSection: (key: LandingPageSectionKey, mode: string, customInstruction?: string) => void;
   // Publish
@@ -94,6 +97,8 @@ export default function LandingPageEditorLayout({
   onBack,
   onDuplicate,
   isDuplicating,
+  onSuggestFields,
+  isSuggesting,
   onRegenerateSection,
   pageStatus,
   publishedUrl,
@@ -164,6 +169,8 @@ export default function LandingPageEditorLayout({
         onPublish={onPublish}
         onUnpublish={onUnpublish}
         onPreviewLink={onPreviewLink}
+        onSuggestFields={onSuggestFields}
+        isSuggesting={isSuggesting}
       />
 
       {/* Three-panel body */}

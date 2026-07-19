@@ -28,6 +28,16 @@ export async function duplicateLandingPageById(id: string): Promise<LandingPageR
   return apiRequest(`${BASE}/${id}/duplicate`, { method: 'POST' });
 }
 
+/** AI suggestions for the recommended/optional fields (applied only to empties). */
+export interface LandingPageFieldSuggestions {
+  hero?: { eyebrow?: string; subheadline?: string; secondaryCtaText?: string; badgeText?: string };
+  finalCta?: { secondaryCtaText?: string };
+  seo?: { keyphrase?: string };
+}
+export async function suggestLandingPageFields(id: string): Promise<{ suggestions: LandingPageFieldSuggestions }> {
+  return apiRequest(`${BASE}/${id}/suggest-fields`, { method: 'POST' });
+}
+
 /** Check if a slug is available for this user */
 export async function checkSlugAvailability(
   slug: string,

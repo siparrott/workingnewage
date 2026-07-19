@@ -38,6 +38,19 @@ export default function AdminLandingPageEditorPage() {
     if (id) triggerDuplicate(id);
   }, [id, triggerDuplicate]);
 
+  const handleSuggestFields = useCallback(async () => {
+    try {
+      const { filled } = await editor.suggestFields();
+      toast(
+        filled > 0
+          ? { title: `Filled ${filled} field${filled === 1 ? '' : 's'}`, description: 'Review the suggestions, then Save.' }
+          : { title: 'Nothing to fill', description: 'All recommended and optional fields already have content.' },
+      );
+    } catch (err: any) {
+      toast({ title: 'Suggestion failed', description: err?.message || 'Could not generate suggestions.', variant: 'destructive' });
+    }
+  }, [editor, toast]);
+
   const handleRegenerateSection = useCallback(
     (key: LandingPageSectionKey, mode: string, customInstruction?: string) => {
       regenerate({
@@ -158,6 +171,8 @@ export default function AdminLandingPageEditorPage() {
       onBack={handleBack}
       onDuplicate={handleDuplicate}
       isDuplicating={isDuplicating}
+      onSuggestFields={handleSuggestFields}
+      isSuggesting={editor.isSuggesting}
       onRegenerateSection={handleRegenerateSection}
       onPublish={handlePublish}
       onUnpublish={handleUnpublish}

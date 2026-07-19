@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getEditableLandingPage, updateLandingPageDraft } from '../services/landingPageEditor.client';
+import { getEditableLandingPage, updateLandingPageDraft, suggestLandingPageFields } from '../services/landingPageEditor.client';
 import { normalizeLandingPageContent, serializeEditorContent } from '../utils/normalizeLandingPageContent';
 import { moveSectionUp, moveSectionDown, toggleSectionVisibility, removeSection, updateSectionData } from '../utils/landingPageEditor.helpers';
 import { applySectionPatch } from '../utils/applySectionPatch';
@@ -109,6 +109,48 @@ export function useLandingPageEditor(pageId: string) {
     markDirty();
   }, [markDirty]);
 
+  // One-click: ask the AI to fill the recommended/optional fields, applying
+  // each suggestion ONLY where the field is currently empty (never overwrites
+  // copy the user already wrote). Returns how many fields were filled.
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const suggestFields = useCallback(async (): Promise<{ filled: number }> => {
+    if (!page) return { filled: 0 };
+    setIsSuggesting(true);
+    try {
+      const { suggestions } = await suggestLandingPageFields(page.id);
+      const isEmpty = (v: unknown) => !String(v ?? '').trim();
+      let filled = 0;
+
+      // Hero optional/recommended fields
+      const heroSug = suggestions.hero || {};
+      setContent(prev => {
+        if (!prev) return prev;
+        const hero: any = { ...(prev.hero || {}) };
+        (['eyebrow', 'subheadline', 'secondaryCtaText', 'badgeText'] as const).forEach(f => {
+          if (isEmpty(hero[f]) && !isEmpty((heroSug as any)[f])) { hero[f] = (heroSug as any)[f]; filled++; }
+        });
+        // Final CTA secondary button
+        const fc: any = prev.finalCta ? { ...prev.finalCta } : prev.finalCta;
+        if (fc && isEmpty(fc.secondaryCtaText) && !isEmpty(suggestions.finalCta?.secondaryCtaText)) {
+          fc.secondaryCtaText = suggestions.finalCta!.secondaryCtaText; filled++;
+        }
+        return { ...prev, hero, ...(fc ? { finalCta: fc } : {}) };
+      });
+
+      // SEO focus keyphrase
+      const kp = suggestions.seo?.keyphrase;
+      setSeo(prev => {
+        if (isEmpty(prev.keyphrase) && !isEmpty(kp)) { filled++; return { ...prev, keyphrase: kp! }; }
+        return prev;
+      });
+
+      if (filled > 0) markDirty();
+      return { filled };
+    } finally {
+      setIsSuggesting(false);
+    }
+  }, [page, markDirty]);
+
   // Save
   const save = useCallback(async () => {
     if (!page || !content || !meta) return;
@@ -196,6 +238,8 @@ export function useLandingPageEditor(pageId: string) {
     setAlignment: handleSetAlignment,
     removeSection: handleRemoveSection,
     applyPatch: handleApplyPatch,
+    suggestFields,
+    isSuggesting,
     save,
   };
 }

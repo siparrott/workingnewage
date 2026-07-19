@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Save, Copy, ArrowLeft, CheckCircle2, AlertCircle, Loader2, Globe, Lock, Link2, Eye } from 'lucide-react';
+import { Save, Copy, ArrowLeft, CheckCircle2, AlertCircle, Loader2, Globe, Lock, Link2, Eye, Sparkles } from 'lucide-react';
 import { useState, useCallback } from 'react';
 
 interface Props {
@@ -21,6 +21,8 @@ interface Props {
   onPublish: () => void;
   onUnpublish: () => void;
   onPreviewLink: () => void;
+  onSuggestFields: () => void;
+  isSuggesting: boolean;
 }
 
 export default function LandingPageEditorToolbar({
@@ -41,6 +43,8 @@ export default function LandingPageEditorToolbar({
   onPublish,
   onUnpublish,
   onPreviewLink,
+  onSuggestFields,
+  isSuggesting,
 }: Props) {
   const [copied, setCopied] = useState(false);
 
@@ -153,6 +157,23 @@ export default function LandingPageEditorToolbar({
             Preview Link
           </Button>
         )}
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 border-purple-300 text-purple-700 hover:bg-purple-50"
+          onClick={onSuggestFields}
+          disabled={isSuggesting}
+          title="Let AI fill the empty recommended & optional fields (won't overwrite what you've written)"
+        >
+          {isSuggesting ? (
+            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+          ) : (
+            <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+          )}
+          Suggest fields
+        </Button>
 
         <Button
           type="button"
