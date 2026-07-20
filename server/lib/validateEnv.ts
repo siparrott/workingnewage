@@ -71,11 +71,21 @@ export function validateEnv(): void {
     // API-key checks but are GUESSABLE, so anyone who knows the value can forge
     // admin session cookies. (Catches e.g. "dev-secret-change-in-production-…")
     //
-    // NOTE: deliberately a WARNING, not fatal — a fatal check here would crash
-    // an already-running host that still carries a weak secret (the exact
-    // situation we're trying to flag). Rotate the secret, THEN this can be
-    // promoted to `severity: isProduction ? 'fatal' : 'warn'` so no future
-    // tenant can boot with a placeholder.
+    // FATAL in production so no tenant can ship with a placeholder. To make
+    // that safe, a high-entropy secret is trusted outright and never pattern
+    // matched — otherwise a randomly generated password that happened to
+    // contain e.g. "1234567890" would crash a healthy production boot.
+    // "Random" requires a genuine mix: lower AND upper AND digit/symbol.
+    // (Digits alone are not enough — "dev-secret-change-in-production-12345"
+    // is long and has digits but is still a guessable placeholder.)
+    const distinctChars = new Set(sessionSecret).size;
+    const looksRandom =
+      sessionSecret.length >= 32 &&
+      distinctChars >= 16 &&
+      /[a-z]/.test(sessionSecret) &&
+      /[A-Z]/.test(sessionSecret) &&
+      /[0-9\W_]/.test(sessionSecret);
+
     const placeholderPatterns = [
       /change[-_ ]?in[-_ ]?production/i,
       /change[-_ ]?me/i,
@@ -88,12 +98,13 @@ export function validateEnv(): void {
       /1234567890/,
       /^(secret|password|test|dev|demo)([-_]?\w+)?$/i,
     ];
-    if (placeholderPatterns.some((p) => p.test(sessionSecret))) {
-      warnings.push({
+    if (!looksRandom && placeholderPatterns.some((p) => p.test(sessionSecret))) {
+      const entry: EnvError = {
         variable: 'SESSION_SECRET',
-        message: `${isProduction ? '🔴 PRODUCTION: ' : ''}SESSION_SECRET looks like a placeholder/dev default (guessable → admin session cookies can be forged). Rotate it NOW to a random 32+ char secret (e.g. \`openssl rand -base64 48\`), then update the SESSION_SECRET config var.`,
-        severity: 'warn',
-      });
+        message: 'SESSION_SECRET looks like a placeholder/dev default (guessable → admin session cookies can be forged). Set a random 32+ char secret, e.g. `openssl rand -base64 48`.',
+        severity: isProduction ? 'fatal' : 'warn',
+      };
+      (isProduction ? errors : warnings).push(entry);
     }
   }
 
