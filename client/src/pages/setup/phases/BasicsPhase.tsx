@@ -48,11 +48,16 @@ const BUSINESS_TYPES = [
   { value: 'wedding', label: 'Wedding Photographer' },
   { value: 'newborn', label: 'Newborn Photographer' },
   { value: 'family', label: 'Family Photographer' },
+  { value: 'maternity', label: 'Maternity Photographer' },
+  { value: 'boudoir', label: 'Boudoir Photographer' },
+  { value: 'headshots', label: 'Headshot / Personal Branding Photographer' },
   { value: 'commercial', label: 'Commercial Photographer' },
   { value: 'event', label: 'Event Photographer' },
+  { value: 'pet', label: 'Pet Photographer' },
+  { value: 'real_estate', label: 'Real Estate / Property Photographer' },
   { value: 'videographer', label: 'Videographer' },
   { value: 'studio', label: 'Photo Studio' },
-  { value: 'other', label: 'Other' }
+  { value: 'other', label: 'Other (tell us below)' }
 ];
 
 const TIMEZONES = [
@@ -96,6 +101,9 @@ export default function BasicsPhase({ initialData, onComplete }: BasicsPhaseProp
 
   const [showLocation, setShowLocation] = useState(!!(initialData?.latitude || initialData?.address));
   const [showSocial, setShowSocial] = useState(!!(initialData?.facebookUrl || initialData?.instagramUrl));
+
+  // Free-text specialism when "Other" is chosen (submitted AS businessType).
+  const [businessTypeOther, setBusinessTypeOther] = useState('');
 
   // Google Maps link → coordinates, so the owner never has to know what
   // "latitude" means.
@@ -159,17 +167,25 @@ export default function BasicsPhase({ initialData, onComplete }: BasicsPhaseProp
     if (!formData.businessType) {
       newErrors.businessType = 'Please select a business type';
     }
+    if (formData.businessType === 'other' && !businessTypeOther.trim()) {
+      newErrors.businessTypeOther = 'Please tell us what kind of photography you do';
+    }
     if (!formData.timezone) {
       newErrors.timezone = 'Please select a timezone';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-  
+
   const handleSubmit = () => {
     if (validate()) {
-      saveMutation.mutate(formData);
+      // Save the specific specialism as the business type ("Boudoir
+      // Photographer" is useful downstream; "other" is not).
+      const payload = formData.businessType === 'other' && businessTypeOther.trim()
+        ? { ...formData, businessType: businessTypeOther.trim() }
+        : formData;
+      saveMutation.mutate(payload);
     }
   };
   
@@ -225,6 +241,32 @@ export default function BasicsPhase({ initialData, onComplete }: BasicsPhaseProp
           </Select>
           {errors.businessType && (
             <p className="text-sm text-red-500">{errors.businessType}</p>
+          )}
+
+          {/* "Other" is useless on its own — capture the actual specialism. It's
+              saved AS the business type, so the AI writes copy for a boudoir
+              photographer rather than for "other". */}
+          {formData.businessType === 'other' && (
+            <div className="space-y-2 pt-2">
+              <Label htmlFor="businessTypeOther">What kind of photography do you do? *</Label>
+              <Input
+                id="businessTypeOther"
+                placeholder="e.g., Boudoir Photographer"
+                value={businessTypeOther}
+                onChange={(e) => {
+                  setBusinessTypeOther(e.target.value);
+                  if (errors.businessTypeOther) setErrors(prev => ({ ...prev, businessTypeOther: '' }));
+                }}
+                className={errors.businessTypeOther ? 'border-red-500' : ''}
+              />
+              <p className="text-xs text-gray-500">
+                We use this to write your website copy, so be specific — e.g. &ldquo;Boudoir
+                Photographer&rdquo; or &ldquo;Equine Photographer&rdquo;.
+              </p>
+              {errors.businessTypeOther && (
+                <p className="text-sm text-red-500">{errors.businessTypeOther}</p>
+              )}
+            </div>
           )}
         </div>
         
