@@ -311,15 +311,35 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
       {currentStep === 1 && (
         <div>
           {onBack && (() => {
-            // Visitors arriving from a landing-page offer (?offer=…) never saw
-            // a cart — "Back to Cart" was wrong. Take them back to the landing
-            // page instead (history.back(), since they navigated from it).
-            const cameFromOffer = (() => {
-              try { return new URLSearchParams(window.location.search).has('offer'); } catch { return false; }
+            // Visitors arriving from a landing-page offer (?offer=… / ?amount=…)
+            // never saw a cart — "Back to Cart" would be wrong.
+            const params = (() => {
+              try { return new URLSearchParams(window.location.search); } catch { return null; }
             })();
+            const cameFromOffer = !!params && (params.has('offer') || params.has('amount'));
+            // Explicit return URL from the landing page (?from=/lp/slug). Internal
+            // paths only — never follow an absolute/protocol-relative URL.
+            const returnTo = (() => {
+              const f = params?.get('from') || '';
+              return f.startsWith('/') && !f.startsWith('//') ? f : null;
+            })();
+
+            const handleBack = () => {
+              if (returnTo) { window.location.assign(returnTo); return; }
+              if (cameFromOffer) {
+                // history.back() is a no-op on a direct load/refresh — fall back
+                // to the vouchers page so the button always does something.
+                if (window.history.length > 1) window.history.back();
+                else window.location.assign('/vouchers');
+                return;
+              }
+              onBack();
+            };
+
             return (
               <button
-                onClick={cameFromOffer ? () => window.history.back() : onBack}
+                type="button"
+                onClick={handleBack}
                 className="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4"
               >
                 <ArrowLeft size={20} />

@@ -56,7 +56,9 @@ import {
   CreditCard,
   PieChart,
   Globe,
-  Palette
+  Palette,
+  Sparkles,
+  Loader2
 } from "lucide-react";
 
 // Form schemas
@@ -102,6 +104,14 @@ export default function AdminVoucherSalesPageV3() {
   const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
   const [isAnalyticsDialogOpen, setIsAnalyticsDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
+  // AI voucher-product drafting (nothing is saved until the admin submits)
+  const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
+  const [aiBrief, setAiBrief] = useState("");
+  const [aiTargetPrice, setAiTargetPrice] = useState("");
+  const [aiLanguage, setAiLanguage] = useState("de");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiDraft, setAiDraft] = useState<Record<string, string> | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -685,6 +695,62 @@ export default function AdminVoucherSalesPageV3() {
         sessionType: "",
       });
       setIsProductDialogOpen(true); // Then open
+    }, 50);
+  };
+
+  // Ask the AI for a high-converting voucher draft (review before saving).
+  const handleAiGenerate = async () => {
+    if (!aiBrief.trim()) { setAiError('Describe the voucher you want first.'); return; }
+    setAiLoading(true);
+    setAiError(null);
+    setAiDraft(null);
+    try {
+      const res = await fetch('/api/vouchers/products/ai-generate', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...withAdminHeaders() },
+        body: JSON.stringify({ brief: aiBrief, targetPrice: aiTargetPrice, language: aiLanguage }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.draft) throw new Error(data?.error || 'Could not generate a draft');
+      setAiDraft(data.draft);
+    } catch (e: any) {
+      setAiError(e?.message || 'Could not generate a draft');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // Push the AI draft into the create-product form (same flow as Create New).
+  const handleUseAiDraft = () => {
+    if (!aiDraft) return;
+    setSelectedProduct(null);
+    uploadedImageRef.current = null;
+    uploadedThumbnailRef.current = null;
+    setUploadedImage(null);
+    setUploadedThumbnail(null);
+    setIsAiDialogOpen(false);
+    setIsProductDialogOpen(false);
+    setTimeout(() => {
+      productForm.reset({
+        name: aiDraft.name || "",
+        description: aiDraft.description || "",
+        detailedDescription: aiDraft.detailedDescription || "",
+        price: aiDraft.price || "0",
+        originalPrice: aiDraft.originalPrice || "",
+        category: aiDraft.category || "",
+        sessionType: aiDraft.sessionType || "",
+        sessionDuration: aiDraft.sessionDuration || "",
+        validityPeriod: aiDraft.validityPeriod || "365",
+        badge: aiDraft.badge || "",
+        redemptionInstructions: aiDraft.redemptionInstructions || "",
+        termsAndConditions: aiDraft.termsAndConditions || "",
+        metaTitle: aiDraft.metaTitle || "",
+        metaDescription: aiDraft.metaDescription || "",
+        isActive: true,
+        displayOrder: "0",
+      } as any);
+      setIsProductDialogOpen(true);
     }, 50);
   };
 
@@ -1322,6 +1388,7 @@ export default function AdminVoucherSalesPageV3() {
                 stats={stats} 
                 onCreateProduct={handleCreateProduct}
                 onCreateCoupon={handleCreateCoupon}
+                onAiGenerate={() => { setAiDraft(null); setAiError(null); setIsAiDialogOpen(true); }}
                 recentSales={voucherSales?.slice(0, 5) || []}
                 onShowAnalytics={handleShowAnalytics}
                 onShowSettings={handleOpenSettings}
@@ -1362,7 +1429,116 @@ export default function AdminVoucherSalesPageV3() {
       </div>
 
       {/* Dialogs */}
-      <ProductDialog 
+      {/* AI voucher drafting — review, then push into the create form */}
+      <Dialog open={isAiDialogOpen} onOpenChange={setIsAiDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-violet-600" />
+              Create a high-converting voucher with AI
+            </DialogTitle>
+            <DialogDescription>
+              Describe the voucher in a sentence. Nothing is saved until you review the draft and submit the form.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">What is this voucher for?</Label>
+              <Textarea
+                value={aiBrief}
+                onChange={(e) => setAiBrief(e.target.value)}
+                rows={3}
+                placeholder="e.g. Familienshooting im Studio, 60 Minuten, ideal als Weihnachtsgeschenk, inkl. 10 bearbeitete Bilder"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">Target price (€, optional)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={aiTargetPrice}
+                  onChange={(e) => setAiTargetPrice(e.target.value)}
+                  placeholder="e.g. 225"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">Language</Label>
+                <select
+                  value={aiLanguage}
+                  onChange={(e) => setAiLanguage(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                >
+                  <option value="de">German</option>
+                  <option value="en">English</option>
+                </select>
+              </div>
+            </div>
+
+            <Button
+              onClick={handleAiGenerate}
+              disabled={aiLoading || !aiBrief.trim()}
+              className="w-full bg-violet-600 hover:bg-violet-700 text-white"
+            >
+              {aiLoading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating…</> : <><Sparkles className="h-4 w-4 mr-2" /> {aiDraft ? 'Regenerate draft' : 'Generate draft'}</>}
+            </Button>
+            {aiLoading && (
+              <div className="h-1.5 w-full overflow-hidden rounded bg-violet-100">
+                <div className="h-full w-full bg-violet-600 animate-pulse" />
+              </div>
+            )}
+            {aiError && <p className="text-sm text-red-600">{aiError}</p>}
+
+            {aiDraft && (
+              <div className="rounded-lg border border-violet-200 bg-violet-50/50 p-4 space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">Draft — review before saving</p>
+                <div>
+                  <p className="text-lg font-bold text-gray-900">{aiDraft.name}</p>
+                  <p className="text-sm text-gray-700 mt-0.5">{aiDraft.description}</p>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {aiDraft.price && <span className="px-2 py-1 rounded bg-white border font-semibold">€{aiDraft.price}</span>}
+                  {aiDraft.originalPrice && <span className="px-2 py-1 rounded bg-white border line-through text-gray-500">€{aiDraft.originalPrice}</span>}
+                  {aiDraft.badge && <span className="px-2 py-1 rounded bg-amber-100 text-amber-800 font-medium">{aiDraft.badge}</span>}
+                  {aiDraft.sessionDuration && <span className="px-2 py-1 rounded bg-white border">{aiDraft.sessionDuration} min</span>}
+                  {aiDraft.validityPeriod && <span className="px-2 py-1 rounded bg-white border">valid {aiDraft.validityPeriod} days</span>}
+                  {aiDraft.category && <span className="px-2 py-1 rounded bg-white border">{aiDraft.category}</span>}
+                </div>
+                {aiDraft.detailedDescription && (
+                  <p className="text-sm text-gray-700 whitespace-pre-line">{aiDraft.detailedDescription}</p>
+                )}
+                {aiDraft.redemptionInstructions && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-600">How to redeem</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-line">{aiDraft.redemptionInstructions}</p>
+                  </div>
+                )}
+                {aiDraft.termsAndConditions && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-600">Terms</p>
+                    <p className="text-xs text-gray-600 whitespace-pre-line">{aiDraft.termsAndConditions}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsAiDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleUseAiDraft}
+              disabled={!aiDraft}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Use this draft
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ProductDialog
         key={selectedProduct?.id || 'new'}
         open={isProductDialogOpen}
         onOpenChange={setIsProductDialogOpen}
@@ -1441,11 +1617,12 @@ const DashboardView: React.FC<{
   stats: any;
   onCreateProduct: () => void;
   onCreateCoupon: () => void;
+  onAiGenerate: () => void;
   recentSales: VoucherSale[];
   onShowAnalytics?: () => void;
   onShowSettings?: () => void;
   onCreateClient?: (sale: VoucherSale) => void;
-}> = ({ stats, onCreateProduct, onCreateCoupon, recentSales, onShowAnalytics, onShowSettings, onCreateClient }) => {
+}> = ({ stats, onCreateProduct, onCreateCoupon, onAiGenerate, recentSales, onShowAnalytics, onShowSettings, onCreateClient }) => {
   return (
     <div className="space-y-8">
       {/* Key Metrics */}
@@ -1520,6 +1697,30 @@ const DashboardView: React.FC<{
             </CardContent>
         </Card>
       </div>
+
+      {/* AI drafting — write a high-converting voucher from a one-line brief */}
+      <Card className="bg-gradient-to-br from-violet-50 to-fuchsia-50 border-2 border-violet-300">
+        <CardHeader>
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-violet-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Sparkles className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <CardTitle className="text-gray-900">Create a high-converting voucher with AI</CardTitle>
+              <CardDescription className="text-gray-700">
+                Describe the voucher in one line — AI drafts the name, benefit-led copy, price anchor,
+                validity, redemption steps, terms and SEO. You review everything before it&apos;s saved.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={onAiGenerate} className="w-full bg-violet-600 hover:bg-violet-700 text-white">
+            <Sparkles className="h-4 w-4 mr-2" />
+            Generate voucher with AI
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

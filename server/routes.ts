@@ -13863,6 +13863,86 @@ ${getBizName()} CRM System
     }
   });
 
+  // POST AI-draft a high-converting voucher product from a short brief.
+  // Returns ONLY field suggestions — nothing is saved until the admin reviews
+  // the draft and submits the create form.
+  app.post("/api/vouchers/products/ai-generate", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { brief = '', targetPrice = '', language = 'de' } = req.body || {};
+      if (!String(brief).trim()) return res.status(400).json({ error: 'brief is required' });
+
+      const OpenAI = (await import('openai')).default;
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
+
+      const lang = language === 'en' ? 'English' : 'German';
+      const city = process.env.BUSINESS_CITY || 'Wien';
+      const studio = process.env.BUSINESS_NAME || 'New Age Fotografie';
+
+      const completion = await openai.chat.completions.create({
+        model: process.env.OPENAI_LANDING_MODEL || process.env.OPENAI_PRICE_MODEL || 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a conversion copywriter for ${studio}, a photography studio in ${city}. Draft a HIGH-CONVERTING photography gift-voucher product. Write in ${lang}. Be specific and benefit-led (what the customer FEELS and receives), never generic filler. Prices are in EUR.
+Return ONLY a valid JSON object with EXACTLY these keys:
+{
+  "name": "short punchy product name (max 60 chars)",
+  "description": "1-2 sentence hook shown on the product card",
+  "detailedDescription": "3-5 short benefit-led sentences for the product page",
+  "price": "selling price as a plain number string, e.g. \\"225\\"",
+  "originalPrice": "a credible higher anchor price as a plain number string, or \\"\\" if not sensible",
+  "category": "one of: family, newborn, maternity, wedding, business, portrait, event",
+  "sessionType": "e.g. Familienshooting",
+  "sessionDuration": "minutes as a plain number string, e.g. \\"60\\"",
+  "validityPeriod": "days valid as a plain number string, e.g. \\"365\\"",
+  "badge": "very short urgency/value badge, e.g. \\"Bestseller\\" or \\"\\"",
+  "redemptionInstructions": "2-3 short sentences on how to redeem",
+  "termsAndConditions": "3-4 short, fair terms as one string separated by newlines",
+  "metaTitle": "SEO title max 60 chars incl. the city",
+  "metaDescription": "SEO description max 155 chars"
+}`,
+          },
+          {
+            role: 'user',
+            content: `Brief: ${brief}\n${targetPrice ? `Target selling price (EUR): ${targetPrice}` : 'Choose a sensible price for this market.'}\nStudio: ${studio}, ${city}.`,
+          },
+        ],
+        temperature: 0.85,
+        max_tokens: 1100,
+        response_format: { type: 'json_object' },
+      });
+
+      const raw = completion.choices[0]?.message?.content || '{}';
+      let draft: any;
+      try { draft = JSON.parse(raw); } catch { return res.status(500).json({ error: 'AI returned invalid JSON' }); }
+
+      // Coerce every field to a string so the form (which is string-based) can
+      // consume it directly without type surprises.
+      const s = (v: unknown) => (v == null ? '' : String(v)).trim();
+      res.json({
+        draft: {
+          name: s(draft.name),
+          description: s(draft.description),
+          detailedDescription: s(draft.detailedDescription),
+          price: s(draft.price).replace(/[^\d.]/g, ''),
+          originalPrice: s(draft.originalPrice).replace(/[^\d.]/g, ''),
+          category: s(draft.category),
+          sessionType: s(draft.sessionType),
+          sessionDuration: s(draft.sessionDuration).replace(/[^\d]/g, ''),
+          validityPeriod: s(draft.validityPeriod).replace(/[^\d]/g, '') || '365',
+          badge: s(draft.badge),
+          redemptionInstructions: s(draft.redemptionInstructions),
+          termsAndConditions: s(draft.termsAndConditions),
+          metaTitle: s(draft.metaTitle),
+          metaDescription: s(draft.metaDescription),
+        },
+      });
+    } catch (error: any) {
+      console.error('[VOUCHER] AI generate failed:', error?.message || error);
+      res.status(500).json({ error: 'Failed to generate a voucher draft. Check the OpenAI key is set.' });
+    }
+  });
+
   app.post("/api/vouchers/products", async (req: Request, res: Response) => {
     try {
       console.log('[VOUCHER] Creating product with raw body:', req.body);

@@ -55,11 +55,14 @@ function getCtaHref(page: any): string {
   if (amount > 0) {
     // Prefer the server-signed offer token (tamper-proof price). Fall back to
     // raw amount/title only if the token is somehow absent.
+    // Carry an explicit return URL so "Back to offer" works even on a direct
+    // load/refresh (history.back() is a no-op when there's no history entry).
+    const backTo = page.slug ? `&from=${encodeURIComponent(`/lp/${page.slug}`)}` : '';
     if (page.cta_offer_token) {
-      base = `/cart?vf=personalization&offer=${encodeURIComponent(String(page.cta_offer_token))}`;
+      base = `/cart?vf=personalization&offer=${encodeURIComponent(String(page.cta_offer_token))}${backTo}`;
     } else {
       const title = page.cta_voucher_title || page.content_json?.offerSection?.headline || page.title || 'Gutschein';
-      base = `/cart?vf=personalization&amount=${encodeURIComponent(String(amount))}&title=${encodeURIComponent(String(title))}`;
+      base = `/cart?vf=personalization&amount=${encodeURIComponent(String(amount))}&title=${encodeURIComponent(String(title))}${backTo}`;
     }
   } else if (voucherSlug) {
     base = `/voucher/${voucherSlug}`;
