@@ -58,7 +58,8 @@
     "q:submit": "node scripts/submit-questionnaire.js",
     "q:responses": "node scripts/fetch-responses.js",
     "test": "jest --env=node --runInBand",
-    "test:ci": "cross-env NODE_ENV=test EMAIL_TRANSPORT=json jest --env=node --ci --runInBand"
+    "test:ci": "cross-env NODE_ENV=test EMAIL_TRANSPORT=json jest --env=node --ci --runInBand",
+    "provision": "node scripts/provision-tenant.mjs"
   },
   "keywords": [
     "photography",
