@@ -146,6 +146,12 @@ const DB_FIELD_MAP: Record<string, { table: 'studio_configs' | 'studio_integrati
   google_client_id: { table: 'studio_integrations', column: 'google_client_id' },
   google_client_secret: { table: 'studio_integrations', column: 'google_client_secret_encrypted' },
   google_calendar_id: { table: 'studio_integrations', column: 'google_calendar_id' },
+  // Per-tenant Social & Reviews (set in the setup wizard, not host env)
+  google_places_api_key: { table: 'studio_integrations', column: 'google_places_api_key_encrypted' },
+  google_places_place_id: { table: 'studio_integrations', column: 'google_places_place_id' },
+  pulse_api_key: { table: 'studio_integrations', column: 'pulse_api_key_encrypted' },
+  pulse_profiles: { table: 'studio_integrations', column: 'pulse_profiles' },
+  pulse_mode: { table: 'studio_integrations', column: 'pulse_mode' },
   brevo_api_key: { table: 'studio_integrations', column: 'brevo_api_key_encrypted' },
   imap_host: { table: 'studio_integrations', column: 'imap_host' },
   imap_port: { table: 'studio_integrations', column: 'imap_port' },

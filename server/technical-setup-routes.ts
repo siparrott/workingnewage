@@ -295,6 +295,9 @@ router.post('/extras', async (req: Request, res: Response) => {
       googleClientId, googleClientSecret, googleCalendarId,
       ga4MeasurementId, metaPixelId,
       smsProvider, smsAccountSid, smsAuthToken, smsFromNumber,
+      // Social & Reviews — each studio connects its OWN accounts here.
+      googlePlacesApiKey, googlePlacesPlaceId,
+      pulseApiKey, pulseProfiles, pulseMode,
     } = req.body;
 
     // Update studio_integrations
@@ -311,6 +314,21 @@ router.post('/extras', async (req: Request, res: Response) => {
     if (smsAccountSid) siUpdate.sms_account_sid = smsAccountSid;
     if (smsAuthToken) siUpdate.sms_auth_token_encrypted = encrypt(smsAuthToken);
     if (smsFromNumber) siUpdate.sms_from_number = smsFromNumber;
+
+    // Social & Reviews (per-tenant). Secrets encrypted at rest like the rest.
+    if (googlePlacesApiKey) siUpdate.google_places_api_key_encrypted = encrypt(googlePlacesApiKey);
+    if (googlePlacesPlaceId !== undefined) siUpdate.google_places_place_id = googlePlacesPlaceId || null;
+    if (pulseApiKey) siUpdate.pulse_api_key_encrypted = encrypt(pulseApiKey);
+    if (pulseMode) siUpdate.pulse_mode = String(pulseMode).toLowerCase();
+    if (pulseProfiles && typeof pulseProfiles === 'object') {
+      // Keep only non-empty platform → account-id pairs.
+      const cleaned = Object.fromEntries(
+        Object.entries(pulseProfiles as Record<string, unknown>)
+          .filter(([, v]) => v != null && String(v).trim())
+          .map(([k, v]) => [String(k).toLowerCase(), String(v).trim()]),
+      );
+      siUpdate.pulse_profiles = Object.keys(cleaned).length ? cleaned : null;
+    }
 
     if (Object.keys(siUpdate).length > 0) {
       await db.update(studioIntegrations).set(siUpdate).where(eq(studioIntegrations.id, siId));

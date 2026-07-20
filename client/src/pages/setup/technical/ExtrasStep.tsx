@@ -39,10 +39,19 @@ export default function ExtrasStep({ onComplete, onBack }: Props) {
   const [smsAuthToken, setSmsAuthToken] = useState('');
   const [smsFromNumber, setSmsFromNumber] = useState('');
 
+  // Social & Reviews — each studio connects ITS OWN accounts
+  const [googlePlacesApiKey, setGooglePlacesApiKey] = useState('');
+  const [googlePlacesPlaceId, setGooglePlacesPlaceId] = useState('');
+  const [pulseApiKey, setPulseApiKey] = useState('');
+  const [pulseMode, setPulseMode] = useState('draft');
+  const [pulseInstagram, setPulseInstagram] = useState('');
+  const [pulseFacebook, setPulseFacebook] = useState('');
+
   // Sections
   const [showGoogle, setShowGoogle] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showSms, setShowSms] = useState(false);
+  const [showSocial, setShowSocial] = useState(false);
 
   // Test AI
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -88,6 +97,13 @@ export default function ExtrasStep({ onComplete, onBack }: Props) {
           smsAccountSid: showSms ? smsAccountSid : undefined,
           smsAuthToken: showSms ? smsAuthToken : undefined,
           smsFromNumber: showSms ? smsFromNumber : undefined,
+          googlePlacesApiKey: googlePlacesApiKey || undefined,
+          googlePlacesPlaceId: googlePlacesPlaceId || undefined,
+          pulseApiKey: pulseApiKey || undefined,
+          pulseMode: pulseMode || undefined,
+          pulseProfiles: (pulseInstagram || pulseFacebook)
+            ? { instagram: pulseInstagram, facebook: pulseFacebook }
+            : undefined,
         }),
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
@@ -350,6 +366,114 @@ export default function ExtrasStep({ onComplete, onBack }: Props) {
                   value={smsFromNumber}
                   onChange={e => setSmsFromNumber(e.target.value)}
                 />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Social & Reviews — per-tenant, so each studio connects ITS OWN
+            Google Business Profile and social accounts. Previously these were
+            host env vars, which made the CRM unsellable as self-serve. ── */}
+        <div className="border-t pt-6">
+          <button
+            type="button"
+            onClick={() => setShowSocial(!showSocial)}
+            className="flex items-center justify-between w-full text-left"
+          >
+            <div>
+              <h3 className="font-medium text-slate-900 dark:text-slate-100">Reviews &amp; Social posting (optional)</h3>
+              <p className="text-xs text-slate-500">
+                Show your real Google reviews on your site, and post blog articles to your own social accounts.
+              </p>
+            </div>
+            {showSocial ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+
+          {showSocial && (
+            <div className="mt-4 space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="googlePlacesApiKey">Google Places API key</Label>
+                <Input
+                  id="googlePlacesApiKey"
+                  type="password"
+                  placeholder="AIza…"
+                  value={googlePlacesApiKey}
+                  onChange={e => setGooglePlacesApiKey(e.target.value)}
+                />
+                <p className="text-xs text-slate-500">
+                  Lets your website show your <strong>real Google reviews and star rating</strong>, updating
+                  automatically. Create one in Google Cloud Console and restrict it to &ldquo;Places API (New)&rdquo;.
+                  Leave blank to use your own hand-written reviews instead.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="googlePlacesPlaceId">Your Google Place ID</Label>
+                <Input
+                  id="googlePlacesPlaceId"
+                  placeholder="ChIJ…"
+                  value={googlePlacesPlaceId}
+                  onChange={e => setGooglePlacesPlaceId(e.target.value)}
+                />
+                <p className="text-xs text-slate-500">
+                  Identifies <em>your</em> business on Google. Find it with Google&apos;s Place ID finder.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-2 border-t">
+                <Label htmlFor="pulseApiKey">Social posting API key (Pulse)</Label>
+                <Input
+                  id="pulseApiKey"
+                  type="password"
+                  placeholder="pls_live_…"
+                  value={pulseApiKey}
+                  onChange={e => setPulseApiKey(e.target.value)}
+                />
+                <p className="text-xs text-slate-500">
+                  Optional. Lets you push blog posts to Facebook, Instagram, LinkedIn and more.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="pulseInstagram">Instagram account ID</Label>
+                  <Input
+                    id="pulseInstagram"
+                    placeholder="1784…"
+                    value={pulseInstagram}
+                    onChange={e => setPulseInstagram(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pulseFacebook">Facebook Page ID</Label>
+                  <Input
+                    id="pulseFacebook"
+                    placeholder="4719…"
+                    value={pulseFacebook}
+                    onChange={e => setPulseFacebook(e.target.value)}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                Pin these to <strong>your own</strong> accounts. If left blank, posts go to whichever account is
+                the default in your social workspace — which is how posts end up on the wrong profile.
+              </p>
+
+              <div className="space-y-2">
+                <Label htmlFor="pulseMode">When posting, by default</Label>
+                <select
+                  id="pulseMode"
+                  value={pulseMode}
+                  onChange={e => setPulseMode(e.target.value)}
+                  className="w-full border border-slate-300 dark:border-slate-700 rounded-md px-3 py-2 text-sm bg-transparent"
+                >
+                  <option value="draft">Save as a draft for me to review (safest)</option>
+                  <option value="schedule">Schedule at the post&apos;s publish time</option>
+                  <option value="now">Publish immediately</option>
+                </select>
+                <p className="text-xs text-slate-500">
+                  Start with drafts until you&apos;ve confirmed posts land on the right accounts.
+                </p>
               </div>
             </div>
           )}

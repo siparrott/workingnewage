@@ -16,22 +16,69 @@
 import type { PreparedSocialPack } from './socialSnippets.js';
 
 const BASE = (process.env.PULSE_API_BASE || 'https://axixos-social.de').replace(/\/+$/, '');
-const KEY = process.env.PULSE_API_KEY || '';
 const AUTO = /^(1|true|yes|on)$/i.test(process.env.PULSE_AUTODISTRIBUTE || '');
-// draft (default, safe) | schedule (at the post's publish time) | now (publish immediately)
-const MODE = (process.env.PULSE_MODE || 'draft').toLowerCase();
 const TZ = process.env.PULSE_TZ || 'Europe/Vienna';
 const PLATFORMS = (process.env.PULSE_PLATFORMS || 'facebook,instagram,threads,linkedin,googlebusiness,pinterest')
   .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
 
+/**
+ * Per-tenant Pulse credentials. Each studio we sell to connects THEIR OWN
+ * social accounts through the setup wizard (stored encrypted in
+ * studio_integrations); the host env var remains a fallback.
+ */
+export async function getPulseKey(): Promise<string> {
+  try {
+    const { config } = await import('../config-reader.js');
+    const fromDb = await config.get('pulse_api_key');
+    if (fromDb) return String(fromDb).trim();
+  } catch { /* fall through to env */ }
+  return (process.env.PULSE_API_KEY || '').trim();
+}
+
+/** Per-platform account pin, e.g. {"instagram":"1784…"}. Without it Pulse uses
+ *  the workspace DEFAULT account — the cause of posts landing on the wrong IG. */
+export async function getPulseProfiles(): Promise<Record<string, string>> {
+  try {
+    const { config } = await import('../config-reader.js');
+    const raw = await config.get('pulse_profiles');
+    if (raw) {
+      const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (obj && typeof obj === 'object') {
+        return Object.fromEntries(
+          Object.entries(obj as Record<string, unknown>)
+            .filter(([, v]) => v != null && String(v).trim())
+            .map(([k, v]) => [k.toLowerCase(), String(v).trim()]),
+        );
+      }
+    }
+  } catch { /* fall through to env */ }
+  // Env fallback: PULSE_PROFILE_INSTAGRAM, PULSE_PROFILE_FACEBOOK, …
+  const out: Record<string, string> = {};
+  for (const p of PLATFORMS) {
+    const v = process.env[`PULSE_PROFILE_${p.toUpperCase()}`];
+    if (v && v.trim()) out[p] = v.trim();
+  }
+  return out;
+}
+
+export async function getPulseMode(): Promise<string> {
+  try {
+    const { config } = await import('../config-reader.js');
+    const fromDb = await config.get('pulse_mode');
+    if (fromDb) return String(fromDb).toLowerCase();
+  } catch { /* fall through to env */ }
+  // draft (default, safe) | schedule (at publish time) | now (immediately)
+  return (process.env.PULSE_MODE || 'draft').toLowerCase();
+}
+
 /** True once a Pulse API key is present (distribution is technically possible). */
-export function isPulseConfigured(): boolean {
-  return !!KEY;
+export async function isPulseConfigured(): Promise<boolean> {
+  return !!(await getPulseKey());
 }
 
 /** True only when a key is present AND auto-distribution has been explicitly enabled. */
-export function isPulseAutoEnabled(): boolean {
-  return !!KEY && AUTO;
+export async function isPulseAutoEnabled(): Promise<boolean> {
+  return !!(await getPulseKey()) && AUTO;
 }
 
 export interface PulseRow {
@@ -81,7 +128,7 @@ function toWallClock(d: Date, timeZone: string): string {
 export function buildPulseRows(
   post: PostLike,
   sp: PreparedSocialPack,
-  opts?: { mode?: string; when?: Date; platforms?: string[] },
+  opts?: { mode?: string; when?: Date; platforms?: string[]; profiles?: Record<string, string> },
 ): PulseRow[] {
   // Optional per-send channel picker: when a non-empty list is passed, only
   // those platforms are built (still intersected with PULSE_PLATFORMS below).
@@ -91,7 +138,8 @@ export function buildPulseRows(
   const images = [post.imageUrl, post.imageUrl2, post.imageUrl3].filter((v): v is string => Boolean(v));
   const hashtags = (sp.hashtags || []).map((h) => (h.startsWith('#') ? h : `#${h}`)).join(' ');
   const groupKey = `newage-blog-${post.id}`;
-  const mode = (opts?.mode || MODE).toLowerCase();
+  // Caller resolves the per-tenant mode (getPulseMode) and passes it in.
+  const mode = (opts?.mode || 'draft').toLowerCase();
   const when = opts?.when
     || (post.publishedAt ? new Date(post.publishedAt) : (post.scheduledFor ? new Date(post.scheduledFor) : new Date()));
 
@@ -116,9 +164,10 @@ export function buildPulseRows(
     if (pick && !pick.has(d.platform)) continue;
     if (!d.content || !d.content.trim()) continue;
     if (d.needsMedia && images.length === 0) continue;
-    // Optional per-platform account selector, e.g. PULSE_PROFILE_INSTAGRAM=acc_123.
+    // Per-platform account pin (per-tenant, resolved by the caller). Without it
+    // Pulse posts to the workspace DEFAULT account for that platform.
     // Omitted when unset — Pulse then uses the single connected account for that platform.
-    const profile = process.env[`PULSE_PROFILE_${d.platform.toUpperCase()}`];
+    const profile = opts?.profiles?.[d.platform];
     rows.push({
       external_id: `newage-${post.id}-${d.platform}`, // stable → idempotent retries (Pulse dedupes)
       post_content: d.content,
@@ -138,14 +187,15 @@ export function buildPulseRows(
 export async function distributeToPulse(
   rows: PulseRow[],
 ): Promise<{ ok: boolean; status?: number; summary?: any; results?: any[]; error?: string }> {
-  if (!KEY) return { ok: false, error: 'PULSE_API_KEY not set' };
+  const key = await getPulseKey();
+  if (!key) return { ok: false, error: 'Pulse is not connected — add your Pulse API key in Settings.' };
   if (!rows.length) return { ok: false, error: 'No eligible rows to send (no matching platforms / empty copy).' };
   try {
     const res = await fetch(`${BASE}/api/v1/posts`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${KEY}`,
+        'Authorization': `Bearer ${key}`,
       },
       body: JSON.stringify({ posts: rows }),
     });

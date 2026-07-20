@@ -15,6 +15,18 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
+// Confirm the target ONCE here (guard-db-target refuses a non-interactive
+// push), then pass the confirmation down to the individual npm steps.
+if (process.env.DB_TARGET_CONFIRMED !== '1') {
+  try {
+    execSync('node scripts/guard-db-target.mjs', { stdio: 'inherit', env: process.env });
+  } catch {
+    console.error('\n✖ Bootstrap aborted at the safety check — nothing was changed.\n');
+    process.exit(1);
+  }
+}
+process.env.DB_TARGET_CONFIRMED = '1';
+
 const step = (label, cmd) => {
   console.log(`\n▶ ${label}\n  $ ${cmd}`);
   execSync(cmd, { stdio: 'inherit', env: process.env });

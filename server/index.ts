@@ -441,6 +441,19 @@ app.use((req, res, next) => {
         console.warn('⚠️ landing pages migration already applied or failed:', migrationError.message);
       }
 
+      // Per-tenant Social & Reviews credentials. Purely ADDITIVE columns, so
+      // this is safe on an existing production database.
+      try {
+        await db.execute(sql`ALTER TABLE studio_integrations ADD COLUMN IF NOT EXISTS google_places_api_key_encrypted TEXT`);
+        await db.execute(sql`ALTER TABLE studio_integrations ADD COLUMN IF NOT EXISTS google_places_place_id TEXT`);
+        await db.execute(sql`ALTER TABLE studio_integrations ADD COLUMN IF NOT EXISTS pulse_api_key_encrypted TEXT`);
+        await db.execute(sql`ALTER TABLE studio_integrations ADD COLUMN IF NOT EXISTS pulse_profiles JSONB`);
+        await db.execute(sql`ALTER TABLE studio_integrations ADD COLUMN IF NOT EXISTS pulse_mode TEXT DEFAULT 'draft'`);
+        console.log('✅ studio_integrations social/reviews columns ensured');
+      } catch (migrationError: any) {
+        console.warn('⚠️ social/reviews integration migration failed:', migrationError.message);
+      }
+
       // Admin notification read/dismiss state. Notifications themselves are
       // DERIVED from live data (leads, sales, emails, questionnaires, config
       // warnings) with stable ids, so we only persist what the admin has

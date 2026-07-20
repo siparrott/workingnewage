@@ -942,6 +942,9 @@ if (!stripeSecretKey) {
 }
 
 // Authentication middleware with fallback to static admin token header for legacy admin pages
+// Captured once at module load so /api/version can report uptime/boot time.
+const SERVER_STARTED_AT = new Date().toISOString();
+
 const authenticateUser = async (req: any, res: any, next: any) => {
   try {
     // If session exists, defer to original requireAuth for user resolution
@@ -2455,7 +2458,7 @@ Bitte versuchen Sie es später noch einmal.`;
   app.get("/api/reviews/google", async (req: Request, res: Response) => {
     try {
       const { isGoogleReviewsConfigured, getGoogleReviews } = await import('./services/googleReviews.js');
-      if (!isGoogleReviewsConfigured()) {
+      if (!(await isGoogleReviewsConfigured())) {
         res.setHeader('Cache-Control', 'public, max-age=300');
         return res.json({ configured: false });
       }
@@ -3007,7 +3010,7 @@ Bitte versuchen Sie es später noch einmal.`;
       const post = await storage.getBlogPost(req.params.id);
       if (!post) return res.status(404).json({ error: 'Post not found' });
 
-      const { isPulseConfigured, buildPulseRows, distributeToPulse } = await import('./services/pulse.js');
+      const { isPulseConfigured, buildPulseRows, distributeToPulse, getPulseProfiles, getPulseMode } = await import('./services/pulse.js');
       const { ensureSocialPack } = await import('./services/socialDistribution.js');
 
       const sp = await ensureSocialPack(post as any);
@@ -3017,13 +3020,22 @@ Bitte versuchen Sie es später noch einmal.`;
       const platforms = Array.isArray(req.body?.platforms)
         ? req.body.platforms.filter((p: any) => typeof p === 'string')
         : undefined;
-      const rows = buildPulseRows(post as any, sp, { ...(mode ? { mode } : {}), ...(platforms ? { platforms } : {}) });
+      // Per-tenant social settings (wizard → studio_integrations, env fallback).
+      const profiles = await getPulseProfiles();
+      const resolvedMode = mode || await getPulseMode();
+      const configured = await isPulseConfigured();
+
+      const rows = buildPulseRows(post as any, sp, {
+        mode: resolvedMode,
+        profiles,
+        ...(platforms ? { platforms } : {}),
+      });
 
       if (req.body?.dryRun === true) {
-        return res.json({ success: true, dryRun: true, configured: isPulseConfigured(), rows });
+        return res.json({ success: true, dryRun: true, configured, profiles, rows });
       }
-      if (!isPulseConfigured()) {
-        return res.status(400).json({ error: 'PULSE_API_KEY not set — cannot distribute. Set it to enable Pulse.', rows });
+      if (!configured) {
+        return res.status(400).json({ error: 'Pulse is not connected — add your Pulse API key in Settings to enable social distribution.', rows });
       }
 
       const result = await distributeToPulse(rows);
@@ -8996,6 +9008,28 @@ ${getBizName()} Team`;
       console.error('[notifications] dismiss failed:', error?.message);
       res.status(500).json({ error: 'Failed to dismiss' });
     }
+  });
+
+  // Build stamp — tells you which commit an instance is actually running.
+  // Added after a demo instance silently drifted behind production and the only
+  // symptom was a missing dropdown option. Public and non-sensitive.
+  app.get("/api/version", (_req: Request, res: Response) => {
+    const commit =
+      process.env.RENDER_GIT_COMMIT ||
+      process.env.HEROKU_SLUG_COMMIT ||
+      process.env.SOURCE_VERSION ||
+      process.env.GIT_COMMIT ||
+      null;
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({
+      commit,
+      commitShort: commit ? String(commit).slice(0, 7) : null,
+      branch: process.env.RENDER_GIT_BRANCH || process.env.HEROKU_BRANCH || null,
+      service: process.env.RENDER_SERVICE_NAME || process.env.HEROKU_APP_NAME || null,
+      startedAt: SERVER_STARTED_AT,
+      nodeEnv: process.env.NODE_ENV || 'development',
+      demoMode: /^(1|true|yes|on)$/i.test(process.env.DEMO_MODE || ''),
+    });
   });
 
   // Resolve a Google Maps link → { latitude, longitude }.

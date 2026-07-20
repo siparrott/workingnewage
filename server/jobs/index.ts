@@ -166,14 +166,19 @@ cron.schedule("0 * * * *", async () => {
         // distribution. Auto-generates the pack if missing. Gated by PULSE_AUTODISTRIBUTE
         // so it stays dormant until explicitly enabled; never blocks the publish.
         try {
-          const { isPulseAutoEnabled, buildPulseRows, distributeToPulse } = await import("../services/pulse.js");
-          if (isPulseAutoEnabled()) {
+          const { isPulseAutoEnabled, buildPulseRows, distributeToPulse, getPulseProfiles, getPulseMode } = await import("../services/pulse.js");
+          if (await isPulseAutoEnabled()) {
             const { ensureSocialPack } = await import("../services/socialDistribution.js");
             const sp = await ensureSocialPack(post as any);
             if (!sp) {
               jobLog('BLOG', `Pulse skipped (no content for social pack): ${post.slug}`);
             } else {
-              const rows = buildPulseRows(post as any, sp, { when: now });
+              // Per-tenant account pins + mode (wizard → DB, env fallback).
+              const rows = buildPulseRows(post as any, sp, {
+                when: now,
+                profiles: await getPulseProfiles(),
+                mode: await getPulseMode(),
+              });
               const r = await distributeToPulse(rows);
               const detail = r.summary ? `${r.summary.accepted}/${r.summary.received} accepted` : (r.error || `status ${r.status}`);
               jobLog('BLOG', `Pulse ${r.ok ? 'distributed' : 'failed'} (${rows.length} row(s)) for ${post.slug}: ${detail}`);

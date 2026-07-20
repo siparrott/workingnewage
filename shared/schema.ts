@@ -1604,10 +1604,21 @@ export const studioIntegrations = pgTable("studio_integrations", {
   sms_auth_token_encrypted: text("sms_auth_token_encrypted"),
   sms_from_number: text("sms_from_number"),
   
+  // Google Places — powers LIVE Google reviews on the public site.
+  google_places_api_key_encrypted: text("google_places_api_key_encrypted"),
+  google_places_place_id: text("google_places_place_id"),
+
+  // Pulse / AxixOS social distribution. pulse_profiles pins WHICH account is
+  // used per platform, e.g. {"instagram":"1784…","facebook":"4719…"} — without
+  // it Pulse falls back to the workspace default account.
+  pulse_api_key_encrypted: text("pulse_api_key_encrypted"),
+  pulse_profiles: jsonb("pulse_profiles"),
+  pulse_mode: text("pulse_mode").default("draft"), // draft | schedule | now
+
   // Currency and Regional Settings
   default_currency: text("default_currency").default("EUR"),
   timezone: text("timezone").default("Europe/Vienna"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

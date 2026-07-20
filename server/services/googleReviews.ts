@@ -26,12 +26,31 @@ export interface GoogleReviewsData {
   reviews: GoogleReview[];
 }
 
-export function isGoogleReviewsConfigured(): boolean {
-  return !!process.env.GOOGLE_PLACES_API_KEY;
+/**
+ * Per-tenant credentials: the setup wizard stores these encrypted in
+ * studio_integrations, and config falls back to the host env var. This is what
+ * lets each studio we sell to connect THEIR OWN Google Business Profile.
+ */
+async function getPlacesKey(): Promise<string> {
+  try {
+    const { config } = await import('../config-reader.js');
+    const fromDb = await config.get('google_places_api_key');
+    if (fromDb) return String(fromDb).trim();
+  } catch { /* fall through to env */ }
+  return (process.env.GOOGLE_PLACES_API_KEY || '').trim();
 }
 
-function getPlaceId(): string {
+async function getPlaceId(): Promise<string> {
+  try {
+    const { config } = await import('../config-reader.js');
+    const fromDb = await config.get('google_places_place_id');
+    if (fromDb) return String(fromDb).trim();
+  } catch { /* fall through to env */ }
   return (process.env.GOOGLE_PLACES_PLACE_ID || DEFAULT_PLACE_ID).trim();
+}
+
+export async function isGoogleReviewsConfigured(): Promise<boolean> {
+  return !!(await getPlacesKey());
 }
 
 let cache: { at: number; data: GoogleReviewsData | null } | null = null;
@@ -41,13 +60,13 @@ let cache: { at: number; data: GoogleReviewsData | null } | null = null;
  * texts. Returns null when unconfigured or on a hard failure with no cache.
  */
 export async function getGoogleReviews(force = false): Promise<GoogleReviewsData | null> {
-  if (!isGoogleReviewsConfigured()) return null;
+  const key = await getPlacesKey();
+  if (!key) return null;
 
   const now = Date.now();
   if (!force && cache && now - cache.at < CACHE_TTL_MS) return cache.data;
 
   try {
-    const key = process.env.GOOGLE_PLACES_API_KEY as string;
     const fieldMask = [
       'rating',
       'userRatingCount',
@@ -59,7 +78,8 @@ export async function getGoogleReviews(force = false): Promise<GoogleReviewsData
       'reviews.relativePublishTimeDescription',
     ].join(',');
 
-    const res = await fetch(`${PLACE_DETAILS_URL}/${encodeURIComponent(getPlaceId())}?languageCode=en`, {
+    const placeId = await getPlaceId();
+    const res = await fetch(`${PLACE_DETAILS_URL}/${encodeURIComponent(placeId)}?languageCode=en`, {
       headers: {
         'X-Goog-Api-Key': key,
         'X-Goog-FieldMask': fieldMask,
