@@ -1263,46 +1263,50 @@ export default function AdminVoucherSalesPageV3() {
     <AdminLayout>
       <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
         {/* Page Header - Galleries style */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center space-x-4">
             <h1 className="text-2xl font-bold text-gray-900">Online Voucher Sales</h1>
           </div>
-          <div className="flex items-center space-x-2 text-sm">
-            <Button variant="outline" size="sm" onClick={handleExportProducts} className="border-gray-200 hover:bg-gray-100">
+          {/* Action bar — solid, clearly-clickable buttons. Wraps instead of
+              cramming, and labels never break mid-word. */}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button size="sm" onClick={handleExportProducts}
+              className="whitespace-nowrap bg-white border border-gray-300 text-gray-800 hover:bg-gray-100 hover:border-gray-400 shadow-sm">
               <Download className="h-4 w-4 mr-1.5" />
               Export Products
             </Button>
-            <Button variant="outline" size="sm" onClick={handleExportSales} className="border-gray-200 hover:bg-gray-100">
+            <Button size="sm" onClick={handleExportSales}
+              className="whitespace-nowrap bg-white border border-gray-300 text-gray-800 hover:bg-gray-100 hover:border-gray-400 shadow-sm">
               <Download className="h-4 w-4 mr-1.5" />
               Export Sales
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleSyncStripe} 
-              disabled={isSyncingStripe} 
-              className="border-purple-200 hover:bg-purple-50 text-purple-700"
-            >
-              <CreditCard className="h-4 w-4 mr-1.5" />
-              {isSyncingStripe ? 'Syncing...' : 'Sync from Stripe'}
+            <Button size="sm" onClick={handleSyncStripe} disabled={isSyncingStripe}
+              className="whitespace-nowrap bg-purple-600 text-white hover:bg-purple-700 border border-transparent shadow-sm disabled:opacity-60">
+              {isSyncingStripe ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CreditCard className="h-4 w-4 mr-1.5" />}
+              {isSyncingStripe ? 'Syncing…' : 'Sync from Stripe'}
             </Button>
-            <Button variant="outline" size="sm" onClick={handleImportFamilyPackages} disabled={isImportingPackages} className="border-gray-200 hover:bg-gray-100">
-              <Users className="h-4 w-4 mr-1.5" />
-              {isImportingPackages ? 'Importing...' : 'Import Family Packages'}
+            <Button size="sm" onClick={handleImportFamilyPackages} disabled={isImportingPackages}
+              className="whitespace-nowrap bg-white border border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 shadow-sm disabled:opacity-60">
+              {isImportingPackages ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Users className="h-4 w-4 mr-1.5" />}
+              {isImportingPackages ? 'Importing…' : 'Import Family Packages'}
             </Button>
-            <Button variant="outline" size="sm" onClick={handleImportNewbornPackages} disabled={isImportingNewborn} className="border-gray-200 hover:bg-gray-100">
-              <Baby className="h-4 w-4 mr-1.5" />
-              {isImportingNewborn ? 'Importing...' : 'Import Newborn Packages'}
+            <Button size="sm" onClick={handleImportNewbornPackages} disabled={isImportingNewborn}
+              className="whitespace-nowrap bg-white border border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 shadow-sm disabled:opacity-60">
+              {isImportingNewborn ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Baby className="h-4 w-4 mr-1.5" />}
+              {isImportingNewborn ? 'Importing…' : 'Import Newborn Packages'}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => handleImportAllPackages()} className="border-gray-200 hover:bg-gray-100">
-              <Package className="h-4 w-4 mr-1.5" />
-              Import All Packages
+            <Button size="sm" onClick={() => handleImportAllPackages()} disabled={isImportingAll}
+              className="whitespace-nowrap bg-white border border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 shadow-sm disabled:opacity-60">
+              {isImportingAll ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Package className="h-4 w-4 mr-1.5" />}
+              {isImportingAll ? 'Importing…' : 'Import All Packages'}
             </Button>
-            <Button variant="outline" size="sm" onClick={handleShowAnalytics} className="border-gray-200 hover:bg-gray-100">
+            <Button size="sm" onClick={handleShowAnalytics}
+              className="whitespace-nowrap bg-white border border-gray-300 text-gray-800 hover:bg-gray-100 hover:border-gray-400 shadow-sm">
               <BarChart3 className="h-4 w-4 mr-1.5" />
               Analytics
             </Button>
-            <Button variant="outline" size="sm" onClick={handleOpenSettings} className="border-gray-200 hover:bg-gray-100">
+            <Button size="sm" onClick={handleOpenSettings}
+              className="whitespace-nowrap bg-white border border-gray-300 text-gray-800 hover:bg-gray-100 hover:border-gray-400 shadow-sm">
               <Settings className="h-4 w-4 mr-1.5" />
               Settings
             </Button>
