@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useManualPageData } from '../../hooks/useManualPageContent';
+import { useGoogleReviews } from '../../hooks/useGoogleReviews';
 
 interface FallbackReview {
   author: string;
@@ -18,57 +19,62 @@ interface Review {
   text: string;
   profile_photo_url: string;
   time: number;
+  /** Relative age from the live Google API, e.g. "8 months ago". */
+  whenLabel?: string;
 }
 
-// Default reviews. These act as fallbacks – the live values are editable from the
-// backend via Manual Website Update → "Customer Reviews" (page id: reviews).
+// GENUINE reviews from the studio's own Google Business Profile, used only as a
+// fallback when the live Places API is unreachable. The live values are also
+// editable from the backend via Manual Website Update → "Customer Reviews".
+// NOTE: this list previously held INVENTED reviewers with generated cartoon
+// avatars — never ship fabricated testimonials.
 const FALLBACK_REVIEWS: FallbackReview[] = [
   {
-    author: 'Sabine Schuster',
-    textDe: 'Matt ist ein wunderbarer Fotograf, der es versteht, die Persönlichkeit der Menschen einzufangen. Wir haben uns sehr wohl gefühlt und die Bilder sind einfach toll geworden. Sehr zu empfehlen!',
-    textEn: "Matt is a wonderful photographer who knows how to capture people's personalities. We felt very comfortable and the photos turned out absolutely great. Highly recommended!",
-    profile_photo_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sabine&backgroundColor=ffd5dc',
-    time: 1686729600000,
+    author: 'Robyn Patterson',
+    textDe: 'NAF have done my engagement photoshoot previously, and now my legal wedding ceremony shoot too. Could not be happier! We felt so comfortable the whole time and the incredible moments caught show it all!',
+    textEn: 'NAF have done my engagement photoshoot previously, and now my legal wedding ceremony shoot too. Could not be happier! We felt so comfortable the whole time and the incredible moments caught show it all!',
+    profile_photo_url: '',
+    time: 1735689600000,
     rating: 5,
   },
   {
-    author: 'Katharina Müller',
-    textDe: 'Wir hatten ein Familienshooting mit Matt und sind begeistert! Die Atmosphäre war super entspannt und die Bilder sind einfach wunderschön geworden. Besonders toll fanden wir, wie geduldig er mit unseren Kindern war. Absolute Empfehlung!',
-    textEn: 'We had a family photoshoot with Matt and are thrilled! The atmosphere was super relaxed and the photos turned out simply beautiful. We especially loved how patient he was with our children. Absolute recommendation!',
-    profile_photo_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Katharina&backgroundColor=b6e3f4',
-    time: 1692144000000,
+    author: 'Mitchell Gaitskell',
+    textDe: 'NAF were absolutely amazing. Captured our special day so perfectly giving us life long memories that we will cherish forever. Very professional and best in the business.',
+    textEn: 'NAF were absolutely amazing. Captured our special day so perfectly giving us life long memories that we will cherish forever. Very professional and best in the business.',
+    profile_photo_url: '',
+    time: 1735689600000,
     rating: 5,
   },
   {
-    author: 'Thomas Wagner',
-    textDe: 'Professionelles Business-Shooting mit hervorragenden Ergebnissen. Matt hat es geschafft, dass ich mich vor der Kamera wohl gefühlt habe, obwohl ich normalerweise nicht gerne fotografiert werde. Die Bilder nutze ich jetzt für meine Website und LinkedIn - top Qualität!',
-    textEn: "Professional business photoshoot with outstanding results. Matt made me feel comfortable in front of the camera, even though I usually don't like being photographed. I now use the photos for my website and LinkedIn – top quality!",
-    profile_photo_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Thomas&backgroundColor=c0aede',
-    time: 1689465600000,
+    author: 'Narangarav Erdenejargal',
+    textDe: 'We went for a family photoshoot, and the photographer was truly talented. He knew exactly how to interact with our child to capture beautiful shots. We had so much fun and ended up with such amazing photos.',
+    textEn: 'We went for a family photoshoot, and the photographer was truly talented. He knew exactly how to interact with our child to capture beautiful shots. We had so much fun and ended up with such amazing photos.',
+    profile_photo_url: '',
+    time: 1733011200000,
     rating: 5,
   },
   {
-    author: 'Lisa Huber',
-    textDe: 'Unser Neugeborenen-Shooting mit Matt war ein wunderschönes Erlebnis. Er hat sich so viel Zeit genommen und war unglaublich einfühlsam mit unserem kleinen Sohn. Die Fotos sind traumhaft schön geworden und werden uns immer an diese besondere Zeit erinnern.',
-    textEn: 'Our newborn photoshoot with Matt was a wonderful experience. He took so much time and was incredibly gentle with our little son. The photos turned out beautifully and will always remind us of this special time.',
-    profile_photo_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa&backgroundColor=d1d4f9',
-    time: 1693526400000,
+    author: 'Chandler Buhl',
+    textDe: 'We had lots of fun at our family photoshoot! The photographer was wonderful with our baby, and gave easy directions for natural poses.',
+    textEn: 'We had lots of fun at our family photoshoot! The photographer was wonderful with our baby, and gave easy directions for natural poses.',
+    profile_photo_url: '',
+    time: 1717200000000,
     rating: 5,
   },
   {
-    author: 'Michael Bauer',
-    textDe: 'Matt hat unsere Hochzeit fotografiert und wir sind mehr als zufrieden! Er hat alle wichtigen Momente eingefangen, ohne dabei aufdringlich zu sein. Die Bilder erzählen die Geschichte unseres Tages perfekt. Danke für diese wunderbaren Erinnerungen!',
-    textEn: 'Matt photographed our wedding and we are more than satisfied! He captured all the important moments without being intrusive. The photos tell the story of our day perfectly. Thank you for these wonderful memories!',
-    profile_photo_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=MichaelB&backgroundColor=ffdfbf',
-    time: 1688256000000,
+    author: 'Bernhard Wistawel',
+    textDe: 'Vielen Dank für das professionelle und gleichzeitig lustige Fotoshooting. Wir waren schon zum zweiten Mal da. Wir empfehlen euch weiter.',
+    textEn: 'Thank you for a photoshoot that was professional and great fun at the same time. This was already our second visit. We happily recommend you to others.',
+    profile_photo_url: '',
+    time: 1717200000000,
     rating: 5,
   },
   {
-    author: 'Anna Steiner',
-    textDe: 'Mein Schwangerschaftsshooting mit Matt war ein tolles Erlebnis. Er hat eine sehr angenehme Art und schafft es, dass man sich sofort wohlfühlt. Die Bilder sind wunderschön geworden und zeigen genau die Emotionen, die ich mir gewünscht habe. Sehr empfehlenswert!',
-    textEn: 'My maternity photoshoot with Matt was a great experience. He has a very pleasant manner and makes you feel comfortable right away. The photos turned out beautifully and capture exactly the emotions I was hoping for. Highly recommended!',
-    profile_photo_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=AnnaSteiner&backgroundColor=c1f0c1',
-    time: 1691539200000,
+    author: 'Michaela Pohanka',
+    textDe: 'Nach fast 13 Jahren und einigen Neuzugängen in unserer Familie haben wir uns entschlossen: neue Familienfotos müssen her – und es war eine wunderbare Entscheidung.',
+    textEn: 'After almost 13 years and a few new additions to our family, we decided it was time for new family photos – and it was a wonderful decision.',
+    profile_photo_url: '',
+    time: 1714521600000,
     rating: 5,
   },
 ];
@@ -85,22 +91,41 @@ const GoogleReviews: React.FC = () => {
     return value && value.trim() ? value : fallback;
   };
 
-  const reviews: Review[] = useMemo(
-    () =>
-      FALLBACK_REVIEWS.map((r, i) => ({
-        author_name: ov(`reviews.r${i + 1}.author`, r.author),
-        text: ov(`reviews.r${i + 1}.text`, language === 'de' ? r.textDe : r.textEn),
-        rating: r.rating,
-        profile_photo_url: r.profile_photo_url,
-        time: r.time,
-      })),
+  // LIVE reviews straight from the studio's Google Business Profile. This is
+  // what makes the section honest — it only falls back to the stored reviews
+  // when the Places API isn't configured/reachable.
+  const { data: live } = useGoogleReviews();
+
+  const reviews: Review[] = useMemo(() => {
+    if (live?.reviews?.length) {
+      return live.reviews.map((r) => ({
+        author_name: r.author,
+        text: r.text,
+        rating: r.rating || 5,
+        profile_photo_url: '',
+        time: 0,
+        whenLabel: r.when,
+      }));
+    }
+    return FALLBACK_REVIEWS.map((r, i) => ({
+      author_name: ov(`reviews.r${i + 1}.author`, r.author),
+      text: ov(`reviews.r${i + 1}.text`, language === 'de' ? r.textDe : r.textEn),
+      rating: r.rating,
+      profile_photo_url: r.profile_photo_url,
+      time: r.time,
+    }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [language, pageData.data]
-  );
+  }, [language, pageData.data, live]);
 
   const sectionTitle = ov('reviews.sectionTitle', language === 'de' ? 'Was unsere Kunden sagen' : 'What Our Clients Say');
-  const ratingSummary = ov('reviews.ratingSummary', language === 'de' ? '4.9 auf Google (253 Bewertungen)' : '4.9 on Google (253 Reviews)');
-  const googleUrl = ov('reviews.googleUrl', DEFAULT_GOOGLE_URL);
+  // Prefer the LIVE rating/count so the headline can never drift from Google.
+  const liveSummary = live
+    ? (language === 'de'
+        ? `${live.rating.toFixed(1).replace('.', ',')} auf Google (${live.count} Bewertungen)`
+        : `${live.rating.toFixed(1)} on Google (${live.count} Reviews)`)
+    : null;
+  const ratingSummary = liveSummary || ov('reviews.ratingSummary', language === 'de' ? '4,8 auf Google' : '4.8 on Google');
+  const googleUrl = live?.mapsUri || ov('reviews.googleUrl', DEFAULT_GOOGLE_URL);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [perView, setPerView] = useState(3);
@@ -187,20 +212,33 @@ const GoogleReviews: React.FC = () => {
             {visibleReviews.map((review, index) => (
               <div key={`${review.author_name}-${currentIndex}-${index}`} className="bg-white rounded-lg shadow-lg p-6 transition-all duration-500 ease-in-out animate-fadeIn">
                 <div className="flex items-center mb-4">
-                  <img
-                    src={review.profile_photo_url}
-                    alt={review.author_name}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-12 h-12 rounded-full mr-4"
-                  />
-                  <div>
-                    <h3 className="font-semibold text-gray-800">{review.author_name}</h3>
+                  {/* Real reviewers: show initials. (Previously a generated
+                      cartoon avatar, which implied a fake profile photo.) */}
+                  {review.profile_photo_url ? (
+                    <img
+                      src={review.profile_photo_url}
+                      alt={review.author_name}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-12 h-12 rounded-full mr-4"
+                    />
+                  ) : (
+                    <div
+                      className="w-12 h-12 rounded-full mr-4 bg-purple-100 text-purple-700 flex items-center justify-center font-semibold flex-shrink-0"
+                      aria-hidden="true"
+                    >
+                      {review.author_name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-gray-800 truncate">{review.author_name}</h3>
                     <div className="flex items-center">
                       <div className="flex mr-2">
                         {renderStars(review.rating)}
                       </div>
-                      <span className="text-gray-500 text-sm">{formatDate(review.time)}</span>
+                      <span className="text-gray-500 text-sm">
+                        {review.whenLabel || (review.time ? formatDate(review.time) : '')}
+                      </span>
                     </div>
                   </div>
                 </div>
