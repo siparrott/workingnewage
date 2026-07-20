@@ -5,7 +5,9 @@ import Layout from '../components/layout/Layout';
 import ZoomableImageV2 from '../components/ui/ZoomableImageV2';
 import Typewriter from 'typewriter-effect';
 import CountUp from 'react-countup';
-import { Check } from 'lucide-react';
+import { Check, Star } from 'lucide-react';
+import { useGoogleReviews } from '../hooks/useGoogleReviews';
+import { proxyImage } from '../lib/imageProxy';
 import photoGridImage from '../assets/photo-grid.jpg';
 import { useLanguage } from '../context/LanguageContext';
 import { useCart } from '../context/CartContext';
@@ -148,9 +150,12 @@ const HomePage: React.FC = () => {
   });
 
   // Utility: resolve image URL by section with local fallback
-  const imageForSection = (section: string, fallback?: string) => {
+  // Homepage photos were served as full-resolution originals (multi-MB), which
+  // is why the grid took seconds to appear. Serve a right-sized WebP instead.
+  const imageForSection = (section: string, fallback?: string, width = 800) => {
     const hit = (homepageImages as any[])?.find((img: any) => img.section === section);
-    return (hit && (hit.url as string)) || fallback || photoGridImage;
+    const url = (hit && (hit.url as string)) || fallback || photoGridImage;
+    return proxyImage(url, { w: width });
   };
 
   const heroImageUrl = useMemo(() => {
@@ -299,65 +304,57 @@ const HomePage: React.FC = () => {
   // Preload all images to prevent flashing
   const imageUrlsToPreload = useMemo(() => {
     const urls: string[] = [];
-    
-    // Add homepage images
+
+    // IMPORTANT: preload the SAME resized URLs the page renders. This used to
+    // push the full-resolution originals, so every homepage + voucher photo was
+    // downloaded at full size on load — the reason the photo grid took seconds
+    // to appear. Preloading a different URL than the one rendered is pure waste.
     if (homepageImages && Array.isArray(homepageImages)) {
       homepageImages.forEach((img: any) => {
-        if (img?.url) urls.push(img.url);
+        if (img?.url) urls.push(proxyImage(img.url, { w: 800 }));
       });
     }
-    
-    // Add voucher product images
+
+    // Voucher thumbnails are small on screen — request them small too.
     if (voucherProducts && Array.isArray(voucherProducts)) {
       voucherProducts.forEach((product: any) => {
-        if (product?.image) urls.push(product.image);
-        if (product?.thumbnailUrl) urls.push(product.thumbnailUrl);
+        if (product?.thumbnailUrl) urls.push(proxyImage(product.thumbnailUrl, { w: 500 }));
+        else if (product?.image) urls.push(proxyImage(product.image, { w: 500 }));
       });
     }
-    
+
     return urls;
   }, [homepageImages, voucherProducts]);
   
   useImagePreloader(imageUrlsToPreload);
 
-  const testimonials = [
+  // Live Google rating + latest reviews (null until loaded / if unconfigured).
+  const { data: liveGoogle } = useGoogleReviews();
+
+  // REAL reviews only. Prefer the studio's live Google Business Profile; if the
+  // Places API is unreachable, fall back to genuine reviews copied from that
+  // same profile. (This section previously showed invented names + generated
+  // cartoon avatars, which misrepresented real customers.)
+  const CURATED_GOOGLE_REVIEWS = [
     {
-      name: "Sarah M.",
-      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&backgroundColor=b6e3f4",
-      role: t('home.testimonial1Role'),
-      text: t('home.testimonial1Text')
+      name: 'Bernhard Wistawel',
+      text: 'Vielen Dank für das professionelle und gleichzeitig lustige Fotoshooting. Wir waren schon zum zweiten Mal da. Wir empfehlen euch weiter.',
     },
     {
-      name: "Michael K.",
-      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Michael&backgroundColor=c0aede",
-      role: t('home.testimonial2Role'),
-      text: t('home.testimonial2Text')
+      name: 'Michaela Pohanka',
+      text: 'Nach fast 13 Jahren und einigen Neuzugängen in unserer Familie haben wir uns entschlossen: neue Familienfotos müssen her – und es war eine wunderbare Entscheidung.',
     },
-    {
-      name: "Lisa & Tom",
-      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=LisaTom&backgroundColor=d1d4f9", 
-      role: t('home.testimonial3Role'),
-      text: t('home.testimonial3Text')
-    },
-    {
-      name: "Anna W.",
-      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Anna&backgroundColor=ffd5dc",
-      role: t('home.testimonial4Role'),
-      text: t('home.testimonial4Text')
-    },
-    {
-      name: "Maria & Peter",
-      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=MariaPeter&backgroundColor=ffdfbf",
-      role: t('home.testimonial5Role'),
-      text: t('home.testimonial5Text')
-    },
-    {
-      name: "Christina R.",
-      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Christina&backgroundColor=c1f0c1",
-      role: t('home.testimonial6Role'),
-      text: t('home.testimonial6Text')
-    }
   ];
+
+  const testimonials = (liveGoogle?.reviews?.length
+    ? liveGoogle.reviews.slice(0, 6).map((r) => ({
+        name: r.author,
+        role: r.when ? `Google · ${r.when}` : 'Google',
+        text: r.text,
+        rating: r.rating || 5,
+      }))
+    : CURATED_GOOGLE_REVIEWS.map((r) => ({ ...r, role: 'Google', rating: 5 }))
+  );
 
   const faqImages =
     (homepageImages &&
@@ -946,18 +943,23 @@ const HomePage: React.FC = () => {
             {testimonials.map((testimonial, index) => (
               <div key={index} className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
                 <div className="flex items-center mb-4">
-                  <img
-                    src={testimonial.image}
-                    alt={testimonial.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                    loading="lazy"
-                    width="48"
-                    height="48"
-                    style={{ backgroundColor: '#f3f4f6' }}
-                  />
-                  <div className="ml-4">
-                    <h3 className="font-semibold text-gray-800">{testimonial.name}</h3>
-                    <p className="text-gray-600 text-sm">{testimonial.role}</p>
+                  {/* Real reviewers — initials, not a generated cartoon avatar */}
+                  <div
+                    className="w-12 h-12 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-semibold flex-shrink-0"
+                    aria-hidden="true"
+                  >
+                    {testimonial.name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()}
+                  </div>
+                  <div className="ml-4 min-w-0">
+                    <h3 className="font-semibold text-gray-800 truncate">{testimonial.name}</h3>
+                    <div className="flex items-center gap-1.5">
+                      <span className="flex text-yellow-400" aria-label={`${testimonial.rating} out of 5`}>
+                        {[0, 1, 2, 3, 4].map((i) => (
+                          <Star key={i} className={`h-3.5 w-3.5 ${i < testimonial.rating ? 'fill-current' : 'text-gray-300'}`} />
+                        ))}
+                      </span>
+                      <p className="text-gray-500 text-xs truncate">{testimonial.role}</p>
+                    </div>
                   </div>
                 </div>
                 <p className="text-gray-700">{testimonial.text}</p>

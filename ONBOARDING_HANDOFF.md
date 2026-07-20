@@ -16,7 +16,7 @@ Open the running instance and go to:
 https://<your-host>/setup
 ```
 
-- Tenant Zero (demo): `https://tenant-zero.onrender.com/setup`
+- Tenant Zero (demo): `
 - Local dev: `http://localhost:3001/setup` (or your dev port)
 
 `/setup/technical` and `/setup/technical/*` redirect to `/setup` — there is **one** wizard now, not three. (`SetupWizard.tsx` and `TechnicalSetupWizard.tsx` still exist as the composed building blocks but are no longer routed to directly.)

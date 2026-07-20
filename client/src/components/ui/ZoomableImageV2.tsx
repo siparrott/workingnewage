@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, ZoomIn, RotateCcw } from 'lucide-react';
+import { proxyImage } from '../../lib/imageProxy';
 
 interface ZoomableImageV2Props {
   src: string;
@@ -22,6 +23,11 @@ const ZoomableImageV2: React.FC<ZoomableImageV2Props> = ({
   width,
   height
 }) => {
+  // Serve a right-sized WebP for the thumbnail instead of the full-resolution
+  // original (homepage grids were downloading multi-MB files). The zoom modal
+  // still gets a large version. Relative/already-proxied URLs pass through.
+  const displaySrc = proxyImage(src, { w: width ? Math.min(1600, Math.round(width * 2)) : 1000 });
+  const modalSrc = proxyImage(src, { w: 1600 });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -50,7 +56,9 @@ const ZoomableImageV2: React.FC<ZoomableImageV2Props> = ({
     // its load event before the handler exists and the image never reveals.
     img.onload = () => setIsLoaded(true);
     img.onerror = () => setHasError(true);
-    img.src = src;
+    // Preload the SAME (resized) URL the <img> will use — preloading the
+    // full-resolution original defeated the resizing entirely.
+    img.src = displaySrc;
 
     // Images served from cache may already be complete and never emit `load`.
     if (img.complete && img.naturalWidth > 0) {
@@ -215,7 +223,7 @@ const ZoomableImageV2: React.FC<ZoomableImageV2Props> = ({
         }}
       >
         <img
-          src={src}
+          src={displaySrc}
           alt={alt}
           className={`
             absolute inset-0 w-full h-full object-cover
@@ -316,7 +324,7 @@ const ZoomableImageV2: React.FC<ZoomableImageV2Props> = ({
           >
             <img
               ref={imageRef}
-              src={src}
+              src={modalSrc}
               alt={alt}
               className="max-w-none select-none"
               style={{
