@@ -9014,7 +9014,18 @@ ${getBizName()} Team`;
   // Added after a demo instance silently drifted behind production and the only
   // symptom was a missing dropdown option. Public and non-sensitive.
   app.get("/api/version", (_req: Request, res: Response) => {
+    // Runtime env vars are unreliable (Heroku hides the SHA unless dyno
+    // metadata is enabled), so prefer the stamp written at BUILD time.
+    let stamped: { commit?: string | null; branch?: string | null; builtAt?: string } = {};
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      stamped = require('fs').existsSync('dist/build-info.json')
+        ? JSON.parse(require('fs').readFileSync('dist/build-info.json', 'utf8'))
+        : {};
+    } catch { /* stamp is optional — never break the endpoint */ }
+
     const commit =
+      stamped.commit ||
       process.env.RENDER_GIT_COMMIT ||
       process.env.HEROKU_SLUG_COMMIT ||
       process.env.SOURCE_VERSION ||
@@ -9024,7 +9035,8 @@ ${getBizName()} Team`;
     res.json({
       commit,
       commitShort: commit ? String(commit).slice(0, 7) : null,
-      branch: process.env.RENDER_GIT_BRANCH || process.env.HEROKU_BRANCH || null,
+      branch: stamped.branch || process.env.RENDER_GIT_BRANCH || process.env.HEROKU_BRANCH || null,
+      builtAt: stamped.builtAt || null,
       service: process.env.RENDER_SERVICE_NAME || process.env.HEROKU_APP_NAME || null,
       startedAt: SERVER_STARTED_AT,
       nodeEnv: process.env.NODE_ENV || 'development',
