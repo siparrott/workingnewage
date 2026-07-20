@@ -96,7 +96,34 @@ export default function BasicsPhase({ initialData, onComplete }: BasicsPhaseProp
 
   const [showLocation, setShowLocation] = useState(!!(initialData?.latitude || initialData?.address));
   const [showSocial, setShowSocial] = useState(!!(initialData?.facebookUrl || initialData?.instagramUrl));
-  
+
+  // Google Maps link → coordinates, so the owner never has to know what
+  // "latitude" means.
+  const [mapLink, setMapLink] = useState('');
+  const [mapStatus, setMapStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
+  const [mapError, setMapError] = useState('');
+
+  const resolveMapLink = async () => {
+    const url = mapLink.trim();
+    if (!url) return;
+    setMapStatus('loading');
+    setMapError('');
+    try {
+      const res = await fetch('/api/geo/resolve-map-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.latitude) throw new Error(data?.error || 'Could not read that link.');
+      setFormData(prev => ({ ...prev, latitude: String(data.latitude), longitude: String(data.longitude) }));
+      setMapStatus('ok');
+    } catch (e: any) {
+      setMapError(e?.message || 'Could not read that link.');
+      setMapStatus('error');
+    }
+  };
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   
   const saveMutation = useMutation({
@@ -359,32 +386,71 @@ export default function BasicsPhase({ initialData, onComplete }: BasicsPhaseProp
                   Used on invoices, emails, and your public website.
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="latitude">Latitude</Label>
+              {/* Plain-English replacement for raw Latitude/Longitude: paste the
+                  Google Maps link and we work the coordinates out. */}
+              <div className="space-y-2">
+                <Label htmlFor="mapLink">Your Google Maps link (optional)</Label>
+                <div className="flex gap-2">
                   <Input
-                    id="latitude"
-                    placeholder="48.2082"
-                    value={formData.latitude}
-                    onChange={(e) => handleChange('latitude', e.target.value)}
+                    id="mapLink"
+                    placeholder="https://maps.app.goo.gl/…"
+                    value={mapLink}
+                    onChange={(e) => { setMapLink(e.target.value); setMapStatus('idle'); }}
+                    onBlur={() => { if (mapLink.trim()) resolveMapLink(); }}
                   />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={resolveMapLink}
+                    disabled={!mapLink.trim() || mapStatus === 'loading'}
+                    className="whitespace-nowrap"
+                  >
+                    {mapStatus === 'loading' ? 'Finding…' : 'Find location'}
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="longitude">Longitude</Label>
-                  <Input
-                    id="longitude"
-                    placeholder="16.3738"
-                    value={formData.longitude}
-                    onChange={(e) => handleChange('longitude', e.target.value)}
-                  />
-                </div>
+                <p className="text-xs text-gray-500">
+                  Search your studio on Google Maps, tap <strong>Share</strong> → <strong>Copy link</strong>,
+                  and paste it here. This is only used to show a map of your studio on your website.
+                </p>
+                {mapStatus === 'ok' && (
+                  <p className="text-xs text-green-700">
+                    ✓ Location found — we&apos;ll show your studio on the map.
+                  </p>
+                )}
+                {mapStatus === 'error' && (
+                  <p className="text-xs text-red-600">{mapError}</p>
+                )}
               </div>
-              <p className="text-xs text-gray-500">
-                Used for map embeds on your public site. Find yours at{' '}
-                <a href="https://www.latlong.net/" target="_blank" rel="noopener" className="text-blue-600 hover:underline">
-                  latlong.net
-                </a>
-              </p>
+
+              {/* Advanced: the raw coordinates, for anyone who prefers them */}
+              <details className="text-xs">
+                <summary className="cursor-pointer text-gray-600 hover:text-gray-900">
+                  Advanced — enter map coordinates manually
+                </summary>
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="latitude">Latitude</Label>
+                    <Input
+                      id="latitude"
+                      placeholder="48.2082"
+                      value={formData.latitude}
+                      onChange={(e) => handleChange('latitude', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="longitude">Longitude</Label>
+                    <Input
+                      id="longitude"
+                      placeholder="16.3738"
+                      value={formData.longitude}
+                      onChange={(e) => handleChange('longitude', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Most people can ignore this — pasting the Google Maps link above fills it in.
+                </p>
+              </details>
             </div>
           )}
         </div>

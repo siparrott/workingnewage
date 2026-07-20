@@ -8998,6 +8998,69 @@ ${getBizName()} Team`;
     }
   });
 
+  // Resolve a Google Maps link → { latitude, longitude }.
+  // Studio owners paste the SHORT link they copied from the Maps app
+  // (maps.app.goo.gl/…), which carries no coordinates, so we follow the
+  // redirect server-side and read them from the expanded URL.
+  // SSRF-safe: only Google Maps hosts are ever fetched.
+  app.post("/api/geo/resolve-map-link", async (req: Request, res: Response) => {
+    try {
+      const raw = String(req.body?.url || '').trim();
+      if (!raw) return res.status(400).json({ error: 'url is required' });
+
+      let parsed: URL;
+      try { parsed = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`); }
+      catch { return res.status(400).json({ error: 'That does not look like a link.' }); }
+
+      const host = parsed.hostname.toLowerCase();
+      const allowed = host === 'maps.app.goo.gl'
+        || host === 'goo.gl'
+        || host === 'maps.google.com'
+        || host.endsWith('.google.com')
+        || /^(www\.)?google\.[a-z.]+$/.test(host)
+        || /^maps\.google\.[a-z.]+$/.test(host);
+      if (!allowed) return res.status(400).json({ error: 'Please paste a Google Maps link.' });
+
+      // Pull coordinates out of any of the shapes Maps uses.
+      const extract = (u: string): { lat: string; lng: string } | null => {
+        const patterns = [
+          /@(-?\d+\.\d+),(-?\d+\.\d+)/,          // /@48.2082,16.3738,17z
+          /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/,      // !3d48.2082!4d16.3738
+          /[?&](?:ll|q|center)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/, // ?ll= / ?q= / ?center=
+        ];
+        for (const p of patterns) {
+          const m = u.match(p);
+          if (m) return { lat: m[1], lng: m[2] };
+        }
+        return null;
+      };
+
+      let found = extract(parsed.toString());
+      let finalUrl = parsed.toString();
+
+      // Short link → follow the redirect chain to the full URL.
+      if (!found) {
+        try {
+          const r = await fetch(finalUrl, { redirect: 'follow', headers: { 'User-Agent': 'Mozilla/5.0' } });
+          finalUrl = r.url || finalUrl;
+          found = extract(finalUrl);
+          if (!found) {
+            const body = await r.text();
+            found = extract(body.slice(0, 200000));
+          }
+        } catch { /* fall through to the not-found response */ }
+      }
+
+      if (!found) {
+        return res.status(404).json({ error: "We couldn't read a location from that link. Try the full Google Maps link, or enter the coordinates manually." });
+      }
+      res.json({ latitude: found.lat, longitude: found.lng, resolvedUrl: finalUrl });
+    } catch (error: any) {
+      console.error('[geo] resolve-map-link failed:', error?.message || error);
+      res.status(500).json({ error: 'Could not read that link. Please try again.' });
+    }
+  });
+
   // Admin email settings endpoint
   app.get("/api/admin/email-settings", authenticateUser, async (req: Request, res: Response) => {
     try {

@@ -1,5 +1,9 @@
 /**
- * DomainStep — Configure app URL, frontend URL, public site base URL
+ * DomainStep — "What's your website address?"
+ *
+ * A studio owner should not have to understand "API backend", "CORS" or
+ * "Express". They answer ONE plain question and we fill all three URLs; the
+ * technical overrides stay available under Advanced for the rare split setup.
  */
 
 import { useState, useEffect } from 'react';
@@ -8,19 +12,28 @@ import { CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, ArrowRight, Globe, Loader2, Info } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Globe, Loader2, Info, ChevronDown, ChevronRight, Check } from 'lucide-react';
 
 interface Props {
   onComplete: () => void;
   onBack: () => void;
 }
 
-export default function DomainStep({ onComplete, onBack }: Props) {
-  const [appUrl, setAppUrl] = useState('');
-  const [frontendUrl, setFrontendUrl] = useState('');
-  const [publicSiteBaseUrl, setPublicSiteBaseUrl] = useState('');
+/** Accepts "yourstudio.com" and turns it into "https://yourstudio.com". */
+function normalizeUrl(value: string): string {
+  const s = value.trim();
+  if (!s) return '';
+  const withProtocol = /^https?:\/\//i.test(s) ? s : `https://${s}`;
+  return withProtocol.replace(/\/+$/, '');
+}
 
-  // Load existing values
+export default function DomainStep({ onComplete, onBack }: Props) {
+  const [siteUrl, setSiteUrl] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  // Advanced overrides — empty means "same as the website address".
+  const [adminUrlOverride, setAdminUrlOverride] = useState('');
+  const [publicUrlOverride, setPublicUrlOverride] = useState('');
+
   const { data: current, isLoading } = useQuery({
     queryKey: ['tech-setup-current'],
     queryFn: () => fetch('/api/setup/technical/current').then(r => r.json()),
@@ -28,19 +41,31 @@ export default function DomainStep({ onComplete, onBack }: Props) {
   });
 
   useEffect(() => {
-    if (current?.domain) {
-      setAppUrl(current.domain.appUrl || '');
-      setFrontendUrl(current.domain.frontendUrl || '');
-      setPublicSiteBaseUrl(current.domain.publicSiteBaseUrl || '');
+    if (!current?.domain) return;
+    const { appUrl = '', frontendUrl = '', publicSiteBaseUrl = '' } = current.domain;
+    // The "website address" is the customer-facing one.
+    setSiteUrl(frontendUrl || publicSiteBaseUrl || appUrl || '');
+    // Only treat them as overrides when they genuinely differ.
+    if (appUrl && frontendUrl && appUrl !== frontendUrl) {
+      setAdminUrlOverride(appUrl);
+      setShowAdvanced(true);
+    }
+    if (publicSiteBaseUrl && frontendUrl && publicSiteBaseUrl !== frontendUrl) {
+      setPublicUrlOverride(publicSiteBaseUrl);
+      setShowAdvanced(true);
     }
   }, [current]);
+
+  const site = normalizeUrl(siteUrl);
+  const appUrl = normalizeUrl(adminUrlOverride) || site;
+  const publicSiteBaseUrl = normalizeUrl(publicUrlOverride) || site;
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch('/api/setup/technical/domain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appUrl, frontendUrl, publicSiteBaseUrl }),
+        body: JSON.stringify({ appUrl, frontendUrl: site, publicSiteBaseUrl }),
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
       return res.json();
@@ -48,7 +73,7 @@ export default function DomainStep({ onComplete, onBack }: Props) {
     onSuccess: () => onComplete(),
   });
 
-  const isValid = appUrl.trim().length > 0;
+  const isValid = site.length > 0;
 
   if (isLoading) {
     return (
@@ -66,65 +91,92 @@ export default function DomainStep({ onComplete, onBack }: Props) {
             <Globe className="w-5 h-5 text-blue-600 dark:text-blue-300" />
           </div>
           <div>
-            <CardTitle>Domain & URLs</CardTitle>
-            <CardDescription>Where does your app live on the internet?</CardDescription>
+            <CardTitle>Your website address</CardTitle>
+            <CardDescription>The address customers type to find you online</CardDescription>
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-6 px-6">
-        {/* App URL (API) */}
         <div className="space-y-2">
-          <Label htmlFor="appUrl">
-            App URL (API Backend) <span className="text-red-500">*</span>
+          <Label htmlFor="siteUrl">
+            Website address <span className="text-red-500">*</span>
           </Label>
           <Input
-            id="appUrl"
-            placeholder="https://api.yourdomain.com"
-            value={appUrl}
-            onChange={e => setAppUrl(e.target.value)}
+            id="siteUrl"
+            placeholder="www.yourstudio.com"
+            value={siteUrl}
+            onChange={e => setSiteUrl(e.target.value)}
           />
           <p className="text-xs text-slate-500">
-            The base URL for your API server (e.g., where this Express app runs)
+            For example <strong>www.yourstudio.com</strong>. You don&apos;t need to type
+            &ldquo;https://&rdquo; — we add it for you.
           </p>
         </div>
 
-        {/* Frontend URL */}
-        <div className="space-y-2">
-          <Label htmlFor="frontendUrl">Frontend URL</Label>
-          <Input
-            id="frontendUrl"
-            placeholder="https://yourdomain.com"
-            value={frontendUrl}
-            onChange={e => setFrontendUrl(e.target.value)}
-          />
-          <p className="text-xs text-slate-500">
-            Your client's main domain. Used for CORS, redirects, and email links.
-          </p>
+        {/* Show exactly what we'll use, so nothing feels hidden */}
+        {isValid && (
+          <div className="flex gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800">
+            <Check className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-emerald-800 dark:text-emerald-300">
+              We&apos;ll use <strong className="break-all">{site}</strong> for your public website,
+              your admin login and the links in your emails. That&apos;s all most studios need.
+            </div>
+          </div>
+        )}
+
+        {/* Advanced — only for split hosting setups */}
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(v => !v)}
+            className="flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 dark:text-slate-300"
+          >
+            {showAdvanced ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            Advanced — my admin or public site uses a different address
+          </button>
+
+          {showAdvanced && (
+            <div className="mt-4 space-y-5 border-l-2 border-slate-200 dark:border-slate-700 pl-4">
+              <p className="text-xs text-slate-500">
+                Most studios can leave these blank. Only fill them in if someone set your site up
+                across more than one address.
+              </p>
+
+              <div className="space-y-2">
+                <Label htmlFor="adminUrl">Admin login address (optional)</Label>
+                <Input
+                  id="adminUrl"
+                  placeholder={site || 'https://admin.yourstudio.com'}
+                  value={adminUrlOverride}
+                  onChange={e => setAdminUrlOverride(e.target.value)}
+                />
+                <p className="text-xs text-slate-500">
+                  Where you sign in to manage bookings and photos. Leave blank to use your website address.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="publicUrl">Public website address (optional)</Label>
+                <Input
+                  id="publicUrl"
+                  placeholder={site || 'https://www.yourstudio.com'}
+                  value={publicUrlOverride}
+                  onChange={e => setPublicUrlOverride(e.target.value)}
+                />
+                <p className="text-xs text-slate-500">
+                  The site your customers see, if it&apos;s separate from your admin. Leave blank to use your website address.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Public Site Base URL */}
-        <div className="space-y-2">
-          <Label htmlFor="publicSiteBaseUrl">Public Site Base URL</Label>
-          <Input
-            id="publicSiteBaseUrl"
-            placeholder="https://yourdomain.com"
-            value={publicSiteBaseUrl}
-            onChange={e => setPublicSiteBaseUrl(e.target.value)}
-          />
-          <p className="text-xs text-slate-500">
-            If your public-facing site has a different domain from the admin panel, enter it here.
-            Defaults to the frontend URL.
-          </p>
-        </div>
-
-        {/* Info box */}
         <div className="flex gap-3 p-4 rounded-lg bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800">
           <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-blue-700 dark:text-blue-300">
-            <strong>Tip:</strong> If you're running everything on a single domain, the App URL and
-            Frontend URL can be the same. URLs should include the protocol (https://) and 
-            should <em>not</em> end with a trailing slash.
+            <strong>Not sure?</strong> Use the address you&apos;d give a customer on a business card.
+            You can change this later in Settings.
           </div>
         </div>
       </CardContent>
@@ -141,7 +193,7 @@ export default function DomainStep({ onComplete, onBack }: Props) {
             disabled={!isValid || saveMutation.isPending}
           >
             {saveMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Save & Continue
+            Save &amp; Continue
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </div>
