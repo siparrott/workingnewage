@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, X, Mail } from 'lucide-react';
+import { Bell, X, Mail, UserPlus, ShoppingCart, ClipboardList, AlertTriangle } from 'lucide-react';
 
 interface Notification {
   id: string;
-  type: 'questionnaire' | 'email' | 'system';
+  type: 'questionnaire' | 'email' | 'system' | 'lead' | 'sale';
   title: string;
   message: string;
   timestamp: string;
   read: boolean;
+  /** Where clicking the notification should take you (server-provided). */
+  link?: string;
 }
 
 const NotificationBell: React.FC = () => {
@@ -60,22 +62,28 @@ const NotificationBell: React.FC = () => {
   };
 
   const handleNotificationClick = (notification: Notification) => {
-    // Mark as read when clicked
     markAsRead(notification.id);
-    
-    // Navigate to questionnaire responses page
-    if (notification.type === 'questionnaire') {
-      navigate('/admin/questionnaires');
-      setShowDropdown(false); // Close the dropdown
+    // The server tells us where each notification belongs; fall back to the
+    // questionnaire page for legacy items without a link.
+    const target = notification.link || (notification.type === 'questionnaire' ? '/admin/questionnaires' : null);
+    if (target) {
+      navigate(target);
+      setShowDropdown(false);
     }
   };
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
+      case 'lead':
+        return <UserPlus size={16} className="text-emerald-600" />;
+      case 'sale':
+        return <ShoppingCart size={16} className="text-blue-600" />;
       case 'questionnaire':
-        return <Mail size={16} className="text-blue-500" />;
+        return <ClipboardList size={16} className="text-indigo-500" />;
       case 'email':
-        return <Mail size={16} className="text-green-500" />;
+        return <Mail size={16} className="text-green-600" />;
+      case 'system':
+        return <AlertTriangle size={16} className="text-amber-600" />;
       default:
         return <Bell size={16} className="text-gray-500" />;
     }

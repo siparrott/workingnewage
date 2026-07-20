@@ -8856,14 +8856,145 @@ ${getBizName()} Team`;
   });
 
   // Admin notifications endpoint
+  // Admin notification feed. Notifications are DERIVED from live data with
+  // stable ids (lead:<id>, sale:<id>, email:<id>, questionnaire:<id>,
+  // system:<slug>) — read/dismiss state lives in admin_notification_state.
+  // Every source is independently guarded so one failure can't empty the feed.
   app.get("/api/admin/notifications", authenticateUser, async (req: Request, res: Response) => {
+    const items: Array<{ id: string; type: string; title: string; message: string; timestamp: string; link?: string; read?: boolean }> = [];
+    const now = Date.now();
+    const RECENT_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
+    const ts = (d: any): number => { const t = d ? new Date(d).getTime() : 0; return Number.isFinite(t) ? t : 0; };
+    const isRecent = (d: any) => { const t = ts(d); return t > 0 && now - t < RECENT_MS; };
+    const iso = (d: any) => new Date(ts(d) || now).toISOString();
+
+    // 1) New (unworked) leads
     try {
-      // Return empty notifications array for now
-      // TODO: Implement notification system
-      res.json([]);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      res.status(500).json({ error: 'Failed to fetch notifications' });
+      const leads = await db.select().from(crmLeads).orderBy(desc(crmLeads.createdAt)).limit(20);
+      for (const l of leads as any[]) {
+        if (!isRecent(l.createdAt) || String(l.status || 'new') !== 'new') continue;
+        items.push({
+          id: `lead:${l.id}`,
+          type: 'lead',
+          title: 'New lead',
+          message: [l.name, l.email, l.source ? `via ${l.source}` : ''].filter(Boolean).join(' · '),
+          timestamp: iso(l.createdAt),
+          link: '/admin/leads',
+        });
+      }
+    } catch (e: any) { console.warn('[notifications] leads:', e?.message); }
+
+    // 2) Unread inbound emails
+    try {
+      const msgs = await db.select().from(crmMessages).orderBy(desc(crmMessages.createdAt)).limit(20);
+      for (const m of msgs as any[]) {
+        if (!isRecent(m.createdAt)) continue;
+        if (String(m.direction || 'inbound') !== 'inbound' || String(m.status || '') !== 'unread') continue;
+        items.push({
+          id: `email:${m.id}`,
+          type: 'email',
+          title: 'New email',
+          message: `${m.senderName || m.senderEmail || 'Unknown'}: ${m.subject || '(no subject)'}`,
+          timestamp: iso(m.createdAt),
+          link: '/admin/inbox',
+        });
+      }
+    } catch (e: any) { console.warn('[notifications] emails:', e?.message); }
+
+    // 3) Recent voucher sales
+    try {
+      const sales = (await storage.getVoucherSales()) as any[];
+      for (const s of (sales || []).slice(0, 20)) {
+        const when = s.createdAt || s.created_at || s.purchaseDate || s.purchase_date;
+        if (!isRecent(when)) continue;
+        const amount = s.finalAmount ?? s.final_amount ?? s.amount ?? s.totalAmount ?? s.total_amount;
+        items.push({
+          id: `sale:${s.id}`,
+          type: 'sale',
+          title: 'Voucher sold',
+          message: [s.product_name || s.productName || 'Voucher', amount != null ? `€${amount}` : '', s.purchaserName || s.purchaser_name || s.customerName || ''].filter(Boolean).join(' · '),
+          timestamp: iso(when),
+          link: '/admin/voucher-sales',
+        });
+      }
+    } catch (e: any) { console.warn('[notifications] sales:', e?.message); }
+
+    // 4) Questionnaire responses
+    try {
+      const q: any = await db.execute(sql`SELECT id, client_name, created_at FROM questionnaire_responses ORDER BY created_at DESC LIMIT 10`);
+      for (const r of (q?.rows || q || []) as any[]) {
+        if (!isRecent(r.created_at)) continue;
+        items.push({
+          id: `questionnaire:${r.id}`,
+          type: 'questionnaire',
+          title: 'Questionnaire response',
+          message: r.client_name ? `From ${r.client_name}` : 'A client completed a questionnaire',
+          timestamp: iso(r.created_at),
+          link: '/admin/questionnaires',
+        });
+      }
+    } catch (e: any) { console.warn('[notifications] questionnaires:', e?.message); }
+
+    // 5) Configuration warnings — surface silent misconfigurations
+    try {
+      const warn = (slug: string, title: string, message: string, link = '/admin/settings') =>
+        items.push({ id: `system:${slug}`, type: 'system', title, message, timestamp: new Date(now).toISOString(), link });
+
+      const secret = process.env.SESSION_SECRET || '';
+      const weakSecret = [/change[-_ ]?in[-_ ]?production/i, /\bdev[-_ ]?secret\b/i, /change[-_ ]?me/i, /placeholder/i].some(p => p.test(secret));
+      if (weakSecret) warn('weak-session-secret', 'Security: weak SESSION_SECRET', 'Your session secret looks like a placeholder — admin sessions could be forged. Rotate it now.');
+      if (!process.env.STRIPE_SECRET_KEY) warn('no-stripe', 'Payments not configured', 'STRIPE_SECRET_KEY is missing — checkout will not take real payments.');
+      if (!process.env.SMTP_HOST || !process.env.SMTP_USER) warn('no-smtp', 'Email sending not configured', 'SMTP is incomplete — invoices, leads and campaigns will not send.');
+      if (!process.env.OPENAI_API_KEY) warn('no-openai', 'AI features disabled', 'OPENAI_API_KEY is missing — AI generation and translation will not run.');
+      if (!process.env.GOOGLE_PLACES_API_KEY) warn('no-places', 'Live Google reviews off', 'GOOGLE_PLACES_API_KEY is not set — the site shows curated reviews instead of live ones.');
+      if (process.env.PULSE_API_KEY && !process.env.PULSE_PROFILE_INSTAGRAM) {
+        warn('pulse-no-ig-profile', 'Pulse: Instagram account not pinned', 'PULSE_PROFILE_INSTAGRAM is unset, so Pulse posts to the workspace default Instagram account.');
+      }
+    } catch (e: any) { console.warn('[notifications] system:', e?.message); }
+
+    // Apply read/dismissed state, newest first
+    try {
+      const state: any = await db.execute(sql`SELECT id, read_at, dismissed_at FROM admin_notification_state`);
+      const rows = (state?.rows || state || []) as any[];
+      const dismissed = new Set(rows.filter(r => r.dismissed_at).map(r => String(r.id)));
+      const read = new Set(rows.filter(r => r.read_at).map(r => String(r.id)));
+      const visible = items
+        .filter(n => !dismissed.has(n.id))
+        .map(n => ({ ...n, read: read.has(n.id) }))
+        .sort((a, b) => ts(b.timestamp) - ts(a.timestamp))
+        .slice(0, 30);
+      res.setHeader('Cache-Control', 'no-store');
+      return res.json(visible);
+    } catch (e: any) {
+      // State table missing → still return the feed (all unread).
+      console.warn('[notifications] state:', e?.message);
+      res.setHeader('Cache-Control', 'no-store');
+      return res.json(items.sort((a, b) => ts(b.timestamp) - ts(a.timestamp)).slice(0, 30).map(n => ({ ...n, read: false })));
+    }
+  });
+
+  // Mark a notification read / dismissed (ids are stable, so state persists).
+  app.post("/api/admin/notifications/:id/read", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const id = String(req.params.id);
+      await db.execute(sql`INSERT INTO admin_notification_state (id, read_at) VALUES (${id}, NOW())
+        ON CONFLICT (id) DO UPDATE SET read_at = NOW()`);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('[notifications] mark read failed:', error?.message);
+      res.status(500).json({ error: 'Failed to mark as read' });
+    }
+  });
+
+  app.post("/api/admin/notifications/:id/dismiss", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const id = String(req.params.id);
+      await db.execute(sql`INSERT INTO admin_notification_state (id, read_at, dismissed_at) VALUES (${id}, NOW(), NOW())
+        ON CONFLICT (id) DO UPDATE SET dismissed_at = NOW()`);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('[notifications] dismiss failed:', error?.message);
+      res.status(500).json({ error: 'Failed to dismiss' });
     }
   });
 

@@ -441,6 +441,21 @@ app.use((req, res, next) => {
         console.warn('⚠️ landing pages migration already applied or failed:', migrationError.message);
       }
 
+      // Admin notification read/dismiss state. Notifications themselves are
+      // DERIVED from live data (leads, sales, emails, questionnaires, config
+      // warnings) with stable ids, so we only persist what the admin has
+      // already seen or cleared.
+      try {
+        await db.execute(sql`CREATE TABLE IF NOT EXISTS admin_notification_state (
+          id TEXT PRIMARY KEY,
+          read_at TIMESTAMPTZ,
+          dismissed_at TIMESTAMPTZ
+        )`);
+        console.log('✅ admin_notification_state table ensured');
+      } catch (migrationError: any) {
+        console.warn('⚠️ notification state migration failed:', migrationError.message);
+      }
+
       // Blog posts: optional video (uploaded .mp4 on B2, or a YouTube/Vimeo link).
       try {
         await db.execute(sql`ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS video_url TEXT`);
