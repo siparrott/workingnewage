@@ -193,3 +193,88 @@ Landed since the last handoff. Onboarding/ops-relevant highlights:
 - `shared/manualPages.ts` — editable-field manifest (About Us founder story, logo, reviews URL, pillars).
 - `client/src/lib/imageProxy.ts` — public-image on-the-fly resize (weserv); `/api/proxy-image` is the in-house gallery resizer.
 - `scripts/verify-boot.ts` — pre-deploy boot-check (wired into `heroku-postbuild`).
+
+---
+
+## 11. Selling copies — provision a new tenant (the repeatable runbook)
+
+**Model:** one isolated instance per customer — **one app + one database each**, NOT
+shared multi-tenancy. The code is single-studio-per-DB; isolation is both safer
+(no cross-tenant data leak) and a selling point. New Age Fotografie is one such
+instance; each sale is another.
+
+**The golden rule:** provisioning and schema tools only ever touch a **brand-new
+empty database**. They never read or write the live New Age Fotografie CRM.
+
+### What protects the live CRM (and what does NOT)
+- `npm run db:push` is fronted by `scripts/guard-db-target.mjs`. It prints the
+  target host/DB, **hard-refuses** any host listed in `PROTECTED_DB_HOSTS`,
+  refuses non-interactive runs, and otherwise makes you type the DB name.
+- `npm run provision` additionally **refuses a DB that already has tables**.
+- ⚠️ **Scope of protection.** This guards the *accidental schema-push* class only,
+  and the hard block for production works **only if `PROTECTED_DB_HOSTS` contains
+  the real production host**. It does NOT stop arbitrary destructive SQL, nor
+  `npm run db:push:raw` (which bypasses the guard by design). Treat "don't point
+  schema tools at the Heroku DATABASE_URL" as the actual rule; the guard is a
+  backstop.
+
+### One-time: arm the guard with the REAL production host
+Find the host in **Heroku → your app → Settings → Reveal Config Vars →
+`DATABASE_URL`** — it's the part between `@` and the next `:` or `/`.
+Then set it **persistently** (a `$env:` assignment lasts only for that one
+PowerShell window):
+```powershell
+# PowerShell, persistent for your Windows user:
+[System.Environment]::SetEnvironmentVariable('PROTECTED_DB_HOSTS','<real-heroku-db-host>','User')
+# open a NEW terminal afterwards so it takes effect
+```
+Verify it's armed: `node scripts/guard-db-target.mjs` with `DATABASE_URL` pointed
+at production must print `🛑 REFUSED`.
+
+### Per sale — provision a clean instance
+1. **Create a fresh empty Postgres** (neon.tech or supabase.com, ~2 min). Copy the
+   connection string.
+2. **Provision** (from the project folder):
+   ```bash
+   npm run provision -- --name "Studio Name" --db "postgresql://…FRESH-EMPTY-DB…" --host "https://their-instance-host"
+   ```
+   It verifies the DB is empty + not protected, creates schema + baseline,
+   generates a `SESSION_SECRET`, and prints the env block + the `/setup` URL.
+   (Add `--demo` only if you want sample content; omit it for a truly clean CRM.)
+3. **Create the instance host** (a new Render web service, or a new Heroku app),
+   set the printed env vars:
+   - `DATABASE_URL` = the fresh DB · `SESSION_SECRET` = the printed value
+   - `NODE_ENV=production` · `DEMO_MODE=false` · `PUBLIC_SITE_URL=<their domain>`
+   - Leave OpenAI/Stripe/SMTP/storage/social **unset** — the customer enters
+     their own in the wizard (stored encrypted per tenant, §3, §7).
+4. **Deploy**, then send the customer their `/setup` link.
+5. Customer completes the wizard → the CRM now contains **only their data**, and
+   they've supplied **their own OpenAI key** and their own Google reviews / social
+   accounts (the "Reviews & Social posting" section of the AI & extras step).
+
+### Confirm any instance is current
+`GET /<host>/api/version` → `{ commitShort, builtAt, startedAt, demoMode }`.
+If two instances show different `commitShort`, one is stale — redeploy it.
+(Stamp is written at build time by `scripts/write-build-info.mjs` → `dist/build-info.json`.)
+
+### Where the wizard lives on each host
+Same codebase, so `/setup` exists on **every** instance — including
+`newagefotografie.com/setup`. **Never open `/setup` on the live Heroku site**: it
+is not gated and would walk your real studio through setup, overwriting live
+config and seeding into your working CRM. Test onboarding only on a
+**separate** instance pointed at a **separate** database.
+
+### Commercial checklist before the first paid sale
+- Paid Render web service + paid Postgres per tenant (free tier spins down —
+  unacceptable for a paying customer).
+- Each tenant needs their own Stripe, SMTP, storage bucket, OpenAI, and
+  social/reviews keys — the wizard collects them; confirm each with its live test.
+- Per-tenant backups + a documented restore path.
+- Support: `/api/version` + per-instance logs.
+
+### Key files (provisioning)
+- `scripts/provision-tenant.mjs` — one-command provisioner (empty-DB + protected-host guards).
+- `scripts/bootstrap-tenant.mjs` — schema + baseline (`db:push` → `db:init` [→ demo]).
+- `scripts/guard-db-target.mjs` — the destructive-command guard in front of `db:push`.
+- `scripts/write-build-info.mjs` — build-time commit stamp → `GET /api/version`.
+- `render.yaml` — Render blueprint (tenant instance; `autoDeploy` from `portable-pg`).
