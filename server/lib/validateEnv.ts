@@ -130,10 +130,16 @@ export function validateEnv(): void {
   // ── 4. DATABASE_URL basic shape check ────────────────────────────
   const dbUrl = process.env.DATABASE_URL || '';
   if (dbUrl && !dbUrl.startsWith('postgres')) {
-    warnings.push({
+    // The single most common self-host mistake: pasting the Supabase PROJECT
+    // URL (https://xxx.supabase.co) or the REST endpoint instead of the
+    // Postgres connection string. Give a targeted, fix-it-now message.
+    const looksLikeSupabaseProjectUrl = /^https?:\/\/[a-z0-9]+\.supabase\.(co|com)/i.test(dbUrl);
+    errors.push({
       variable: 'DATABASE_URL',
-      message: `DATABASE_URL does not start with "postgres" — is this correct?`,
-      severity: 'warn',
+      message: looksLikeSupabaseProjectUrl
+        ? 'DATABASE_URL is a Supabase PROJECT URL (https://…supabase.co), not a database connection string. In Supabase go to Project Settings → Database → Connection string → URI (it starts with "postgresql://") and use THAT.'
+        : 'DATABASE_URL must be a Postgres connection string starting with "postgres://" or "postgresql://". A web address (https://…) will not work.',
+      severity: 'fatal',
     });
   }
 

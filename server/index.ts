@@ -376,7 +376,33 @@ app.use((req, res, next) => {
       // Quick database test
       await db.execute(sql`SELECT 1 as test`);
       console.log('✅ Database connection verified');
-      
+
+      // Schema-presence check. A brand-new instance pointed at an EMPTY database
+      // (schema never created) would otherwise 500 on every data call with no
+      // clue why. Detect it and print a big, actionable message. The boot
+      // ALTER TABLE migrations below all assume the tables already exist, so
+      // this must come first.
+      try {
+        const core: any = await db.execute(sql`SELECT to_regclass('public.studio_configs') AS t`);
+        const hasSchema = !!((core?.rows?.[0] ?? core?.[0])?.t);
+        if (!hasSchema) {
+          console.error('');
+          console.error('🚨 ═══════════════════════════════════════════════════════');
+          console.error('🚨  DATABASE HAS NO SCHEMA — this instance will not work.');
+          console.error('🚨 ═══════════════════════════════════════════════════════');
+          console.error('   The database connected, but the CRM tables do not exist.');
+          console.error('   You pointed the app at an EMPTY database without provisioning it.');
+          console.error('');
+          console.error('   Fix: run this ONCE against THIS database, then redeploy —');
+          console.error('     npm run provision -- --name "Studio" --db "<this DATABASE_URL>"');
+          console.error('   (creates the schema + baseline). Until then /setup and all');
+          console.error('   data pages will error.');
+          console.error('');
+        }
+      } catch (schemaCheckErr: any) {
+        console.warn('⚠️ schema-presence check failed:', schemaCheckErr?.message || schemaCheckErr);
+      }
+
       // Run gallery images migration to add size tracking
       try {
         await db.execute(sql`ALTER TABLE gallery_images ADD COLUMN IF NOT EXISTS size_bytes INTEGER DEFAULT 0`);
