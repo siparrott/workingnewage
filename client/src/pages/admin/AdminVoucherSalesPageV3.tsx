@@ -973,6 +973,29 @@ export default function AdminVoucherSalesPageV3() {
     }
   };
 
+  // Backfill "Unknown Product" sales by re-reading their Stripe checkout session.
+  const [isResolvingProducts, setIsResolvingProducts] = useState(false);
+  const handleResolveProducts = async () => {
+    if (isResolvingProducts) return;
+    if (!confirm('Look up the product for sales showing "Unknown Product" by re-reading their Stripe checkout? This only fills in missing product names.')) return;
+    setIsResolvingProducts(true);
+    try {
+      const response = await fetch('/api/vouchers/sales/resolve-products', {
+        method: 'POST',
+        headers: withAdminJsonHeaders(),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Resolve failed');
+      queryClient.invalidateQueries({ queryKey: ['/api/vouchers/sales'] });
+      alert(`Product lookup complete!\n\n✅ Resolved: ${result.resolved}\n   • linked to a catalogue product: ${result.linked}\n   • named from Stripe: ${result.named}\n⏭️ Checked: ${result.checked}${result.failed ? `\n⚠️ Couldn't resolve: ${result.failed}` : ''}`);
+    } catch (err: any) {
+      console.error('[RESOLVE PRODUCTS] Error:', err);
+      alert('Product lookup failed: ' + (err?.message || String(err)));
+    } finally {
+      setIsResolvingProducts(false);
+    }
+  };
+
   // Create CRM client from voucher sale
   const handleCreateClientFromSale = async (sale: VoucherSale) => {
     const purchaserName = sale.purchaserName || 'this customer';
@@ -1284,6 +1307,12 @@ export default function AdminVoucherSalesPageV3() {
               className="whitespace-nowrap bg-purple-600 text-white hover:bg-purple-700 border border-transparent shadow-sm disabled:opacity-60">
               {isSyncingStripe ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CreditCard className="h-4 w-4 mr-1.5" />}
               {isSyncingStripe ? 'Syncing…' : 'Sync from Stripe'}
+            </Button>
+            <Button size="sm" onClick={handleResolveProducts} disabled={isResolvingProducts}
+              className="whitespace-nowrap bg-white border border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-400 shadow-sm disabled:opacity-60"
+              title='Look up the product for sales showing "Unknown Product"'>
+              {isResolvingProducts ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Package className="h-4 w-4 mr-1.5" />}
+              {isResolvingProducts ? 'Resolving…' : 'Resolve products'}
             </Button>
             <Button size="sm" onClick={handleImportFamilyPackages} disabled={isImportingPackages}
               className="whitespace-nowrap bg-white border border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 shadow-sm disabled:opacity-60">

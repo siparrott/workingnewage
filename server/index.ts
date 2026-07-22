@@ -495,6 +495,15 @@ app.use((req, res, next) => {
         console.warn('⚠️ notification state migration failed:', migrationError.message);
       }
 
+      // Voucher sales: store a product name resolved from Stripe when the sale
+      // has no linked CRM product (e.g. in-person payment-link sales). Additive.
+      try {
+        await db.execute(sql`ALTER TABLE voucher_sales ADD COLUMN IF NOT EXISTS resolved_product_name TEXT`);
+        console.log('✅ voucher_sales.resolved_product_name column ensured');
+      } catch (migrationError: any) {
+        console.warn('⚠️ voucher_sales resolved_product_name migration failed:', migrationError.message);
+      }
+
       // Blog posts: optional video (uploaded .mp4 on B2, or a YouTube/Vimeo link).
       try {
         await db.execute(sql`ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS video_url TEXT`);

@@ -15345,6 +15345,34 @@ Return ONLY a valid JSON object with EXACTLY these keys:
             s.product_description = p.description || p.detailedDescription || p.detailed_description || null;
           }
         }
+
+        // Fallback: match by PRICE for sales that never carried a productId
+        // (Stripe payment-link / in-person sales). Only when exactly ONE product
+        // has that exact price, so it's never a wrong guess. Read-only — this
+        // resolves the display without changing stored data.
+        const priceIndex = new Map<string, any[]>();
+        const addPrice = (val: any, prod: any) => {
+          const n = Number(val);
+          if (!Number.isFinite(n) || n <= 0) return;
+          const key = n.toFixed(2);
+          if (!priceIndex.has(key)) priceIndex.set(key, []);
+          priceIndex.get(key)!.push(prod);
+        };
+        for (const prod of (products || [])) { addPrice(prod.price, prod); addPrice(prod.originalPrice ?? prod.original_price, prod); }
+        for (const s of (sales as any[])) {
+          if (s.product_name && s.product_name !== 'Unknown Product') continue;
+          for (const amt of [s.originalAmount, s.original_amount, s.finalAmount, s.final_amount, s.amount]) {
+            const n = Number(amt);
+            if (!Number.isFinite(n) || n <= 0) continue;
+            const group = priceIndex.get(n.toFixed(2));
+            if (group && group.length === 1) {
+              s.product_name = group[0].name;
+              s.product_slug = group[0].slug || null;
+              s.product_matched_by = 'price';
+              break;
+            }
+          }
+        }
       } catch (enrichErr) {
         console.warn('Could not enrich voucher sales with product info:', enrichErr);
       }
@@ -15388,10 +15416,85 @@ Return ONLY a valid JSON object with EXACTLY these keys:
       } catch (pdfErr: any) {
         console.warn('Could not enrich voucher sales with pdf_url (column may not exist yet):', pdfErr?.message || pdfErr);
       }
+      // (d) Apply a Stripe-resolved product name (from the "Resolve products"
+      //     backfill) for sales that still show no product. Raw column, fetched
+      //     separately; only fills a name that's still missing/Unknown.
+      try {
+        const ids = (sales as any[]).map(s => s.id).filter(Boolean);
+        if (ids.length) {
+          const extra = await runSql(`SELECT id, resolved_product_name FROM voucher_sales WHERE id = ANY($1)`, [ids]);
+          const byId = new Map<string, any>((extra || []).map((r: any) => [String(r.id), r]));
+          for (const s of (sales as any[])) {
+            const r = byId.get(String(s.id));
+            const resolved = r?.resolved_product_name;
+            if (resolved && (!s.product_name || s.product_name === 'Unknown Product')) {
+              s.product_name = resolved;
+              s.product_matched_by = s.product_matched_by || 'stripe';
+            }
+          }
+        }
+      } catch (resErr: any) {
+        console.warn('Could not enrich voucher sales with resolved_product_name:', resErr?.message || resErr);
+      }
       res.json(sales);
     } catch (error) {
       console.error("Error fetching voucher sales:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Backfill product names for sales that show "Unknown Product". Re-reads each
+  // sale's Stripe checkout session (with the product expanded), then either
+  // LINKS a matching CRM product (permanent) or stores the resolved name. Safe
+  // to run repeatedly — only touches sales that are still unresolved.
+  app.post("/api/vouchers/sales/resolve-products", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+      if (!stripeSecretKey) return res.status(400).json({ error: 'Stripe is not configured — cannot resolve from Stripe.' });
+
+      const StripeLib = (await import('stripe')).default;
+      const stripe = new StripeLib(stripeSecretKey, { apiVersion: '2025-08-27.basil' as any });
+
+      // Candidates: have a Stripe session, no linked product, not yet resolved.
+      const candidates = await runSql(
+        `SELECT id, stripe_session_id FROM voucher_sales
+          WHERE product_id IS NULL
+            AND stripe_session_id IS NOT NULL AND stripe_session_id <> ''
+            AND (resolved_product_name IS NULL OR resolved_product_name = '')
+          LIMIT 300`
+      );
+
+      const products = (typeof neonDb?.getVoucherProducts === 'function') ? await neonDb.getVoucherProducts() : [];
+      const productByName = new Map<string, any>((products || []).map((p: any) => [String(p.name).trim().toLowerCase(), p]));
+
+      let checked = 0, linked = 0, named = 0, failed = 0;
+      for (const c of (candidates || [])) {
+        checked++;
+        try {
+          const items = await stripe.checkout.sessions.listLineItems(c.stripe_session_id, { expand: ['data.price.product'], limit: 1 });
+          const li: any = items.data?.[0];
+          const stripeProduct = li?.price?.product;
+          const name = (stripeProduct && typeof stripeProduct === 'object' ? stripeProduct.name : null) || li?.description || null;
+          if (!name) { failed++; continue; }
+
+          const match = productByName.get(String(name).trim().toLowerCase());
+          if (match) {
+            await runSql(`UPDATE voucher_sales SET product_id = $1 WHERE id = $2`, [match.id, c.id]);
+            linked++;
+          } else {
+            await runSql(`UPDATE voucher_sales SET resolved_product_name = $1 WHERE id = $2`, [String(name).slice(0, 200), c.id]);
+            named++;
+          }
+        } catch (rowErr: any) {
+          failed++;
+          console.warn('[resolve-products] session', c.stripe_session_id, 'failed:', rowErr?.message || rowErr);
+        }
+      }
+
+      res.json({ success: true, checked, linked, named, failed, resolved: linked + named });
+    } catch (error: any) {
+      console.error('Error resolving voucher products:', error?.message || error);
+      res.status(500).json({ error: 'Failed to resolve products from Stripe' });
     }
   });
 
