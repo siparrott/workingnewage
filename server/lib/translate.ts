@@ -60,6 +60,40 @@ export async function translateText(
   }
 }
 
+// Keys whose values are never human copy (URLs, assets, colours, ids, tokens).
+const NON_COPY_KEY = /(url|href|src|image|img|photo|icon|color|colour|id|slug|token|email|phone|tel|video|poster|background|link|class|style|font|align|position|placement|variant|type|action|target|amount|price_?id)/i;
+// Values that are clearly not translatable prose.
+const NON_COPY_VALUE = /^(https?:\/\/|\/[^\s]*$|#?[0-9a-fA-F]{3,8}$|data:|mailto:|tel:|\+?[\d\s()-]{6,}$|[\w.+-]+@[\w.-]+$)/;
+const HAS_LETTER = /[A-Za-zÀ-ÿ]/;
+
+/**
+ * Deep-translate every human-readable string leaf inside `value` into `target`,
+ * leaving structure, keys, URLs, colours, ids and other non-copy values intact.
+ * Strings are translated in parallel and cached per-string, so repeated views of
+ * the same page are cheap. Returns `value` unchanged for German / no API key.
+ */
+export async function translateDeep<T>(value: T, target = 'en'): Promise<T> {
+  if (target === 'de' || !process.env.OPENAI_API_KEY) return value;
+  const walk = async (node: any, key?: string): Promise<any> => {
+    if (typeof node === 'string') {
+      if (!node.trim() || !HAS_LETTER.test(node)) return node;
+      if (key && NON_COPY_KEY.test(key)) return node;
+      if (NON_COPY_VALUE.test(node.trim())) return node;
+      return translateText(node, target);
+    }
+    if (Array.isArray(node)) return Promise.all(node.map((v) => walk(v, key)));
+    if (node && typeof node === 'object') {
+      const out: any = {};
+      await Promise.all(
+        Object.entries(node).map(async ([k, v]) => { out[k] = await walk(v, k); })
+      );
+      return out;
+    }
+    return node;
+  };
+  return walk(value);
+}
+
 /**
  * Return a shallow copy of `obj` with the given string fields translated into
  * `target` (translated in parallel; non-string/empty fields are left as-is).

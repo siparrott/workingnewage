@@ -19951,18 +19951,40 @@ URL: ${page.slug ? `/lp/${page.slug}` : ''}
         return pg;
       };
 
+      // Optional on-the-fly translation of the page copy. German is the
+      // authoring language; when the visitor picks another language (?language=en)
+      // we deep-translate the title + content_json and cache per-string, so the
+      // studio only ever authors once. Non-copy fields (URLs, colours, prices,
+      // ids) are left untouched by translateDeep, and CTA tokens are re-signed
+      // afterwards so the offer amount is never affected by translation.
+      const maybeTranslatePage = async (pg: any, langRaw: any) => {
+        const lang = String(langRaw || 'de').toLowerCase();
+        if (!pg || lang === 'de' || !/^[a-z]{2}$/.test(lang)) return pg;
+        try {
+          const { translateText, translateDeep } = await import('./lib/translate');
+          const [title, content_json] = await Promise.all([
+            translateText(pg.title, lang),
+            translateDeep(pg.content_json, lang),
+          ]);
+          return { ...pg, title, content_json, _language: lang };
+        } catch (e) {
+          console.warn('[lp] translation failed, serving original:', (e as Error).message);
+          return pg;
+        }
+      };
+
       // If preview token provided, try preview access first (allows viewing unpublished pages)
       if (previewToken) {
         const previewPage = await neonDb.getLandingPageForPreview(req.params.slug, previewToken);
         if (previewPage) {
-          return res.json({ ...(await attachOfferToken(previewPage)), _isPreview: true });
+          return res.json({ ...(await attachOfferToken(await maybeTranslatePage(previewPage, req.query.language))), _isPreview: true });
         }
         // Invalid/expired token — fall through to normal published check
       }
 
       const page = await neonDb.getLandingPageBySlug(req.params.slug);
       if (!page) return res.status(404).json({ error: 'Page not found' });
-      res.json(await attachOfferToken(page));
+      res.json(await attachOfferToken(await maybeTranslatePage(page, req.query.language)));
     } catch (error) {
       console.error('Error fetching public landing page:', error);
       res.status(500).json({ error: 'Failed to fetch page' });
