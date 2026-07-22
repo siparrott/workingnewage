@@ -30,6 +30,10 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
   const qc = useQueryClient();
   const p = page as any;
   const [voucherSlug, setVoucherSlug] = useState<string>(p.cta_voucher_slug || '');
+  // Button destination when there's no voucher (e.g. school-portrait enquiries).
+  const [ctaAction, setCtaAction] = useState<string>(p.cta_action || 'enquire');
+  const [ctaEmail, setCtaEmail] = useState<string>(p.cta_email || '');
+  const [ctaWhatsapp, setCtaWhatsapp] = useState<string>(p.cta_whatsapp || '');
   const [offerAmount, setOfferAmount] = useState<string>(p.cta_voucher_amount != null ? String(p.cta_voucher_amount) : '');
   const [offerTitle, setOfferTitle] = useState<string>(p.cta_voucher_title || '');
   const [heroImage, setHeroImage] = useState<string>(p.hero_image_url || '');
@@ -255,6 +259,63 @@ export default function LandingPageSettingsPanel({ page, title, onTitleChange }:
           The CTA sends buyers straight to this product's personalize → Stripe checkout at its price.
           Manage products in <span className="font-medium">Online Voucher Sales</span>.
         </p>
+      </div>
+
+      {/* CTA destination when there's NO voucher (enquiry-style pages) */}
+      <div className="pt-4 border-t space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-semibold text-gray-700">Button action (when no voucher)</Label>
+          <SavedTick field="cta_action" />
+        </div>
+        <select
+          value={ctaAction}
+          onChange={(e) => { setCtaAction(e.target.value); saveField('cta_action', e.target.value); }}
+          className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm focus:ring-2 focus:ring-purple-500"
+        >
+          <option value="enquire">Contact page (default)</option>
+          <option value="waitlist">Waitlist page</option>
+          <option value="email">Open an email to us</option>
+          <option value="whatsapp">Open WhatsApp chat</option>
+        </select>
+        <p className="text-xs text-gray-400">
+          Used only if no voucher offer/product is set above — ideal for enquiry pages like school portraits.
+        </p>
+
+        {ctaAction === 'email' && (
+          <div className="space-y-1.5 pt-1">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-medium text-gray-600">Send enquiries to (email)</Label>
+              <SavedTick field="cta_email" />
+            </div>
+            <input
+              type="email"
+              value={ctaEmail}
+              onChange={(e) => setCtaEmail(e.target.value)}
+              onBlur={() => saveField('cta_email', ctaEmail.trim() || null)}
+              placeholder="hallo@yourstudio.com"
+              className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm focus:ring-2 focus:ring-purple-500"
+            />
+            <p className="text-[11px] text-gray-400">Leave blank to use your studio's contact email. Opens the visitor's mail app with a subject pre-filled.</p>
+          </div>
+        )}
+
+        {ctaAction === 'whatsapp' && (
+          <div className="space-y-1.5 pt-1">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-medium text-gray-600">WhatsApp number</Label>
+              <SavedTick field="cta_whatsapp" />
+            </div>
+            <input
+              type="tel"
+              value={ctaWhatsapp}
+              onChange={(e) => setCtaWhatsapp(e.target.value)}
+              onBlur={() => saveField('cta_whatsapp', ctaWhatsapp.trim() || null)}
+              placeholder="+43 660 1234567"
+              className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm focus:ring-2 focus:ring-purple-500"
+            />
+            <p className="text-[11px] text-gray-400">Include the country code. Leave blank to use your studio's phone number. Opens WhatsApp with a message pre-filled.</p>
+          </div>
+        )}
       </div>
 
       {/* Hero media */}

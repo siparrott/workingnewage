@@ -9,6 +9,7 @@ import { getVisibleLandingPageSections } from '../../utils/landingPageVisibility
 import { normalizeAlign } from '../../utils/sectionAlignment';
 import { trackPageView } from '../../utils/trackLandingPageEvent';
 import type { LandingPageSectionKey } from '../../types/landingPageEditor.types';
+import { SITE } from '@/config/site';
 import { PublicLandingPageHero } from './PublicLandingPageHero';
 import { PublicLandingPageVideoSection } from './PublicLandingPageVideoSection';
 import { PublicLandingPageTrustBar } from './PublicLandingPageTrustBar';
@@ -46,6 +47,21 @@ function getCtaHref(page: any): string {
   const amount = Number(page.cta_voucher_amount) || 0;
   const voucherSlug = page.cta_voucher_slug;
   const ctaAction = page.cta_action || 'enquire';
+
+  // Explicit contact destinations — for landing pages with no voucher (e.g.
+  // a school-portraits enquiry). These are external links, so UTM appending
+  // below is skipped and the browser opens the mail/WhatsApp app directly.
+  if (ctaAction === 'email') {
+    const to = String(page.cta_email || SITE.email || '').trim();
+    const subject = `Anfrage: ${page.title || 'Landing Page'}`;
+    return to ? `mailto:${to}?subject=${encodeURIComponent(subject)}` : '/kontakt';
+  }
+  if (ctaAction === 'whatsapp') {
+    const num = String(page.cta_whatsapp || SITE.phone || '').replace(/[^\d]/g, '');
+    const text = `Hallo, ich interessiere mich für: ${page.title || ''}`.trim();
+    return num ? `https://wa.me/${num}?text=${encodeURIComponent(text)}` : '/kontakt';
+  }
+
   let base: string;
   // Priority:
   // 1. A DYNAMIC-priced voucher offer → open the personalize → Stripe flow at
@@ -79,6 +95,8 @@ function getCtaHref(page: any): string {
     }
   }
   // Propagate campaign/UTM params from the landing URL so attribution survives.
+  // Never do this for external mail/WhatsApp links — it would break them.
+  if (/^(mailto:|https?:\/\/wa\.me)/i.test(base)) return base;
   try {
     const src = new URLSearchParams(window.location.search);
     const keep: string[] = [];

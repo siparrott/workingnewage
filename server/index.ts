@@ -460,6 +460,10 @@ app.use((req, res, next) => {
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS hero_video_placement TEXT`);
         // In-body video position: 'top' (below hero, default) | 'middle' | 'end'.
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS hero_video_position TEXT`);
+        // CTA destination when there's no voucher: cta_action 'email'/'whatsapp'
+        // uses these (fall back to the studio's contact email / phone).
+        await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS cta_email TEXT`);
+        await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS cta_whatsapp TEXT`);
         // Drag-to-fit hero crop: JSON {x,y,zoom} — object-position % + scale.
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS hero_image_position TEXT`);
         console.log('✅ landing_page_events + publishing/media/CTA columns ensured');
