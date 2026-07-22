@@ -39,5 +39,6 @@ ENV NODE_ENV=production
 ENV PORT=3001
 EXPOSE 3001
 
-# `npm start` = cross-env NODE_ENV=production tsx server/index.ts
-CMD ["npm", "start"]
+# Auto-provision the schema on first boot ONLY when AUTO_INIT_SCHEMA is set
+# (opt-in; a no-op otherwise), then start. `npm start` = tsx server/index.ts.
+CMD ["sh", "-c", "node scripts/ensure-schema.mjs; npm start"]
