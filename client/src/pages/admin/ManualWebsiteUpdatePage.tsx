@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { useLanguage } from '../../context/LanguageContext';
-import { Save, Eye, RotateCcw, FileText, Globe, Check, X, Upload, Trash2, Image as ImageIcon, Sparkles, TrendingUp } from 'lucide-react';
+import { Save, Eye, RotateCcw, FileText, Globe, Check, X, Upload, Trash2, Image as ImageIcon, Sparkles, TrendingUp, Wand2 } from 'lucide-react';
 import { manualPageManifest, type ManualPageDefinition, type ManualPageSection, type ManualPageField } from '../../../../shared/manualPages';
 import Cropper, { Area } from 'react-easy-crop';
 
@@ -1156,7 +1156,7 @@ const ManualWebsiteUpdatePage: React.FC = () => {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [isProcessingCrop, setIsProcessingCrop] = useState(false);
   // AI field enhancement (refine in tone / SEO-optimise), keyed by translationKey.
-  const [aiFieldBusy, setAiFieldBusy] = useState<Record<string, 'refine' | 'seo'>>({});
+  const [aiFieldBusy, setAiFieldBusy] = useState<Record<string, 'refine' | 'seo' | 'generate'>>({});
   const [aiFieldTips, setAiFieldTips] = useState<Record<string, string[]>>({});
   const [aiFieldError, setAiFieldError] = useState<Record<string, string>>({});
   const queryClient = useQueryClient();
@@ -1286,14 +1286,28 @@ const ManualWebsiteUpdatePage: React.FC = () => {
     setHasUnsavedChanges(true);
   };
 
-  // Refine the field text in the studio's tone, or SEO-optimise it. The result
-  // replaces the field value (still a draft until Save/Publish).
-  const enhanceField = async (field: ManualPageField, mode: 'refine' | 'seo') => {
+  // Refine the field text in the studio's tone, SEO-optimise it, or GENERATE
+  // optimal copy from scratch. The result replaces the field value (still a
+  // draft until Save/Publish). 'generate' works on an empty field; the other
+  // modes need existing text to improve.
+  const enhanceField = async (field: ManualPageField, mode: 'refine' | 'seo' | 'generate') => {
     const key = field.translationKey;
     const current = (editedContent[key] || '').trim();
-    if (!current) {
-      setAiFieldError(prev => ({ ...prev, [key]: 'Enter some text first, then let AI improve it.' }));
+    if (mode !== 'generate' && !current) {
+      setAiFieldError(prev => ({ ...prev, [key]: 'Enter some text first, then let AI improve it — or use AI Generate to create it from scratch.' }));
       return;
+    }
+    // Give the model the page's other filled fields so generated copy stays
+    // coherent with what's already there (e.g. a description that matches the title).
+    const context: Array<{ label: string; value: string }> = [];
+    if (selectedPage) {
+      for (const section of selectedPage.sections) {
+        for (const f of section.fields) {
+          if (f.type === 'image' || f.translationKey === key) continue;
+          const v = (editedContent[f.translationKey] || '').trim();
+          if (v) context.push({ label: f.label, value: v });
+        }
+      }
     }
     setAiFieldBusy(prev => ({ ...prev, [key]: mode }));
     setAiFieldError(prev => { const n = { ...prev }; delete n[key]; return n; });
@@ -1306,7 +1320,9 @@ const ManualWebsiteUpdatePage: React.FC = () => {
           text: current,
           mode,
           label: field.label,
+          helperText: field.helperText || '',
           pageName: selectedPage?.label || '',
+          context: context.slice(0, 12),
           language,
         }),
       });
@@ -1330,6 +1346,16 @@ const ManualWebsiteUpdatePage: React.FC = () => {
     return (
       <div className="mt-2">
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => enhanceField(field, 'generate')}
+            disabled={!!busy}
+            className="inline-flex items-center gap-1.5 rounded-md bg-gradient-to-r from-purple-600 to-pink-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            title="Let AI write optimal, on-brand copy for this field from scratch"
+          >
+            <Wand2 className="h-3.5 w-3.5" />
+            {busy === 'generate' ? 'Generating…' : 'AI Generate'}
+          </button>
           <button
             type="button"
             onClick={() => enhanceField(field, 'refine')}

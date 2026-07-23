@@ -140,8 +140,9 @@ router.get('/:pageId', async (req, res) => {
 // literal path isn't captured as a pageId.
 router.post('/enhance-field', requireAuth, async (req, res) => {
   try {
-    const { text, mode = 'refine', label = '', pageName = '', language = 'de' } = req.body || {};
-    if (!text || typeof text !== 'string' || !text.trim()) {
+    const { text, mode = 'refine', label = '', helperText = '', pageName = '', context = [], language = 'de' } = req.body || {};
+    // refine/seo improve existing copy; generate writes from scratch (no text needed).
+    if (mode !== 'generate' && (!text || typeof text !== 'string' || !text.trim())) {
       return res.status(400).json({ error: 'text is required' });
     }
 
@@ -151,17 +152,37 @@ router.post('/enhance-field', requireAuth, async (req, res) => {
     const lang = language === 'en' ? 'English' : 'German';
     const brand = 'New Age Fotografie — a warm, modern photography studio in Vienna. Friendly, human, confident but never salesy; short, natural sentences.';
 
-    const system = mode === 'seo'
-      ? `You are an SEO copywriter for ${brand} Rewrite the given website field so it ranks better for local photography search in Vienna, while keeping the SAME meaning, the SAME language (${lang}) and the author's warm tone. Naturally weave in relevant keywords (e.g. Fotostudio Wien and the service named in the field label) without keyword-stuffing. Keep it concise and human. Return ONLY a JSON object: {"result": "the improved text", "tips": ["2-4 very short SEO tips"]}.`
-      : `You are a copy editor for ${brand} Refine the given website field: fix grammar and flow and make it warm and natural in the studio's tone, keeping the SAME meaning and the SAME language (${lang}). Do NOT invent new facts, prices or claims, and keep roughly the same length. Return ONLY a JSON object: {"result": "the improved text"}.`;
+    // Compact, safe rendering of the page's other fields so generated copy stays
+    // coherent with what's already on the page.
+    const contextBlock = Array.isArray(context) && context.length
+      ? '\n\nOther fields already on this page (for consistency — do not repeat them verbatim):\n' +
+        context
+          .filter((c: any) => c && typeof c.value === 'string' && c.value.trim())
+          .slice(0, 12)
+          .map((c: any) => `- ${String(c.label || '').slice(0, 60)}: ${String(c.value).slice(0, 300)}`)
+          .join('\n')
+      : '';
+
+    let system: string;
+    let userContent: string;
+    if (mode === 'generate') {
+      system = `You are a senior website copywriter for ${brand} Write ONE website field from scratch, in ${lang}, that is high-converting and SEO-aware for local photography search in Vienna. Match the length and format to the field type implied by its label: a "title/heading" is one short punchy line (no period); a "subtitle/tagline" is a single short line; a "description" is 2–3 warm, concrete sentences; an FAQ "question" is a short natural question; an FAQ "answer" is 1–3 helpful sentences; a CTA/button is 2–4 words. Naturally include a relevant keyword (e.g. the service named in the label + "Wien") without keyword-stuffing. Do NOT invent specific prices, dates, awards or guarantees. Output plain text only (no markdown, no surrounding quotes). Return ONLY a JSON object: {"result": "the generated text", "tips": ["2-4 very short tips on what makes this copy convert"]}.`;
+      userContent = `Field label: "${label}"${helperText ? `\nField purpose: "${helperText}"` : ''}\nPage: "${pageName}"\nLanguage: ${lang}${contextBlock}\n\nWrite the "${label}" field now.`;
+    } else if (mode === 'seo') {
+      system = `You are an SEO copywriter for ${brand} Rewrite the given website field so it ranks better for local photography search in Vienna, while keeping the SAME meaning, the SAME language (${lang}) and the author's warm tone. Naturally weave in relevant keywords (e.g. Fotostudio Wien and the service named in the field label) without keyword-stuffing. Keep it concise and human. Return ONLY a JSON object: {"result": "the improved text", "tips": ["2-4 very short SEO tips"]}.`;
+      userContent = `Field label: "${label}"\nPage: "${pageName}"\nLanguage: ${lang}${contextBlock}\n\nText to SEO-optimise:\n${text}`;
+    } else {
+      system = `You are a copy editor for ${brand} Refine the given website field: fix grammar and flow and make it warm and natural in the studio's tone, keeping the SAME meaning and the SAME language (${lang}). Do NOT invent new facts, prices or claims, and keep roughly the same length. Return ONLY a JSON object: {"result": "the improved text"}.`;
+      userContent = `Field label: "${label}"\nPage: "${pageName}"\nLanguage: ${lang}\n\nText to refine:\n${text}`;
+    }
 
     const completion = await openai.chat.completions.create({
       model: process.env.OPENAI_LANDING_MODEL || process.env.OPENAI_PRICE_MODEL || 'gpt-4o-mini',
       messages: [
         { role: 'system', content: system },
-        { role: 'user', content: `Field label: "${label}"\nPage: "${pageName}"\nLanguage: ${lang}\n\nText to ${mode === 'seo' ? 'SEO-optimise' : 'refine'}:\n${text}` },
+        { role: 'user', content: userContent },
       ],
-      temperature: mode === 'seo' ? 0.7 : 0.5,
+      temperature: mode === 'refine' ? 0.5 : 0.7,
       max_tokens: 800,
       response_format: { type: 'json_object' },
     });
