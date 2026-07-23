@@ -9,7 +9,7 @@ import MarkdownCopySlot from '../../components/MarkdownCopySlot';
 import { newageCopyMap } from '../../content/newageCopyMap';
 import { Link } from 'react-router-dom';
 import { GraduationCap, School, Users, Camera, Star, ArrowRight, Check, Clock, Mail, Building2, Shield, CalendarDays } from 'lucide-react';
-import { useManualPageContent } from '../../hooks/useManualPageContent';
+import { useManualPageData } from '../../hooks/useManualPageContent';
 import { useLanguage } from '../../context/LanguageContext';
 import { SITE } from '../../config/site';
 
@@ -22,7 +22,7 @@ const mailtoFor = (subject: string) => {
 };
 
 export default function SchulfotografieWienPage() {
-  const t = useManualPageContent('schulfotografie');
+  const { data: manualPage } = useManualPageData('schulfotografie');
   const { language } = useLanguage();
   const de = language === 'de';
 
@@ -45,10 +45,13 @@ export default function SchulfotografieWienPage() {
 
   const fb = fallbacks[language] || fallbacks.de;
 
+  // Only apply manual overrides published for the CURRENT language. This keeps
+  // the language switch honest: an English visitor sees the built-in English
+  // copy below (never the German-authored overrides) until an English override
+  // is explicitly published, and vice-versa.
   const fromManual = (key: string, fallback: string) => {
-    const value = t(key);
-    if (!value || value === key) return fallback;
-    return value;
+    const value = manualPage?.publishedContent?.[key];
+    return typeof value === 'string' && value.trim() ? value : fallback;
   };
 
   const heroTitle = fromManual('manual.schulfotografie.heroTitle', fb.heroTitle);
