@@ -14,13 +14,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import { SITE } from '../../config/site';
 
 // This pillar is enquiry-led (schools, graduating classes and universities book
-// directly – there is no voucher SKU), so every CTA opens a pre-addressed email
-// rather than the cart. Falls back to the contact page if no studio email is set.
-const mailtoFor = (subject: string) => {
-  const to = (SITE.email || '').trim();
-  return to ? `mailto:${to}?subject=${encodeURIComponent(subject)}` : '/kontakt';
-};
-
+// directly – there is no voucher SKU), so every "Request a quote" CTA sends the
+// visitor to the contact page rather than the cart.
 export default function SchulfotografieWienPage() {
   const { data: manualPage } = useManualPageData('schulfotografie');
   // Images are the same in every language, so they use the cross-language helper
@@ -76,8 +71,6 @@ export default function SchulfotografieWienPage() {
   const heroImage4 = fromManualImage('manual.schulfotografie.heroImage4');
   const heroImage5 = fromManualImage('manual.schulfotografie.heroImage5');
 
-  const heroEnquiry = mailtoFor(de ? 'Anfrage: Schul-/Hochschulfotografie Wien' : 'Enquiry: School/University photography Vienna');
-
   return (
     <Layout>
       <div className="min-h-screen bg-white">
@@ -109,13 +102,13 @@ export default function SchulfotografieWienPage() {
                 <p className="text-xl text-gray-300 mb-4 leading-relaxed font-semibold">{heroSubtitle}</p>
                 <p className="text-lg text-gray-400 mb-8 leading-relaxed">{heroDescription}</p>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <a
-                    href={heroEnquiry}
+                  <Link
+                    to="/kontakt"
                     className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg"
                   >
                     <Mail className="mr-2 h-5 w-5" />
                     {primaryCta}
-                  </a>
+                  </Link>
                   <Link
                     to="/kontakt"
                     className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white rounded-lg hover:bg-white/10 transition-colors font-semibold text-lg"
@@ -238,12 +231,12 @@ export default function SchulfotografieWienPage() {
                     </li>
                   ))}
                 </ul>
-                <a
-                  href={mailtoFor(de ? 'Anfrage: Schulfotografie / Klassenfotos Wien' : 'Enquiry: School photography / class photos Vienna')}
+                <Link
+                  to="/kontakt"
                   className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
                 >
                   {de ? 'Angebot anfragen' : 'Request a quote'}
-                </a>
+                </Link>
               </div>
 
               {/* Matura / graduation – highlighted */}
@@ -264,12 +257,12 @@ export default function SchulfotografieWienPage() {
                     </li>
                   ))}
                 </ul>
-                <a
-                  href={mailtoFor(de ? 'Anfrage: Matura-/Abschlussfotos Wien' : 'Enquiry: Matura / graduation photos Vienna')}
+                <Link
+                  to="/kontakt"
                   className="block w-full text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
                 >
                   {de ? 'Angebot anfragen' : 'Request a quote'}
-                </a>
+                </Link>
               </div>
 
               {/* Universities */}
@@ -287,12 +280,12 @@ export default function SchulfotografieWienPage() {
                     </li>
                   ))}
                 </ul>
-                <a
-                  href={mailtoFor(de ? 'Anfrage: Sponsion / Universitätsfotografie Wien' : 'Enquiry: Graduation / university photography Vienna')}
+                <Link
+                  to="/kontakt"
                   className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
                 >
                   {de ? 'Angebot anfragen' : 'Request a quote'}
-                </a>
+                </Link>
               </div>
             </div>
 
@@ -424,13 +417,13 @@ export default function SchulfotografieWienPage() {
               {de ? 'Schreiben Sie uns – wir erstellen ein individuelles Angebot.' : 'Get in touch – we\'ll prepare an individual quote.'}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a
-                href={heroEnquiry}
+              <Link
+                to="/kontakt"
                 className="inline-flex items-center justify-center px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg"
               >
                 <Mail className="mr-2 h-5 w-5" />
                 {primaryCta}
-              </a>
+              </Link>
               <Link
                 to="/kontakt"
                 className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white rounded-lg hover:bg-white/10 transition-colors font-semibold text-lg"
