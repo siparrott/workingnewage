@@ -107,6 +107,13 @@ export const seoConfig: Record<string, PageSEO> = {
   },
 
   // ==================== BUSINESS PHOTOGRAPHY ====================
+  '/schul-und-hochschulfotografie-wien/': {
+    title: 'Schulfotografie in Wien' + BRAND_SUFFIX,
+    h1: 'Schul-, Hochschul- & Universitätsfotografie in Wien',
+    description: 'Klassenfotos, Schulportraits, Matura- & Sponsionsfotos in Wien. Mobiles Studio vor Ort, DSGVO-konform, private Galerie je Familie.',
+    keywords: 'Schulfotografie Wien, Klassenfotos Wien, Maturafotos Wien, Sponsionsfotos Wien, Universitätsfotograf Wien',
+    canonical: '/schul-und-hochschulfotografie-wien/',
+  },
   '/business-portrait-wien/': {
     title: 'Business Portraits in Wien' + BRAND_SUFFIX,
     h1: 'Professionelle Businessportraits in Wien',

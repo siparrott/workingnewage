@@ -29,6 +29,7 @@ const ALL_PILLARS: PillarLink[] = [
   { title: 'Portraitfotografie Wien', titleEn: 'Portrait Photography Vienna', path: '/portrait-fotografie-wien/', description: 'Persönliche Portraits', descriptionEn: 'Personal portraits' },
   { title: 'Produktfotografie Wien', titleEn: 'Product Photography Vienna', path: '/produkt-fotografie-wien/', description: 'E-Commerce & Amazon Produktfotos', descriptionEn: 'E-commerce & Amazon product photos' },
   { title: 'Immobilienfotografie Wien', titleEn: 'Real Estate Photography Vienna', path: '/immobilien-fotografie-wien/', description: 'Architektur- & Immobilienfotos', descriptionEn: 'Architecture & real estate photos' },
+  { title: 'Schul- & Hochschulfotografie Wien', titleEn: 'School & University Photography Vienna', path: '/schul-und-hochschulfotografie-wien/', description: 'Klassenfotos, Matura & Sponsion', descriptionEn: 'Class photos, Matura & graduation', badge: 'Bildung', badgeEn: 'Education' },
 ];
 
 interface PillarLinksBlockProps {

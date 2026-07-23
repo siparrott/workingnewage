@@ -40,6 +40,7 @@ const EN: Record<string, string> = {
   'Studio-Fotografie Wien': 'Studio Photography Vienna',
   'Produktfotografie Wien': 'Product Photography Vienna',
   'Immobilienfotografie Wien': 'Real Estate Photography Vienna',
+  'Schul- & Hochschulfotografie Wien': 'School & University Photography Vienna',
 };
 
 // Site structure: maps each page to its relevant internal links
@@ -125,9 +126,17 @@ const SITE_LINKS: Record<string, RelatedLink[]> = {
     { href: '/teamfotos-wien/', label: 'Teamfotos Wien' },
     { href: '/bewerbungsfotos-wien/', label: 'Bewerbungsfotos Wien' },
     { href: '/portrait-fotografie-wien/', label: 'Portraitfotografie Wien' },
-    { href: '/studio-fotografie-wien/', label: 'Studio-Fotografie Wien' },
+    { href: '/schul-und-hochschulfotografie-wien/', label: 'Schul- & Hochschulfotografie Wien' },
     { href: '/eventfotografie-wien/', label: 'Eventfotografie Wien' },
     { href: '/preise/', label: 'Preise & Pakete' },
+    { href: '/warteliste/', label: 'Termin buchen' },
+  ],
+  '/schul-und-hochschulfotografie-wien/': [
+    { href: '/business-portrait-wien/', label: 'Business Portrait Wien' },
+    { href: '/teamfotos-wien/', label: 'Teamfotos Wien' },
+    { href: '/bewerbungsfotos-wien/', label: 'Bewerbungsfotos Wien' },
+    { href: '/eventfotografie-wien/', label: 'Eventfotografie Wien' },
+    { href: '/kontakt', label: 'Kontakt & Beratung' },
     { href: '/warteliste/', label: 'Termin buchen' },
   ],
   '/teamfotos-wien/': [

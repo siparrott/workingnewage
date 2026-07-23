@@ -115,6 +115,7 @@ import StudioFotografieWienPage from './pages/fotoshootings/StudioFotografieWien
 import TestHeroPage from './pages/TestHeroPage';
 import KinderFotografieWienPage from './pages/fotoshootings/KinderFotografieWienPage';
 import PortraitfotografieWienPage from './pages/fotoshootings/PortraitfotografieWienPage';
+import SchulfotografieWienPage from './pages/fotoshootings/SchulfotografieWienPage';
 import UeberUnsPage from './pages/support/UeberUnsPage';
 import PreisePage from './pages/support/PreisePage';
 import FAQPage from './pages/support/FAQPage';
@@ -202,6 +203,7 @@ function App() {
                 {/* SEO Pillar Pages */}
                 <Route path="/kinder-fotografie-wien/" element={<KinderFotografieWienPage />} />
                 <Route path="/portrait-fotografie-wien/" element={<PortraitfotografieWienPage />} />
+                <Route path="/schul-und-hochschulfotografie-wien/" element={<SchulfotografieWienPage />} />
                 
                 {/* Support Pages */}
                 <Route path="/ueber-uns/" element={<UeberUnsPage />} />

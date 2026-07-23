@@ -1179,6 +1179,11 @@ const HomePage: React.FC = () => {
               </Link>
             </li>
             <li>
+              <Link to="/schul-und-hochschulfotografie-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'School & University Photography' : 'Schul- & Hochschulfotografie'}
+              </Link>
+            </li>
+            <li>
               <Link to="/portfolio" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
                 {language === 'en' ? 'View Full Portfolio' : 'Gesamtes Portfolio ansehen'}
               </Link>

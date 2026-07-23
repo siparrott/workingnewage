@@ -40,6 +40,7 @@ const FAQ_KEYS: Record<string, string[]> = {
   babyfotos: ['heading', 'q1', 'a1', 'q2', 'a2', 'q3', 'a3', 'q4', 'a4', 'q5', 'a5'],
   bewerbungsfotos: ['heading', 'q1', 'a1', 'q2', 'a2', 'q3', 'q4'],
   businessportraits: ['heading', 'q1', 'a1', 'q2', 'a2', 'q3', 'a3', 'q4', 'a4'],
+  schulfotografie: ['heading', 'q1', 'a1', 'q2', 'a2', 'q3', 'a3', 'q4', 'a4'],
   eventfotografie: ['heading', 'q1', 'a1', 'q2', 'a2', 'q3', 'a3', 'q4', 'a4'],
   familienfotos: ['heading', 'q1', 'a1', 'q2', 'a2', 'q3', 'a3'],
   hochzeitsfotografie: ['heading', 'q1', 'a1', 'q2', 'a2', 'q3', 'a3', 'q4', 'a4'],
@@ -574,6 +575,12 @@ export const manualPageManifest: ManualPageDefinition[] = [
       label: 'Business-Portraits',
       route: '/business-portraits-wien',
       description: 'Corporate portrait hero messages and imagery.'
+    },
+    {
+      id: 'schulfotografie',
+      label: 'Schul- & Hochschulfotografie',
+      route: '/schul-und-hochschulfotografie-wien',
+      description: 'School, college & university photography hero copy, imagery and FAQ.'
     },
     {
       id: 'teamfotos',

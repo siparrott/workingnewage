@@ -129,12 +129,21 @@ const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link 
-                  to="/business-portrait-wien/" 
+                <Link
+                  to="/business-portrait-wien/"
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
                   {t('footer.businessPortraits')}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/schul-und-hochschulfotografie-wien/"
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  {t('footer.schoolPhotography')}
                 </Link>
               </li>
               <li>

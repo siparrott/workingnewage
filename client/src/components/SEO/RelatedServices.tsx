@@ -26,6 +26,9 @@ const EN: Record<string, string> = {
   'Studio-Fotografie Wien': 'Studio Photography Vienna',
   'Produktfotografie Wien': 'Product Photography Vienna',
   'Immobilienfotografie Wien': 'Real Estate Photography Vienna',
+  'Schul- & Hochschulfotografie Wien': 'School & University Photography Vienna',
+  'Klassenfotos, Matura & Sponsion': 'Class photos, Matura & graduation',
+  'Firmen- & Privatevents': 'Corporate & private events',
   'Babybauch-Shooting im Studio': 'Baby bump shoot in the studio',
   'Ab 5 Tage nach der Geburt': 'From 5 days after birth',
   'Für Babys 3–12 Monate': 'For babies aged 3–12 months',
@@ -136,8 +139,16 @@ const serviceLinks: Record<string, RelatedServiceLink[]> = {
     { title: 'Bewerbungsfotos Wien', path: '/bewerbungsfotos-wien/', description: 'Für Karriere & HR' },
     { title: 'Teamfotos Wien', path: '/teamfotos-wien/', description: 'Einheitliche Mitarbeiterbilder' },
     { title: 'Portraitfotografie Wien', path: '/portrait-fotografie-wien/', description: 'Persönliche Portraits' },
-    { title: 'Studio-Fotografie Wien', path: '/studio-fotografie-wien/', description: 'Im professionellen Studio' },
+    { title: 'Schul- & Hochschulfotografie Wien', path: '/schul-und-hochschulfotografie-wien/', description: 'Klassenfotos, Matura & Sponsion' },
     { title: 'Preise & Pakete', path: '/preise/', description: 'Transparente Preise ab €95' },
+    { title: 'Termin buchen', path: '/warteliste/', description: 'Jetzt auf die Warteliste' },
+  ],
+  // --- EDUCATION CLUSTER (Pillar: /schul-und-hochschulfotografie-wien/) ---
+  '/schul-und-hochschulfotografie-wien/': [
+    { title: 'Business Portrait Wien', path: '/business-portrait-wien/', description: 'Professionelle Portraits' },
+    { title: 'Teamfotos Wien', path: '/teamfotos-wien/', description: 'Einheitliche Mitarbeiterbilder' },
+    { title: 'Bewerbungsfotos Wien', path: '/bewerbungsfotos-wien/', description: 'Für Karriere & HR' },
+    { title: 'Eventfotografie Wien', path: '/eventfotografie-wien/', description: 'Firmen- & Privatevents' },
     { title: 'Termin buchen', path: '/warteliste/', description: 'Jetzt auf die Warteliste' },
   ],
   '/bewerbungsfotos-wien/': [

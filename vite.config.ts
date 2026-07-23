@@ -67,6 +67,7 @@ const publicRoutes = [
   // SEO Pillar Pages
   '/kinder-fotografie-wien/',
   '/portrait-fotografie-wien/',
+  '/schul-und-hochschulfotografie-wien/',
   '/gewerbliche-fotografie-wien/',
   '/warum-new-age-fotografie/',
   
