@@ -798,9 +798,16 @@ app.use((req, res, next) => {
   // Removed signal handlers to diagnose crash - server should stay alive
   console.log('🟢 Server running and ready for connections');
 
-  // Background jobs (cron tasks) disabled to prevent startup issues
-  // Jobs can be loaded separately if needed
-  console.log('ℹ️ Background jobs (cron) are disabled');
+  // Background jobs: the legacy ./jobs bundle (daily email + IMAP) stays off to
+  // avoid the old startup issues, but the blog auto-publish scheduler is a
+  // focused, self-guarding module — without it, scheduled posts never go live.
+  try {
+    const { startBlogScheduler } = await import('./jobs/blogScheduler');
+    startBlogScheduler();
+    console.log('📝 Blog auto-publish scheduler started (hourly + boot catch-up)');
+  } catch (err: any) {
+    console.warn('⚠️ Failed to start blog auto-publish scheduler:', err?.message || err);
+  }
 
   // Start background Google Calendar sync scheduler if enabled via env
   try {
