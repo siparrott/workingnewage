@@ -9,7 +9,7 @@ import MarkdownCopySlot from '../../components/MarkdownCopySlot';
 import { newageCopyMap } from '../../content/newageCopyMap';
 import { Link } from 'react-router-dom';
 import { GraduationCap, School, Users, Camera, Star, ArrowRight, Check, Clock, Mail, Building2, Shield, CalendarDays } from 'lucide-react';
-import { useManualPageData } from '../../hooks/useManualPageContent';
+import { useManualPageContent, useManualPageData } from '../../hooks/useManualPageContent';
 import { useLanguage } from '../../context/LanguageContext';
 import { SITE } from '../../config/site';
 
@@ -23,6 +23,10 @@ const mailtoFor = (subject: string) => {
 
 export default function SchulfotografieWienPage() {
   const { data: manualPage } = useManualPageData('schulfotografie');
+  // Images are the same in every language, so they use the cross-language helper
+  // (falls back to whatever was uploaded, regardless of the language it was
+  // saved under). Text uses `fromManual` below, which is current-language only.
+  const tShared = useManualPageContent('schulfotografie');
   const { language } = useLanguage();
   const de = language === 'de';
 
@@ -54,16 +58,23 @@ export default function SchulfotografieWienPage() {
     return typeof value === 'string' && value.trim() ? value : fallback;
   };
 
+  // Language-agnostic: use the uploaded image from EITHER language (studios upload
+  // hero photos once, usually under German, and they should show on both).
+  const fromManualImage = (key: string) => {
+    const value = tShared(key);
+    return value && value !== key ? value : '';
+  };
+
   const heroTitle = fromManual('manual.schulfotografie.heroTitle', fb.heroTitle);
   const heroSubtitle = fromManual('manual.schulfotografie.heroTagline', fb.heroSubtitle);
   const heroDescription = fromManual('manual.schulfotografie.heroDescription', fb.heroDescription);
   const primaryCta = fromManual('manual.schulfotografie.primaryCta', fb.primaryCta);
   const secondaryCta = fromManual('manual.schulfotografie.secondaryCta', fb.secondaryCta);
-  const heroImage1 = fromManual('manual.schulfotografie.heroImage1', '');
-  const heroImage2 = fromManual('manual.schulfotografie.heroImage2', '');
-  const heroImage3 = fromManual('manual.schulfotografie.heroImage3', '');
-  const heroImage4 = fromManual('manual.schulfotografie.heroImage4', '');
-  const heroImage5 = fromManual('manual.schulfotografie.heroImage5', '');
+  const heroImage1 = fromManualImage('manual.schulfotografie.heroImage1');
+  const heroImage2 = fromManualImage('manual.schulfotografie.heroImage2');
+  const heroImage3 = fromManualImage('manual.schulfotografie.heroImage3');
+  const heroImage4 = fromManualImage('manual.schulfotografie.heroImage4');
+  const heroImage5 = fromManualImage('manual.schulfotografie.heroImage5');
 
   const heroEnquiry = mailtoFor(de ? 'Anfrage: Schul-/Hochschulfotografie Wien' : 'Enquiry: School/University photography Vienna');
 
