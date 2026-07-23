@@ -13,6 +13,9 @@ interface Props {
   readinessErrorCount: number;
   pageStatus: 'draft' | 'published' | 'archived';
   publishedUrl: string | null;
+  /** The page's current slug — the live URL always tracks this, so Copy URL uses
+   *  it in preference to the (publish-time, can-be-stale) publishedUrl. */
+  slug?: string | null;
   isPublishing: boolean;
   isUnpublishing: boolean;
   onSave: () => void;
@@ -35,6 +38,7 @@ export default function LandingPageEditorToolbar({
   readinessErrorCount,
   pageStatus,
   publishedUrl,
+  slug,
   isPublishing,
   isUnpublishing,
   onSave,
@@ -48,14 +52,18 @@ export default function LandingPageEditorToolbar({
 }: Props) {
   const [copied, setCopied] = useState(false);
 
+  // The live URL always tracks the current slug (/lp/<slug>). publishedUrl is
+  // frozen at publish time, so it goes stale the moment the slug is edited —
+  // prefer the current slug so Copy URL matches the Slug field.
+  const livePath = slug ? `/lp/${slug}` : publishedUrl;
   const handleCopyUrl = useCallback(() => {
-    if (!publishedUrl) return;
-    const fullUrl = `${window.location.origin}${publishedUrl}`;
+    if (!livePath) return;
+    const fullUrl = `${window.location.origin}${livePath}`;
     navigator.clipboard.writeText(fullUrl).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  }, [publishedUrl]);
+  }, [livePath]);
 
   const isPublished = pageStatus === 'published';
 
@@ -129,7 +137,7 @@ export default function LandingPageEditorToolbar({
         )}
 
         {/* Copy live URL (published only) */}
-        {isPublished && publishedUrl && (
+        {isPublished && livePath && (
           <Button
             type="button"
             variant="outline"

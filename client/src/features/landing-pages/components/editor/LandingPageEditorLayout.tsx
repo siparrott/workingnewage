@@ -175,6 +175,7 @@ export default function LandingPageEditorLayout({
         readinessErrorCount={readiness.errors.length}
         pageStatus={pageStatus}
         publishedUrl={publishedUrl}
+        slug={seo.slug}
         isPublishing={isPublishing}
         isUnpublishing={isUnpublishing}
         onSave={save}
