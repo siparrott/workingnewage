@@ -1155,6 +1155,8 @@ const ManualWebsiteUpdatePage: React.FC = () => {
   const [cropOrientation, setCropOrientation] = useState<'landscape' | 'portrait' | 'wide'>('landscape');
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [isProcessingCrop, setIsProcessingCrop] = useState(false);
+  // Transient banner confirming a Save/Publish result (auto-dismisses).
+  const [actionNote, setActionNote] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   // AI field enhancement (refine in tone / SEO-optimise), keyed by translationKey.
   const [aiFieldBusy, setAiFieldBusy] = useState<Record<string, 'refine' | 'seo' | 'generate'>>({});
   const [aiFieldTips, setAiFieldTips] = useState<Record<string, string[]>>({});
@@ -1220,6 +1222,12 @@ const ManualWebsiteUpdatePage: React.FC = () => {
     }
   }, [pageContent, selectedPage?.id, language]);
 
+  // Show a banner for a few seconds, then clear it.
+  const flashNote = (kind: 'success' | 'error', text: string) => {
+    setActionNote({ kind, text });
+    window.setTimeout(() => setActionNote(cur => (cur && cur.text === text ? null : cur)), 6000);
+  };
+
   // Save draft mutation
   const saveDraftMutation = useMutation({
     mutationFn: async () => {
@@ -1239,7 +1247,9 @@ const ManualWebsiteUpdatePage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/manual-pages'] });
       setHasUnsavedChanges(false);
-    }
+      flashNote('success', 'Draft saved. It is not live yet — click Publish to put it on the website.');
+    },
+    onError: () => flashNote('error', 'Could not save the draft. Please try again.'),
   });
 
   // Publish mutation
@@ -1261,7 +1271,9 @@ const ManualWebsiteUpdatePage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/manual-pages'] });
       setHasUnsavedChanges(false);
-    }
+      flashNote('success', '✓ Published — your changes are now live on the website.');
+    },
+    onError: () => flashNote('error', 'Publish failed — nothing was changed on the live site. Please try again.'),
   });
 
   // Reset mutation
@@ -1818,7 +1830,7 @@ const ManualWebsiteUpdatePage: React.FC = () => {
                       className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       <Check size={16} />
-                      Publish
+                      {publishMutation.isPending ? 'Publishing…' : 'Publish'}
                     </button>
                     <button
                       onClick={() => {
@@ -1834,6 +1846,29 @@ const ManualWebsiteUpdatePage: React.FC = () => {
                     </button>
                   </div>
                 </div>
+
+                {/* Save/Publish result banner */}
+                {actionNote && (
+                  <div
+                    role="status"
+                    className={`flex items-center gap-2 p-3 rounded-lg border text-sm font-medium ${
+                      actionNote.kind === 'success'
+                        ? 'bg-green-50 border-green-300 text-green-800'
+                        : 'bg-red-50 border-red-300 text-red-800'
+                    }`}
+                  >
+                    {actionNote.kind === 'success' ? <Check size={16} /> : <X size={16} />}
+                    <span>{actionNote.text}</span>
+                    <button
+                      type="button"
+                      onClick={() => setActionNote(null)}
+                      className="ml-auto text-current/70 hover:text-current"
+                      aria-label="Dismiss"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
 
                 {/* Status Indicator */}
                 {pageContent && (
@@ -1956,7 +1991,11 @@ const ManualWebsiteUpdatePage: React.FC = () => {
             </button>
           </div>
 
-          <div className="relative mb-4 h-96 w-full overflow-hidden rounded-xl bg-black cursor-move">
+          {/* react-easy-crop draws its own draggable crop area (dimmed surround +
+              grid) from the chosen aspect. A previous decorative overlay sat on
+              top of it and swallowed the drag, so the reposition never worked —
+              it's gone; the native crop UI is both draggable and clearer. */}
+          <div className="relative mb-2 h-96 w-full overflow-hidden rounded-xl bg-black">
             <Cropper
               image={cropModal.imageSrc}
               crop={cropPosition}
@@ -1969,26 +2008,12 @@ const ManualWebsiteUpdatePage: React.FC = () => {
               onCropComplete={onCropComplete}
               zoomWithWheel
               restrictPosition={false}
-              style={{ containerStyle: { cursor: 'move' } }}
             />
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className={`relative border-2 border-white/80 rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.4)] ${
-                cropOrientation === 'landscape' ? 'w-[85%] max-w-[720px] aspect-[16/10]' :
-                cropOrientation === 'portrait' ? 'h-[85%] max-h-[640px] aspect-[10/16]' :
-                'w-[90%] max-w-[760px] aspect-[16/9]'
-              }`}>
-                <div className="absolute inset-0 rounded-xl border border-white/40 border-dashed" />
-                <span className="absolute bottom-3 right-3 rounded-full bg-black/70 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
-                  {cropOrientation === 'landscape' ? 'Landscape · 16:10' : cropOrientation === 'portrait' ? 'Portrait · 10:16' : 'Wide Hero · 16:9'} · {cropModal.field.label}
-                </span>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8">
-                  <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-white/60"></div>
-                  <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-white/60"></div>
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full shadow-lg"></div>
-                </div>
-              </div>
-            </div>
           </div>
+          <p className="mb-4 text-center text-xs font-medium text-gray-500">
+            {cropOrientation === 'landscape' ? 'Landscape · 16:10' : cropOrientation === 'portrait' ? 'Portrait · 10:16' : 'Wide Hero · 16:9'}
+            {' · '}Drag the image to reposition · scroll or use the slider to zoom
+          </p>
 
           <div className="mb-6">
             <label className="mb-2 flex items-center justify-between text-sm font-medium text-gray-700">
