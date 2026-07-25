@@ -21,10 +21,14 @@ export interface SocialPack {
   googlebusiness: string;       // short, local
   pinterestTitle: string;       // keyword-rich pin title
   pinterestDescription: string;
+  /** True when this came from the no-AI fallback (OpenAI was unavailable). */
+  fallback?: boolean;
 }
 
 export interface PreparedSocialPack {
   generatedAt: string;
+  /** True when this came from the no-AI fallback (OpenAI was unavailable). */
+  fallback?: boolean;
   articleUrl: string;
   hashtags: string[];
   facebook: string;
@@ -39,9 +43,46 @@ export interface PreparedSocialPack {
 }
 
 let _o: OpenAI | null = null;
-const openai = () => (_o ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' }));
+// maxRetries: the SDK retries transient 429/5xx with backoff; timeout bounds a
+// hung request. A studio admin clicking "Social Pack" should never wait forever.
+const openai = () => (_o ??= new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured',
+  maxRetries: 3,
+  timeout: 30_000,
+}));
 
 const stripHtml = (s = '') => s.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+
+/**
+ * Deterministic, no-AI social pack built from the post's own title/excerpt/link.
+ * Used when the OpenAI call fails (e.g. a transient OpenAI 5xx) so the feature
+ * degrades to something usable and editable instead of throwing a 500 at the
+ * admin. Less polished than the AI version, but never blocks.
+ */
+function fallbackPack(input: SocialPostInput): SocialPack {
+  const title = (input.title || '').trim();
+  const summary = stripHtml(input.excerpt || input.body || '').slice(0, 220) || title;
+  const kw = (input.pillar || '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^a-z0-9]/g, '');
+  const hashtags = ['newagefotografie', 'fotografiewien', 'fotostudiowien', 'wien', kw]
+    .filter(Boolean)
+    .filter((v, i, a) => a.indexOf(v) === i)
+    .slice(0, 8);
+  return {
+    base: summary,
+    hashtags,
+    facebook: `${title}\n\n${summary}\n\nJetzt im Blog lesen 👇`,
+    instagram: `${title}\n\n${summary}`,
+    threads: `${title} – ${summary}`.slice(0, 480),
+    linkedin: `${title}\n\n${summary}`,
+    googlebusiness: `${title}. ${summary} Jetzt Termin sichern.`.slice(0, 1400),
+    pinterestTitle: title.slice(0, 100),
+    pinterestDescription: summary.slice(0, 200),
+    fallback: true,
+  };
+}
 
 export async function generateSocialPack(input: SocialPostInput): Promise<SocialPack> {
   const sys = [
@@ -66,12 +107,24 @@ export async function generateSocialPack(input: SocialPostInput): Promise<Social
     `BLOG-URL (Link-back): ${input.url}`,
   ].filter(Boolean).join('\n');
 
-  const res = await openai().chat.completions.create({
-    model: 'gpt-4o-mini',
-    temperature: 0.7,
-    response_format: { type: 'json_object' },
-    messages: [{ role: 'system', content: sys }, { role: 'user', content: user }],
-  });
+  let res;
+  try {
+    res = await openai().chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0.7,
+      response_format: { type: 'json_object' },
+      messages: [{ role: 'system', content: sys }, { role: 'user', content: user }],
+    });
+  } catch (err: any) {
+    // OpenAI unavailable (transient 5xx/429/timeout after retries). Don't block
+    // the admin — return a usable template pack and log the cause for diagnosis.
+    console.error(
+      '[socialSnippets] OpenAI generation failed, using deterministic fallback:',
+      err?.status ?? '',
+      err?.message ?? err,
+    );
+    return fallbackPack(input);
+  }
 
   let p: any = {};
   try { p = JSON.parse(res.choices[0]?.message?.content || '{}'); } catch { /* defaults */ }
@@ -100,6 +153,7 @@ export async function buildPreparedSocialPack(input: SocialPostInput): Promise<P
 
   return {
     generatedAt: new Date().toISOString(),
+    fallback: pack.fallback,
     articleUrl: input.url,
     hashtags: pack.hashtags,
     facebook: `${pack.facebook}\n\n${facebookUrl}`.trim(),

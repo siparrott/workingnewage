@@ -2999,6 +2999,13 @@ Bitte versuchen Sie es später noch einmal.`;
         pillar: (post.tags || [])[0],
       });
 
+      // If OpenAI was unavailable we still return a usable template pack, but do
+      // NOT persist it — so a later retry can produce (and cache) the real AI
+      // version once OpenAI recovers.
+      if ((socialPack as any).fallback) {
+        return res.json({ success: true, socialPack, generated: false, degraded: true });
+      }
+
       const ideaData = {
         ...existingIdeaData,
         socialPack,
