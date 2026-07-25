@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { HelmetProvider } from 'react-helmet-async';
@@ -30,62 +30,62 @@ import MyArchivePage from './pages/MyArchivePage';
 import MySubscriptionPage from './pages/MySubscriptionPage';
 import StorageDemoPage from './pages/StorageDemoPage';
 import StorageDemoIndexPage from './pages/StorageDemoIndexPage';
-import AdminDashboardPage from './pages/admin/AdminDashboardPage';
-import AdminDashboardPageDev from './pages/admin/AdminDashboardPageDev';
-import AdminLoginPage from './pages/admin/AdminLoginPage';
-import NeonAdminLoginPage from './pages/admin/NeonAdminLoginPage';
-import AdminLeadsPage from './pages/admin/AdminLeadsPage';
-import AdminVoucherSalesPageV3 from './pages/admin/AdminVoucherSalesPageV3';
-import AdminClientsPage from './pages/admin/ClientsPage';
-import ClientDetailPage from './pages/admin/ClientDetailPage';
-import ClientProfilePage from './pages/admin/ClientProfilePage';
-import ClientFormPage from './pages/admin/ClientFormPage';
-import LeadSourcesPage from './pages/admin/LeadSourcesPage';
-import AdminClientsImportPage from './pages/admin/ClientsImportPage';
-import ImportLogsPage from './pages/admin/ImportLogsPage';
-import HighValueClientsPage from './pages/admin/HighValueClientsPage';
-import GalleriesPage from './pages/admin/GalleriesPage';
-import AdminGalleriesPage from './pages/admin/AdminGalleriesPage';
-import CalendarPage from './pages/admin/CalendarPage';
-import AdminGalleryCreatePage from './pages/admin/GalleryCreatePage';
-import AdminGalleryEditPage from './pages/admin/GalleryEditPage';
-import AdminGalleryDetailPage from './pages/admin/GalleryDetailPage';
-import InvoicesPage from './pages/admin/InvoicesPage';
-import AdminPriceWizardPage from './pages/admin/AdminPriceWizardPage';
-import AccountingExportPage from './pages/admin/accounting/AccountingExportPage';
-import FilesPage from './pages/admin/FilesPage';
-import ProDigitalFilesPage from './pages/admin/ProDigitalFilesPage';
-import CampaignsPage from './pages/admin/CampaignsPage';
-import AdminInboxPageV2 from './pages/admin/AdminInboxPageV2';
-import QuestionnairesPageV2 from './pages/admin/QuestionnairesPageV2';
-import ComprehensiveReportsPage from './pages/admin/ComprehensiveReportsPage';
-import SettingsPage from './pages/admin/SettingsPage';
-import EmailSettingsPage from './pages/admin/EmailSettingsPage';
-import CalendarTest from './pages/admin/CalendarTest';
-import CustomizationPage from './pages/admin/CustomizationPage';
-import StudioCustomization from './pages/admin/StudioCustomization';
-import StudioCalendarPage from './pages/admin/StudioCalendarPage';
-import WebsiteCustomizationWizard from './pages/admin/WebsiteCustomizationWizard';
-import PhotographyCalendarPage from './pages/admin/PhotographyCalendarPageSimple';
+const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage'));
+const AdminDashboardPageDev = lazy(() => import('./pages/admin/AdminDashboardPageDev'));
+const AdminLoginPage = lazy(() => import('./pages/admin/AdminLoginPage'));
+const NeonAdminLoginPage = lazy(() => import('./pages/admin/NeonAdminLoginPage'));
+const AdminLeadsPage = lazy(() => import('./pages/admin/AdminLeadsPage'));
+const AdminVoucherSalesPageV3 = lazy(() => import('./pages/admin/AdminVoucherSalesPageV3'));
+const AdminClientsPage = lazy(() => import('./pages/admin/ClientsPage'));
+const ClientDetailPage = lazy(() => import('./pages/admin/ClientDetailPage'));
+const ClientProfilePage = lazy(() => import('./pages/admin/ClientProfilePage'));
+const ClientFormPage = lazy(() => import('./pages/admin/ClientFormPage'));
+const LeadSourcesPage = lazy(() => import('./pages/admin/LeadSourcesPage'));
+const AdminClientsImportPage = lazy(() => import('./pages/admin/ClientsImportPage'));
+const ImportLogsPage = lazy(() => import('./pages/admin/ImportLogsPage'));
+const HighValueClientsPage = lazy(() => import('./pages/admin/HighValueClientsPage'));
+const GalleriesPage = lazy(() => import('./pages/admin/GalleriesPage'));
+const AdminGalleriesPage = lazy(() => import('./pages/admin/AdminGalleriesPage'));
+const CalendarPage = lazy(() => import('./pages/admin/CalendarPage'));
+const AdminGalleryCreatePage = lazy(() => import('./pages/admin/GalleryCreatePage'));
+const AdminGalleryEditPage = lazy(() => import('./pages/admin/GalleryEditPage'));
+const AdminGalleryDetailPage = lazy(() => import('./pages/admin/GalleryDetailPage'));
+const InvoicesPage = lazy(() => import('./pages/admin/InvoicesPage'));
+const AdminPriceWizardPage = lazy(() => import('./pages/admin/AdminPriceWizardPage'));
+const AccountingExportPage = lazy(() => import('./pages/admin/accounting/AccountingExportPage'));
+const FilesPage = lazy(() => import('./pages/admin/FilesPage'));
+const ProDigitalFilesPage = lazy(() => import('./pages/admin/ProDigitalFilesPage'));
+const CampaignsPage = lazy(() => import('./pages/admin/CampaignsPage'));
+const AdminInboxPageV2 = lazy(() => import('./pages/admin/AdminInboxPageV2'));
+const QuestionnairesPageV2 = lazy(() => import('./pages/admin/QuestionnairesPageV2'));
+const ComprehensiveReportsPage = lazy(() => import('./pages/admin/ComprehensiveReportsPage'));
+const SettingsPage = lazy(() => import('./pages/admin/SettingsPage'));
+const EmailSettingsPage = lazy(() => import('./pages/admin/EmailSettingsPage'));
+const CalendarTest = lazy(() => import('./pages/admin/CalendarTest'));
+const CustomizationPage = lazy(() => import('./pages/admin/CustomizationPage'));
+const StudioCustomization = lazy(() => import('./pages/admin/StudioCustomization'));
+const StudioCalendarPage = lazy(() => import('./pages/admin/StudioCalendarPage'));
+const WebsiteCustomizationWizard = lazy(() => import('./pages/admin/WebsiteCustomizationWizard'));
+const PhotographyCalendarPage = lazy(() => import('./pages/admin/PhotographyCalendarPageSimple'));
 import SurveySystemDemoPage from './pages/SurveySystemDemoPage';
 import SurveyTakingPage from './pages/SurveyTakingPage';
-import AdminBlogPostsPage from './pages/admin/AdminBlogPostsPage';
-import AdminBlogNewPage from './pages/admin/AdminBlogNewPage';
-import AdminBlogEditPage from './pages/admin/AdminBlogEditPage';
-import KnowledgeBasePage from './pages/admin/KnowledgeBasePage';
-import CRMOperationsAssistant from './pages/admin/CRMOperationsAssistant';
-import AgentV2Page from './pages/admin/AgentV2Page';
-import AgentConsolePage from './pages/admin/AgentConsolePage';
-import AdminLandingPagesPage from './pages/admin/AdminLandingPagesPage';
-import AdminLandingPageNewPage from './pages/admin/AdminLandingPageNewPage';
-import AdminLandingPageEditorPage from './pages/admin/AdminLandingPageEditorPage';
+const AdminBlogPostsPage = lazy(() => import('./pages/admin/AdminBlogPostsPage'));
+const AdminBlogNewPage = lazy(() => import('./pages/admin/AdminBlogNewPage'));
+const AdminBlogEditPage = lazy(() => import('./pages/admin/AdminBlogEditPage'));
+const KnowledgeBasePage = lazy(() => import('./pages/admin/KnowledgeBasePage'));
+const CRMOperationsAssistant = lazy(() => import('./pages/admin/CRMOperationsAssistant'));
+const AgentV2Page = lazy(() => import('./pages/admin/AgentV2Page'));
+const AgentConsolePage = lazy(() => import('./pages/admin/AgentConsolePage'));
+const AdminLandingPagesPage = lazy(() => import('./pages/admin/AdminLandingPagesPage'));
+const AdminLandingPageNewPage = lazy(() => import('./pages/admin/AdminLandingPageNewPage'));
+const AdminLandingPageEditorPage = lazy(() => import('./pages/admin/AdminLandingPageEditorPage'));
 import PublicLandingPage from './pages/PublicLandingPage';
-import WebsiteWizard from './pages/admin/WebsiteWizard';
-import PriceListSettingsPage from './pages/admin/settings/PriceListSettingsPage';
-import StorageSettingsPage from './pages/admin/settings/StorageSettingsPage';
-import SmsSettingsPage from './pages/admin/settings/SmsSettingsPage';
-import StripeSettingsPage from './pages/admin/settings/StripeSettingsPage';
-import ManualWebsiteUpdatePage from './pages/admin/ManualWebsiteUpdatePage';
+const WebsiteWizard = lazy(() => import('./pages/admin/WebsiteWizard'));
+const PriceListSettingsPage = lazy(() => import('./pages/admin/settings/PriceListSettingsPage'));
+const StorageSettingsPage = lazy(() => import('./pages/admin/settings/StorageSettingsPage'));
+const SmsSettingsPage = lazy(() => import('./pages/admin/settings/SmsSettingsPage'));
+const StripeSettingsPage = lazy(() => import('./pages/admin/settings/StripeSettingsPage'));
+const ManualWebsiteUpdatePage = lazy(() => import('./pages/admin/ManualWebsiteUpdatePage'));
 import GewerblicheFotografieWienPage from './pages/GewerblicheFotografieWienPage';
 import WarumNewAgePage from './pages/WarumNewAgePage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -134,12 +134,20 @@ import CommunicationsPage from './pages/CommunicationsPage';
 import QuestionnaireFormPage from './pages/QuestionnaireFormPage';
 import ImageTestPage from './pages/ImageTestPage';
 import PublicSchedulerPage from './pages/public/PublicSchedulerPage';
-import AdminSchedulersPage from './pages/admin/AdminSchedulersPage';
-import AdminAutomationsPage from './pages/admin/AdminAutomationsPage';
-import CalendarSyncPage from './pages/admin/CalendarSyncPage';
+const AdminSchedulersPage = lazy(() => import('./pages/admin/AdminSchedulersPage'));
+const AdminAutomationsPage = lazy(() => import('./pages/admin/AdminAutomationsPage'));
+const CalendarSyncPage = lazy(() => import('./pages/admin/CalendarSyncPage'));
 import CalculatorPage from './pages/CalculatorPage';
-import UnifiedSetupWizard from './pages/setup/UnifiedSetupWizard';
+const UnifiedSetupWizard = lazy(() => import('./pages/setup/UnifiedSetupWizard'));
 import ScrollToTop from './components/ScrollToTop';
+
+function RouteFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="h-10 w-10 rounded-full border-4 border-purple-200 border-t-purple-600 animate-spin" aria-label="Loading" />
+    </div>
+  );
+}
 
 function PrerenderReadySignal() {
   const location = useLocation();
@@ -175,6 +183,7 @@ function App() {
               <Router>
               <PrerenderReadySignal />
               <ScrollToTop />
+              <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/portfolio" element={<PortfolioPage />} />
@@ -739,6 +748,7 @@ function App() {
                 />
                 <Route path="/gallery-shop-test" element={<GalleryShopTest />} />
               </Routes>
+              </Suspense>
               <CookieConsent privacyPolicyUrl="/impressum/" imprintUrl="/impressum/" />
               <ConsentScripts />
             </Router>

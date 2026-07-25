@@ -404,12 +404,12 @@ const translations = {
     
     // HomePage
     'home.heroTitle': 'Family & Newborn Photographer in Vienna You Can Trust',
-    'home.heroSubtitle': 'Capturing Vienna’s families since 1997.',
-    'home.heroRotator1': 'Capturing Vienna’s families since 1997.',
+    'home.heroSubtitle': 'Authentic family photography in Vienna since 2012.',
+    'home.heroRotator1': 'Authentic family photography in Vienna since 2012.',
     'home.heroRotator2': 'Relaxed sessions — even camera-shy little ones shine.',
     'home.heroRotator3': 'Studio or outdoor, right across Vienna.',
     'home.heroRotator4': 'Rated 4.8★ by 300+ Google reviews.',
-    'home.heroDescription': 'Warm, natural portraits of the people you love — from a Vienna studio families have trusted for over 25 years.',
+    'home.heroDescription': 'Warm, authentic portraits of the people you love — from photographers with 25+ years’ experience, in Vienna since 2012.',
     'home.bookShootingButton': 'Book Shooting Now',
     'home.description': 'As a family photographer in Vienna and specialized newborn photographer in Vienna, we create timeless memories in a relaxed studio atmosphere. Even if you are camera-shy or have unpredictable children, we create family portraits that you will treasure forever.',
     'home.happyFamilies': 'Happy Families',
@@ -1563,12 +1563,12 @@ const translations = {
     
     // HomePage
     'home.heroTitle': 'Familien- & Neugeborenenfotograf in Wien, dem Sie vertrauen können',
-    'home.heroSubtitle': 'Wiener Familien im Bild – seit 1997.',
-    'home.heroRotator1': 'Wiener Familien im Bild – seit 1997.',
+    'home.heroSubtitle': 'Authentische Familienfotografie in Wien seit 2012.',
+    'home.heroRotator1': 'Authentische Familienfotografie in Wien seit 2012.',
     'home.heroRotator2': 'Entspannte Shootings – auch schüchterne Kleine strahlen.',
     'home.heroRotator3': 'Im Studio oder outdoor, in ganz Wien.',
     'home.heroRotator4': '4,8★ aus über 300 Google-Bewertungen.',
-    'home.heroDescription': 'Warme, natürliche Porträts der Menschen, die Sie lieben – von einem Wiener Studio, dem Familien seit über 25 Jahren vertrauen.',
+    'home.heroDescription': 'Warme, authentische Porträts der Menschen, die Sie lieben – von Fotografen mit über 25 Jahren Erfahrung, in Wien seit 2012.',
     'home.bookShootingButton': 'Jetzt Shooting Buchen',
     'home.description': 'Als Familienfotograf in Wien und spezialisierter Neugeborenenfotograf in Wien schaffen wir zeitlose Erinnerungen in entspannter Studioatmosphäre. Selbst wenn Sie kamerascheu sind oder unberechenbare Kinder haben, erstellen wir Familienporträts, die Sie für immer schätzen werden.',
     'home.happyFamilies': 'Glückliche Familien',
