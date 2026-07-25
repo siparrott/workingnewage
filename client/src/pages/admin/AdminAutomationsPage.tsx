@@ -125,6 +125,9 @@ function formatOffset(hours: number, triggerType?: string, lang: string = 'de'):
   if (triggerType === 'waitlist_signup') {
     return lang === 'en' ? 'Immediately on appointment request' : 'Sofort bei Terminanfrage';
   }
+  if (triggerType === 'abandoned_cart') {
+    return lang === 'en' ? '1 hour after an abandoned checkout' : '1 Std. nach abgebrochenem Checkout';
+  }
   const abs = Math.abs(hours);
   if (lang === 'en') {
     const direction = hours < 0 ? 'before' : 'after';
@@ -171,6 +174,7 @@ const i18n: Record<string, Record<string, string>> = {
     triggerNewsletter: 'Newsletter signup (immediate)',
     triggerContact: 'Contact form submitted (immediate)',
     triggerWaitlist: 'Appointment request / waitlist (immediate)',
+    triggerAbandoned: 'Abandoned checkout (1h after)',
     timingLabel: 'Timing',
     questionnaireSlugLabel: 'Questionnaire slug (optional)',
     subjectLabel: 'Email Subject *',
@@ -230,6 +234,7 @@ const i18n: Record<string, Record<string, string>> = {
     triggerNewsletter: 'Newsletter-Anmeldung (sofort)',
     triggerContact: 'Kontaktformular abgeschickt (sofort)',
     triggerWaitlist: 'Terminanfrage / Warteliste (sofort)',
+    triggerAbandoned: 'Abgebrochener Checkout (1 Std. später)',
     timingLabel: 'Zeitpunkt',
     questionnaireSlugLabel: 'Fragebogen-Slug (optional)',
     subjectLabel: 'E-Mail-Betreff *',
@@ -692,7 +697,7 @@ const AdminAutomationsPage: React.FC = () => {
                       const v = e.target.value;
                       setFormTriggerType(v);
                       // These triggers fire immediately on the event, so there's no timing offset.
-                      if (v === 'newsletter_signup' || v === 'contact_form' || v === 'waitlist_signup') setFormOffsetHours(0);
+                      if (v === 'newsletter_signup' || v === 'contact_form' || v === 'waitlist_signup' || v === 'abandoned_cart') setFormOffsetHours(0);
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   >
@@ -701,11 +706,12 @@ const AdminAutomationsPage: React.FC = () => {
                     <option value="newsletter_signup">{tx('triggerNewsletter')}</option>
                     <option value="contact_form">{tx('triggerContact')}</option>
                     <option value="waitlist_signup">{tx('triggerWaitlist')}</option>
+                    <option value="abandoned_cart">{tx('triggerAbandoned')}</option>
                   </select>
                 </div>
 
                 {/* Timing - only for booking triggers */}
-                {formTriggerType !== 'newsletter_signup' && formTriggerType !== 'contact_form' && formTriggerType !== 'waitlist_signup' && (
+                {formTriggerType !== 'newsletter_signup' && formTriggerType !== 'contact_form' && formTriggerType !== 'waitlist_signup' && formTriggerType !== 'abandoned_cart' && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">{tx('timingLabel')}</label>

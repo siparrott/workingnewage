@@ -376,8 +376,21 @@ export class StripeVoucherService {
       });
 
       const session = await stripe.checkout.sessions.create(sessionParams);
-      
+
       console.log('Stripe checkout session created successfully:', session.id);
+
+      // Best-effort: record this started-but-unpaid checkout for abandoned-cart
+      // recovery. Fully guarded — must never affect the checkout response.
+      try {
+        const { recordAbandonedCheckout } = await import('./abandonedCheckout.js');
+        void recordAbandonedCheckout({
+          sessionId: session.id,
+          email: data.customerEmail,
+          amountCents: typeof session.amount_total === 'number' ? session.amount_total : null,
+          currency: session.currency || 'EUR',
+        });
+      } catch { /* never block checkout */ }
+
       return session;
 
     } catch (error) {

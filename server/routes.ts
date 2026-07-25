@@ -13797,6 +13797,12 @@ ${getBizName()} CRM System
           const isPaid = session?.payment_status === 'paid';
 
           if (isPaid) {
+            // Abandoned-cart: this session converted, so never send it a reminder.
+            try {
+              const { markCheckoutConverted } = await import('./services/abandonedCheckout.js');
+              void markCheckoutConverted(session.id);
+            } catch { /* guarded */ }
+
             // Extract coupon code from metadata (key is voucher_used)
             const appliedCouponCode = metadata.voucher_used && metadata.voucher_used !== 'none' ? metadata.voucher_used : null;
 

@@ -809,6 +809,16 @@ app.use((req, res, next) => {
     console.warn('⚠️ Failed to start blog auto-publish scheduler:', err?.message || err);
   }
 
+  // Abandoned-checkout reminder scheduler (inert until the abandoned_checkouts
+  // table exists — see server/services/abandonedCheckout.ts).
+  try {
+    const { startAbandonedCheckoutScheduler } = await import('./services/abandonedCheckout');
+    startAbandonedCheckoutScheduler();
+    console.log('🛒 Abandoned-checkout reminder scheduler started (every 15 min + boot)');
+  } catch (err: any) {
+    console.warn('⚠️ Failed to start abandoned-checkout scheduler:', err?.message || err);
+  }
+
   // Start background Google Calendar sync scheduler if enabled via env
   try {
     if (process.env.GOOGLE_SYNC_ENABLED === 'true') {

@@ -487,6 +487,23 @@ export const voucherSales = pgTable("voucher_sales", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Abandoned checkouts — one row per Stripe Checkout session that was started
+// (email entered) so we can email a reminder if it isn't completed. Marked
+// "converted" by the Stripe webhook on payment. Populate this table with
+// `npm run db:push`; all reads/writes are guarded so the feature is simply
+// inert until the table exists.
+export const abandonedCheckouts = pgTable("abandoned_checkouts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  sessionId: text("session_id").notNull().unique(), // Stripe Checkout session id
+  email: text("email").notNull(),
+  amountCents: integer("amount_cents"),
+  currency: text("currency").default("EUR"),
+  status: text("status").default("pending"), // "pending" | "converted"
+  reminded: boolean("reminded").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  remindedAt: timestamp("reminded_at"),
+});
+
 // Coupon usage tracking
 export const couponUsage = pgTable("coupon_usage", {
   id: uuid("id").primaryKey().defaultRandom(),
