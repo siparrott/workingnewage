@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { toEnglishPath, toGermanPath } from '../../config/localeRoutes';
 import { Menu, Globe, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -11,6 +12,7 @@ const Header: React.FC = () => {
   const [fotoshootingsOpen, setFotoshootingsOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { language, setLanguage, t } = useLanguage();
   
   // Get logo. Priority: studio_configs (Studio Customization) → CMS site.logo
@@ -33,7 +35,12 @@ const Header: React.FC = () => {
   };
 
   const toggleLanguage = () => {
-    setLanguage(language === 'en' ? 'de' : 'en');
+    const target = language === 'en' ? 'de' : 'en';
+    setLanguage(target);
+    // If this page has a paired localized URL, move to it so the language choice
+    // is reflected in the address (and stays put on refresh / for sharing).
+    const localized = target === 'en' ? toEnglishPath(location.pathname) : toGermanPath(location.pathname);
+    if (localized && localized !== location.pathname) navigate(localized);
   };
 
   const isActive = (path: string) => {

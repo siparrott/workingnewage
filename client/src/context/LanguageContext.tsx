@@ -5,7 +5,7 @@ type Language = 'en' | 'de';
 
 interface LanguageContextType {
   language: Language;
-  setLanguage: (lang: Language) => void;
+  setLanguage: (lang: Language, persist?: boolean) => void;
   t: (key: string) => string;
 }
 
@@ -2368,9 +2368,12 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     return 'de';
   });
 
-  // Setter that records an explicit user choice
-  const setLanguage = (lang: Language) => {
+  // Setter that records an explicit user choice. `persist` is false for
+  // URL-driven syncing (an /en/ page forcing English) so it doesn't masquerade
+  // as a manual preference that would then leak onto German URLs.
+  const setLanguage = (lang: Language, persist: boolean = true) => {
     _setLanguage(lang);
+    if (!persist) return;
     try {
       localStorage.setItem('language', lang);
       localStorage.setItem('languageUserSet', 'true');

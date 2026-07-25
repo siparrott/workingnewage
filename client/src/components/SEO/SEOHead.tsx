@@ -1,5 +1,7 @@
 import { Helmet } from 'react-helmet-async';
+import { useLocation } from 'react-router-dom';
 import { SITE } from '../../config/site';
+import { getAlternates } from '../../config/localeRoutes';
 
 interface SEOProps {
   title: string;
@@ -26,19 +28,27 @@ export function SEOHead({
   hreflang = []
 }: SEOProps) {
   const siteUrl = SITE.url;
-  const fullCanonical = canonical ? `${siteUrl}${canonical}` : undefined;
+  const location = useLocation();
 
-  // INTERIM (see below): pages currently pass hreflang alternates that point to a
-  // separate `/en/...` English URL tree — but that tree does not exist yet (EN/DE
-  // are toggled client-side on the SAME URL). Advertising alternates to Google
-  // that resolve to soft-404s hurts, so we drop the non-existent `/en/` entries
-  // here. hreflang only makes sense with ≥2 real, reciprocal URLs, so if fewer
-  // than two valid alternates remain we emit none (the canonical already names
-  // the page). Remove this filter once real per-language URLs ship.
+  // Pages that have a real, reciprocal English URL (config/localeRoutes.ts) get
+  // an accurate self-canonical + de/en/x-default hreflang derived from the CURRENT
+  // path — so the German and English versions each point to themselves and cross-
+  // reference each other correctly.
+  const alt = getAlternates(location.pathname);
+
+  const fullCanonical = alt
+    ? `${siteUrl}${alt.canonical}`
+    : canonical
+      ? `${siteUrl}${canonical}`
+      : undefined;
+
+  // For unmapped pages, keep the previous safeguard: drop `/en/...` alternates
+  // that don't correspond to a real route (they'd be soft-404s), and only emit
+  // hreflang when ≥2 valid reciprocal URLs remain.
   const validHreflang = hreflang.filter(
     (l) => l.lang.toLowerCase() !== 'en' && !/^\/en(\/|$)/.test(l.url),
   );
-  const hreflangToRender = validHreflang.length >= 2 ? validHreflang : [];
+  const hreflangToRender = alt ? alt.hreflang : (validHreflang.length >= 2 ? validHreflang : []);
 
   // Build the LocalBusiness structured data from the tenant's identity,
   // omitting any fields that aren't configured yet.

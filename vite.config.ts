@@ -48,6 +48,14 @@ const publicRoutes = [
   '/warteliste',
   '/vouchers',
 
+  // English (EN) URLs — keep in sync with client/src/config/localeRoutes.ts.
+  // Separately indexable English versions of the top-searched pages.
+  '/en/',
+  '/en/family-photography-vienna/',
+  '/en/newborn-photography-vienna/',
+  '/en/maternity-photography-vienna/',
+  '/en/business-portraits-vienna/',
+
   // SEO Cornerstone Pages
   '/familienfotos-wien/',
   '/neugeborenenfotos-wien/',

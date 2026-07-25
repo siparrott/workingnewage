@@ -7,7 +7,8 @@ import { AppProvider } from './context/AppContext';
 import { AuthProvider } from './context/AuthContext';
 import { NeonAuthProvider } from './context/NeonAuthContext';
 import { CartProvider } from './context/CartContext';
-import { LanguageProvider } from './context/LanguageContext';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
+import { isEnglishPath } from './config/localeRoutes';
 import CookieConsent from './components/CookieConsent';
 import ConsentScripts from './components/ConsentScripts';
 import HomePage from './pages/HomePage';
@@ -171,6 +172,19 @@ function PrerenderReadySignal() {
   return null;
 }
 
+// Force English on the /en/ URL tree (the source of truth for English), without
+// persisting it as a manual choice. Other routes keep their existing toggle.
+function LanguageRouteSync() {
+  const location = useLocation();
+  const { language, setLanguage } = useLanguage();
+  useEffect(() => {
+    if (isEnglishPath(location.pathname) && language !== 'en') {
+      setLanguage('en', false);
+    }
+  }, [location.pathname, language, setLanguage]);
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -183,9 +197,21 @@ function App() {
               <Router>
               <PrerenderReadySignal />
               <ScrollToTop />
+              <LanguageRouteSync />
               <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/" element={<HomePage />} />
+
+                {/* English (EN) URLs — separately indexable English pages that
+                    render the same components with the language forced to EN via
+                    LanguageRouteSync. See client/src/config/localeRoutes.ts. */}
+                <Route path="/en" element={<HomePage />} />
+                <Route path="/en/" element={<HomePage />} />
+                <Route path="/en/family-photography-vienna/" element={<FamilienfotosWienPage />} />
+                <Route path="/en/newborn-photography-vienna/" element={<NeugeborenenfotosWienPage />} />
+                <Route path="/en/maternity-photography-vienna/" element={<SchwangerschaftsfotosWienPage />} />
+                <Route path="/en/business-portraits-vienna/" element={<BusinessPortraitWienPage />} />
+
                 <Route path="/portfolio" element={<PortfolioPage />} />
                 <Route path="/fotoshootings" element={<FotoshootingsPage />} />
                 <Route path="/fotoshootings/business" element={<BusinessFotoshootingPage />} />
