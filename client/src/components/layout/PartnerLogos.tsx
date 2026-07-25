@@ -1,6 +1,8 @@
 import React from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 
 const PartnerLogos: React.FC = () => {
+  const { language } = useLanguage();
   // Partner logos with correct URL-to-image mappings based on visual appearance
   const partners = [
     // Row 1
@@ -49,11 +51,11 @@ const PartnerLogos: React.FC = () => {
     <section className="bg-gray-50 py-16">
       <div className="container mx-auto px-4">
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-12">
-          Our Partners
+          {language === 'en' ? 'Our Partners' : 'Unsere Partner'}
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-8">
           {partners.map((partner, index) => (
-            <a 
+            <a
               key={index}
               href={partner.link}
               target="_blank"
@@ -66,7 +68,16 @@ const PartnerLogos: React.FC = () => {
                 alt={partner.alt}
                 loading="lazy"
                 decoding="async"
+                width={160}
+                height={64}
                 className="max-h-16 w-auto object-contain transition-transform hover:scale-105"
+                // If the (externally hosted) logo fails to load, hide its tile so
+                // the trust wall degrades gracefully instead of showing a grid of
+                // broken-image icons on every page.
+                onError={(e) => {
+                  const tile = (e.currentTarget.closest('a') as HTMLElement | null);
+                  if (tile) tile.style.display = 'none';
+                }}
               />
             </a>
           ))}

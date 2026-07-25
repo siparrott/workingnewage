@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MessageCircle, X } from 'lucide-react';
 import { SITE } from '../config/site';
 import { useLanguage } from '../context/LanguageContext';
@@ -7,6 +7,17 @@ const WhatsAppButton: React.FC = () => {
   const { language } = useLanguage();
   const de = language === 'de';
   const [isOpen, setIsOpen] = useState(false);
+
+  // Hide while another fixed bottom bar is active (e.g. the voucher flow's
+  // summary bar) so the two don't overlap in the same corner on mobile.
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    const update = () => setHidden(document.body.getAttribute('data-hide-whatsapp') === '1');
+    update();
+    window.addEventListener('whatsapp-visibility', update);
+    return () => window.removeEventListener('whatsapp-visibility', update);
+  }, []);
+  if (hidden) return null;
   const phoneNumber = SITE.phone.replace(/[^0-9]/g, '');
   const whatsappUrl = `https://wa.me/${phoneNumber}`;
 

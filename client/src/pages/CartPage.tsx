@@ -126,15 +126,14 @@ const CartPage: React.FC = () => {
       }
     }
     
-    // Regular checkout flow for non-voucher items
-    const checkoutData = {
-      items,
-      total: discountedTotal,
-      appliedVoucher
-    };
-    
-    sessionStorage.setItem('checkoutData', JSON.stringify(checkoutData));
-    navigate('/checkout');
+    // Every sellable item is a photo-shoot product, so route through the REAL
+    // Stripe checkout (the voucher flow) rather than the legacy demo /checkout
+    // page, which could never take a real payment (guaranteed lost sale).
+    if (items.length > 0) {
+      setSelectedVoucherItem(items[0]);
+      setShowVoucherFlow(true);
+      return;
+    }
   };
 
   const handleVoucherFlowComplete = (voucherCheckoutData: any) => {
@@ -150,9 +149,9 @@ const CartPage: React.FC = () => {
     // Reset voucher flow state
     setShowVoucherFlow(false);
     setSelectedVoucherItem(null);
-    
-    // Show success message or redirect
-    alert('Vielen Dank! Ihr personalisierter Gutschein wurde erfolgreich bestellt.');
+
+    // Redirect to the localized success page instead of a raw browser alert().
+    navigate('/vouchers/success');
   };
 
   const handleBackFromVoucherFlow = () => {

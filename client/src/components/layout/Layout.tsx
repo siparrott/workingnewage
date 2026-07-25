@@ -5,6 +5,7 @@ import Footer from './Footer';
 import PartnerLogos from './PartnerLogos';
 import GoogleReviews from './GoogleReviews';
 import WhatsAppButton from '../WhatsAppButton';
+import ExitIntentPopup from '../ExitIntentPopup';
 import RelatedPages from '../SEO/RelatedPages';
 
 interface LayoutProps {
@@ -25,6 +26,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <PartnerLogos />
       <Footer />
       <WhatsAppButton />
+      <ExitIntentPopup />
     </div>
   );
 };

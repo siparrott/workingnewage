@@ -40,9 +40,10 @@ const translations = {
     'nav.admin': 'Admin Dashboard',
     'nav.galleries': 'Client Galleries',
     'nav.myGallery': 'My Gallery',
-    'newsletter.signup': 'Sign up for newsletter',
+    'newsletter.signup': 'Get a €50 print credit for your photo shoot.',
+    'newsletter.subtitle': 'Join our newsletter and we’ll email your €50 voucher instantly.',
     'newsletter.thanks': 'Thank you for signing up! Please check your email for the voucher.',
-    'newsletter.button': 'Sign up',
+    'newsletter.button': 'Get my €50 voucher',
     'newsletter.placeholder': 'Your email address',
     'newsletter.error': 'An error occurred. Please try again later.',
     
@@ -403,8 +404,12 @@ const translations = {
     
     // HomePage
     'home.heroTitle': 'Family & Newborn Photographer in Vienna You Can Trust',
-    'home.heroSubtitle': 'Finally a photo studio...',
-    'home.heroDescription': 'that delivers spontaneous, natural and individual portraits of your family...',
+    'home.heroSubtitle': 'Capturing Vienna’s families since 1997.',
+    'home.heroRotator1': 'Capturing Vienna’s families since 1997.',
+    'home.heroRotator2': 'Relaxed sessions — even camera-shy little ones shine.',
+    'home.heroRotator3': 'Studio or outdoor, right across Vienna.',
+    'home.heroRotator4': 'Rated 4.8★ by 300+ Google reviews.',
+    'home.heroDescription': 'Warm, natural portraits of the people you love — from a Vienna studio families have trusted for over 25 years.',
     'home.bookShootingButton': 'Book Shooting Now',
     'home.description': 'As a family photographer in Vienna and specialized newborn photographer in Vienna, we create timeless memories in a relaxed studio atmosphere. Even if you are camera-shy or have unpredictable children, we create family portraits that you will treasure forever.',
     'home.happyFamilies': 'Happy Families',
@@ -1200,8 +1205,9 @@ const translations = {
     'nav.galleries': 'Kundengalerien',
     'nav.myGallery': 'Meine Galerie',
     'newsletter.signup': 'Sichern Sie sich einen Fotoshooting-Gutschein im Wert von €50 Print Guthaben.',
+    'newsletter.subtitle': 'Zum Newsletter anmelden – wir senden Ihren €50-Gutschein sofort per E-Mail.',
     'newsletter.thanks': 'Vielen Dank für Ihre Anmeldung! Bitte prüfen Sie Ihre E-Mails für den Gutschein.',
-    'newsletter.button': 'Anmelden',
+    'newsletter.button': 'Meinen €50-Gutschein holen',
     'newsletter.placeholder': 'Ihre E-Mail-Adresse',
     'newsletter.error': 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.',
     
@@ -1557,8 +1563,12 @@ const translations = {
     
     // HomePage
     'home.heroTitle': 'Familien- & Neugeborenenfotograf in Wien, dem Sie vertrauen können',
-    'home.heroSubtitle': 'Endlich ein Fotostudio...',
-    'home.heroDescription': 'das spontane, natürliche und individuelle Porträts Ihrer Familie liefert...',
+    'home.heroSubtitle': 'Wiener Familien im Bild – seit 1997.',
+    'home.heroRotator1': 'Wiener Familien im Bild – seit 1997.',
+    'home.heroRotator2': 'Entspannte Shootings – auch schüchterne Kleine strahlen.',
+    'home.heroRotator3': 'Im Studio oder outdoor, in ganz Wien.',
+    'home.heroRotator4': '4,8★ aus über 300 Google-Bewertungen.',
+    'home.heroDescription': 'Warme, natürliche Porträts der Menschen, die Sie lieben – von einem Wiener Studio, dem Familien seit über 25 Jahren vertrauen.',
     'home.bookShootingButton': 'Jetzt Shooting Buchen',
     'home.description': 'Als Familienfotograf in Wien und spezialisierter Neugeborenenfotograf in Wien schaffen wir zeitlose Erinnerungen in entspannter Studioatmosphäre. Selbst wenn Sie kamerascheu sind oder unberechenbare Kinder haben, erstellen wir Familienporträts, die Sie für immer schätzen werden.',
     'home.happyFamilies': 'Glückliche Familien',

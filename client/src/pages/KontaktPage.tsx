@@ -171,8 +171,32 @@ const KontaktPage: React.FC = () => {
           <div className="bg-white p-8 rounded-lg shadow-sm">
             <h2 className="text-2xl font-semibold text-gray-900 mb-6">{t('contact.contactForm')}</h2>
             {success ? (
-              <div className="bg-green-50 p-4 rounded-md">
-                <p className="text-green-800">{t('contact.successMessage')}</p>
+              <div className="bg-green-50 border border-green-200 p-6 rounded-md text-center">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <MessageCircle className="w-6 h-6 text-green-600" />
+                </div>
+                <p className="text-green-800 font-medium">{t('contact.successMessage')}</p>
+                <p className="text-green-700 text-sm mt-1">
+                  {language === 'en'
+                    ? 'We typically reply within 1 hour during business hours.'
+                    : 'Wir antworten in der Regel innerhalb 1 Stunde während der Geschäftszeiten.'}
+                </p>
+                <div className="flex flex-col sm:flex-row justify-center gap-3 mt-5">
+                  <Link
+                    to="/vouchers"
+                    className="inline-flex items-center justify-center bg-purple-600 hover:bg-purple-700 text-white font-medium px-5 py-2.5 rounded-lg transition-colors"
+                  >
+                    <Gift className="w-4 h-4 mr-2" />
+                    {language === 'en' ? 'Browse gift vouchers' : 'Gutscheine ansehen'}
+                  </Link>
+                  <Link
+                    to="/fotoshootings/"
+                    className="inline-flex items-center justify-center border border-purple-300 text-purple-700 hover:bg-purple-50 font-medium px-5 py-2.5 rounded-lg transition-colors"
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    {language === 'en' ? 'See our photo shoots' : 'Unsere Fotoshootings'}
+                  </Link>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">

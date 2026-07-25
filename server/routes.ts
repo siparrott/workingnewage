@@ -18011,9 +18011,11 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
     try {
       const { fullName, email, phone, preferredDate, message } = req.body;
 
-      // Validate required fields
-      if (!fullName || !email || !phone || !preferredDate) {
-        return res.status(400).json({ error: "Name, email, phone, and preferred date are required" });
+      // Validate required fields. Phone + preferred date are OPTIONAL now (they
+      // were high-friction on a low-commitment action) — we follow up to collect
+      // them. Only name + a contactable email are required.
+      if (!fullName || !email) {
+        return res.status(400).json({ error: "Name and email are required" });
       }
 
       // Save to database as a lead with appointment details
@@ -18021,7 +18023,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
         name: fullName,
         email: email,
         phone: phone,
-        message: `Preferred Date: ${preferredDate}${message ? '\n\nAdditional Message: ' + message : ''}`,
+        message: `${preferredDate ? `Preferred Date: ${preferredDate}` : 'Preferred Date: (not specified)'}${message ? '\n\nAdditional Message: ' + message : ''}`,
         source: 'Appointment Request (Waitlist)',
         status: 'new'
       };

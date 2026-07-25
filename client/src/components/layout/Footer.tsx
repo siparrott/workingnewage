@@ -432,7 +432,8 @@ const Footer: React.FC = () => {
           {/* Newsletter Signup */}
           <div className="md:col-span-2 lg:col-span-4 mt-8">
             <div className="bg-gray-700 rounded-lg p-6">
-              <h3 className="text-lg font-semibold mb-2">{t('newsletter.signup')}</h3>
+              <h3 className="text-lg font-semibold mb-1">{t('newsletter.signup')}</h3>
+              <p className="text-sm text-gray-300 mb-3">{t('newsletter.subtitle')}</p>
               {subscribed ? (
                 <div className="text-green-400 flex items-center">
                   <Mail className="mr-2" />

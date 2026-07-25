@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, CreditCard, Mail, MapPin, Gift, Edit2, ChevronDown, ArrowLeft } from 'lucide-react';
+import { CreditCard, MapPin, Gift, Edit2, ChevronDown, ArrowLeft } from 'lucide-react';
 import VoucherCodeInput from '../cart/VoucherCodeInput';
 import type { VoucherPersonalizationData } from './VoucherPersonalization';
 import { getAttributedCampaignId } from '../../lib/attribution';
 import { useLanguage } from '../../context/LanguageContext';
+import { SITE } from '../../config/site';
 
 interface EnhancedCheckoutPageProps {
   voucherData?: VoucherPersonalizationData;
@@ -225,22 +226,21 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm">TN</span>
-              </div>
-              <span className="font-semibold">TogNinja</span>
+            <div className="flex items-center space-x-3">
+              {SITE.logo ? (
+                <img src={SITE.logo} alt={SITE.name} className="h-9 w-auto" />
+              ) : (
+                <div className="w-9 h-9 bg-purple-600 rounded-full flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">
+                    {SITE.name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <span className="font-semibold">{SITE.name}</span>
             </div>
-            <div className="flex items-center space-x-4">
-              <button className="p-2 hover:bg-gray-100 rounded-full">
-                <Mail size={20} />
-              </button>
-              <button className="p-2 hover:bg-gray-100 rounded-full relative">
-                <ShoppingCart size={20} />
-                <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  1
-                </span>
-              </button>
+            <div className="flex items-center text-sm text-gray-500">
+              <CreditCard size={16} className="mr-1.5" />
+              {de ? 'Sichere Bezahlung' : 'Secure checkout'}
             </div>
           </div>
         </div>

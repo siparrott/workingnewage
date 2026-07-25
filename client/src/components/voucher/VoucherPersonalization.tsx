@@ -51,6 +51,19 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
 }) => {
   const { language } = useLanguage();
   const [currentStep, setCurrentStep] = useState(1);
+
+  // A fixed summary bar is shown at the bottom on steps 1-3; signal the global
+  // WhatsApp button to hide so the two don't overlap in the same mobile corner.
+  useEffect(() => {
+    const showsFixedBar = currentStep !== 4;
+    document.body.setAttribute('data-hide-whatsapp', showsFixedBar ? '1' : '0');
+    window.dispatchEvent(new CustomEvent('whatsapp-visibility'));
+    return () => {
+      document.body.removeAttribute('data-hide-whatsapp');
+      window.dispatchEvent(new CustomEvent('whatsapp-visibility'));
+    };
+  }, [currentStep]);
+
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryOption | null>(null);
   const [selectedDesign, setSelectedDesign] = useState<DesignTemplate | null>(null);
   const [customPhoto, setCustomPhoto] = useState<File | null>(null);
@@ -88,7 +101,7 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
     afterPayment: language === 'en' ? 'After successful payment, you can download your voucher as PDF.' : 'Nach erfolgreicher Zahlung können Sie Ihren Gutschein als PDF herunterladen.',
     recipientLabel: language === 'en' ? 'Recipient Name (optional)' : 'Empfänger Name (optional)',
     recipientPlaceholder: language === 'en' ? 'Who is this voucher for?' : 'Für wen ist dieser Gutschein?',
-    messageLabel: language === 'en' ? 'Personal Message *' : 'Persönliche Nachricht *',
+    messageLabel: language === 'en' ? 'Personal Message (optional)' : 'Persönliche Nachricht (optional)',
     messagePlaceholder: language === 'en' ? 'Enter your message...' : 'Widmung eingeben...',
     senderLabel: language === 'en' ? 'Your Name (optional)' : 'Ihr Name (optional)',
     senderPlaceholder: language === 'en' ? 'Who is this voucher from?' : 'Von wem ist dieser Gutschein?',
@@ -271,7 +284,9 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
       case 2:
         return selectedDesign !== null || customPhoto !== null;
       case 3:
-        return personalMessage.trim() !== '';
+        // Personal message is OPTIONAL — a self-buyer shouldn't be forced to
+        // write a gift note to reach payment.
+        return true;
       case 4:
         return false; // Preview step - always show as current until checkout
       default:
@@ -736,19 +751,17 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
             <div className="text-center mt-6">
               <button
                 onClick={() => {
-                  if (personalMessage.trim()) {
-                    // Validate shipping address if needed
-                    if (selectedDelivery && (selectedDelivery.price > 0 || selectedDelivery.id.startsWith('post-'))) {
-                      if (!shippingAddress.address1.trim() || !shippingAddress.city.trim() || !shippingAddress.zip.trim()) {
-                        setAddressTouched(true);
-                        return;
-                      }
+                  // Personal message is optional now. Still validate the shipping
+                  // address when a postal delivery method is selected.
+                  if (selectedDelivery && (selectedDelivery.price > 0 || selectedDelivery.id.startsWith('post-'))) {
+                    if (!shippingAddress.address1.trim() || !shippingAddress.city.trim() || !shippingAddress.zip.trim()) {
+                      setAddressTouched(true);
+                      return;
                     }
-                    setCurrentStep(4);
                   }
+                  setCurrentStep(4);
                 }}
-                disabled={!personalMessage.trim()}
-                className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors w-full lg:w-auto disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="bg-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors w-full lg:w-auto"
               >
                 <Eye className="inline-block mr-2" size={20} />
                 {t.showPreview}

@@ -165,14 +165,13 @@ const WartelistePage: React.FC = () => {
             <div>
               <label className="flex items-center text-gray-700 font-medium mb-2">
                 <Calendar size={18} className="mr-2 text-purple-600" />
-                {t('waitlist.preferredDate')} <span className="text-purple-600 ml-1">*</span>
+                {t('waitlist.preferredDate')} <span className="text-gray-400 ml-1 text-sm font-normal">(optional)</span>
               </label>
               <input
                 type="date"
                 name="preferredDate"
                 value={formData.preferredDate}
                 onChange={handleChange}
-                required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-purple-600 transition-colors"
               />
             </div>
@@ -196,14 +195,13 @@ const WartelistePage: React.FC = () => {
             <div>
               <label className="flex items-center text-gray-700 font-medium mb-2">
                 <Phone size={18} className="mr-2 text-purple-600" />
-                {t('waitlist.phone')} <span className="text-purple-600 ml-1">*</span>
+                {t('waitlist.phone')} <span className="text-gray-400 ml-1 text-sm font-normal">(optional)</span>
               </label>
               <input
                 type="tel"
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-purple-600 transition-colors"
                 placeholder="+43 "
               />

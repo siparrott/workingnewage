@@ -247,24 +247,26 @@ const VoucherFlow: React.FC<VoucherFlowProps> = ({
               </svg>
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-4">
-              Vielen Dank für Ihre Bestellung!
+              {language === 'en' ? 'Thank you for your order!' : 'Vielen Dank für Ihre Bestellung!'}
             </h1>
             <p className="text-gray-600 mb-6">
-              Ihr personalisierter Gutschein wird entsprechend Ihrer gewählten Versandart zugestellt.
+              {language === 'en'
+                ? 'Your personalised voucher will be delivered according to the delivery method you chose.'
+                : 'Ihr personalisierter Gutschein wird entsprechend Ihrer gewählten Versandart zugestellt.'}
             </p>
             <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <h3 className="font-semibold mb-2">Bestelldetails:</h3>
+              <h3 className="font-semibold mb-2">{language === 'en' ? 'Order details:' : 'Bestelldetails:'}</h3>
               <div className="text-sm text-gray-600 space-y-1">
-                <p>Gutschein: {voucherType}</p>
-                <p>Versandart: {voucherData?.deliveryOption.name}</p>
-                <p>Betrag: {baseAmount.toFixed(2)} €</p>
+                <p>{language === 'en' ? 'Voucher' : 'Gutschein'}: {voucherType}</p>
+                <p>{language === 'en' ? 'Delivery' : 'Versandart'}: {voucherData?.deliveryOption.name}</p>
+                <p>{language === 'en' ? 'Amount' : 'Betrag'}: {baseAmount.toFixed(2)} €</p>
               </div>
             </div>
             <button
               onClick={() => window.location.href = '/'}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+              className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
             >
-              Zur Startseite
+              {language === 'en' ? 'Back to home' : 'Zur Startseite'}
             </button>
           </div>
         </div>

@@ -211,10 +211,12 @@ const HomePage: React.FC = () => {
       console.log('🏠 [HomePage] Loaded', data.length, 'vouchers');
       return data;
     },
-    // NO initialData - prevents flash of old images
-    staleTime: 0, // Always fetch fresh
+    // Short staleTime instead of always-refetch: a repeat visitor within the
+    // window reuses the cached data (faster LCP, less jitter) while newly
+    // uploaded images still appear within a minute.
+    staleTime: 1000 * 60, // 1 minute
     cacheTime: 1000 * 60 * 5, // Keep in memory for 5 minutes
-    refetchOnMount: 'always', // Always refetch to get latest uploaded images
+    refetchOnMount: true, // Refetch only when stale
     refetchOnWindowFocus: false, // Don't refetch on window focus for homepage
   });
 
@@ -492,12 +494,19 @@ const HomePage: React.FC = () => {
               <span className="block text-xl sm:text-2xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-pink-500 to-purple-600 text-transparent bg-clip-text">
                 <Typewriter
                   options={{
-                    strings: [t('home.heroSubtitle')],
+                    // Rotates through several COMPLETE value props (the effect
+                    // loops the array) — far stronger than one trailing sentence.
+                    strings: [
+                      t('home.heroRotator1'),
+                      t('home.heroRotator2'),
+                      t('home.heroRotator3'),
+                      t('home.heroRotator4'),
+                    ],
                     autoStart: true,
                     loop: true,
                     cursor: '',
-                    delay: 50,
-                    deleteSpeed: 50
+                    delay: 45,
+                    deleteSpeed: 30
                   }}
                 />
               </span>
@@ -592,6 +601,32 @@ const HomePage: React.FC = () => {
             <p className="mx-auto mt-4 max-w-3xl text-base leading-relaxed text-gray-600 md:text-lg">
               {pricingCalculatorCopy.body}
             </p>
+          </div>
+
+          {/* Static anchor prices — visitors see real numbers immediately,
+              without waiting on the third-party (lazy-loaded) calculator below.
+              Photography buyers bounce when no price is visible. */}
+          <div className="mx-auto mt-8 max-w-3xl text-center">
+            <p className="text-lg font-semibold text-gray-900">
+              {language === 'en' ? 'Packages from €95 — no hidden costs' : 'Pakete ab €95 – keine versteckten Kosten'}
+            </p>
+            <div className="mt-4 flex flex-wrap justify-center gap-3">
+              {[
+                { en: 'Family from €199', de: 'Familie ab €199' },
+                { en: 'Newborn from €199', de: 'Newborn ab €199' },
+                { en: 'Maternity from €179', de: 'Schwangerschaft ab €179' },
+                { en: 'Business Portraits from €129', de: 'Business Portraits ab €129' },
+              ].map((chip, i) => (
+                <span key={i} className="rounded-full border border-purple-200 bg-purple-50 px-4 py-1.5 text-sm font-medium text-purple-800">
+                  {language === 'en' ? chip.en : chip.de}
+                </span>
+              ))}
+            </div>
+            <div className="mt-4">
+              <Link to="/preise/" className="font-semibold text-purple-600 underline underline-offset-2 hover:text-purple-700">
+                {language === 'en' ? 'See all prices →' : 'Alle Preise ansehen →'}
+              </Link>
+            </div>
           </div>
 
           <div className="mx-auto mt-10 max-w-5xl rounded-[32px] border border-purple-100 bg-white p-4 shadow-[0_30px_80px_rgba(168,85,247,0.12)] md:p-8">
