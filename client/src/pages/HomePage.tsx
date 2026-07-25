@@ -5,8 +5,7 @@ import Layout from '../components/layout/Layout';
 import ZoomableImageV2 from '../components/ui/ZoomableImageV2';
 import Typewriter from 'typewriter-effect';
 import CountUp from 'react-countup';
-import { Check, Star } from 'lucide-react';
-import { useGoogleReviews } from '../hooks/useGoogleReviews';
+import { Check } from 'lucide-react';
 import { proxyImage } from '../lib/imageProxy';
 import photoGridImage from '../assets/photo-grid.jpg';
 import { useLanguage } from '../context/LanguageContext';
@@ -17,6 +16,7 @@ import { Helmet } from 'react-helmet-async';
 import { getCachedData, setCachedData } from '../lib/persistentCache';
 import { ContextualLinks } from '../components/SEO/ContextualLinks';
 import { useImagePreloader } from '../hooks/useImagePreloader';
+import { useGoogleReviews } from '../hooks/useGoogleReviews';
 import HomepageConfidenceSection from '../components/home/HomepageConfidenceSection';
 import { SITE } from '../config/site';
 
@@ -328,33 +328,14 @@ const HomePage: React.FC = () => {
   
   useImagePreloader(imageUrlsToPreload);
 
-  // Live Google rating + latest reviews (null until loaded / if unconfigured).
+  // Google reviews are rendered site-wide by <GoogleReviews /> in Layout, so the
+  // homepage no longer keeps its own inline testimonials list. We still read the
+  // live rating/count here so the LocalBusiness aggregateRating in structured
+  // data stays in sync with the number shown in the reviews widget (instead of a
+  // hardcoded value that silently drifts from Google).
   const { data: liveGoogle } = useGoogleReviews();
-
-  // REAL reviews only. Prefer the studio's live Google Business Profile; if the
-  // Places API is unreachable, fall back to genuine reviews copied from that
-  // same profile. (This section previously showed invented names + generated
-  // cartoon avatars, which misrepresented real customers.)
-  const CURATED_GOOGLE_REVIEWS = [
-    {
-      name: 'Bernhard Wistawel',
-      text: 'Vielen Dank für das professionelle und gleichzeitig lustige Fotoshooting. Wir waren schon zum zweiten Mal da. Wir empfehlen euch weiter.',
-    },
-    {
-      name: 'Michaela Pohanka',
-      text: 'Nach fast 13 Jahren und einigen Neuzugängen in unserer Familie haben wir uns entschlossen: neue Familienfotos müssen her – und es war eine wunderbare Entscheidung.',
-    },
-  ];
-
-  const testimonials = (liveGoogle?.reviews?.length
-    ? liveGoogle.reviews.slice(0, 6).map((r) => ({
-        name: r.author,
-        role: r.when ? `Google · ${r.when}` : 'Google',
-        text: r.text,
-        rating: r.rating || 5,
-      }))
-    : CURATED_GOOGLE_REVIEWS.map((r) => ({ ...r, role: 'Google', rating: 5 }))
-  );
+  const ratingValue = (liveGoogle?.rating ?? 4.8).toFixed(1);
+  const reviewCount = String(liveGoogle?.count ?? 306);
 
   const faqImages =
     (homepageImages &&
@@ -457,8 +438,8 @@ const HomePage: React.FC = () => {
             },
             aggregateRating: {
               '@type': 'AggregateRating',
-              ratingValue: '4.9',
-              reviewCount: '253',
+              ratingValue,
+              reviewCount,
               bestRating: '5',
               worstRating: '1'
             }
@@ -933,41 +914,7 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-purple-900">
-            {t('home.testimonialsTitle')}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
-                <div className="flex items-center mb-4">
-                  {/* Real reviewers — initials, not a generated cartoon avatar */}
-                  <div
-                    className="w-12 h-12 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-semibold flex-shrink-0"
-                    aria-hidden="true"
-                  >
-                    {testimonial.name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()}
-                  </div>
-                  <div className="ml-4 min-w-0">
-                    <h3 className="font-semibold text-gray-800 truncate">{testimonial.name}</h3>
-                    <div className="flex items-center gap-1.5">
-                      <span className="flex text-yellow-400" aria-label={`${testimonial.rating} out of 5`}>
-                        {[0, 1, 2, 3, 4].map((i) => (
-                          <Star key={i} className={`h-3.5 w-3.5 ${i < testimonial.rating ? 'fill-current' : 'text-gray-300'}`} />
-                        ))}
-                      </span>
-                      <p className="text-gray-500 text-xs truncate">{testimonial.role}</p>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-gray-700">{testimonial.text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Testimonials handled site-wide by <GoogleReviews /> in Layout — inline grid removed to avoid duplicate reviews on the homepage */}
 
       {/* Gift Voucher Section */}
       <section className="py-16 bg-purple-50">

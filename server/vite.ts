@@ -7,6 +7,7 @@ import { type Server } from "http";
 // viteConfig imported dynamically in setupVite to avoid production issues
 import { nanoid } from "nanoid";
 import { renderIndexHtml, getSiteIdentity } from "./lib/siteIdentity.js";
+import { INDEXNOW_KEY, keyFileName } from "./services/indexNow.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,6 +33,13 @@ const SITE_ORIGIN = "https://www.newagefotografie.com";
 // live — no rebuild or manual edit needed. Falls back to the static file on any
 // error so the route can never 500 the crawler.
 function registerDynamicSitemap(app: Express, baseFilePath: string) {
+  // IndexNow ownership-proof key file: https://<host>/<KEY>.txt must return the
+  // key verbatim. Registered here (before static middleware) so it's served in
+  // both dev and prod without a checked-in file that could drift from the key.
+  app.get(`/${keyFileName()}`, (_req, res) => {
+    res.type("text/plain").send(INDEXNOW_KEY);
+  });
+
   app.get("/sitemap.xml", async (_req, res) => {
     try {
       const rawBase = fs.existsSync(baseFilePath)

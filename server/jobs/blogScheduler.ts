@@ -64,6 +64,15 @@ export async function publishDueBlogPosts(reason = 'tick'): Promise<number> {
         published++;
         log(`Published: "${post.title}" (${post.slug})`);
 
+        // Best-effort: tell search engines immediately via IndexNow so a newly
+        // live post gets crawled in minutes/hours instead of days. Never blocks.
+        try {
+          const { pingBlogPost } = await import('../services/indexNow.js');
+          void pingBlogPost(post.slug);
+        } catch (inErr) {
+          log(`IndexNow ping error for ${post.slug}`, inErr instanceof Error ? inErr.message : inErr);
+        }
+
         // Best-effort: push the post's Social Pack into Pulse (AxixOS). Gated by
         // PULSE_AUTODISTRIBUTE so it stays dormant until enabled; never blocks.
         try {

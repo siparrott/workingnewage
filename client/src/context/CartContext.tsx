@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { trackAddToCart } from '../lib/tracking';
 
 interface CartItem {
   id: string;
@@ -59,6 +60,13 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       ...prevItems,
       { ...newItem, id: `${newItem.title}-${Date.now()}` }
     ]);
+    // Conversion tracking: fire once per add (safe no-op if trackers not loaded).
+    trackAddToCart({
+      id: newItem.productId || newItem.productSlug || newItem.title,
+      name: newItem.name || newItem.title,
+      value: newItem.price,
+      quantity: newItem.quantity,
+    });
   };
 
   const removeItem = (id: string) => {

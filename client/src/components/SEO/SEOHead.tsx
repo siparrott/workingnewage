@@ -28,6 +28,18 @@ export function SEOHead({
   const siteUrl = SITE.url;
   const fullCanonical = canonical ? `${siteUrl}${canonical}` : undefined;
 
+  // INTERIM (see below): pages currently pass hreflang alternates that point to a
+  // separate `/en/...` English URL tree — but that tree does not exist yet (EN/DE
+  // are toggled client-side on the SAME URL). Advertising alternates to Google
+  // that resolve to soft-404s hurts, so we drop the non-existent `/en/` entries
+  // here. hreflang only makes sense with ≥2 real, reciprocal URLs, so if fewer
+  // than two valid alternates remain we emit none (the canonical already names
+  // the page). Remove this filter once real per-language URLs ship.
+  const validHreflang = hreflang.filter(
+    (l) => l.lang.toLowerCase() !== 'en' && !/^\/en(\/|$)/.test(l.url),
+  );
+  const hreflangToRender = validHreflang.length >= 2 ? validHreflang : [];
+
   // Build the LocalBusiness structured data from the tenant's identity,
   // omitting any fields that aren't configured yet.
   const hasAddress =
@@ -83,8 +95,8 @@ export function SEOHead({
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={ogImage} />
 
-      {/* Hreflang for multilingual */}
-      {hreflang.map((link) => (
+      {/* Hreflang for multilingual (only real, reciprocal URLs — see note above) */}
+      {hreflangToRender.map((link) => (
         <link
           key={link.lang}
           rel="alternate"

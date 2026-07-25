@@ -1,5 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { trackPurchase } from '../lib/tracking';
+
+// Fire the Purchase conversion once per Stripe session (guards against a page
+// refresh double-counting). Safe no-op if trackers aren't loaded.
+function firePurchaseOnce(sessionId: string, value?: number, currency?: string) {
+  try {
+    const key = `purchase_tracked_${sessionId}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+    trackPurchase({ transactionId: sessionId, value, currency });
+  } catch {
+    // sessionStorage unavailable — still track (better a possible dup than none).
+    trackPurchase({ transactionId: sessionId, value, currency });
+  }
+}
 
 const VoucherThankYouPage: React.FC = () => {
   const { language } = useLanguage();
@@ -28,6 +43,9 @@ const VoucherThankYouPage: React.FC = () => {
           const r = await fetch(`${window.location.origin}/api/vouchers/signed-link?session_id=${encodeURIComponent(sid)}`);
           if (r.ok) {
             const j = await r.json();
+            // Conversion tracking: a completed purchase (success_url is only
+            // reached after Stripe confirms payment).
+            firePurchaseOnce(sid, typeof j?.amount === 'number' ? j.amount : undefined, j?.currency);
             if (j?.success && j.url) {
               setDownloadUrl(j.url);
               // Auto-start download
@@ -41,6 +59,8 @@ const VoucherThankYouPage: React.FC = () => {
             }
           }
         } catch {}
+        // Track the purchase even if the signed-link lookup failed (no amount).
+        firePurchaseOnce(sid);
         // Fallback to legacy direct endpoint
         const fb = `${apiBase}/voucher/pdf?session_id=${encodeURIComponent(sid)}`;
         setDownloadUrl(fb);

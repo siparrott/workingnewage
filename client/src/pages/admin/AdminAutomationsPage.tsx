@@ -119,6 +119,12 @@ function formatOffset(hours: number, triggerType?: string, lang: string = 'de'):
   if (triggerType === 'newsletter_signup') {
     return lang === 'en' ? 'Immediately on newsletter signup' : 'Sofort bei Newsletter-Anmeldung';
   }
+  if (triggerType === 'contact_form') {
+    return lang === 'en' ? 'Immediately on contact form' : 'Sofort bei Kontaktformular';
+  }
+  if (triggerType === 'waitlist_signup') {
+    return lang === 'en' ? 'Immediately on appointment request' : 'Sofort bei Terminanfrage';
+  }
   const abs = Math.abs(hours);
   if (lang === 'en') {
     const direction = hours < 0 ? 'before' : 'after';
@@ -163,6 +169,8 @@ const i18n: Record<string, Record<string, string>> = {
     triggerBefore: 'Before booking (appointment-based)',
     triggerAfter: 'After booking (appointment-based)',
     triggerNewsletter: 'Newsletter signup (immediate)',
+    triggerContact: 'Contact form submitted (immediate)',
+    triggerWaitlist: 'Appointment request / waitlist (immediate)',
     timingLabel: 'Timing',
     questionnaireSlugLabel: 'Questionnaire slug (optional)',
     subjectLabel: 'Email Subject *',
@@ -220,6 +228,8 @@ const i18n: Record<string, Record<string, string>> = {
     triggerBefore: 'Vor Buchung (Termin-basiert)',
     triggerAfter: 'Nach Buchung (Termin-basiert)',
     triggerNewsletter: 'Newsletter-Anmeldung (sofort)',
+    triggerContact: 'Kontaktformular abgeschickt (sofort)',
+    triggerWaitlist: 'Terminanfrage / Warteliste (sofort)',
     timingLabel: 'Zeitpunkt',
     questionnaireSlugLabel: 'Fragebogen-Slug (optional)',
     subjectLabel: 'E-Mail-Betreff *',
@@ -681,18 +691,21 @@ const AdminAutomationsPage: React.FC = () => {
                     onChange={(e) => {
                       const v = e.target.value;
                       setFormTriggerType(v);
-                      if (v === 'newsletter_signup') setFormOffsetHours(0);
+                      // These triggers fire immediately on the event, so there's no timing offset.
+                      if (v === 'newsletter_signup' || v === 'contact_form' || v === 'waitlist_signup') setFormOffsetHours(0);
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   >
                     <option value="before_booking">{tx('triggerBefore')}</option>
                     <option value="after_booking">{tx('triggerAfter')}</option>
                     <option value="newsletter_signup">{tx('triggerNewsletter')}</option>
+                    <option value="contact_form">{tx('triggerContact')}</option>
+                    <option value="waitlist_signup">{tx('triggerWaitlist')}</option>
                   </select>
                 </div>
 
                 {/* Timing - only for booking triggers */}
-                {formTriggerType !== 'newsletter_signup' && (
+                {formTriggerType !== 'newsletter_signup' && formTriggerType !== 'contact_form' && formTriggerType !== 'waitlist_signup' && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">{tx('timingLabel')}</label>

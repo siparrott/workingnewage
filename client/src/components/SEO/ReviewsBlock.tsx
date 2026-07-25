@@ -17,7 +17,7 @@ import { useGoogleReviews } from '../../hooks/useGoogleReviews';
  */
 const GOOGLE_REVIEW_URL = 'https://g.page/r/CfWCViKtBrjuEAE/review';
 const RATING = '4.8';
-const COUNT = '300';
+const COUNT = '306';
 
 interface Testimonial {
   name: string;

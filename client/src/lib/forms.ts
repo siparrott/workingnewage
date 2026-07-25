@@ -1,3 +1,5 @@
+import { trackLead } from './tracking';
+
 interface ContactFormData {
   fullName: string;
   email: string;
@@ -28,6 +30,7 @@ export async function submitContactForm(formData: ContactFormData & { sourcePath
       throw new Error(errorData.error || 'Failed to submit contact form');
     }
 
+    trackLead('contact_form');
     return await response.json();
   } catch (error) {
     console.error('Contact form submission error:', error);
@@ -54,6 +57,7 @@ export async function submitWaitlistForm(formData: WaitlistFormData & { sourcePa
       throw new Error(errorData.error || 'Failed to submit appointment request');
     }
 
+    trackLead('waitlist_appointment');
     return await response.json();
   } catch (error) {
     console.error('Waitlist form submission error:', error);
@@ -81,6 +85,7 @@ export async function submitNewsletterForm(email: string, opts?: { consent?: boo
       throw new Error(errorData.error || 'Failed to submit newsletter signup');
     }
 
+    trackLead('newsletter_voucher');
     const result = await response.json();
     return { success: true, data: result, message: result.message || 'Newsletter signup successful!' };
   } catch (error) {

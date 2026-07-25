@@ -4,20 +4,29 @@
 import { useEffect } from "react";
 import { hasConsent } from "../lib/consent";
 
+// Measurement IDs. Overridable via Vite env so IDs aren't hardcoded, with the
+// current GA4 property as the default so analytics keeps working out of the box.
+const GA4_ID = (import.meta.env.VITE_GA4_ID as string) || "G-8W76BVNNW9";
+// Meta Pixel only loads if an ID is configured (set VITE_META_PIXEL_ID in env).
+const META_PIXEL_ID = (import.meta.env.VITE_META_PIXEL_ID as string) || "";
+
 export default function ConsentScripts() {
   useEffect(() => {
     const load = () => {
       // Analytics - only load if user has consented
-      if (hasConsent("analytics")) {
-        loadGA4("G-8W76BVNNW9");
+      if (hasConsent("analytics") && GA4_ID) {
+        loadGA4(GA4_ID);
         console.log("[Consent] Analytics consent granted - loading GA");
       }
 
-      // Marketing - only load if user has consented
+      // Marketing - only load if user has consented AND a Pixel ID is set
       if (hasConsent("marketing")) {
-        // Meta Pixel example (uncomment and add your ID)
-        // loadMetaPixel("XXXXXXXXXX");
-        console.log("[Consent] Marketing consent granted - ready to load Meta Pixel");
+        if (META_PIXEL_ID) {
+          loadMetaPixel(META_PIXEL_ID);
+          console.log("[Consent] Marketing consent granted - loading Meta Pixel");
+        } else {
+          console.log("[Consent] Marketing consent granted - set VITE_META_PIXEL_ID to enable Meta Pixel");
+        }
       }
     };
 

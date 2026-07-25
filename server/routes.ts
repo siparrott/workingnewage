@@ -1780,7 +1780,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sessionId = String(req.query.session_id || '').trim();
       if (!sessionId) return res.status(400).json({ success: false, error: 'session_id required' });
       const base = `${(req.headers['x-forwarded-proto'] as string) || req.protocol}://${req.get('host')}`.replace(/\/+$/, '');
-      return res.json({ success: true, url: `${base}/voucher/pdf?session_id=${encodeURIComponent(sessionId)}` });
+
+      // Best-effort: include the real charged amount so the thank-you page can
+      // fire an accurate Purchase conversion event. Never fail the download link
+      // if Stripe lookup is unavailable.
+      let amount: number | undefined;
+      let currency: string | undefined;
+      try {
+        if (stripe && sessionId.startsWith('cs_')) {
+          const session = await stripe.checkout.sessions.retrieve(sessionId);
+          if (typeof session.amount_total === 'number') amount = session.amount_total / 100;
+          if (session.currency) currency = session.currency.toUpperCase();
+        }
+      } catch (amtErr) {
+        console.warn('[signed-link] amount lookup failed:', amtErr instanceof Error ? amtErr.message : amtErr);
+      }
+
+      return res.json({
+        success: true,
+        url: `${base}/voucher/pdf?session_id=${encodeURIComponent(sessionId)}`,
+        amount,
+        currency,
+      });
     } catch (e: any) {
       return res.status(500).json({ success: false, error: e?.message || 'Failed to create download link' });
     }
@@ -2565,6 +2586,24 @@ Bitte versuchen Sie es später noch einmal.`;
     }
   });
 
+  // Fire an IndexNow ping only when a post is actually live (published AND its
+  // publish time has passed). Scheduled/draft posts are pinged later by the
+  // blogScheduler when they go live. Fire-and-forget; never blocks the response.
+  const pingIndexNowIfLive = (post: any) => {
+    try {
+      const isLive =
+        post?.slug &&
+        (post.status === 'PUBLISHED' || post.published === true) &&
+        (!post.publishedAt || new Date(post.publishedAt).getTime() <= Date.now());
+      if (!isLive) return;
+      import('./services/indexNow.js')
+        .then(({ pingBlogPost }) => pingBlogPost(post.slug))
+        .catch((err) => console.warn('[IndexNow] ping error:', err instanceof Error ? err.message : err));
+    } catch (err) {
+      console.warn('[IndexNow] ping guard error:', err instanceof Error ? err.message : err);
+    }
+  };
+
   app.post("/api/blog/posts", authOrApiKey('blog:write'), async (req: Request, res: Response) => {
     try {
       console.log('[BLOG CREATE] Creating new post');
@@ -2596,6 +2635,7 @@ Bitte versuchen Sie es später noch einmal.`;
       console.log("[BLOG CREATE] Validated blog post data:", validatedData);
       const post = await storage.createBlogPost(validatedData);
       console.log('[BLOG CREATE] Success:', post.id);
+      pingIndexNowIfLive(post);
       res.status(201).json(post);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2650,6 +2690,7 @@ Bitte versuchen Sie es später noch einmal.`;
       console.log('[BLOG UPDATE] Processed updates:', updates);
       const post = await storage.updateBlogPost(req.params.id, updates);
       console.log('[BLOG UPDATE] Success:', post.id);
+      pingIndexNowIfLive(post);
       res.json(post);
     } catch (error) {
       console.error("[BLOG UPDATE] Error details:", error);
@@ -17817,6 +17858,65 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
     }
   });
 
+  // Reusable lead auto-response. If an ENABLED emailAutomations rule exists for
+  // this trigger type, render it with the lead's details and email them right
+  // away — the speed-to-lead follow-up that website leads previously never got.
+  // Mirrors the newsletter_signup path so contact/waitlist leads flow through the
+  // same automation system admins already manage. Best-effort: never throws, and
+  // if nothing is configured it silently does nothing (no regression, no dupes).
+  const sendLeadAutomationEmail = async (
+    triggerType: string,
+    lead: { email: string; name?: string }
+  ): Promise<void> => {
+    try {
+      if (!lead?.email) return;
+      const rules = await db.select().from(emailAutomations).where(
+        and(eq(emailAutomations.triggerType, triggerType), eq(emailAutomations.enabled, true))
+      ).limit(1);
+      if (rules.length === 0) return; // nothing configured for this trigger
+
+      const rule = rules[0];
+      const clientName = lead.name || lead.email.split('@')[0] || 'Kunde';
+      const render = (s: string) => (s || '')
+        .replace(/\{\{clientName\}\}/g, clientName)
+        .replace(/\{\{clientEmail\}\}/g, lead.email);
+
+      const transporter = nodemailer.createTransport({
+        host: 'smtp.easyname.com',
+        port: 465,
+        secure: true,
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
+        auth: {
+          user: process.env.BUSINESS_MAILBOX_USER || process.env.SMTP_USER || '',
+          pass: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || ''
+        }
+      });
+
+      await transporter.sendMail({
+        from: `"${getBizName()}" <${getEnvContactEmailSync() || 'no-reply@localhost'}>`,
+        to: lead.email,
+        subject: render(rule.emailSubject),
+        html: render(rule.emailBodyHtml),
+      });
+
+      try {
+        await db.insert(emailAutomationLogs).values({
+          automationId: rule.id,
+          bookingId: `${triggerType}-${Date.now()}`,
+          clientEmail: lead.email,
+          clientName,
+          status: 'sent',
+        });
+      } catch (_) { /* logging is best-effort */ }
+
+      console.log(`[lead-automation] Sent ${triggerType} auto-response to ${lead.email}`);
+    } catch (err) {
+      console.error(`[lead-automation] ${triggerType} send failed:`, err instanceof Error ? err.message : err);
+    }
+  };
+
   // ==================== CONTACT FORM ROUTES ====================
   app.post("/api/contact", async (req: Request, res: Response) => {
     try {
@@ -17891,11 +17991,14 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
         // Don't fail the request if email fails - lead is still saved
       }
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: "Ihre Nachricht wurde erfolgreich gesendet. Wir melden uns bald bei Ihnen!",
-        leadId: newLead[0]?.id 
+        leadId: newLead[0]?.id
       });
+
+      // Fire the configurable auto-response in the background (non-blocking).
+      void sendLeadAutomationEmail('contact_form', { email, name: fullName });
 
     } catch (error) {
       console.error("Error processing contact form:", error);
@@ -18077,11 +18180,14 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
         // Don't fail the request if email fails - lead is still saved
       }
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: "Ihre Terminanfrage wurde erfolgreich übermittelt. Wir melden uns innerhalb von 24 Stunden bei Ihnen!",
-        leadId: newLead[0]?.id 
+        leadId: newLead[0]?.id
       });
+
+      // Fire the configurable auto-response in the background (non-blocking).
+      void sendLeadAutomationEmail('waitlist_signup', { email, name: fullName });
 
     } catch (error) {
       console.error("Error processing appointment request:", error);

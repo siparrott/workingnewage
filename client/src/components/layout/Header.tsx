@@ -178,17 +178,35 @@ const Header: React.FC = () => {
             <Globe size={18} className="mr-1" />
             <span className="uppercase">{language}</span>
           </button>
-          
+
+          {/* Primary conversion CTA — the header's most-viewed real estate. */}
+          <Link
+            to="/warteliste"
+            onClick={() => handleNavClick('/warteliste')}
+            className="inline-flex items-center rounded-full bg-purple-600 px-5 py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-purple-700"
+          >
+            {t('nav.bookSession')}
+          </Link>
 
         </nav>
 
-        {/* Mobile Menu Button */}
-        <button 
-          className="md:hidden text-gray-700 focus:outline-none" 
-          onClick={toggleMenu}
-        >
-          <Menu size={24} />
-        </button>
+        {/* Mobile: always-visible CTA + menu button */}
+        <div className="md:hidden flex items-center gap-3">
+          <Link
+            to="/warteliste"
+            onClick={() => handleNavClick('/warteliste')}
+            className="inline-flex items-center rounded-full bg-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-purple-700"
+          >
+            {t('nav.bookSession')}
+          </Link>
+          <button
+            className="text-gray-700 focus:outline-none"
+            onClick={toggleMenu}
+            aria-label="Toggle menu"
+          >
+            <Menu size={24} />
+          </button>
+        </div>
       </div>
 
       {/* Mobile Menu */}

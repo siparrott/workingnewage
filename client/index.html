@@ -68,28 +68,32 @@
   </head>
   <body>
     <script>
-      // CONSOLE ENABLED FOR DEBUGGING
-      console.log('✅ INDEX.HTML LOADED - v3.0.0-20260126-v339');
-      
-      // Clear any service worker cache
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          for(let registration of registrations) {
-            registration.unregister();
-            console.log('🗑️ Service worker unregistered');
+      // One-time legacy service-worker cleanup.
+      //
+      // The app no longer registers a service worker, but an old one shipped in
+      // the past could still be cached in returning visitors' browsers, pinning
+      // them to a stale build. This purges it — but only ONCE per browser, guarded
+      // by a localStorage flag, instead of on every page load (which defeated the
+      // browser's normal caching and added needless work to each visit).
+      (function () {
+        try {
+          if (localStorage.getItem('sw-purged-v1')) return;
+          var didWork = false;
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function (registrations) {
+              for (var i = 0; i < registrations.length; i++) registrations[i].unregister();
+            }).catch(function () {});
+            didWork = true;
           }
-        });
-      }
-      
-      // Clear all caches
-      if ('caches' in window) {
-        caches.keys().then(function(names) {
-          for (let name of names) {
-            caches.delete(name);
-            console.log('🗑️ Cache deleted:', name);
+          if ('caches' in window) {
+            caches.keys().then(function (names) {
+              for (var i = 0; i < names.length; i++) caches.delete(names[i]);
+            }).catch(function () {});
+            didWork = true;
           }
-        });
-      }
+          if (didWork) localStorage.setItem('sw-purged-v1', '1');
+        } catch (e) { /* localStorage/caches unavailable — skip cleanup */ }
+      })();
     </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
