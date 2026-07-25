@@ -106,11 +106,13 @@ const PreisePage: React.FC = () => {
   const { language } = useLanguage();
   const de = language === 'de';
 
-  // Fetch the same live voucher catalogue the /vouchers page uses
+  // Fetch the same live voucher catalogue the /vouchers page uses. Pass the
+  // language so product names/descriptions are server-translated (otherwise the
+  // English /en/pricing/ page would show German card copy).
   const { data: apiProducts, isLoading } = useQuery({
-    queryKey: ['/api/vouchers/products', 'preise-page'],
+    queryKey: ['/api/vouchers/products', 'preise-page', language],
     queryFn: async () => {
-      const res = await fetch('/api/vouchers/products');
+      const res = await fetch('/api/vouchers/products?language=' + language);
       if (!res.ok) throw new Error('Failed to fetch vouchers');
       return res.json();
     },

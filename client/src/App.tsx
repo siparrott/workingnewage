@@ -211,6 +211,15 @@ function App() {
                 <Route path="/en/newborn-photography-vienna/" element={<NeugeborenenfotosWienPage />} />
                 <Route path="/en/maternity-photography-vienna/" element={<SchwangerschaftsfotosWienPage />} />
                 <Route path="/en/business-portraits-vienna/" element={<BusinessPortraitWienPage />} />
+                <Route path="/en/application-photos-vienna/" element={<BewerbungsfotosWienPage />} />
+                <Route path="/en/wedding-photography-vienna/" element={<HochzeitsfotografieWienPage />} />
+                <Route path="/en/baby-photos-vienna/" element={<BabyfotosWienPage />} />
+                <Route path="/en/portrait-photography-vienna/" element={<PortraitfotografieWienPage />} />
+                <Route path="/en/pricing/" element={<PreisePage />} />
+                <Route path="/en/vouchers/" element={<VouchersPage />} />
+                <Route path="/en/contact/" element={<KontaktPage />} />
+                <Route path="/en/waitlist/" element={<WartelistePage />} />
+                <Route path="/en/about-us/" element={<UeberUnsPage />} />
 
                 <Route path="/portfolio" element={<PortfolioPage />} />
                 <Route path="/fotoshootings" element={<FotoshootingsPage />} />

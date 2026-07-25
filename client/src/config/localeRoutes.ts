@@ -16,10 +16,21 @@ export interface LocalePair {
 
 export const LOCALE_ROUTES: LocalePair[] = [
   { de: '/', en: '/en/' },
+  // Service pages
   { de: '/familienfotos-wien/', en: '/en/family-photography-vienna/' },
   { de: '/neugeborenenfotos-wien/', en: '/en/newborn-photography-vienna/' },
   { de: '/schwangerschaftsfotos-wien/', en: '/en/maternity-photography-vienna/' },
   { de: '/business-portrait-wien/', en: '/en/business-portraits-vienna/' },
+  { de: '/bewerbungsfotos-wien/', en: '/en/application-photos-vienna/' },
+  { de: '/hochzeitsfotografie-wien/', en: '/en/wedding-photography-vienna/' },
+  { de: '/babyfotos-wien/', en: '/en/baby-photos-vienna/' },
+  { de: '/portrait-fotografie-wien/', en: '/en/portrait-photography-vienna/' },
+  // Functional / conversion pages
+  { de: '/preise/', en: '/en/pricing/' },
+  { de: '/vouchers', en: '/en/vouchers/' },
+  { de: '/kontakt', en: '/en/contact/' },
+  { de: '/warteliste', en: '/en/waitlist/' },
+  { de: '/ueber-uns/', en: '/en/about-us/' },
 ];
 
 /** Normalise a path for comparison: ensure a single trailing slash (root = "/"). */

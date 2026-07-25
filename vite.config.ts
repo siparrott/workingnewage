@@ -55,6 +55,15 @@ const publicRoutes = [
   '/en/newborn-photography-vienna/',
   '/en/maternity-photography-vienna/',
   '/en/business-portraits-vienna/',
+  '/en/application-photos-vienna/',
+  '/en/wedding-photography-vienna/',
+  '/en/baby-photos-vienna/',
+  '/en/portrait-photography-vienna/',
+  '/en/pricing/',
+  '/en/vouchers/',
+  '/en/contact/',
+  '/en/waitlist/',
+  '/en/about-us/',
 
   // SEO Cornerstone Pages
   '/familienfotos-wien/',
