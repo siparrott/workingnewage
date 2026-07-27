@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle, MapPin, Phone, Star, Linkedin, Instagram } from 'lucide-react';
+import { CheckCircle, MapPin, Phone, Star, Linkedin, Instagram, Facebook } from 'lucide-react';
 import Layout from '../../components/layout/Layout';
 import { RelatedTopicsBlock } from '../../components/SEO/RelatedTopicsBlock';
 import { PillarLinksBlock } from '../../components/SEO/PillarLinksBlock';
@@ -29,6 +29,8 @@ const UeberUnsPage: React.FC = () => {
   };
   const SIMON_LINKEDIN = 'https://www.linkedin.com/in/simon-parrott-192b5867/';
   const SIMON_INSTAGRAM = 'https://www.instagram.com/newagefotografie/';
+  const FACEBOOK_URL = 'https://www.facebook.com/NewAgeFotografie';
+  const GOOGLE_REVIEW_URL = 'https://g.page/r/CfWCViKtBrjuEAE/review';
 
   const trustLogos = de
     ? ['BBC', 'Canon', 'Stadt Wien', 'ÖBB', 'Internationale Unternehmen']
@@ -350,6 +352,22 @@ const UeberUnsPage: React.FC = () => {
                 className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
               >
                 <Instagram className="h-5 w-5 text-[#e1306c]" /> {de ? 'Auf Instagram folgen' : 'Follow on Instagram'}
+              </a>
+              <a
+                href={FACEBOOK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+              >
+                <Facebook className="h-5 w-5 text-[#1877f2]" /> {de ? 'Auf Facebook folgen' : 'Follow on Facebook'}
+              </a>
+              <a
+                href={GOOGLE_REVIEW_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-purple-700"
+              >
+                <Star className="h-5 w-5 fill-current text-yellow-300" /> {de ? 'Auf Google bewerten' : 'Review us on Google'}
               </a>
             </div>
           </div>

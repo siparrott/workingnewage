@@ -10,8 +10,17 @@ const Footer: React.FC = () => {
   const { t, language } = useLanguage();
   const { user, signOut } = useAuth();
   const [email, setEmail] = useState('');
-  // Match a configured social link by platform keyword (empty → icon hidden).
-  const socialUrl = (kw: string) => SITE.social.find((u) => u.toLowerCase().includes(kw)) || '';
+  // Known active profiles — used when the tenant's SOCIAL_LINKS env doesn't
+  // already provide them, so the footer icons always render. A configured
+  // SOCIAL_LINKS entry still takes precedence.
+  const SOCIAL_FALLBACK: Record<string, string> = {
+    facebook: 'https://www.facebook.com/NewAgeFotografie',
+    instagram: 'https://www.instagram.com/newagefotografie/',
+  };
+  // Match a configured social link by platform keyword; fall back to the known
+  // profile (empty string → icon hidden).
+  const socialUrl = (kw: string) =>
+    SITE.social.find((u) => u.toLowerCase().includes(kw)) || SOCIAL_FALLBACK[kw] || '';
   const phoneDigits = SITE.phone.replace(/[^0-9]/g, '');
 
   const scrollToTop = () => {

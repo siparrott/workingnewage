@@ -438,6 +438,14 @@ const HomePage: React.FC = () => {
                 }
               ]
             },
+            // Verified profiles — helps Google's Knowledge Graph connect and
+            // trust the business entity across platforms.
+            sameAs: [
+              'https://www.facebook.com/NewAgeFotografie',
+              'https://www.instagram.com/newagefotografie/',
+              'https://www.linkedin.com/in/simon-parrott-192b5867/',
+              'https://maps.app.goo.gl/L5EFKkMSK7FaiRVa8'
+            ],
             aggregateRating: {
               '@type': 'AggregateRating',
               ratingValue,

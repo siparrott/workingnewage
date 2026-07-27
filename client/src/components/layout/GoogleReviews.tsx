@@ -80,6 +80,9 @@ const FALLBACK_REVIEWS: FallbackReview[] = [
 ];
 
 const DEFAULT_GOOGLE_URL = 'https://maps.app.goo.gl/L5EFKkMSK7FaiRVa8';
+// Deep link that opens the "write a review" dialog on the studio's Google
+// Business Profile — more reviews directly lift local ranking + conversion.
+const GOOGLE_REVIEW_URL = 'https://g.page/r/CfWCViKtBrjuEAE/review';
 
 const GoogleReviews: React.FC = () => {
   const { t, language } = useLanguage();
@@ -291,7 +294,7 @@ const GoogleReviews: React.FC = () => {
           </button>
         </div>
 
-        <div className="flex justify-center mt-8">
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-3 mt-8">
           <a
             href={googleUrl}
             target="_blank"
@@ -302,6 +305,15 @@ const GoogleReviews: React.FC = () => {
             <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
+          </a>
+          <a
+            href={GOOGLE_REVIEW_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="border border-purple-300 text-purple-700 hover:bg-purple-50 font-medium py-2 px-6 rounded-lg transition-colors inline-flex items-center"
+          >
+            <Star className="w-4 h-4 mr-2 fill-current text-yellow-400" />
+            {language === 'de' ? 'Auf Google bewerten' : 'Review us on Google'}
           </a>
         </div>
       </div>
