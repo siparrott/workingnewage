@@ -1,43 +1,61 @@
 // src/components/ConsentScripts.tsx
 // Only loads Analytics/Marketing scripts AFTER user consent (GDPR-compliant)
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { hasConsent } from "../lib/consent";
 
-// Measurement IDs. Overridable via Vite env so IDs aren't hardcoded, with the
-// current GA4 property as the default so analytics keeps working out of the box.
-const GA4_ID = (import.meta.env.VITE_GA4_ID as string) || "G-8W76BVNNW9";
-// Meta Pixel only loads if an ID is configured (set VITE_META_PIXEL_ID in env).
-const META_PIXEL_ID = (import.meta.env.VITE_META_PIXEL_ID as string) || "";
+// Build-time fallbacks. The PRIMARY source is the setup wizard (studio_configs),
+// fetched from /api/site/analytics below; these apply only when the wizard
+// hasn't set an ID. GA4 keeps a working default so analytics doesn't go dark.
+const GA4_ID_FALLBACK = (import.meta.env.VITE_GA4_ID as string) || "G-8W76BVNNW9";
+const META_PIXEL_ID_FALLBACK = (import.meta.env.VITE_META_PIXEL_ID as string) || "";
 
 export default function ConsentScripts() {
+  // Wizard-configured IDs (null until fetched, so we don't load the fallback GA
+  // property before we know whether the studio configured a different one).
+  const [ids, setIds] = useState<{ ga4Id: string; metaPixelId: string } | null>(null);
+
   useEffect(() => {
+    let cancelled = false;
+    fetch("/api/site/analytics")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled) return;
+        setIds({ ga4Id: d?.ga4Id || "", metaPixelId: d?.metaPixelId || "" });
+      })
+      .catch(() => { if (!cancelled) setIds({ ga4Id: "", metaPixelId: "" }); });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!ids) return; // wait for the wizard config before loading anything
+
+    // Wizard value wins; otherwise the build-time env / default.
+    const ga4 = ids.ga4Id || GA4_ID_FALLBACK;
+    const pixel = ids.metaPixelId || META_PIXEL_ID_FALLBACK;
+
     const load = () => {
       // Analytics - only load if user has consented
-      if (hasConsent("analytics") && GA4_ID) {
-        loadGA4(GA4_ID);
+      if (hasConsent("analytics") && ga4) {
+        loadGA4(ga4);
         console.log("[Consent] Analytics consent granted - loading GA");
       }
-
-      // Marketing - only load if user has consented AND a Pixel ID is set
+      // Marketing - only load if user has consented AND a Pixel ID exists
       if (hasConsent("marketing")) {
-        if (META_PIXEL_ID) {
-          loadMetaPixel(META_PIXEL_ID);
+        if (pixel) {
+          loadMetaPixel(pixel);
           console.log("[Consent] Marketing consent granted - loading Meta Pixel");
         } else {
-          console.log("[Consent] Marketing consent granted - set VITE_META_PIXEL_ID to enable Meta Pixel");
+          console.log("[Consent] Marketing consent granted - set the Meta Pixel ID in the setup wizard to enable it");
         }
       }
     };
 
-    // Initial load check
     load();
-
-    // Listen for consent updates (when user changes preferences)
     const onUpdate = () => load();
     window.addEventListener("consent:updated", onUpdate);
     return () => window.removeEventListener("consent:updated", onUpdate);
-  }, []);
+  }, [ids]);
 
   return null;
 }

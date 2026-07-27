@@ -2476,6 +2476,24 @@ Bitte versuchen Sie es später noch einmal.`;
   // Public: live Google rating + latest reviews (Places API New). Falls back to
   // {configured:false} when GOOGLE_PLACES_API_KEY is unset so the site keeps
   // rendering its curated reviews.
+  // Public analytics config: the GA4 + Meta Pixel IDs a studio enters in the
+  // setup wizard (studio_configs), falling back to host env vars. This is what
+  // lets the wizard actually switch tracking on — the client reads it in
+  // ConsentScripts and loads GA4/Meta after consent. Only public measurement
+  // IDs are exposed here (never secrets).
+  app.get("/api/site/analytics", async (_req: Request, res: Response) => {
+    try {
+      const { config } = await import('./config-reader');
+      const ga4Id = (await config.get('ga4_measurement_id')) || '';
+      const metaPixelId = (await config.get('meta_pixel_id')) || '';
+      res.setHeader('Cache-Control', 'public, max-age=300');
+      res.json({ ga4Id, metaPixelId });
+    } catch (e: any) {
+      console.warn('[site/analytics] error:', e?.message || e);
+      res.json({ ga4Id: '', metaPixelId: '' });
+    }
+  });
+
   app.get("/api/reviews/google", async (req: Request, res: Response) => {
     try {
       const { isGoogleReviewsConfigured, getGoogleReviews } = await import('./services/googleReviews.js');
