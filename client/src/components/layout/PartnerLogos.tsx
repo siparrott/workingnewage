@@ -59,7 +59,10 @@ const PartnerLogos: React.FC = () => {
               key={index}
               href={partner.link}
               target="_blank"
-              rel="noopener noreferrer"
+              // nofollow: these are trust/"as trusted by" signals, not editorial
+              // endorsements, so don't pass link equity out to 34 brand sites from
+              // every page (the logo wall renders site-wide via Layout).
+              rel="noopener noreferrer nofollow"
               className="bg-white rounded-lg p-4 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow cursor-pointer"
               title={partner.alt}
             >
