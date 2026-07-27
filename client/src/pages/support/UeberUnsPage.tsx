@@ -336,12 +336,12 @@ const UeberUnsPage: React.FC = () => {
             <p className="text-lg italic text-slate-800">{de ? '“Ich bin nicht fotogen.”' : '“I’m not photogenic.”'}</p>
             <p className="text-lg text-slate-700">{de ? 'Meine Antwort ist immer dieselbe:' : 'My answer is always the same:'}</p>
             <p className="text-xl font-semibold text-slate-950">{mv('manual.ueberuns.bio.closing', de ? 'Doch. Du brauchst nur jemanden hinter der Kamera, der dich wirklich sieht – und das authentische „Du“ einfängt, das man nicht stellen kann.' : 'You are. You just need someone behind the camera who truly sees you — someone who captures the authentic “you” that can’t be posed.')}</p>
-            <div className="flex flex-wrap gap-4 pt-2">
+            <div className="flex flex-wrap gap-3 pt-2">
               <a
                 href={SIMON_LINKEDIN}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
               >
                 <Linkedin className="h-5 w-5 text-[#0a66c2]" /> {de ? 'Simon auf LinkedIn' : 'Simon on LinkedIn'}
               </a>
@@ -349,7 +349,7 @@ const UeberUnsPage: React.FC = () => {
                 href={SIMON_INSTAGRAM}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
               >
                 <Instagram className="h-5 w-5 text-[#e1306c]" /> {de ? 'Auf Instagram folgen' : 'Follow on Instagram'}
               </a>
@@ -357,7 +357,7 @@ const UeberUnsPage: React.FC = () => {
                 href={FACEBOOK_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
               >
                 <Facebook className="h-5 w-5 text-[#1877f2]" /> {de ? 'Auf Facebook folgen' : 'Follow on Facebook'}
               </a>
@@ -365,7 +365,7 @@ const UeberUnsPage: React.FC = () => {
                 href={GOOGLE_REVIEW_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-purple-700"
+                className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-purple-700"
               >
                 <Star className="h-5 w-5 fill-current text-yellow-300" /> {de ? 'Auf Google bewerten' : 'Review us on Google'}
               </a>
