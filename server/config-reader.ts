@@ -281,6 +281,44 @@ async function isTechnicalSetupComplete(): Promise<boolean> {
 }
 
 /**
+ * Copy DB-configured values (studio_configs / studio_integrations) into
+ * process.env for any variable that ISN'T already set. This lets the many
+ * runtime consumers that read process.env directly (Stripe, OpenAI, Google
+ * OAuth, IMAP, Brevo, …) pick up values a studio entered in the setup wizard —
+ * without refactoring every call site.
+ *
+ * SAFETY: env ALWAYS wins. A var already present in process.env is never
+ * overridden, so an env-configured deployment is completely untouched; this only
+ * fills gaps for a wizard-onboarded tenant. Best-effort — never throws.
+ *
+ * LIMITATION: runs during boot, so it cannot help module-level constants in
+ * statically-imported modules that already read process.env at import time
+ * (e.g. the top-level Stripe client in routes.ts). It DOES cover request-time
+ * reads and lazily-imported services (the voucher checkout, most AI calls, etc).
+ *
+ * @returns the number of env vars filled from the DB.
+ */
+async function hydrateEnvFromDb(): Promise<number> {
+  let filled = 0;
+  try {
+    await loadFromDb(true);
+    for (const key of Object.keys(DB_FIELD_MAP)) {
+      const envName = ENV_MAP[key];
+      if (!envName) continue;               // no known env var to fill
+      if (process.env[envName]) continue;   // env already set — env wins, never override
+      const val = await get(key);           // DB (decrypted) → null if absent
+      if (val) {
+        process.env[envName] = val;
+        filled++;
+      }
+    }
+  } catch (e) {
+    console.warn('[config-reader] hydrateEnvFromDb failed:', (e as Error).message);
+  }
+  return filled;
+}
+
+/**
  * Invalidate the cache to force a reload on next access.
  */
 function invalidate(): void {
@@ -309,6 +347,7 @@ export const config = {
   getNumber,
   getBoolean,
   invalidate,
+  hydrateEnvFromDb,
   isTechnicalSetupComplete,
   getStudioConfig,
   getIntegrations,

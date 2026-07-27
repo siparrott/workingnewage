@@ -356,6 +356,19 @@ app.use((req, res, next) => {
     console.log(`🔧 Server object created, waiting for 'listening' event...`);
     // ========== END EARLY LISTEN ==========
 
+    // Hydrate process.env from DB config (setup-wizard values) BEFORE services
+    // initialise and routes register, so runtime code that reads process.env
+    // directly (Stripe voucher checkout, OpenAI, Google OAuth, IMAP, Brevo, …)
+    // picks up wizard-entered config. Env always wins → an env-configured
+    // deployment is untouched. Best-effort; never blocks boot.
+    try {
+      const { config } = await import('./config-reader');
+      const filled = await config.hydrateEnvFromDb();
+      if (filled > 0) console.log(`🔧 Hydrated ${filled} setup-wizard config value(s) from DB into process.env`);
+    } catch (e: any) {
+      console.warn('⚠️ Config hydration from DB failed (non-fatal):', e?.message || e);
+    }
+
     // Initialize services with error handling
     try {
       await EnhancedEmailService.initialize();
