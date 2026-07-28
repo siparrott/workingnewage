@@ -262,12 +262,21 @@ const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link 
-                  to="/blog" 
+                <Link
+                  to="/blog"
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
                   {t('footer.blogTips')}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/case-studies"
+                  onClick={scrollToTop}
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  {language === 'de' ? 'Fallstudien' : 'Case Studies'}
                 </Link>
               </li>
               {/* /warteliste intentionally NOT in the footer: it's already in the

@@ -45,6 +45,7 @@ const publicRoutes = [
   '/fotoshootings',
   '/kontakt',
   '/blog',
+  '/case-studies',
   '/warteliste',
   '/vouchers',
 
@@ -55,6 +56,7 @@ const publicRoutes = [
   '/en/newborn-photography-vienna/',
   '/en/maternity-photography-vienna/',
   '/en/business-portraits-vienna/',
+  '/en/case-studies/',
   '/en/application-photos-vienna/',
   '/en/wedding-photography-vienna/',
   '/en/baby-photos-vienna/',

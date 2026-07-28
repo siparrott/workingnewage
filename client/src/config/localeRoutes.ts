@@ -25,6 +25,7 @@ export const LOCALE_ROUTES: LocalePair[] = [
   { de: '/hochzeitsfotografie-wien/', en: '/en/wedding-photography-vienna/' },
   { de: '/babyfotos-wien/', en: '/en/baby-photos-vienna/' },
   { de: '/portrait-fotografie-wien/', en: '/en/portrait-photography-vienna/' },
+  { de: '/case-studies', en: '/en/case-studies/' },
   // Functional / conversion pages
   { de: '/preise/', en: '/en/pricing/' },
   { de: '/vouchers', en: '/en/vouchers/' },

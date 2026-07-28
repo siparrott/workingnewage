@@ -79,6 +79,7 @@ const Header: React.FC = () => {
     { path: '/', label: t('nav.home') },
     { path: '/vouchers', label: t('nav.vouchers') },
     { path: '/blog', label: t('nav.blog') },
+    { path: '/case-studies', label: t('nav.caseStudies') },
     { path: '/warteliste', label: t('nav.waitlist') },
   ];
 

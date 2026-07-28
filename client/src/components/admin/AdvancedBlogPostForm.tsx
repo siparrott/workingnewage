@@ -62,6 +62,7 @@ interface CropTarget {
 // editor never depends on a remote tag table; merged with tags already used on
 // existing posts at runtime.
 const SUGGESTED_TAGS: string[] = [
+  'case-study', 'fallstudie',
   'wien',
   'studio',
   'familienfotos', 'familie', 'kinderfotos', 'geschwister',

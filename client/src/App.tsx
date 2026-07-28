@@ -17,6 +17,7 @@ import PortfolioPage from './pages/PortfolioPage';
 import GutscheinPage from './pages/GutscheinPage';
 import BlogPage from './pages/BlogPage';
 import BlogPostPage from './pages/BlogPostPage';
+import CaseStudiesPage from './pages/CaseStudiesPage';
 import WartelistePage from './pages/WartelistePage';
 import KontaktPage from './pages/KontaktPage';
 import VouchersPage from './pages/VouchersPage';
@@ -211,6 +212,7 @@ function App() {
                 <Route path="/en/newborn-photography-vienna/" element={<NeugeborenenfotosWienPage />} />
                 <Route path="/en/maternity-photography-vienna/" element={<SchwangerschaftsfotosWienPage />} />
                 <Route path="/en/business-portraits-vienna/" element={<BusinessPortraitWienPage />} />
+                <Route path="/en/case-studies/" element={<CaseStudiesPage />} />
                 <Route path="/en/application-photos-vienna/" element={<BewerbungsfotosWienPage />} />
                 <Route path="/en/wedding-photography-vienna/" element={<HochzeitsfotografieWienPage />} />
                 <Route path="/en/baby-photos-vienna/" element={<BabyfotosWienPage />} />
@@ -271,6 +273,7 @@ function App() {
                 <Route path="/gutschein/maternity" element={<MaternityGutscheinPage />} />
                 <Route path="/voucher/thank-you" element={<VoucherThankYouPage />} />
                 <Route path="/blog" element={<BlogPage />} />
+                <Route path="/case-studies" element={<CaseStudiesPage />} />
                 <Route path="/blog/:slug" element={<BlogPostPage />} />
                 <Route path="/lp/:slug" element={<PublicLandingPage />} />
                 <Route path="/warteliste" element={<WartelistePage />} />
