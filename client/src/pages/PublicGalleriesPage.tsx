@@ -94,8 +94,10 @@ const PublicGalleriesPage: React.FC = () => {
   return (
     <Layout>
       <SEOHead
-        title="Foto-Galerien – New Age Fotografie Wien"
-        description="Öffentliche Foto-Galerien von New Age Fotografie: Familien-, Baby- und Business-Aufnahmen aus unserem Fotostudio in Wien."
+        title={language === 'de' ? 'Foto-Galerien – New Age Fotografie Wien' : 'Photo Galleries – New Age Fotografie Vienna'}
+        description={language === 'de'
+          ? 'Öffentliche Foto-Galerien von New Age Fotografie: Familien-, Baby- und Business-Aufnahmen aus unserem Fotostudio in Wien.'
+          : 'Public photo galleries from New Age Fotografie: family, baby and business shots from our photo studio in Vienna.'}
         canonical="/galleries/"
       />
       <div className="min-h-screen bg-gray-50">

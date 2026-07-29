@@ -352,7 +352,7 @@ const WartelistePage: React.FC = () => {
         </div>
       </section>
 
-      <PillarLinksBlock currentPath="/warteliste/" title="Welches Shooting interessiert Sie?" />
+      <PillarLinksBlock currentPath="/warteliste/" title={language === 'de' ? 'Welches Shooting interessiert Sie?' : 'Which shoot are you interested in?'} />
 
       {/* Additive: soft pre-footer CTA */}
       <section className="bg-purple-50/40 border-t border-gray-100">

@@ -42,8 +42,12 @@ export default function WarumNewAgePage() {
     <Layout>
       <div className="min-h-screen bg-white">
         <SEOHead
-          title="Warum New Age Fotografie? Bewertungen, Erfahrung & Team | Fotostudio Wien"
-          description="Alles, was Sie vor der Buchung wissen wollen: 4,9★ Google-Bewertungen, 13+ Jahre Erfahrung, echte Fallstudien, FAQ und das Team hinter New Age Fotografie Wien."
+          title={language === 'de'
+            ? 'Warum New Age Fotografie? Bewertungen, Erfahrung & Team | Fotostudio Wien'
+            : 'Why New Age Fotografie? Reviews, Experience & Team | Photo Studio Vienna'}
+          description={language === 'de'
+            ? 'Alles, was Sie vor der Buchung wissen wollen: 4,9★ Google-Bewertungen, 13+ Jahre Erfahrung, echte Fallstudien, FAQ und das Team hinter New Age Fotografie Wien.'
+            : 'Everything you want to know before booking: 4.9★ Google reviews, 13+ years’ experience, real case studies, FAQ and the team behind New Age Fotografie Vienna.'}
           keywords="new age fotografie erfahrungen, fotograf wien bewertungen, fotostudio wien empfehlung"
           canonical="/warum-new-age-fotografie/"
         />

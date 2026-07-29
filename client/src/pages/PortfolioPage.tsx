@@ -556,7 +556,7 @@ const PortfolioPage: React.FC = () => {
         </div>
       </section>
 
-      <PillarLinksBlock currentPath="/portfolio/" title="Unsere Fotoshootings in Wien" />
+      <PillarLinksBlock currentPath="/portfolio/" title={language === 'de' ? 'Unsere Fotoshootings in Wien' : 'Our Photo Shoots in Vienna'} />
       <RelatedTopicsBlock pathname="/portfolio" language={(language as 'de' | 'en') || 'de'} />
     </Layout>
   );

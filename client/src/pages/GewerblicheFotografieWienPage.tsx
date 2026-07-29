@@ -43,8 +43,12 @@ export default function GewerblicheFotografieWienPage() {
     <Layout>
       <div className="min-h-screen bg-white">
         <SEOHead
-          title="Gewerbliche Fotografie Wien – Produkte, Immobilien, Events & Teams | New Age Fotografie"
-          description="Ein Ansprechpartner für Business-Fotografie in Wien: Produktfotos, Immobilienfotografie, Eventfotografie, Teamfotos und Business-Portraits. 13+ Jahre Erfahrung, 4,9★."
+          title={language === 'de'
+            ? 'Gewerbliche Fotografie Wien – Produkte, Immobilien, Events & Teams | New Age Fotografie'
+            : 'Commercial Photography Vienna – Products, Real Estate, Events & Teams | New Age Fotografie'}
+          description={language === 'de'
+            ? 'Ein Ansprechpartner für Business-Fotografie in Wien: Produktfotos, Immobilienfotografie, Eventfotografie, Teamfotos und Business-Portraits. 13+ Jahre Erfahrung, 4,9★.'
+            : 'One partner for business photography in Vienna: product photos, real-estate photography, event photography, team photos and business portraits. 13+ years’ experience, 4.9★.'}
           keywords="gewerbliche fotografie wien, business fotograf wien, firmenfotograf wien, produktfotografie, immobilienfotografie, eventfotografie"
           canonical="/gewerbliche-fotografie-wien/"
         />

@@ -603,20 +603,20 @@ export default function EventfotografieWienPage() {
       {/* Why New Age Section */}
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-8">Warum {SITE.name}?</h2>
-          
+          <h2 className="text-3xl font-bold text-center mb-8">{language === 'de' ? `Warum ${SITE.name}?` : `Why ${SITE.name}?`}</h2>
+
           <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-gray-50 rounded-xl p-6 text-center">
               <Star className="h-10 w-10 text-purple-600 mx-auto mb-3" />
-              <h3 className="font-semibold mb-2">12+ Jahre Corporate & Event</h3>
+              <h3 className="font-semibold mb-2">{language === 'de' ? '12+ Jahre Corporate & Event' : '12+ years of corporate & event experience'}</h3>
             </div>
             <div className="bg-gray-50 rounded-xl p-6 text-center">
               <Clock className="h-10 w-10 text-purple-600 mx-auto mb-3" />
-              <h3 className="font-semibold mb-2">Schnelle, verlässliche SLAs</h3>
+              <h3 className="font-semibold mb-2">{language === 'de' ? 'Schnelle, verlässliche SLAs' : 'Fast, reliable SLAs'}</h3>
             </div>
             <div className="bg-gray-50 rounded-xl p-6 text-center">
               <Camera className="h-10 w-10 text-purple-600 mx-auto mb-3" />
-              <h3 className="font-semibold mb-2">Saubere Übergabe. Social-first-Denken. Presse-ready.</h3>
+              <h3 className="font-semibold mb-2">{language === 'de' ? 'Saubere Übergabe. Social-first-Denken. Presse-ready.' : 'Clean handover. Social-first thinking. Press-ready.'}</h3>
             </div>
           </div>
         </div>
@@ -626,7 +626,7 @@ export default function EventfotografieWienPage() {
       <section className="py-12 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-gray-600">
-            <strong>Externer Hinweis:</strong> Für Venue-Planung & Raumauswahl:{' '}
+            <strong>{language === 'de' ? 'Externer Hinweis:' : 'External tip:'}</strong> {language === 'de' ? 'Für Venue-Planung & Raumauswahl:' : 'For venue planning & room selection:'}{' '}
             <a 
               href="https://www.vienna.convention.at/" 
               target="_blank" 
