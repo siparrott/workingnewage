@@ -142,6 +142,7 @@ const CalendarSyncPage = lazy(() => import('./pages/admin/CalendarSyncPage'));
 import CalculatorPage from './pages/CalculatorPage';
 const UnifiedSetupWizard = lazy(() => import('./pages/setup/UnifiedSetupWizard'));
 import ScrollToTop from './components/ScrollToTop';
+import ErrorBoundary from './components/ErrorBoundary';
 
 function RouteFallback() {
   return (
@@ -199,6 +200,7 @@ function App() {
               <PrerenderReadySignal />
               <ScrollToTop />
               <LanguageRouteSync />
+              <ErrorBoundary>
               <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/" element={<HomePage />} />
@@ -787,6 +789,7 @@ function App() {
                 <Route path="/gallery-shop-test" element={<GalleryShopTest />} />
               </Routes>
               </Suspense>
+              </ErrorBoundary>
               <CookieConsent privacyPolicyUrl="/impressum/" imprintUrl="/impressum/" />
               <ConsentScripts />
             </Router>
