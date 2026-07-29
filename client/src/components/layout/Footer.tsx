@@ -333,7 +333,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Fotoshooting Preise Wien
+                  {language === 'de' ? 'Fotoshooting Preise Wien' : 'Photoshoot Prices Vienna'}
                 </Link>
               </li>
               <li>
@@ -342,7 +342,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Kundenstimmen – 4.9★ auf Google
+                  {language === 'de' ? 'Kundenstimmen – 4.9★ auf Google' : 'Reviews – 4.9★ on Google'}
                 </Link>
               </li>
               <li>
@@ -351,7 +351,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Warum New Age Fotografie?
+                  {language === 'de' ? 'Warum New Age Fotografie?' : 'Why New Age Fotografie?'}
                 </Link>
               </li>
               <li>
@@ -360,7 +360,7 @@ const Footer: React.FC = () => {
                   onClick={scrollToTop}
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  Gewerbliche Fotografie Wien
+                  {language === 'de' ? 'Gewerbliche Fotografie Wien' : 'Commercial Photography Vienna'}
                 </Link>
               </li>
             </ul>
