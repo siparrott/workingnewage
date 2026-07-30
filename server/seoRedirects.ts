@@ -50,10 +50,14 @@ export function seoRedirects(req: Request, res: Response, next: NextFunction) {
   //    IndexNow key .txt, etc.). Preserves the query string. Runs before the
   //    static/SPA handlers so it never loops.
   const raw = req.path;
+  // Data-driven detail routes canonicalise WITHOUT a trailing slash (their
+  // canonical tags + sitemap entries are slash-less), so never add one to them.
+  const noSlashDetail = /^\/(blog|gutschein|lp)\/.+/.test(raw);
   if (
     raw !== "/" &&
     !raw.endsWith("/") &&
     !raw.startsWith("/api") &&
+    !noSlashDetail &&
     !/\.[a-z0-9]+$/i.test(raw)
   ) {
     const qIdx = req.originalUrl.indexOf("?");
