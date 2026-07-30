@@ -589,6 +589,15 @@ app.use((req, res, next) => {
         console.warn('⚠️ Case-study seed skipped:', csSeedError.message);
       }
 
+      // Ensure the editable newsletter €50-voucher automation exists so signups
+      // receive the real voucher (not the old generic "thanks" email).
+      try {
+        const { ensureNewsletterVoucherAutomation } = await import('./routes');
+        await ensureNewsletterVoucherAutomation();
+      } catch (nlSeedError: any) {
+        console.warn('⚠️ Newsletter voucher automation seed skipped:', nlSeedError.message);
+      }
+
       // Auto-detect: if existing instance already has key infra, mark setup complete
       // Uses raw SQL to avoid Drizzle column-mapping failures if columns don't exist yet
       try {

@@ -439,6 +439,145 @@ function getBaseUrl(): string {
   return process.env.FRONTEND_URL || process.env.APP_URL || '';
 }
 
+// ---------------------------------------------------------------------------
+// Newsletter €50 voucher email — shared by the public signup handler AND the
+// admin "resend" tool so every path sends the SAME real voucher (not the old
+// generic "thanks" note). The €50 gift card is a print credit redeemed at the
+// shoot, so it's rendered as a self-contained HTML card that displays even when
+// an email client blocks images. A `newsletter_signup` automation row (seeded
+// at boot, editable in Admin → Automations) holds the subject/body; if a studio
+// customises it there, that wins. Every send is recorded in
+// email_automation_logs so we can tell who has — and hasn't — received it.
+// ---------------------------------------------------------------------------
+const NEWSLETTER_TRIGGER = 'newsletter_signup';
+
+function buildDefaultVoucherEmail(): { subject: string; html: string } {
+  const site = getBizWebsite() || 'https://www.newagefotografie.com';
+  let host = 'www.newagefotografie.com';
+  try { host = new URL(site).hostname; } catch { /* keep default */ }
+  const subject = '🎁 Ihr 50€ Foto-Gutschein von New Age Fotografie';
+  const html = `
+  <div style="background:#0a1834;padding:32px 12px;font-family:Arial,Helvetica,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#0a1834;border:2px solid #d4af37;border-radius:16px;">
+      <tr><td style="padding:32px 36px;">
+        <p style="letter-spacing:4px;color:#d4af37;font-size:13px;margin:0 0 6px;">NEW AGE FOTOGRAFIE</p>
+        <p style="color:#d4af37;font-size:54px;font-weight:bold;margin:0;line-height:1;">50€</p>
+        <p style="color:#f5e7b8;font-size:28px;font-weight:bold;letter-spacing:3px;margin:2px 0 22px;">GIFT CARD</p>
+        <p style="color:#ffffff;font-size:16px;margin:0 0 14px;">Hallo {{clientName}},</p>
+        <p style="color:#cdd6e6;font-size:15px;line-height:1.6;margin:0 0 20px;">vielen Dank für Ihre Anmeldung! Hier ist Ihre <strong style="color:#d4af37;">50€ Geschenkkarte</strong> als Print-Guthaben für Ihr nächstes Fotoshooting.</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 22px;">
+          <tr><td style="color:#f5e7b8;font-size:14px;line-height:1.7;padding:2px 0;">✉️&nbsp;&nbsp;50€ Print-Guthaben für Ihr nächstes Shooting</td></tr>
+          <tr><td style="color:#f5e7b8;font-size:14px;line-height:1.7;padding:2px 0;">👪&nbsp;&nbsp;Gültig für Familien-, Newborn-, Babybauch- &amp; Portrait-Shootings</td></tr>
+          <tr><td style="color:#f5e7b8;font-size:14px;line-height:1.7;padding:2px 0;">📅&nbsp;&nbsp;Studio-Termine auch am Wochenende verfügbar</td></tr>
+        </table>
+        <div style="background:#122048;border:1px dashed #d4af37;border-radius:10px;padding:16px;text-align:center;margin:0 0 24px;">
+          <p style="color:#9fb0cc;font-size:11px;margin:0 0 6px;text-transform:uppercase;letter-spacing:2px;">Ihr Gutschein</p>
+          <p style="color:#d4af37;font-size:18px;font-weight:bold;margin:0;">{{voucherCode}}</p>
+        </div>
+        <div style="text-align:center;margin:0 0 24px;">
+          <a href="${site}" style="background:#d4af37;color:#0a1834;text-decoration:none;font-weight:bold;font-size:16px;padding:14px 32px;border-radius:30px;display:inline-block;">Jetzt Termin sichern</a>
+        </div>
+        <p style="color:#8090ad;font-size:12px;line-height:1.6;margin:0;text-align:center;">New Age Fotografie · Wehrgasse 11A/2+5, 1050 Wien<br/>${host}</p>
+      </td></tr>
+    </table>
+  </div>`;
+  return { subject, html };
+}
+
+// Create the editable newsletter voucher automation once (idempotent). Never
+// overwrites an existing row, so a studio's manual edits are preserved.
+export async function ensureNewsletterVoucherAutomation(): Promise<void> {
+  try {
+    const existing = await db
+      .select({ id: emailAutomations.id })
+      .from(emailAutomations)
+      .where(eq(emailAutomations.triggerType, NEWSLETTER_TRIGGER))
+      .limit(1);
+    if (existing.length > 0) return;
+    const { subject, html } = buildDefaultVoucherEmail();
+    await db.insert(emailAutomations).values({
+      name: 'Newsletter 50€ Voucher',
+      description: 'Sent automatically when someone signs up via the €50 newsletter/voucher form. Edit the subject/body here to change the voucher email.',
+      triggerType: NEWSLETTER_TRIGGER,
+      offsetHours: 0,
+      emailSubject: subject,
+      emailBodyHtml: html,
+      enabled: true,
+    });
+    console.log('✅ Seeded newsletter_signup voucher automation');
+  } catch (err: any) {
+    console.warn('⚠️ ensureNewsletterVoucherAutomation skipped:', err?.message || err);
+  }
+}
+
+// Send the €50 voucher email to one address. Prefers the editable automation
+// template, falls back to the built-in card. Records the send (sent/failed) in
+// email_automation_logs. Returns { ok } — never throws.
+async function sendNewsletterVoucherEmail(
+  email: string,
+  opts: { isResend?: boolean } = {}
+): Promise<{ ok: boolean; error?: string }> {
+  const name = email.split('@')[0] || 'Kunde';
+  const code = process.env.NEWSLETTER_VOUCHER_CODE || '';
+  let ruleId: number | null = null;
+  try {
+    const [rule] = await db
+      .select()
+      .from(emailAutomations)
+      .where(and(eq(emailAutomations.triggerType, NEWSLETTER_TRIGGER), eq(emailAutomations.enabled, true)))
+      .limit(1);
+    const base = buildDefaultVoucherEmail();
+    const fill = (s: string) => s
+      .replace(/\{\{\s*clientName\s*\}\}/g, name)
+      .replace(/\{\{\s*clientEmail\s*\}\}/g, email)
+      .replace(/\{\{\s*voucherCode\s*\}\}/g, code || 'Zeigen Sie diese E-Mail bei Ihrem Termin vor');
+    const subject = fill(rule?.emailSubject || base.subject);
+    const html = fill(rule?.emailBodyHtml || base.html);
+    ruleId = rule?.id ?? null;
+
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.easyname.com', port: 465, secure: true,
+      connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 15000,
+      auth: {
+        user: process.env.BUSINESS_MAILBOX_USER || process.env.SMTP_USER || '',
+        pass: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || '',
+      },
+    });
+    await transporter.sendMail({
+      from: `"${getBizName()}" <${getEnvContactEmailSync() || 'no-reply@localhost'}>`,
+      to: email, subject, html,
+    });
+
+    if (ruleId != null) {
+      try {
+        await db.insert(emailAutomationLogs).values({
+          automationId: ruleId,
+          bookingId: `newsletter-${opts.isResend ? 'resend-' : ''}${Date.now()}`,
+          clientEmail: email,
+          clientName: name,
+          status: 'sent',
+        });
+      } catch { /* logging is best-effort */ }
+    }
+    return { ok: true };
+  } catch (error: any) {
+    console.error('Error sending newsletter voucher email:', error?.message || error);
+    if (ruleId != null) {
+      try {
+        await db.insert(emailAutomationLogs).values({
+          automationId: ruleId,
+          bookingId: `newsletter-fail-${Date.now()}`,
+          clientEmail: email,
+          clientName: name,
+          status: 'failed',
+          errorMessage: String(error?.message || error).slice(0, 500),
+        });
+      } catch { /* ignore */ }
+    }
+    return { ok: false, error: String(error?.message || error) };
+  }
+}
+
 // Decide a blog post's status/published/publishedAt from its scheduling fields.
 // scheduledFor (or a future publishedAt) is the SOURCE OF TRUTH: any future date
 // means SCHEDULED + hidden (published=false, publishedAt cleared) until the hourly
@@ -18334,60 +18473,21 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
         leadId: newLead[0]?.id
       });
 
-      // Send voucher + business notification emails in the background (non-fatal).
+      // Send the real €50 voucher email + notify the business, in the background
+      // (non-fatal — the lead is already saved). The voucher send is centralised in
+      // sendNewsletterVoucherEmail so the signup path and the admin resend tool are
+      // always identical, and every send is logged in email_automation_logs.
       void (async () => {
+        await sendNewsletterVoucherEmail(email);
         try {
           const transporter = nodemailer.createTransport({
-            host: 'smtp.easyname.com',
-            port: 465,
-            secure: true,
-            // Bound the SMTP attempt so a blocked/slow connection cannot hang forever.
-            connectionTimeout: 10000,
-            greetingTimeout: 10000,
-            socketTimeout: 15000,
+            host: 'smtp.easyname.com', port: 465, secure: true,
+            connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 15000,
             auth: {
               user: process.env.BUSINESS_MAILBOX_USER || process.env.SMTP_USER || '',
               pass: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS || ''
             }
           });
-
-          // Fetch the newsletter signup automation template from DB
-          const automationResult = await db.select().from(emailAutomations).where(
-            and(eq(emailAutomations.triggerType, 'newsletter_signup'), eq(emailAutomations.enabled, true))
-          ).limit(1);
-
-          let emailSubject = '🎉 Ihr 50€ Fotoshooting-Gutschein ist da!';
-          let emailHtml = `<p>Vielen Dank für Ihre Anmeldung! Wir melden uns bald bei Ihnen.</p>`;
-
-          if (automationResult.length > 0) {
-            const rule = automationResult[0];
-            emailSubject = rule.emailSubject
-              .replace(/\{\{clientName\}\}/g, email.split('@')[0] || 'Kunde')
-              .replace(/\{\{clientEmail\}\}/g, email);
-            emailHtml = rule.emailBodyHtml
-              .replace(/\{\{clientName\}\}/g, email.split('@')[0] || 'Kunde')
-              .replace(/\{\{clientEmail\}\}/g, email);
-
-            // Log the send
-            try {
-              await db.insert(emailAutomationLogs).values({
-                automationId: rule.id,
-                bookingId: `newsletter-${Date.now()}`,
-                clientEmail: email,
-                clientName: email.split('@')[0] || 'Subscriber',
-                status: 'sent'
-              });
-            } catch (_) {}
-          }
-
-          await transporter.sendMail({
-            from: `"${getBizName()}" <${getEnvContactEmailSync() || 'no-reply@localhost'}>`,
-            to: email,
-            subject: emailSubject,
-            html: emailHtml
-          });
-
-          // Send notification to business
           await transporter.sendMail({
             from: `"${getBizName()} Website" <${getEnvContactEmailSync() || 'no-reply@localhost'}>`,
             to: getEnvContactEmailSync() || 'no-reply@localhost',
@@ -18401,14 +18501,78 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
             `
           });
         } catch (emailError) {
-          console.error('Error sending voucher email:', emailError);
-          // Don't fail the request if email fails - lead is still saved
+          console.error('Error sending business newsletter notification:', emailError);
         }
       })();
 
     } catch (error) {
       console.error("Error processing newsletter signup:", error);
       res.status(500).json({ error: "Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut." });
+    }
+  });
+
+  // Newsletter voucher reconciliation: which signups have NOT been recorded as
+  // having received their €50 voucher email (no 'sent' automation log for them).
+  app.get('/api/email/newsletter/undelivered', authenticateUser, async (_req: Request, res: Response) => {
+    try {
+      const subs = await db.select().from(emailSubscribers);
+      const newsletterSubs = subs.filter((s: any) =>
+        Array.isArray(s.tags) && s.tags.some((t: any) => ['newsletter', 'voucher'].includes(String(t).toLowerCase()))
+      );
+      const logs = await db
+        .select({ email: emailAutomationLogs.clientEmail })
+        .from(emailAutomationLogs)
+        .where(eq(emailAutomationLogs.status, 'sent'));
+      const sentSet = new Set(logs.map((l: any) => String(l.email || '').toLowerCase()));
+      const undelivered = newsletterSubs
+        .filter((s: any) => !sentSet.has(String(s.email).toLowerCase()))
+        .map((s: any) => ({ email: s.email, firstName: s.firstName, createdAt: s.createdAt }))
+        .sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      res.json({ total: newsletterSubs.length, undeliveredCount: undelivered.length, undelivered });
+    } catch (error) {
+      console.error('Error computing undelivered newsletter vouchers:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Resend the €50 voucher email to one address (`email`) or to every signup with
+  // no recorded send (`all: true`). Capped per call to avoid runaway SMTP loops.
+  app.post('/api/email/newsletter/resend', authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { email, all } = (req.body || {}) as { email?: string; all?: boolean };
+      let targets: string[] = [];
+      if (email && String(email).includes('@')) {
+        targets = [String(email).trim()];
+      } else if (all) {
+        const subs = await db.select().from(emailSubscribers);
+        const newsletterSubs = subs.filter((s: any) =>
+          Array.isArray(s.tags) && s.tags.some((t: any) => ['newsletter', 'voucher'].includes(String(t).toLowerCase()))
+        );
+        const logs = await db
+          .select({ email: emailAutomationLogs.clientEmail })
+          .from(emailAutomationLogs)
+          .where(eq(emailAutomationLogs.status, 'sent'));
+        const sentSet = new Set(logs.map((l: any) => String(l.email || '').toLowerCase()));
+        targets = newsletterSubs
+          .filter((s: any) => !sentSet.has(String(s.email).toLowerCase()))
+          .map((s: any) => String(s.email));
+      } else {
+        return res.status(400).json({ error: 'Provide `email` or `all: true`' });
+      }
+
+      const MAX = 200;
+      const capped = targets.length > MAX;
+      targets = targets.slice(0, MAX);
+
+      let sent = 0, failed = 0;
+      for (const t of targets) {
+        const r = await sendNewsletterVoucherEmail(t, { isResend: true });
+        r.ok ? sent++ : failed++;
+      }
+      res.json({ ok: true, attempted: targets.length, sent, failed, capped, cap: MAX });
+    } catch (error) {
+      console.error('Error resending newsletter vouchers:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 

@@ -25,6 +25,81 @@ import { getCampaigns } from '../../lib/email-marketing';
 
 type TabType = 'overview' | 'campaigns' | 'sequences' | 'analytics' | 'templates' | 'subscribers' | 'gallery-leads';
 
+// €50 voucher delivery reconciliation: shows newsletter signups with no recorded
+// voucher send and lets an admin resend to one or all of them.
+type Undelivered = { email: string; firstName?: string; createdAt?: string };
+const NewsletterReconcile: React.FC = () => {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<{ total: number; undeliveredCount: number; undelivered: Undelivered[] } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const r = await fetch('/api/email/newsletter/undelivered');
+      setData(r.ok ? await r.json() : null);
+    } catch { setData(null); } finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, []);
+
+  const resend = async (body: { email?: string; all?: boolean }, confirmMsg?: string) => {
+    if (confirmMsg && !window.confirm(confirmMsg)) return;
+    setBusy(true); setMsg('');
+    try {
+      const r = await fetch('/api/email/newsletter/resend', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      const j = await r.json();
+      if (r.ok) {
+        setMsg(`Sent ${j.sent}${j.failed ? `, ${j.failed} failed` : ''}${j.capped ? ` (capped at ${j.cap} — run again for the rest)` : ''}.`);
+        await load();
+      } else setMsg(j.error || 'Resend failed');
+    } catch { setMsg('Resend failed'); } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-6">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">€50 voucher delivery</h3>
+          <p className="text-sm text-gray-600">Newsletter signups with no record of receiving their voucher email.</p>
+        </div>
+        <button onClick={load} className="text-sm text-purple-600 hover:text-purple-700">Refresh</button>
+      </div>
+      {loading ? (
+        <p className="text-gray-500 text-sm">Checking…</p>
+      ) : !data ? (
+        <p className="text-gray-500 text-sm">Couldn't load delivery status.</p>
+      ) : data.undeliveredCount === 0 ? (
+        <p className="text-green-600 text-sm">✓ All {data.total} newsletter subscribers have a recorded voucher send.</p>
+      ) : (
+        <>
+          <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+            <span className="text-sm text-amber-800"><strong>{data.undeliveredCount}</strong> of {data.total} have no recorded voucher send.</span>
+            <button
+              disabled={busy}
+              onClick={() => resend({ all: true }, `Send the €50 voucher to ${data.undeliveredCount} subscriber(s) with no recorded send?`)}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 disabled:opacity-50"
+            >
+              {busy ? 'Sending…' : 'Send voucher to all'}
+            </button>
+          </div>
+          <div className="max-h-56 overflow-auto divide-y divide-gray-100 border border-gray-100 rounded-lg">
+            {data.undelivered.slice(0, 200).map((u) => (
+              <div key={u.email} className="flex items-center justify-between px-3 py-2 text-sm">
+                <span className="text-gray-800">{u.email}</span>
+                <button disabled={busy} onClick={() => resend({ email: u.email })} className="text-purple-600 hover:text-purple-700 disabled:opacity-50">Send</button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+      {msg && <p className="text-sm text-gray-700 mt-3">{msg}</p>}
+    </div>
+  );
+};
+
 const AdvancedEmailMarketingHub: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -526,6 +601,8 @@ const AdvancedEmailMarketingHub: React.FC = () => {
           </button>
         </div>
       </div>
+
+      <NewsletterReconcile />
 
       <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
         <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
