@@ -253,7 +253,7 @@ const WeddingFotoshootingPage: React.FC = () => {
                 ? 'Ob Standesamt, Gartenhochzeit oder großes Fest – wir begleiten euch mit Erfahrung, Gefühl und einem Blick für das, was wirklich zählt.'
                 : 'Whether a registry office, a garden wedding, or a grand celebration – we accompany you with experience, feeling, and an eye for what truly matters.'}
             </p>
-            <p className="text-lg mb-4">📅 {de ? 'Jetzt Termin sichern:' : 'Secure your date now:'} <a href="/warteliste" className="text-purple-600 hover:text-purple-700">{de ? 'Hochzeitsfotografie in Wien & Zürich' : 'Wedding photography in Vienna & Zurich'}</a></p>
+            <p className="text-lg mb-4">📅 {de ? 'Jetzt Termin sichern:' : 'Secure your date now:'} <a href="/warteliste" className="text-purple-600 hover:text-purple-700">{de ? 'Hochzeitsfotografie in Wien' : 'Wedding photography in Vienna'}</a></p>
             <p className="text-lg">📸 {SITE.name} – {de ? 'Für bleibende Erinnerungen.' : 'For lasting memories.'}</p>
           </div>
         </div>

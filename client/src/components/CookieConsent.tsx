@@ -64,7 +64,7 @@ function FocusTrapModal({
 }
 
 export default function CookieConsent({
-  privacyPolicyUrl = "/impressum/",
+  privacyPolicyUrl = "/datenschutz/",
   imprintUrl = "/impressum/",
 }: Props) {
   const { language } = useLanguage();

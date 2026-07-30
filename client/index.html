@@ -9,8 +9,8 @@
     <title>%SITE_NAME%</title>
     <meta name="description" content="%SITE_DESCRIPTION%">
 
-    <!-- Viewport & Icons -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+    <!-- Viewport & Icons — no maximum-scale so pinch-zoom works (WCAG 1.4.4) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Speed up image loading: open the TLS connection to the image hosts
          early (most site photos are on i.postimg.cc; uploads on Backblaze B2)
@@ -47,8 +47,8 @@
     <!-- Analytics (injected only when GA_MEASUREMENT_ID is set) -->
     %SITE_GA%
 
-    <!-- Robots -->
-    <meta name="robots" content="index, follow">
+    <!-- Robots — allow large image previews in search (per-page SEOHead overrides on hydration) -->
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
     <link rel="sitemap" type="application/xml" href="/sitemap.xml">
 
     <!-- Structured Data (per-tenant, built server-side) -->

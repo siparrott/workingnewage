@@ -282,7 +282,7 @@ export const seoConfig: Record<string, PageSEO> = {
   '/kundenstimmen/': {
     title: 'Kundenstimmen & Bewertungen' + BRAND_SUFFIX,
     h1: 'Das sagen unsere Kunden',
-    description: 'Lesen Sie echte Bewertungen und Erfahrungen unserer Kunden. Über 200 zufriedene Familien in Wien.',
+    description: 'Lesen Sie echte Bewertungen und Erfahrungen unserer Kunden. Über 27.000 Familien in Wien fotografiert.',
     keywords: `Kundenstimmen Fotograf Wien, Bewertungen ${SITE.name}, Erfahrungen`,
     canonical: '/kundenstimmen/',
   },

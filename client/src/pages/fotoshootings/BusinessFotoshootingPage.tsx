@@ -66,8 +66,8 @@ const BusinessFotoshootingPage: React.FC = () => {
             <h2 className="text-3xl font-bold text-purple-900 mb-4">{de ? '✅ Starker Auftritt für Sie und Ihre Marke' : '✅ A strong presence for you and your brand'}</h2>
             <p className="text-gray-700 text-lg">
               {de
-                ? 'Ob für LinkedIn, Website oder Pitchdeck – Ihre Businessfotos sagen mehr als Worte. In unserem Studio in Wien (und Zürich) setzen wir Sie professionell in Szene: klar, sympathisch und markengerecht.'
-                : 'Whether for LinkedIn, your website, or a pitch deck – your business photos say more than words. In our studio in Vienna (and Zurich) we present you professionally: clear, likeable, and on brand.'}
+                ? 'Ob für LinkedIn, Website oder Pitchdeck – Ihre Businessfotos sagen mehr als Worte. In unserem Studio in Wien setzen wir Sie professionell in Szene: klar, sympathisch und markengerecht.'
+                : 'Whether for LinkedIn, your website, or a pitch deck – your business photos say more than words. In our studio in Vienna we present you professionally: clear, likeable, and on brand.'}
             </p>
           </div>
 
@@ -213,7 +213,7 @@ const BusinessFotoshootingPage: React.FC = () => {
           {/* Call to Action */}
           <div className="bg-purple-600 text-white rounded-lg p-8 text-center">
             <h3 className="text-2xl font-bold mb-4">{de ? 'Jetzt Shooting buchen und Eindruck hinterlassen.' : 'Book your shoot now and make an impression.'}</h3>
-            <p className="text-lg mb-6">{de ? 'Businessfotos in Wien & Zürich' : 'Business photos in Vienna & Zurich'} – {SITE.name}</p>
+            <p className="text-lg mb-6">{de ? 'Businessfotos in Wien' : 'Business photos in Vienna'} – {SITE.name}</p>
             <a
               href="/warteliste"
               className="inline-block bg-white text-purple-600 font-bold py-3 px-8 rounded-lg hover:bg-gray-100 transition-colors"

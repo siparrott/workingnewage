@@ -790,7 +790,7 @@ function App() {
               </Routes>
               </Suspense>
               </ErrorBoundary>
-              <CookieConsent privacyPolicyUrl="/impressum/" imprintUrl="/impressum/" />
+              <CookieConsent privacyPolicyUrl="/datenschutz/" imprintUrl="/impressum/" />
               <ConsentScripts />
             </Router>
               </LanguageProvider>

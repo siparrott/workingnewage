@@ -262,7 +262,7 @@ const EventFotoshootingPage: React.FC = () => {
 
           {/* Contact Section */}
           <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-            <h3 className="text-2xl font-bold text-purple-900 mb-6">{de ? '📍 Verfügbar in Wien & Zürich' : '📍 Available in Vienna & Zurich'}</h3>
+            <h3 className="text-2xl font-bold text-purple-900 mb-6">{de ? '📍 Verfügbar in Wien' : '📍 Available in Vienna'}</h3>
             <p className="text-lg mb-4">📅 {de ? 'Jetzt Termin sichern:' : 'Secure your date now:'} <a href="/warteliste" className="text-purple-600 hover:text-purple-700">{de ? 'Termin planen' : 'Plan a date'}</a></p>
             <p className="text-lg">📸 {SITE.name} – {de ? 'Für bleibende Erinnerungen.' : 'For lasting memories.'}</p>
           </div>

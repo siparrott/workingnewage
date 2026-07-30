@@ -182,7 +182,7 @@ const HomePage: React.FC = () => {
         label: `${SITE.name} Price Calculator`,
         labelSub: 'Your personal package in just a few clicks',
         badge: 'Fast & obligation-free',
-        trustOne: 'Over 5,000 portraits created',
+        trustOne: 'Over 5 million portraits created',
         trustTwo: 'Family-run since 2012',
         trustThree: 'Studio in 1050 Vienna',
         iframeTitle: `PricingEmbed price calculator for ${SITE.name}`,
@@ -194,10 +194,10 @@ const HomePage: React.FC = () => {
         label: `${SITE.name} Preisrechner`,
         labelSub: 'Ihr persönliches Paket in wenigen Klicks',
         badge: 'Schnell & unverbindlich',
-        trustOne: 'Ueber 5.000 Portraits erstellt',
-        trustTwo: 'Familiengefuehrt seit 2012',
+        trustOne: 'Über 5 Mio. Portraits erstellt',
+        trustTwo: 'Familiengeführt seit 2012',
         trustThree: 'Studio in 1050 Wien',
-        iframeTitle: `PricingEmbed Preisrechner fuer ${SITE.name}`,
+        iframeTitle: `PricingEmbed Preisrechner für ${SITE.name}`,
       };
 
   // Fetch voucher products from API with persistent cache
@@ -360,7 +360,7 @@ const HomePage: React.FC = () => {
     <Layout>
       <SEOHead
         title={`Familienfotograf Wien | ${SITE.name}`}
-        description="Ihr professioneller Familienfotograf in Wien: Familien-, Baby-, Neugeborenen-, Schwangerschafts- und Businessfotos im Studio. Über 200 zufriedene Familien. Jetzt Termin buchen!"
+        description="Ihr professioneller Familienfotograf in Wien: Familien-, Baby-, Neugeborenen-, Schwangerschafts- und Businessfotos im Studio. Über 27.000 Familien fotografiert. Jetzt Termin buchen!"
         keywords="Fotograf Wien, Familienfotograf Wien, Babyfotograf Wien, Neugeborenenfotograf Wien, Businessfotografie Wien, Fotostudio Wien"
         canonical="/"
         ogImage={heroImageUrl || undefined}

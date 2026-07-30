@@ -432,16 +432,8 @@ const Footer: React.FC = () => {
                       {t('footer.clientGallery')}
                     </Link>
                   </li>
-                  <li className="pt-2">
-                    <Link 
-                      to="/admin"
-                      onClick={scrollToTop}
-                      className="text-purple-400 hover:text-purple-300 transition-colors flex items-center text-sm"
-                    >
-                      <LogIn size={16} className="mr-2" />
-                      {t('footer.adminLogin')}
-                    </Link>
-                  </li>
+                  {/* Admin login intentionally NOT linked publicly — bookmark /admin.
+                      No reason to advertise the login endpoint to every crawler. */}
                 </>
               )}
             </ul>

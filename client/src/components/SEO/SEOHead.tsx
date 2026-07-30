@@ -27,8 +27,18 @@ export function SEOHead({
   noindex = false,
   hreflang = []
 }: SEOProps) {
-  const siteUrl = SITE.url;
   const location = useLocation();
+
+  // Always build ABSOLUTE URLs. Fall back to the canonical origin when the
+  // per-tenant config hasn't populated SITE.url yet (e.g. during the build-time
+  // prerender) — otherwise canonical/og:image render as RELATIVE paths and every
+  // social share gets no preview image (the single highest-impact SEO bug).
+  const origin = (SITE.url || 'https://www.newagefotografie.com').replace(/\/+$/, '');
+  const abs = (u?: string): string | undefined => {
+    if (!u) return undefined;
+    if (/^https?:\/\//i.test(u)) return u;
+    return `${origin}${u.startsWith('/') ? '' : '/'}${u}`;
+  };
 
   // Pages that have a real, reciprocal English URL (config/localeRoutes.ts) get
   // an accurate self-canonical + de/en/x-default hreflang derived from the CURRENT
@@ -36,11 +46,12 @@ export function SEOHead({
   // reference each other correctly.
   const alt = getAlternates(location.pathname);
 
+  // Canonical on every page: mapped canonical → passed prop → current path.
   const fullCanonical = alt
-    ? `${siteUrl}${alt.canonical}`
-    : canonical
-      ? `${siteUrl}${canonical}`
-      : undefined;
+    ? `${origin}${alt.canonical}`
+    : `${origin}${canonical || location.pathname}`;
+
+  const ogImageAbs = abs(ogImage) || `${origin}/og-default.jpg`;
 
   // For unmapped pages, keep the previous safeguard: drop `/en/...` alternates
   // that don't correspond to a real route (they'd be soft-404s), and only emit
@@ -58,9 +69,9 @@ export function SEOHead({
     '@context': 'https://schema.org',
     '@type': 'ProfessionalService',
     name: SITE.name,
-    image: ogImage,
-    '@id': siteUrl,
-    url: siteUrl,
+    image: ogImageAbs,
+    '@id': origin,
+    url: origin,
     priceRange: '€€',
   };
   if (SITE.phone) structuredData.telephone = SITE.phone;
@@ -78,24 +89,28 @@ export function SEOHead({
 
   return (
     <Helmet>
-      {/* Primary Meta Tags */}
+      {/* Primary Meta Tags (no legacy meta keywords / duplicate meta title) */}
       <title>{title}</title>
-      <meta name="title" content={title} />
       <meta name="description" content={description} />
-      {keywords && <meta name="keywords" content={keywords} />}
 
-      {/* Robots */}
-      {noindex && <meta name="robots" content="noindex, nofollow" />}
+      {/* Robots — allow large image thumbnails in search (matters for a photographer) */}
+      <meta
+        name="robots"
+        content={noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'}
+      />
 
-      {/* Canonical */}
-      {fullCanonical && <link rel="canonical" href={fullCanonical} />}
+      {/* Canonical (absolute, on every page) */}
+      <link rel="canonical" href={fullCanonical} />
 
-      {/* Open Graph / Facebook */}
+      {/* Open Graph / Facebook — all URLs absolute */}
       <meta property="og:type" content={ogType} />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
-      {fullCanonical && <meta property="og:url" content={fullCanonical} />}
-      <meta property="og:image" content={ogImage} />
+      <meta property="og:url" content={fullCanonical} />
+      <meta property="og:image" content={ogImageAbs} />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt" content={title} />
       <meta property="og:site_name" content={SITE.name} />
       <meta property="og:locale" content={SITE.locale} />
 
@@ -103,7 +118,7 @@ export function SEOHead({
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={ogImage} />
+      <meta name="twitter:image" content={ogImageAbs} />
 
       {/* Hreflang for multilingual (only real, reciprocal URLs — see note above) */}
       {hreflangToRender.map((link) => (
@@ -111,7 +126,7 @@ export function SEOHead({
           key={link.lang}
           rel="alternate"
           hrefLang={link.lang}
-          href={`${siteUrl}${link.url}`}
+          href={`${origin}${link.url}`}
         />
       ))}
 
