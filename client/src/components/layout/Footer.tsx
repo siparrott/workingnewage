@@ -431,7 +431,7 @@ const Footer: React.FC = () => {
               ) : (
                 <>
                   <li className="pt-2">
-                    <Link 
+                    <Link
                       to="/galleries"
                       onClick={scrollToTop}
                       className="text-gray-300 hover:text-white transition-colors flex items-center text-sm"
@@ -440,8 +440,18 @@ const Footer: React.FC = () => {
                       {t('footer.clientGallery')}
                     </Link>
                   </li>
-                  {/* Admin login intentionally NOT linked publicly — bookmark /admin.
-                      No reason to advertise the login endpoint to every crawler. */}
+                  <li className="pt-2">
+                    {/* rel=nofollow so we don't advertise the login endpoint to crawlers. */}
+                    <Link
+                      to="/admin"
+                      onClick={scrollToTop}
+                      rel="nofollow"
+                      className="text-purple-400 hover:text-purple-300 transition-colors flex items-center text-sm"
+                    >
+                      <LogIn size={16} className="mr-2" />
+                      {t('footer.adminLogin')}
+                    </Link>
+                  </li>
                 </>
               )}
             </ul>
