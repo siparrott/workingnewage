@@ -2441,10 +2441,16 @@ Bitte versuchen Sie es später noch einmal.`;
         );
       }
       
-      // Filter by tag
+      // Filter by tag. Case studies are authored in German with the "fallstudie"
+      // tag but surfaced on the /case-studies page (which queries "case-study"),
+      // so treat those as synonyms — a post tagged with EITHER appears. Match is
+      // case-insensitive and tolerates the space/hyphen spelling ("case study").
       if (tag && tag !== 'all') {
-        posts = posts.filter(post => 
-          post.tags && post.tags.includes(tag)
+        const wanted = tag.toLowerCase();
+        const caseStudyAliases = ['case-study', 'case study', 'fallstudie'];
+        const accepted = caseStudyAliases.includes(wanted) ? caseStudyAliases : [wanted];
+        posts = posts.filter(post =>
+          post.tags && post.tags.some((t) => accepted.includes(String(t).toLowerCase()))
         );
       }
       
