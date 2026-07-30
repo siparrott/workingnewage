@@ -18,11 +18,14 @@ const secret = () => process.env.JWT_SECRET || process.env.SESSION_SECRET || 'de
 export interface OfferPayload {
   amount: number; // euros
   title: string;
+  slug?: string; // voucher product slug — lets product-restricted coupons match this offer
 }
 
 export function signOfferToken(payload: OfferPayload): string {
   const cents = Math.max(0, Math.round(Number(payload.amount) * 100));
-  const body = Buffer.from(JSON.stringify({ a: cents, t: String(payload.title || 'Gutschein').slice(0, 120) })).toString('base64url');
+  const data: Record<string, unknown> = { a: cents, t: String(payload.title || 'Gutschein').slice(0, 120) };
+  if (payload.slug) data.s = String(payload.slug).slice(0, 120);
+  const body = Buffer.from(JSON.stringify(data)).toString('base64url');
   const sig = crypto.createHmac('sha256', secret()).update(body).digest('base64url');
   return `${body}.${sig}`;
 }
@@ -39,7 +42,7 @@ export function verifyOfferToken(token: string | undefined | null): OfferPayload
     const parsed = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
     const cents = Number(parsed.a);
     if (!(cents > 0)) return null;
-    return { amount: cents / 100, title: String(parsed.t || 'Gutschein') };
+    return { amount: cents / 100, title: String(parsed.t || 'Gutschein'), slug: parsed.s ? String(parsed.s) : undefined };
   } catch {
     return null;
   }

@@ -22,20 +22,21 @@ const CartPage: React.FC = () => {
   // (Legacy ?amount/&title still opens the flow but is not tamper-proof.)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const decodeOffer = (token: string): { amount: number; title: string } | null => {
+    const decodeOffer = (token: string): { amount: number; title: string; slug?: string } | null => {
       try {
         let b = token.split('.')[0].replace(/-/g, '+').replace(/_/g, '/');
         while (b.length % 4) b += '=';
         const j = JSON.parse(atob(b));
         const amt = (Number(j.a) || 0) / 100;
-        return amt > 0 ? { amount: amt, title: String(j.t || 'Gutschein') } : null;
+        return amt > 0 ? { amount: amt, title: String(j.t || 'Gutschein'), slug: j.s ? String(j.s) : undefined } : null;
       } catch { return null; }
     };
     const offerToken = params.get('offer');
     let item: any = null;
     if (offerToken) {
       const dec = decodeOffer(offerToken);
-      if (dec) item = { name: dec.title, title: dec.title, price: dec.amount, type: 'voucher', offerToken };
+      // productSlug lets product-restricted coupons match this offer at checkout.
+      if (dec) item = { name: dec.title, title: dec.title, price: dec.amount, type: 'voucher', offerToken, productSlug: dec.slug };
     } else {
       const amount = parseFloat(params.get('amount') || '');
       if (amount > 0) {
