@@ -5,6 +5,15 @@ import { PublicLandingPageSectionWrapper } from './PublicLandingPageSectionWrapp
 import { PublicLandingPageCtaButton } from './PublicLandingPageCtaButton';
 import { alignText, alignBlock, alignJustify, type SectionAlign } from '../../utils/sectionAlignment';
 
+// Show the price with a € symbol. A bare number ("195") becomes "€195"; a value
+// that already carries a currency ("€195", "195 €", "ab 95 €") is left untouched.
+const formatPrice = (raw: string): string => {
+  const s = String(raw).trim();
+  if (!s) return s;
+  if (/[€$£]|eur|chf/i.test(s)) return s;
+  return `€${s}`;
+};
+
 interface PublicLandingPageOfferSectionProps {
   data: {
     headline?: string;
@@ -52,7 +61,7 @@ export function PublicLandingPageOfferSection({
         <div className="bg-white rounded-2xl shadow-xl border border-purple-100 p-8 md:p-10">
           {data.price && (
             <div className={`${alignText(align)} mb-8`}>
-              <span className="block text-5xl font-extrabold text-purple-600 leading-none">{data.price}</span>
+              <span className="block text-5xl font-extrabold text-purple-600 leading-none">{formatPrice(data.price)}</span>
             </div>
           )}
 

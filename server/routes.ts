@@ -15141,7 +15141,29 @@ Return ONLY a valid JSON object with EXACTLY these keys:
       } else {
         applicableSubtotal = parseFloat((orderAmount as any) || '0');
       }
-      
+
+      // Offer-token (landing-page) and legacy voucher checkouts carry NO product
+      // identifiers (productId/productSlug/sku all undefined). A product-restricted
+      // coupon then matches nothing, so applicableSubtotal stays 0 and we would
+      // return a valid-but-€0 discount — the coupon looks "applied" yet the total
+      // never drops. When the items genuinely have no identifiers to match against,
+      // the restriction is unenforceable, so apply the coupon to the full order.
+      // (When a slug IS present and simply doesn't match, we still honour the
+      // restriction and leave applicableSubtotal at 0.)
+      if (applicableSubtotal === 0 && !allProducts && Array.isArray(items) && items.length > 0) {
+        const noIdentifiers = items.every(
+          (it: any) => !it.productId && !it.productSlug && !it.sku
+        );
+        if (noIdentifiers) {
+          const itemsTotal = items.reduce(
+            (s: number, it: any) => s + (Number(it.price) || 0) * (Number(it.quantity) || 1),
+            0
+          );
+          applicableSubtotal = parseFloat(String(orderAmount ?? '')) || itemsTotal;
+          console.log('[COUPON VALIDATE] Items carry no product identifiers — restriction unenforceable, applying to full order:', applicableSubtotal);
+        }
+      }
+
       console.log('[COUPON VALIDATE] Final applicableSubtotal:', applicableSubtotal);
 
       let discountAmount = 0;

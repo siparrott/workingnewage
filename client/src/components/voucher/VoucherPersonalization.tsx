@@ -277,6 +277,18 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
     }
   };
 
+  // Express path: a self-buyer (not a gift) skips design/photo/message and goes
+  // straight to checkout with the free PDF voucher.
+  const handleExpressBuy = () => {
+    const pdf = deliveryOptions.find((o) => o.id === 'pdf') || deliveryOptions[0];
+    onComplete({
+      deliveryOption: pdf,
+      personalMessage: '',
+      recipientName: '',
+      senderName: '',
+    } as VoucherPersonalizationData);
+  };
+
   const isStepComplete = (step: number): boolean => {
     switch (step) {
       case 1:
@@ -366,6 +378,22 @@ const VoucherPersonalization: React.FC<VoucherPersonalizationProps> = ({
               </button>
             );
           })()}
+          {/* Express path — self-buyers skip the gift personalisation entirely. */}
+          <div className="mb-6 rounded-xl border border-purple-200 bg-purple-50 p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-sm text-gray-700">
+              <strong>{language === 'en' ? 'Just buying for yourself?' : 'Kaufen Sie für sich selbst?'}</strong>{' '}
+              {language === 'en'
+                ? 'Skip the gift personalisation and check out with a PDF voucher.'
+                : 'Überspringen Sie die Geschenk-Personalisierung und kaufen Sie direkt einen PDF-Gutschein.'}
+            </p>
+            <button
+              type="button"
+              onClick={handleExpressBuy}
+              className="whitespace-nowrap rounded-full bg-purple-600 px-5 py-2.5 font-semibold text-white transition-colors hover:bg-purple-700"
+            >
+              {language === 'en' ? 'Skip to checkout →' : 'Direkt zur Kasse →'}
+            </button>
+          </div>
           <h2 className="text-2xl font-bold mb-6 text-center">{t.step1Title}</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {deliveryOptions.map((option) => (
