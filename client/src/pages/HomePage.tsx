@@ -740,8 +740,8 @@ const HomePage: React.FC = () => {
           <div className="flex flex-col md:flex-row-reverse items-center gap-8">
             <div className="md:w-1/3">
               <div className="aspect-square max-w-sm mx-auto overflow-hidden rounded-lg shadow-lg">
-                <ZoomableImageV2 
-                  src={imageForSection('content-2', photoGridImage)}
+                <ZoomableImageV2
+                  src={imageForSection('content-2', 'https://i.postimg.cc/RZjf8FsX/Whats-App-Image-2025-05-24-at-2-38-45-PM-1.jpg')}
                   alt="Business Headshots Wien - Professionelle Businessfotografie im Studio"
                   className="w-full h-full object-cover object-top"
                   priority={true}
@@ -870,8 +870,8 @@ const HomePage: React.FC = () => {
               className="bg-white rounded-lg shadow-lg overflow-hidden block cursor-pointer transform transition-transform hover:-translate-y-1 hover:shadow-xl"
             >
               <div className="aspect-[4/3] overflow-hidden relative">
-                <img 
-                  src={imageForSection('services-business', photoGridImage)}
+                <img
+                  src={imageForSection('services-business', 'https://i.postimg.cc/6QqWdLLP/Whats-App-Image-2025-05-24-at-2-38-46-PM.jpg')}
                   alt="Business Headshots Wien - Professionelle Businessfotografie im Studio"
                   className="w-full h-full object-cover transition-all duration-500 hover:scale-110"
                   loading="lazy"
