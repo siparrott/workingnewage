@@ -15394,6 +15394,43 @@ Return ONLY a valid JSON object with EXACTLY these keys:
     }
   });
 
+  // Export email subscribers as CSV (admin). Opened via window.open, so it relies
+  // on the admin session cookie for auth. Optional ?tag=newsletter filters to a
+  // single tag (case-insensitive); omit to export everyone. Used by the
+  // Campaigns → Subscribers "Export CSV" button to pull the €50 newsletter list.
+  app.get('/api/email/subscribers.csv', authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const tagFilter = String(req.query.tag || '').trim().toLowerCase();
+      const subs = await db.select().from(emailSubscribers).orderBy(desc(emailSubscribers.createdAt));
+      const filtered = tagFilter
+        ? subs.filter((s: any) => Array.isArray(s.tags) && s.tags.some((t: any) => String(t).toLowerCase() === tagFilter))
+        : subs;
+
+      // RFC-4180 escaping: wrap in quotes and double any embedded quotes so
+      // commas/quotes/newlines in names or tags never break the columns.
+      const esc = (v: any): string => {
+        const s = v === null || v === undefined ? '' : String(v);
+        return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+      const cols = ['email', 'firstName', 'lastName', 'phone', 'status', 'source', 'tags', 'subscribedAt', 'createdAt'];
+      const header = cols.join(',');
+      const rows = filtered.map((s: any) => cols.map((c) => {
+        if (c === 'tags') return esc(Array.isArray(s.tags) ? s.tags.join('; ') : '');
+        const val = s[c];
+        return esc(val instanceof Date ? val.toISOString() : val);
+      }).join(','));
+
+      const filename = tagFilter ? `subscribers-${tagFilter}.csv` : 'subscribers.csv';
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      // UTF-8 BOM so Excel renders umlauts (ä/ö/ü) correctly.
+      res.send('﻿' + header + '\n' + rows.join('\n'));
+    } catch (error) {
+      console.error('Error exporting subscribers CSV:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   // Optional: secure admin endpoint to force refresh coupons after Heroku config change
   app.post("/__admin/refresh-coupons", async (req: Request, res: Response) => {
     try {

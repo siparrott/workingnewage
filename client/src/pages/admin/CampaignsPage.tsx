@@ -13,6 +13,7 @@ import {
   Sparkles,
   Target,
   Eye,
+  Download,
   Image as ImageIcon
 } from 'lucide-react';
 import AdvancedCampaignBuilder from '../../components/admin/AdvancedCampaignBuilder';
@@ -505,8 +506,19 @@ const AdvancedEmailMarketingHub: React.FC = () => {
           <p className="text-gray-600">Manage your email subscribers and segments</p>
         </div>
         <div className="flex space-x-3">
-          <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
-            Import Subscribers
+          <button
+            onClick={() => window.open('/api/email/subscribers.csv?tag=newsletter', '_blank')}
+            className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+          >
+            <Download size={16} className="mr-2" />
+            Export newsletter list
+          </button>
+          <button
+            onClick={() => window.open('/api/email/subscribers.csv', '_blank')}
+            className="flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+          >
+            <Download size={16} className="mr-2" />
+            Export all (CSV)
           </button>
           <button className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
             <Plus size={16} className="mr-2" />
@@ -515,11 +527,15 @@ const AdvancedEmailMarketingHub: React.FC = () => {
         </div>
       </div>
 
-      {/* Subscriber management interface would go here */}
       <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
         <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Subscriber management interface</h3>
-        <p className="text-gray-600">Advanced subscriber list with segmentation, tagging, and bulk operations.</p>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Export your subscribers</h3>
+        <p className="text-gray-600 max-w-xl mx-auto">
+          <strong>Export newsletter list</strong> downloads everyone who signed up via the €50
+          voucher form (tagged <code>newsletter</code>). <strong>Export all</strong> downloads every
+          subscriber with their tags, source and signup date — open it in Excel to filter or import
+          into another tool.
+        </p>
       </div>
     </div>
   );
