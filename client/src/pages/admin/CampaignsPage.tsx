@@ -27,7 +27,7 @@ type TabType = 'overview' | 'campaigns' | 'sequences' | 'analytics' | 'templates
 
 // €50 voucher delivery reconciliation: shows newsletter signups with no recorded
 // voucher send and lets an admin resend to one or all of them.
-type Undelivered = { email: string; firstName?: string; createdAt?: string };
+type Undelivered = { email: string; firstName?: string; createdAt?: string; legacy?: boolean };
 const NewsletterReconcile: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<{ total: number; undeliveredCount: number; undelivered: Undelivered[] } | null>(null);
@@ -88,7 +88,14 @@ const NewsletterReconcile: React.FC = () => {
           <div className="max-h-56 overflow-auto divide-y divide-gray-100 border border-gray-100 rounded-lg">
             {data.undelivered.slice(0, 200).map((u) => (
               <div key={u.email} className="flex items-center justify-between px-3 py-2 text-sm">
-                <span className="text-gray-800">{u.email}</span>
+                <span className="text-gray-800">
+                  {u.email}
+                  {u.legacy && (
+                    <span className="ml-2 inline-block rounded bg-blue-50 px-1.5 py-0.5 text-[11px] font-medium text-blue-700" title="Signed up before the mailing-list write existed — found in CRM leads. Sending adds them to the list.">
+                      pre-fix signup
+                    </span>
+                  )}
+                </span>
                 <button disabled={busy} onClick={() => resend({ email: u.email })} className="text-purple-600 hover:text-purple-700 disabled:opacity-50">Send</button>
               </div>
             ))}

@@ -578,6 +578,32 @@ async function sendNewsletterVoucherEmail(
   }
 }
 
+// Gather every newsletter signup from BOTH sources, deduped by lowercased email:
+//   • email_subscribers tagged newsletter/voucher (signups since ~Mar 2026), and
+//   • crm_leads with a newsletter source (ALL signups ever — this is where the
+//     older homepage signups live, before the email_subscribers write existed).
+// `legacy: true` marks addresses that are only in crm_leads (not yet on the list).
+async function gatherNewsletterSignups(): Promise<Map<string, { email: string; firstName?: string; createdAt?: any; legacy: boolean }>> {
+  const map = new Map<string, { email: string; firstName?: string; createdAt?: any; legacy: boolean }>();
+  const subs = await db.select().from(emailSubscribers);
+  for (const s of subs as any[]) {
+    if (Array.isArray(s.tags) && s.tags.some((t: any) => ['newsletter', 'voucher'].includes(String(t).toLowerCase()))) {
+      const key = String(s.email).toLowerCase();
+      if (key) map.set(key, { email: s.email, firstName: s.firstName, createdAt: s.createdAt, legacy: false });
+    }
+  }
+  const leads = await db.select().from(crmLeads);
+  for (const l of leads as any[]) {
+    const src = String(l.source || '').toLowerCase();
+    const msg = String(l.message || '').toLowerCase();
+    if (src.includes('newsletter') || msg.includes('50 eur voucher') || msg.includes('voucher offer')) {
+      const key = String(l.email).toLowerCase();
+      if (key && !map.has(key)) map.set(key, { email: l.email, firstName: l.name, createdAt: l.createdAt, legacy: true });
+    }
+  }
+  return map;
+}
+
 // Decide a blog post's status/published/publishedAt from its scheduling fields.
 // scheduledFor (or a future publishedAt) is the SOURCE OF TRUTH: any future date
 // means SCHEDULED + hidden (published=false, publishedAt cleared) until the hourly
@@ -18515,20 +18541,17 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
   // having received their €50 voucher email (no 'sent' automation log for them).
   app.get('/api/email/newsletter/undelivered', authenticateUser, async (_req: Request, res: Response) => {
     try {
-      const subs = await db.select().from(emailSubscribers);
-      const newsletterSubs = subs.filter((s: any) =>
-        Array.isArray(s.tags) && s.tags.some((t: any) => ['newsletter', 'voucher'].includes(String(t).toLowerCase()))
-      );
+      const signups = await gatherNewsletterSignups();
       const logs = await db
         .select({ email: emailAutomationLogs.clientEmail })
         .from(emailAutomationLogs)
         .where(eq(emailAutomationLogs.status, 'sent'));
       const sentSet = new Set(logs.map((l: any) => String(l.email || '').toLowerCase()));
-      const undelivered = newsletterSubs
-        .filter((s: any) => !sentSet.has(String(s.email).toLowerCase()))
-        .map((s: any) => ({ email: s.email, firstName: s.firstName, createdAt: s.createdAt }))
-        .sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-      res.json({ total: newsletterSubs.length, undeliveredCount: undelivered.length, undelivered });
+      const undelivered = [...signups.values()]
+        .filter((s) => !sentSet.has(String(s.email).toLowerCase()))
+        .map((s) => ({ email: s.email, firstName: s.firstName, createdAt: s.createdAt, legacy: s.legacy }))
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      res.json({ total: signups.size, undeliveredCount: undelivered.length, undelivered });
     } catch (error) {
       console.error('Error computing undelivered newsletter vouchers:', error);
       res.status(500).json({ error: 'Internal server error' });
@@ -18544,18 +18567,15 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
       if (email && String(email).includes('@')) {
         targets = [String(email).trim()];
       } else if (all) {
-        const subs = await db.select().from(emailSubscribers);
-        const newsletterSubs = subs.filter((s: any) =>
-          Array.isArray(s.tags) && s.tags.some((t: any) => ['newsletter', 'voucher'].includes(String(t).toLowerCase()))
-        );
+        const signups = await gatherNewsletterSignups();
         const logs = await db
           .select({ email: emailAutomationLogs.clientEmail })
           .from(emailAutomationLogs)
           .where(eq(emailAutomationLogs.status, 'sent'));
         const sentSet = new Set(logs.map((l: any) => String(l.email || '').toLowerCase()));
-        targets = newsletterSubs
-          .filter((s: any) => !sentSet.has(String(s.email).toLowerCase()))
-          .map((s: any) => String(s.email));
+        targets = [...signups.values()]
+          .filter((s) => !sentSet.has(String(s.email).toLowerCase()))
+          .map((s) => String(s.email));
       } else {
         return res.status(400).json({ error: 'Provide `email` or `all: true`' });
       }
@@ -18567,7 +18587,25 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
       let sent = 0, failed = 0;
       for (const t of targets) {
         const r = await sendNewsletterVoucherEmail(t, { isResend: true });
-        r.ok ? sent++ : failed++;
+        if (r.ok) {
+          sent++;
+          // Backfill legacy homepage signups (crm_leads only) onto the mailing list
+          // so they now appear in exports and future campaigns.
+          try {
+            const existing = await db.select({ id: emailSubscribers.id }).from(emailSubscribers).where(eq(emailSubscribers.email, t)).limit(1);
+            if (existing.length === 0) {
+              await db.insert(emailSubscribers).values({
+                email: t,
+                firstName: t.split('@')[0] || 'Subscriber',
+                status: 'active',
+                source: 'form',
+                tags: ['newsletter', 'voucher'],
+              });
+            }
+          } catch { /* backfill is best-effort */ }
+        } else {
+          failed++;
+        }
       }
       res.json({ ok: true, attempted: targets.length, sent, failed, capped, cap: MAX });
     } catch (error) {
