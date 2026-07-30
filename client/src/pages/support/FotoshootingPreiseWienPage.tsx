@@ -127,7 +127,7 @@ const FotoshootingPreiseWienPage: React.FC = () => {
           </p>
           <p className="mt-4 inline-flex items-center gap-2 text-sm bg-white/15 rounded-full px-4 py-1.5">
             <MapPin className="w-4 h-4" />
-            {isDe ? 'Familienfotograf Wien 1050 · Margaretenstraße' : 'Family photographer Vienna 1050 · Margaretenstraße'}
+            {isDe ? 'Familienfotograf Wien 1050 · Wien-Margareten' : 'Family photographer Vienna 1050 · Margareten district'}
           </p>
         </div>
       </section>

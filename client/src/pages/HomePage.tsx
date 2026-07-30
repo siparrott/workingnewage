@@ -14,10 +14,10 @@ import { useManualPageContent } from '../hooks/useManualPageContent';
 import { SEOHead } from '../components/SEO/SEOHead';
 import { Helmet } from 'react-helmet-async';
 import { getCachedData, setCachedData } from '../lib/persistentCache';
-import { ContextualLinks } from '../components/SEO/ContextualLinks';
 import { useImagePreloader } from '../hooks/useImagePreloader';
 import { useGoogleReviews } from '../hooks/useGoogleReviews';
 import HomepageConfidenceSection from '../components/home/HomepageConfidenceSection';
+import CareerStorySection from '../components/home/CareerStorySection';
 import { SITE } from '../config/site';
 
 // Translation mappings for German product names and descriptions
@@ -382,7 +382,7 @@ const HomePage: React.FC = () => {
             description: 'Professioneller Familienfotograf in Wien. Spezialisiert auf Familienfotos, Schwangerschaftsfotos, Neugeborenenfotos und Business Portraits.',
             address: {
               '@type': 'PostalAddress',
-              streetAddress: 'Margaretenstraße',
+              streetAddress: 'Wehrgasse 11A/2+5',
               addressLocality: 'Wien',
               postalCode: '1050',
               addressCountry: 'AT'
@@ -596,6 +596,9 @@ const HomePage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Career-history band — the evidence + workings behind the stats */}
+      <CareerStorySection />
 
       <section id="preisrechner" className="bg-white py-16 md:py-24 scroll-mt-24">
         <div className="container mx-auto px-4">
@@ -1081,8 +1084,8 @@ const HomePage: React.FC = () => {
           </h2>
           <p className="text-center text-gray-700 max-w-2xl mx-auto mb-6 leading-relaxed">
             {language === 'en'
-              ? `${SITE.name} is your family photographer in Vienna 1050. Our studio in Margaretenstraße offers daylight rooms, calm posing areas for newborns, and a clean backdrop wall for business headshots – all within walking distance of public transport.`
-              : `${SITE.name} ist Ihr Familienfotograf Wien 1050. Unser Fotostudio Wien in der Margaretenstraße bietet Tageslicht-Räume, ruhige Pose-Bereiche für Neugeborene und eine saubere Hintergrundwand für Business-Headshots – fußläufig zu allen öffentlichen Verkehrsmitteln.`}
+              ? `${SITE.name} is your family photographer in Vienna 1050. Our studio in Wien-Margareten (Wehrgasse 11A/2+5) offers daylight rooms, calm posing areas for newborns, and a clean backdrop wall for business headshots – all within walking distance of public transport.`
+              : `${SITE.name} ist Ihr Familienfotograf Wien 1050. Unser Fotostudio in Wien-Margareten (Wehrgasse 11A/2+5) bietet Tageslicht-Räume, ruhige Pose-Bereiche für Neugeborene und eine saubere Hintergrundwand für Business-Headshots – fußläufig zu allen öffentlichen Verkehrsmitteln.`}
           </p>
           <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-sm text-center">
             <li>
@@ -1134,77 +1137,6 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Explore Related Photography Services – additive anchor-rich cluster for SEO */}
-      <section className="py-12 bg-white border-t border-gray-100" aria-labelledby="related-services-heading">
-        <div className="container mx-auto px-4 max-w-5xl">
-          <h2 id="related-services-heading" className="text-2xl md:text-3xl font-bold text-center text-purple-900 mb-8">
-            {language === 'en'
-              ? 'Explore Related Photography Services in Vienna'
-              : 'Weitere Fotografie-Leistungen in Wien entdecken'}
-          </h2>
-          <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-center">
-            <li>
-              <Link to="/familienfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
-                {language === 'en' ? 'Family Photography Vienna' : 'Familienfotos Wien'}
-              </Link>
-            </li>
-            <li>
-              <Link to="/neugeborenenfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
-                {language === 'en' ? 'Newborn Photography Vienna' : 'Neugeborenenfotos Wien'}
-              </Link>
-            </li>
-            <li>
-              <Link to="/schwangerschaftsfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
-                {language === 'en' ? 'Maternity Photography Vienna' : 'Schwangerschaftsfotos Wien'}
-              </Link>
-            </li>
-            <li>
-              <Link to="/business-portrait-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
-                {language === 'en' ? 'Business Headshots Vienna' : 'Business Portraits Wien'}
-              </Link>
-            </li>
-            <li>
-              <Link to="/babyfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
-                {language === 'en' ? 'Baby Photography Vienna' : 'Babyfotos Wien'}
-              </Link>
-            </li>
-            <li>
-              <Link to="/schul-und-hochschulfotografie-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
-                {language === 'en' ? 'School & University Photography' : 'Schul- & Hochschulfotografie'}
-              </Link>
-            </li>
-            <li>
-              <Link to="/portfolio" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-50 hover:text-purple-900 font-medium transition-colors">
-                {language === 'en' ? 'View Full Portfolio' : 'Gesamtes Portfolio ansehen'}
-              </Link>
-            </li>
-          </ul>
-
-          {/* Contextual pre-footer CTA */}
-          <p className="text-center text-gray-700 mt-10 max-w-2xl mx-auto">
-            {language === 'en' ? (
-              <>
-                Ready to book your photography session in Vienna? View our{' '}
-                <Link to="/preise" className="text-purple-700 underline hover:text-purple-900 font-medium">pricing options</Link>
-                {' '}or{' '}
-                <Link to="/kontakt" className="text-purple-700 underline hover:text-purple-900 font-medium">get in touch</Link>
-                {' '}today.
-              </>
-            ) : (
-              <>
-                Bereit, Ihr Fotoshooting in Wien zu buchen? Sehen Sie unsere{' '}
-                <Link to="/preise" className="text-purple-700 underline hover:text-purple-900 font-medium">Preise</Link>
-                {' '}oder{' '}
-                <Link to="/kontakt" className="text-purple-700 underline hover:text-purple-900 font-medium">kontaktieren Sie uns</Link>
-                {' '}noch heute.
-              </>
-            )}
-          </p>
-        </div>
-      </section>
-
-      {/* Contextual internal links for SEO authority flow */}
-      <ContextualLinks pathname="/" language={language} />
     </Layout>
   );
 };

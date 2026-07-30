@@ -380,6 +380,7 @@ const SITE_LINKS: Record<string, RelatedLink[]> = {
 
 // Pages to skip (no related section needed)
 const SKIP_PATHS = new Set([
+  '/', '/en', '/en/', // home — has its own consolidated service block, avoid duplicate link lists
   '/admin', '/checkout', '/cart', '/order-complete',
   '/vouchers/success', '/voucher/thank-you',
   '/impressum/', '/agb/', '/datenschutz/',

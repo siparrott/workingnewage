@@ -1099,7 +1099,7 @@ const translations = {
   
   'faq.worry1.q': 'What if my kids won\'t cooperate?',
   'faq.worry1.micro': 'We\'re experts at playful sessions',
-  'faq.worry1.full': 'Children rarely sit still – and that\'s okay! We use games, bubbles, and silly sounds to capture genuine smiles. The best shots often come from unscripted moments. Parents are always surprised how quickly kids warm up.',
+  'faq.worry1.full': 'We learned our craft at Olan Mills – ten minutes per family, forty times a day. When a child has to laugh within ten minutes, you learn very quickly how to make it happen. With us, you have a full hour. We are experts at playful sessions – even with camera-shy children.',
   
   'faq.worry2.q': 'How long does it take?',
   'faq.worry2.micro': 'About 60 min – relaxed & fun',
@@ -2264,7 +2264,7 @@ const translations = {
   
   'faq.worry1.q': 'Was, wenn meine Kinder nicht mitmachen?',
   'faq.worry1.micro': 'Wir sind Experten für spielerische Sessions',
-  'faq.worry1.full': 'Kinder sitzen selten still – und das ist okay! Wir nutzen Spiele, Seifenblasen und lustige Geräusche für echte Lächeln. Die besten Aufnahmen entstehen oft ungeplant. Eltern sind immer überrascht, wie schnell Kinder auftauen.',
+  'faq.worry1.full': 'Wir haben bei Olan Mills gelernt – dort hatten wir zehn Minuten pro Familie, vierzig Mal am Tag. Wenn ein Kind in zehn Minuten lachen soll, lernt man sehr schnell, wie das geht. Bei uns haben Sie eine volle Stunde. Wir sind Experten für spielerische Sessions – auch mit kamerascheuen Kindern.',
   
   'faq.worry2.q': 'Wie lange dauert es?',
   'faq.worry2.micro': 'Ca. 60 Min. – entspannt & lustig',

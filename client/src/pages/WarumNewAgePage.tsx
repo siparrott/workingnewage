@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { SEOHead } from '../components/SEO/SEOHead';
 import GoogleReviews from '../components/layout/GoogleReviews';
+import CareerStorySection from '../components/home/CareerStorySection';
 import { useLanguage } from '../context/LanguageContext';
 import { Star, Users, HelpCircle, BookOpen, ShieldCheck, MapPin, ArrowRight } from 'lucide-react';
 
@@ -63,6 +64,9 @@ export default function WarumNewAgePage() {
             </p>
           </div>
         </section>
+
+        {/* Career-history band — the evidence + workings behind the stats */}
+        <CareerStorySection />
 
         <GoogleReviews />
 
