@@ -39,6 +39,14 @@ export function SEOHead({
     if (/^https?:\/\//i.test(u)) return u;
     return `${origin}${u.startsWith('/') ? '' : '/'}${u}`;
   };
+  // Canonical URL convention: WITH trailing slash (root and file paths excepted),
+  // so /preise and /preise/ consolidate to one canonical form.
+  const withSlash = (p: string): string => {
+    if (!p || p === '/') return '/';
+    const path = p.split(/[?#]/)[0];
+    if (/\.[a-z0-9]+$/i.test(path)) return path; // has a file extension
+    return path.endsWith('/') ? path : `${path}/`;
+  };
 
   // Pages that have a real, reciprocal English URL (config/localeRoutes.ts) get
   // an accurate self-canonical + de/en/x-default hreflang derived from the CURRENT
@@ -46,10 +54,9 @@ export function SEOHead({
   // reference each other correctly.
   const alt = getAlternates(location.pathname);
 
-  // Canonical on every page: mapped canonical → passed prop → current path.
-  const fullCanonical = alt
-    ? `${origin}${alt.canonical}`
-    : `${origin}${canonical || location.pathname}`;
+  // Canonical on every page: mapped canonical → passed prop → current path,
+  // always normalised to the trailing-slash convention.
+  const fullCanonical = `${origin}${withSlash(alt ? alt.canonical : (canonical || location.pathname))}`;
 
   const ogImageAbs = abs(ogImage) || `${origin}/og-default.jpg`;
 
@@ -126,7 +133,7 @@ export function SEOHead({
           key={link.lang}
           rel="alternate"
           hrefLang={link.lang}
-          href={`${origin}${link.url}`}
+          href={`${origin}${withSlash(link.url)}`}
         />
       ))}
 

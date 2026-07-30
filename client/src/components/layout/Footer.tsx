@@ -21,7 +21,9 @@ const Footer: React.FC = () => {
   // profile (empty string → icon hidden).
   const socialUrl = (kw: string) =>
     SITE.social.find((u) => u.toLowerCase().includes(kw)) || SOCIAL_FALLBACK[kw] || '';
-  const phoneDigits = SITE.phone.replace(/[^0-9]/g, '');
+  // Known studio phone (Google Business Profile); env SITE.phone overrides.
+  const phone = SITE.phone || '+43 677 63399210';
+  const phoneDigits = phone.replace(/[^0-9]/g, '');
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -376,18 +378,24 @@ const Footer: React.FC = () => {
               <li className="text-sm">
                 {t('contact.addressNote')}
               </li>
-              {SITE.phone && (
-                <li>
-                  <a
-                    href={`https://wa.me/${phoneDigits}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm hover:text-purple-300 transition-colors"
-                  >
-                    Tel/WhatsApp: {SITE.phone}
-                  </a>
-                </li>
-              )}
+              <li>
+                <a
+                  href={`tel:${phone.replace(/[^0-9+]/g, '')}`}
+                  className="text-sm hover:text-purple-300 transition-colors"
+                >
+                  {language === 'de' ? 'Telefon' : 'Phone'}: {phone}
+                </a>
+              </li>
+              <li>
+                <a
+                  href={`https://wa.me/${phoneDigits}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm hover:text-purple-300 transition-colors"
+                >
+                  WhatsApp: {phone}
+                </a>
+              </li>
               {SITE.email && (
                 <li>
                   <a

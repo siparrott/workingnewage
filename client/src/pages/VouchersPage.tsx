@@ -234,23 +234,30 @@ const VouchersPage: React.FC = () => {
           {JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'ItemList',
-            itemListElement: voucherProducts.slice(0, 5).map((voucher, index) => ({
-              '@type': 'ListItem',
-              position: index + 1,
-              item: {
-                '@type': 'Product',
-                name: voucher.name,
-                description: voucher.description,
-                image: voucher.image,
-                offers: {
-                  '@type': 'Offer',
-                  price: voucher.price,
-                  priceCurrency: 'EUR',
-                  availability: 'https://schema.org/InStock',
-                  url: `${SITE.url}${voucher.route}`
-                }
-              }
-            }))
+            itemListElement: voucherProducts
+              .filter((v) => v.price > 0)
+              .map((voucher, index) => ({
+                '@type': 'ListItem',
+                position: index + 1,
+                item: {
+                  '@type': 'Product',
+                  name: voucher.name,
+                  description: (voucher.description || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300),
+                  image: voucher.image?.startsWith('http')
+                    ? voucher.image
+                    : voucher.image ? `${SITE.url}${voucher.image}` : undefined,
+                  sku: String(voucher.slug || voucher.id),
+                  brand: { '@type': 'Brand', name: SITE.name },
+                  offers: {
+                    '@type': 'Offer',
+                    price: voucher.price,
+                    priceCurrency: 'EUR',
+                    availability: 'https://schema.org/InStock',
+                    url: `${SITE.url}${voucher.route}`,
+                    seller: { '@type': 'Organization', name: SITE.name },
+                  },
+                },
+              })),
           })}
         </script>
 

@@ -393,9 +393,10 @@ const HomePage: React.FC = () => {
               longitude: 16.356010
             },
             url: SITE.url,
-            telephone: '+43-XXX-XXXXXXX',
+            telephone: '+43 677 63399210',
             priceRange: '€€',
-            openingHours: 'Mo-Fr 09:00-18:00',
+            // Open by appointment (incl. weekends) — no fixed opening hours,
+            // so we intentionally omit openingHours rather than claim wrong ones.
             areaServed: {
               '@type': 'City',
               name: 'Wien'
@@ -623,10 +624,10 @@ const HomePage: React.FC = () => {
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-3">
               {[
-                { en: 'Family from €199', de: 'Familie ab €199' },
-                { en: 'Newborn from €199', de: 'Newborn ab €199' },
-                { en: 'Maternity from €179', de: 'Schwangerschaft ab €179' },
-                { en: 'Business Portraits from €129', de: 'Business Portraits ab €129' },
+                { en: 'Family from €95', de: 'Familie ab €95' },
+                { en: 'Newborn from €95', de: 'Newborn ab €95' },
+                { en: 'Maternity from €95', de: 'Schwangerschaft ab €95' },
+                { en: 'Business Portraits from €95', de: 'Business Portraits ab €95' },
               ].map((chip, i) => (
                 <span key={i} className="rounded-full border border-purple-200 bg-purple-50 px-4 py-1.5 text-sm font-medium text-purple-800">
                   {language === 'en' ? chip.en : chip.de}

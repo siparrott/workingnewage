@@ -39,8 +39,27 @@ export const SEO_REDIRECTS: Record<string, string> = {
 
 export function seoRedirects(req: Request, res: Response, next: NextFunction) {
   if (req.method !== "GET" && req.method !== "HEAD") return next();
+
+  // 1) Curated pruned-content redirects.
   const path = req.path.replace(/\/+$/, "") || "/";
   const target = SEO_REDIRECTS[path];
   if (target) return res.redirect(301, target);
+
+  // 2) Canonical URL convention: 301 to the trailing-slash form. Skip the root,
+  //    API routes, and any path with a file extension (assets, sitemap.xml, the
+  //    IndexNow key .txt, etc.). Preserves the query string. Runs before the
+  //    static/SPA handlers so it never loops.
+  const raw = req.path;
+  if (
+    raw !== "/" &&
+    !raw.endsWith("/") &&
+    !raw.startsWith("/api") &&
+    !/\.[a-z0-9]+$/i.test(raw)
+  ) {
+    const qIdx = req.originalUrl.indexOf("?");
+    const query = qIdx >= 0 ? req.originalUrl.slice(qIdx) : "";
+    return res.redirect(301, `${raw}/${query}`);
+  }
+
   next();
 }
