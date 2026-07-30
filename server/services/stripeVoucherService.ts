@@ -207,7 +207,7 @@ export class StripeVoucherService {
       // If the frontend already computed an exact discount (in cents), we will honor it verbatim
       // to guarantee Stripe total matches the cart. This avoids edge cases where SKU mapping or
       // timing would otherwise produce a slightly different amount in Stripe.
-      const clientDiscountCents = Math.max(0, Math.round(Number((data as any).discount) || 0));
+      let clientDiscountCents = Math.max(0, Math.round(Number((data as any).discount) || 0));
       if (clientDiscountCents > 0) {
         // Keep coupon code only for metadata/analytics but skip re-applying a percentage/amount rule
         matchedCoupon = null;
@@ -224,6 +224,67 @@ export class StripeVoucherService {
       if (signedOffer && data.items && data.items[0]) {
         data.items[0].price = Math.round(signedOffer.amount * 100); // cents
         data.items[0].name = signedOffer.title;
+      }
+
+      // Server-authoritative DISCOUNT (defense in depth). Where the price is signed
+      // (offer token), the coupon discount must be signed-derived too — otherwise a
+      // crafted request could pair a product-restricted code with the wrong product,
+      // or over-state the discount, and we'd honour the client cents verbatim. So we
+      // re-derive the MAXIMUM allowed discount from the DB coupon against the SIGNED
+      // amount + SIGNED product slug, and clamp the client discount to it. (This only
+      // gates DB coupons on signed-offer purchases; the normal /vouchers flow, whose
+      // price is not signed, keeps its existing client-trusted behaviour and is
+      // enforced at the /validate step.)
+      const appliedCodeForCheck = String(data.appliedVoucherCode || (data as any).appliedVoucher?.code || '').trim();
+      if (signedOffer && clientDiscountCents > 0 && appliedCodeForCheck) {
+        try {
+          const { storage } = await import('../storage');
+          const dbCoupon: any = await storage.getDiscountCouponByCode(appliedCodeForCheck);
+          if (dbCoupon) {
+            const nowD = new Date();
+            const signedCents = Math.round(signedOffer.amount * 100);
+            const active =
+              dbCoupon.isActive &&
+              (!dbCoupon.startDate || new Date(dbCoupon.startDate) <= nowD) &&
+              (!dbCoupon.endDate || new Date(dbCoupon.endDate) >= nowD) &&
+              (!dbCoupon.usageLimit || (dbCoupon.usageCount || 0) < dbCoupon.usageLimit) &&
+              (!dbCoupon.minOrderAmount || signedOffer.amount >= parseFloat(String(dbCoupon.minOrderAmount)));
+            const allProducts =
+              !dbCoupon.applicableProducts ||
+              dbCoupon.applicableProducts.length === 0 ||
+              dbCoupon.applicableProducts.includes('all');
+            const slug = String(signedOffer.slug || '').toLowerCase();
+            const productAllowed =
+              allProducts ||
+              (!!slug &&
+                (dbCoupon.applicableProducts || []).some((p: string) => {
+                  const pl = String(p || '').toLowerCase();
+                  return pl === slug || (pl && (pl.includes(slug) || slug.includes(pl)));
+                }));
+            let allowedCents = 0;
+            if (active && productAllowed) {
+              if (dbCoupon.discountType === 'percentage') {
+                allowedCents = Math.round((signedCents * parseFloat(dbCoupon.discountValue)) / 100);
+                if (dbCoupon.maxDiscountAmount) {
+                  allowedCents = Math.min(allowedCents, Math.round(parseFloat(dbCoupon.maxDiscountAmount) * 100));
+                }
+              } else {
+                allowedCents = Math.min(signedCents, Math.round(parseFloat(dbCoupon.discountValue) * 100));
+              }
+            }
+            if (clientDiscountCents > allowedCents) {
+              console.warn(
+                `[CHECKOUT] Discount clamped for code "${appliedCodeForCheck}": client=${clientDiscountCents}c allowed=${allowedCents}c (product="${slug || 'n/a'}", active=${active}, productAllowed=${productAllowed})`
+              );
+              clientDiscountCents = allowedCents;
+            }
+          }
+        } catch (e) {
+          // Fail safe: if re-validation errors, drop the discount rather than
+          // honouring an unverified client amount on a signed-price purchase.
+          console.error('[CHECKOUT] Discount re-validation failed — dropping discount:', e);
+          clientDiscountCents = 0;
+        }
       }
 
       // If a custom coupon applies, compute discounted unit amounts per applicable SKU and always use dynamic price_data
