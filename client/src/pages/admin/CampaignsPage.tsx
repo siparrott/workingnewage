@@ -117,6 +117,20 @@ const AdvancedEmailMarketingHub: React.FC = () => {
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [galleryLeads, setGalleryLeads] = useState<any[]>([]);
   const [selectedGallery, setSelectedGallery] = useState<string | null>(null);
+  // Real overview metrics (replaces the old hardcoded 24 / 8.7K / 32.4% / €12.3K).
+  const [overview, setOverview] = useState<{
+    totalCampaigns: number; activeCampaigns: number; sentCampaigns: number;
+    activeSubscribers: number; totalSubscribers: number; totalSent: number;
+    totalOpened: number; totalClicked: number;
+    averageOpenRate: number; averageClickRate: number;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/email/analytics/overall')
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setOverview)
+      .catch(() => setOverview(null));
+  }, []);
 
   useEffect(() => {
     // Check if we should show gallery leads tab
@@ -293,61 +307,57 @@ const AdvancedEmailMarketingHub: React.FC = () => {
         </div>
       </div>
 
-      {/* Quick Stats */}
+      {/* Quick Stats — real figures from /api/email/analytics/overall */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-2xl font-bold text-gray-900">24</div>
-              <div className="text-sm text-gray-500">Active Campaigns</div>
+              <div className="text-2xl font-bold text-gray-900">{overview ? overview.totalCampaigns.toLocaleString() : '—'}</div>
+              <div className="text-sm text-gray-500">Campaigns</div>
             </div>
             <Mail className="h-8 w-8 text-blue-600" />
           </div>
-          <div className="mt-4 flex items-center text-sm text-green-600">
-            <TrendingUp size={16} className="mr-1" />
-            <span>+12% from last month</span>
+          <div className="mt-4 text-sm text-gray-500">
+            {overview ? `${overview.sentCampaigns} sent · ${overview.activeCampaigns} active` : 'Loading…'}
           </div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-2xl font-bold text-gray-900">8.7K</div>
-              <div className="text-sm text-gray-500">Subscribers</div>
+              <div className="text-2xl font-bold text-gray-900">{overview ? overview.activeSubscribers.toLocaleString() : '—'}</div>
+              <div className="text-sm text-gray-500">Active Subscribers</div>
             </div>
             <Users className="h-8 w-8 text-purple-600" />
           </div>
-          <div className="mt-4 flex items-center text-sm text-green-600">
-            <TrendingUp size={16} className="mr-1" />
-            <span>+8% from last month</span>
+          <div className="mt-4 text-sm text-gray-500">
+            {overview ? `${overview.totalSubscribers.toLocaleString()} total` : 'Loading…'}
           </div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-2xl font-bold text-gray-900">32.4%</div>
+              <div className="text-2xl font-bold text-gray-900">{overview ? `${overview.averageOpenRate}%` : '—'}</div>
               <div className="text-sm text-gray-500">Avg. Open Rate</div>
             </div>
             <Eye className="h-8 w-8 text-green-600" />
           </div>
-          <div className="mt-4 flex items-center text-sm text-green-600">
-            <TrendingUp size={16} className="mr-1" />
-            <span>+15% from last month</span>
+          <div className="mt-4 text-sm text-gray-500">
+            {overview ? `${overview.totalOpened?.toLocaleString?.() ?? 0} opens` : 'Loading…'}
           </div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-2xl font-bold text-gray-900">€12.3K</div>
-              <div className="text-sm text-gray-500">Revenue Generated</div>
+              <div className="text-2xl font-bold text-gray-900">{overview ? `${overview.averageClickRate}%` : '—'}</div>
+              <div className="text-sm text-gray-500">Avg. Click Rate</div>
             </div>
             <TrendingUp className="h-8 w-8 text-yellow-600" />
           </div>
-          <div className="mt-4 flex items-center text-sm text-green-600">
-            <TrendingUp size={16} className="mr-1" />
-            <span>+23% from last month</span>
+          <div className="mt-4 text-sm text-gray-500">
+            {overview ? `${overview.totalSent.toLocaleString()} emails sent` : 'Loading…'}
           </div>
         </div>
       </div>
@@ -389,53 +399,70 @@ const AdvancedEmailMarketingHub: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {[
-                { name: 'Summer Photography Special', status: 'sent', recipients: 2847, openRate: 32.4, clickRate: 5.8 },
-                { name: 'Wedding Season Newsletter', status: 'sending', recipients: 1923, openRate: 0, clickRate: 0 },
-                { name: 'Family Portrait Promotion', status: 'draft', recipients: 0, openRate: 0, clickRate: 0 }
-              ].map((campaign, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{campaign.name}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      campaign.status === 'sent' ? 'bg-green-100 text-green-800' :
-                      campaign.status === 'sending' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {campaign.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {campaign.recipients > 0 ? campaign.recipients.toLocaleString() : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {campaign.openRate > 0 ? `${campaign.openRate}%` : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {campaign.clickRate > 0 ? `${campaign.clickRate}%` : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button 
-                        onClick={() => setActiveTab('campaigns')}
-                        className="text-blue-600 hover:text-blue-800"
-                        title="View in Campaigns"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button 
-                        onClick={() => setActiveTab('campaigns')}
-                        className="text-gray-600 hover:text-gray-800"
-                        title="View in Campaigns"
-                      >
-                        <Settings size={16} />
-                      </button>
-                    </div>
+              {campaigns.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500">
+                    No campaigns yet. Create your first campaign to see live stats here.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                [...campaigns]
+                  .sort((a: any, b: any) => new Date(b.updated_at || b.created_at || 0).getTime() - new Date(a.updated_at || a.created_at || 0).getTime())
+                  .slice(0, 5)
+                  .map((c: any) => {
+                    const num = (v: any) => Number(v) || 0;
+                    const recipients = num(c.recipient_count ?? c.recipientCount ?? c.sent_count ?? c.sentCount);
+                    const delivered = num(c.delivered_count ?? c.deliveredCount) || num(c.sent_count ?? c.sentCount);
+                    const opened = num(c.opened_count ?? c.openedCount);
+                    const clicked = num(c.clicked_count ?? c.clickedCount);
+                    const openRate = delivered ? Math.round((opened / delivered) * 1000) / 10 : 0;
+                    const clickRate = delivered ? Math.round((clicked / delivered) * 1000) / 10 : 0;
+                    return (
+                      <tr key={c.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{c.name}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            c.status === 'sent' ? 'bg-green-100 text-green-800' :
+                            c.status === 'sending' ? 'bg-blue-100 text-blue-800' :
+                            c.status === 'scheduled' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {c.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {recipients > 0 ? recipients.toLocaleString() : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {delivered > 0 ? `${openRate}%` : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {delivered > 0 ? `${clickRate}%` : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => { setSelectedCampaignId(c.id); setActiveTab('campaigns'); }}
+                              className="text-blue-600 hover:text-blue-800"
+                              title="View in Campaigns"
+                            >
+                              <Eye size={16} />
+                            </button>
+                            <button
+                              onClick={() => setActiveTab('campaigns')}
+                              className="text-gray-600 hover:text-gray-800"
+                              title="View in Campaigns"
+                            >
+                              <Settings size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+              )}
             </tbody>
           </table>
         </div>

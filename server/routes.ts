@@ -12033,20 +12033,32 @@ Ihr Team von {{studioName}}`,
     }
   });
 
-  app.get("/api/email/analytics/overall", authenticateUser, async (req: Request, res: Response) => {
+  app.get("/api/email/analytics/overall", authenticateUser, async (_req: Request, res: Response) => {
     try {
-      const { period = 'month' } = req.query;
-      // TODO: Implement overall analytics
+      const campaigns = await db.select().from(emailCampaigns);
+      const subs = await db.select({ status: emailSubscribers.status }).from(emailSubscribers);
+      const num = (v: any) => Number(v) || 0;
+
+      const sumSent = campaigns.reduce((n, c: any) => n + num(c.sentCount), 0);
+      const sumDelivered = campaigns.reduce((n, c: any) => n + num(c.deliveredCount), 0);
+      const sumOpened = campaigns.reduce((n, c: any) => n + num(c.openedCount), 0);
+      const sumClicked = campaigns.reduce((n, c: any) => n + num(c.clickedCount), 0);
+      // Rates are relative to delivered where we track it, else to sent.
+      const denom = sumDelivered || sumSent || 0;
+      const round1 = (x: number) => Math.round(x * 10) / 10;
+      const activeSubscribers = subs.filter((s: any) => String(s.status || 'active').toLowerCase() === 'active').length;
+
       res.json({
-        period,
-        total_campaigns: 0,
-        total_sent: 0,
-        total_delivered: 0,
-        total_opened: 0,
-        total_clicked: 0,
-        average_open_rate: 0,
-        average_click_rate: 0,
-        subscriber_growth: 0
+        totalCampaigns: campaigns.length,
+        activeCampaigns: campaigns.filter((c: any) => ['sending', 'scheduled'].includes(String(c.status))).length,
+        sentCampaigns: campaigns.filter((c: any) => String(c.status) === 'sent').length,
+        activeSubscribers,
+        totalSubscribers: subs.length,
+        totalSent: sumSent,
+        totalOpened: sumOpened,
+        totalClicked: sumClicked,
+        averageOpenRate: denom ? round1((sumOpened / denom) * 100) : 0,
+        averageClickRate: denom ? round1((sumClicked / denom) * 100) : 0,
       });
     } catch (error) {
       console.error('Error fetching overall analytics:', error);
