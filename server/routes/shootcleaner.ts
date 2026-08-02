@@ -71,7 +71,7 @@ function buildB2Url(key: string): string | null {
 // Write API (Export to Galleries / Export to Cloud)
 // ---------------------------------------------------------------------------
 
-const READ_SCOPES = ['galleries:read', 'gallery-images:read', 'digital-files:read', 'clients:read', 'questionnaires:read'];
+const READ_SCOPES = ['galleries:read', 'gallery-images:read', 'digital-files:read', 'clients:read', 'questionnaires:read', 'studio:read'];
 const WRITE_SCOPES = ['galleries:write', 'gallery-images:write', 'digital-files:write'];
 const ALL_SCOPES = [...READ_SCOPES, ...WRITE_SCOPES];
 
@@ -991,6 +991,57 @@ router.get('/questionnaire-responses/:id', requireShootCleanerApiKey, async (req
   } catch (error) {
     console.error('[shootcleaner] Failed to fetch questionnaire response:', error);
     res.status(500).json({ error: 'Failed to fetch questionnaire response' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Studio profile (read) — so ShootCleaner can brand its output (invoices, galleries,
+// case studies) with the studio's name, logo and contact details.
+// ---------------------------------------------------------------------------
+router.get('/studio', requireShootCleanerApiKey, async (_req, res) => {
+  try {
+    // Single-tenant per database — the app treats the first studio_configs row as
+    // THE studio (mirrors studioConfigs.limit(1) elsewhere).
+    const r = await pool.query(
+      `SELECT studio_name, business_name, logo_url, email, owner_email, phone, website,
+              address, city, state, zip, country
+       FROM studio_configs
+       LIMIT 1`,
+    );
+    const row = r.rows[0];
+    if (!row) return res.status(404).json({ error: 'Studio not configured', code: 'studio_not_configured' });
+
+    const formatted = [
+      row.address,
+      [row.zip, row.city].filter(Boolean).join(' '),
+      row.state,
+      row.country,
+    ].filter(Boolean).join(', ') || null;
+
+    res.json({
+      data: {
+        name: row.business_name || row.studio_name || null,
+        logoUrl: row.logo_url || null,
+        phone: row.phone || null,
+        email: row.email || row.owner_email || null,
+        website: row.website || null,
+        address: {
+          line: row.address || null,
+          city: row.city || null,
+          state: row.state || null,
+          zip: row.zip || null,
+          country: row.country || null,
+          formatted,
+        },
+        // Not yet captured in studio_configs — returned as null so the response
+        // shape is stable; wire once a VAT/currency settings field exists.
+        vat: null,
+        currency: null,
+      },
+    });
+  } catch (error) {
+    console.error('[shootcleaner] Failed to fetch studio profile:', error);
+    res.status(500).json({ error: 'Failed to fetch studio profile' });
   }
 });
 

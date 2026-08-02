@@ -228,22 +228,51 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   }, [location.pathname, user]);
 
 
+  // Drag-to-resize sidebar width (persisted). Collapsed state still wins.
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    try { return Number(localStorage.getItem('adminSidebarWidth')) || 256; } catch { return 256; }
+  });
+  const [resizingSidebar, setResizingSidebar] = useState(false);
+  const startSidebarResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setResizingSidebar(true);
+    let last = sidebarWidth;
+    const onMove = (ev: MouseEvent) => { last = Math.min(440, Math.max(200, ev.clientX)); setSidebarWidth(last); };
+    const onUp = () => {
+      setResizingSidebar(false);
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      try { localStorage.setItem('adminSidebarWidth', String(last)); } catch { /* ignore */ }
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+
+  const sidebarPx = sidebarCollapsed ? 64 : sidebarWidth;
+
   return (
-    <div className="h-screen bg-gray-50 flex overflow-hidden">
+    <div className="crm-admin-font h-screen bg-gray-50 flex overflow-hidden">
       {/* Sidebar Navigation */}
-      <div 
-        className={`bg-white text-gray-900 border-r border-gray-200 transition-all duration-300 flex flex-col max-h-screen z-50 ${
-          sidebarCollapsed ? 'w-16' : 'w-64'
-        }`}
+      <div
+        className={`relative bg-white text-gray-900 border-r border-gray-200 flex flex-col max-h-screen z-50 ${resizingSidebar ? '' : 'transition-all duration-300'}`}
         style={{
-          minWidth: sidebarCollapsed ? '64px' : '256px',
-          maxWidth: sidebarCollapsed ? '64px' : '256px',
-          width: sidebarCollapsed ? '64px' : '256px',
+          minWidth: sidebarPx,
+          maxWidth: sidebarPx,
+          width: sidebarPx,
           display: 'flex',
           flexShrink: 0,
           backgroundColor: '#ffffff'
         }}
-      >        {/* Logo */}
+      >
+        {/* Drag-to-resize handle (right edge; hidden when collapsed) */}
+        {!sidebarCollapsed && (
+          <div
+            onMouseDown={startSidebarResize}
+            title="Drag to resize"
+            className="absolute top-0 right-0 z-20 h-full w-1.5 cursor-col-resize hover:bg-purple-200"
+          />
+        )}
+        {/* Logo */}
         <div className="px-4 pt-3 pb-4 border-b border-gray-200">
           {/* Collapse toggle sits above so the logo can centre cleanly */}
           <div className="flex justify-end">

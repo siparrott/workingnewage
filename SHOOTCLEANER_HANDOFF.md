@@ -163,6 +163,22 @@ Response shape:
 > Use **`resolvedAnswers`** for the case-study generator — its keys are the
 > human-readable question labels (resolved from the survey definition), not `q1/q2`.
 
+### 3.7 Studio profile (read) — ✅ (brand ShootCleaner output)
+`GET /api/integrations/shootcleaner/studio` — scope `studio:read`. The studio's own
+identity, for stamping invoices / galleries / case studies.
+```json
+{ "data": {
+  "name": "New Age Fotografie", "logoUrl": "https://…/logo.png",
+  "phone": "+43 677 …", "email": "hallo@…", "website": "https://…",
+  "address": { "line": "Wehrgasse 11A/2+5", "city": "Wien", "state": null,
+               "zip": "1050", "country": "Austria", "formatted": "Wehrgasse 11A/2+5, 1050 Wien, Austria" },
+  "vat": null, "currency": null
+} }
+```
+> `vat` and `currency` are returned as `null` until a VAT/currency settings field
+> exists on `studio_configs` — the response shape is already stable, so wire them
+> in ShootCleaner now and they'll populate later.
+
 ### 3.7 Blog — create / schedule / publish — ✅ (via `ia_` key, `blog:write`)
 These are on the **main API** (`/api`), authed with an `ia_live_…` key holding `blog:write`.
 | Method | Path | Purpose |

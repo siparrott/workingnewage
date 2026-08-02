@@ -6,6 +6,38 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── CRM admin backend font: Century Gothic ──────────────────────────────────
+   Scoped to the admin (.crm-admin-font on AdminLayout) so the public site is
+   untouched. Century Gothic is a licensed Monotype face — it renders on machines
+   that have it installed (common on Windows/Office); otherwise it falls back to a
+   geometric sans. To guarantee it everywhere, embed a licensed webfont as a
+   @font-face data URI (the CSP blocks external font CDNs). */
+.crm-admin-font,
+.crm-admin-font input,
+.crm-admin-font select,
+.crm-admin-font textarea,
+.crm-admin-font button {
+  font-family: 'Century Gothic', 'Questrial', 'Futura', 'Trebuchet MS', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ── Global CTA restyle: solid primary buttons → thin border, white background ─
+   Turns the filled blue/purple/indigo primary CTAs into a lighter outlined style
+   across every page. Semantic red (destructive) and green (success) buttons are
+   left solid on purpose so state still reads at a glance. */
+button.bg-blue-600, a.bg-blue-600,
+button.bg-purple-600, a.bg-purple-600,
+button.bg-indigo-600, a.bg-indigo-600 {
+  background-color: #ffffff !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+}
+button.bg-blue-600, a.bg-blue-600 { color: #2563eb !important; border-color: #2563eb !important; }
+button.bg-blue-600:hover, a.bg-blue-600:hover { background-color: #eff6ff !important; }
+button.bg-purple-600, a.bg-purple-600 { color: #7c3aed !important; border-color: #7c3aed !important; }
+button.bg-purple-600:hover, a.bg-purple-600:hover { background-color: #faf5ff !important; }
+button.bg-indigo-600, a.bg-indigo-600 { color: #4f46e5 !important; border-color: #4f46e5 !important; }
+button.bg-indigo-600:hover, a.bg-indigo-600:hover { background-color: #eef2ff !important; }
+
 /* Critical Reset for interaction and scrolling */
 html, body, #root {
   position: static !important;
