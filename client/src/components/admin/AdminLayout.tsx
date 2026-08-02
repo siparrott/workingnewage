@@ -243,19 +243,23 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           backgroundColor: '#ffffff'
         }}
       >        {/* Logo */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center">
-            {!sidebarCollapsed ? (
-              <img src="/togninja-logo.png" alt="TogNinja" className="h-14 w-auto" />
-            ) : (
-              <img src="/togninja-logo.png" alt="TogNinja" className="h-9 w-auto mx-auto" />
-            )}
+        <div className="px-4 pt-3 pb-4 border-b border-gray-200">
+          {/* Collapse toggle sits above so the logo can centre cleanly */}
+          <div className="flex justify-end">
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="ml-auto p-1 rounded hover:bg-gray-100"
+              className="p-1 rounded hover:bg-gray-100 text-gray-600"
+              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               <Menu size={20} />
             </button>
+          </div>
+          <div className="flex justify-center">
+            <img
+              src="/togninja-logo.png"
+              alt="TogNinja"
+              className={sidebarCollapsed ? 'h-10 w-auto' : 'h-24 w-auto'}
+            />
           </div>
         </div>
 
