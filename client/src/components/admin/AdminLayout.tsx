@@ -50,26 +50,6 @@ interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
-// TogNinja brand mark — a shutter/aperture swirl with an orbit ring, in the
-// brand navy. Rendered as inline SVG so it always shows on the (white) sidebar
-// with no image dependency. Swap for <img src="/crm-logo.png"> if an exact
-// raster is preferred.
-const TOGNINJA_NAVY = '#1b2a4a';
-const TogNinjaMark: React.FC<{ size?: number }> = ({ size = 36 }) => (
-  <svg width={size} height={size} viewBox="0 0 120 120" fill="none" aria-hidden="true">
-    <g fill={TOGNINJA_NAVY}>
-      {[0, 60, 120, 180, 240, 300].map((a) => (
-        <path key={a} d="M60 60 C 52 44 54 28 60 16 C 70 26 70 44 60 60 Z" transform={`rotate(${a} 60 60)`} />
-      ))}
-    </g>
-    <ellipse
-      cx="60" cy="60" rx="52" ry="20"
-      transform="rotate(-30 60 60)"
-      fill="none" stroke={TOGNINJA_NAVY} strokeWidth="5" strokeLinecap="round"
-    />
-  </svg>
-);
-
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -266,16 +246,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center">
             {!sidebarCollapsed ? (
-              <div className="flex items-center" aria-label="TogNinja">
-                <TogNinjaMark size={38} />
-                <span className="ml-2 text-xl font-extrabold tracking-tight" style={{ color: TOGNINJA_NAVY }}>
-                  TogNinja
-                </span>
-              </div>
+              <img src="/togninja-logo.png" alt="TogNinja" className="h-14 w-auto" />
             ) : (
-              <div className="mx-auto" aria-label="TogNinja">
-                <TogNinjaMark size={32} />
-              </div>
+              <img src="/togninja-logo.png" alt="TogNinja" className="h-9 w-auto mx-auto" />
             )}
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
