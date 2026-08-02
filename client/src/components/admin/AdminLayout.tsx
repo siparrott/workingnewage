@@ -231,19 +231,19 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     <div className="h-screen bg-gray-50 flex overflow-hidden">
       {/* Sidebar Navigation */}
       <div 
-        className={`bg-gray-900 text-white transition-all duration-300 flex flex-col max-h-screen z-50 ${
+        className={`bg-white text-gray-900 border-r border-gray-200 transition-all duration-300 flex flex-col max-h-screen z-50 ${
           sidebarCollapsed ? 'w-16' : 'w-64'
         }`}
-        style={{ 
+        style={{
           minWidth: sidebarCollapsed ? '64px' : '256px',
           maxWidth: sidebarCollapsed ? '64px' : '256px',
           width: sidebarCollapsed ? '64px' : '256px',
           display: 'flex',
           flexShrink: 0,
-          backgroundColor: '#1F2937'
+          backgroundColor: '#ffffff'
         }}
       >        {/* Logo */}
-        <div className="p-4 border-b border-gray-700">
+        <div className="p-4 border-b border-gray-200">
           <div className="flex items-center">
             {!sidebarCollapsed ? (
               <div className="flex items-center">
@@ -262,7 +262,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             )}
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="ml-auto p-1 rounded hover:bg-gray-700"
+              className="ml-auto p-1 rounded hover:bg-gray-100"
             >
               <Menu size={20} />
             </button>
@@ -349,7 +349,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                       className={`sidebar-nav-item flex items-center w-full px-4 py-3 text-sm transition-colors relative ${
                         isActive || hasActiveChild
                           ? 'active bg-purple-600 text-white border-r-2 border-purple-400'
-                          : 'text-gray-300 hover:text-white'
+                          : 'text-gray-700 hover:text-gray-900'
                       }`}
                     >
                       <Icon size={20} className="flex-shrink-0" />
@@ -380,7 +380,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                       className={`sidebar-nav-item flex items-center px-4 py-3 text-sm transition-colors relative ${
                         isActive
                           ? 'active bg-purple-600 text-white border-r-2 border-purple-400'
-                          : 'text-gray-300 hover:text-white'
+                          : 'text-gray-700 hover:text-gray-900'
                       }`}
                     >
                       <Icon size={20} className="flex-shrink-0" />
@@ -402,7 +402,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
                   {/* Sub items */}
                   {item.subItems && isExpanded && !sidebarCollapsed && (
-                    <div className="bg-gray-800">
+                    <div className="bg-gray-50">
                       {item.subItems.map((subItem) => {
                         const SubIcon = subItem.icon;
                         const isSubActive = location.pathname === subItem.path || 
@@ -415,7 +415,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                             className={`sidebar-nav-item flex items-center px-8 py-2 text-sm transition-colors relative ${
                               isSubActive
                                 ? 'active bg-purple-700 text-white border-r-2 border-purple-400'
-                                : 'text-gray-400 hover:text-white'
+                                : 'text-gray-600 hover:text-gray-900'
                             }`}
                           >
                             <SubIcon size={16} className="flex-shrink-0" />
@@ -440,7 +440,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="sidebar-nav-item flex items-center px-4 py-3 text-sm text-gray-300 hover:text-white transition-colors"
+            className="sidebar-nav-item flex items-center px-4 py-3 text-sm text-gray-700 hover:text-gray-900 transition-colors"
           >
             <ExternalLink size={20} className="flex-shrink-0" />
             {!sidebarCollapsed && (
@@ -450,10 +450,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </nav>
 
         {/* Sign Out */}
-        <div className="border-t border-gray-700 p-4">
+        <div className="border-t border-gray-200 p-4">
           <button
             onClick={handleSignOut}
-            className="sidebar-nav-item flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:text-white rounded transition-colors"
+            className="sidebar-nav-item flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:text-gray-900 rounded transition-colors"
           >
             <LogOut size={20} className="flex-shrink-0" />
             {!sidebarCollapsed && <span className="ml-3">{t('nav.signOut')}</span>}

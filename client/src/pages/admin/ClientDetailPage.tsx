@@ -263,20 +263,39 @@ const ClientDetailPage: React.FC = () => {
 
   const handleSendSMS = async () => {
     if (!client) return;
-    
+
     if (!client.phone) {
       alert('No phone number available for this client');
       return;
     }
-    
+
+    // Prefill a message and let the user edit it before sending. (Previously this
+    // navigated to /admin/communications with query params the page never read,
+    // so nothing happened — the SMS is now sent directly.)
+    const defaultMessage = `Hallo ${client.firstName}, vielen Dank für Ihr Interesse an ${SITE.name}. Bei Fragen stehen wir gerne zur Verfügung!`;
+    const message = window.prompt(`Send SMS to ${client.phone}:`, defaultMessage);
+    if (message == null || !message.trim()) return;
+
     try {
-      const message = `Hallo ${client.firstName}, vielen Dank für Ihr Interesse an ${SITE.name}. Bei Fragen stehen wir gerne zur Verfügung!`;
-      
-      // Navigate to SMS composition
-      navigate(`/admin/communications?action=sms&clientId=${client.id}&phone=${encodeURIComponent(client.phone)}&message=${encodeURIComponent(message)}`);
+      const res = await fetch('/api/communications/sms/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: client.phone,
+          content: message.trim(),
+          clientId: client.id,
+          autoLinkClient: true,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data?.success !== false) {
+        alert('SMS sent.');
+      } else {
+        alert(`Could not send SMS: ${data?.error || data?.message || res.statusText}`);
+      }
     } catch (error) {
-      console.error('Failed to compose SMS:', error);
-      alert('Failed to open SMS composer');
+      console.error('Failed to send SMS:', error);
+      alert('Could not send SMS. Please try again.');
     }
   };
 

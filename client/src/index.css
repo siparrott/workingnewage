@@ -49,16 +49,16 @@ body {
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-track {
-  background: #374151;
+  background: #f1f5f9;
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-thumb {
-  background: #6b7280;
+  background: #cbd5e1;
   border-radius: 3px;
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: #94a3b8;
 }
 
 @layer base {
@@ -355,7 +355,7 @@ textarea,
 }
 
 .sidebar-nav-item:hover {
-  background: rgba(55, 65, 81, 0.8) !important;
+  background: rgba(0, 0, 0, 0.05) !important;
 }
 
 /* Active state keeps solid border */

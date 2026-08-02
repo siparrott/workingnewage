@@ -9536,6 +9536,78 @@ ${getBizName()} Team`;
     }
   });
 
+  // Questionnaire responses for a specific client (used by the client-detail
+  // "View Questionnaires" modal). Matches by client_id OR the response's stored
+  // email/name — because link-submitted responses arrive with client_id=null —
+  // and AUTO-LINKS any match back to the client so it's filed in the DB for next
+  // time. This is why a response could show in the global list but not on the
+  // client file before: nothing had linked it.
+  app.get("/api/admin/client-questionnaires/:clientId", authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const { clientId } = req.params;
+      const client = await storage.getCrmClient(clientId);
+      if (!client) return res.status(404).json({ error: 'Client not found' });
+
+      const email = (client.email || '').toLowerCase().trim();
+      const fullName = [client.firstName, client.lastName].filter(Boolean).join(' ').trim();
+
+      const rows = await runSql(
+        `SELECT qr.id, qr.client_id, qr.template_slug, qr.answers, qr.submitted_at,
+                qr.client_name, qr.client_email,
+                s.title AS questionnaire_title, s.pages AS survey_pages
+         FROM questionnaire_responses qr
+         LEFT JOIN surveys s ON qr.template_slug::text = s.id::text
+         WHERE qr.client_id = $1
+            OR ($2 <> '' AND LOWER(qr.client_email) = $2)
+            OR ($3 <> '' AND LOWER(qr.client_name) = LOWER($3))
+         ORDER BY qr.submitted_at DESC`,
+        [clientId, email, fullName]
+      );
+
+      // Auto-link matches that weren't linked yet, so they're filed under the client.
+      for (const r of rows) {
+        if (String(r.client_id || '') !== String(clientId)) {
+          runSql('UPDATE questionnaire_responses SET client_id = $1 WHERE id = $2', [clientId, r.id]).catch(() => {});
+        }
+      }
+
+      const buildLabelMap = (surveyPages: any): Record<string, string> => {
+        const map: Record<string, string> = {};
+        try {
+          const pages = typeof surveyPages === 'string' ? JSON.parse(surveyPages) : surveyPages;
+          if (Array.isArray(pages)) {
+            for (const page of pages) {
+              for (const q of (page.questions || [])) {
+                if (q.id && (q.title || q.text)) map[q.id] = q.title || q.text;
+              }
+            }
+          }
+        } catch { /* ignore malformed pages */ }
+        return map;
+      };
+
+      const data = rows.map((r: any) => {
+        const labelMap = buildLabelMap(r.survey_pages);
+        const rawAnswers = typeof r.answers === 'string' ? JSON.parse(r.answers || '{}') : (r.answers || {});
+        const responses: Record<string, string> = {};
+        for (const [k, v] of Object.entries(rawAnswers)) responses[labelMap[k] || k] = String(v);
+        return {
+          id: r.id,
+          status: 'responded',
+          questionnaireName: r.questionnaire_title || r.template_slug || 'Questionnaire',
+          sentDate: r.submitted_at,
+          responseDate: r.submitted_at,
+          responses,
+        };
+      });
+
+      res.json(data);
+    } catch (error) {
+      console.error('Error fetching client questionnaires:', error);
+      res.status(500).json({ error: 'Failed to fetch client questionnaires' });
+    }
+  });
+
   // Search clients by name/email for typeahead
   app.get("/api/admin/clients/search", authenticateUser, async (req: Request, res: Response) => {
     try {
