@@ -6,18 +6,17 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── CRM admin backend font: Century Gothic ──────────────────────────────────
+/* ── CRM admin backend font: Segoe UI Variable Display ───────────────────────
    Scoped to the admin (.crm-admin-font on AdminLayout) so the public site is
-   untouched. Century Gothic is a licensed Monotype face — it renders on machines
-   that have it installed (common on Windows/Office); otherwise it falls back to a
-   geometric sans. To guarantee it everywhere, embed a licensed webfont as a
-   @font-face data URI (the CSP blocks external font CDNs). */
+   untouched. Segoe UI Variable is a Windows system font (no licence, no embed),
+   so it renders natively on Windows and falls back cleanly to the OS UI sans on
+   macOS/Linux via system-ui. */
 .crm-admin-font,
 .crm-admin-font input,
 .crm-admin-font select,
 .crm-admin-font textarea,
 .crm-admin-font button {
-  font-family: 'Century Gothic', 'Questrial', 'Futura', 'Trebuchet MS', ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
 }
 
 /* ── Global CTA restyle: solid primary buttons → thin border, white background ─
