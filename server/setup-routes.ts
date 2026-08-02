@@ -355,6 +355,7 @@ router.post('/basics', async (req: Request, res: Response) => {
       facebookUrl,
       instagramUrl,
       twitterUrl,
+      vatNumber,
     } = req.body;
 
     if (!businessName || !businessType || !timezone) {
@@ -397,6 +398,8 @@ router.post('/basics', async (req: Request, res: Response) => {
       facebookUrl: facebookUrl || null,
       instagramUrl: instagramUrl || null,
       twitterUrl: twitterUrl || null,
+      currency: currency || 'EUR',
+      vatNumber: vatNumber || null,
       updatedAt: new Date(),
     };
 

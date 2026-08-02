@@ -40,6 +40,7 @@ interface BasicsPhaseProps {
     instagramUrl?: string;
     twitterUrl?: string;
     logoUrl?: string;
+    vatNumber?: string;
   };
   onComplete: () => void;
 }
@@ -87,6 +88,7 @@ export default function BasicsPhase({ initialData, onComplete }: BasicsPhaseProp
     businessType: initialData?.businessType || '',
     timezone: initialData?.timezone || 'Europe/Vienna',
     currency: initialData?.currency || 'EUR',
+    vatNumber: initialData?.vatNumber || '',
     dateFormat: (initialData?.dateFormat as DateFormatPreset) || getDateFormatPreset(),
     tagline: initialData?.tagline || '',
     primaryColor: initialData?.primaryColor || '#3B82F6',
@@ -381,6 +383,20 @@ export default function BasicsPhase({ initialData, onComplete }: BasicsPhaseProp
           </p>
         </div>
         
+        {/* VAT / Tax ID */}
+        <div className="space-y-2">
+          <Label htmlFor="vatNumber">VAT / Tax ID (optional)</Label>
+          <Input
+            id="vatNumber"
+            placeholder="e.g., ATU12345678"
+            value={formData.vatNumber}
+            onChange={(e) => handleChange('vatNumber', e.target.value)}
+          />
+          <p className="text-xs text-gray-500">
+            Appears on invoices and is shared with connected apps (e.g. ShootCleaner).
+          </p>
+        </div>
+
         {/* Tagline */}
         <div className="space-y-2">
           <Label htmlFor="tagline">Tagline (optional)</Label>

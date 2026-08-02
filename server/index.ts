@@ -477,6 +477,10 @@ app.use((req, res, next) => {
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS cta_voucher_slug TEXT`);
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS cta_voucher_amount NUMERIC`);
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS cta_voucher_title TEXT`);
+        // Studio billing identity — captured in the onboarding wizard, surfaced on
+        // invoices and the ShootCleaner /studio endpoint.
+        await db.execute(sql`ALTER TABLE studio_configs ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'EUR'`);
+        await db.execute(sql`ALTER TABLE studio_configs ADD COLUMN IF NOT EXISTS vat_number TEXT`);
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS hero_image_url TEXT`);
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS hero_video_url TEXT`);
         // Video placement: 'hero' (background, default) | 'below' | 'both'.

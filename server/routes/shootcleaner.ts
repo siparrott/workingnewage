@@ -1004,7 +1004,7 @@ router.get('/studio', requireShootCleanerApiKey, async (_req, res) => {
     // THE studio (mirrors studioConfigs.limit(1) elsewhere).
     const r = await pool.query(
       `SELECT studio_name, business_name, logo_url, email, owner_email, phone, website,
-              address, city, state, zip, country
+              address, city, state, zip, country, currency, vat_number
        FROM studio_configs
        LIMIT 1`,
     );
@@ -1033,10 +1033,8 @@ router.get('/studio', requireShootCleanerApiKey, async (_req, res) => {
           country: row.country || null,
           formatted,
         },
-        // Not yet captured in studio_configs — returned as null so the response
-        // shape is stable; wire once a VAT/currency settings field exists.
-        vat: null,
-        currency: null,
+        vat: row.vat_number || null,
+        currency: row.currency || null,
       },
     });
   } catch (error) {

@@ -46,5 +46,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          provenance: false
+          # (GitHub Actions cache removed — it needs actions:write and was a
+          # fast-fail vector; a clean build is slower but reliable.)

@@ -96,7 +96,9 @@ export const studioConfigs = pgTable("studio_configs", {
   // Status
   isActive: boolean("is_active").default(true),
   subscriptionStatus: text("subscription_status").default("trial"),
-  
+  currency: text("currency").default("EUR"), // studio billing currency (invoices, vouchers)
+  vatNumber: text("vat_number"),             // studio VAT / tax id (invoices)
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

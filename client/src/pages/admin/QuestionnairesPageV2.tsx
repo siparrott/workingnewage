@@ -740,11 +740,13 @@ const QuestionnairesPageV2: React.FC = () => {
                   {displayEntries.length > 0 && (
                     <details className="mt-2">
                       <summary className="cursor-pointer text-sm text-blue-600 font-medium hover:text-blue-800">View answers ({displayEntries.length} fields)</summary>
-                      <div className="mt-2 bg-gray-50 rounded-lg p-3 space-y-2">
+                      <div className="mt-2 bg-gray-50 rounded-lg p-4 divide-y divide-gray-200">
                         {displayEntries.map(([label, val], idx) => (
-                            <div key={idx} className="flex gap-2">
-                              <span className="text-sm font-semibold text-gray-700 min-w-[120px] shrink-0">{label}:</span>
-                              <span className="text-sm text-gray-900">{val}</span>
+                            <div key={idx} className="py-2.5 first:pt-0 last:pb-0">
+                              <p className="text-sm font-semibold text-gray-800 leading-snug">{label}</p>
+                              <p className="mt-1 text-sm text-gray-900 whitespace-pre-wrap break-words">
+                                {val && String(val).trim() ? val : '—'}
+                              </p>
                             </div>
                           ))}
                       </div>
