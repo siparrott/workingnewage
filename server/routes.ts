@@ -1909,6 +1909,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
+  // Instance licence status — non-sensitive, for the admin UI banner. Never
+  // returns the key itself, only the state/plan/expiry.
+  app.get("/api/license/status", async (_req: Request, res: Response) => {
+    try {
+      const { getLicenseStatus } = await import('./lib/license');
+      const s = getLicenseStatus();
+      res.json({
+        state: s.state,
+        enforced: s.enforced,
+        plan: s.plan,
+        studioId: s.studioId,
+        expiresAt: s.expiresAt,
+        message: s.message,
+        mutationsAllowed: s.state === 'active' || s.state === 'grace' || !s.enforced,
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: 'license_status_failed' });
+    }
+  });
+
   // Storage health endpoint (Backblaze/S3)
   app.get("/api/storage/health", async (_req: Request, res: Response) => {
     try {

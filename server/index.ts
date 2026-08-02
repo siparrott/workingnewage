@@ -13,6 +13,7 @@ import rateLimit from "express-rate-limit";
 import http from "node:http";
 // Import routes and jobs directly to fix client database access
 import { registerRoutes } from "./routes";
+import { licenseEnforcement, getLicenseStatus } from "./lib/license";
 // Jobs loaded conditionally below to avoid startup crashes
 // import "./jobs";
 import { setupVite, serveStatic, log } from "./vite";
@@ -131,6 +132,15 @@ app.use((req, res, next) => {
   }
   urlencodedParser(req, res, next);
 });
+
+// Instance licence enforcement (self-host anti-piracy). No-op unless
+// LICENSE_PUBLIC_KEY is set and DEMO_MODE!=='true'; then it blocks admin writes
+// on a missing/invalid/expired licence while leaving the public site + reads up.
+app.use(licenseEnforcement);
+try {
+  const _lic = getLicenseStatus();
+  console.log(`🔑 Licence: ${_lic.enforced ? _lic.state.toUpperCase() : 'not enforced'}${_lic.expiresAt ? ` (expires ${_lic.expiresAt})` : ''}`);
+} catch { /* never block boot on licence logging */ }
 
 // Add CORS headers for API requests
 app.use((req, res, next) => {
