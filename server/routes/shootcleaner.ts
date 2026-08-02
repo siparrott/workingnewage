@@ -71,7 +71,7 @@ function buildB2Url(key: string): string | null {
 // Write API (Export to Galleries / Export to Cloud)
 // ---------------------------------------------------------------------------
 
-const READ_SCOPES = ['galleries:read', 'gallery-images:read', 'digital-files:read'];
+const READ_SCOPES = ['galleries:read', 'gallery-images:read', 'digital-files:read', 'clients:read', 'questionnaires:read'];
 const WRITE_SCOPES = ['galleries:write', 'gallery-images:write', 'digital-files:write'];
 const ALL_SCOPES = [...READ_SCOPES, ...WRITE_SCOPES];
 
@@ -823,6 +823,174 @@ router.post('/digital-files/commit', requireScope('digital-files:write'), async 
   } catch (error) {
     console.error('[shootcleaner] Failed to commit digital files:', error);
     return res.status(500).json({ error: 'Failed to commit files', code: 'commit_failed' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Clients (read) — so ShootCleaner can resolve/assign images to the right client
+// ---------------------------------------------------------------------------
+
+function mapClientRow(row: any): any {
+  return {
+    id: row.id,
+    clientId: row.client_id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    fullName: [row.first_name, row.last_name].filter(Boolean).join(' '),
+    email: row.email,
+    phone: row.phone,
+    address: row.address,
+    city: row.city,
+    state: row.state,
+    zip: row.zip,
+    country: row.country,
+    company: row.company,
+    vatNumber: row.vat_number,
+    status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+// List / search clients. ?search= matches name, email or client_id.
+router.get('/clients', requireShootCleanerApiKey, async (req, res) => {
+  try {
+    const limitRaw = Number.parseInt(String(req.query.limit || '100'), 10);
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 200) : 100;
+    const offsetRaw = Number.parseInt(String(req.query.offset || '0'), 10);
+    const offset = Number.isFinite(offsetRaw) ? Math.max(offsetRaw, 0) : 0;
+    const search = String(req.query.search || '').trim();
+
+    const where: string[] = [];
+    const params: any[] = [];
+    if (search) {
+      params.push(`%${search}%`);
+      const p = `$${params.length}`;
+      where.push(`(first_name ILIKE ${p} OR last_name ILIKE ${p} OR COALESCE(email,'') ILIKE ${p} OR COALESCE(client_id,'') ILIKE ${p} OR (first_name || ' ' || last_name) ILIKE ${p})`);
+    }
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const countRes = await pool.query(`SELECT COUNT(*)::int AS c FROM crm_clients ${whereSql}`, params);
+    params.push(limit); params.push(offset);
+    const result = await pool.query(
+      `SELECT id, client_id, first_name, last_name, email, phone, address, city, state, zip,
+              country, company, vat_number, status, created_at, updated_at
+       FROM crm_clients ${whereSql}
+       ORDER BY created_at DESC
+       LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params,
+    );
+    res.json({ data: result.rows.map(mapClientRow), total: countRes.rows[0]?.c ?? 0, limit, offset });
+  } catch (error) {
+    console.error('[shootcleaner] Failed to list clients:', error);
+    res.status(500).json({ error: 'Failed to fetch clients' });
+  }
+});
+
+router.get('/clients/:id', requireShootCleanerApiKey, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `SELECT id, client_id, first_name, last_name, email, phone, address, city, state, zip,
+              country, company, vat_number, status, created_at, updated_at
+       FROM crm_clients WHERE id::text = $1 OR client_id = $1 LIMIT 1`,
+      [id],
+    );
+    const row = result.rows[0];
+    if (!row) return res.status(404).json({ error: 'Client not found', code: 'client_not_found' });
+    res.json({ data: mapClientRow(row) });
+  } catch (error) {
+    console.error('[shootcleaner] Failed to fetch client:', error);
+    res.status(500).json({ error: 'Failed to fetch client' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Questionnaire responses (read) — source material for the case-study generator
+// ---------------------------------------------------------------------------
+
+function buildQuestionnaireLabelMap(surveyPages: any): Record<string, string> {
+  const map: Record<string, string> = {};
+  try {
+    const pages = typeof surveyPages === 'string' ? JSON.parse(surveyPages) : surveyPages;
+    if (Array.isArray(pages)) {
+      for (const page of pages) {
+        for (const q of (page.questions || [])) {
+          if (q.id && (q.title || q.text)) map[q.id] = q.title || q.text;
+        }
+      }
+    }
+  } catch { /* ignore malformed survey pages */ }
+  return map;
+}
+
+function mapQuestionnaireRow(r: any): any {
+  const labelMap = buildQuestionnaireLabelMap(r.survey_pages);
+  const rawAnswers = typeof r.answers === 'string' ? JSON.parse(r.answers || '{}') : (r.answers || {});
+  const resolvedAnswers: Record<string, string> = {};
+  for (const [key, val] of Object.entries(rawAnswers)) {
+    resolvedAnswers[labelMap[key] || key] = String(val);
+  }
+  return {
+    id: r.id,
+    clientId: r.client_id,
+    clientName: [r.first_name, r.last_name].filter(Boolean).join(' ') || r.stored_client_name || 'Unknown',
+    clientEmail: r.crm_email || r.stored_client_email || null,
+    questionnaireSlug: r.template_slug,
+    questionnaireTitle: r.questionnaire_title,
+    answers: rawAnswers,
+    // resolvedAnswers keys are the human question labels — ideal for case studies.
+    resolvedAnswers,
+    submittedAt: r.submitted_at,
+  };
+}
+
+const QUESTIONNAIRE_SELECT = `
+  SELECT qr.id, qr.client_id, qr.token, qr.template_slug, qr.answers, qr.submitted_at,
+         qr.client_name AS stored_client_name, qr.client_email AS stored_client_email,
+         c.first_name, c.last_name, c.email AS crm_email,
+         s.title AS questionnaire_title, s.pages AS survey_pages
+  FROM questionnaire_responses qr
+  LEFT JOIN crm_clients c ON qr.client_id = c.id::text
+  LEFT JOIN surveys s ON qr.template_slug::text = s.id::text`;
+
+router.get('/questionnaire-responses', requireShootCleanerApiKey, async (req, res) => {
+  try {
+    const limitRaw = Number.parseInt(String(req.query.limit || '50'), 10);
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 200) : 50;
+    const offsetRaw = Number.parseInt(String(req.query.offset || '0'), 10);
+    const offset = Number.isFinite(offsetRaw) ? Math.max(offsetRaw, 0) : 0;
+    const clientId = String(req.query.clientId || '').trim();
+    const questionnaireId = String(req.query.questionnaireId || '').trim();
+
+    const where: string[] = [];
+    const params: any[] = [];
+    if (clientId) { params.push(clientId); where.push(`qr.client_id = $${params.length}`); }
+    if (questionnaireId) { params.push(questionnaireId); where.push(`qr.template_slug = $${params.length}`); }
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const countRes = await pool.query(`SELECT COUNT(*)::int AS c FROM questionnaire_responses qr ${whereSql}`, params);
+    params.push(limit); params.push(offset);
+    const result = await pool.query(
+      `${QUESTIONNAIRE_SELECT} ${whereSql} ORDER BY qr.submitted_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params,
+    );
+    res.json({ data: result.rows.map(mapQuestionnaireRow), total: countRes.rows[0]?.c ?? 0, limit, offset });
+  } catch (error) {
+    console.error('[shootcleaner] Failed to list questionnaire responses:', error);
+    res.status(500).json({ error: 'Failed to fetch questionnaire responses' });
+  }
+});
+
+router.get('/questionnaire-responses/:id', requireShootCleanerApiKey, async (req, res) => {
+  try {
+    const result = await pool.query(`${QUESTIONNAIRE_SELECT} WHERE qr.id = $1 LIMIT 1`, [req.params.id]);
+    const row = result.rows[0];
+    if (!row) return res.status(404).json({ error: 'Response not found', code: 'response_not_found' });
+    res.json({ data: mapQuestionnaireRow(row) });
+  } catch (error) {
+    console.error('[shootcleaner] Failed to fetch questionnaire response:', error);
+    res.status(500).json({ error: 'Failed to fetch questionnaire response' });
   }
 });
 
