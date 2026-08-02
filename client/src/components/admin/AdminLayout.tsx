@@ -5,6 +5,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useDateFormatSync } from '../../hooks/useDateFormatSync';
 import NotificationBell from './NotificationBell';
 import AgentChatWidget from './AgentChatWidget';
+import LicenseBanner from './LicenseBanner';
 import {
   LayoutDashboard,
   UserPlus,
@@ -608,6 +609,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
         {/* Page Content */}
         <main className="flex-1 p-6 overflow-auto">
+          <LicenseBanner />
           {children}
         </main>
       </div>
