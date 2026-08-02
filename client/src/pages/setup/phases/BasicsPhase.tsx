@@ -160,7 +160,8 @@ export default function BasicsPhase({ initialData, onComplete }: BasicsPhaseProp
       const fd = new FormData();
       fd.append('file', file);
       fd.append('folderName', 'Studio Logos');
-      const res = await fetch('/api/files/upload', { method: 'POST', credentials: 'include', body: fd });
+      // Setup-phase endpoint (works before an admin exists, unlike /api/files/upload).
+      const res = await fetch('/api/setup/upload-logo', { method: 'POST', credentials: 'include', body: fd });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || 'Upload failed');
       const url = data.url || data.thumbnailUrl || data.publicUrl;

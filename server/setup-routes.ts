@@ -25,8 +25,41 @@ import {
   emailTemplates,
 } from '../shared/schema';
 import { eq, sql, count } from 'drizzle-orm';
+import multer from 'multer';
+import path from 'path';
+import crypto from 'crypto';
 
 const router = Router();
+
+// Setup-phase logo upload — reachable during onboarding BEFORE an admin exists,
+// where the authenticated /api/files/upload returns 401. Stores to object storage
+// and returns the URL for studio_configs.logo_url.
+const setupLogoUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } });
+router.post('/upload-logo', setupLogoUpload.single('file'), async (req: any, res: Response) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const mime = String(req.file.mimetype || '');
+    if (!/^image\/(png|jpe?g|webp|svg\+xml)$/.test(mime)) {
+      return res.status(400).json({ error: 'Please upload a PNG, JPG, WebP or SVG image.' });
+    }
+    const { getS3Client, getS3Config, buildPublicUrl } = await import('./services/s3-storage');
+    const cfg = getS3Config();
+    if (!cfg.isConfigured) {
+      return res.status(503).json({ error: 'File storage is not configured yet — add your storage keys first.' });
+    }
+    const ext = path.extname(req.file.originalname) ||
+      (mime === 'image/svg+xml' ? '.svg' : mime === 'image/png' ? '.png' : mime === 'image/webp' ? '.webp' : '.jpg');
+    const key = `Studio Logos/${crypto.randomUUID()}${ext}`;
+    const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+    await getS3Client().send(new PutObjectCommand({
+      Bucket: cfg.bucket, Key: key, Body: req.file.buffer, ContentType: mime,
+    }));
+    return res.json({ url: buildPublicUrl(cfg.bucket, cfg.endpoint, key) });
+  } catch (e: any) {
+    console.error('[setup] logo upload failed:', e?.message || e);
+    return res.status(500).json({ error: 'Logo upload failed. Please try again.' });
+  }
+});
 
 // ==================== HELPERS ====================
 
