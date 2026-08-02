@@ -1,5 +1,6 @@
-import { useEffect, lazy, Suspense } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { lazyWithRetry } from './lib/lazyWithRetry';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { HelmetProvider } from 'react-helmet-async';
 import { queryClient } from './lib/queryClient';
@@ -32,62 +33,62 @@ import MyArchivePage from './pages/MyArchivePage';
 import MySubscriptionPage from './pages/MySubscriptionPage';
 import StorageDemoPage from './pages/StorageDemoPage';
 import StorageDemoIndexPage from './pages/StorageDemoIndexPage';
-const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage'));
-const AdminDashboardPageDev = lazy(() => import('./pages/admin/AdminDashboardPageDev'));
-const AdminLoginPage = lazy(() => import('./pages/admin/AdminLoginPage'));
-const NeonAdminLoginPage = lazy(() => import('./pages/admin/NeonAdminLoginPage'));
-const AdminLeadsPage = lazy(() => import('./pages/admin/AdminLeadsPage'));
-const AdminVoucherSalesPageV3 = lazy(() => import('./pages/admin/AdminVoucherSalesPageV3'));
-const AdminClientsPage = lazy(() => import('./pages/admin/ClientsPage'));
-const ClientDetailPage = lazy(() => import('./pages/admin/ClientDetailPage'));
-const ClientProfilePage = lazy(() => import('./pages/admin/ClientProfilePage'));
-const ClientFormPage = lazy(() => import('./pages/admin/ClientFormPage'));
-const LeadSourcesPage = lazy(() => import('./pages/admin/LeadSourcesPage'));
-const AdminClientsImportPage = lazy(() => import('./pages/admin/ClientsImportPage'));
-const ImportLogsPage = lazy(() => import('./pages/admin/ImportLogsPage'));
-const HighValueClientsPage = lazy(() => import('./pages/admin/HighValueClientsPage'));
-const GalleriesPage = lazy(() => import('./pages/admin/GalleriesPage'));
-const AdminGalleriesPage = lazy(() => import('./pages/admin/AdminGalleriesPage'));
-const CalendarPage = lazy(() => import('./pages/admin/CalendarPage'));
-const AdminGalleryCreatePage = lazy(() => import('./pages/admin/GalleryCreatePage'));
-const AdminGalleryEditPage = lazy(() => import('./pages/admin/GalleryEditPage'));
-const AdminGalleryDetailPage = lazy(() => import('./pages/admin/GalleryDetailPage'));
-const InvoicesPage = lazy(() => import('./pages/admin/InvoicesPage'));
-const AdminPriceWizardPage = lazy(() => import('./pages/admin/AdminPriceWizardPage'));
-const AccountingExportPage = lazy(() => import('./pages/admin/accounting/AccountingExportPage'));
-const FilesPage = lazy(() => import('./pages/admin/FilesPage'));
-const ProDigitalFilesPage = lazy(() => import('./pages/admin/ProDigitalFilesPage'));
-const CampaignsPage = lazy(() => import('./pages/admin/CampaignsPage'));
-const AdminInboxPageV2 = lazy(() => import('./pages/admin/AdminInboxPageV2'));
-const QuestionnairesPageV2 = lazy(() => import('./pages/admin/QuestionnairesPageV2'));
-const ComprehensiveReportsPage = lazy(() => import('./pages/admin/ComprehensiveReportsPage'));
-const SettingsPage = lazy(() => import('./pages/admin/SettingsPage'));
-const EmailSettingsPage = lazy(() => import('./pages/admin/EmailSettingsPage'));
-const CalendarTest = lazy(() => import('./pages/admin/CalendarTest'));
-const CustomizationPage = lazy(() => import('./pages/admin/CustomizationPage'));
-const StudioCustomization = lazy(() => import('./pages/admin/StudioCustomization'));
-const StudioCalendarPage = lazy(() => import('./pages/admin/StudioCalendarPage'));
-const WebsiteCustomizationWizard = lazy(() => import('./pages/admin/WebsiteCustomizationWizard'));
-const PhotographyCalendarPage = lazy(() => import('./pages/admin/PhotographyCalendarPageSimple'));
+const AdminDashboardPage = lazyWithRetry(() => import('./pages/admin/AdminDashboardPage'));
+const AdminDashboardPageDev = lazyWithRetry(() => import('./pages/admin/AdminDashboardPageDev'));
+const AdminLoginPage = lazyWithRetry(() => import('./pages/admin/AdminLoginPage'));
+const NeonAdminLoginPage = lazyWithRetry(() => import('./pages/admin/NeonAdminLoginPage'));
+const AdminLeadsPage = lazyWithRetry(() => import('./pages/admin/AdminLeadsPage'));
+const AdminVoucherSalesPageV3 = lazyWithRetry(() => import('./pages/admin/AdminVoucherSalesPageV3'));
+const AdminClientsPage = lazyWithRetry(() => import('./pages/admin/ClientsPage'));
+const ClientDetailPage = lazyWithRetry(() => import('./pages/admin/ClientDetailPage'));
+const ClientProfilePage = lazyWithRetry(() => import('./pages/admin/ClientProfilePage'));
+const ClientFormPage = lazyWithRetry(() => import('./pages/admin/ClientFormPage'));
+const LeadSourcesPage = lazyWithRetry(() => import('./pages/admin/LeadSourcesPage'));
+const AdminClientsImportPage = lazyWithRetry(() => import('./pages/admin/ClientsImportPage'));
+const ImportLogsPage = lazyWithRetry(() => import('./pages/admin/ImportLogsPage'));
+const HighValueClientsPage = lazyWithRetry(() => import('./pages/admin/HighValueClientsPage'));
+const GalleriesPage = lazyWithRetry(() => import('./pages/admin/GalleriesPage'));
+const AdminGalleriesPage = lazyWithRetry(() => import('./pages/admin/AdminGalleriesPage'));
+const CalendarPage = lazyWithRetry(() => import('./pages/admin/CalendarPage'));
+const AdminGalleryCreatePage = lazyWithRetry(() => import('./pages/admin/GalleryCreatePage'));
+const AdminGalleryEditPage = lazyWithRetry(() => import('./pages/admin/GalleryEditPage'));
+const AdminGalleryDetailPage = lazyWithRetry(() => import('./pages/admin/GalleryDetailPage'));
+const InvoicesPage = lazyWithRetry(() => import('./pages/admin/InvoicesPage'));
+const AdminPriceWizardPage = lazyWithRetry(() => import('./pages/admin/AdminPriceWizardPage'));
+const AccountingExportPage = lazyWithRetry(() => import('./pages/admin/accounting/AccountingExportPage'));
+const FilesPage = lazyWithRetry(() => import('./pages/admin/FilesPage'));
+const ProDigitalFilesPage = lazyWithRetry(() => import('./pages/admin/ProDigitalFilesPage'));
+const CampaignsPage = lazyWithRetry(() => import('./pages/admin/CampaignsPage'));
+const AdminInboxPageV2 = lazyWithRetry(() => import('./pages/admin/AdminInboxPageV2'));
+const QuestionnairesPageV2 = lazyWithRetry(() => import('./pages/admin/QuestionnairesPageV2'));
+const ComprehensiveReportsPage = lazyWithRetry(() => import('./pages/admin/ComprehensiveReportsPage'));
+const SettingsPage = lazyWithRetry(() => import('./pages/admin/SettingsPage'));
+const EmailSettingsPage = lazyWithRetry(() => import('./pages/admin/EmailSettingsPage'));
+const CalendarTest = lazyWithRetry(() => import('./pages/admin/CalendarTest'));
+const CustomizationPage = lazyWithRetry(() => import('./pages/admin/CustomizationPage'));
+const StudioCustomization = lazyWithRetry(() => import('./pages/admin/StudioCustomization'));
+const StudioCalendarPage = lazyWithRetry(() => import('./pages/admin/StudioCalendarPage'));
+const WebsiteCustomizationWizard = lazyWithRetry(() => import('./pages/admin/WebsiteCustomizationWizard'));
+const PhotographyCalendarPage = lazyWithRetry(() => import('./pages/admin/PhotographyCalendarPageSimple'));
 import SurveySystemDemoPage from './pages/SurveySystemDemoPage';
 import SurveyTakingPage from './pages/SurveyTakingPage';
-const AdminBlogPostsPage = lazy(() => import('./pages/admin/AdminBlogPostsPage'));
-const AdminBlogNewPage = lazy(() => import('./pages/admin/AdminBlogNewPage'));
-const AdminBlogEditPage = lazy(() => import('./pages/admin/AdminBlogEditPage'));
-const KnowledgeBasePage = lazy(() => import('./pages/admin/KnowledgeBasePage'));
-const CRMOperationsAssistant = lazy(() => import('./pages/admin/CRMOperationsAssistant'));
-const AgentV2Page = lazy(() => import('./pages/admin/AgentV2Page'));
-const AgentConsolePage = lazy(() => import('./pages/admin/AgentConsolePage'));
-const AdminLandingPagesPage = lazy(() => import('./pages/admin/AdminLandingPagesPage'));
-const AdminLandingPageNewPage = lazy(() => import('./pages/admin/AdminLandingPageNewPage'));
-const AdminLandingPageEditorPage = lazy(() => import('./pages/admin/AdminLandingPageEditorPage'));
+const AdminBlogPostsPage = lazyWithRetry(() => import('./pages/admin/AdminBlogPostsPage'));
+const AdminBlogNewPage = lazyWithRetry(() => import('./pages/admin/AdminBlogNewPage'));
+const AdminBlogEditPage = lazyWithRetry(() => import('./pages/admin/AdminBlogEditPage'));
+const KnowledgeBasePage = lazyWithRetry(() => import('./pages/admin/KnowledgeBasePage'));
+const CRMOperationsAssistant = lazyWithRetry(() => import('./pages/admin/CRMOperationsAssistant'));
+const AgentV2Page = lazyWithRetry(() => import('./pages/admin/AgentV2Page'));
+const AgentConsolePage = lazyWithRetry(() => import('./pages/admin/AgentConsolePage'));
+const AdminLandingPagesPage = lazyWithRetry(() => import('./pages/admin/AdminLandingPagesPage'));
+const AdminLandingPageNewPage = lazyWithRetry(() => import('./pages/admin/AdminLandingPageNewPage'));
+const AdminLandingPageEditorPage = lazyWithRetry(() => import('./pages/admin/AdminLandingPageEditorPage'));
 import PublicLandingPage from './pages/PublicLandingPage';
-const WebsiteWizard = lazy(() => import('./pages/admin/WebsiteWizard'));
-const PriceListSettingsPage = lazy(() => import('./pages/admin/settings/PriceListSettingsPage'));
-const StorageSettingsPage = lazy(() => import('./pages/admin/settings/StorageSettingsPage'));
-const SmsSettingsPage = lazy(() => import('./pages/admin/settings/SmsSettingsPage'));
-const StripeSettingsPage = lazy(() => import('./pages/admin/settings/StripeSettingsPage'));
-const ManualWebsiteUpdatePage = lazy(() => import('./pages/admin/ManualWebsiteUpdatePage'));
+const WebsiteWizard = lazyWithRetry(() => import('./pages/admin/WebsiteWizard'));
+const PriceListSettingsPage = lazyWithRetry(() => import('./pages/admin/settings/PriceListSettingsPage'));
+const StorageSettingsPage = lazyWithRetry(() => import('./pages/admin/settings/StorageSettingsPage'));
+const SmsSettingsPage = lazyWithRetry(() => import('./pages/admin/settings/SmsSettingsPage'));
+const StripeSettingsPage = lazyWithRetry(() => import('./pages/admin/settings/StripeSettingsPage'));
+const ManualWebsiteUpdatePage = lazyWithRetry(() => import('./pages/admin/ManualWebsiteUpdatePage'));
 import GewerblicheFotografieWienPage from './pages/GewerblicheFotografieWienPage';
 import WarumNewAgePage from './pages/WarumNewAgePage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -136,18 +137,37 @@ import CommunicationsPage from './pages/CommunicationsPage';
 import QuestionnaireFormPage from './pages/QuestionnaireFormPage';
 import ImageTestPage from './pages/ImageTestPage';
 import PublicSchedulerPage from './pages/public/PublicSchedulerPage';
-const AdminSchedulersPage = lazy(() => import('./pages/admin/AdminSchedulersPage'));
-const AdminAutomationsPage = lazy(() => import('./pages/admin/AdminAutomationsPage'));
-const CalendarSyncPage = lazy(() => import('./pages/admin/CalendarSyncPage'));
+const AdminSchedulersPage = lazyWithRetry(() => import('./pages/admin/AdminSchedulersPage'));
+const AdminAutomationsPage = lazyWithRetry(() => import('./pages/admin/AdminAutomationsPage'));
+const CalendarSyncPage = lazyWithRetry(() => import('./pages/admin/CalendarSyncPage'));
 import CalculatorPage from './pages/CalculatorPage';
-const UnifiedSetupWizard = lazy(() => import('./pages/setup/UnifiedSetupWizard'));
+const UnifiedSetupWizard = lazyWithRetry(() => import('./pages/setup/UnifiedSetupWizard'));
 import ScrollToTop from './components/ScrollToTop';
 import ErrorBoundary from './components/ErrorBoundary';
 
 function RouteFallback() {
+  // If a code-split chunk takes unusually long (hung request, flaky network), the
+  // lazyWithRetry wrapper reloads automatically — but as a last-resort escape
+  // hatch we also surface a manual reload so the user is never trapped spinning.
+  const [stalled, setStalled] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setStalled(true), 12000);
+    return () => clearTimeout(id);
+  }, []);
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4">
       <div className="h-10 w-10 rounded-full border-4 border-purple-200 border-t-purple-600 animate-spin" aria-label="Loading" />
+      {stalled && (
+        <div className="text-center">
+          <p className="text-sm text-gray-500 mb-2">Still loading — this can happen right after an update.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="rounded-full bg-purple-600 px-5 py-2 text-sm font-semibold text-white hover:bg-purple-700"
+          >
+            Reload page
+          </button>
+        </div>
+      )}
     </div>
   );
 }
