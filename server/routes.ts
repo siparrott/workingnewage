@@ -3,6 +3,7 @@ import express from "express";
 import { createServer, type Server } from "http";
 import { registerTestRoutes } from "./routes-test";
 import { storage } from "./storage";
+import { studioImageMetadata } from "./lib/imageMetadata";
 import { db, pool } from "./db";
 // Import Neon database functions
 const neonDb = require("../database.js");
@@ -13709,6 +13710,7 @@ ${getBizName()} CRM System
       // Optimize image with sharp
       const optimizedBuffer = await sharp(req.file.buffer)
         .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
+        .withMetadata(studioImageMetadata()) // preserve input metadata + stamp studio copyright
         .jpeg({ quality: 85, progressive: true })
         .toBuffer();
 
@@ -13926,6 +13928,7 @@ ${getBizName()} CRM System
       console.log('[PORTFOLIO IMAGE UPLOAD] Optimizing image...');
       const optimizedBuffer = await sharp(req.file.buffer)
         .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
+        .withMetadata(studioImageMetadata()) // preserve input metadata + stamp studio copyright
         .jpeg({ quality: 85, progressive: true })
         .toBuffer();
 

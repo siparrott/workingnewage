@@ -1,4 +1,5 @@
 import sharp from 'sharp';
+import { studioImageMetadata } from './lib/imageMetadata';
 import path from 'path';
 import fs from 'fs/promises';
 import OpenAI from 'openai';
@@ -79,6 +80,7 @@ export class AutoBlogOrchestrator {
         // Resize and compress image
         const processedBuffer = await sharp(file.buffer)
           .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
+          .withMetadata(studioImageMetadata()) // preserve input metadata + stamp studio copyright
           .jpeg({ quality: 75, progressive: true })
           .toBuffer();
 

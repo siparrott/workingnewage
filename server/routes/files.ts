@@ -4,6 +4,7 @@ import { eq, desc, and, like, ilike } from 'drizzle-orm';
 import { digitalFiles } from '../../shared/schema';
 import multer from 'multer';
 import sharp from 'sharp';
+import { studioImageMetadata } from '../lib/imageMetadata';
 import path from 'path';
 import fs from 'fs';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
@@ -344,6 +345,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         processedBuffer = await sharp(req.file.buffer)
           .rotate()
           .resize({ width: 1400, withoutEnlargement: true })
+          .withMetadata(studioImageMetadata()) // preserve input metadata + stamp studio copyright
           .webp({ quality: 75 })
           .toBuffer();
         processedMime = 'image/webp';
