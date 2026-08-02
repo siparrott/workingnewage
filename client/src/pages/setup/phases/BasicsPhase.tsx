@@ -11,7 +11,7 @@
  * - Tagline
  */
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,7 @@ interface BasicsPhaseProps {
     facebookUrl?: string;
     instagramUrl?: string;
     twitterUrl?: string;
+    logoUrl?: string;
   };
   onComplete: () => void;
 }
@@ -133,21 +134,62 @@ export default function BasicsPhase({ initialData, onComplete }: BasicsPhaseProp
   };
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
+
+  // Logo upload (was a dead placeholder before — no file input was wired).
+  const [logoUrl, setLogoUrl] = useState(initialData?.logoUrl || '');
+  const [logoUploading, setLogoUploading] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (e.target) e.target.value = '';
+    if (!file) return;
+    if (!/^image\/(png|jpe?g|webp|svg\+xml)$/.test(file.type)) {
+      setErrors(prev => ({ ...prev, logo: 'Please choose a PNG, JPG, or SVG image.' }));
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, logo: 'Logo must be under 2 MB.' }));
+      return;
+    }
+    setLogoUploading(true);
+    setErrors(prev => ({ ...prev, logo: '' }));
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folderName', 'Studio Logos');
+      const res = await fetch('/api/files/upload', { method: 'POST', credentials: 'include', body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || 'Upload failed');
+      const url = data.url || data.thumbnailUrl || data.publicUrl;
+      if (!url) throw new Error('No URL returned from upload');
+      setLogoUrl(url);
+    } catch (err: any) {
+      setErrors(prev => ({ ...prev, logo: err?.message || 'Could not upload the logo. Please try again.' }));
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
   const saveMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
+    mutationFn: async (data: any) => {
       const res = await fetch('/api/setup/basics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(data)
       });
-      if (!res.ok) throw new Error('Failed to save basics');
-      return res.json();
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || 'Failed to save. Please check the required fields and try again.');
+      return body;
     },
     onSuccess: () => {
       // Persist date format preference to localStorage so it takes effect immediately
       setDateFormatPreset(formData.dateFormat as DateFormatPreset);
       onComplete();
+    },
+    onError: (err: any) => {
+      setErrors(prev => ({ ...prev, submit: err?.message || 'Could not save. Please try again.' }));
     }
   });
   
@@ -179,14 +221,19 @@ export default function BasicsPhase({ initialData, onComplete }: BasicsPhaseProp
   };
 
   const handleSubmit = () => {
-    if (validate()) {
-      // Save the specific specialism as the business type ("Boudoir
-      // Photographer" is useful downstream; "other" is not).
-      const payload = formData.businessType === 'other' && businessTypeOther.trim()
-        ? { ...formData, businessType: businessTypeOther.trim() }
-        : formData;
-      saveMutation.mutate(payload);
+    if (!validate()) {
+      // The required fields sit near the top; make the reason visible next to
+      // the (bottom) Continue button so it never looks like the button is dead.
+      setErrors(prev => ({ ...prev, submit: 'Please complete the required fields marked * above (Business name, Business type, Timezone).' }));
+      return;
     }
+    setErrors(prev => ({ ...prev, submit: '' }));
+    // Save the specific specialism as the business type ("Boudoir
+    // Photographer" is useful downstream; "other" is not).
+    const base = formData.businessType === 'other' && businessTypeOther.trim()
+      ? { ...formData, businessType: businessTypeOther.trim() }
+      : formData;
+    saveMutation.mutate({ ...base, logo: logoUrl || null });
   };
   
   return (
@@ -431,7 +478,7 @@ export default function BasicsPhase({ initialData, onComplete }: BasicsPhaseProp
               {/* Plain-English replacement for raw Latitude/Longitude: paste the
                   Google Maps link and we work the coordinates out. */}
               <div className="space-y-2">
-                <Label htmlFor="mapLink">Your Google Maps link (optional)</Label>
+                <Label htmlFor="mapLink">Your Google Maps / Business Profile (GMB) link</Label>
                 <div className="flex gap-2">
                   <Input
                     id="mapLink"
@@ -451,8 +498,9 @@ export default function BasicsPhase({ initialData, onComplete }: BasicsPhaseProp
                   </Button>
                 </div>
                 <p className="text-xs text-gray-500">
-                  Search your studio on Google Maps, tap <strong>Share</strong> → <strong>Copy link</strong>,
-                  and paste it here. This is only used to show a map of your studio on your website.
+                  Open your studio's Google Business Profile / Google Maps listing, tap
+                  <strong> Share</strong> → <strong>Copy link</strong>, and paste it here — we read the
+                  coordinates from it automatically. Only used to show a map of your studio on your website.
                 </p>
                 {mapStatus === 'ok' && (
                   <p className="text-xs text-green-700">
@@ -505,7 +553,7 @@ export default function BasicsPhase({ initialData, onComplete }: BasicsPhaseProp
             onClick={() => setShowSocial(!showSocial)}
           >
             <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              Social Media Links
+              Social Media Links <span className="font-normal text-slate-400">(optional)</span>
             </span>
             {showSocial ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
@@ -542,26 +590,60 @@ export default function BasicsPhase({ initialData, onComplete }: BasicsPhaseProp
           )}
         </div>
         
-        {/* Logo Upload (placeholder for now) */}
+        {/* Logo Upload */}
         <div className="space-y-2">
           <Label>Logo (optional)</Label>
-          <div className="border-2 border-dashed rounded-xl p-6 text-center hover:border-blue-400 transition-colors cursor-pointer">
-            <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-            <p className="text-sm text-gray-600">
-              Click to upload or drag and drop
-            </p>
-            <p className="text-xs text-gray-400 mt-1">
-              PNG, JPG, or SVG up to 2MB
-            </p>
-          </div>
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+            className="hidden"
+            onChange={handleLogoUpload}
+          />
+          {logoUrl ? (
+            <div className="flex items-center gap-4 border rounded-xl p-4">
+              <img src={logoUrl} alt="Studio logo" className="h-16 w-auto max-w-[160px] object-contain" />
+              <div className="flex gap-3">
+                <Button type="button" variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={logoUploading}>
+                  Replace
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setLogoUrl('')} disabled={logoUploading}>
+                  Remove
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => logoInputRef.current?.click()}
+              disabled={logoUploading}
+              className="w-full border-2 border-dashed rounded-xl p-6 text-center hover:border-blue-400 transition-colors cursor-pointer disabled:opacity-60"
+            >
+              {logoUploading ? (
+                <Loader2 className="w-8 h-8 mx-auto text-blue-500 mb-2 animate-spin" />
+              ) : (
+                <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+              )}
+              <p className="text-sm text-gray-600">
+                {logoUploading ? 'Uploading…' : 'Click to upload'}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                PNG, JPG, or SVG up to 2MB
+              </p>
+            </button>
+          )}
+          {errors.logo && <p className="text-sm text-red-500">{errors.logo}</p>}
         </div>
       </CardContent>
       
-      <CardFooter className="flex justify-between pt-6 border-t">
-        <p className="text-sm text-gray-500">
-          * Required fields
-        </p>
-        <Button 
+      <CardFooter className="flex flex-col items-stretch gap-3 pt-6 border-t sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm text-gray-500">* Required fields</p>
+          {errors.submit && (
+            <p className="text-sm text-red-500 mt-1">{errors.submit}</p>
+          )}
+        </div>
+        <Button
           onClick={handleSubmit}
           disabled={saveMutation.isPending}
           className="gap-2"
