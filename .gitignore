@@ -259,3 +259,6 @@ preview.pdf
 
 # Stray git directory copies
 workingnewage.git/
+# Licence signing key — SECRET, never commit
+*.pem
+license-signing-key.pem
