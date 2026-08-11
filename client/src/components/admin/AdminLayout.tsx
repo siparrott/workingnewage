@@ -351,8 +351,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </div>
         )}
 
-        {/* Navigation - Fixed scrolling */}
-        <nav className="flex-1 py-4 overflow-y-auto max-h-full sidebar-scrollbar">
+        {/* Navigation.
+            min-h-0 is what makes overflow-y-auto do anything here. A flex child's default
+            min-height is auto, meaning it refuses to shrink below its content — so the nav
+            grew past the sidebar instead of scrolling, and "Sign Out" and whatever sat
+            above it were pushed off the bottom of the screen with no way to reach them. */}
+        <nav className="flex-1 min-h-0 py-4 overflow-y-auto sidebar-scrollbar">
           <div className="space-y-1 pb-4">
             {sidebarItems.map((item) => {
               const Icon = item.icon;

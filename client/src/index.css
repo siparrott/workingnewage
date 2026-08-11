@@ -74,22 +74,43 @@ body {
   overflow: hidden;
 }
 
-/* Dark sidebar scrollbar */
+/* Sidebar scrollbar.
+ *
+ * The nav is taller than the viewport on a laptop — "Sign Out" sits below the fold — but
+ * the scrollbar was a 6px #cbd5e1 thumb on an #f1f5f9 track: near-invisible against a
+ * white sidebar, and on Windows the overlay bar only appears mid-scroll. So the list
+ * looked like it simply ended, and items past the fold were effectively unreachable
+ * unless you happened to try the wheel.
+ *
+ * Wider, darker, and always laid out: scrollbar-gutter reserves the space permanently so
+ * the nav does not shift sideways the moment it starts scrolling. */
+.sidebar-scrollbar {
+  scrollbar-gutter: stable;
+  /* Firefox, which ignores ::-webkit-scrollbar entirely. */
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #e2e8f0;
+}
+
 .sidebar-scrollbar::-webkit-scrollbar {
-  width: 6px;
+  width: 10px;
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #e2e8f0;
+  border-radius: 5px;
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+  background: #94a3b8;
+  border-radius: 5px;
+  /* Inset the thumb so it reads as a bar in a groove rather than a solid stripe. */
+  border: 2px solid #e2e8f0;
+  background-clip: padding-box;
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #64748b;
+  background-clip: padding-box;
 }
 
 @layer base {
