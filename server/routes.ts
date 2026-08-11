@@ -15293,6 +15293,7 @@ Return ONLY a valid JSON object with EXACTLY these keys:
       // Which landing pages this cart's items genuinely came from, taken from the signed
       // offer tokens. An item with no token came from the ordinary shop, not a campaign.
       const { verifyOfferToken } = await import('./utils/offer-token');
+      // Declared here, before the applicability loop uses it, not next to the check below.
       const cartLandingPages = new Set<string>();
       for (const it of (Array.isArray(items) ? items : [])) {
         const payload = it?.offerToken ? verifyOfferToken(it.offerToken) : null;
@@ -15312,6 +15313,12 @@ Return ONLY a valid JSON object with EXACTLY these keys:
       
       console.log('[COUPON VALIDATE] Using source:', coupon ? 'DATABASE' : 'ENV');
       console.log('[COUPON VALIDATE] Coupon code:', codeUpper);
+
+      // Campaign pages this code is restricted to. Read AFTER the coupon is resolved —
+      // placed above it, this threw on the temporal dead zone of `let coupon`.
+      const restrictedPages: string[] = ((coupon as any)?.applicableLandingPages || [])
+        .map((x: any) => String(x).trim().toLowerCase())
+        .filter(Boolean);
 
       // Validate coupon
       const now = new Date();
@@ -15403,9 +15410,27 @@ Return ONLY a valid JSON object with EXACTLY these keys:
             lineTotal 
           });
           
-          if (allProducts) {
+          // An item bought FROM one of the coupon's own campaign pages is applicable,
+          // whatever its product slug says.
+          //
+          // A landing-page offer carries a product slug only if the page has a voucher
+          // product bound in its settings — a second, invisible binding. So a code
+          // correctly restricted to "Family Classic" AND to its campaign page was still
+          // refused on that very page, reporting a product mismatch, because the offer
+          // carried no slug to compare. The studio naming the page IS the statement that
+          // purchases from it qualify; requiring it to also mirror the product elsewhere
+          // is a trap, not a safeguard. The page is read from the signed token, so this
+          // cannot be claimed by anyone who did not come through that page.
+          const fromAllowedCampaign = (() => {
+            if (!restrictedPages.length) return false;
+            const payload = it?.offerToken ? verifyOfferToken(it.offerToken) : null;
+            const lp = payload?.lp ? String(payload.lp).toLowerCase() : '';
+            return !!lp && restrictedPages.includes(lp);
+          })();
+
+          if (allProducts || fromAllowedCampaign) {
             applicableSubtotal += lineTotal;
-            console.log('[COUPON VALIDATE] -> Added (all products allowed)');
+            console.log(`[COUPON VALIDATE] -> Added (${allProducts ? 'all products allowed' : 'from an allowed campaign page'})`);
           } else {
             // More robust matching: check productId, productSlug, sku, and name variations
             const applicableProds = coupon.applicableProducts || [];
@@ -15450,9 +15475,6 @@ Return ONLY a valid JSON object with EXACTLY these keys:
       // Campaign restriction, checked BEFORE the product test so the reason given is the
       // true one: a Vorteilsclub code refused on the ordinary shop should say so, not
       // report a product mismatch when the product is in fact correct.
-      const restrictedPages = ((coupon as any).applicableLandingPages || [])
-        .map((s: any) => String(s).trim().toLowerCase())
-        .filter(Boolean);
       if (restrictedPages.length) {
         const cameFromCampaign = restrictedPages.some((slug: string) => cartLandingPages.has(slug));
         if (!cameFromCampaign) {
