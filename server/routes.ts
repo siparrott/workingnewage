@@ -15093,8 +15093,16 @@ Return ONLY a valid JSON object with EXACTLY these keys:
 
   app.put("/api/admin/coupons/:id", authenticateUser, async (req: Request, res: Response) => {
     try {
-      const { applicableProductId, applicableProducts, ...rest } = req.body as any;
+      const { applicableProductId, applicableProducts, applicableLandingPages, ...rest } = req.body as any;
       const updates: any = { ...rest };
+      // Landing-page restriction: which campaign pages this code may be used from.
+      // Slugs are trimmed and blanks dropped, so clearing the field in the admin sends
+      // an empty array and correctly means "any page" rather than "no page".
+      if (Array.isArray(applicableLandingPages)) {
+        updates.applicableLandingPages = applicableLandingPages
+          .map((x: any) => String(x).trim().replace(/^\/+lp\/+/, '').replace(/^\/+|\/+$/g, ''))
+          .filter(Boolean);
+      }
       if (Array.isArray(applicableProducts)) {
         updates.applicableProducts = applicableProducts;
       } else if (applicableProductId) {
@@ -15269,7 +15277,10 @@ Return ONLY a valid JSON object with EXACTLY these keys:
       const { code, orderAmount, items } = req.body as {
         code: string;
         orderAmount?: number | string; // in euros
-        items?: Array<{ productId?: string; productSlug?: string; sku?: string; name?: string; price: number; quantity: number }>;
+        // offerToken is the SERVER-SIGNED token minted by the landing page. It is the only
+        // trustworthy statement of which page a purchase came from — a plain `landingPage`
+        // field would let anyone claim a campaign rate by editing the request.
+        items?: Array<{ productId?: string; productSlug?: string; sku?: string; name?: string; price: number; quantity: number; offerToken?: string }>;
       };
       
       if (!code) {
@@ -15278,6 +15289,15 @@ Return ONLY a valid JSON object with EXACTLY these keys:
 
       const codeTrimmed = String(code).trim();
       const codeUpper = codeTrimmed.toUpperCase();
+
+      // Which landing pages this cart's items genuinely came from, taken from the signed
+      // offer tokens. An item with no token came from the ordinary shop, not a campaign.
+      const { verifyOfferToken } = await import('./utils/offer-token');
+      const cartLandingPages = new Set<string>();
+      for (const it of (Array.isArray(items) ? items : [])) {
+        const payload = it?.offerToken ? verifyOfferToken(it.offerToken) : null;
+        if (payload?.lp) cartLandingPages.add(String(payload.lp).toLowerCase());
+      }
 
       // IMPORTANT: Database coupons take priority over ENV coupons
       // This allows admin to dynamically edit coupons without code changes
@@ -15427,6 +15447,22 @@ Return ONLY a valid JSON object with EXACTLY these keys:
       // The landing-page offer flow now carries the bound product slug through the
       // signed token, so a legitimate matching purchase reaches this point with
       // applicableSubtotal > 0 and is unaffected.
+      // Campaign restriction, checked BEFORE the product test so the reason given is the
+      // true one: a Vorteilsclub code refused on the ordinary shop should say so, not
+      // report a product mismatch when the product is in fact correct.
+      const restrictedPages = ((coupon as any).applicableLandingPages || [])
+        .map((s: any) => String(s).trim().toLowerCase())
+        .filter(Boolean);
+      if (restrictedPages.length) {
+        const cameFromCampaign = restrictedPages.some((slug: string) => cartLandingPages.has(slug));
+        if (!cameFromCampaign) {
+          return res.status(400).json({
+            valid: false,
+            error: 'This code can only be used from the campaign page it was issued for.',
+          });
+        }
+      }
+
       if (applicableSubtotal === 0 && !allProducts && Array.isArray(items) && items.length > 0) {
         const forProducts = (coupon.applicableProducts || []).filter(Boolean).join(', ');
         return res.status(400).json({
@@ -20455,7 +20491,12 @@ URL: ${page.slug ? `/lp/${page.slug}` : ''}
           // (e.g. a "Family Classic only" code) can correctly match — or be
           // correctly rejected — at checkout for landing-page offer purchases.
           const offerSlug = (pg.cta_voucher_slug && String(pg.cta_voucher_slug).trim()) || undefined;
-          pg.cta_offer_token = signOfferToken({ amount, title, slug: offerSlug });
+          // …and WHICH PAGE the offer came from, so a coupon can be restricted to a
+          // campaign rather than to a product. Without this, a "Vorteilsclub members"
+          // code restricted to the Family Classic product would also apply to the same
+          // product bought from /vouchers by anyone.
+          const offerLp = (pg.slug && String(pg.slug).trim()) || undefined;
+          pg.cta_offer_token = signOfferToken({ amount, title, slug: offerSlug, lp: offerLp });
           // Let the client's amount>0 branch engage even when the amount came
           // from page content rather than the Settings panel.
           if (!(Number(pg.cta_voucher_amount) > 0)) pg.cta_voucher_amount = amount;

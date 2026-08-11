@@ -112,6 +112,9 @@ const EnhancedCheckoutPage: React.FC<EnhancedCheckoutPageProps> = ({
               name: productNameFromApi || productNameFromSlug(productSlug) || `Fotoshooting Gutschein - ${voucherData?.selectedDesign?.occasion || 'Personalisiert'}`,
               price: baseAmount,
               quantity: 1,
+              // Proves which campaign page this purchase came from, for codes that are
+              // restricted to one. Absent on ordinary shop purchases, which is the point.
+              offerToken: offerToken || undefined,
             },
           ],
         }),

@@ -399,6 +399,12 @@ export const discountCoupons = pgTable("discount_coupons", {
   
   // Restrictions
   applicableProducts: text("applicable_products").array(), // product IDs or "all"
+  // Landing-page slugs this code is valid FROM. Product restriction cannot express a
+  // campaign rate — "Family Classic only" also matches the same product bought from
+  // /vouchers by anyone. Empty/NULL means "any page", so every existing coupon is
+  // unaffected. The page identity is read from the SIGNED offer token, never from the
+  // client, so a rate cannot be claimed by editing a URL.
+  applicableLandingPages: text("applicable_landing_pages").array(),
   excludedProducts: text("excluded_products").array(),
   firstTimeCustomersOnly: boolean("first_time_customers_only").default(false),
   

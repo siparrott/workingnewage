@@ -19,12 +19,22 @@ export interface OfferPayload {
   amount: number; // euros
   title: string;
   slug?: string; // voucher product slug — lets product-restricted coupons match this offer
+  /**
+   * The landing page this offer came FROM.
+   *
+   * Product restriction alone cannot express "this rate is for Vorteilsclub members
+   * only" — the same product bought from /vouchers would match it just as well. Signed
+   * along with the amount, so the page identity cannot be forged by editing the URL to
+   * claim a campaign rate the buyer never saw.
+   */
+  lp?: string;
 }
 
 export function signOfferToken(payload: OfferPayload): string {
   const cents = Math.max(0, Math.round(Number(payload.amount) * 100));
   const data: Record<string, unknown> = { a: cents, t: String(payload.title || 'Gutschein').slice(0, 120) };
   if (payload.slug) data.s = String(payload.slug).slice(0, 120);
+  if (payload.lp) data.p = String(payload.lp).slice(0, 120);
   const body = Buffer.from(JSON.stringify(data)).toString('base64url');
   const sig = crypto.createHmac('sha256', secret()).update(body).digest('base64url');
   return `${body}.${sig}`;
@@ -42,7 +52,12 @@ export function verifyOfferToken(token: string | undefined | null): OfferPayload
     const parsed = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
     const cents = Number(parsed.a);
     if (!(cents > 0)) return null;
-    return { amount: cents / 100, title: String(parsed.t || 'Gutschein'), slug: parsed.s ? String(parsed.s) : undefined };
+    return {
+      amount: cents / 100,
+      title: String(parsed.t || 'Gutschein'),
+      slug: parsed.s ? String(parsed.s) : undefined,
+      lp: parsed.p ? String(parsed.p) : undefined,
+    };
   } catch {
     return null;
   }

@@ -70,6 +70,8 @@ const CartPage: React.FC = () => {
           productSlug: (i as any).productSlug,
           sku: (i as any).sku || (i as any).productSlug,
           name: i.title || i.name,
+          // The signed offer token proves which campaign page this item came from.
+          offerToken: (i as any).offerToken,
           price: i.price,
           quantity: i.quantity,
         }))

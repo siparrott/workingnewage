@@ -475,6 +475,8 @@ app.use((req, res, next) => {
         // cta_voucher_title drive a DYNAMIC-priced voucher offer (the CTA sends
         // the customer to personalise + pay exactly this amount via Stripe).
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS cta_voucher_slug TEXT`);
+        // Coupons that are valid only from specific landing pages (campaign rates).
+        await db.execute(sql`ALTER TABLE discount_coupons ADD COLUMN IF NOT EXISTS applicable_landing_pages TEXT[]`);
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS cta_voucher_amount NUMERIC`);
         await db.execute(sql`ALTER TABLE landing_pages ADD COLUMN IF NOT EXISTS cta_voucher_title TEXT`);
         // Studio billing identity — captured in the onboarding wizard, surfaced on

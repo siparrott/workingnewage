@@ -91,6 +91,8 @@ const discountCouponFormSchema = insertDiscountCouponSchema.extend({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   applicableProductSlug: z.string().optional(),
+  applicableLandingPages: z.string().optional(), // comma-separated landing-page slugs
+
 });
 
 type VoucherProductFormData = z.infer<typeof voucherProductFormSchema>;
@@ -200,6 +202,7 @@ export default function AdminVoucherSalesPageV3() {
       discountValue: "",
       isActive: true,
       applicableProductSlug: "",
+      applicableLandingPages: "",
     },
   });
 
@@ -526,6 +529,7 @@ export default function AdminVoucherSalesPageV3() {
         maxDiscountAmount: data.maxDiscountAmount || undefined,
         usageLimit: data.usageLimit ? parseInt(data.usageLimit) : undefined,
         applicableProductSlug: data.applicableProductSlug || undefined,
+        applicableLandingPages: String(data.applicableLandingPages || "").split(",").map((x: string) => x.trim()).filter(Boolean),
         startDate: data.startDate || undefined,
         endDate: data.endDate || undefined,
         isActive: data.isActive !== undefined ? data.isActive : true,
@@ -575,6 +579,7 @@ export default function AdminVoucherSalesPageV3() {
         maxDiscountAmount: payload.maxDiscountAmount || undefined,
         usageLimit: payload.usageLimit ? parseInt(payload.usageLimit) : undefined,
         applicableProductSlug: payload.applicableProductSlug || undefined,
+        applicableLandingPages: String((payload as any).applicableLandingPages || "").split(",").map((x: string) => x.trim()).filter(Boolean),
         startDate: payload.startDate || undefined,
         endDate: payload.endDate || undefined,
         isActive: payload.isActive !== undefined ? payload.isActive : true,
@@ -857,6 +862,7 @@ export default function AdminVoucherSalesPageV3() {
       endDate: "",
       isActive: true,
       applicableProductSlug: "",
+      applicableLandingPages: "",
     });
     setIsCouponDialogOpen(true);
   };
@@ -885,6 +891,7 @@ export default function AdminVoucherSalesPageV3() {
       endDate: formatDateForInput(coupon.endDate),
       isActive: coupon.isActive,
       applicableProductSlug: coupon.applicableProductSlug || (coupon as any).applicableProducts?.[0] || "",
+      applicableLandingPages: ((coupon as any).applicableLandingPages || []).join(", "),
     });
     setIsCouponDialogOpen(true);
   };
@@ -3487,6 +3494,19 @@ const CouponDialog: React.FC<{
               </SelectContent>
             </Select>
             <p className="text-xs text-gray-500">Leave empty for all products. Select one to restrict the coupon.</p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="applicable-lps">Campaign pages (optional)</Label>
+            <Input
+              id="applicable-lps"
+              placeholder="vorteilsclub-der-stadt-wien"
+              {...form.register('applicableLandingPages')}
+            />
+            <p className="text-xs text-gray-500">
+              Landing-page slugs, comma separated. Leave empty and the code works anywhere.
+              Fill it in and the code ONLY works for a purchase started from one of those
+              pages — the same product bought from /vouchers will be refused.
+            </p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
