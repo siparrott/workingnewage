@@ -7604,11 +7604,15 @@ Bitte versuchen Sie es später noch einmal.`;
         client = await storage.getCrmClient(invoice.clientId);
       }
       
-      // Return complete invoice with items and client (public view)
+      // Return complete invoice with items and client (public view).
+      // `onlinePaymentAvailable` mirrors exactly what create-payment-session
+      // checks, so a studio that never connected Stripe never shows a PAY NOW
+      // button that would 503 the moment the client clicks it.
       res.json({
         ...invoice,
         items,
-        client
+        client,
+        onlinePaymentAvailable: Boolean(stripe && stripeConfigured)
       });
     } catch (error) {
       console.error("Error fetching public invoice:", error);
@@ -7993,6 +7997,13 @@ ${getBizName()} Team`;
   // ==================== INVOICE STRIPE PAYMENT ROUTES ====================
   
   // Create Stripe Checkout Session for invoice payment
+  // Whether this instance can actually take a card payment right now. Used by the
+  // invoice form to explain why the online-payment option is unavailable, and by
+  // anything else that wants to hide a checkout entry point instead of failing on it.
+  app.get("/api/payments/status", (_req: Request, res: Response) => {
+    res.json({ stripeConfigured: Boolean(stripe && stripeConfigured) });
+  });
+
   app.post("/api/invoices/:id/create-payment-session", async (req: Request, res: Response) => {
     try {
       if (!stripe || !stripeConfigured) {
