@@ -72,6 +72,63 @@ let serverInstance: any = null;
 // Behind reverse proxies (Heroku/Render/etc.) trust the first proxy so secure cookies work when appropriate
 app.set('trust proxy', 1);
 
+// ── Canonical origin: force HTTPS, and fold the apex onto www ────────────────
+// Heroku and Render terminate TLS at their router and speak plain HTTP to the
+// dyno, forwarding the original scheme in X-Forwarded-Proto. Nothing here can
+// rely on req.secure, and without this middleware http://<site> served the page
+// happily — which is why every browser labelled the site "Not secure".
+//
+// Sits before compression, rate limiting and the static mounts so an http://
+// request for ANY path is upgraded, not only the ones that reach the router.
+//
+// The canonical host comes from CANONICAL_HOST, else the host of PUBLIC_SITE_URL
+// (the single canonical origin the rest of the app already reads). No hostname is
+// hardcoded: an instance that sets neither still gets the HTTPS upgrade, it just
+// gets no host rewrite.
+const CANONICAL_HOST = (() => {
+  const explicit = process.env.CANONICAL_HOST?.trim();
+  if (explicit) return explicit.replace(/^https?:\/\//, '').replace(/[/:].*$/, '').toLowerCase();
+  const siteUrl = process.env.PUBLIC_SITE_URL?.trim();
+  if (!siteUrl) return '';
+  try { return new URL(siteUrl).hostname.toLowerCase(); } catch { return ''; }
+})();
+
+// Only the apex and its www sibling count as the same site. A *.herokuapp.com or
+// preview host is deliberately NOT rewritten to the canonical domain — it keeps
+// its own hostname and is merely upgraded to HTTPS, so platform probes and
+// internal tooling are never sent somewhere they did not ask to go.
+const isCanonicalSibling = (hostname: string) => {
+  if (!CANONICAL_HOST) return false;
+  const bare = CANONICAL_HOST.replace(/^www\./, '');
+  return hostname === bare || hostname === `www.${bare}`;
+};
+
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV !== 'production') return next();
+  if (process.env.FORCE_HTTPS === 'false') return next(); // escape hatch for an instance fronted differently
+  // The dyno polls its own /healthz over http://127.0.0.1 every 10s (see the
+  // self-check by the listen call); redirecting it would quietly retire that.
+  if (req.path === '/healthz') return next();
+
+  const hostname = String(req.headers.host || '').toLowerCase().replace(/:\d+$/, '');
+  // Loopback and dotless names are internal listeners that do not speak TLS —
+  // redirecting them to https points at a port with nothing listening for it.
+  if (!hostname || !hostname.includes('.')) return next();
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1') return next();
+
+  // X-Forwarded-Proto can carry a chain ("https,http"); the client-facing hop is first.
+  const forwarded = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
+  const proto = forwarded || req.protocol;
+
+  const targetHost = isCanonicalSibling(hostname) ? CANONICAL_HOST : hostname;
+  if (proto === 'https' && hostname === targetHost) return next();
+
+  // 301 is cacheable and right for GET/HEAD. 308 for everything else, because a
+  // 301 lets a client downgrade a POST to a GET and drop its body.
+  const code = req.method === 'GET' || req.method === 'HEAD' ? 301 : 308;
+  return res.redirect(code, `https://${targetHost}${req.originalUrl}`);
+});
+
 // Gzip/deflate compression on all responses — big win for the large JS bundle
 // and JSON payloads (bandwidth + Core Web Vitals). Cheap; safe for everything.
 app.use(compression());
@@ -262,16 +319,6 @@ app.use('/blog-images', express.static('server/public/blog-images', {
     }
   }
 }));
-
-// Domain redirect middleware - redirect root domain to www
-app.use((req, res, next) => {
-  const wwwHost = process.env.CANONICAL_HOST; // e.g. 'www.newagefotografie.com'
-  const bareHost = wwwHost?.replace(/^www\./, '');
-  if (wwwHost && bareHost && req.headers.host === bareHost) {
-    return res.redirect(301, `https://${wwwHost}${req.url}`);
-  }
-  next();
-});
 
 app.use((req, res, next) => {
   const start = Date.now();
