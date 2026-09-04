@@ -254,7 +254,19 @@ export class DatabaseStorage implements IStorage {
     }
     // If published is undefined, return all posts regardless of date (for admin)
     
-    return await filtered.orderBy(desc(blogPosts.createdAt));
+    // Order by the date the reader is actually shown. The public blog card
+    // prints publishedAt, so ordering by createdAt made the list look shuffled
+    // whenever the two disagree — which is every batch-generated or back-dated
+    // post, since those share one creation time but spread publish dates.
+    // COALESCE keeps a post with no publishedAt (draft/idea) in sequence on its
+    // creation time instead of letting Postgres float it to the top, which is
+    // what a bare DESC would do (DESC defaults to NULLS FIRST).
+    // createdAt is the tie-break, then id, so posts sharing a publish date keep a
+    // stable order between requests — the list is paginated by slicing this array,
+    // and an unstable tie would let a post appear on two pages or on none.
+    return await filtered.orderBy(
+      sql`COALESCE(${blogPosts.publishedAt}, ${blogPosts.createdAt}) DESC, ${blogPosts.createdAt} DESC, ${blogPosts.id} ASC`
+    );
   }
 
   async getBlogPost(id: string): Promise<BlogPost | undefined> {
