@@ -25,7 +25,12 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-const SITE_ORIGIN = "https://www.newagefotografie.com";
+// The one origin this instance publishes as canonical — stamped into every
+// <link rel="canonical"> and every <loc> in /sitemap.xml. Exported because the
+// redirect middleware in index.ts folds requests onto this same host: a server
+// that serves an origin it tells Google is not canonical is the bug that made
+// the apex and www both answer 200.
+export const SITE_ORIGIN = "https://www.newagefotografie.com";
 
 // Serve /sitemap.xml dynamically: take the curated static sitemap as the base
 // and inject a <url> for every PUBLISHED blog post (publishedAt <= now). This

@@ -16,7 +16,7 @@ import { registerRoutes } from "./routes";
 import { licenseEnforcement, getLicenseStatus } from "./lib/license";
 // Jobs loaded conditionally below to avoid startup crashes
 // import "./jobs";
-import { setupVite, serveStatic, log } from "./vite";
+import { setupVite, serveStatic, log, SITE_ORIGIN } from "./vite";
 import { seoRedirects } from "./seoRedirects";
 // Mount lightweight auth routes immediately (full routes registered later lazily)
 import authRoutes from './routes/auth';
@@ -81,16 +81,25 @@ app.set('trust proxy', 1);
 // Sits before compression, rate limiting and the static mounts so an http://
 // request for ANY path is upgraded, not only the ones that reach the router.
 //
-// The canonical host comes from CANONICAL_HOST, else the host of PUBLIC_SITE_URL
-// (the single canonical origin the rest of the app already reads). No hostname is
-// hardcoded: an instance that sets neither still gets the HTTPS upgrade, it just
-// gets no host rewrite.
+// The canonical host comes from CANONICAL_HOST, else the host of PUBLIC_SITE_URL,
+// else SITE_ORIGIN — the origin this instance already stamps into every canonical
+// tag and every sitemap entry. That last fallback is the point: the redirect now
+// agrees with what the app tells Google on every page, so folding the apex onto
+// www needs no configuration on the dyno at all.
+//
+// NOTE FOR THE PRODUCT LINE: this third fallback is correct here because
+// SITE_ORIGIN is a literal on the New Age line. On the image it reads
+// `PUBLIC_SITE_URL || <New Age>`, so importing this fallback there unchanged
+// would redirect an unconfigured tenant's visitors onto newagefotografie.com.
+// Keep the image on the two env sources until that fallback is neutralised.
 const CANONICAL_HOST = (() => {
   const explicit = process.env.CANONICAL_HOST?.trim();
   if (explicit) return explicit.replace(/^https?:\/\//, '').replace(/[/:].*$/, '').toLowerCase();
   const siteUrl = process.env.PUBLIC_SITE_URL?.trim();
-  if (!siteUrl) return '';
-  try { return new URL(siteUrl).hostname.toLowerCase(); } catch { return ''; }
+  if (siteUrl) {
+    try { return new URL(siteUrl).hostname.toLowerCase(); } catch { /* fall through to SITE_ORIGIN */ }
+  }
+  try { return new URL(SITE_ORIGIN).hostname.toLowerCase(); } catch { return ''; }
 })();
 
 // Only the apex and its www sibling count as the same site. A *.herokuapp.com or
