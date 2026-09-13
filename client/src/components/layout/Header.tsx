@@ -75,12 +75,28 @@ const Header: React.FC = () => {
     { path: '/kontakt', label: t('nav.contact') },
   ];
 
+  /**
+   * THE MENU IS THE BUYER JOURNEY TOO.
+   *
+   * It carried Startseite, Gutscheine, Blog, Fallstudien and Warteliste alongside two
+   * dropdowns — seven things to read, none of which was "what does it cost" or "show me the
+   * photographs", which are the two questions a family actually arrives with.
+   *
+   * WHAT LEFT, AND WHY NOTHING IS LOST:
+   *   Startseite — the logo beside it already goes home, as it does on every site.
+   *   Warteliste — the "Termin finden" button to the right of this menu ALREADY points at
+   *     /warteliste. It was the same destination listed twice, and the button is the one a
+   *     visitor reads.
+   *   Blog, Fallstudien — both are linked from the footer (Footer.tsx), so they stay reachable
+   *     and stay indexed. "Blog can remain but does not need equal prominence."
+   *
+   * WHAT ARRIVED: Preise and Portfolio. Neither was reachable from the top of the page at all,
+   * and the portfolio is a photographer's strongest argument.
+   */
   const navItems = [
-    { path: '/', label: t('nav.home') },
+    { path: '/preise/', label: t('nav.prices') },
+    { path: '/portfolio', label: t('nav.portfolio') },
     { path: '/vouchers', label: t('nav.vouchers') },
-    { path: '/blog', label: t('nav.blog') },
-    { path: '/case-studies', label: t('nav.caseStudies') },
-    { path: '/warteliste', label: t('nav.waitlist') },
   ];
 
   return (

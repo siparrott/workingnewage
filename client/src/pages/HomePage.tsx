@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import Layout from '../components/layout/Layout';
 import ZoomableImageV2 from '../components/ui/ZoomableImageV2';
-import Typewriter from 'typewriter-effect';
 import CountUp from 'react-countup';
 import { Check } from 'lucide-react';
 import { proxyImage } from '../lib/imageProxy';
@@ -301,6 +300,24 @@ const HomePage: React.FC = () => {
   const ratingValue = (liveGoogle?.rating ?? 4.8).toFixed(1);
   const reviewCount = String(liveGoogle?.count ?? 306);
 
+  /**
+   * Does this visitor want motion at all?
+   *
+   * The counting numbers in the trust strip are decoration on top of three facts. Somebody who
+   * has asked their operating system not to animate things has asked for a reason, and the
+   * figures read perfectly well without it — so they are rendered plainly rather than animated
+   * more slowly. Read once: the preference does not change mid-visit in any way that matters
+   * here, and re-rendering the strip on a media-query event would restart the count.
+   */
+  const prefersReducedMotion = useMemo(
+    () =>
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    [],
+  );
+  const formatStat = (n: number) => n.toLocaleString(language === 'de' ? 'de-AT' : 'en-GB');
+
   const faqImages =
     (homepageImages &&
       (homepageImages as any[])
@@ -454,45 +471,79 @@ const HomePage: React.FC = () => {
         </script>
       </Helmet>
 
-      {/* Hero Section */}
+      {/*
+        THE ORDER OF THIS PAGE IS THE BUYER JOURNEY, AND IT IS DELIBERATE.
+
+        It used to open: hero, a paragraph of SEO copy, the statistics, then thirty years of
+        company history — three screens about us before a single word about what a family can
+        book. The reviewer's summary of the problem was exact: it read as "here is everything
+        New Age Fotografie does" rather than "I want photographs of my family".
+
+        So: interest, trust, what you can book, our work, reassurance, where we are — and the
+        history, the vouchers and the long-form SEO copy after all of that. None of it is
+        deleted; it is sequenced. A visitor who wants the company story still reaches it, and
+        the copy that ranks is still on the page.
+
+        Phase 2 inserts the service selector, the portfolio grid and the objections accordion;
+        phase 3 the pricing cards and the family-specific reviews. The slots are marked below.
+      */}
+
+      {/*
+        HERO — ONE PHOTOGRAPH, NOT A CONTACT SHEET.
+
+        The brief: "The hero should immediately communicate emotional quality rather than
+        portfolio quantity." The old hero did the opposite — a small square showing a GRID of
+        thumbnails, which is a photographer telling you how much they shoot rather than showing
+        you one photograph worth booking for. The image is now the larger half of the row and
+        set in portrait, which is the shape a family portrait actually is.
+
+        THE ROTATING HEADLINE IS GONE. A looping typewriter cycling four value propositions is
+        the single loudest thing on the page and it competes directly with the photograph next
+        to it — "no gimmicky animation that distracts from photography". Its four strings are
+        still in the translation file, so putting it back is one edit if that call is wrong.
+
+        The h1 also comes FIRST now. It used to sit below the animated span, so the first thing
+        a screen reader and a crawler met was a JS-driven decoration rather than
+        "Professioneller Familienfotograf in Wien". The string itself is untouched.
+
+        CTAs are "Preise ansehen" and "Fotos ansehen". Booking is deliberately not the hero
+        action: a cold visitor is not ready to commit, and the next small step converts better
+        than the big one.
+      */}
       <section className="bg-white">
-        <div className="container mx-auto px-4 py-16 md:py-24 flex flex-col md:flex-row items-center justify-between">
-          <div className="max-w-2xl md:w-3/5 mb-8 md:mb-0">
-            <p className="mb-4 leading-tight text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 text-transparent bg-clip-text">
+        <div className="container mx-auto px-4 py-12 md:py-20 grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-12 items-center">
+          <div className="md:col-span-5">
+            <p className="mb-3 leading-tight text-base sm:text-lg font-bold bg-gradient-to-r from-pink-500 to-purple-600 text-transparent bg-clip-text">
               {t('home.heroTitle')}
             </p>
-            <div className="mb-6">
-              <span className="block text-xl sm:text-2xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-pink-500 to-purple-600 text-transparent bg-clip-text">
-                <Typewriter
-                  options={{
-                    // Rotates through several COMPLETE value props (the effect
-                    // loops the array) — far stronger than one trailing sentence.
-                    strings: [
-                      t('home.heroRotator1'),
-                      t('home.heroRotator2'),
-                      t('home.heroRotator3'),
-                      t('home.heroRotator4'),
-                    ],
-                    autoStart: true,
-                    loop: true,
-                    cursor: '',
-                    delay: 45,
-                    deleteSpeed: 30
-                  }}
-                />
-              </span>
-              <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-gray-900 tracking-tighter animate-fade-in-up">
-                {language === 'de' ? 'Professioneller Familienfotograf in Wien – Studio & Outdoor' : 'Professional Family Photographer in Vienna – Studio & Outdoor'}
-              </h1>
-              <p className="text-lg sm:text-xl text-gray-700 mt-2">
-                {t('home.heroDescription')}
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 tracking-tight leading-[1.15]">
+              {language === 'de' ? 'Professioneller Familienfotograf in Wien – Studio & Outdoor' : 'Professional Family Photographer in Vienna – Studio & Outdoor'}
+            </h1>
+            <p className="text-lg sm:text-xl text-gray-700 mt-4 leading-relaxed">
+              {t('home.heroDescription')}
+            </p>
+
+            {/* Proof, before the ask. The rating is the LIVE one already fetched for the
+                JSON-LD on this page — never a number typed into the markup, so it cannot
+                drift from what Google actually shows. */}
+            <div className="mt-6 space-y-1">
+              <p className="flex items-center gap-2 text-sm sm:text-base text-gray-800">
+                <span aria-hidden="true" className="text-amber-500 tracking-tight">★★★★★</span>
+                <span className="font-semibold">
+                  {language === 'de' ? `${ratingValue.replace('.', ',')} bei Google` : `${ratingValue} on Google`}
+                </span>
+                <span className="text-gray-500">
+                  {language === 'de' ? `(${reviewCount} Bewertungen)` : `(${reviewCount} reviews)`}
+                </span>
+              </p>
+              <p className="text-sm sm:text-base text-gray-600">
+                {language === 'de'
+                  ? 'Seit 2012 in Wien · Fast 30 Jahre Erfahrung'
+                  : 'In Vienna since 2012 · Nearly 30 years of experience'}
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              {/* Scrolled to the price calculator, which has been removed while the
-                  PricingEmbed configuration is reworked. Points at the prices page — which
-                  is what someone pressing "calculate my price" wanted — rather than at an
-                  anchor that no longer exists. */}
+
+            <div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-4">
               <Link
                 to="/preise/"
                 className="inline-flex items-center justify-center bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-medium py-3 px-8 rounded-full text-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
@@ -500,137 +551,73 @@ const HomePage: React.FC = () => {
                 {language === 'de' ? 'Preise ansehen' : 'See prices'}
               </Link>
               <Link
-                to="/warteliste/"
+                to="/portfolio"
                 className="inline-flex items-center justify-center rounded-full border border-purple-200 px-6 py-3 text-lg font-medium text-purple-700 transition-colors duration-300 hover:border-purple-300 hover:bg-purple-50"
               >
-                {t('home.bookShootingButton')}
+                {language === 'de' ? 'Fotos ansehen' : 'See photographs'}
               </Link>
             </div>
           </div>
-          <div className="w-full md:w-2/5">
-            <div className="aspect-square max-w-md mx-auto overflow-hidden rounded-lg shadow-lg">
+
+          <div className="md:col-span-7">
+            {/* 4:5, the shape a family portrait is taken in, and dimensions declared so the
+                row does not jump when it loads. priority is kept: this is the LCP element. */}
+            <div className="aspect-[4/5] sm:aspect-[5/4] md:aspect-[4/5] max-w-xl md:max-w-none mx-auto overflow-hidden rounded-2xl shadow-xl">
               <ZoomableImageV2
                 src={heroImageUrl || photoGridImage}
-                alt="Comprehensive family portrait showcase including family, newborn, maternity and lifestyle sessions"
+                alt={language === 'de'
+                  ? 'Familienporträt aus dem Fotostudio in Wien'
+                  : 'Family portrait from the Vienna photography studio'}
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   // Fallback for mobile/loading issues
                   e.currentTarget.src = photoGridImage;
                 }}
                 priority={true}
-                width={600}
-                height={600}
+                width={900}
+                height={1125}
               />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Description Section */}
-      <section className="py-12 bg-gray-50">
+      {/*
+        TRUST STRIP — a band directly under the hero, not a chapter of its own.
+
+        The figures and the gradient are unchanged; both were explicitly to be kept. What
+        changed is the weight: py-16 top and bottom made three numbers occupy as much of the
+        page as a whole section, which is what made the homepage read as a tour rather than a
+        route. It now sits tight under the hero and is over in one glance.
+
+        The count runs ONCE, when the strip is scrolled to, rather than on mount where it is
+        usually finished before anyone has seen it — and not at all for a visitor who has asked
+        for reduced motion, who gets the same three facts as plain text.
+      */}
+      <section className="bg-gradient-to-r from-pink-500 to-purple-600 py-8 md:py-10">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <p className="text-base sm:text-lg text-gray-700 leading-relaxed">
-              {t('home.description')}
-            </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 text-center">
+            {[
+              { value: 27156, label: t('home.happyFamilies') },
+              { value: 5431977, label: t('home.portraitsCaptured') },
+              { value: 27, label: t('home.yearsExperience') },
+            ].map((stat) => (
+              <div key={stat.label} className="text-white">
+                <div className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 tabular-nums">
+                  {prefersReducedMotion ? (
+                    formatStat(stat.value)
+                  ) : (
+                    <CountUp end={stat.value} duration={2.5} separator="," enableScrollSpy scrollSpyOnce />
+                  )}
+                </div>
+                <div className="text-sm sm:text-base md:text-lg text-white/90">{stat.label}</div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Counter Section */}
-      <section className="bg-gradient-to-r from-pink-500 to-purple-600 py-16">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div className="text-white">
-              <div className="text-3xl md:text-4xl font-bold mb-2">
-                <CountUp end={27156} duration={2.5} separator="," />
-              </div>
-              <div className="text-base md:text-lg text-white/90">{t('home.happyFamilies')}</div>
-            </div>
-            <div className="text-white">
-              <div className="text-3xl md:text-4xl font-bold mb-2">
-                <CountUp end={5431977} duration={2.5} separator="," />
-              </div>
-              <div className="text-base md:text-lg text-white/90">{t('home.portraitsCaptured')}</div>
-            </div>
-            <div className="text-white">
-              <div className="text-3xl md:text-4xl font-bold mb-2">
-                <CountUp end={27} duration={2.5} />
-              </div>
-              <div className="text-base md:text-lg text-white/90">{t('home.yearsExperience')}</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Career-history band — the evidence + workings behind the stats */}
-      <CareerStorySection />
-
-
-      {/* Content Sections */}
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          {/* First Content Block */}
-          <div className="flex flex-col md:flex-row items-center gap-8 mb-16">
-            <div className="md:w-1/3">
-              <div className="aspect-square overflow-hidden rounded-lg shadow-lg">
-                <ZoomableImageV2 
-                  src={imageForSection('content-1', photoGridImage)}
-                  alt="Familienfotografie Wien - Professionelle Familienporträts im Studio"
-                  className="w-full h-full object-cover"
-                  priority={true}
-                  width={400}
-                  height={400}
-                />
-              </div>
-            </div>
-            <div className="md:w-2/3">
-              <h2 className="text-2xl md:text-3xl font-bold text-purple-600 mb-4">
-                {t('home.pregnancyAndFamilyTitle')}
-              </h2>
-              <p className="text-gray-700 mb-4">
-                {t('home.pregnancyDescription1')}
-              </p>
-              <p className="text-gray-700 mb-4">
-                {t('home.pregnancyDescription2')}
-              </p>
-              <p className="text-gray-700">
-                {t('home.pregnancyDescription3')}
-              </p>
-            </div>
-          </div>
-
-          {/* Second Content Block */}
-          <div className="flex flex-col md:flex-row-reverse items-center gap-8">
-            <div className="md:w-1/3">
-              <div className="aspect-square max-w-sm mx-auto overflow-hidden rounded-lg shadow-lg">
-                <ZoomableImageV2
-                  src={imageForSection('content-2', 'https://i.postimg.cc/RZjf8FsX/Whats-App-Image-2025-05-24-at-2-38-45-PM-1.jpg')}
-                  alt="Business Headshots Wien - Professionelle Businessfotografie im Studio"
-                  className="w-full h-full object-cover object-top"
-                  priority={true}
-                  width={400}
-                  height={400}
-                />
-              </div>
-            </div>
-            <div className="md:w-2/3">
-              <h2 className="text-2xl md:text-3xl font-bold text-purple-600 mb-4">
-                {t('home.businessHeadshotsTitle')}
-              </h2>
-              <p className="text-gray-700 mb-4">
-                {t('home.businessDescription1')}
-              </p>
-              <p className="text-gray-700 mb-4">
-                {t('home.businessDescription2')}
-              </p>
-              <p className="text-gray-700">
-                {t('home.businessDescription3')}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* PHASE 2 — service selector ("Was möchtet ihr festhalten?") goes here. */}
 
       {/* Our Services Section */}
       <section className="py-16 bg-white">
@@ -825,7 +812,139 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Testimonials handled site-wide by <GoogleReviews /> in Layout — inline grid removed to avoid duplicate reviews on the homepage */}
+      {/* PHASE 2 — portfolio grid. PHASE 3 — pricing cards, then family reviews. */}
+
+      {/* Content Sections */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          {/* First Content Block */}
+          <div className="flex flex-col md:flex-row items-center gap-8 mb-16">
+            <div className="md:w-1/3">
+              <div className="aspect-square overflow-hidden rounded-lg shadow-lg">
+                <ZoomableImageV2 
+                  src={imageForSection('content-1', photoGridImage)}
+                  alt="Familienfotografie Wien - Professionelle Familienporträts im Studio"
+                  className="w-full h-full object-cover"
+                  priority={true}
+                  width={400}
+                  height={400}
+                />
+              </div>
+            </div>
+            <div className="md:w-2/3">
+              <h2 className="text-2xl md:text-3xl font-bold text-purple-600 mb-4">
+                {t('home.pregnancyAndFamilyTitle')}
+              </h2>
+              <p className="text-gray-700 mb-4">
+                {t('home.pregnancyDescription1')}
+              </p>
+              <p className="text-gray-700 mb-4">
+                {t('home.pregnancyDescription2')}
+              </p>
+              <p className="text-gray-700">
+                {t('home.pregnancyDescription3')}
+              </p>
+            </div>
+          </div>
+
+          {/* Second Content Block */}
+          <div className="flex flex-col md:flex-row-reverse items-center gap-8">
+            <div className="md:w-1/3">
+              <div className="aspect-square max-w-sm mx-auto overflow-hidden rounded-lg shadow-lg">
+                <ZoomableImageV2
+                  src={imageForSection('content-2', 'https://i.postimg.cc/RZjf8FsX/Whats-App-Image-2025-05-24-at-2-38-45-PM-1.jpg')}
+                  alt="Business Headshots Wien - Professionelle Businessfotografie im Studio"
+                  className="w-full h-full object-cover object-top"
+                  priority={true}
+                  width={400}
+                  height={400}
+                />
+              </div>
+            </div>
+            <div className="md:w-2/3">
+              <h2 className="text-2xl md:text-3xl font-bold text-purple-600 mb-4">
+                {t('home.businessHeadshotsTitle')}
+              </h2>
+              <p className="text-gray-700 mb-4">
+                {t('home.businessDescription1')}
+              </p>
+              <p className="text-gray-700 mb-4">
+                {t('home.businessDescription2')}
+              </p>
+              <p className="text-gray-700">
+                {t('home.businessDescription3')}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ / Confidence Section */}
+      <HomepageConfidenceSection />
+
+      {/* Additive geo signal block – "Ihr Fotostudio in Wien" */}
+      <section className="py-12 bg-purple-50/30 border-t border-gray-100" aria-labelledby="studio-geo-heading">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <h2 id="studio-geo-heading" className="text-2xl md:text-3xl font-bold text-center text-purple-900 mb-4">
+            {language === 'en' ? 'Your Photo Studio in Vienna' : 'Ihr Fotostudio in Wien'}
+          </h2>
+          <p className="text-center text-gray-700 max-w-2xl mx-auto mb-6 leading-relaxed">
+            {language === 'en'
+              ? `${SITE.name} is your family photographer in Vienna 1050. Our studio in Wien-Margareten (Wehrgasse 11A/2+5) offers daylight rooms, calm posing areas for newborns, and a clean backdrop wall for business headshots – all within walking distance of public transport.`
+              : `${SITE.name} ist Ihr Familienfotograf Wien 1050. Unser Fotostudio in Wien-Margareten (Wehrgasse 11A/2+5) bietet Tageslicht-Räume, ruhige Pose-Bereiche für Neugeborene und eine saubere Hintergrundwand für Business-Headshots – fußläufig zu allen öffentlichen Verkehrsmitteln.`}
+          </p>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-sm text-center">
+            <li>
+              <Link to="/familienfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Family Photographer Vienna 1050' : 'Familienfotograf Wien 1050'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/babyfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Baby Photo Studio Vienna' : 'Baby Fotostudio Wien'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/business-portrait-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Business Photo Studio Vienna' : 'Business Fotostudio Wien'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/hochzeitsfotografie-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Wedding Photography Vienna' : 'Hochzeitsfotografie Wien'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/gewerbliche-fotografie-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Commercial Photography Vienna' : 'Gewerbliche Fotografie Wien'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/warum-new-age-fotografie/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Why New Age Fotografie?' : 'Warum New Age Fotografie?'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/preise/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Photoshoot Pricing Vienna' : 'Fotoshooting Preise Wien'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/kontakt" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Contact our Vienna studio' : 'Kontakt zum Studio in Wien'}
+              </Link>
+            </li>
+            <li>
+              <Link to="/warteliste" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
+                {language === 'en' ? 'Reserve a date in Vienna' : 'Termin in Wien sichern'}
+              </Link>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      {/* Career-history band — the evidence + workings behind the stats */}
+      <CareerStorySection />
 
       {/* Gift Voucher Section */}
       <section className="py-16 bg-purple-50">
@@ -938,67 +1057,16 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* FAQ / Confidence Section */}
-      <HomepageConfidenceSection />
+      {/* Testimonials handled site-wide by <GoogleReviews /> in Layout — inline grid removed to avoid duplicate reviews on the homepage */}
 
-      {/* Additive geo signal block – "Ihr Fotostudio in Wien" */}
-      <section className="py-12 bg-purple-50/30 border-t border-gray-100" aria-labelledby="studio-geo-heading">
-        <div className="container mx-auto px-4 max-w-4xl">
-          <h2 id="studio-geo-heading" className="text-2xl md:text-3xl font-bold text-center text-purple-900 mb-4">
-            {language === 'en' ? 'Your Photo Studio in Vienna' : 'Ihr Fotostudio in Wien'}
-          </h2>
-          <p className="text-center text-gray-700 max-w-2xl mx-auto mb-6 leading-relaxed">
-            {language === 'en'
-              ? `${SITE.name} is your family photographer in Vienna 1050. Our studio in Wien-Margareten (Wehrgasse 11A/2+5) offers daylight rooms, calm posing areas for newborns, and a clean backdrop wall for business headshots – all within walking distance of public transport.`
-              : `${SITE.name} ist Ihr Familienfotograf Wien 1050. Unser Fotostudio in Wien-Margareten (Wehrgasse 11A/2+5) bietet Tageslicht-Räume, ruhige Pose-Bereiche für Neugeborene und eine saubere Hintergrundwand für Business-Headshots – fußläufig zu allen öffentlichen Verkehrsmitteln.`}
-          </p>
-          <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-sm text-center">
-            <li>
-              <Link to="/familienfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
-                {language === 'en' ? 'Family Photographer Vienna 1050' : 'Familienfotograf Wien 1050'}
-              </Link>
-            </li>
-            <li>
-              <Link to="/babyfotos-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
-                {language === 'en' ? 'Baby Photo Studio Vienna' : 'Baby Fotostudio Wien'}
-              </Link>
-            </li>
-            <li>
-              <Link to="/business-portrait-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
-                {language === 'en' ? 'Business Photo Studio Vienna' : 'Business Fotostudio Wien'}
-              </Link>
-            </li>
-            <li>
-              <Link to="/hochzeitsfotografie-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
-                {language === 'en' ? 'Wedding Photography Vienna' : 'Hochzeitsfotografie Wien'}
-              </Link>
-            </li>
-            <li>
-              <Link to="/gewerbliche-fotografie-wien/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
-                {language === 'en' ? 'Commercial Photography Vienna' : 'Gewerbliche Fotografie Wien'}
-              </Link>
-            </li>
-            <li>
-              <Link to="/warum-new-age-fotografie/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
-                {language === 'en' ? 'Why New Age Fotografie?' : 'Warum New Age Fotografie?'}
-              </Link>
-            </li>
-            <li>
-              <Link to="/preise/" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
-                {language === 'en' ? 'Photoshoot Pricing Vienna' : 'Fotoshooting Preise Wien'}
-              </Link>
-            </li>
-            <li>
-              <Link to="/kontakt" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
-                {language === 'en' ? 'Contact our Vienna studio' : 'Kontakt zum Studio in Wien'}
-              </Link>
-            </li>
-            <li>
-              <Link to="/warteliste" className="block py-2 px-4 rounded-lg text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-medium transition-colors">
-                {language === 'en' ? 'Reserve a date in Vienna' : 'Termin in Wien sichern'}
-              </Link>
-            </li>
-          </ul>
+      {/* Description Section */}
+      <section className="py-12 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <p className="text-base sm:text-lg text-gray-700 leading-relaxed">
+              {t('home.description')}
+            </p>
+          </div>
         </div>
       </section>
 
