@@ -6,6 +6,7 @@ import { ReviewsBlock } from '../../components/SEO/ReviewsBlock';
 import Layout from '../../components/layout/Layout';
 import GoogleReviews from '../../components/layout/GoogleReviews';
 import { Link, useNavigate } from 'react-router-dom';
+import { FAMILY_PACKAGES } from '../../data/familyPackages';
 import { Camera, Heart, Users, Star, ArrowRight, Check, Clock, Baby, Music, Smile } from 'lucide-react';
 import { useManualPageContent } from '../../hooks/useManualPageContent';
 import { useCart } from '../../context/CartContext';
@@ -234,139 +235,79 @@ export default function FamilienfotosWienPage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 mb-12">
-            {/* Family Basic Package */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow">
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Family Basic</h3>
-              </div>
-              
-              <div className="mb-6">
-                <div className="flex items-baseline">
-                  <span className="text-sm text-gray-500 mr-1">Ab</span>
-                  <span className="text-4xl font-bold text-purple-600">€95</span>
-                </div>
-              </div>
+            {/*
+              THE SAME THREE PACKAGES, FROM ONE SOURCE.
 
-              <div className="space-y-4 mb-4">
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">{language === 'de' ? '60 Min Shooting' : '60 min shooting'}</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">{language === 'de' ? '1 retuschiertes Portrait digital + Leinwand 40×30 cm' : '1 retouched portrait digital + canvas 40×30 cm'}</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">{language === 'de' ? 'Nutzungsrechte privat' : 'Private usage rights'}</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">{language === 'de' ? 'Bis zu 12 Personen und auch Haustiere möglich' : 'Up to 12 people and pets welcome'}</span>
-                </div>
-              </div>
+              These were three hand-written cards with €95, €195 and €225 typed into the
+              markup. The buyer-journey work needed them on the homepage too, and two copies
+              of a price is how a studio ends up advertising two different ones for the same
+              package. They now come from data/familyPackages.ts, which HomepagePricing also
+              reads — change a price there and both pages follow.
 
-              <p className="text-gray-400 text-sm mb-6">{language === 'de' ? 'Gültig bis 2 Jahre' : 'Valid for up to 2 years'}</p>
+              The cards look exactly as they did: white for Basic and Premium, the gradient
+              with the yellow BESTSELLER badge for Classic, the same bullets, the same "Ab"
+              prefix, the same validity line, and the same cart payloads.
+            */}
+            {FAMILY_PACKAGES.map((pkg) => {
+              const featured = !!pkg.bestseller;
+              return (
+                <div
+                  key={pkg.id}
+                  className={featured
+                    ? "bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 transform sm:scale-105 relative"
+                    : "bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow"}
+                >
+                  {featured && (
+                    <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-bl-lg rounded-tr-2xl">
+                      BESTSELLER
+                    </div>
+                  )}
 
-              <button
-                onClick={() => handleBookPackage('Family Basic', 95, 'Familienfotografie - 60 Min, 1 Portrait + Leinwand 40×30 cm')}
-                className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
-              >
-                {language === 'de' ? 'Jetzt Buchen' : 'Book Now'}
-              </button>
-            </div>
+                  <div className={featured ? "mb-6 mt-4" : "mb-6"}>
+                    <h3 className={featured ? "text-2xl font-bold mb-2" : "text-2xl font-bold text-gray-900 mb-2"}>
+                      {pkg.name}
+                    </h3>
+                  </div>
 
-            {/* Family Classic Package - BESTSELLER */}
-            <div className="bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl p-8 transform sm:scale-105 relative">
-              <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-bl-lg rounded-tr-2xl">
-                {language === 'de' ? 'BESTSELLER' : 'BESTSELLER'}
-              </div>
-              
-              <div className="mb-6 mt-4">
-                <h3 className="text-2xl font-bold mb-2">Family Classic</h3>
-              </div>
-              
-              <div className="mb-6">
-                <div className="flex items-baseline">
-                  <span className="text-sm mr-1">Ab</span>
-                  <span className="text-4xl font-bold">€195</span>
-                </div>
-              </div>
+                  <div className="mb-6">
+                    <div className="flex items-baseline">
+                      <span className={featured ? "text-sm mr-1" : "text-sm text-gray-500 mr-1"}>
+                        {language === 'de' ? 'Ab' : 'From'}
+                      </span>
+                      <span className={featured ? "text-4xl font-bold" : "text-4xl font-bold text-purple-600"}>
+                        {pkg.displayPrice}
+                      </span>
+                    </div>
+                  </div>
 
-              <div className="space-y-4 mb-4">
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>{language === 'de' ? '60 Min Shooting' : '60 min shooting'}</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>{language === 'de' ? '2 retuschierte Portraits digital + 2x Leinwand 30×40 cm' : '2 retouched portraits digital + 2x canvas 30×40 cm'}</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>{language === 'de' ? 'Nutzungsrechte privat' : 'Private usage rights'}</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-yellow-300 mr-3 flex-shrink-0 mt-0.5" />
-                  <span>{language === 'de' ? 'Bis zu 12 Personen und auch Haustiere möglich' : 'Up to 12 people and pets welcome'}</span>
-                </div>
-              </div>
+                  <div className="space-y-4 mb-4">
+                    {pkg.bullets.map((b) => (
+                      <div key={b.en} className="flex items-start">
+                        <Check className={featured
+                          ? "h-5 w-5 text-white mr-3 flex-shrink-0 mt-0.5"
+                          : "h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5"} />
+                        <span className={featured ? undefined : "text-gray-700"}>
+                          {language === 'de' ? b.de : b.en}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
 
-              <p className="text-purple-200 text-sm mb-6">{language === 'de' ? 'Gültig bis 2 Jahre' : 'Valid for up to 2 years'}</p>
+                  <p className={featured ? "text-purple-200 text-sm mb-6" : "text-gray-400 text-sm mb-6"}>
+                    {language === 'de' ? pkg.validity.de : pkg.validity.en}
+                  </p>
 
-              <button
-                onClick={() => handleBookPackage('Family Classic', 195, 'Familienfotografie - 60 Min, 2 Portraits + 2x Leinwand 30×40 cm')}
-                className="block w-full text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
-              >
-                {language === 'de' ? 'Jetzt Buchen' : 'Book Now'}
-              </button>
-            </div>
-
-            {/* Family Premium Package */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow">
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Family Premium</h3>
-              </div>
-              
-              <div className="mb-6">
-                <div className="flex items-baseline">
-                  <span className="text-sm text-gray-500 mr-1">Ab</span>
-                  <span className="text-4xl font-bold text-purple-600">€225</span>
+                  <button
+                    onClick={() => handleBookPackage(pkg.name, pkg.amount, pkg.cartDescription)}
+                    className={featured
+                      ? "block w-full text-center px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+                      : "block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"}
+                  >
+                    {language === 'de' ? 'Jetzt Buchen' : 'Book Now'}
+                  </button>
                 </div>
-              </div>
-
-              <div className="space-y-4 mb-4">
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">{language === 'de' ? '60 Min Shooting' : '60 min shooting'}</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">{language === 'de' ? '5 retuschierte Fotos digital' : '5 retouched photos digital'}</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">{language === 'de' ? 'Leinwand 40×30 cm' : 'Canvas 40×30 cm'}</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">{language === 'de' ? 'Nutzungsrechte privat' : 'Private usage rights'}</span>
-                </div>
-                <div className="flex items-start">
-                  <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">{language === 'de' ? 'Bis zu 12 Personen und auch Haustiere möglich' : 'Up to 12 people and pets welcome'}</span>
-                </div>
-              </div>
-
-              <p className="text-gray-400 text-sm mb-6">{language === 'de' ? 'Gültig bis 2 Jahre' : 'Valid for up to 2 years'}</p>
-
-              <button
-                onClick={() => handleBookPackage('Family Premium', 225, 'Familienfotografie - 60 Min, 5 Fotos + Leinwand 40×30 cm')}
-                className="block w-full text-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
-              >
-                {language === 'de' ? 'Jetzt Buchen' : 'Book Now'}
-              </button>
-            </div>
+              );
+            })}
           </div>
 
           {/* Immer inklusive Section */}

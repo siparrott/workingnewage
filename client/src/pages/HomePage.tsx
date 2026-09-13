@@ -19,6 +19,8 @@ import HomepageConfidenceSection from '../components/home/HomepageConfidenceSect
 import CareerStorySection from '../components/home/CareerStorySection';
 import HomepageServiceSelector from '../components/home/HomepageServiceSelector';
 import HomepagePortfolio from '../components/home/HomepagePortfolio';
+import HomepagePricing from '../components/home/HomepagePricing';
+import GoogleReviews from '../components/layout/GoogleReviews';
 import { SITE } from '../config/site';
 
 // Translation mappings for German product names and descriptions
@@ -338,7 +340,7 @@ const HomePage: React.FC = () => {
     ];
 
   return (
-    <Layout>
+    <Layout showReviews={false} showPartnerLogos={false}>
       <SEOHead
         title={`Familienfotograf Wien | ${SITE.name}`}
         description="Ihr professioneller Familienfotograf in Wien: Familien-, Baby-, Neugeborenen-, Schwangerschafts- und Businessfotos im Studio. Über 27.000 Familien fotografiert. Jetzt Termin buchen!"
@@ -688,7 +690,30 @@ const HomePage: React.FC = () => {
         cta={language === 'de' ? 'Mehr Familienfotos ansehen' : 'See more family photographs'}
       />
 
-      {/* PHASE 3 — pricing cards, then family-specific reviews, go here. */}
+      {/* What it costs — before the visitor is halfway down the page, not on another one. */}
+      <HomepagePricing
+        language={language}
+        heading={language === 'de' ? 'Unsere Familien-Pakete' : 'Our family packages'}
+        subheading={language === 'de'
+          ? 'Alles inklusive, was auf der Karte steht. Keine versteckten Kosten.'
+          : 'Everything listed is included. No hidden costs.'}
+        ctaAvailability={language === 'de' ? 'Verfügbarkeit prüfen' : 'Check availability'}
+        ctaAll={language === 'de' ? 'Alle Preise ansehen' : 'See all prices'}
+      />
+
+      {/*
+        REVIEWS, HERE, RATHER THAN IN THE RUN-UP TO THE FOOTER.
+
+        This component is normally rendered by Layout, after the page's content, on every page.
+        That is the right place almost everywhere and the wrong place here: a family has just
+        seen the work and the price, and "what did other families think" is the question they
+        are holding at exactly this point — not four sections later, below the company history.
+
+        The Layout copy is switched off for this page (showReviews={false} above) so there is
+        one set of reviews on the homepage, not two. That duplicate is a mistake this page has
+        made before; the comment about it is still further down.
+      */}
+      <GoogleReviews />
 
       {/* Content Sections */}
       <section className="py-16">
