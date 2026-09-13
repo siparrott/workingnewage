@@ -322,6 +322,41 @@ const HomePage: React.FC = () => {
   );
   const formatStat = (n: number) => n.toLocaleString(language === 'de' ? 'de-AT' : 'en-GB');
 
+  /**
+   * HAS THE TRUST STRIP BEEN SEEN YET?
+   *
+   * react-countup's own `enableScrollSpy` listens for SCROLL, so a strip that is already on
+   * screen when the page loads never starts — and the live site showed three columns reading
+   * "0 Glückliche Familien / 0 Porträts eingefangen / 0 Jahre Berufserfahrung" to anybody who
+   * had not scrolled yet. Zero is not a smaller version of the truth here; it is the opposite
+   * of the claim the strip exists to make.
+   *
+   * An IntersectionObserver fires on the first callback for an element that is ALREADY
+   * intersecting, so this covers both cases: visible on arrival, or scrolled to later. Once
+   * only — `started` never goes back to false, so the count cannot replay.
+   *
+   * Until it fires the real figures are rendered as plain text, so a visitor who never scrolls
+   * that far, a crawler, and the build-time prerender all see 27,156 rather than 0.
+   */
+  const statsRef = React.useRef<HTMLDivElement | null>(null);
+  const [statsSeen, setStatsSeen] = React.useState(false);
+  React.useEffect(() => {
+    if (statsSeen || prefersReducedMotion) return;
+    const el = statsRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setStatsSeen(true); // No observer available: show the animation rather than nothing.
+      return;
+    }
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        setStatsSeen(true);
+        io.disconnect();
+      }
+    }, { threshold: 0.1 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [statsSeen, prefersReducedMotion]);
+
   const faqImages =
     (homepageImages &&
       (homepageImages as any[])
@@ -519,7 +554,7 @@ const HomePage: React.FC = () => {
       */}
       <section className="bg-white">
         <div className="container mx-auto px-4 py-12 md:py-20 grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-12 items-center">
-          <div className="md:col-span-5">
+          <div className="md:col-span-6">
             <p className="mb-3 leading-tight text-base sm:text-lg font-bold bg-gradient-to-r from-pink-500 to-purple-600 text-transparent bg-clip-text">
               {t('home.heroTitle')}
             </p>
@@ -566,10 +601,20 @@ const HomePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="md:col-span-7">
+          <div className="md:col-span-6">
             {/* 4:5, the shape a family portrait is taken in, and dimensions declared so the
-                row does not jump when it loads. priority is kept: this is the LCP element. */}
-            <div className="aspect-[4/5] sm:aspect-[5/4] md:aspect-[4/5] max-w-xl md:max-w-none mx-auto overflow-hidden rounded-2xl shadow-xl">
+                row does not jump when it loads. priority is kept: this is the LCP element.
+
+                CAPPED, because an aspect ratio on a fluid column is a height multiplier. At
+                seven of twelve columns on a wide screen this was about 1100px across and
+                therefore around 1400px TALL — a hero taller than the window, which pushes
+                everything the page is trying to say below the fold. Reported simply as "the
+                hero image is too big", which it was.
+
+                Half the row now, and a max width that caps the height with it: roughly 520px
+                across and 650px tall on a large screen. Still the biggest thing on the page,
+                which is right for a photographer, without being the whole of it. */}
+            <div className="aspect-[4/5] sm:aspect-[5/4] md:aspect-[4/5] max-w-xl md:max-w-[460px] lg:max-w-[520px] mx-auto overflow-hidden rounded-2xl shadow-xl">
               <ZoomableImageV2
                 src={heroImageUrl || photoGridImage}
                 alt={language === 'de'
@@ -603,7 +648,7 @@ const HomePage: React.FC = () => {
       */}
       <section className="bg-gradient-to-r from-pink-500 to-purple-600 py-8 md:py-10">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 text-center">
+          <div ref={statsRef} className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 text-center">
             {[
               { value: 27156, label: t('home.happyFamilies') },
               { value: 5431977, label: t('home.portraitsCaptured') },
@@ -611,10 +656,11 @@ const HomePage: React.FC = () => {
             ].map((stat) => (
               <div key={stat.label} className="text-white">
                 <div className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 tabular-nums">
-                  {prefersReducedMotion ? (
+                  {/* The real number until the strip has been seen — never a zero. */}
+                  {prefersReducedMotion || !statsSeen ? (
                     formatStat(stat.value)
                   ) : (
-                    <CountUp end={stat.value} duration={2.5} separator="," enableScrollSpy scrollSpyOnce />
+                    <CountUp end={stat.value} duration={2.5} separator="," />
                   )}
                 </div>
                 <div className="text-sm sm:text-base md:text-lg text-white/90">{stat.label}</div>
