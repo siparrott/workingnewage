@@ -611,10 +611,12 @@ const HomePage: React.FC = () => {
                 everything the page is trying to say below the fold. Reported simply as "the
                 hero image is too big", which it was.
 
-                Half the row now, and a max width that caps the height with it: roughly 520px
-                across and 650px tall on a large screen. Still the biggest thing on the page,
-                which is right for a photographer, without being the whole of it. */}
-            <div className="aspect-[4/5] sm:aspect-[5/4] md:aspect-[4/5] max-w-xl md:max-w-[460px] lg:max-w-[520px] mx-auto overflow-hidden rounded-2xl shadow-xl">
+                Half the row now, and a max width that caps the height with it. SQUARE at every
+                size, on request: it sits level with the block of text beside it instead of
+                running past it, and a square is the one ratio that treats a portrait and a
+                wide family group equally badly — which is to say, predictably. object-cover
+                does the cropping, so whatever is uploaded fills it without distortion. */}
+            <div className="aspect-square max-w-xl md:max-w-[460px] lg:max-w-[560px] mx-auto overflow-hidden rounded-2xl shadow-xl">
               <ZoomableImageV2
                 src={heroImageUrl || photoGridImage}
                 alt={language === 'de'
@@ -627,7 +629,7 @@ const HomePage: React.FC = () => {
                 }}
                 priority={true}
                 width={900}
-                height={1125}
+                height={900}
               />
             </div>
           </div>
