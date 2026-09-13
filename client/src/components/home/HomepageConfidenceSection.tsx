@@ -134,6 +134,22 @@ const WorriesGrid: React.FC = () => {
     { q: 'faq.worry4.q', micro: 'faq.worry4.micro', full: 'faq.worry4.full' },
     { q: 'faq.worry5.q', micro: 'faq.worry5.micro', full: 'faq.worry5.full' },
     { q: 'faq.worry6.q', micro: 'faq.worry6.micro', full: 'faq.worry6.full' },
+    /**
+     * The three that are actually objections.
+     *
+     * The six above are half reassurance and half logistics — how long it takes, when the
+     * photos arrive — which is the SEO-FAQ register this section was asked to move away from.
+     * They stay: they are indexed, they are in the FAQPage schema, and removing copy rather
+     * than relocating it is out of scope.
+     *
+     * These three are the ones that stop a family booking: not being photogenic, a partner who
+     * hates cameras, and a baby who might cry. ANYTHING ADDED HERE MUST ALSO BE ADDED TO THE
+     * FAQPage schema in HomePage.tsx, which mirrors this list — visible content and structured
+     * data disagreeing is worse than having neither.
+     */
+    { q: 'faq.worry7.q', micro: 'faq.worry7.micro', full: 'faq.worry7.full' },
+    { q: 'faq.worry8.q', micro: 'faq.worry8.micro', full: 'faq.worry8.full' },
+    { q: 'faq.worry9.q', micro: 'faq.worry9.micro', full: 'faq.worry9.full' },
   ];
 
   return (

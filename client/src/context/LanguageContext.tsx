@@ -1090,13 +1090,13 @@ const translations = {
   
   // Process Strip - How it works
   'faq.processTitle': 'How It Works',
-  'faq.process.step1.label': 'Book',
+  'faq.process.step1.label': 'Choose a date',
   'faq.process.step1.desc': 'Choose your session type and pick a date',
   'faq.process.step2.label': 'Prepare',
   'faq.process.step2.desc': 'Receive your prep guide with outfit tips',
-  'faq.process.step3.label': 'Shoot',
+  'faq.process.step3.label': 'The shoot',
   'faq.process.step3.desc': 'Relax and enjoy – we guide you through',
-  'faq.process.step4.label': 'Gallery',
+  'faq.process.step4.label': 'Choose your photos',
   'faq.process.step4.desc': 'View and download your images online',
   
   // Common Worries - QA Cards
@@ -1125,6 +1125,17 @@ const translations = {
   'faq.worry6.q': 'Who can join the shoot?',
   'faq.worry6.micro': 'Immediate family + pets welcome',
   'faq.worry6.full': 'Parents, kids, grandparents, pets – the more the merrier! We recommend keeping groups under 8 for best results. Extended family sessions can be arranged with advance notice.',
+  'faq.worry7.q': 'I am really not photogenic.',
+  'faq.worry7.micro': 'Almost everyone says this',
+  'faq.worry7.full': 'Almost every adult who walks in says it, usually in the first two minutes. Being photogenic is not a thing you are or are not — it is a thing a photographer is responsible for. We direct the whole way through: where to stand, what to do with your hands, where to look. You are never left to work it out in front of a lens.',
+
+  'faq.worry8.q': 'My partner hates having their photo taken.',
+  'faq.worry8.micro': 'No stiff posing, no long sitting',
+  'faq.worry8.full': 'That is usually the person who likes the photographs most afterwards. There is no stiff posing and nobody is asked to hold a smile — most of the session is you talking to each other while we work around you. It lasts about an hour, and the people who dread it most are generally done being self-conscious within ten minutes.',
+
+  'faq.worry9.q': 'What if our baby cries or needs a break?',
+  'faq.worry9.micro': 'Breaks are part of the session',
+  'faq.worry9.full': 'Then we stop. Feeding, changing and settling are planned into the time rather than squeezed around it — newborn sessions are booked long precisely so there is room for them. A baby who needs twenty minutes is not a session going wrong; it is a session going normally.',
   
   // Clarity & Value Row
   'faq.clarityTitle': 'Clarity & Value',
@@ -2259,13 +2270,13 @@ const translations = {
   
   // Process Strip - So funktioniert's
   'faq.processTitle': 'So funktioniert\'s',
-  'faq.process.step1.label': 'Buchen',
+  'faq.process.step1.label': 'Termin auswählen',
   'faq.process.step1.desc': 'Wählen Sie Ihre Session und einen Termin',
   'faq.process.step2.label': 'Vorbereiten',
   'faq.process.step2.desc': 'Sie erhalten einen Leitfaden mit Outfit-Tipps',
-  'faq.process.step3.label': 'Shooting',
+  'faq.process.step3.label': 'Fotoshooting',
   'faq.process.step3.desc': 'Entspannen Sie sich – wir führen Sie durch',
-  'faq.process.step4.label': 'Galerie',
+  'faq.process.step4.label': 'Bilder auswählen',
   'faq.process.step4.desc': 'Bilder online ansehen und herunterladen',
   
   // Common Worries - QA Cards
@@ -2294,6 +2305,17 @@ const translations = {
   'faq.worry6.q': 'Wer kann beim Shooting dabei sein?',
   'faq.worry6.micro': 'Kernfamilie + Haustiere willkommen',
   'faq.worry6.full': 'Eltern, Kinder, Großeltern, Haustiere – je mehr, desto besser! Wir empfehlen Gruppen unter 8 Personen für beste Ergebnisse. Erweiterte Familien-Sessions nach Absprache möglich.',
+  'faq.worry7.q': 'Ich bin überhaupt nicht fotogen.',
+  'faq.worry7.micro': 'Das sagen fast alle',
+  'faq.worry7.full': 'Das sagen fast alle Erwachsenen – meist in den ersten zwei Minuten. Fotogen zu sein ist nichts, was man ist oder nicht ist: Es ist die Aufgabe des Fotografen. Wir führen Sie durch das ganze Shooting – wohin stellen, was mit den Händen, wohin schauen. Sie stehen nie ratlos vor der Kamera.',
+
+  'faq.worry8.q': 'Mein Partner mag keine Fotoshootings.',
+  'faq.worry8.micro': 'Kein steifes Posieren',
+  'faq.worry8.full': 'Genau diese Person mag die Bilder hinterher meistens am liebsten. Es wird nicht steif posiert und niemand muss ein Lächeln halten – den größten Teil der Zeit reden Sie miteinander, und wir arbeiten um Sie herum. Das Ganze dauert etwa eine Stunde, und wer am meisten davor zurückschreckt, hat die Scheu meist nach zehn Minuten verloren.',
+
+  'faq.worry9.q': 'Unser Baby weint oder braucht eine Pause?',
+  'faq.worry9.micro': 'Pausen gehören dazu',
+  'faq.worry9.full': 'Dann machen wir Pause. Stillen, Wickeln und Beruhigen sind in der Zeit eingeplant und nicht dazwischengequetscht – Neugeborenen-Sessions sind genau deshalb länger angesetzt. Ein Baby, das zwanzig Minuten braucht, ist kein misslungenes Shooting, sondern ein ganz normales.',
   
   // Clarity & Value Row
   'faq.clarityTitle': 'Klarheit & Mehrwert',
