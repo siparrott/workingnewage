@@ -721,7 +721,20 @@ const HomePage: React.FC = () => {
             blurb: language === 'de'
               ? 'Vom ersten Lächeln bis zum ersten Schultag.'
               : 'From the first smile to the first school day.',
-            image: imageForSection('services-family', photoGridImage),
+            /**
+             * ITS OWN SLOT, falling back to the family photograph rather than to the collage.
+             *
+             * This card read services-family, so it showed the SAME picture as the first card
+             * — visible on the live site the moment real photographs were uploaded, and there
+             * was no way to change it because it had no slot of its own.
+             *
+             * The fallback is deliberate. Pointing it at an empty services-baby would drop it
+             * to photo-grid.jpg, and a thumbnail collage beside three real photographs looks
+             * broken in a way a repeated photograph does not. So until something is uploaded
+             * to services-baby it keeps exactly what it shows today, and the day one is it
+             * changes on its own.
+             */
+            image: imageForSection('services-baby', imageForSection('services-family', photoGridImage)),
             alt: language === 'de'
               ? 'Baby- und Kinderfotografie in Wien'
               : 'Baby and child photography in Vienna',
