@@ -84,7 +84,7 @@ export default function HomepagePortfolio({
 
         <div className="mt-10 text-center">
           <Link
-            to="/portfolio"
+            to="/portfolio/"
             className="inline-flex items-center justify-center rounded-full border border-purple-200 px-7 py-3 text-base font-medium text-purple-700 transition-colors duration-300 hover:border-purple-300 hover:bg-purple-50"
           >
             {cta}

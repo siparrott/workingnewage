@@ -593,7 +593,7 @@ const HomePage: React.FC = () => {
                 {language === 'de' ? 'Preise ansehen' : 'See prices'}
               </Link>
               <Link
-                to="/portfolio"
+                to="/portfolio/"
                 className="inline-flex items-center justify-center rounded-full border border-purple-200 px-6 py-3 text-lg font-medium text-purple-700 transition-colors duration-300 hover:border-purple-300 hover:bg-purple-50"
               >
                 {language === 'de' ? 'Fotos ansehen' : 'See photographs'}

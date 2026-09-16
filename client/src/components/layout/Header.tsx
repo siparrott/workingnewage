@@ -95,7 +95,7 @@ const Header: React.FC = () => {
    */
   const navItems = [
     { path: '/preise/', label: t('nav.prices') },
-    { path: '/portfolio', label: t('nav.portfolio') },
+    { path: '/portfolio/', label: t('nav.portfolio') },
     { path: '/vouchers', label: t('nav.vouchers') },
   ];
 
