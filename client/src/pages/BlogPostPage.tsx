@@ -13,6 +13,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { SITE } from '../config/site';
 import { useLanguage } from '../context/LanguageContext';
+import { normalizeBlogHeadings } from '@shared/blogHeadings';
 
 // Older posts store raw Markdown (contentHtml empty); newer ones store real HTML.
 // Detect HTML so we render each correctly instead of dumping raw "##" markdown.
@@ -429,7 +430,11 @@ const BlogPostPage: React.FC = () => {
                 
                 {/* Render content with strategically placed images */}
                 {(() => {
-                  const htmlContent = post.contentHtml || post.content;
+                  // The page's own <h1> is the post title; seven posts also store their
+                  // section headings as <h1>, which put ten or twelve on the page.
+                  // Normalising here also fixes the split below: it cuts on <h2, which
+                  // used to land on subsections and now lands on real section breaks.
+                  const htmlContent = normalizeBlogHeadings(post.contentHtml || post.content);
 
                   // Markdown posts (no HTML tags): render via react-markdown so
                   // headings/lists/tables/bold display correctly instead of raw "##".

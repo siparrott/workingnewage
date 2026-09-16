@@ -7,6 +7,7 @@ import { type Server } from "http";
 // viteConfig imported dynamically in setupVite to avoid production issues
 import { nanoid } from "nanoid";
 import { renderIndexHtml, getSiteIdentity } from "./lib/siteIdentity.js";
+import { normalizeBlogHeadings } from "../shared/blogHeadings.js";
 import { INDEXNOW_KEY, keyFileName } from "./services/indexNow.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -396,9 +397,14 @@ function blogBodyHtml(post: any): string {
   const haystack = `${post.title || ""} ${post.slug || ""} ${post.excerpt || ""}`;
   const { pillar, siblings } = BLOG_PILLARS.find((p) => p.match.test(haystack)) || DEFAULT_BLOG_PILLAR;
   const published = post.publishedAt ? new Date(post.publishedAt).toISOString().slice(0, 10) : "";
-  const content = post.contentHtml && String(post.contentHtml).trim()
-    ? String(post.contentHtml)
-    : markdownishToHtml(String(post.content || ""));
+  // The <h1> below is the page's one top-level heading. Seven posts store their
+  // section headings as <h1> too, which would put ten or twelve of them on the page;
+  // markdownishToHtml can produce one from a leading "# " for the same reason.
+  const content = normalizeBlogHeadings(
+    post.contentHtml && String(post.contentHtml).trim()
+      ? String(post.contentHtml)
+      : markdownishToHtml(String(post.content || "")),
+  );
   const cover = post.imageUrl
     ? `<img src="${htmlEsc(String(post.imageUrl))}" alt="${htmlEsc(String(post.title || ""))}" class="w-full rounded-xl mb-8" />\n`
     : "";
