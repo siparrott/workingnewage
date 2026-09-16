@@ -142,6 +142,40 @@ app.use((req, res, next) => {
 // and JSON payloads (bandwidth + Core Web Vitals). Cheap; safe for everything.
 app.use(compression());
 
+/**
+ * AN API CALL BEFORE THE API EXISTS MUST NOT BE ANSWERED WITH A WEB PAGE.
+ *
+ * app.listen() happens hundreds of lines before registerRoutes(), so for the first seconds of
+ * every boot the process is accepting connections with no /api routes mounted. A request for
+ * /api/homepage/images in that window fell through to Express's default handler and came back
+ * as HTML — with a 200 from the catch-all once static serving was up, or an HTML 404 before
+ * that. Either way the client did `await res.json()` on a page of markup, the query failed,
+ * and every image on the homepage fell back to the collage bundled into the JS.
+ *
+ * That is what a visitor saw if they loaded the site during a deploy: a photographer's
+ * homepage showing the same grid of thumbnails in all four service cards, with nothing wrong
+ * in the database and nothing wrong in the code.
+ *
+ * 503 with Retry-After is the honest answer to "ask me in a moment", it is JSON so the client
+ * parses it, and fetch treats it as a failure — so React Query retries instead of caching a
+ * web page as if it were data. Once routes are mounted this is a pass-through.
+ */
+let apiRoutesReady = false;
+export function markApiRoutesReady(): void { apiRoutesReady = true; }
+
+app.use((req, res, next) => {
+  if (apiRoutesReady) return next();
+  if (!req.path.startsWith('/api/')) return next();
+  // The health check must answer during startup — that is the whole point of it.
+  if (req.path === '/api/version' || req.path === '/healthz') return next();
+  res.setHeader('Retry-After', '5');
+  res.setHeader('Cache-Control', 'no-store');
+  return res.status(503).json({
+    error: 'The server is still starting up. Please retry shortly.',
+    code: 'starting_up',
+  });
+});
+
 // Rate limiting: a generous global cap (blunts scraping / DoS on the new public
 // URL) plus a strict cap on auth POSTs (login/register/reset brute-force). GETs
 // (incl. session checks) and Stripe webhooks are exempt so nothing legitimate breaks.
@@ -695,11 +729,20 @@ app.use((req, res, next) => {
     console.log('🔄 Registering routes immediately...');
     try {
       await registerRoutes(app);
+      // From here /api/* is real. Before this the guard above answers 503 rather than letting
+      // a request for data be satisfied with a page of HTML.
+      markApiRoutesReady();
       console.log('✅ Routes registered successfully - Client database should now be accessible');
     } catch (routeError) {
       console.error('❌ Failed to register routes:', routeError.message);
       console.error('Route registration stack:', routeError.stack);
       // Continue without routes - at least serve health endpoints
+      //
+      // And release the startup guard even so. It exists to cover the window where routes are
+      // NOT YET mounted; once this attempt has ended, "still starting up" is no longer true.
+      // Leaving it latched would answer every API call with a 503 blaming startup for what is
+      // actually a registration failure — a worse diagnosis than the one it replaced.
+      markApiRoutesReady();
     }
     
     // Manual Google Calendar sync endpoint (per-user) - does FULL import of all events
