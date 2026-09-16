@@ -203,13 +203,40 @@ async function lookupRouteMeta(reqPath: string): Promise<RouteMeta | null> {
       return meta;
     }
 
+    /**
+     * /blog ITSELF MATCHED NOTHING, AND SERVED THE HOMEPAGE'S TITLE.
+     *
+     * blogMatch below requires a slug, so the index fell past every branch here and
+     * past STATIC_ROUTE_META, and was answered with the untouched SPA shell: 16KB
+     * carrying no <h1>, no post links, and <title>Familienfotograf Wien</title> —
+     * the homepage's. /blog is in the prerender list, but a build has no DB, so the
+     * one page whose entire content comes from the DB is exactly the one prerender
+     * cannot produce.
+     *
+     * A blog index exists to link to posts. Served empty it is a dead end that also
+     * tells a crawler it is a duplicate of the homepage.
+     */
+    const blogIndexMatch = /^\/blog\/?$/.test(reqPath);
     const blogMatch = reqPath.match(/^\/blog\/([^/]+)\/?$/);
     const voucherMatch = reqPath.match(/^\/gutschein\/([^/]+)\/?$/);
 
     // IMPORTANT: use the same request-time data path the dynamic sitemap uses
     // (./storage.js) — proven to work in production. An earlier version did
     // ad-hoc drizzle imports here and hung in production (30s → Heroku 503).
-    if (blogMatch) {
+    if (blogIndexMatch) {
+      const { storage } = await import("./storage.js");
+      const all: any[] = await storage.getBlogPosts(true);
+      const now = Date.now();
+      const live = (all || [])
+        .filter((p) => p && p.published === true && (!p.publishedAt || new Date(p.publishedAt).getTime() <= now))
+        .sort((a, b) => new Date(b.publishedAt || 0).getTime() - new Date(a.publishedAt || 0).getTime());
+      meta = {
+        title: "Fotografie-Blog aus Wien – Tipps, Preise & Ablauf | New Age Fotografie",
+        description: "Ratgeber rund ums Fotoshooting in Wien: Vorbereitung, Outfits, Preise und Ablauf für Familien-, Neugeborenen-, Schwangerschafts- und Businessshootings.",
+        canonical: `${SITE_ORIGIN}/blog/`,
+        bodyHtml: blogIndexBodyHtml(live),
+      };
+    } else if (blogMatch) {
       const slug = decodeURIComponent(blogMatch[1]);
       const { storage } = await import("./storage.js");
       // Single-row lookup (getBlogPosts(true) pulled EVERY post's full content
@@ -328,6 +355,41 @@ function markdownishToHtml(md: string): string {
     }
     return `<p>${htmlEsc(t).replace(/\n/g, "<br/>")}</p>`;
   }).filter(Boolean).join("\n");
+}
+
+// The blog index, rendered from the same DB rows the meta lookup already has.
+// One <h1> for the page, then each post as an <h2> link — the hierarchy a listing
+// page should have, and the links a crawler needs to reach the posts from here.
+function blogIndexBodyHtml(posts: any[]): string {
+  const items = (posts || []).map((p) => {
+    const slug = String(p.slug || "");
+    const title = String(p.title || "").trim();
+    if (!slug || !title) return "";
+    const published = p.publishedAt ? new Date(p.publishedAt).toISOString().slice(0, 10) : "";
+    const excerpt = String(p.excerpt || p.metaDescription || "").replace(/\s+/g, " ").trim().slice(0, 180);
+    return (
+      `<li class="mb-6">\n` +
+      `<h2 class="text-xl font-semibold text-gray-900 mb-1">` +
+      `<a href="/blog/${encodeURIComponent(slug)}" class="text-purple-700 underline underline-offset-2">${htmlEsc(title)}</a>` +
+      `</h2>\n` +
+      (published ? `<p class="text-sm text-gray-500 mb-1">Veröffentlicht am ${published}</p>\n` : "") +
+      (excerpt ? `<p class="text-gray-700">${htmlEsc(excerpt)}</p>\n` : "") +
+      `</li>`
+    );
+  }).filter(Boolean).join("\n");
+
+  return (
+    `<div class="max-w-3xl mx-auto px-4 py-12">\n` +
+    `<h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Fotografie-Blog aus Wien</h1>\n` +
+    `<p class="text-gray-700 mb-8 leading-relaxed">Ratgeber und Erfahrungen aus unserem Fotostudio in 1050 Wien — ` +
+    `Vorbereitung, Outfits, Preise und Ablauf für Familien-, Neugeborenen-, Schwangerschafts- und Businessshootings.</p>\n` +
+    (items ? `<ul class="list-none pl-0 mb-8">\n${items}\n</ul>\n` : "") +
+    `<p class="text-gray-700"><a href="/preise/" class="underline">Preise &amp; Pakete</a> · ` +
+    `<a href="/portfolio/" class="underline">Portfolio</a> · ` +
+    `<a href="/kundenstimmen/" class="underline">Kundenstimmen</a> · ` +
+    `<a href="/kontakt" class="underline">Kontakt</a></p>\n` +
+    `</div>`
+  );
 }
 
 function blogBodyHtml(post: any): string {
