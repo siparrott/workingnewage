@@ -7,78 +7,145 @@ import { SITE } from '../../config/site';
 const WeddingFotoshootingPage: React.FC = () => {
   const { language } = useLanguage();
   const de = language === 'de';
+  /**
+   * CAPTION AND ALT ARE TWO DIFFERENT JOBS, AND THIS HELD ONE STRING FOR BOTH.
+   *
+   * `title` was the visible overlay heading and the alt text at once, in English, on a
+   * page that switches every other word on `de`. A German visitor read "Party" over the
+   * photograph; a screen-reader user heard that same one word twice — as the caption, and
+   * again as the description of the picture it sits on.
+   *
+   * title/titleEn is the label a sighted visitor reads. alt/altEn is the sentence that
+   * stands in for the photograph, naming the moment of the wedding day and the city.
+   *
+   * These describe the stage of the day, not the couple. Guest names are never added even
+   * where a filename carries one — a wedding photograph is not ours to caption with the
+   * names of the people in it.
+   */
   const weddingPhotos = [
     {
       url: "https://i.postimg.cc/P5Y6qBwf/4S8A7472.jpg",
-      title: "Wedding Ceremony"
+      title: "Trauung",
+      titleEn: "Wedding Ceremony",
+      alt: "Hochzeitsfotografie in Wien – Momentaufnahme der Trauung",
+      altEn: "Wedding photography in Vienna – a moment from the ceremony",
     },
     {
       url: "https://i.postimg.cc/3R6QYX2s/00134022.jpg",
-      title: "Wedding Portraits"
+      title: "Hochzeitsporträts",
+      titleEn: "Wedding Portraits",
+      alt: "Hochzeitsporträt des Brautpaars, fotografiert in Wien",
+      altEn: "Wedding portrait of the couple, photographed in Vienna",
     },
     {
       url: "https://i.postimg.cc/zG15yF45/00371059.jpg",
-      title: "Wedding Reception"
+      title: "Hochzeitsfeier",
+      titleEn: "Wedding Reception",
+      alt: "Hochzeitsfeier in Wien – Fotografie des Empfangs",
+      altEn: "Wedding reception in Vienna – photography of the celebration",
     }
   ];
 
   const additionalPhotos = [
     {
       url: "https://i.postimg.cc/VvWyM3x8/00145408.jpg",
-      title: "Getting Ready"
+      title: "Getting Ready",
+      titleEn: "Getting Ready",
+      alt: "Getting Ready vor der Hochzeit – Vorbereitungen am Morgen",
+      altEn: "Getting ready before the wedding – preparations that morning",
     },
     {
       url: "https://i.postimg.cc/4Nwk3Rvv/00371294.jpg",
-      title: "First Look"
+      title: "First Look",
+      titleEn: "First Look",
+      alt: "First Look des Brautpaars vor der Trauung",
+      altEn: "The couple's first look before the ceremony",
     },
     {
       url: "https://i.postimg.cc/fyNnVwgC/events1.jpg",
-      title: "Ceremony"
+      title: "Zeremonie",
+      titleEn: "Ceremony",
+      alt: "Trauungszeremonie – Hochzeitsfotografie während der Zeremonie",
+      altEn: "The marriage ceremony – wedding photography during the service",
     },
     {
       url: "https://i.postimg.cc/t4T0ZvDK/HOFBAUER-70x50-L.jpg",
-      title: "Bridal Portraits"
+      title: "Brautporträts",
+      titleEn: "Bridal Portraits",
+      alt: "Brautporträt – Hochzeitsfotografie des Brautpaars",
+      altEn: "Bridal portrait – wedding photography of the couple",
     },
     {
       url: "https://i.postimg.cc/YqtBkCFq/IMG-6997.jpg",
-      title: "Reception"
+      title: "Empfang",
+      titleEn: "Reception",
+      alt: "Hochzeitsempfang – Gäste während der Feier",
+      altEn: "Wedding reception – guests during the celebration",
     },
     {
       url: "https://i.postimg.cc/CMGpWqzQ/IMG-7898.jpg",
-      title: "Party"
+      title: "Hochzeitsparty",
+      titleEn: "Party",
+      alt: "Hochzeitsparty – Feiern am Abend der Hochzeit",
+      altEn: "Wedding party – celebrating on the evening of the wedding",
     }
   ];
 
   const galleryPhotos = [
     {
       url: "https://i.postimg.cc/85wB64ZY/4-S8-A0596aaa.jpg",
-      title: "Romantic Moments",
-      description: "Capturing intimate moments between newlyweds"
+      title: "Romantische Momente",
+      titleEn: "Romantic Moments",
+      description: "Intime Augenblicke des Brautpaars",
+      descriptionEn: "Capturing intimate moments between newlyweds",
+      alt: "Romantischer Moment des Brautpaars – Hochzeitsfotografie",
+      altEn: "A romantic moment between the newlyweds – wedding photography",
     },
     {
       url: "https://i.postimg.cc/k53c3BVT/COS-0308.jpg",
-      title: "Wedding Details",
-      description: "Beautiful wedding day details"
+      title: "Hochzeitsdetails",
+      titleEn: "Wedding Details",
+      description: "Die schönen Details des Hochzeitstags",
+      descriptionEn: "Beautiful wedding day details",
+      alt: "Detailaufnahme vom Hochzeitstag – Hochzeitsfotografie",
+      altEn: "A detail from the wedding day – wedding photography",
     },
     {
       url: "https://i.postimg.cc/bvxRzpkp/KULHAVY13032020-194-of-671-ddd.jpg",
-      title: "Candid Moments",
-      description: "Natural and spontaneous celebrations"
+      title: "Ungestellte Momente",
+      titleEn: "Candid Moments",
+      description: "Natürliche und spontane Feiermomente",
+      descriptionEn: "Natural and spontaneous celebrations",
+      alt: "Ungestellter Moment während der Hochzeitsfeier",
+      altEn: "A candid moment during the wedding celebration",
     },
     {
       url: "https://i.postimg.cc/4yS68dkb/Pic-9.jpg",
-      title: "Venue Photography",
-      description: "Stunning wedding venues"
+      title: "Locations",
+      titleEn: "Venue Photography",
+      description: "Beeindruckende Hochzeitslocations",
+      descriptionEn: "Stunning wedding venues",
+      alt: "Hochzeitslocation – Aufnahme der Veranstaltungsstätte",
+      altEn: "A wedding venue – photograph of the location",
     },
     {
       url: "https://i.postimg.cc/pTPJr4J8/TN-Post-wedding-portraits-168.jpg",
-      title: "Portrait Sessions",
-      description: "Professional wedding portraits"
+      title: "Porträtsessions",
+      titleEn: "Portrait Sessions",
+      description: "Professionelle Hochzeitsporträts",
+      descriptionEn: "Professional wedding portraits",
+      alt: "Hochzeitsporträt-Session des Brautpaars",
+      altEn: "A wedding portrait session with the couple",
     },
     {
+      // The filename records the venue, so the alt can name a real place people search for.
       url: "https://i.postimg.cc/Gt2PJDNm/Villa-Antoinette-Gl-serstra-e-9-2680-Semmering-Kurort-Austria.jpg",
-      title: "Location Shots",
-      description: "Beautiful wedding locations"
+      title: "Locationaufnahmen",
+      titleEn: "Location Shots",
+      description: "Villa Antoinette am Semmering",
+      descriptionEn: "Villa Antoinette, Semmering",
+      alt: "Villa Antoinette am Semmering – Hochzeitslocation in Österreich",
+      altEn: "Villa Antoinette in Semmering – a wedding venue in Austria",
     }
   ];
 
@@ -120,12 +187,12 @@ const WeddingFotoshootingPage: React.FC = () => {
               <div key={index} className="relative group overflow-hidden rounded-lg">
                 <img 
                   src={photo.url} 
-                  alt={photo.title}
+                  alt={de ? photo.alt : photo.altEn}
                   className="w-full h-64 object-cover transform transition-transform duration-300 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
                   <div className="text-white">
-                    <h3 className="font-bold text-lg mb-1">{photo.title}</h3>
+                    <h3 className="font-bold text-lg mb-1">{de ? photo.title : photo.titleEn}</h3>
                   </div>
                 </div>
               </div>
@@ -171,13 +238,15 @@ const WeddingFotoshootingPage: React.FC = () => {
                 <div key={index} className="relative group overflow-hidden rounded-lg">
                   <img 
                     src={photo.url} 
-                    alt={photo.title}
+                    alt={de ? photo.alt : photo.altEn}
                     className="w-full h-64 object-cover transform transition-transform duration-300 group-hover:scale-110"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
                     <div className="text-white">
-                      <h3 className="font-bold text-lg mb-1">{photo.title}</h3>
-                      <p className="text-sm opacity-90">{photo.description}</p>
+                      {/* additionalPhotos carries no description — this printed an empty
+                          <p> under every caption, and read `photo.description` off a shape
+                          that has never had the field. */}
+                      <h3 className="font-bold text-lg">{de ? photo.title : photo.titleEn}</h3>
                     </div>
                   </div>
                 </div>
@@ -231,13 +300,13 @@ const WeddingFotoshootingPage: React.FC = () => {
                 <div key={index} className="relative group overflow-hidden rounded-lg">
                   <img 
                     src={photo.url} 
-                    alt={photo.title}
+                    alt={de ? photo.alt : photo.altEn}
                     className="w-full h-64 object-cover transform transition-transform duration-300 group-hover:scale-110"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
                     <div className="text-white">
-                      <h3 className="font-bold text-lg mb-1">{photo.title}</h3>
-                      <p className="text-sm opacity-90">{photo.description}</p>
+                      <h3 className="font-bold text-lg mb-1">{de ? photo.title : photo.titleEn}</h3>
+                      <p className="text-sm opacity-90">{de ? photo.description : photo.descriptionEn}</p>
                     </div>
                   </div>
                 </div>

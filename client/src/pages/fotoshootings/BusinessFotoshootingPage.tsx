@@ -7,45 +7,89 @@ import { SITE } from '../../config/site';
 const BusinessFotoshootingPage: React.FC = () => {
   const { language } = useLanguage();
   const de = language === 'de';
+  /**
+   * CAPTION AND ALT ARE TWO DIFFERENT JOBS, AND THIS HELD ONE STRING FOR BOTH.
+   *
+   * `title` was rendered as the visible overlay heading AND passed to alt=, in English,
+   * on a page whose every other word switches on `de`. So a German visitor read "Office
+   * Culture" over the photo, and a screen reader heard the same two words twice — once as
+   * the caption, once as the description of the picture behind it.
+   *
+   * Split into four fields. title/titleEn is the short label a sighted visitor reads.
+   * alt/altEn describes the photograph for someone who cannot see it and for image search,
+   * which is a different sentence: it names the subject, the occasion and the city, because
+   * "Team Photos" is not a phrase anyone in Vienna types into Google.
+   *
+   * The alt text asserts only what the studio already asserts about each frame — the kind
+   * of shoot and where it was made. It does not describe clothing, faces or setting, which
+   * cannot be verified from here and would be worse than useless read aloud if wrong.
+   */
   const businessPhotos = [
     {
       url: "https://i.postimg.cc/RZjf8FsX/Whats-App-Image-2025-05-24-at-2-38-45-PM-1.jpg",
-      title: "Professional Headshots"
+      title: "Business-Headshots",
+      titleEn: "Professional Headshots",
+      alt: "Professionelles Business-Headshot aus dem Fotostudio in Wien",
+      altEn: "Professional business headshot taken at our Vienna photo studio",
     },
     {
       url: "https://i.postimg.cc/tRKspft4/19-L9686-683x1024.jpg",
-      title: "Corporate Portraits"
+      title: "Firmenporträts",
+      titleEn: "Corporate Portraits",
+      alt: "Firmenporträt für Website und Geschäftsbericht, fotografiert in Wien",
+      altEn: "Corporate portrait for a website and annual report, photographed in Vienna",
     },
     {
       url: "https://imgur.com/2EsZmcP.jpg",
-      title: "Team Photos"
+      title: "Teamfotos",
+      titleEn: "Team Photos",
+      alt: "Teamfoto einer Wiener Firma – gemeinsames Mitarbeiterbild",
+      altEn: "Team photo for a Vienna company – a group portrait of the staff",
     }
   ];
 
   const portfolioPhotos = [
     {
       url: "https://i.postimg.cc/6QqWdLLP/Whats-App-Image-2025-05-24-at-2-38-46-PM.jpg",
-      title: "Executive Portraits"
+      title: "Executive Porträts",
+      titleEn: "Executive Portraits",
+      alt: "Executive Porträt einer Führungskraft, aufgenommen in Wien",
+      altEn: "Executive portrait of a company leader, taken in Vienna",
     },
     {
       url: "https://i.postimg.cc/rFg2QRm2/Whats-App-Image-2025-05-24-at-2-38-45-PM.jpg",
-      title: "Business Casual"
+      title: "Business Casual",
+      titleEn: "Business Casual",
+      alt: "Business-Casual-Porträt für LinkedIn und Bewerbung in Wien",
+      altEn: "Business casual portrait for LinkedIn and job applications in Vienna",
     },
     {
       url: "https://i.postimg.cc/CMGgnQp1/11082260-883838491675315-8361533607387200890-o.jpg",
-      title: "Corporate Events"
+      title: "Firmenevents",
+      titleEn: "Corporate Events",
+      alt: "Firmenevent in Wien – Eventfotografie für Unternehmen",
+      altEn: "Corporate event in Vienna – event photography for companies",
     },
     {
       url: "https://imgur.com/OvQtkkB.jpg",
-      title: "Team Building"
+      title: "Teambuilding",
+      titleEn: "Team Building",
+      alt: "Teambuilding-Event eines Wiener Unternehmens",
+      altEn: "Team building event for a Viennese company",
     },
     {
       url: "https://imgur.com/XF8OK3q.jpg",
-      title: "Office Culture"
+      title: "Unternehmenskultur",
+      titleEn: "Office Culture",
+      alt: "Arbeitsalltag im Büro – Unternehmenskultur in Wien fotografiert",
+      altEn: "Everyday office life – company culture photographed in Vienna",
     },
     {
       url: "https://imgur.com/L3gwSlu.jpg",
-      title: "Professional Environment"
+      title: "Arbeitsumfeld",
+      titleEn: "Professional Environment",
+      alt: "Professionelles Arbeitsumfeld – Businessfotografie am Arbeitsplatz in Wien",
+      altEn: "Professional working environment – business photography on location in Vienna",
     }
   ];
 
@@ -78,13 +122,13 @@ const BusinessFotoshootingPage: React.FC = () => {
                 <div className="aspect-[4/3] overflow-hidden">
                   <img 
                     src={photo.url}
-                    alt={photo.title}
+                    alt={de ? photo.alt : photo.altEn}
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
                   <div className="text-white">
-                    <h3 className="font-bold text-lg mb-1">{photo.title}</h3>
+                    <h3 className="font-bold text-lg mb-1">{de ? photo.title : photo.titleEn}</h3>
                   </div>
                 </div>
               </div>
@@ -153,11 +197,11 @@ const BusinessFotoshootingPage: React.FC = () => {
                 <div key={index} className="relative group overflow-hidden rounded-lg">
                   <img
                     src={photo.url}
-                    alt={photo.title}
+                    alt={de ? photo.alt : photo.altEn}
                     className="w-full h-64 object-cover transform transition-transform duration-300 group-hover:scale-110"
                   />
                   <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <span className="text-white text-lg font-semibold">{photo.title}</span>
+                    <span className="text-white text-lg font-semibold">{de ? photo.title : photo.titleEn}</span>
                   </div>
                 </div>
               ))}

@@ -7,108 +7,202 @@ import { SITE } from '../../config/site';
 const EventFotoshootingPage: React.FC = () => {
   const { language } = useLanguage();
   const de = language === 'de';
+  /**
+   * CAPTION AND ALT ARE TWO DIFFERENT JOBS, AND THIS HELD ONE STRING FOR BOTH.
+   *
+   * `title` was both the visible overlay heading and the alt text, in English, on a page
+   * that otherwise switches every word on `de`. A German visitor read "Dance Floor" over
+   * the photograph, and a screen-reader user heard those same two words twice — once as
+   * the caption, once as the description of the image behind it.
+   *
+   * title/titleEn is the short label a sighted visitor reads. alt/altEn is the sentence
+   * that has to stand in for the photograph: it names the occasion and the city, because
+   * nobody searching in Vienna types "Networking Events".
+   *
+   * The ball series is a real, named, datable event, so the alt says so. Everything else
+   * asserts only the kind of shoot and where it happened — never clothing, faces or decor,
+   * which cannot be checked from here and mislead badly when read aloud.
+   */
   const eventPhotos = [
     {
       url: "https://i.postimg.cc/907tz7nR/21469528-10155302675513124-226449768-n.jpg",
-      title: "Corporate Event"
+      title: "Firmenevent",
+      titleEn: "Corporate Event",
+      alt: "Firmenevent in Wien – Eventfotografie während der Veranstaltung",
+      altEn: "Corporate event in Vienna – event photography during the occasion",
     },
     {
       url: "https://i.postimg.cc/QdHN7Jqy/121588004-364470784911600-8688844506532345601-n.jpg",
-      title: "Conference"
+      title: "Konferenz",
+      titleEn: "Conference",
+      alt: "Konferenz in Wien – Vortrag und Publikum während der Veranstaltung",
+      altEn: "Conference in Vienna – a talk and its audience during the event",
     },
     {
       url: "https://i.postimg.cc/vBdGpFwJ/COS-1254.jpg",
-      title: "Team Building"
+      title: "Teambuilding",
+      titleEn: "Team Building",
+      alt: "Teambuilding-Event eines Wiener Unternehmens",
+      altEn: "Team building event for a Viennese company",
     }
   ];
 
   const additionalPhotos = [
     {
       url: "https://i.postimg.cc/wTDQpDNn/IMG-2582.jpg",
-      title: "Business Conference"
+      title: "Businesskonferenz",
+      titleEn: "Business Conference",
+      alt: "Businesskonferenz in Wien – Eventfotografie für Unternehmen",
+      altEn: "Business conference in Vienna – event photography for companies",
     },
     {
       url: "https://i.postimg.cc/bY79WmZQ/K36C7261.jpg",
-      title: "Team Events"
+      title: "Teamevents",
+      titleEn: "Team Events",
+      alt: "Teamevent einer Wiener Firma – Mitarbeiter während der Veranstaltung",
+      altEn: "Team event for a Vienna company – staff during the occasion",
     },
     {
       url: "https://i.postimg.cc/Y9kwd61k/4S8A8486.jpg",
-      title: "Networking Events"
+      title: "Networking-Events",
+      titleEn: "Networking Events",
+      alt: "Networking-Event in Wien – Gäste im Gespräch",
+      altEn: "Networking event in Vienna – guests in conversation",
     },
     {
       url: "https://i.postimg.cc/gj2bWGST/IGEPHA-Park-Hyatt-6003.jpg",
-      title: "Corporate Celebrations"
+      title: "Firmenfeiern",
+      titleEn: "Corporate Celebrations",
+      alt: "Firmenfeier in Wien – Eventfotografie der Feierlichkeiten",
+      altEn: "Corporate celebration in Vienna – event photography of the festivities",
     },
     {
       url: "https://i.postimg.cc/Y9XyQYRd/COS-1203.jpg",
-      title: "Product Presentations"
+      title: "Produktpräsentationen",
+      titleEn: "Product Presentations",
+      alt: "Produktpräsentation in Wien – Eventfotografie der Präsentation",
+      altEn: "Product presentation in Vienna – event photography of the launch",
     },
     {
       url: "https://i.postimg.cc/Tw24yCVy/K36C8454.jpg",
-      title: "Company Milestones"
+      title: "Firmenjubiläen",
+      titleEn: "Company Milestones",
+      alt: "Firmenjubiläum in Wien – Eventfotografie zum Firmenmeilenstein",
+      altEn: "Company anniversary in Vienna – event photography of the milestone",
     }
   ];
 
+  // Every frame below is from one identifiable evening — the Ball des Sports 2025 in
+  // Vienna — so the alt text names it. That is a real, searchable thing, which "Elegant
+  // Moments" is not.
   const ballSportsPhotos = [
     {
       url: "https://i.postimg.cc/QMxS8Vks/Ball-des-Sports-2025-www-newagefotografie-com-5590.jpg",
-      title: "Elegant Moments",
-      description: "Capturing the grace of formal events"
+      title: "Elegante Momente",
+      titleEn: "Elegant Moments",
+      description: "Die Grazie festlicher Anlässe",
+      descriptionEn: "Capturing the grace of formal events",
+      alt: "Ball des Sports 2025 in Wien – eleganter Moment des Ballabends",
+      altEn: "Ball des Sports 2025 in Vienna – an elegant moment from the evening",
     },
     {
       url: "https://i.postimg.cc/bwP35mZZ/Ball-des-Sports-2025-www-newagefotografie-com-5766.jpg",
-      title: "Social Gatherings",
-      description: "Networking in style"
+      title: "Gesellige Runden",
+      titleEn: "Social Gatherings",
+      description: "Networking mit Stil",
+      descriptionEn: "Networking in style",
+      alt: "Ball des Sports 2025 in Wien – Gäste beim Networking",
+      altEn: "Ball des Sports 2025 in Vienna – guests networking",
     },
     {
       url: "https://i.postimg.cc/mrXjtR89/Ball-des-Sports-2025-www-newagefotografie-com-5825.jpg",
-      title: "Event Highlights",
-      description: "Key moments from the evening"
+      title: "Höhepunkte",
+      titleEn: "Event Highlights",
+      description: "Die wichtigsten Momente des Abends",
+      descriptionEn: "Key moments from the evening",
+      alt: "Ball des Sports 2025 in Wien – Höhepunkt der Veranstaltung",
+      altEn: "Ball des Sports 2025 in Vienna – a highlight of the event",
     },
     {
       url: "https://i.postimg.cc/FRYZSqBB/Ball-des-Sports-2025-www-newagefotografie-com-5855.jpg",
-      title: "Candid Interactions",
-      description: "Natural moments between guests"
+      title: "Ungestellte Momente",
+      titleEn: "Candid Interactions",
+      description: "Natürliche Augenblicke zwischen den Gästen",
+      descriptionEn: "Natural moments between guests",
+      alt: "Ball des Sports 2025 in Wien – ungestellter Moment zwischen Gästen",
+      altEn: "Ball des Sports 2025 in Vienna – a candid moment between guests",
     },
     {
       url: "https://i.postimg.cc/FFJpsMcf/Ball-des-Sports-2025-www-newagefotografie-com-5878.jpg",
-      title: "Event Atmosphere",
-      description: "The ambiance of the ball"
+      title: "Ballatmosphäre",
+      titleEn: "Event Atmosphere",
+      description: "Die Stimmung des Abends",
+      descriptionEn: "The ambiance of the ball",
+      alt: "Ball des Sports 2025 in Wien – Atmosphäre des Ballabends",
+      altEn: "Ball des Sports 2025 in Vienna – the atmosphere of the evening",
     },
     {
       url: "https://i.postimg.cc/yd2TyjqY/Ball-des-Sports-2025-www-newagefotografie-com-6331.jpg",
-      title: "Distinguished Guests",
-      description: "VIP moments captured"
+      title: "Ehrengäste",
+      titleEn: "Distinguished Guests",
+      description: "VIP-Momente festgehalten",
+      descriptionEn: "VIP moments captured",
+      alt: "Ball des Sports 2025 in Wien – Ehrengäste des Abends",
+      altEn: "Ball des Sports 2025 in Vienna – distinguished guests of the evening",
     },
     {
       url: "https://i.postimg.cc/8cWmKvDd/Ball-des-Sports-2025-www-newagefotografie-com-6382.jpg",
-      title: "Dance Floor",
-      description: "Celebration in motion"
+      title: "Tanzfläche",
+      titleEn: "Dance Floor",
+      description: "Feiern in Bewegung",
+      descriptionEn: "Celebration in motion",
+      alt: "Ball des Sports 2025 in Wien – Gäste auf der Tanzfläche",
+      altEn: "Ball des Sports 2025 in Vienna – guests on the dance floor",
     },
     {
       url: "https://i.postimg.cc/RV5R3gQg/Ball-des-Sports-2025-www-newagefotografie-com-6459.jpg",
-      title: "Evening Entertainment",
-      description: "Performances and shows"
+      title: "Abendprogramm",
+      titleEn: "Evening Entertainment",
+      description: "Auftritte und Showacts",
+      descriptionEn: "Performances and shows",
+      alt: "Ball des Sports 2025 in Wien – Auftritt im Abendprogramm",
+      altEn: "Ball des Sports 2025 in Vienna – a performance during the evening programme",
     },
     {
       url: "https://i.postimg.cc/SN6Gccgk/Ball-des-Sports-2025-www-newagefotografie-com-7025.jpg",
-      title: "Formal Portraits",
-      description: "Professional event photography"
+      title: "Festliche Porträts",
+      titleEn: "Formal Portraits",
+      description: "Professionelle Eventfotografie",
+      descriptionEn: "Professional event photography",
+      alt: "Ball des Sports 2025 in Wien – festliches Porträt eines Gastes",
+      altEn: "Ball des Sports 2025 in Vienna – a formal portrait of a guest",
     },
     {
       url: "https://i.postimg.cc/7b8TftF0/Ball-des-Sports-2025-www-newagefotografie-com-7789.jpg",
-      title: "Event Details",
-      description: "The finer points of the evening"
+      title: "Details",
+      titleEn: "Event Details",
+      description: "Die feinen Details des Abends",
+      descriptionEn: "The finer points of the evening",
+      alt: "Ball des Sports 2025 in Wien – Detailaufnahme des Ballabends",
+      altEn: "Ball des Sports 2025 in Vienna – a detail from the evening",
     },
     {
       url: "https://i.postimg.cc/3xZnQ2Gn/Ball-des-Sports-2025-www-newagefotografie-com-7920.jpg",
-      title: "Social Moments",
-      description: "Connections and conversations"
+      title: "Begegnungen",
+      titleEn: "Social Moments",
+      description: "Begegnungen und Gespräche",
+      descriptionEn: "Connections and conversations",
+      alt: "Ball des Sports 2025 in Wien – Gäste im Gespräch",
+      altEn: "Ball des Sports 2025 in Vienna – guests in conversation",
     },
     {
       url: "https://i.postimg.cc/Nfmdb3jh/Ball-des-Sports-2025-www-newagefotografie-com-7978.jpg",
-      title: "Grand Finale",
-      description: "Memorable closing moments"
+      title: "Großes Finale",
+      titleEn: "Grand Finale",
+      description: "Der Abschluss des Abends",
+      descriptionEn: "Memorable closing moments",
+      alt: "Ball des Sports 2025 in Wien – Abschluss des Ballabends",
+      altEn: "Ball des Sports 2025 in Vienna – the close of the evening",
     }
   ];
 
@@ -150,12 +244,12 @@ const EventFotoshootingPage: React.FC = () => {
               <div key={index} className="relative group overflow-hidden rounded-lg">
                 <img
                   src={photo.url}
-                  alt={photo.title}
+                  alt={de ? photo.alt : photo.altEn}
                   className="w-full h-64 object-cover transform transition-transform duration-300 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
                   <div className="text-white">
-                    <h3 className="font-bold text-lg mb-1">{photo.title}</h3>
+                    <h3 className="font-bold text-lg mb-1">{de ? photo.title : photo.titleEn}</h3>
                   </div>
                 </div>
               </div>
@@ -201,12 +295,12 @@ const EventFotoshootingPage: React.FC = () => {
                 <div key={index} className="relative group overflow-hidden rounded-lg">
                   <img
                     src={photo.url}
-                    alt={photo.title}
+                    alt={de ? photo.alt : photo.altEn}
                     className="w-full h-64 object-cover transform transition-transform duration-300 group-hover:scale-110"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
                     <div className="text-white">
-                      <h3 className="font-bold text-lg mb-1">{photo.title}</h3>
+                      <h3 className="font-bold text-lg mb-1">{de ? photo.title : photo.titleEn}</h3>
                     </div>
                   </div>
                 </div>
@@ -224,13 +318,13 @@ const EventFotoshootingPage: React.FC = () => {
                 <div key={index} className="relative group overflow-hidden rounded-lg">
                   <img 
                     src={photo.url} 
-                    alt={photo.title}
+                    alt={de ? photo.alt : photo.altEn}
                     className="w-full h-64 object-cover transform transition-transform duration-300 group-hover:scale-110"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
                     <div className="text-white">
-                      <h3 className="font-bold text-lg mb-1">{photo.title}</h3>
-                      <p className="text-sm opacity-90">{photo.description}</p>
+                      <h3 className="font-bold text-lg mb-1">{de ? photo.title : photo.titleEn}</h3>
+                      <p className="text-sm opacity-90">{de ? photo.description : photo.descriptionEn}</p>
                     </div>
                   </div>
                 </div>
