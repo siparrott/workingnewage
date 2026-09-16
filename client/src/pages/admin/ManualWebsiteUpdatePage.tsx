@@ -328,6 +328,12 @@ const HomepageImagesManager: React.FC = () => {
               <option value="services-family">Services - Family</option>
               <option value="services-pregnancy">Services - Pregnancy</option>
               <option value="services-newborn">Services - Newborn</option>
+              {/* The homepage's fourth service card ("Babys & Kinder"). It was given its own
+                  slot in code so it would stop showing the same photograph as the family card
+                  — and this list was not updated to match, so the slot existed and there was
+                  no way in the interface to put anything in it. A section a studio cannot
+                  select is a section that does not exist as far as they are concerned. */}
+              <option value="services-baby">Services - Baby &amp; Children</option>
               <option value="services-business">Services - Business</option>
               <option value="services-event">Services - Event</option>
               <option value="services-product">Services - Product</option>
