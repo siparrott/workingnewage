@@ -19,6 +19,24 @@ const WhatsAppButton: React.FC = () => {
   }, []);
   if (hidden) return null;
   const phoneNumber = SITE.phone.replace(/[^0-9]/g, '');
+
+  /**
+   * NO NUMBER, NO BUTTON.
+   *
+   * SITE.phone comes from BUSINESS_PHONE on the deployment, and it is perfectly normal for an
+   * instance not to have set one. When it is empty this built `https://wa.me/?text=...` — a
+   * wa.me link with no recipient — and WhatsApp responds by opening its "Send to…" contact
+   * picker. So a visitor tapping "Chat starten" was handed their own address book and asked
+   * who to send the studio's enquiry to. Some will pick a friend. Most will give up.
+   *
+   * Observed live on newagefotografie.com, where the injected config carries phone: "".
+   *
+   * A chat button that cannot reach the studio is worse than no chat button: it spends the
+   * visitor's intent and returns nothing. The Footer already takes this line with the same
+   * value — unconfigured means hidden — and this now matches it.
+   */
+  if (!phoneNumber) return null;
+
   const whatsappUrl = `https://wa.me/${phoneNumber}`;
 
   // Pre-filled message for better UX
