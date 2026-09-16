@@ -18,7 +18,28 @@ const WhatsAppButton: React.FC = () => {
     return () => window.removeEventListener('whatsapp-visibility', update);
   }, []);
   if (hidden) return null;
-  const phoneNumber = SITE.phone.replace(/[^0-9]/g, '');
+
+  /**
+   * wa.me WANTS THE NUMBER IN ONE EXACT SHAPE, AND IT IS NOT THE ONE PEOPLE WRITE.
+   *
+   * It takes digits only, in international form, with NO prefix: 4367763399210. A studio
+   * setting BUSINESS_PHONE will reasonably write any of
+   *
+   *     +43 677 63399210      0043 67763399210      0043 677 63399210
+   *
+   * — all the same number, none of them that string. Stripping non-digits alone (what this did)
+   * turns the 0043 forms into 004367763399210, and wa.me does not read the leading 00 as a
+   * country prefix: it treats the whole thing as the number, finds no such account, and the
+   * link fails as surely as an empty one.
+   *
+   * 00 is the written form of the + that wa.me omits, so it is dropped. The + forms already
+   * lose their symbol to the digit strip.
+   */
+  const toWaNumber = (raw: string): string => {
+    const digits = String(raw || '').replace(/[^0-9]/g, '');
+    return digits.startsWith('00') ? digits.slice(2) : digits;
+  };
+  const phoneNumber = toWaNumber(SITE.phone);
 
   /**
    * NO NUMBER, NO BUTTON.
