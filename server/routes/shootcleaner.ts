@@ -12,10 +12,29 @@ function getConfiguredApiKey(): string {
   return (process.env.SHOOTCLEANER_API_KEY || '').trim();
 }
 
+/**
+ * The key the caller presented, by any of the names the integration is documented under.
+ *
+ * x-togninja-api-key IS THE DOCUMENTED HEADER and was not read. Every ShootCleaner handoff
+ * states the transport as
+ *
+ *     x-togninja-api-key: <studio key>     # x-naf-api-key still accepted from older builds
+ *
+ * and this accepted neither — only x-api-key and a Bearer token. Anything written from the
+ * specification 401'd on every endpoint, reporting "Invalid API key", which reads as a wrong
+ * credential rather than an unread header.
+ *
+ * All four are accepted rather than switching: x-api-key and Bearer are what the shipped client
+ * sends today, so dropping them would break the integration in the act of documenting it.
+ *
+ * Ported from the product line (AxixOS/togninja v1.9.242), where this was found by calling
+ * /health exactly as the handoff's own worked example does.
+ */
 function getPresentedApiKey(req: Request): string {
-  const headerKey = (req.headers['x-api-key'] as string) || '';
-  if (headerKey) {
-    return headerKey.trim();
+  const named = ['x-togninja-api-key', 'x-naf-api-key', 'x-api-key'];
+  for (const name of named) {
+    const v = (req.headers[name] as string) || '';
+    if (v.trim()) return v.trim();
   }
 
   const authHeader = (req.headers.authorization || '').trim();
@@ -71,8 +90,8 @@ function buildB2Url(key: string): string | null {
 // Write API (Export to Galleries / Export to Cloud)
 // ---------------------------------------------------------------------------
 
-const READ_SCOPES = ['galleries:read', 'gallery-images:read', 'digital-files:read', 'clients:read', 'questionnaires:read', 'studio:read'];
-const WRITE_SCOPES = ['galleries:write', 'gallery-images:write', 'digital-files:write'];
+const READ_SCOPES = ['galleries:read', 'gallery-images:read', 'digital-files:read', 'clients:read', 'questionnaires:read', 'studio:read', 'portfolio:read'];
+const WRITE_SCOPES = ['galleries:write', 'gallery-images:write', 'digital-files:write', 'portfolio:write'];
 const ALL_SCOPES = [...READ_SCOPES, ...WRITE_SCOPES];
 
 const MAX_FILES_PER_CALL = 100;
@@ -697,6 +716,324 @@ router.post('/galleries/:id/images/commit', requireScope('gallery-images:write')
   } catch (error) {
     console.error('[shootcleaner] Failed to commit gallery images:', error);
     return res.status(500).json({ error: 'Failed to commit images', code: 'commit_failed' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Studio portfolio publishing
+//
+// Ported from the product line (AxixOS/togninja v1.9.242). A studio's OWN public portfolio —
+// no client, no expiry, no password — written into the /portfolio page this site already has
+// rather than into a second one.
+//
+// WHAT "REPLACE, NOT APPEND" MEANS HERE. An image absent from a publish disappears from the
+// public page, as the handoff asks. But portfolio_images on this site already holds 25
+// photographs the studio put there themselves, and a literal replace would delete them the
+// first time Publish was pressed in another application. So a publish owns exactly the rows it
+// created — tracked in shootcleaner_exports — and removes only those.
+//
+// CATEGORY 'featured'. On this site that is not an invented bucket: PortfolioPage reads
+// imagesByCategory['featured'] and renders it through FeaturedGrid as a mosaic, and six
+// photographs are already filed there. Published work lands in that grid.
+// ---------------------------------------------------------------------------
+
+const PORTFOLIO_CATEGORY = 'featured';
+const MAX_PORTFOLIO_IMAGES = 500;
+// One publish at a time. The work HEADs objects in storage between writes, so it is not
+// transactional — a session advisory lock rather than a row lock.
+const PORTFOLIO_LOCK_KEY = 918273645;
+
+let portfolioSchemaReady: Promise<void> | null = null;
+function ensurePortfolioSchema(): Promise<void> {
+  if (!portfolioSchemaReady) {
+    portfolioSchemaReady = pool
+      .query(`
+        CREATE TABLE IF NOT EXISTS shootcleaner_portfolio (
+          only_row       boolean PRIMARY KEY DEFAULT true CHECK (only_row),
+          id             uuid NOT NULL DEFAULT gen_random_uuid(),
+          title          text NOT NULL,
+          intro          text,
+          layout         text,
+          source_user_id text,
+          created_at     timestamptz NOT NULL DEFAULT now(),
+          updated_at     timestamptz NOT NULL DEFAULT now()
+        )
+      `)
+      .then(() => undefined)
+      .catch((err) => { portfolioSchemaReady = null; throw err; });
+  }
+  return portfolioSchemaReady;
+}
+
+/**
+ * ONE PORTFOLIO PER STUDIO, ENFORCED BY THE SCHEMA. A boolean primary key with a CHECK that it
+ * is true makes a second row impossible at the database rather than by remembering to look one
+ * up first — and the id survives every update, so a stored address keeps working.
+ */
+async function readPortfolioMeta(): Promise<any | null> {
+  await ensurePortfolioSchema();
+  const r = await pool.query(
+    'SELECT id, title, intro, layout, source_user_id, created_at, updated_at FROM shootcleaner_portfolio LIMIT 1',
+  );
+  return r.rows[0] || null;
+}
+
+/** The portfolio_images rows this integration created — never the studio's own. */
+async function shootcleanerPortfolioImageIds(): Promise<string[]> {
+  await ensureExportSchema();
+  const r = await pool.query(
+    `SELECT e.entity_id
+       FROM shootcleaner_exports e
+       JOIN portfolio_images p ON p.id::text = e.entity_id
+      WHERE e.entity_type = 'portfolio_image'`,
+  );
+  return r.rows.map((row: any) => String(row.entity_id));
+}
+
+function portfolioUrl(req: Request): string {
+  return `${getBaseUrl(req)}/portfolio/`;
+}
+
+// Presign portfolio uploads. ShootCleaner is a desktop app whose files sit on a local disk with
+// no address we could fetch, so there is no manifest route here on purpose.
+router.post('/portfolio/images/presign', requireScope('portfolio:write'), async (req, res) => {
+  try {
+    const files = req.body?.files;
+    const validationError = validateFileList(files, ALLOWED_IMAGE_TYPES);
+    if (validationError) {
+      return res.status(validationError.status).json({ error: validationError.error, code: validationError.code });
+    }
+
+    const { isConfigured } = getS3Config();
+    if (!isConfigured) return res.status(503).json({ error: 'Storage is not configured', code: 'storage_not_configured' });
+
+    const data: any[] = [];
+    for (const f of files) {
+      const rawName = String(f.filename || 'image');
+      const ext = path.extname(rawName) || '.jpg';
+      const base = sanitizeFilename(path.basename(rawName, ext)).slice(0, 80) || 'image';
+      const fileKey = `portfolio/${base}-${randomUUID().slice(0, 8)}${ext}`;
+      const uploadUrl = await presignPut(fileKey, f.contentType);
+      data.push({
+        filename: f.filename,
+        fileKey,
+        uploadUrl,
+        method: 'PUT',
+        headers: { 'Content-Type': f.contentType },
+        expiresAt: presignExpiry(),
+      });
+    }
+    return res.json({ data });
+  } catch (error) {
+    console.error('[shootcleaner] Failed to presign portfolio images:', error);
+    return res.status(500).json({ error: 'Failed to create upload URLs', code: 'presign_failed' });
+  }
+});
+
+// Create or replace the studio's portfolio. The images array is the whole thing.
+router.post('/portfolio', requireScope('portfolio:write'), async (req, res) => {
+  const title = String(req.body?.title || '').trim();
+  if (!title) return res.status(400).json({ error: 'title is required', code: 'invalid_request' });
+
+  const images = req.body?.images;
+  if (!Array.isArray(images) || images.length === 0) {
+    return res.status(400).json({ error: 'images[] is required', code: 'invalid_request' });
+  }
+  // Said, not truncated.
+  if (images.length > MAX_PORTFOLIO_IMAGES) {
+    return res.status(413).json({
+      error: `A portfolio holds at most ${MAX_PORTFOLIO_IMAGES} images; ${images.length} were sent`,
+      code: 'too_many_images',
+    });
+  }
+
+  const sourceUserId = String(req.body?.sourceRef?.userId || '').trim();
+  if (!sourceUserId) {
+    return res.status(400).json({ error: 'sourceRef.userId is required', code: 'invalid_request' });
+  }
+
+  const { isConfigured, bucket, endpoint } = getS3Config();
+  if (!isConfigured) return res.status(503).json({ error: 'Storage is not configured', code: 'storage_not_configured' });
+
+  let client: any = null;
+  try {
+    await ensurePortfolioSchema();
+    await ensureExportSchema();
+
+    client = await pool.connect();
+    const got = await client.query('SELECT pg_try_advisory_lock($1) AS ok', [PORTFOLIO_LOCK_KEY]);
+    if (!got.rows[0]?.ok) {
+      client.release();
+      client = null;
+      return res.status(409).json({ error: 'Another publish is in progress', code: 'portfolio_conflict' });
+    }
+
+    try {
+      const s3 = getS3Client();
+      const keptIds: string[] = [];
+
+      for (let i = 0; i < images.length; i++) {
+        const img = images[i] || {};
+        const fileKey = String(img.fileKey || '').trim();
+        const externalRef = String(img.externalRef || '').trim();
+        if (!externalRef) {
+          return res.status(400).json({ error: 'externalRef is required for each image', code: 'invalid_request' });
+        }
+        // Lenient on ordering: a missing sortOrder falls back to the position in the array,
+        // which is the order they sent. Rejecting the publish would cost a studio their upload
+        // over a field whose intent is never ambiguous.
+        const sortOrder = Number.isFinite(Number(img.sortOrder)) ? Number(img.sortOrder) : i;
+        const alt = img.alt == null ? null : String(img.alt).slice(0, 500);
+
+        // Same externalRef means the same photograph. Reuse the row rather than store a second
+        // copy of identical bytes — and UPDATE it, so a re-publish that only changes ordering
+        // or alt text is applied without re-uploading anything.
+        let rowId: string | null = null;
+        const existing = await lookupExternalRef(externalRef);
+        if (existing && existing.entityType === 'portfolio_image') {
+          const chk = await pool.query('SELECT id FROM portfolio_images WHERE id = $1 LIMIT 1', [existing.entityId]);
+          if (chk.rows[0]) {
+            await pool.query(
+              `UPDATE portfolio_images
+                  SET sort_order = $2, alt = COALESCE($3, alt), category = $4, is_active = true, updated_at = now()
+                WHERE id = $1`,
+              [existing.entityId, sortOrder, alt, PORTFOLIO_CATEGORY],
+            );
+            rowId = String(existing.entityId);
+          }
+          // Falls through when the row is gone — deleted in admin and published again. The
+          // stale mapping is repointed below rather than orphaned.
+        }
+
+        if (!rowId) {
+          if (!fileKey) {
+            return res.status(400).json({ error: 'fileKey is required for each new image', code: 'invalid_request' });
+          }
+          // A presigned URL expires in 15 minutes and a slow batch can outlive one. That case
+          // is a 422 so the client re-presigns and retries — never a 500, and never a row
+          // pointing at nothing.
+          try {
+            await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: fileKey }));
+          } catch {
+            return res.status(422).json({
+              error: `Upload not found for fileKey: ${fileKey}`,
+              code: 'invalid_file_key',
+            });
+          }
+
+          const ins = await pool.query(
+            `INSERT INTO portfolio_images (category, url, alt, sort_order, is_active)
+             VALUES ($1, $2, $3, $4, true)
+             RETURNING id`,
+            [PORTFOLIO_CATEGORY, buildPublicUrl(bucket, endpoint, fileKey), alt, sortOrder],
+          );
+          rowId = String(ins.rows[0].id);
+          await pool.query(
+            `INSERT INTO shootcleaner_exports (external_ref, entity_type, entity_id)
+             VALUES ($1, 'portfolio_image', $2)
+             ON CONFLICT (external_ref) DO UPDATE SET entity_type = 'portfolio_image', entity_id = EXCLUDED.entity_id`,
+            [externalRef, rowId],
+          );
+        }
+
+        keptIds.push(rowId);
+      }
+
+      // REPLACE, scoped to this integration's own rows. The studio's 25 existing photographs
+      // are not ours to delete.
+      const previous = await shootcleanerPortfolioImageIds();
+      const kept = new Set(keptIds);
+      const removed = previous.filter((id) => !kept.has(id));
+      if (removed.length) {
+        await pool.query('DELETE FROM portfolio_images WHERE id::text = ANY($1::text[])', [removed]);
+        await pool.query(
+          `DELETE FROM shootcleaner_exports WHERE entity_type = 'portfolio_image' AND entity_id = ANY($1::text[])`,
+          [removed],
+        );
+      }
+
+      const meta = await pool.query(
+        `INSERT INTO shootcleaner_portfolio (only_row, title, intro, layout, source_user_id, updated_at)
+         VALUES (true, $1, $2, $3, $4, now())
+         ON CONFLICT (only_row) DO UPDATE
+            SET title = EXCLUDED.title,
+                intro = EXCLUDED.intro,
+                layout = EXCLUDED.layout,
+                source_user_id = EXCLUDED.source_user_id,
+                updated_at = now()
+         RETURNING id, updated_at`,
+        [
+          title.slice(0, 300),
+          req.body?.intro == null ? null : String(req.body.intro).slice(0, 2000),
+          req.body?.layout == null ? null : String(req.body.layout).slice(0, 40),
+          sourceUserId.slice(0, 200),
+        ],
+      );
+
+      return res.json({
+        id: String(meta.rows[0].id),
+        url: portfolioUrl(req),
+        imageCount: kept.size,
+        updatedAt: new Date(meta.rows[0].updated_at).toISOString(),
+      });
+    } finally {
+      if (client) {
+        await client.query('SELECT pg_advisory_unlock($1)', [PORTFOLIO_LOCK_KEY]).catch(() => {});
+        client.release();
+        client = null;
+      }
+    }
+  } catch (error) {
+    console.error('[shootcleaner] Failed to publish portfolio:', error);
+    if (client) { try { client.release(); } catch { /* already released */ } }
+    return res.status(500).json({ error: 'Failed to publish portfolio', code: 'portfolio_publish_failed' });
+  }
+});
+
+// Read the published portfolio back. 404 is a normal answer — "not published yet", not a fault.
+router.get('/portfolio', requireScope('portfolio:read'), async (req, res) => {
+  try {
+    const meta = await readPortfolioMeta();
+    if (!meta) {
+      return res.status(404).json({ error: 'No portfolio has been published', code: 'portfolio_not_found' });
+    }
+    const ids = await shootcleanerPortfolioImageIds();
+    return res.json({
+      id: String(meta.id),
+      url: portfolioUrl(req),
+      title: meta.title,
+      intro: meta.intro ?? null,
+      layout: meta.layout ?? null,
+      imageCount: ids.length,
+      updatedAt: new Date(meta.updated_at).toISOString(),
+    });
+  } catch (error) {
+    console.error('[shootcleaner] Failed to read portfolio:', error);
+    return res.status(500).json({ error: 'Failed to read portfolio', code: 'portfolio_read_failed' });
+  }
+});
+
+// Unpublish. Removes this integration's images and the record of the publication; the studio's
+// own photographs stay and /portfolio/ keeps working.
+router.delete('/portfolio', requireScope('portfolio:write'), async (_req, res) => {
+  try {
+    const meta = await readPortfolioMeta();
+    if (!meta) {
+      return res.status(404).json({ error: 'No portfolio has been published', code: 'portfolio_not_found' });
+    }
+    const ids = await shootcleanerPortfolioImageIds();
+    if (ids.length) {
+      await pool.query('DELETE FROM portfolio_images WHERE id::text = ANY($1::text[])', [ids]);
+      await pool.query(
+        `DELETE FROM shootcleaner_exports WHERE entity_type = 'portfolio_image' AND entity_id = ANY($1::text[])`,
+        [ids],
+      );
+    }
+    await pool.query('DELETE FROM shootcleaner_portfolio');
+    return res.json({ ok: true, removed: ids.length });
+  } catch (error) {
+    console.error('[shootcleaner] Failed to unpublish portfolio:', error);
+    return res.status(500).json({ error: 'Failed to unpublish portfolio', code: 'portfolio_unpublish_failed' });
   }
 });
 
