@@ -12,7 +12,7 @@ import { useCart } from '../context/CartContext';
 import { useManualPageContent } from '../hooks/useManualPageContent';
 import { SEOHead } from '../components/SEO/SEOHead';
 import { Helmet } from 'react-helmet-async';
-import { getCachedData, setCachedData } from '../lib/persistentCache';
+import { getCachedData, setCachedData, getCachedTimestamp } from '../lib/persistentCache';
 import { useImagePreloader } from '../hooks/useImagePreloader';
 import { useGoogleReviews } from '../hooks/useGoogleReviews';
 import HomepageConfidenceSection from '../components/home/HomepageConfidenceSection';
@@ -139,10 +139,27 @@ const HomePage: React.FC = () => {
     // a previous mismatch meant the cache was never reused, so every load waited
     // on the network before image URLs were known.
     initialData: () => getCachedData('homepage-images', 1000 * 60 * 60 * 24), // 24 hour cache
+    /**
+     * HOW OLD THAT CACHED COPY ACTUALLY IS.
+     *
+     * Without this, initialData is treated as though it arrived this instant. Every page load
+     * re-seeds it, the staleTime below never elapses, and a cache written up to 24 hours ago
+     * outlives any number of reloads — so a studio uploads a photograph, the server has it,
+     * and the homepage goes on showing the previous one. Reported as "uploaded, it didnt land,
+     * do we have to wait for redeploy?". There was nothing to wait for.
+     *
+     * With the real timestamp, anything older than staleTime is stale and refetched in the
+     * background. The cached copy still paints immediately, so the flash this exists to
+     * prevent is still prevented — it is simply replaced a moment later when it is out of date.
+     */
+    initialDataUpdatedAt: () => getCachedTimestamp('homepage-images', 1000 * 60 * 60 * 24),
     // Keep data fresh but allow brief caching to prevent flash
     staleTime: 1000 * 60 * 5, // 5 minutes - images don't change that often
     cacheTime: 1000 * 60 * 10, // 10 minutes
-    refetchOnMount: false, // Don't refetch if we have cached data
+    // `false` meant "never refetch on mount", which with the above made the cache permanent
+    // for its full 24 hours. The default refetches ONLY when the data is stale, which is the
+    // behaviour the staleTime above was written to express.
+    refetchOnMount: true,
     refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 

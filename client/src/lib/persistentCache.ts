@@ -36,6 +36,34 @@ export function getCachedData<T>(key: string, maxAgeMs: number): T | undefined {
 }
 
 /**
+ * WHEN was this cached? Needed to tell React Query how old `initialData` is.
+ *
+ * getCachedData deliberately returns only the payload, which is right for every caller that
+ * just wants the value — but it means a query seeded with it looks BRAND NEW to React Query on
+ * every page load. With a staleTime the data is then considered fresh, no background refetch
+ * happens, and a cache written up to 24 hours ago survives reload after reload.
+ *
+ * That is not theoretical: a studio uploaded a photograph, the server had it, and the homepage
+ * kept rendering the previous one — "uploaded, it didnt land, do we have to wait for
+ * redeploy?". There was nothing to wait for; the browser simply never asked again.
+ *
+ * Returns undefined when there is no usable entry, which is exactly what initialDataUpdatedAt
+ * wants in that case.
+ */
+export function getCachedTimestamp(key: string, maxAgeMs: number): number | undefined {
+  try {
+    const cached = localStorage.getItem(key);
+    if (!cached) return undefined;
+    const parsed: CachedData<unknown> = JSON.parse(cached);
+    if (typeof parsed?.timestamp !== 'number') return undefined;
+    if (Date.now() - parsed.timestamp > maxAgeMs) return undefined;
+    return parsed.timestamp;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Store data in localStorage with timestamp
  * @param key - Cache key
  * @param data - Data to cache
