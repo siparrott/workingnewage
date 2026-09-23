@@ -4,6 +4,7 @@ import { createServer, type Server } from "http";
 import { registerTestRoutes } from "./routes-test";
 import { storage } from "./storage";
 import { studioImageMetadata } from "./lib/imageMetadata";
+import { gateLead } from "./lib/leadSpam";
 import { db, pool } from "./db";
 // Import Neon database functions
 const neonDb = require("../database.js");
@@ -4256,11 +4257,16 @@ Bitte versuchen Sie es später noch einmal.`;
   app.post("/api/leads/create", async (req: Request, res: Response) => {
     try {
       const { name, email, phone, message, source, formType } = req.body;
-      
+
       // Validate required fields
       if (!email && !phone) {
         return res.status(400).json({ error: 'Either email or phone is required' });
       }
+
+      // Bot, blocked address, or a repeat of one captured minutes ago: answer normally
+      // and write nothing. Telling a script it failed only teaches it to vary.
+      const gate = await gateLead({ name, email, phone, message }, req.body);
+      if (!gate.proceed) return res.status(201).json({ success: true });
 
       const newLead = await storage.createCrmLead({
         name: name || '',
@@ -4268,7 +4274,7 @@ Bitte versuchen Sie es später noch einmal.`;
         phone: phone || null,
         message: message || null,
         source: source || formType || 'WEBSITE',
-        status: 'new',
+        status: gate.status === 'SPAM' ? 'SPAM' : 'new',
         assignedTo: null
       } as any);
 
@@ -18359,6 +18365,17 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
         return res.status(400).json({ error: "Name, email, and message are required" });
       }
 
+      // Returns BEFORE the insert and before the notification email — the mailbox filling
+      // up is half of what makes this spam expensive, so a dropped submission must not
+      // send one. The caller still gets the normal success message.
+      const gate = await gateLead({ name: fullName, email, phone, message }, req.body);
+      if (!gate.proceed) {
+        return res.json({
+          success: true,
+          message: "Ihre Nachricht wurde erfolgreich gesendet. Wir melden uns bald bei Ihnen!",
+        });
+      }
+
       // Save to database as a lead
       const leadData = {
         name: fullName,
@@ -18366,7 +18383,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
         phone: phone || null,
         message: message,
         source: 'Website Contact Form',
-        status: 'new'
+        status: gate.status === 'SPAM' ? 'SPAM' : 'new'
       };
 
       const newLead = await db.insert(crmLeads).values(leadData).returning();
@@ -18450,6 +18467,15 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
         return res.status(400).json({ error: "Name and email are required" });
       }
 
+      // Before the insert and before the appointment email — see /api/contact.
+      const gate = await gateLead({ name: fullName, email, phone, message }, req.body);
+      if (!gate.proceed) {
+        return res.json({
+          success: true,
+          message: "Ihre Terminanfrage wurde erfolgreich übermittelt. Wir melden uns innerhalb von 24 Stunden bei Ihnen!",
+        });
+      }
+
       // Save to database as a lead with appointment details
       const leadData = {
         name: fullName,
@@ -18457,7 +18483,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
         phone: phone,
         message: `${preferredDate ? `Preferred Date: ${preferredDate}` : 'Preferred Date: (not specified)'}${message ? '\n\nAdditional Message: ' + message : ''}`,
         source: 'Appointment Request (Waitlist)',
-        status: 'new'
+        status: gate.status === 'SPAM' ? 'SPAM' : 'new'
       };
 
       const newLead = await db.insert(crmLeads).values(leadData).returning();
@@ -18639,13 +18665,25 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
         return res.status(400).json({ error: "Valid email address is required" });
       }
 
+      // This route is how the spam is recognisable: name is derived from the address, so
+      // "vfranco", "lindsay-john" and "info" in the CRM are rows this line created. It is
+      // the third of three forms one script posts to in the same minute, and the dedupe
+      // inside gateLead is what collapses that burst to a single lead.
+      const gate = await gateLead({ name: email.split('@')[0], email }, req.body);
+      if (!gate.proceed) {
+        return res.json({
+          success: true,
+          message: "Vielen Dank! Prüfen Sie Ihre E-Mails für Ihren 50€ Gutschein.",
+        });
+      }
+
       // Save to database as a lead
       const leadData = {
         name: email.split('@')[0] || 'Newsletter Subscriber',
         email: email,
         source: 'Newsletter Signup (50 EUR Voucher)',
         message: 'Signed up for 50 EUR voucher offer',
-        status: 'new'
+        status: gate.status === 'SPAM' ? 'SPAM' : 'new'
       };
 
       const newLead = await db.insert(crmLeads).values(leadData).returning();

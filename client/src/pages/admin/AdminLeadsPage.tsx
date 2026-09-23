@@ -405,6 +405,11 @@ const AdminLeadsPage: React.FC = () => {
               <option value="NEW">New</option>
               <option value="CONTACTED">Contacted</option>
               <option value="CONVERTED">Converted</option>
+              {/* Intake flags likely-spam submissions as SPAM rather than discarding them,
+                  so they stay out of New but remain reachable. Without this option they
+                  would only be findable under "All Statuses", which is where a wrongly
+                  flagged enquiry would quietly die. */}
+              <option value="SPAM">Spam</option>
             </select>
 
             <select

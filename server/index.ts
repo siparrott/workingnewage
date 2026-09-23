@@ -205,6 +205,35 @@ const authWriteLimiter = rateLimit({
 });
 app.use('/api/auth', authWriteLimiter);
 
+/**
+ * PUBLIC LEAD INTAKE — the global 300/minute cap is a DoS guard, not a spam guard.
+ *
+ * Four endpoints take anonymous POSTs and insert a CRM lead. A bot posting three leads a
+ * minute never comes close to 300 and filled the New Leads queue for weeks. The observed
+ * pattern is one script walking all four forms in a single pass, so ONE limiter instance
+ * is deliberately shared across all of them: the counter is per IP across the whole group,
+ * and hitting three forms in a burst spends three of the allowance rather than one each.
+ *
+ * Ten an hour is far above any real visitor — the honest maximum is a contact form and a
+ * newsletter box, and a couple of retries if something seemed not to send — and far below
+ * what makes the queue unusable. It applies only to POST, so nothing about browsing moves.
+ *
+ * This is keyed on req.ip, which is meaningful here only because 'trust proxy' is set
+ * above; without it every visitor would share the Heroku router's address and the first
+ * bot would rate-limit the entire internet out of the contact form.
+ */
+const leadIntakeLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.method !== 'POST',
+  message: { error: 'Too many submissions from this address. Please try again later, or email us directly.', code: 'rate_limited' },
+});
+for (const p of ['/api/leads/create', '/api/contact', '/api/waitlist', '/api/newsletter/signup']) {
+  app.use(p, leadIntakeLimiter);
+}
+
 // Increase body size limits to accommodate large image payloads (base64 encoded images can be 10MB+)
 // Skip JSON body parsing for Stripe webhook endpoints — they need the raw body Buffer
 // for signature verification via express.raw()

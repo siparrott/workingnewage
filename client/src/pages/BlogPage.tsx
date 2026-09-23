@@ -8,6 +8,7 @@ import { useManualPageContent } from '../hooks/useManualPageContent';
 import { SEOHead } from '../components/SEO/SEOHead';
 import { Helmet } from 'react-helmet-async';
 import { SITE } from '../config/site';
+import { botSignals } from '../lib/forms';
 
 interface BlogPost {
   id: string;
@@ -49,7 +50,7 @@ function NewsletterForm({ language }: { language: string }) {
       const res = await fetch('/api/newsletter/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, ...botSignals() }),
       });
       const data = await res.json();
       if (res.ok && data.success) {

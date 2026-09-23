@@ -1,5 +1,25 @@
 import { trackLead } from './tracking';
 
+/**
+ * When this page began. Every public submission carries it so the server can tell a
+ * person filling a form from a script posting the instant it loads; the server treats
+ * anything under a couple of seconds as automation.
+ *
+ * Captured at module load, which is page load — not at submit, when it would always
+ * read as "now" and prove nothing.
+ *
+ * A bot POSTing straight to the endpoint sends no stamp at all. That is deliberately
+ * NOT treated as guilt: an absent stamp is ignored rather than punished, because an
+ * old cached bundle or a blocked script would otherwise start silently discarding real
+ * enquiries. The rate limit and duplicate suppression are what catch direct posters.
+ */
+const PAGE_LOADED_AT = Date.now();
+
+/** Fields every public form adds: the load stamp, and a honeypot that must stay empty. */
+export function botSignals(): { formLoadedAt: number; website: string } {
+  return { formLoadedAt: PAGE_LOADED_AT, website: '' };
+}
+
 interface ContactFormData {
   fullName: string;
   email: string;
@@ -21,6 +41,7 @@ export async function submitContactForm(formData: ContactFormData & { sourcePath
       },
       body: JSON.stringify({
         ...formData,
+        ...botSignals(),
         sourcePath: formData.sourcePath || (typeof window !== 'undefined' ? window.location.pathname : undefined),
       }),
     });
@@ -48,6 +69,7 @@ export async function submitWaitlistForm(formData: WaitlistFormData & { sourcePa
       },
       body: JSON.stringify({
         ...formData,
+        ...botSignals(),
         sourcePath: formData.sourcePath || (typeof window !== 'undefined' ? window.location.pathname : undefined),
       }),
     });
@@ -73,8 +95,9 @@ export async function submitNewsletterForm(email: string, opts?: { consent?: boo
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         email,
+        ...botSignals(),
         consent: opts?.consent ?? true,
         sourcePath: opts?.sourcePath || (typeof window !== 'undefined' ? window.location.pathname : undefined),
       }),
