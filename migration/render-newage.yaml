@@ -48,9 +48,28 @@ services:
     dockerfilePath: ./Dockerfile
     region: frankfurt          # Vienna traffic; if you add the database above, match it
     plan: starter              # NOT free: free spins down and the first visitor waits
+    # The PRODUCT repo, not siparrott/workingnewage. Pointing at the legacy repo would
+    # just move the old build to a new host, which is not a migration. New Age runs the
+    # product image and its content comes from the database, so there is no code fork to
+    # re-create the divergence this whole exercise exists to end.
     repo: https://github.com/AxixOS/togninja
-    branch: main
-    autoDeploy: true
+
+    # A RELEASE BRANCH, not main. product/main took 47 commits in the last 30 days —
+    # roughly one and a half a day — and autoDeploy on main would rebuild a live business
+    # site every time the product ships anything, including work aimed at other studios
+    # and commits from the other workstream. A studio taking bookings should not redeploy
+    # because somebody edited a settings page.
+    #
+    # newage-live is a branch you fast-forward deliberately. Advancing it IS the release:
+    #
+    #   git fetch product
+    #   git push product <reviewed-sha>:refs/heads/newage-live
+    #
+    # It carries no commits of its own — it only ever points at a commit already on main
+    # that has been looked at. That keeps New Age on the product image with zero code
+    # divergence, while deciding for itself when to take a new one.
+    branch: newage-live
+    autoDeploy: true           # true is safe HERE: nothing lands on this branch by accident
     healthCheckPath: /healthz
 
     envVars:
