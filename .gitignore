@@ -262,3 +262,6 @@ workingnewage.git/
 # Licence signing key — SECRET, never commit
 *.pem
 license-signing-key.pem
+
+# Filled-in Render env for the migration — secrets, never committed.
+.env.render
