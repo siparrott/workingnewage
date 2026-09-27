@@ -1,0 +1,170 @@
+# Render Blueprint for MIGRATING New Age Fotografie off Heroku.
+#
+# This is NOT the product's render.yaml and must not be confused with it. That file
+# provisions a BRAND NEW studio, and two of its choices are actively destructive when
+# the studio already exists:
+#
+#   * SESSION_SECRET and ENCRYPTION_KEY are `generateValue: true` there. Correct for a
+#     new tenant with nothing stored. Here it would hand the instance fresh keys and
+#     every credential already encrypted in the database becomes unreadable — not
+#     "wrong", but indistinguishable from never having been set. server/lib/capabilities.ts
+#     exists largely to detect this: "if ENCRYPTION_KEY or SESSION_SECRET ever changes,
+#     every encrypted credential reads as unset at once." Both are `sync: false` below
+#     so Render PROMPTS for them and you paste the Heroku values verbatim.
+#
+#   * both plans are `free`. A free database suspends itself at 90 days — which is
+#     exactly what happened to togninja-studio-db on 25 Sept — and a free web service
+#     spins down when idle, so the first visitor each morning waits out a cold start.
+#     For a business that takes bookings through this site, neither is acceptable.
+#
+# ── Before you apply ────────────────────────────────────────────────────────
+# Settle ONE question first, because it changes the database block below:
+#
+#   Where does New Age's data live today?
+#     heroku config:get DATABASE_URL -a <app>      # read the HOSTNAME only
+#
+#   * an EXTERNAL Postgres (Supabase, Neon, …)  -> keep it. Delete the `databases:`
+#     block, leave DATABASE_URL as `sync: false`, and paste the existing connection
+#     string. The data never moves and never goes offline. This is the easy path.
+#
+#   * a HEROKU POSTGRES add-on                  -> the data must move. Uncomment the
+#     `databases:` block, switch DATABASE_URL to `fromDatabase`, and dump/restore into
+#     it during phase 3. This is the path with real risk; rehearse it twice.
+#
+# As written, this file assumes the EXTERNAL database path.
+
+# ── Uncomment ONLY if the data has to move off a Heroku Postgres add-on ─────
+# databases:
+#   - name: newage-db
+#     databaseName: newage
+#     plan: basic-256mb        # NOT free: free suspends at 90 days and takes the data
+#     region: frankfurt        # closest to Vienna; must match the service region
+
+services:
+  - type: web                  # a web service, not a static site: this app server-renders
+                               # blog and voucher meta, runs the API, and takes Stripe webhooks
+    name: newage-fotografie
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: frankfurt          # Vienna traffic; if you add the database above, match it
+    plan: starter              # NOT free: free spins down and the first visitor waits
+    repo: https://github.com/AxixOS/togninja
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /healthz
+
+    envVars:
+      # ── Runtime ─────────────────────────────────────────────────────────
+      - key: NODE_ENV
+        value: production
+
+      # MUST stay false. True exposes POST /api/setup/reset-demo, which is
+      # unauthenticated by design and TRUNCATEs clients, invoices, leads, galleries
+      # and landing pages. It is correct on a demo and catastrophic here.
+      - key: DEMO_MODE
+        value: "false"
+
+      # The core tables come from scripts/ensure-schema.mjs, which the Dockerfile runs
+      # before npm start and which does nothing unless this is truthy. Harmless against
+      # a populated database (CREATE TABLE IF NOT EXISTS), required against an empty one.
+      - key: AUTO_INIT_SCHEMA
+        value: "true"
+
+      # Prerendering is opt-in and off unless this is set. Without it the 27 Vienna
+      # pillar pages and everything else ship as an empty shell to crawlers.
+      - key: PRERENDER
+        value: "true"
+
+      # ── The two that must be COPIED, never generated ────────────────────
+      # Paste the exact current values from Heroku. If Render generates these, every
+      # encrypted credential in the database becomes unreadable and the product will
+      # tell you nine integrations are "not configured" when in fact the instance has
+      # simply lost the key to read them.
+      - key: SESSION_SECRET
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+
+      # ── Database ────────────────────────────────────────────────────────
+      # External Postgres: paste the existing connection string, unchanged.
+      - key: DATABASE_URL
+        sync: false
+      # If you uncommented the databases: block above, delete the three lines above
+      # and use this instead:
+      # - key: DATABASE_URL
+      #   fromDatabase:
+      #     name: newage-db
+      #     property: connectionString
+
+      # ── Identity and canonical URL ──────────────────────────────────────
+      # These change with the host. Point them at the live domain from the start, not
+      # at the .onrender.com address, or canonical tags and voucher links will name the
+      # staging host in anything generated before cutover.
+      - key: PUBLIC_SITE_URL
+        sync: false
+      - key: SITE_URL
+        sync: false
+      - key: BASE_URL
+        sync: false
+      - key: BUSINESS_NAME
+        sync: false
+      - key: CONTACT_EMAIL
+        sync: false
+      - key: BUSINESS_PHONE
+        sync: false
+
+      # ── Payments ────────────────────────────────────────────────────────
+      # STRIPE_WEBHOOK_SECRET is NOT a copy. The webhook URL changes with the host, so
+      # create a NEW endpoint in the Stripe dashboard pointing at the new origin and
+      # paste ITS signing secret. Reusing the Heroku one means every webhook fails
+      # signature verification — silently, while checkout still appears to work.
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: VITE_STRIPE_PUBLIC_KEY
+        sync: false
+
+      # ── Storage (Backblaze B2 via the S3 API) ───────────────────────────
+      - key: AWS_S3_BUCKET
+        sync: false
+      - key: AWS_S3_ENDPOINT
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+
+      # ── Email ───────────────────────────────────────────────────────────
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: BUSINESS_MAILBOX_USER
+        sync: false
+      - key: EMAIL_PASSWORD
+        sync: false
+
+      # ── Integrations ────────────────────────────────────────────────────
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SHOOTCLEANER_API_KEY
+        sync: false
+      - key: GOOGLE_PLACES_API_KEY
+        sync: false
+
+# ── After applying ──────────────────────────────────────────────────────────
+# The app reads roughly 150 environment variables in total; the ones above are the
+# ones that are required, host-dependent, or dangerous to get wrong. Everything else
+# has a safe default or is genuinely optional. Rather than transcribe all of them,
+# diff the two lists once the service is up:
+#
+#   heroku config -a <app> | awk '{print $1}' | tr -d ':' | sort > /tmp/heroku-keys
+#   # then compare against Render → Environment, and copy anything missing that the
+#   # studio actually relies on. Names only — never paste this list anywhere.
+#
+# Then, before DNS:
+#   node migration/verify-against-inventory.mjs https://<the-render-host>
+# which holds the new instance to all 91 must-survive pages captured from the live site.
