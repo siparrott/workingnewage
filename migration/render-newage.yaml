@@ -171,7 +171,49 @@ services:
         sync: false
       - key: SHOOTCLEANER_API_KEY
         sync: false
+
+      # Google reviews need BOTH of these. The key alone resolves nothing.
       - key: GOOGLE_PLACES_API_KEY
+        sync: false
+      - key: GOOGLE_PLACES_PLACE_ID
+        sync: false
+
+      # WhatsApp goes out through Brevo. BUSINESS_PHONE above is what the public
+      # "Chat starten" button links to; without it the button hides itself rather
+      # than opening WhatsApp's contact picker with no recipient.
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_WHATSAPP_SENDER
+        sync: false
+
+      # The admin inbox. Without these the CRM's mail side is simply empty — no error,
+      # just a feature that appears to have nothing in it.
+      - key: INBOX_IMAP_HOST
+        sync: false
+      - key: INBOX_IMAP_PORT
+        sync: false
+      - key: INBOX_IMAP_USER
+        sync: false
+      - key: INBOX_IMAP_PASS
+        sync: false
+
+      # Calendar sync. GOOGLE_SYNC_ENABLED gates the whole thing, so it is easy to
+      # migrate the credentials and still have nothing sync because the flag is unset.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALENDAR_ID
+        sync: false
+      - key: GOOGLE_SYNC_ENABLED
+        sync: false
+
+      # Gallery delivery. GALLERY_INVISIBLE_KEY seeds the invisible watermark that
+      # identifies which gallery a leaked image came from — change it and previously
+      # delivered images stop being attributable.
+      - key: GALLERY_INVISIBLE_KEY
+        sync: false
+      - key: GALLERY_WATERMARK_TEXT
         sync: false
 
 # ── After applying ──────────────────────────────────────────────────────────
