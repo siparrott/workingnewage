@@ -27,9 +27,11 @@ interface Invoice {
   documentType?: string;
   disable_online_payment?: boolean;
   online_payment_available?: boolean;
+  show_company?: boolean;
   created_at: string;
   client?: {
     name: string;
+    company?: string;
     email: string;
     address1?: string;
     address2?: string;
@@ -116,11 +118,15 @@ const PublicInvoicePage: React.FC = () => {
         // Older responses predate this field; treating "missing" as available keeps
         // studios that DO have Stripe working if they run an older server build.
         online_payment_available: data.onlinePaymentAvailable !== false,
+        // Only an explicit false hides the company; invoices made before the
+        // switch existed have no value and show it.
+        show_company: (data.showCompany ?? data.show_company) !== false,
         footer_text: data.footerText || data.footer_text,
         paid_amount: parseFloat(data.paidAmount || data.paid_amount || '0'),
         created_at: data.issueDate || data.issue_date || data.createdAt || data.created_at,
         client: data.client ? {
           name: `${data.client.firstName || ''} ${data.client.lastName || ''}`.trim() || data.client.name || 'Customer',
+          company: (data.client.company || '').trim() || undefined,
           email: data.client.email || '',
           address1: data.client.address || data.client.address1,
           address2: data.client.address2,

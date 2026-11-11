@@ -887,6 +887,14 @@ async function generateModernInvoicePDF(invoice: any, client: any): Promise<Buff
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(10);
   yPosition += 15;
+  // Company first, as the legal recipient, unless hidden on this invoice.
+  const companyName = (client.company || '').trim();
+  if (companyName && (invoice.showCompany ?? invoice.show_company) !== false) {
+    doc.setFont('helvetica', 'bold');
+    doc.text(companyName, 25, yPosition);
+    doc.setFont('helvetica', 'normal');
+    yPosition += 6;
+  }
   const clientName = `${client.firstName || client.first_name || ''} ${client.lastName || client.last_name || ''}`.trim();
   if (clientName) {
     doc.text(clientName, 25, yPosition);
@@ -7121,7 +7129,7 @@ Bitte versuchen Sie es später noch einmal.`;
   // Invoice edit endpoint - handles full invoice updates including items
   app.post("/api/invoice-edit", authenticateUser, async (req: Request, res: Response) => {
     try {
-      const { invoiceId, clientId, invoiceNumber, status, issueDate, dueDate, notes, footerText, documentType, items, discountType, discountValue, discountAmount, disableOnlinePayment } = req.body;
+      const { invoiceId, clientId, invoiceNumber, status, issueDate, dueDate, notes, footerText, documentType, items, discountType, discountValue, discountAmount, disableOnlinePayment, showCompany } = req.body;
       console.log('[INVOICE-EDIT] Received update request for invoice:', invoiceId);
       console.log('[INVOICE-EDIT] Request body:', JSON.stringify(req.body, null, 2));
       
@@ -7149,6 +7157,7 @@ Bitte versuchen Sie es später noch einmal.`;
           discount_value = COALESCE($11::numeric, discount_value),
           discount_amount = COALESCE($12::numeric, discount_amount),
           disable_online_payment = COALESCE($13::boolean, disable_online_payment),
+          show_company = COALESCE($14::boolean, show_company),
           updated_at = NOW()
         WHERE id = $9::uuid
         RETURNING *
@@ -7167,7 +7176,8 @@ Bitte versuchen Sie es später noch einmal.`;
         discountType || null,
         discountValue != null ? parseFloat(discountValue) : null,
         discountAmount != null ? parseFloat(discountAmount) : null,
-        disableOnlinePayment != null ? disableOnlinePayment : null
+        disableOnlinePayment != null ? disableOnlinePayment : null,
+        typeof showCompany === 'boolean' ? showCompany : null
       ]);
       
       if (!updateResult || updateResult.length === 0) {
@@ -7256,6 +7266,9 @@ Bitte versuchen Sie es später noch einmal.`;
         stripePaymentUrl: req.body.stripePaymentUrl || req.body.stripe_payment_url,
         paidAmount: req.body.paidAmount?.toString() || req.body.paid_amount?.toString() || '0',
         disableOnlinePayment: req.body.disableOnlinePayment || req.body.disable_online_payment || false,
+        // Only an explicit false hides the company; anything else (including an
+        // older client build that never sends the field) keeps it on the invoice.
+        showCompany: (req.body.showCompany ?? req.body.show_company) !== false,
         createdBy: req.body.createdBy || req.body.created_by || null
       };
       

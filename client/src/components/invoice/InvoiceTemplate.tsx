@@ -112,9 +112,12 @@ interface InvoiceTemplateProps {
     footer_text?: string;
     paid_amount?: number;
     document_type?: string;
+    // false hides client.company on this invoice; missing means show it.
+    show_company?: boolean;
     created_at: string;
     client?: {
       name: string;
+      company?: string;
       email: string;
       address1?: string;
       address2?: string;
@@ -177,6 +180,10 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
     fetchStudioConfig();
   }, []);
   
+  // The company leads the address block as the legal recipient, with the contact
+  // person beneath it. Hidden only when the studio switched it off for this invoice.
+  const companyLine = invoice.show_company !== false ? (invoice.client?.company || '').trim() : '';
+
   // Calculate balance
   const paidAmount = invoice.paid_amount || 0;
   const balanceDue = invoice.total_amount - paidAmount;
@@ -375,7 +382,10 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             {tx('shipTo')}
           </div>
           <div style={{ fontSize: '13px', lineHeight: '1.6', color: '#2c3e50' }}>
-            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+            {companyLine && (
+              <div style={{ fontWeight: 'bold' }}>{companyLine}</div>
+            )}
+            <div style={{ fontWeight: companyLine ? 'normal' : 'bold', marginBottom: '4px' }}>
               {invoice.client?.name}
             </div>
             {invoice.client?.address1 && (
@@ -411,7 +421,10 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, showPayButto
             {tx('billTo')}
           </div>
           <div style={{ fontSize: '13px', lineHeight: '1.6', color: '#2c3e50' }}>
-            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+            {companyLine && (
+              <div style={{ fontWeight: 'bold' }}>{companyLine}</div>
+            )}
+            <div style={{ fontWeight: companyLine ? 'normal' : 'bold', marginBottom: '4px' }}>
               {invoice.client?.name}
             </div>
             {invoice.client?.address1 && (

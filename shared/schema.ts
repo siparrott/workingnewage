@@ -255,6 +255,10 @@ export const crmInvoices = pgTable("crm_invoices", {
   stripePaymentUrl: text("stripe_payment_url"),
   paidAmount: decimal("paid_amount", { precision: 10, scale: 2 }).default("0"),
   disableOnlinePayment: boolean("disable_online_payment").default(false),
+  // Prints the client's company (crm_clients.company) on the invoice. Defaults on,
+  // so a company entered on the client appears unless the studio hides it for this
+  // particular invoice. A client without a company is unaffected either way.
+  showCompany: boolean("show_company").default(true),
   createdBy: uuid("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

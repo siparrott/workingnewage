@@ -562,6 +562,16 @@ app.use((req, res, next) => {
         console.warn('⚠️ voucher_sales.campaign_id migration already applied or failed:', migrationError.message);
       }
 
+      // Per-invoice switch for printing the client's company on the invoice.
+      // DEFAULT TRUE backfills every existing invoice as "show", so a company
+      // already entered on a client appears on that client's invoices at once.
+      try {
+        await db.execute(sql`ALTER TABLE crm_invoices ADD COLUMN IF NOT EXISTS show_company BOOLEAN DEFAULT TRUE`);
+        console.log('✅ crm_invoices.show_company column ensured');
+      } catch (migrationError: any) {
+        console.warn('⚠️ crm_invoices.show_company migration already applied or failed:', migrationError.message);
+      }
+
       // Landing pages: analytics events table + publishing/preview columns were
       // referenced by code but had no repo migration (broke analytics + preview
       // links on any reproducibly-provisioned DB). Ensure them idempotently.

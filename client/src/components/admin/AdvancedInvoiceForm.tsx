@@ -31,6 +31,7 @@ interface Client {
   id: string;
   name: string;
   email: string;
+  company?: string;
   address1?: string;
   city?: string;
   country?: string;
@@ -58,6 +59,9 @@ interface InvoiceFormData {
   // Hides the PAY NOW button on the public invoice page — for invoices that are
   // settled by bank transfer. Stored per invoice as crm_invoices.disable_online_payment.
   disable_online_payment: boolean;
+  // Prints the client's company on the invoice. On by default; stored per invoice
+  // as crm_invoices.show_company so an issued invoice keeps the choice it was sent with.
+  show_company: boolean;
   items: InvoiceItem[];
 }
 
@@ -160,6 +164,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
     discount_value: 0,
     discount_amount: 0,
     disable_online_payment: getSavedDisableOnlinePayment(),
+    show_company: true,
     items: [
       {
         id: '1',
@@ -233,6 +238,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
           discount_value: 0,
           discount_amount: 0,
           disable_online_payment: getSavedDisableOnlinePayment(),
+          show_company: true,
           items: [{ id: '1', description: '', quantity: 1, unit_price: 0, tax_rate: getLastUsedVatRate() }]
         });
         setClientSearch('');
@@ -320,6 +326,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
             id: client.id,
             name: displayName,
             email: client.email || '',
+            company: (client.company || '').trim() || undefined,
             address1: client.address,
             city: client.city,
             country: client.country
@@ -471,6 +478,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
           discount_value: parseFloat(invoice.discount_value || invoice.discountValue || '0') || 0,
           discount_amount: parseFloat(invoice.discount_amount || invoice.discountAmount || '0') || 0,
           disable_online_payment: Boolean(invoice.disable_online_payment ?? invoice.disableOnlinePayment ?? false),
+          show_company: (invoice.show_company ?? invoice.showCompany) !== false,
           items: items.length > 0 ? items.map((item: any, index: number) => ({
             id: item.id || String(index + 1),
             description: item.description || '',
@@ -638,6 +646,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
         id: newClient.id,
         name: `${newClient.firstName} ${newClient.lastName}`.trim(),
         email: newClient.email,
+        company: (newClient.company || '').trim() || undefined,
         address1: newClient.address,
         city: newClient.city,
         country: newClient.country
@@ -715,6 +724,7 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
         // ticked and locked, so store that too rather than saving something the
         // studio was never offered.
         disableOnlinePayment: formData.disable_online_payment || stripeAvailable === false,
+        showCompany: formData.show_company,
         items: formData.items.map(item => ({
           description: item.description,
           quantity: item.quantity,
@@ -928,6 +938,31 @@ const AdvancedInvoiceForm: React.FC<AdvancedInvoiceFormProps> = ({
                   Add New Client
                 </button>
               </div>
+              {(() => {
+                // Only offered when the chosen client has a company on file —
+                // with no company there is nothing to show or hide.
+                const company = clients.find(c => c.id === formData.client_id)?.company;
+                if (!company) return null;
+                return (
+                  <div className="mt-3 flex items-start bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    <input
+                      type="checkbox"
+                      id="showCompany"
+                      checked={formData.show_company}
+                      onChange={(e) => setFormData(prev => ({ ...prev, show_company: e.target.checked }))}
+                      className="h-4 w-4 mt-0.5 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                    />
+                    <label htmlFor="showCompany" className="ml-2 text-sm">
+                      <span className="font-medium text-gray-900">
+                        Show company name on invoice: {company}
+                      </span>
+                      <span className="block text-gray-600 mt-1">
+                        Printed above the client's name in the billing address. Untick to bill the person only.
+                      </span>
+                    </label>
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
