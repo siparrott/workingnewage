@@ -52,7 +52,20 @@ export default function HomepagePortfolio({
     staleTime: 5 * 60_000,
   });
 
-  const images = (data || []).filter((i) => i?.url).slice(0, limit);
+  // ONE PHOTOGRAPH, ONCE. The portfolio table holds deliberate copies: the "featured"
+  // category re-lists photographs from other categories (same url) so /portfolio can show a
+  // cross-category Featured grid. Taking the first twelve rows put the woman with glasses and
+  // the speaker on stage on the homepage twice each. Skip any url already shown, keeping the
+  // first occurrence — the rows are deleted nowhere, so /portfolio's Featured grid is untouched.
+  const seen = new Set<string>();
+  const images = (data || [])
+    .filter((i) => {
+      const url = i?.url?.trim();
+      if (!url || seen.has(url)) return false;
+      seen.add(url);
+      return true;
+    })
+    .slice(0, limit);
 
   // A studio whose portfolio is empty gets no section at all, rather than a heading over a
   // blank band promising photographs that are not there.
