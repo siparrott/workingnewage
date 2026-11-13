@@ -56,8 +56,15 @@ export default function AdminLandingPageEditorPage() {
 
       const normalized = (normalizeLandingPageContent({ [key]: wrapped } as any).content as any)[key];
       if (normalized !== undefined) {
-        editor.updateSection(key, normalized);
-        toast({ title: 'Section regenerated', description: 'Review the new copy, then Save.' });
+        // applyAiSection keeps what was there before, so "Undo AI change" on the
+        // section puts the studio's own copy back.
+        editor.applyAiSection(key, normalized);
+        toast({
+          title: 'Section regenerated',
+          description: editor.isPublished
+            ? 'Review the new copy. "Undo AI change" restores your text; Save puts it live.'
+            : 'Review the new copy. "Undo AI change" restores your text.',
+        });
       } else {
         toast({ title: 'Nothing generated', description: 'The AI returned no usable content. Try again.', variant: 'destructive' });
       }
@@ -71,9 +78,19 @@ export default function AdminLandingPageEditorPage() {
   const { unpublish, isUnpublishing } = useUnpublishLandingPage();
   const { requestPreviewLink } = useLandingPagePreviewUrl();
 
-  const handleBack = useCallback(() => {
+  // Leaving never drops copy silently. A draft is saved on the way out; a live
+  // page is not (Save is what puts changes live), so ask first.
+  const handleBack = useCallback(async () => {
+    if (editor.isDirty) {
+      if (editor.isPublished) {
+        if (!window.confirm('You have unsaved changes on this live page. Leave without saving them?')) return;
+      } else if (!(await editor.save())) {
+        toast({ title: 'Not saved', description: 'Your changes could not be saved, so you are still on this page.', variant: 'destructive' });
+        return;
+      }
+    }
     navigate('/admin/landing-pages');
-  }, [navigate]);
+  }, [editor, navigate, toast]);
 
   const handleDuplicate = useCallback(() => {
     if (id) triggerDuplicate(id);
@@ -98,9 +115,12 @@ export default function AdminLandingPageEditorPage() {
         sectionKey: key,
         mode: mode as LandingPageSectionRegenerationMode,
         customInstruction,
+        // The copy on screen, not the last saved copy — "improve" must improve
+        // what the studio is looking at, including edits not yet saved.
+        currentContent: (editor.content as unknown as Record<string, unknown> | null)?.[key],
       });
     },
-    [regenerate],
+    [regenerate, editor.content],
   );
 
   const handlePublish = useCallback(() => {
@@ -215,6 +235,8 @@ export default function AdminLandingPageEditorPage() {
       onSuggestFields={handleSuggestFields}
       isSuggesting={editor.isSuggesting}
       onRegenerateSection={handleRegenerateSection}
+      aiUndoAvailable={editor.aiUndoAvailable}
+      onUndoAiSection={editor.undoAiSection}
       onPublish={handlePublish}
       onUnpublish={handleUnpublish}
       onPreviewLink={handlePreviewLink}

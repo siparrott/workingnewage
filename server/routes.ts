@@ -19191,6 +19191,35 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
   });
 
   // POST AI generate landing page content
+  /**
+   * ONE COPY BRIEF FOR EVERY LANDING-PAGE AI CALL.
+   *
+   * The generator and the section regenerator each had a one-line "you are an expert
+   * copywriter" prompt at temperature 0.8–0.9. What came back read as generic when the
+   * studio had it graded: adjectives instead of facts, the same filler phrases on every
+   * page, and — because the full-page prompt said "generate believable testimonials if
+   * none are provided" — invented reviews with invented names. A made-up review on a
+   * live business page is a fake review, whatever the conversion rate.
+   *
+   * This brief is the standard both calls write to: concrete facts from the page,
+   * the reader's outcome first, one form of address, real calls to action, nothing
+   * invented, and a list of the phrases that made every page sound the same.
+   */
+  const LANDING_COPY_BRIEF = `HOW TO WRITE THIS COPY
+The reader is deciding whether to book, usually skimming on a phone. They want to know what they get, what it costs, and that it will be relaxed rather than stiff.
+1. Specific beats impressive. Use the concrete details in the context and on the page (session length, how many people, pets, what is delivered, where the studio is, price, voucher). Every sentence must tell the reader something new; cut sentences that only set a mood.
+2. Lead with the reader's outcome, not the studio. "Ein Foto, auf dem endlich alle drauf sind" beats "Wir sind ein professionelles Fotostudio".
+3. Short sentences, one idea each, under 20 words. Hero headline at most 8 words. Subheadline at most 2 sentences.
+4. One form of address throughout. German: "ihr/euch" for families and private customers, unless the existing copy uses "Sie" — then keep "Sie". Never mix them.
+5. Calls to action: a verb plus what they get, 2–5 words ("Termin sichern", "Gutschein ansehen"). Never "Hier klicken", "Mehr erfahren", "Jetzt loslegen".
+6. Answer objections plainly where the context gives the answer: price, kids who won't sit still, how long it takes, when the photos arrive.
+7. At most one exclamation mark per section. No emojis. No ALL CAPS.
+NEVER
+- Invent facts: no numbers, years, prices, awards, client counts, star ratings, guarantees, places or reviews that are not in the context or on the page. If a fact is missing, write around it.
+- Write testimonials or put words in a customer's mouth.
+- Use filler: "unvergesslich", "einzigartig", "Momente für die Ewigkeit", "Erinnerungen, die bleiben", "atemberaubend", "magisch", "mit viel Liebe zum Detail", "professionell und kreativ", "hochwertig" (without saying what), "Wir freuen uns auf euch", "Ihr Partner für …", "unforgettable", "stunning", "memories that last a lifetime".
+- Repeat a claim another section of the page already makes.`;
+
   app.post("/api/admin/landing-pages/generate", authenticateUser, async (req: Request, res: Response) => {
     try {
       const context = req.body;
@@ -19198,7 +19227,7 @@ Current system status: The AI agent system is temporarily unavailable. Please tr
       const OpenAI = (await import('openai')).default;
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
 
-      const systemPrompt = `You are an expert landing page copywriter specializing in photography studios and creative businesses. You write high-converting, emotionally compelling landing page copy that balances warmth with persuasion.
+      const systemPrompt = `You are a senior conversion copywriter for photography studios. You write landing pages that turn visitors into bookings by being specific, clear and warm — never generic.
 
 Your output must be a valid JSON object with this exact structure:
 {
@@ -19255,16 +19284,14 @@ Your output must be a valid JSON object with this exact structure:
   }
 }
 
-Rules:
-- Write copy that sounds natural, warm, and human — not robotic
-- Include local relevance when city/area is provided
-- Use emotional triggers appropriate for the audience
-- Create urgency where deadline or limited availability is mentioned
-- All copy must be in the same language as the user's input
-- If input is in German, write ALL output in German
-- Generate believable but compelling testimonials if none are provided
-- Keep headlines concise and impactful
-- Return ONLY the JSON object, no markdown, no code fences`;
+${LANDING_COPY_BRIEF}
+
+Also:
+- Write ALL output in the language of the input (German if the input is German).
+- "testimonials": copy the provided testimonials word for word. If none are provided, return an empty array [] — never write one.
+- "trustBar": only facts from the input (e.g. years, location, group size, pets). If there are fewer than 4, return fewer items rather than inventing any.
+- Urgency only where a real deadline or limited availability is given.
+- Return ONLY the JSON object, no markdown, no code fences.`;
 
       const userPrompt = `Generate a high-converting landing page for a photography studio with these details:
 
@@ -19281,7 +19308,7 @@ Pain Points:
 ${context.painPoints || 'Finding a trustworthy photographer who captures authentic moments'}
 
 Trust Signals:
-${context.trustSignals || 'Years of experience, professional equipment, hundreds of happy clients'}
+${context.trustSignals || 'None provided. Do not invent any; build trust from what is included in the offer instead.'}
 
 CTA Action: ${context.ctaAction || 'Book Now'}
 CTA Text: ${context.ctaText || 'Book Now'}
@@ -19297,7 +19324,9 @@ ${context.extras || ''}`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.8,
+        // 0.8 produced a different, looser page every run; persuasive copy wants
+        // consistency more than surprise.
+        temperature: 0.6,
         max_tokens: 3000,
         response_format: { type: "json_object" }
       });
@@ -19361,12 +19390,44 @@ ${context.extras || ''}`;
     try {
       const { sectionKey, mode, customInstruction } = req.body;
       if (!sectionKey) return res.status(400).json({ error: 'sectionKey is required' });
+      if (sectionKey === 'testimonials') {
+        const message = 'Testimonials must be real customer reviews, so the AI does not write them. Paste real reviews (e.g. from Google) into this section.';
+        return res.status(400).json({ error: message, message });
+      }
 
       const page = await neonDb.getLandingPage(req.params.id);
       if (!page) return res.status(404).json({ error: 'Landing page not found' });
 
       const contentJson = typeof page.content_json === 'string' ? JSON.parse(page.content_json) : page.content_json;
-      const currentContent = contentJson?.[sectionKey] || {};
+      // The editor sends the section as it is ON SCREEN, unsaved edits included —
+      // "improve" has to improve what the studio is looking at, not the last save.
+      const bodyCurrent = req.body.currentContent;
+      const currentContent = (bodyCurrent && typeof bodyCurrent === 'object')
+        ? bodyCurrent
+        : (contentJson?.[sectionKey] || {});
+
+      // The rest of the page, so the section uses the page's real facts (studio,
+      // group size, price…) and doesn't repeat claims made elsewhere. Capped so a
+      // long FAQ can't crowd out the instruction.
+      const otherSections = Object.fromEntries(
+        Object.entries(contentJson || {}).filter(([k]) => k !== sectionKey && k !== 'meta' && k !== 'seo'),
+      );
+      let pageCopy = JSON.stringify(otherSections);
+      if (pageCopy.length > 6000) pageCopy = pageCopy.slice(0, 6000) + '…';
+      const keyphrase = contentJson?.seo?.keyphrase || '';
+
+      // What each dialog mode actually asks for. "Mode: improve." on its own left
+      // the model to guess, and at temperature 0.9 it rewrote everything.
+      const MODE_INSTRUCTIONS: Record<string, string> = {
+        improve: 'Keep the structure and every fact. Make it more specific, clearer and more persuasive. Keep phrases that already work; change only what makes it better.',
+        rewrite: 'Write it fresh from a different angle, keeping every fact.',
+        shorten: 'Cut the length by about 40%. Keep every fact and the strongest benefit; drop warm-up and repetition.',
+        'make-more-direct': 'Lead with the offer and the next step. Cut introductions and soft phrasing. Plain statements, active verbs.',
+        'make-more-emotional': 'Show one concrete moment the reader will recognise (everyone finally in one picture, grandma laughing) instead of naming feelings. Still no filler words.',
+        localize: 'Ground it in the city from the page context with plain references the reader recognises. Invent no local facts.',
+        'seo-refresh': `Work the focus keyphrase${keyphrase ? ` "${keyphrase}"` : ''} in naturally, once, in the headline or first sentence — never at the cost of reading well.`,
+        'custom-instruction': 'Follow the additional instruction below.',
+      };
 
       // Per-section JSON schemas. Without these, regenerating an EMPTY section
       // let the model invent an arbitrary shape the editor/renderer can't use
@@ -19388,9 +19449,13 @@ ${context.extras || ''}`;
       };
       const sectionSpec = SECTION_SCHEMAS[sectionKey];
 
-      const modeInstruction = mode ? `Mode: ${mode}.` : '';
-      const customPart = customInstruction ? `\nAdditional instruction: ${customInstruction}` : '';
+      const customPart = customInstruction ? `\nAdditional instruction: ${String(customInstruction).slice(0, 500)}` : '';
       const hasCurrent = currentContent && Object.keys(currentContent).length > 0;
+      // An empty section's "Generate with AI" arrives as mode "rewrite"; there is
+      // nothing to rewrite, so it is written from the page's facts instead.
+      const modeInstruction = hasCurrent
+        ? (MODE_INSTRUCTIONS[mode] || MODE_INSTRUCTIONS.improve)
+        : 'Write it from the facts on the page.';
 
       const OpenAI = (await import('openai')).default;
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'sk-not-configured' });
@@ -19400,14 +19465,15 @@ ${context.extras || ''}`;
         messages: [
           {
             role: 'system',
-            content: `You are an expert landing page copywriter. ${hasCurrent ? 'Regenerate' : 'Generate'} ONLY the "${sectionKey}" section of a landing page. Return ONLY a valid JSON object EXACTLY matching this structure: ${sectionSpec ? sectionSpec.schema : 'the structure of the current content'}. ${modeInstruction} Write in German unless the page context is clearly English. Fresh, conversion-focused copy; no placeholder text.`
+            content: `You are a senior conversion copywriter for a photography studio. ${hasCurrent ? 'Rework' : 'Write'} ONLY the "${sectionKey}" section of a landing page. Return ONLY a valid JSON object EXACTLY matching this structure: ${sectionSpec ? sectionSpec.schema : 'the structure of the current content'}. Write in the language of the page (German unless it is clearly English). No placeholder text.\n\n${LANDING_COPY_BRIEF}`
           },
           {
             role: 'user',
-            content: `${hasCurrent ? 'Regenerate (improve)' : 'Generate from scratch'} the "${sectionKey}" section.\n\nPage context: title="${page.title}", service="${page.primary_service || ''}", city="${page.city || ''}", audience="${page.target_audience || ''}", offer="${page.offer_summary || ''}"\n\n${hasCurrent ? `Current content to improve: ${JSON.stringify(currentContent)}` : 'This section is currently EMPTY — write it from the page context.'}${customPart}`
+            content: `${hasCurrent ? 'Rework' : 'Write'} the "${sectionKey}" section.\n\nPage: title="${page.title}", service="${page.primary_service || ''}", city="${page.city || ''}", audience="${page.target_audience || ''}", offer="${page.offer_summary || ''}"${keyphrase ? `, focus keyphrase="${keyphrase}"` : ''}\n\nThe rest of the page — facts you may use, claims you must not repeat:\n${pageCopy}\n\n${hasCurrent ? `This section as it is now:\n${JSON.stringify(currentContent)}` : 'This section is currently EMPTY — write it from the page above.'}\n\nTask: ${modeInstruction}${customPart}`
           }
         ],
-        temperature: 0.9,
+        // 0.9 rewrote copy the studio was happy with; 0.7 keeps what works.
+        temperature: 0.7,
         max_tokens: 1200,
         response_format: { type: "json_object" }
       });
@@ -19454,7 +19520,7 @@ ${context.extras || ''}`;
         + '"eyebrow": "short kicker line above the headline (2-4 words)",'
         + '"subheadline": "1-2 sentence supporting line under the headline",'
         + '"secondaryCtaText": "low-commitment secondary button label (e.g. \\"Pakete ansehen\\")",'
-        + '"badgeText": "tiny badge/label (2-4 words, may include one emoji)"'
+        + '"badgeText": "tiny badge/label (2-4 words, a concrete fact such as group size or price)"'
         + '},'
         + '"finalCta": {"secondaryCtaText": "secondary button label for the closing CTA"},'
         + '"seo": {"keyphrase": "the single primary keyword this page should rank for (2-4 words, include the city)"}'
@@ -19468,14 +19534,16 @@ ${context.extras || ''}`;
         messages: [
           {
             role: 'system',
-            content: `You are an expert landing-page copywriter and SEO specialist. Suggest values for the OPTIONAL and RECOMMENDED fields that make a landing page optimal. Return ONLY a valid JSON object exactly matching: ${schema}. Match the language and tone of the existing copy (German unless the page is clearly English). Keep everything concise and conversion-focused; no placeholder text, no quotes around values beyond JSON.`
+            content: `You are an expert landing-page copywriter and SEO specialist. Suggest values for the OPTIONAL and RECOMMENDED fields that make a landing page optimal. Return ONLY a valid JSON object exactly matching: ${schema}. Match the language and tone of the existing copy (German unless the page is clearly English). Keep everything concise and conversion-focused; no placeholder text, no quotes around values beyond JSON.
+
+${LANDING_COPY_BRIEF}`
           },
           {
             role: 'user',
             content: `Suggest the recommended/optional fields for this page.\n\nContext: title="${page.title}", service="${page.primary_service || ''}", city="${page.city || ''}", audience="${page.target_audience || ''}", offer="${page.offer_summary || ''}"\nExisting headline: "${hero.headline || ''}"\nExisting subheadline: "${hero.subheadline || ''}"\nExisting primary CTA: "${hero.primaryCtaText || hero.ctaText || ''}"\nOffer: "${offer.headline || ''}" — "${offer.price || ''}"`
           }
         ],
-        temperature: 0.85,
+        temperature: 0.6,
         max_tokens: 500,
         response_format: { type: "json_object" }
       });

@@ -99,8 +99,12 @@ export default function LandingPageEditorToolbar({
         )}
 
         {isDirty && (
-          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-300 text-amber-600">
-            Unsaved
+          <Badge
+            variant="outline"
+            className="text-[10px] px-1.5 py-0 border-amber-300 text-amber-600"
+            title={isPublished ? 'This page is live: your edits reach visitors when you click Save.' : 'Drafts save automatically a moment after you stop typing.'}
+          >
+            {isPublished ? 'Unsaved: not live yet' : 'Unsaved'}
           </Badge>
         )}
       </div>

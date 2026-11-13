@@ -53,7 +53,7 @@ interface Props {
   toggleVisibility: (key: LandingPageSectionKey) => void;
   setAlignment: (key: LandingPageSectionKey, align: LandingPageSectionAlignment) => void;
   removeSection: (key: LandingPageSectionKey) => void;
-  save: () => Promise<void>;
+  save: () => Promise<unknown>;
   onBack: () => void;
   // Duplicate
   onDuplicate: () => void;
@@ -63,6 +63,9 @@ interface Props {
   isSuggesting: boolean;
   // Regenerate
   onRegenerateSection: (key: LandingPageSectionKey, mode: string, customInstruction?: string) => void;
+  // Sections whose AI replacement can be undone, and the undo itself
+  aiUndoAvailable?: Partial<Record<LandingPageSectionKey, boolean>>;
+  onUndoAiSection?: (key: LandingPageSectionKey) => void;
   // Publish
   onPublish: () => void;
   onUnpublish: () => void;
@@ -100,6 +103,8 @@ export default function LandingPageEditorLayout({
   onSuggestFields,
   isSuggesting,
   onRegenerateSection,
+  aiUndoAvailable,
+  onUndoAiSection,
   pageStatus,
   publishedUrl,
   isPublishing,
@@ -221,6 +226,8 @@ export default function LandingPageEditorLayout({
               onRemoveSection={removeSection}
               onRegenerate={handleRegenerate}
               onGenerateDirect={handleGenerateDirect}
+              aiUndoAvailable={aiUndoAvailable}
+              onUndoAi={onUndoAiSection}
             />
           </div>
         </main>

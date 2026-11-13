@@ -54,8 +54,14 @@ export function useLandingPageEditor(pageId: string) {
     setLastSavedAt(page.updated_at || null);
   }, [page]);
 
-  // Mark dirty on any change
-  const markDirty = useCallback(() => setIsDirty(true), []);
+  // Bumped on every local edit. A save compares it before and after, so text typed
+  // WHILE a save is in flight stays "unsaved" (and is saved next) instead of being
+  // reported as saved when it never reached the server.
+  const editSeqRef = useRef(0);
+  const markDirty = useCallback(() => {
+    editSeqRef.current += 1;
+    setIsDirty(true);
+  }, []);
 
   // Section updates
   const updateSection = useCallback((key: LandingPageSectionKey, data: unknown) => {
@@ -167,48 +173,130 @@ export function useLandingPageEditor(pageId: string) {
     }
   }, [page, content, seo, updateSection, updateSeoField]);
 
-  // Save
-  const save = useCallback(async () => {
-    if (!page || !content || !meta) return;
-    setIsSaving(true);
-    setSaveError(null);
-
-    // Sync SEO into content before save
-    const updatedContent = {
-      ...content,
-      seo: {
-        ...content.seo,
-        seoTitle: seo.seoTitle,
-        metaDescription: seo.metaDescription,
-        keyphrase: seo.keyphrase,
-        suggestedSlug: seo.slug,
-      },
-    };
-
+  // Save. Resolves true when the server has the copy. Saves never overlap: a call
+  // made while one is running (an autosave as the user clicks Back) waits for it,
+  // then saves what is on screen now.
+  const inFlightRef = useRef<Promise<boolean> | null>(null);
+  const failedSeqRef = useRef<number | null>(null);
+  const save = useCallback(async (): Promise<boolean> => {
+    if (!page || !content || !meta) return false;
+    if (inFlightRef.current) await inFlightRef.current.catch(() => false);
+    const run = saveOnce();
+    inFlightRef.current = run;
     try {
-      const payload = {
-        title,
-        slug: seo.slug,
-        seo_title: seo.seoTitle,
-        meta_description: seo.metaDescription,
-        hero_headline: updatedContent.hero?.headline || '',
-        hero_subheadline: updatedContent.hero?.subheadline || '',
-        cta_text: updatedContent.hero?.primaryCtaText || updatedContent.finalCta?.primaryCtaText || '',
-        content_json: serializeEditorContent(updatedContent, meta),
+      return await run;
+    } finally {
+      if (inFlightRef.current === run) inFlightRef.current = null;
+    }
+
+    async function saveOnce(): Promise<boolean> {
+      if (!page || !content || !meta) return false;
+      const seqAtStart = editSeqRef.current;
+      setIsSaving(true);
+      setSaveError(null);
+
+      // Sync SEO into content before save
+      const updatedContent = {
+        ...content,
+        seo: {
+          ...content.seo,
+          seoTitle: seo.seoTitle,
+          metaDescription: seo.metaDescription,
+          keyphrase: seo.keyphrase,
+          suggestedSlug: seo.slug,
+        },
       };
 
-      await updateLandingPageDraft(page.id, payload);
-      const now = new Date().toISOString();
-      setLastSavedAt(now);
-      setIsDirty(false);
-      qc.invalidateQueries({ queryKey: ['landing-page', pageId] });
-      qc.invalidateQueries({ queryKey: ['landing-page-revisions', pageId] });
-    } catch (err: any) {
-      setSaveError(err.message || 'Failed to save changes');
-    } finally {
-      setIsSaving(false);
+      try {
+        const payload = {
+          title,
+          slug: seo.slug,
+          seo_title: seo.seoTitle,
+          meta_description: seo.metaDescription,
+          hero_headline: updatedContent.hero?.headline || '',
+          hero_subheadline: updatedContent.hero?.subheadline || '',
+          cta_text: updatedContent.hero?.primaryCtaText || updatedContent.finalCta?.primaryCtaText || '',
+          content_json: serializeEditorContent(updatedContent, meta),
+        };
+
+        const saved = await updateLandingPageDraft(page.id, payload);
+        // Adopt the saved row as the cached page WITHOUT reseeding the editor.
+        // This used to invalidate and refetch; the refetched content differed from
+        // what was loaded, so the effect above reseeded local state from the server
+        // and wiped anything typed during the round trip. Recording the saved
+        // content as "already seen" makes that effect a no-op for our own save,
+        // while a revision restore (different content) still reseeds.
+        if (saved && typeof saved === 'object') {
+          lastContentRef.current = JSON.stringify((saved as LandingPageRecord).content_json ?? null);
+          qc.setQueryData(['landing-page', pageId], saved);
+        }
+        setLastSavedAt((saved as LandingPageRecord | undefined)?.updated_at || new Date().toISOString());
+        if (editSeqRef.current === seqAtStart) setIsDirty(false);
+        failedSeqRef.current = null;
+        qc.invalidateQueries({ queryKey: ['landing-page-revisions', pageId] });
+        return true;
+      } catch (err: any) {
+        failedSeqRef.current = seqAtStart;
+        setSaveError(err.message || 'Failed to save changes');
+        return false;
+      } finally {
+        setIsSaving(false);
+      }
     }
   }, [page, content, meta, title, seo, pageId, qc]);
+
+  // AUTOSAVE — drafts only. Copy the studio types is saved two seconds after they
+  // stop typing, so it can't be lost to a refresh, a closed tab or a forgotten
+  // Save. A PUBLISHED page is served straight from this content, so autosaving it
+  // would put half-written sentences in front of visitors; there the Save button
+  // stays the deliberate "go live" step, guarded by the leave warning below.
+  const isPublished = page?.status === 'published';
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  useEffect(() => {
+    if (!isDirty || isSaving || isPublished) return;
+    // After a failed save, wait for a new edit rather than retrying every two
+    // seconds against the same error (e.g. a slug already in use).
+    if (failedSeqRef.current !== null && failedSeqRef.current === editSeqRef.current) return;
+    const timer = window.setTimeout(() => { void saveRef.current(); }, 2000);
+    return () => window.clearTimeout(timer);
+  }, [isDirty, isSaving, isPublished, content, meta, seo, title]);
+
+  // Unsaved copy is never dropped silently: the browser asks before a refresh,
+  // tab close or navigation away while anything is unsaved.
+  useEffect(() => {
+    if (!isDirty) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [isDirty]);
+
+  // "Regenerate with AI" is optional and never a one-way door. Each AI
+  // replacement pushes what the section held before onto a per-section stack;
+  // "Undo AI change" pops it back, as many times as the AI was used.
+  const [aiUndo, setAiUndo] = useState<Partial<Record<LandingPageSectionKey, unknown[]>>>({});
+  // Duplicate opens the copy in this same editor instance — its undo history
+  // belongs to the page it was made on, not the copy.
+  useEffect(() => { setAiUndo({}); }, [pageId]);
+  const applyAiSection = useCallback((key: LandingPageSectionKey, data: unknown) => {
+    const previous = (content as unknown as Record<string, unknown> | null)?.[key];
+    setAiUndo(prev => ({ ...prev, [key]: [...(prev[key] ?? []), previous] }));
+    updateSection(key, data);
+  }, [content, updateSection]);
+  const undoAiSection = useCallback((key: LandingPageSectionKey) => {
+    const stack = aiUndo[key];
+    if (!stack || stack.length === 0) return;
+    setAiUndo(prev => ({ ...prev, [key]: (prev[key] ?? []).slice(0, -1) }));
+    updateSection(key, stack[stack.length - 1]);
+  }, [aiUndo, updateSection]);
+  const aiUndoAvailable = useMemo(() => {
+    const out: Partial<Record<LandingPageSectionKey, boolean>> = {};
+    for (const k of Object.keys(aiUndo) as LandingPageSectionKey[]) out[k] = (aiUndo[k]?.length ?? 0) > 0;
+    return out;
+  }, [aiUndo]);
 
   // Readiness
   const readiness = useMemo<LandingPagePublishReadinessResult>(() => {
@@ -257,5 +345,9 @@ export function useLandingPageEditor(pageId: string) {
     suggestFields,
     isSuggesting,
     save,
+    isPublished,
+    applyAiSection,
+    undoAiSection,
+    aiUndoAvailable,
   };
 }

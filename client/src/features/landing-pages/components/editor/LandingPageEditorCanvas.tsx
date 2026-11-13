@@ -30,6 +30,9 @@ interface Props {
   onRegenerate: (key: LandingPageSectionKey) => void;
   /** Generate an EMPTY section directly (no mode dialog). */
   onGenerateDirect: (key: LandingPageSectionKey) => void;
+  /** Sections whose last AI replacement can be undone. */
+  aiUndoAvailable?: Partial<Record<LandingPageSectionKey, boolean>>;
+  onUndoAi?: (key: LandingPageSectionKey) => void;
 }
 
 /** Maps a section key to the corresponding editor component */
@@ -81,9 +84,10 @@ function renderSectionEditor(
         : empty(def?.label ?? 'Inclusions');
 
     case 'testimonials':
-      return content.testimonials
-        ? <LandingPageTestimonialsEditor data={content.testimonials} onChange={onUpdate} />
-        : empty(def?.label ?? 'Testimonials');
+      // No "Generate with AI" here: a testimonial is a real customer's words, and
+      // an invented one on a live page is a fake review. An empty section opens
+      // straight into the editor so real reviews (e.g. from Google) can be pasted.
+      return <LandingPageTestimonialsEditor data={content.testimonials ?? { title: '', testimonials: [] }} onChange={onUpdate} />;
 
     case 'faq':
       return content.faq
@@ -136,6 +140,8 @@ export default function LandingPageEditorCanvas({
   onRemoveSection,
   onRegenerate,
   onGenerateDirect,
+  aiUndoAvailable,
+  onUndoAi,
 }: Props) {
   // Filter out seo from the canvas — it's in the right panel
   const canvasSections = sectionOrder.filter(k => k !== 'seo');
@@ -162,6 +168,7 @@ export default function LandingPageEditorCanvas({
             regenerating={regeneratingSection === key}
             onActivate={() => onActivateSection(key)}
             onRegenerate={() => onRegenerate(key)}
+            onUndoAi={aiUndoAvailable?.[key] && onUndoAi ? () => onUndoAi(key) : undefined}
             onToggleVisibility={() => onToggleVisibility(key)}
             onMoveUp={() => onMoveSectionUp(key)}
             onMoveDown={() => onMoveSectionDown(key)}

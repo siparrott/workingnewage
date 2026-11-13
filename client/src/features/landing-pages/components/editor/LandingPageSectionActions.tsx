@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Sparkles, ChevronUp, ChevronDown, Eye, EyeOff, Trash2 } from 'lucide-react';
+import { Sparkles, ChevronUp, ChevronDown, Eye, EyeOff, Trash2, Undo2 } from 'lucide-react';
 import type { LandingPageSectionKey } from '../../types/landingPageEditor.types';
 import { getSectionDefinition } from '../../utils/landingPageSections';
 
@@ -10,6 +10,8 @@ interface Props {
   isLast: boolean;
   regenerating?: boolean;
   onRegenerate: () => void;
+  /** Present only when the section's last AI replacement can be undone. */
+  onUndoAi?: () => void;
   onToggleVisibility: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
@@ -23,6 +25,7 @@ export default function LandingPageSectionActions({
   isLast,
   regenerating,
   onRegenerate,
+  onUndoAi,
   onToggleVisibility,
   onMoveUp,
   onMoveDown,
@@ -32,6 +35,20 @@ export default function LandingPageSectionActions({
 
   return (
     <div className="flex items-center gap-1">
+      {onUndoAi && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 px-3 mr-1 gap-1.5"
+          disabled={regenerating}
+          onClick={(e) => { e.stopPropagation(); onUndoAi(); }}
+          title="Put back the text this section had before the AI changed it"
+        >
+          <Undo2 className="h-4 w-4" />
+          Undo AI change
+        </Button>
+      )}
       {def?.supportsRegeneration && (
         <Button
           type="button"

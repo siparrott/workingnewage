@@ -8,6 +8,8 @@ export interface RegenerateSectionPayload {
   sectionKey: LandingPageSectionKey;
   mode: LandingPageSectionRegenerationMode;
   customInstruction?: string;
+  /** The section as it is on screen (may be unsaved). Falls back to the saved copy server-side. */
+  currentContent?: unknown;
 }
 
 /** Regenerate a single section of a landing page via AI */

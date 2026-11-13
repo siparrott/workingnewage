@@ -11,6 +11,8 @@ interface Props {
   regenerating?: boolean;
   onActivate: () => void;
   onRegenerate: () => void;
+  /** Present only when this section's last AI replacement can be undone. */
+  onUndoAi?: () => void;
   onToggleVisibility: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
@@ -27,6 +29,7 @@ export default function LandingPageSectionCard({
   regenerating,
   onActivate,
   onRegenerate,
+  onUndoAi,
   onToggleVisibility,
   onMoveUp,
   onMoveDown,
@@ -62,6 +65,7 @@ export default function LandingPageSectionCard({
           isLast={isLast}
           regenerating={regenerating}
           onRegenerate={onRegenerate}
+          onUndoAi={onUndoAi}
           onToggleVisibility={onToggleVisibility}
           onMoveUp={onMoveUp}
           onMoveDown={onMoveDown}
