@@ -7618,12 +7618,28 @@ Bitte versuchen Sie es später noch einmal.`;
       const items = await storage.getCrmInvoiceItems(req.params.id);
       
       // Fetch client information
-      let client = null;
-      if (invoice.clientId) {
-        client = await storage.getCrmClient(invoice.clientId);
-      }
-      
-      // Return complete invoice with items and client (public view).
+      const crmClient = invoice.clientId ? await storage.getCrmClient(invoice.clientId) : null;
+
+      // ONLY WHAT THE PRINTED INVOICE SHOWS. This endpoint needs no login — the
+      // invoice id in the link is the only key — and it used to return the whole
+      // CRM client row: the studio's internal notes about the client, their lead
+      // source, CRM status and record ids, to anyone holding the link. An explicit
+      // list means a column added to crm_clients later stays private by default.
+      const client = crmClient ? {
+        firstName: crmClient.firstName ?? null,
+        lastName: crmClient.lastName ?? null,
+        company: crmClient.company ?? null,
+        email: crmClient.email ?? null,
+        phone: crmClient.phone ?? null,
+        address: crmClient.address ?? null,
+        city: crmClient.city ?? null,
+        state: crmClient.state ?? null,
+        zip: crmClient.zip ?? null,
+        country: crmClient.country ?? null,
+        vatNumber: crmClient.vatNumber ?? null,
+      } : null;
+
+      // Return the invoice with items and the public client fields.
       // `onlinePaymentAvailable` mirrors exactly what create-payment-session
       // checks, so a studio that never connected Stripe never shows a PAY NOW
       // button that would 503 the moment the client clicks it.
